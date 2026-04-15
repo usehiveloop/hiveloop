@@ -5250,6 +5250,35 @@
         }
       }
     },
+    "/v1/agents/built-in-tools": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns the complete list of built-in tools that can be granted to agents via permissions. Each tool includes its category and whether it is locked (cannot be toggled off).",
+        "tags": [
+          "agents"
+        ],
+        "summary": "List all built-in tools",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BuiltInToolDefinition"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/agents/sandbox-tools": {
       "get": {
         "security": [
@@ -14909,6 +14938,27 @@
           "webhook_url_required": {
             "description": "WebhookURLRequired indicates the user must manually configure a webhook\nURL in the provider's dashboard for triggers to work.",
             "type": "boolean"
+          }
+        }
+      },
+      "BuiltInToolDefinition": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "locked": {
+            "description": "true = cannot be toggled off by the user",
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
           }
         }
       },

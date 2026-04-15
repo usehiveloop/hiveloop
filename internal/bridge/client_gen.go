@@ -215,6 +215,36 @@ func (e Role) Valid() bool {
 	}
 }
 
+// Defines values for SkillSource.
+const (
+	AgentSkills   SkillSource = "agent_skills"
+	ClaudeCode    SkillSource = "claude_code"
+	ControlPlane  SkillSource = "control_plane"
+	CursorRules   SkillSource = "cursor_rules"
+	GitHubCopilot SkillSource = "git_hub_copilot"
+	WindsurfRules SkillSource = "windsurf_rules"
+)
+
+// Valid indicates whether the value is a known member of the SkillSource enum.
+func (e SkillSource) Valid() bool {
+	switch e {
+	case AgentSkills:
+		return true
+	case ClaudeCode:
+		return true
+	case ControlPlane:
+		return true
+	case CursorRules:
+		return true
+	case GitHubCopilot:
+		return true
+	case WindsurfRules:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ToolPermission.
 const (
 	ToolPermissionAllow           ToolPermission = "allow"
@@ -247,8 +277,30 @@ type AgentConfig struct {
 	// Compaction Configuration for conversation compaction (history summarization).
 	Compaction *CompactionConfig `json:"compaction,omitempty"`
 
+	// DisabledTools Tools to disable for this agent. Takes priority over everything else —
+	// disabled tools are removed from the registry before the agent is built,
+	// so the LLM never sees them. Works for built-in tools, MCP tools, codedb
+	// tools, integration tools, and spider tools.
+	DisabledTools *[]string `json:"disabled_tools,omitempty"`
+
+	// Immortal Configuration for immortal conversations (chain-based context management).
+	//
+	// When the token budget is exceeded, instead of compacting (summarizing in-place),
+	// Bridge extracts a structured checkpoint, resets the history with the checkpoint +
+	// journal + recent turns, and continues seamlessly. The external conversation_id
+	// never changes.
+	Immortal *ImmortalConfig `json:"immortal,omitempty"`
+
 	// JsonSchema JSON schema for structured output
 	JsonSchema interface{} `json:"json_schema,omitempty"`
+
+	// MaxConcurrentConversations Maximum concurrent conversations for this specific agent.
+	// Takes precedence over the global max_concurrent_conversations.
+	MaxConcurrentConversations *int32 `json:"max_concurrent_conversations,omitempty"`
+
+	// MaxTasksPerConversation Maximum total subagent tasks per conversation. Limits resource consumption
+	// from recursive/parallel subagent spawning. Default: 50.
+	MaxTasksPerConversation *int32 `json:"max_tasks_per_conversation,omitempty"`
 
 	// MaxTokens Maximum tokens for LLM response
 	MaxTokens *int32 `json:"max_tokens,omitempty"`
@@ -262,19 +314,10 @@ type AgentConfig struct {
 	// Temperature Temperature for LLM sampling
 	Temperature *float64 `json:"temperature,omitempty"`
 
-	// MaxTasksPerConversation Maximum tasks per conversation
-	MaxTasksPerConversation *int32 `json:"max_tasks_per_conversation,omitempty"`
-
-	// MaxConcurrentConversations Maximum concurrent conversations
-	MaxConcurrentConversations *int32 `json:"max_concurrent_conversations,omitempty"`
-
-	// ToolCallsOnly Only allow tool calls, no text responses
+	// ToolCallsOnly When true, the agent can complete a turn with only tool calls and no text.
+	// Empty text responses are treated as success if tool calls were executed.
+	// Default: false.
 	ToolCallsOnly *bool `json:"tool_calls_only,omitempty"`
-
-	// DisabledTools List of tool names to completely remove from the agent.
-	// Disabled tools are removed from the registry before the agent is built —
-	// the LLM never sees them. Takes priority over permissions and tools allow-lists.
-	DisabledTools []string `json:"disabled_tools,omitempty"`
 }
 
 // AgentDefinition Complete definition of an AI agent fetched from the control plane.
@@ -329,33 +372,35 @@ type AgentDefinition struct {
 	WebhookUrl *string `json:"webhook_url,omitempty"`
 }
 
-// AgentDetailsResponse Response for getting agent details.
-type AgentDetailsResponse struct {
-	// ActiveConversations Number of currently active conversations.
+// AgentResponse Full agent response — returned by both list and detail endpoints.
+// System prompts may be truncated on the list endpoint.
+type AgentResponse struct {
 	ActiveConversations int `json:"active_conversations"`
 
-	// Id Agent identifier.
-	Id string `json:"id"`
+	// Config Configuration options for an agent.
+	Config       AgentConfig             `json:"config"`
+	Description  *string                 `json:"description,omitempty"`
+	Id           string                  `json:"id"`
+	Integrations []IntegrationDefinition `json:"integrations"`
+	McpServers   []McpServerDefinition   `json:"mcp_servers"`
 
-	// Name Agent display name.
-	Name string `json:"name"`
+	// Metrics Serializable snapshot of agent metrics for the /metrics endpoint.
+	Metrics     MetricsSnapshot           `json:"metrics"`
+	Name        string                    `json:"name"`
+	Permissions map[string]ToolPermission `json:"permissions"`
 
-	// SystemPrompt System prompt used by the agent.
-	SystemPrompt string `json:"system_prompt"`
+	// Provider Provider info with secrets redacted.
+	Provider ProviderSummary `json:"provider"`
 
-	// Version Agent version.
-	Version *string `json:"version,omitempty"`
-}
-
-// AgentSummary Lightweight agent summary for listing endpoints.
-type AgentSummary struct {
-	Id String `json:"id"`
-
-	// Name Agent name
-	Name string `json:"name"`
-
-	// Version Agent version
-	Version *string `json:"version,omitempty"`
+	// RegisteredTools All tools registered and available to this agent (built-in + MCP + integrations).
+	RegisteredTools []RegisteredToolSummary `json:"registered_tools"`
+	Skills          []SkillDefinition       `json:"skills"`
+	Subagents       []SubAgentSummary       `json:"subagents"`
+	SystemPrompt    string                  `json:"system_prompt"`
+	Tools           []ToolDefinition        `json:"tools"`
+	UpdatedAt       *string                 `json:"updated_at,omitempty"`
+	Version         *string                 `json:"version,omitempty"`
+	WebhookUrl      *string                 `json:"webhook_url,omitempty"`
 }
 
 // ApprovalDecision The user's decision on an approval request.
@@ -365,6 +410,10 @@ type ApprovalDecision string
 type ApprovalReply struct {
 	// Decision The user's decision on an approval request.
 	Decision ApprovalDecision `json:"decision"`
+
+	// Reason Optional message explaining why the tool call was denied.
+	// Included in the error returned to the LLM so the agent can adjust.
+	Reason *string `json:"reason,omitempty"`
 }
 
 // ApprovalRequest A pending approval request for a tool call.
@@ -400,8 +449,11 @@ type ApprovalStatus string
 // BulkApprovalReply HTTP request body for resolving multiple approvals at once.
 type BulkApprovalReply struct {
 	// Decision The user's decision on an approval request.
-	Decision   ApprovalDecision `json:"decision"`
-	RequestIds []string         `json:"request_ids"`
+	Decision ApprovalDecision `json:"decision"`
+
+	// Reason Optional message explaining why the tool calls were denied.
+	Reason     *string  `json:"reason,omitempty"`
+	RequestIds []string `json:"request_ids"`
 }
 
 // BulkResolveApprovalsResponse Response for bulk resolving approvals.
@@ -507,6 +559,38 @@ type ConversationRecord struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// CreateConversationRequest Optional request body for creating a conversation with tool/MCP scoping.
+type CreateConversationRequest struct {
+	// ApiKey When provided, overrides the agent's LLM API key for this conversation only.
+	// For full provider/model override, use the `provider` field instead.
+	ApiKey *string `json:"api_key,omitempty"`
+
+	// McpServerNames When provided, only tools from these MCP servers are available.
+	// Server names must match the agent's configured MCP server names.
+	McpServerNames *[]string `json:"mcp_server_names,omitempty"`
+
+	// McpServers Additional MCP servers to load for this conversation only.
+	// Connected at conversation creation, torn down when the conversation ends
+	// (or is aborted, drained, or cancelled). Tool names produced by these
+	// servers must not collide with the agent's existing tool names.
+	//
+	// Stdio transport requires the runtime config flag
+	// `allow_stdio_mcp_from_api` to be enabled; otherwise only
+	// `streamable_http` is accepted.
+	McpServers *[]McpServerDefinition `json:"mcp_servers,omitempty"`
+
+	// Provider Configuration for an LLM provider.
+	Provider *ProviderConfig `json:"provider,omitempty"`
+
+	// SubagentApiKeys Per-subagent API key overrides. Key = subagent name, Value = API key.
+	// Only named subagents are overridden; others keep their configured keys.
+	SubagentApiKeys *map[string]string `json:"subagent_api_keys,omitempty"`
+
+	// ToolNames When provided, only these tools are available in the conversation.
+	// Tool names must match the agent's registered tool names exactly.
+	ToolNames *[]string `json:"tool_names,omitempty"`
+}
+
 // CreateConversationResponse Response for creating a conversation.
 type CreateConversationResponse struct {
 	// ConversationId The ID of the newly created conversation.
@@ -552,6 +636,28 @@ type HydrateConversationsRequest struct {
 type HydrateConversationsResponse struct {
 	// Hydrated Number of conversations hydrated.
 	Hydrated int `json:"hydrated"`
+}
+
+// ImmortalConfig Configuration for immortal conversations (chain-based context management).
+//
+// When the token budget is exceeded, instead of compacting (summarizing in-place),
+// Bridge extracts a structured checkpoint, resets the history with the checkpoint +
+// journal + recent turns, and continues seamlessly. The external conversation_id
+// never changes.
+type ImmortalConfig struct {
+	// CarryForwardTurns Number of complete user turns to carry forward verbatim into the new chain.
+	// A "complete user turn" includes the user message and all subsequent assistant
+	// responses and tool calls until the next user message.
+	CarryForwardTurns *int32 `json:"carry_forward_turns,omitempty"`
+
+	// CheckpointPrompt Custom prompt for checkpoint extraction. Uses a built-in default if None.
+	CheckpointPrompt *string `json:"checkpoint_prompt,omitempty"`
+
+	// CheckpointProvider Configuration for an LLM provider.
+	CheckpointProvider ProviderConfig `json:"checkpoint_provider"`
+
+	// TokenBudget Token budget. Chain triggers when estimated tokens exceed this.
+	TokenBudget *int32 `json:"token_budget,omitempty"`
 }
 
 // IntegrationAction A single action within an integration that an agent can invoke.
@@ -639,6 +745,10 @@ type Message struct {
 	// Role Role of a message sender in a conversation.
 	Role Role `json:"role"`
 
+	// SystemReminder Optional per-message system reminder injected by the control plane.
+	// Wrapped in `<system-reminder>` tags and prepended to the user message.
+	SystemReminder *string `json:"system_reminder,omitempty"`
+
 	// Timestamp Timestamp when the message was created
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -676,6 +786,9 @@ type MetricsSnapshot struct {
 	// OutputTokens Total output tokens generated
 	OutputTokens int64 `json:"output_tokens"`
 
+	// ToolCallDetails Per-tool call metrics
+	ToolCallDetails []ToolCallStatsSnapshot `json:"tool_call_details"`
+
 	// ToolCalls Total tool calls executed
 	ToolCalls int64 `json:"tool_calls"`
 
@@ -699,6 +812,15 @@ type ProviderConfig struct {
 
 	// Model Model identifier (e.g., "gpt-4o", "claude-sonnet-4-20250514")
 	Model string `json:"model"`
+
+	// ProviderType Supported LLM provider types.
+	ProviderType ProviderType `json:"provider_type"`
+}
+
+// ProviderSummary Provider info with secrets redacted.
+type ProviderSummary struct {
+	BaseUrl *string `json:"base_url,omitempty"`
+	Model   string  `json:"model"`
 
 	// ProviderType Supported LLM provider types.
 	ProviderType ProviderType `json:"provider_type"`
@@ -737,6 +859,12 @@ type PushDiffResponse struct {
 	Updated int `json:"updated"`
 }
 
+// RegisteredToolSummary Summary of a registered tool (built-in, MCP, or integration).
+type RegisteredToolSummary struct {
+	Description string `json:"description"`
+	Name        string `json:"name"`
+}
+
 // RemoveAgentResponse Response for removing an agent.
 type RemoveAgentResponse struct {
 	// Status Status of the operation.
@@ -759,6 +887,10 @@ type Role string
 type SendMessageRequest struct {
 	// Content The text content to send.
 	Content string `json:"content"`
+
+	// SystemReminder Optional system reminder to inject with this message.
+	// Will be wrapped in `<system-reminder>` tags and prepended to the user message.
+	SystemReminder *string `json:"system_reminder,omitempty"`
 }
 
 // SendMessageResponse Response for sending a message.
@@ -769,23 +901,83 @@ type SendMessageResponse struct {
 
 // SkillDefinition Definition of a skill that can be activated by an agent.
 type SkillDefinition struct {
-	// Content Full skill prompt/instructions content
-	// Can contain template variables like {{args}} that will be substituted
+	// Content Full skill prompt/instructions content (the SKILL.md body or single-content string).
+	// Can contain template variables like {{args}}, $ARGUMENTS, $1, $2, etc.
 	Content string `json:"content"`
 
 	// Description Description of what the skill does
 	Description string `json:"description"`
-	Id          String `json:"id"`
+
+	// Files Supporting files: relative_path -> file_content.
+	// Contains files referenced by the skill (e.g., "api-reference.md", "examples/ex1.md").
+	Files *map[string]string `json:"files,omitempty"`
+
+	// Frontmatter Frontmatter configuration parsed from a SKILL.md YAML header.
+	//
+	// Only applicable to sources that support frontmatter (ClaudeCode, AgentSkills).
+	Frontmatter *SkillFrontmatter `json:"frontmatter,omitempty"`
+	Id          String            `json:"id"`
 
 	// ParametersSchema Optional JSON Schema for structured parameters (for future use)
 	ParametersSchema interface{} `json:"parameters_schema,omitempty"`
+
+	// Source Where a skill originated from.
+	Source *SkillSource `json:"source,omitempty"`
 
 	// Title Human-readable title
 	Title string `json:"title"`
 }
 
+// SkillFrontmatter Frontmatter configuration parsed from a SKILL.md YAML header.
+//
+// Only applicable to sources that support frontmatter (ClaudeCode, AgentSkills).
+type SkillFrontmatter struct {
+	// Agent Sub-agent type to delegate to when context is "fork".
+	Agent *string `json:"agent,omitempty"`
+
+	// AllowedTools List of tools the skill is allowed to use.
+	AllowedTools *[]string `json:"allowed_tools,omitempty"`
+
+	// ArgumentHint Hint text shown for the argument placeholder in autocomplete.
+	ArgumentHint *string `json:"argument_hint,omitempty"`
+
+	// Context Execution context. "fork" runs in an isolated subagent.
+	Context *string `json:"context,omitempty"`
+
+	// DisableModelInvocation When true, only users can invoke this skill (hidden from the model).
+	DisableModelInvocation *bool `json:"disable_model_invocation,omitempty"`
+
+	// Effort Reasoning effort level (e.g., "low", "medium", "high").
+	Effort *string `json:"effort,omitempty"`
+
+	// Paths Glob patterns for auto-activation on matching files.
+	Paths *[]string `json:"paths,omitempty"`
+
+	// Shell Shell to use for shell-related operations (e.g., "bash", "powershell").
+	Shell *string `json:"shell,omitempty"`
+
+	// UserInvocable When false, only the model can invoke this skill (hidden from slash commands).
+	UserInvocable *bool `json:"user_invocable,omitempty"`
+}
+
+// SkillSource Where a skill originated from.
+type SkillSource string
+
 // String defines model for String.
 type String = string
+
+// SubAgentSummary Subagent summary for API responses.
+type SubAgentSummary struct {
+	// Config Configuration options for an agent.
+	Config      AgentConfig `json:"config"`
+	Description *string     `json:"description,omitempty"`
+	Name        string      `json:"name"`
+
+	// Provider Provider info with secrets redacted.
+	Provider     ProviderSummary  `json:"provider"`
+	SystemPrompt string           `json:"system_prompt"`
+	Tools        []ToolDefinition `json:"tools"`
+}
 
 // ToolCall A request to call a tool.
 type ToolCall struct {
@@ -797,6 +989,27 @@ type ToolCall struct {
 
 	// Name Name of the tool to call
 	Name string `json:"name"`
+}
+
+// ToolCallStatsSnapshot Serializable snapshot of per-tool call statistics.
+type ToolCallStatsSnapshot struct {
+	// AvgLatencyMs Average latency in milliseconds
+	AvgLatencyMs float64 `json:"avg_latency_ms"`
+
+	// Failures Number of failed completions
+	Failures int64 `json:"failures"`
+
+	// SuccessRate Success rate (successes / total_calls)
+	SuccessRate float64 `json:"success_rate"`
+
+	// Successes Number of successful completions
+	Successes int64 `json:"successes"`
+
+	// ToolName Tool name
+	ToolName string `json:"tool_name"`
+
+	// TotalCalls Total number of calls to this tool
+	TotalCalls int64 `json:"total_calls"`
 }
 
 // ToolDefinition Definition of a tool that an agent can use.
@@ -831,6 +1044,9 @@ type UpsertAgentResponse struct {
 	// Status Status of the operation: "unchanged", "updated", or "created".
 	Status string `json:"status"`
 }
+
+// CreateConversationJSONRequestBody defines body for CreateConversation for application/json ContentType.
+type CreateConversationJSONRequestBody = CreateConversationRequest
 
 // BulkResolveApprovalsJSONRequestBody defines body for BulkResolveApprovals for application/json ContentType.
 type BulkResolveApprovalsJSONRequestBody = BulkApprovalReply

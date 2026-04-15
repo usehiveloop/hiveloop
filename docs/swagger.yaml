@@ -58,6 +58,20 @@ definitions:
           URL in the provider's dashboard for triggers to work.
         type: boolean
     type: object
+  github_com_ziraloop_ziraloop_internal_model.BuiltInToolDefinition:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      locked:
+        description: true = cannot be toggled off by the user
+        type: boolean
+      name:
+        type: string
+    type: object
   github_com_ziraloop_ziraloop_internal_model.ConnectionConfigField:
     properties:
       automated:
@@ -7058,6 +7072,25 @@ paths:
       security:
       - BearerAuth: []
       summary: Update agent sandbox setup config
+      tags:
+      - agents
+  /v1/agents/built-in-tools:
+    get:
+      description: Returns the complete list of built-in tools that can be granted
+        to agents via permissions. Each tool includes its category and whether it
+        is locked (cannot be toggled off).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.BuiltInToolDefinition'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List all built-in tools
       tags:
       - agents
   /v1/agents/sandbox-tools:

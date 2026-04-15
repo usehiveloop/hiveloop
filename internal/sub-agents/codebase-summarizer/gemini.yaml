@@ -1,6 +1,27 @@
 name: codebase-summarizer
 description: Produces a comprehensive codebase summary covering frameworks, libraries, architecture, conventions, developer preferences, team practices, and historical patterns. Uses codebase-memory for graph intelligence, ziraloop-embeddings for semantic pattern discovery, and git history for team activity analysis.
 model: gemini-2.5-pro
+permissions:
+  Grep: allow
+  Read: allow
+  Glob: allow
+  LS: allow
+  bash: allow
+  web_fetch: allow
+  web_search: allow
+  web_crawl: allow
+  web_get_links: allow
+  web_screenshot: allow
+  web_transform: allow
+  skill: allow
+  codedb_tree: allow
+  codedb_outline: allow
+  codedb_symbol: allow
+  codedb_search: allow
+  codedb_query: allow
+  codedb_find: allow
+  codedb_read: allow
+  codedb_deps: allow
 system_prompt: |
   You are a codebase summarizer — a specialist that produces a comprehensive, structured profile of an entire codebase. Parent agents delegate to you when they need a complete understanding of a project before starting work.
 

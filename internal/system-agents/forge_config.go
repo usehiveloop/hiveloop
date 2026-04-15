@@ -1,6 +1,10 @@
 package systemagents
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/ziraloop/ziraloop/internal/model"
+)
 
 // ForgeConfig holds the JSON strings for forge agent DB fields.
 // These are set at seed time and persisted, so they survive DB reloads.
@@ -8,25 +12,6 @@ type ForgeConfig struct {
 	ToolsJSON       string
 	AgentConfigJSON string
 	PermissionsJSON string
-}
-
-// allBuiltInTools is the complete list of Bridge built-in tool names.
-// Forge system agents disable ALL of them — they only use MCP tools.
-var allBuiltInTools = []string{
-	// Filesystem
-	"Read", "write", "edit", "multiedit", "apply_patch", "Glob", "Grep", "LS",
-	// Shell
-	"bash",
-	// Web
-	"web_fetch", "web_search", "web_crawl", "web_get_links", "web_screenshot", "web_transform",
-	// Agent orchestration
-	"agent", "sub_agent", "parallel_agent", "batch", "join",
-	// Task management
-	"todowrite", "todoread",
-	// Journal
-	"journal_write", "journal_read",
-	// Code intelligence
-	"lsp", "skill",
 }
 
 // ForgeAgentConfig returns the DB config for a forge system agent type.
@@ -39,7 +24,7 @@ func ForgeAgentConfig(agentType string) ForgeConfig {
 		ToolsJSON: "{}",
 		AgentConfigJSON: mustJSON(map[string]any{
 			"tool_calls_only": true,
-			"disabled_tools":  allBuiltInTools,
+			"disabled_tools":  model.BuiltInToolIDs(),
 		}),
 		PermissionsJSON: "{}",
 	}
@@ -53,7 +38,7 @@ func ForgeAgentConfig(agentType string) ForgeConfig {
 		// Architect outputs text (system prompt in tags), not tool calls.
 		// Disable built-in tools but allow text output.
 		baseConfig.AgentConfigJSON = mustJSON(map[string]any{
-			"disabled_tools": allBuiltInTools,
+			"disabled_tools": model.BuiltInToolIDs(),
 		})
 	case "forge-judge":
 		// No special permissions.
@@ -61,7 +46,7 @@ func ForgeAgentConfig(agentType string) ForgeConfig {
 		maxConcurrentJudge := int32(10000)
 		baseConfig.AgentConfigJSON = mustJSON(map[string]any{
 			"tool_calls_only":              true,
-			"disabled_tools":               allBuiltInTools,
+			"disabled_tools":               model.BuiltInToolIDs(),
 			"max_concurrent_conversations": maxConcurrentJudge,
 		})
 	case "forge-planner":
