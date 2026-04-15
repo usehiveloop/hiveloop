@@ -355,9 +355,8 @@ func (p *Pusher) BuildSystemAgentDef(agent *model.Agent) bridgepkg.AgentDefiniti
 		def.McpServers = mcpServers
 	}
 
-	skills := decodeJSONAs[[]bridgepkg.SkillDefinition](agent.Skills)
-	if skills != nil && len(*skills) > 0 {
-		def.Skills = skills
+	if bridgeSkills := p.loadBridgeSkills(agent.ID); len(bridgeSkills) > 0 {
+		def.Skills = &bridgeSkills
 	}
 
 	permissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
@@ -531,10 +530,9 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 		def.McpServers = mcpServers
 	}
 
-	// Set skills if present
-	skills := decodeJSONAs[[]bridgepkg.SkillDefinition](agent.Skills)
-	if skills != nil && len(*skills) > 0 {
-		def.Skills = skills
+	// Load skills from agent_skills join table → skill_versions bundle
+	if bridgeSkills := p.loadBridgeSkills(agent.ID); len(bridgeSkills) > 0 {
+		def.Skills = &bridgeSkills
 	}
 
 	return def
@@ -664,6 +662,67 @@ func decodeJSONAs[T any](j model.JSON) *T {
 		return nil
 	}
 	return &result
+}
+
+// loadBridgeSkills loads an agent's attached skills from the agent_skills join
+// table and converts each skill's latest version bundle into a Bridge SkillDefinition.
+func (p *Pusher) loadBridgeSkills(agentID uuid.UUID) []bridgepkg.SkillDefinition {
+	var links []model.AgentSkill
+	if err := p.db.Where("agent_id = ?", agentID).Find(&links).Error; err != nil || len(links) == 0 {
+		return nil
+	}
+
+	skillIDs := make([]uuid.UUID, len(links))
+	for index, link := range links {
+		skillIDs[index] = link.SkillID
+	}
+
+	// Load skills with their latest version
+	var skills []model.Skill
+	if err := p.db.Where("id IN ?", skillIDs).Find(&skills).Error; err != nil {
+		return nil
+	}
+
+	// Collect version IDs
+	var versionIDs []uuid.UUID
+	for _, skill := range skills {
+		if skill.LatestVersionID != nil {
+			versionIDs = append(versionIDs, *skill.LatestVersionID)
+		}
+	}
+	if len(versionIDs) == 0 {
+		return nil
+	}
+
+	// Load version bundles
+	var versions []model.SkillVersion
+	if err := p.db.Where("id IN ?", versionIDs).Find(&versions).Error; err != nil {
+		return nil
+	}
+	versionByID := make(map[uuid.UUID]model.SkillVersion, len(versions))
+	for _, version := range versions {
+		versionByID[version.ID] = version
+	}
+
+	// Convert bundles to Bridge SkillDefinitions
+	var result []bridgepkg.SkillDefinition
+	for _, skill := range skills {
+		if skill.LatestVersionID == nil {
+			continue
+		}
+		version, ok := versionByID[*skill.LatestVersionID]
+		if !ok {
+			continue
+		}
+		var def bridgepkg.SkillDefinition
+		if err := json.Unmarshal(version.Bundle, &def); err != nil {
+			slog.Warn("failed to unmarshal skill bundle", "skill_id", skill.ID, "error", err)
+			continue
+		}
+		result = append(result, def)
+	}
+
+	return result
 }
 
 // applyAgentConfigDefaults fills in sensible defaults for any AgentConfig fields
