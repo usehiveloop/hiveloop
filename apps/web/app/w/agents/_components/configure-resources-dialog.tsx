@@ -280,7 +280,6 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
   const lastAgent = useRef<Agent | null>(null)
   if (agentProp) lastAgent.current = agentProp
   const agent = agentProp ?? lastAgent.current
-  if (!agent) return null
 
   const queryClient = useQueryClient()
   const updateAgent = $api.useMutation("put", "/v1/agents/{id}")
@@ -292,12 +291,12 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
 
   // Reset state when dialog opens
   useEffect(() => {
-    if (open) {
+    if (open && agent) {
       setResources(parseAgentResources(agent.resources))
       setActiveConnectionId(null)
       setActiveResourceType(null)
     }
-  }, [open, agent.resources])
+  }, [open, agent?.resources])
 
   // Load connections
   const { data: connectionsData } = $api.useQuery("get", "/v1/in/connections")
@@ -305,7 +304,7 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
   const connectionsById = new Map(allConnections.filter((c) => c.id).map((c) => [c.id!, c]))
 
   // Only connections the agent uses AND that have configurable resources
-  const agentConnectionIds = agent.integrations && typeof agent.integrations === "object"
+  const agentConnectionIds = agent?.integrations && typeof agent.integrations === "object"
     ? Object.keys(agent.integrations)
     : []
   const configurableConnections = agentConnectionIds
@@ -316,6 +315,8 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
 
   const activeConnection = activeConnectionId ? connectionsById.get(activeConnectionId) ?? null : null
   const activeResourceTypes = activeConnection ? getConfigurableResources(activeConnection) : []
+
+  if (!agent) return null
 
   // Navigation
   function openConnection(connectionId: string) {
