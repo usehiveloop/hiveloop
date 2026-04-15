@@ -274,8 +274,8 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 	// Build the Bridge AgentDefinition
 	def := p.buildAgentDefinition(agent, &cred, proxyToken, jti)
 
-	// Load and attach subagents
-	subagentDefs, err := p.buildSubagentDefinitions(agent.ID, proxyToken, jti)
+	// Load and attach subagents — each inherits the parent's credential and model.
+	subagentDefs, err := p.buildSubagentDefinitions(agent, &cred)
 	if err != nil {
 		return fmt.Errorf("building subagent definitions: %w", err)
 	}
@@ -533,10 +533,11 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 }
 
 // buildSubagentDefinitions loads all subagents attached to the parent agent
-// and builds a Bridge AgentDefinition for each one.
-func (p *Pusher) buildSubagentDefinitions(parentID uuid.UUID, proxyToken, jti string) ([]bridgepkg.AgentDefinition, error) {
+// and builds a Bridge AgentDefinition for each one. Each subagent inherits
+// the parent's credential and model, and gets its own proxy token.
+func (p *Pusher) buildSubagentDefinitions(parent *model.Agent, parentCred *model.Credential) ([]bridgepkg.AgentDefinition, error) {
 	var links []model.AgentSubagent
-	if err := p.db.Where("agent_id = ?", parentID).Find(&links).Error; err != nil {
+	if err := p.db.Where("agent_id = ?", parent.ID).Find(&links).Error; err != nil {
 		return nil, fmt.Errorf("querying agent_subagents: %w", err)
 	}
 	if len(links) == 0 {
@@ -553,34 +554,32 @@ func (p *Pusher) buildSubagentDefinitions(parentID uuid.UUID, proxyToken, jti st
 		return nil, fmt.Errorf("loading subagents: %w", err)
 	}
 
-	// Load all credentials needed by subagents in one query
-	credIDs := make([]uuid.UUID, 0, len(subagents))
-	for _, sub := range subagents {
-		if sub.CredentialID != nil {
-			credIDs = append(credIDs, *sub.CredentialID)
-		}
-	}
-	var credentials []model.Credential
-	if len(credIDs) > 0 {
-		if err := p.db.Where("id IN ?", credIDs).Find(&credentials).Error; err != nil {
-			return nil, fmt.Errorf("loading subagent credentials: %w", err)
-		}
-	}
-	credByID := make(map[uuid.UUID]*model.Credential, len(credentials))
-	for index := range credentials {
-		credByID[credentials[index].ID] = &credentials[index]
-	}
-
 	defs := make([]bridgepkg.AgentDefinition, 0, len(subagents))
 	for _, sub := range subagents {
-		if sub.CredentialID == nil {
-			continue
+		// Override subagent's model with parent's model.
+		sub.Model = parent.Model
+
+		// Mint a fresh proxy token for this subagent using the parent's credential.
+		proxyToken, jti, err := p.mintAgentToken(&sub, parentCred)
+		if err != nil {
+			return nil, fmt.Errorf("minting proxy token for subagent %s: %w", sub.ID, err)
 		}
-		cred, ok := credByID[*sub.CredentialID]
-		if !ok {
-			return nil, fmt.Errorf("credential %s not found for subagent %s", sub.CredentialID, sub.ID)
+
+		// Store the token in DB.
+		now := time.Now()
+		expiresAt := now.Add(agentTokenTTL)
+		dbToken := model.Token{
+			OrgID:        *parent.OrgID,
+			CredentialID: parentCred.ID,
+			JTI:          jti,
+			ExpiresAt:    expiresAt,
+			Meta:         model.JSON{"agent_id": sub.ID.String(), "parent_agent_id": parent.ID.String(), "type": "subagent_proxy"},
 		}
-		defs = append(defs, p.buildAgentDefinition(&sub, cred, proxyToken, jti))
+		if err := p.db.Create(&dbToken).Error; err != nil {
+			return nil, fmt.Errorf("storing subagent proxy token: %w", err)
+		}
+
+		defs = append(defs, p.buildAgentDefinition(&sub, parentCred, proxyToken, jti))
 	}
 
 	return defs, nil
