@@ -925,12 +925,13 @@ func (o *Orchestrator) resolveSnapshot(agent *model.Agent) string {
 }
 
 func (o *Orchestrator) buildSandboxName(identity *model.Identity, agent *model.Agent) string {
+	ts := time.Now().Unix()
 	if agent != nil {
 		safeName := sanitizeName(agent.Name)
-		return fmt.Sprintf("zira-ded-%s-%s", safeName, shortID(agent.ID))
+		return fmt.Sprintf("zira-ded-%s-%s-%d", safeName, shortID(agent.ID), ts)
 	}
 	short := shortID(identity.ID)
-	return fmt.Sprintf("zira-ded-%s", short)
+	return fmt.Sprintf("zira-ded-%s-%d", short, ts)
 }
 
 // RunHealthCheck syncs sandbox status from the provider and auto-stops idle sandboxes.
