@@ -9,6 +9,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { $api } from "@/lib/api/hooks"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import type { components } from "@/lib/api/schema"
 
 type BuiltInTool = components["schemas"]["BuiltInToolDefinition"]
@@ -55,6 +56,12 @@ interface ToolCardProps {
   onToggle: () => void
 }
 
+const permissionLabels: Record<PermissionLevel, string> = {
+  allow: "Allowed",
+  deny: "Denied",
+  require_approval: "Requires approval",
+}
+
 function ToolCard({ tool, permission, onToggle }: ToolCardProps) {
   const locked = tool.locked ?? false
 
@@ -70,19 +77,31 @@ function ToolCard({ tool, permission, onToggle }: ToolCardProps) {
     require_approval: AlertCircleIcon,
   }
 
+  const tooltipText = locked
+    ? `${tool.name} — always allowed`
+    : `${tool.name} — ${permissionLabels[permission]}`
+
   return (
-    <button
-      type="button"
-      onClick={locked ? undefined : onToggle}
-      disabled={locked}
-      title={locked ? `${tool.name} cannot be disabled` : `${tool.name}: ${permission}`}
-      className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-left transition-colors ${
-        stateStyles[permission]
-      } ${locked ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:opacity-80"}`}
-    >
-      <HugeiconsIcon icon={stateIcons[permission]} size={12} className="shrink-0" />
-      <span className="text-xs font-medium truncate">{tool.name}</span>
-    </button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <button
+              type="button"
+              onClick={locked ? undefined : onToggle}
+              disabled={locked}
+              className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-left transition-colors ${
+                stateStyles[permission]
+              } ${locked ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:opacity-80"}`}
+            />
+          }
+        >
+          <HugeiconsIcon icon={stateIcons[permission]} size={12} className="shrink-0" />
+          <span className="text-xs font-medium truncate">{tool.name}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top">{tooltipText}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 
