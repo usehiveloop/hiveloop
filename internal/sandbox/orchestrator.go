@@ -835,6 +835,14 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 		return nil, fmt.Errorf("waiting for bridge: %w", err)
 	}
 
+	// Disable Daytona's auto-stop. Sandbox lifecycle is managed by our own
+	// background tasks — Daytona's account-level default would otherwise
+	// kill the sandbox prematurely. intervalMinutes=0 disables.
+	if err := o.provider.SetAutoStop(ctx, info.ExternalID, 0); err != nil {
+		slog.Warn("failed to disable auto-stop on dedicated sandbox",
+			"sandbox_id", sb.ID, "external_id", info.ExternalID, "error", err)
+	}
+
 	// Run agent-level setup commands for dedicated sandboxes
 	if agent != nil && len(agent.SetupCommands) > 0 {
 		if err := o.runSetupCommands(ctx, &sb, agent.SetupCommands); err != nil {
@@ -1016,15 +1024,8 @@ func (o *Orchestrator) checkSandboxHealth(ctx context.Context, sb *model.Sandbox
 			}
 		}
 	} else {
-		// Dedicated sandboxes: auto-stop after grace period
-		threshold := o.cfg.DedicatedSandboxGracePeriodMins
-		if threshold > 0 && int(idleMinutes) >= threshold {
-			slog.Info("health check: auto-stopping idle sandbox",
-				"sandbox_id", sb.ID, "type", sb.SandboxType, "idle_mins", int(idleMinutes))
-			if err := o.StopSandbox(ctx, sb); err != nil {
-				slog.Error("health check: failed to stop sandbox", "sandbox_id", sb.ID, "error", err)
-			}
-		}
+		// Dedicated sandboxes: lifecycle managed by background tasks, not health check.
+		// Auto-stop is disabled via Daytona's SetAutoStop(0) at creation time.
 	}
 }
 
