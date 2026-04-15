@@ -115,15 +115,32 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 		"nango_conn_id", nangoConnID,
 	)
 
-	// Debug: fetch and log the full Nango connection to inspect token/credentials.
+	// Debug: fetch Nango connection to inspect token/credentials status.
 	if connData, connErr := enricher.nangoClient.GetConnection(ctx, nangoConnID, providerCfgKey); connErr != nil {
 		logger.Warn("deterministic enrichment: failed to fetch nango connection for debug",
 			"error", connErr,
 		)
 	} else {
-		connJSON, _ := json.Marshal(connData)
+		// Extract just the fields we need to avoid Railway log truncation.
+		creds, _ := connData["credentials"].(map[string]any)
+		rawCreds, _ := creds["raw"].(map[string]any)
+		accessToken, _ := creds["access_token"].(string)
+		tokenPrefix := ""
+		if len(accessToken) > 10 {
+			tokenPrefix = accessToken[:10] + "..."
+		}
 		logger.Info("deterministic enrichment: nango connection debug",
-			"connection", string(connJSON),
+			"connection_id", connData["connection_id"],
+			"provider", connData["provider"],
+			"provider_config_key", connData["provider_config_key"],
+			"created_at", connData["created_at"],
+			"updated_at", connData["updated_at"],
+			"last_fetched_at", connData["last_fetched_at"],
+			"credentials_type", creds["type"],
+			"credentials_expires_at", creds["expires_at"],
+			"credentials_token_prefix", tokenPrefix,
+			"credentials_scope", rawCreds["scope"],
+			"errors", connData["errors"],
 		)
 	}
 
