@@ -559,27 +559,17 @@ func (p *Pusher) buildSubagentDefinitions(parent *model.Agent, parentCred *model
 		// Override subagent's model with parent's model.
 		sub.Model = parent.Model
 
-		// Mint a fresh proxy token for this subagent using the parent's credential.
-		proxyToken, jti, err := p.mintAgentToken(&sub, parentCred)
+		// Mint and persist a proxy token for this subagent using the parent's credential.
+		proxyTok, err := token.MintAndPersist(p.db, p.signingKey, *parent.OrgID, parentCred.ID, agentTokenTTL, map[string]any{
+			"agent_id":        sub.ID.String(),
+			"parent_agent_id": parent.ID.String(),
+			"type":            "subagent_proxy",
+		})
 		if err != nil {
 			return nil, fmt.Errorf("minting proxy token for subagent %s: %w", sub.ID, err)
 		}
 
-		// Store the token in DB.
-		now := time.Now()
-		expiresAt := now.Add(agentTokenTTL)
-		dbToken := model.Token{
-			OrgID:        *parent.OrgID,
-			CredentialID: parentCred.ID,
-			JTI:          jti,
-			ExpiresAt:    expiresAt,
-			Meta:         model.JSON{"agent_id": sub.ID.String(), "parent_agent_id": parent.ID.String(), "type": "subagent_proxy"},
-		}
-		if err := p.db.Create(&dbToken).Error; err != nil {
-			return nil, fmt.Errorf("storing subagent proxy token: %w", err)
-		}
-
-		defs = append(defs, p.buildAgentDefinition(&sub, parentCred, proxyToken, jti))
+		defs = append(defs, p.buildAgentDefinition(&sub, parentCred, proxyTok.TokenString, proxyTok.JTI))
 	}
 
 	return defs, nil
