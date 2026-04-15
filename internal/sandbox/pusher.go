@@ -480,6 +480,11 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 	providerGroup := systemagents.MapProviderToGroup(cred.ProviderID, agent.Model)
 	systemPrompt, _ := agent.ResolveProviderConfig(providerGroup)
 
+	// Append cloned repository context to the system prompt
+	if repoContext := buildRepoContext(agent.Resources); repoContext != "" {
+		systemPrompt += "\n\n" + repoContext
+	}
+
 	def := bridgepkg.AgentDefinition{
 		Id:           agent.ID.String(),
 		Name:         agent.Name,
@@ -786,5 +791,57 @@ func defaultTemperature(providerID, modelName string) float64 {
 	default:
 		return 0.7
 	}
+}
+
+// buildRepoContext generates a system prompt section listing cloned repositories.
+func buildRepoContext(resources model.JSON) string {
+	if resources == nil || len(resources) == 0 {
+		return ""
+	}
+
+	type repo struct {
+		id   string
+		name string
+	}
+	var repos []repo
+
+	for _, resourceTypes := range resources {
+		typesMap, ok := resourceTypes.(map[string]any)
+		if !ok {
+			continue
+		}
+		repoList, ok := typesMap["repository"]
+		if !ok {
+			continue
+		}
+		repoSlice, ok := repoList.([]any)
+		if !ok {
+			continue
+		}
+		for _, item := range repoSlice {
+			itemMap, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			repoID, _ := itemMap["id"].(string)
+			repoName, _ := itemMap["name"].(string)
+			if repoID != "" && repoName != "" {
+				repos = append(repos, repo{id: repoID, name: repoName})
+			}
+		}
+	}
+
+	if len(repos) == 0 {
+		return ""
+	}
+
+	var builder strings.Builder
+	builder.WriteString("── CLONED REPOSITORIES ──\n\n")
+	builder.WriteString("The following GitHub repositories have been cloned into your workspace:\n\n")
+	for _, repo := range repos {
+		builder.WriteString(fmt.Sprintf("  - %s → /home/daytona/repos/%s\n", repo.id, repo.name))
+	}
+	builder.WriteString("\nYou can read, search, and modify files in these directories directly.")
+	return builder.String()
 }
 
