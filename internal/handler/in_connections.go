@@ -164,14 +164,11 @@ func (h *InConnectionHandler) CreateReconnectSession(w http.ResponseWriter, r *h
 	}
 
 	nk := inNangoKey(conn.InIntegration.UniqueKey)
-	nangoReq := nango.CreateConnectSessionRequest{
-		EndUser: nango.ConnectSessionEndUser{
-			ID: user.ID.String(),
-		},
-		AllowedIntegrations: []string{nk},
-	}
 
-	sess, err := h.nango.CreateConnectSession(r.Context(), nangoReq)
+	sess, err := h.nango.CreateReconnectSession(r.Context(), nango.CreateReconnectSessionRequest{
+		ConnectionID:  conn.NangoConnectionID,
+		IntegrationID: nk,
+	})
 	if err != nil {
 		slog.Error("nango reconnect session creation failed", "error", err, "connection_id", conn.ID, "user_id", user.ID)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to create reconnect session: " + err.Error()})
