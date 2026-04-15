@@ -18199,6 +18199,12 @@
           "actions_count": {
             "type": "integer"
           },
+          "configurable_resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConfigurableResourceSummary"
+            }
+          },
           "created_at": {
             "type": "string"
           },
@@ -18277,12 +18283,6 @@
       "integConnResponse": {
         "type": "object",
         "properties": {
-          "configurable_resources": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ConfigurableResourceSummary"
-            }
-          },
           "created_at": {
             "type": "string"
           },

@@ -15212,6 +15212,7 @@ export interface components {
         };
         inConnectionResponse: {
             actions_count?: number;
+            configurable_resources?: components["schemas"]["ConfigurableResourceSummary"][];
             created_at?: string;
             display_name?: string;
             id?: string;
@@ -15239,7 +15240,6 @@ export interface components {
             nango_connection_id?: string;
         };
         integConnResponse: {
-            configurable_resources?: components["schemas"]["ConfigurableResourceSummary"][];
             created_at?: string;
             id?: string;
             identity_id?: string;

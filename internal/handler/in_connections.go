@@ -34,34 +34,41 @@ type createInConnectionRequest struct {
 }
 
 type inConnectionResponse struct {
-	ID                string     `json:"id"`
-	OrgID             string     `json:"org_id"`
-	InIntegrationID   string     `json:"in_integration_id"`
-	Provider          string     `json:"provider"`
-	DisplayName       string     `json:"display_name"`
-	NangoConnectionID string     `json:"nango_connection_id"`
-	Meta              model.JSON `json:"meta,omitempty"`
-	ProviderConfig    model.JSON `json:"provider_config,omitempty"`
-	ActionsCount      int        `json:"actions_count"`
-	WebhookConfigured bool       `json:"webhook_configured"`
-	RevokedAt         *string    `json:"revoked_at,omitempty"`
-	CreatedAt         string     `json:"created_at"`
-	UpdatedAt         string     `json:"updated_at"`
+	ID                    string                                `json:"id"`
+	OrgID                 string                                `json:"org_id"`
+	InIntegrationID       string                                `json:"in_integration_id"`
+	Provider              string                                `json:"provider"`
+	DisplayName           string                                `json:"display_name"`
+	NangoConnectionID     string                                `json:"nango_connection_id"`
+	Meta                  model.JSON                            `json:"meta,omitempty"`
+	ProviderConfig        model.JSON                            `json:"provider_config,omitempty"`
+	ActionsCount          int                                   `json:"actions_count"`
+	WebhookConfigured     bool                                  `json:"webhook_configured"`
+	ConfigurableResources []catalog.ConfigurableResourceSummary `json:"configurable_resources"`
+	RevokedAt             *string                               `json:"revoked_at,omitempty"`
+	CreatedAt             string                                `json:"created_at"`
+	UpdatedAt             string                                `json:"updated_at"`
 }
 
 func (h *InConnectionHandler) toInConnectionResponse(conn model.InConnection) inConnectionResponse {
+	provider := conn.InIntegration.Provider
+	configurableRes := h.catalog.GetConfigurableResources(provider)
+	if configurableRes == nil {
+		configurableRes = []catalog.ConfigurableResourceSummary{}
+	}
 	resp := inConnectionResponse{
-		ID:                conn.ID.String(),
-		OrgID:             conn.OrgID.String(),
-		InIntegrationID:   conn.InIntegrationID.String(),
-		Provider:          conn.InIntegration.Provider,
-		DisplayName:       conn.InIntegration.DisplayName,
-		NangoConnectionID: conn.NangoConnectionID,
-		Meta:              conn.Meta,
-		ActionsCount:      len(h.catalog.ListActions(conn.InIntegration.Provider)),
-		WebhookConfigured: derefBool(conn.WebhookConfigured, true),
-		CreatedAt:         conn.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:         conn.UpdatedAt.Format(time.RFC3339),
+		ID:                    conn.ID.String(),
+		OrgID:                 conn.OrgID.String(),
+		InIntegrationID:       conn.InIntegrationID.String(),
+		Provider:              provider,
+		DisplayName:           conn.InIntegration.DisplayName,
+		NangoConnectionID:     conn.NangoConnectionID,
+		Meta:                  conn.Meta,
+		ActionsCount:          len(h.catalog.ListActions(provider)),
+		WebhookConfigured:     derefBool(conn.WebhookConfigured, true),
+		ConfigurableResources: configurableRes,
+		CreatedAt:             conn.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:             conn.UpdatedAt.Format(time.RFC3339),
 	}
 	if conn.RevokedAt != nil {
 		s := conn.RevokedAt.Format(time.RFC3339)
