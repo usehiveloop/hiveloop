@@ -115,6 +115,18 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 		"nango_conn_id", nangoConnID,
 	)
 
+	// Debug: fetch and log the full Nango connection to inspect token/credentials.
+	if connData, connErr := enricher.nangoClient.GetConnection(ctx, nangoConnID, providerCfgKey); connErr != nil {
+		logger.Warn("deterministic enrichment: failed to fetch nango connection for debug",
+			"error", connErr,
+		)
+	} else {
+		connJSON, _ := json.Marshal(connData)
+		logger.Info("deterministic enrichment: nango connection debug",
+			"connection", string(connJSON),
+		)
+	}
+
 	// Run all enrichment actions in parallel.
 	results := make([]enrichmentResult, len(triggerDef.Enrichment))
 	var waitGroup sync.WaitGroup
