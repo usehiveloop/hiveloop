@@ -26,7 +26,6 @@ const (
 	TypeStreamCleanup        = "periodic:stream_cleanup"
 	TypeSandboxHealthCheck   = "periodic:sandbox_health_check"
 	TypeSandboxResourceCheck = "periodic:sandbox_resource_check"
-	TypeSystemAgentSync      = "periodic:system_agent_sync"
 )
 
 // Queue names with priority weights.
