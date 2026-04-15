@@ -322,6 +322,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("integrations"))
 				r.Get("/connections/available-scopes", connectionHandler.AvailableScopes)
 				r.Get("/connections/{id}", connectionHandler.Get)
+				r.Get("/connections/{id}/resources/{type}", connectionHandler.ListResources)
 				r.HandleFunc("/connections/{id}/proxy/*", connectionHandler.Proxy)
 				r.Delete("/connections/{id}", connectionHandler.Revoke)
 			})

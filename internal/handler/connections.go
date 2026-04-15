@@ -15,16 +15,23 @@ import (
 	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/model"
 	"github.com/ziraloop/ziraloop/internal/nango"
+	"github.com/ziraloop/ziraloop/internal/resources"
 )
 
 type ConnectionHandler struct {
-	db      *gorm.DB
-	nango   *nango.Client
-	catalog *catalog.Catalog
+	db        *gorm.DB
+	nango     *nango.Client
+	catalog   *catalog.Catalog
+	discovery *resources.Discovery
 }
 
 func NewConnectionHandler(db *gorm.DB, nangoClient *nango.Client, cat *catalog.Catalog) *ConnectionHandler {
-	return &ConnectionHandler{db: db, nango: nangoClient, catalog: cat}
+	return &ConnectionHandler{
+		db:        db,
+		nango:     nangoClient,
+		catalog:   cat,
+		discovery: resources.NewDiscovery(cat, nangoClient),
+	}
 }
 
 type integConnCreateRequest struct {
@@ -34,27 +41,32 @@ type integConnCreateRequest struct {
 }
 
 type integConnResponse struct {
-	ID                string     `json:"id"`
-	IntegrationID     string     `json:"integration_id"`
-	NangoConnectionID string     `json:"nango_connection_id"`
-	IdentityID        *string    `json:"identity_id,omitempty"`
-	Meta              model.JSON `json:"meta,omitempty"`
-	ProviderConfig    model.JSON `json:"provider_config,omitempty"`
-	WebhookConfigured bool       `json:"webhook_configured"`
-	RevokedAt         *string    `json:"revoked_at,omitempty"`
-	CreatedAt         string     `json:"created_at"`
-	UpdatedAt         string     `json:"updated_at"`
+	ID                    string                              `json:"id"`
+	IntegrationID         string                              `json:"integration_id"`
+	NangoConnectionID     string                              `json:"nango_connection_id"`
+	IdentityID            *string                             `json:"identity_id,omitempty"`
+	Meta                  model.JSON                          `json:"meta,omitempty"`
+	ProviderConfig        model.JSON                          `json:"provider_config,omitempty"`
+	WebhookConfigured     bool                                `json:"webhook_configured"`
+	ConfigurableResources []catalog.ConfigurableResourceSummary `json:"configurable_resources"`
+	RevokedAt             *string                             `json:"revoked_at,omitempty"`
+	CreatedAt             string                              `json:"created_at"`
+	UpdatedAt             string                              `json:"updated_at"`
 }
 
-func toIntegConnResponse(conn model.Connection) integConnResponse {
+func toIntegConnResponse(conn model.Connection, configurableResources []catalog.ConfigurableResourceSummary) integConnResponse {
+	if configurableResources == nil {
+		configurableResources = []catalog.ConfigurableResourceSummary{}
+	}
 	resp := integConnResponse{
-		ID:                conn.ID.String(),
-		IntegrationID:     conn.IntegrationID.String(),
-		NangoConnectionID: conn.NangoConnectionID,
-		Meta:              conn.Meta,
-		WebhookConfigured: derefBool(conn.WebhookConfigured, true),
-		CreatedAt:         conn.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:         conn.UpdatedAt.Format(time.RFC3339),
+		ID:                    conn.ID.String(),
+		IntegrationID:         conn.IntegrationID.String(),
+		NangoConnectionID:     conn.NangoConnectionID,
+		Meta:                  conn.Meta,
+		WebhookConfigured:     derefBool(conn.WebhookConfigured, true),
+		ConfigurableResources: configurableResources,
+		CreatedAt:             conn.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:             conn.UpdatedAt.Format(time.RFC3339),
 	}
 	if conn.IdentityID != nil {
 		s := conn.IdentityID.String()
@@ -199,7 +211,7 @@ func (h *ConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, toIntegConnResponse(conn))
+	writeJSON(w, http.StatusCreated, toIntegConnResponse(conn, h.catalog.GetConfigurableResources(integ.Provider)))
 }
 
 // List handles GET /v1/integrations/{id}/connections.
@@ -267,9 +279,10 @@ func (h *ConnectionHandler) List(w http.ResponseWriter, r *http.Request) {
 		connections = connections[:limit]
 	}
 
+	configurableRes := h.catalog.GetConfigurableResources(integ.Provider)
 	resp := make([]integConnResponse, len(connections))
 	for i, conn := range connections {
-		resp[i] = toIntegConnResponse(conn)
+		resp[i] = toIntegConnResponse(conn, configurableRes)
 	}
 
 	result := paginatedResponse[integConnResponse]{
@@ -324,7 +337,7 @@ func (h *ConnectionHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := toIntegConnResponse(conn)
+	resp := toIntegConnResponse(conn, h.catalog.GetConfigurableResources(conn.Integration.Provider))
 
 	nangoKey := fmt.Sprintf("%s_%s", org.ID.String(), conn.Integration.UniqueKey)
 	nangoResp, err := h.nango.GetConnection(r.Context(), conn.NangoConnectionID, nangoKey)
@@ -591,6 +604,65 @@ func (h *ConnectionHandler) AvailableScopes(w http.ResponseWriter, r *http.Reque
 		}
 
 		result = append(result, asc)
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+// ListResources handles GET /v1/connections/{id}/resources/{type}.
+// @Summary List available resources for a connection
+// @Description Fetches available resources of a specific type from the provider API for a connection. For example, list all repositories for a GitHub connection.
+// @Tags connections
+// @Produce json
+// @Param id path string true "Connection ID"
+// @Param type path string true "Resource type (e.g., repository, project)"
+// @Success 200 {object} resources.DiscoveryResult
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/connections/{id}/resources/{type} [get]
+func (h *ConnectionHandler) ListResources(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	connID := chi.URLParam(r, "id")
+	resourceType := chi.URLParam(r, "type")
+
+	if connID == "" || resourceType == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "connection id and resource type are required"})
+		return
+	}
+
+	var conn model.Connection
+	if err := h.db.Preload("Integration").
+		Where("id = ? AND org_id = ? AND revoked_at IS NULL", connID, org.ID).
+		First(&conn).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "connection not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get connection"})
+		return
+	}
+
+	provider := conn.Integration.Provider
+	nangoProviderConfigKey := fmt.Sprintf("%s_%s", org.ID.String(), conn.Integration.UniqueKey)
+
+	result, err := h.discovery.Discover(r.Context(), provider, resourceType, nangoProviderConfigKey, conn.NangoConnectionID)
+	if err != nil {
+		slog.Error("resource discovery failed",
+			"connection_id", connID,
+			"provider", provider,
+			"resource_type", resourceType,
+			"error", err,
+		)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to fetch resources"})
+		return
 	}
 
 	writeJSON(w, http.StatusOK, result)

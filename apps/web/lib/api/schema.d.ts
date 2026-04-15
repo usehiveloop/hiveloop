@@ -7125,6 +7125,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/connections/{id}/resources/{type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List available resources for a connection
+         * @description Fetches available resources of a specific type from the provider API for a connection. For example, list all repositories for a GitHub connection.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Connection ID */
+                    id: string;
+                    /** @description Resource type (e.g., repository, project) */
+                    type: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/conversations/{convID}": {
         parameters: {
             query?: never;
@@ -14038,6 +14118,11 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        ConfigurableResourceSummary: {
+            description?: string;
+            display_name?: string;
+            key?: string;
+        };
         SchemaDefinition: {
             /** @description for array types */
             items?: components["schemas"]["SchemaRef"];
@@ -14605,6 +14690,7 @@ export interface components {
             permissions?: components["schemas"]["JSON"];
             provider_id?: string;
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
+            resources?: components["schemas"]["JSON"];
             sandbox_id?: string;
             sandbox_template_id?: string;
             sandbox_tools?: string[];
@@ -14823,6 +14909,7 @@ export interface components {
             name?: string;
             permissions?: components["schemas"]["JSON"];
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
+            resources?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
             /** @description tools to enable in dedicated sandbox (e.g. "chrome", "codedb") */
             sandbox_tools?: string[];
@@ -15152,6 +15239,7 @@ export interface components {
             nango_connection_id?: string;
         };
         integConnResponse: {
+            configurable_resources?: components["schemas"]["ConfigurableResourceSummary"][];
             created_at?: string;
             id?: string;
             identity_id?: string;
@@ -15775,6 +15863,7 @@ export interface components {
             name?: string;
             permissions?: components["schemas"]["JSON"];
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
+            resources?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
             /** @description tools to enable in dedicated sandbox */
             sandbox_tools?: string[];
