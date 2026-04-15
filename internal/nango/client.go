@@ -63,7 +63,6 @@ type ConnectSessionEndUser struct {
 type CreateConnectSessionRequest struct {
 	EndUser             ConnectSessionEndUser `json:"end_user"`
 	AllowedIntegrations []string              `json:"allowed_integrations,omitempty"`
-	ConnectionID        string                `json:"connection_id,omitempty"` // Set for reconnect — scopes session to existing connection
 }
 
 // ConnectSessionResponse represents the response from creating a connect session.
