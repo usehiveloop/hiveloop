@@ -58,7 +58,6 @@ const resourceOptions = [
   "sandboxes",
   "sandbox-templates",
   "conversations",
-  "forge-runs",
   "connections",
   "connect-sessions",
   "custom-domains",
