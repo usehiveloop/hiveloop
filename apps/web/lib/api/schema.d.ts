@@ -15869,6 +15869,8 @@ export interface components {
             sandbox_tools?: string[];
             sandbox_type?: string;
             shared_memory?: boolean;
+            /** @description nil=don't touch, []=detach all, [ids]=sync to these */
+            skill_ids?: string[];
             skills?: components["schemas"]["JSON"];
             system_prompt?: string;
             team?: string;

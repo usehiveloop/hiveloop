@@ -20201,6 +20201,13 @@
           "shared_memory": {
             "type": "boolean"
           },
+          "skill_ids": {
+            "description": "nil=don't touch, []=detach all, [ids]=sync to these",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "skills": {
             "$ref": "#/components/schemas/JSON"
           },
