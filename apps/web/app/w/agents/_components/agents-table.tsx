@@ -200,13 +200,11 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
         agentName={setupCommandsAgent?.name ?? ""}
       />
 
-      {resourcesAgent && (
-        <ConfigureResourcesDialog
-          open={resourcesAgent !== null}
-          onOpenChange={(open) => { if (!open) setResourcesAgent(null) }}
-          agent={resourcesAgent}
-        />
-      )}
+      <ConfigureResourcesDialog
+        open={resourcesAgent !== null}
+        onOpenChange={(open) => { if (!open) setResourcesAgent(null) }}
+        agent={resourcesAgent}
+      />
     </>
   )
 }
