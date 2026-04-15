@@ -83,6 +83,9 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		var err error
 		sb, err = handler.orchestrator.CreateDedicatedSandbox(ctx, &agent)
 		if err != nil {
+			logger.Error("step 2: FAILED to create dedicated sandbox",
+				"error", err.Error(),
+			)
 			return fmt.Errorf("creating dedicated sandbox: %w", err)
 		}
 		logger.Info("step 2: dedicated sandbox created",
@@ -95,6 +98,10 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		// Push agent to the new sandbox.
 		logger.Info("step 3: pushing agent to dedicated sandbox")
 		if err := handler.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
+			logger.Error("step 3: FAILED to push agent to sandbox",
+				"error", err.Error(),
+				"sandbox_id", sb.ID,
+			)
 			return fmt.Errorf("pushing agent to dedicated sandbox: %w", err)
 		}
 		logger.Info("step 3: agent pushed to dedicated sandbox",
