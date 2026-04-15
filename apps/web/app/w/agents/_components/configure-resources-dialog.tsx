@@ -316,6 +316,25 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
   const activeConnection = activeConnectionId ? connectionsById.get(activeConnectionId) ?? null : null
   const activeResourceTypes = activeConnection ? getConfigurableResources(activeConnection) : []
 
+  // Selection
+  const toggleResource = useCallback(
+    (connectionId: string, resourceType: string, item: ResourceItem) => {
+      setResources((prev) => {
+        const connResources = prev[connectionId] ?? {}
+        const items = connResources[resourceType] ?? []
+        const exists = items.some((existing) => existing.id === item.id)
+        const nextItems = exists
+          ? items.filter((existing) => existing.id !== item.id)
+          : [...items, item]
+        return {
+          ...prev,
+          [connectionId]: { ...connResources, [resourceType]: nextItems },
+        }
+      })
+    },
+    [],
+  )
+
   if (!agent) return null
 
   // Navigation
@@ -340,25 +359,6 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
     direction.current = -1
     setActiveResourceType(null)
   }
-
-  // Selection
-  const toggleResource = useCallback(
-    (connectionId: string, resourceType: string, item: ResourceItem) => {
-      setResources((prev) => {
-        const connResources = prev[connectionId] ?? {}
-        const items = connResources[resourceType] ?? []
-        const exists = items.some((existing) => existing.id === item.id)
-        const nextItems = exists
-          ? items.filter((existing) => existing.id !== item.id)
-          : [...items, item]
-        return {
-          ...prev,
-          [connectionId]: { ...connResources, [resourceType]: nextItems },
-        }
-      })
-    },
-    [],
-  )
 
   function getSelectedCount(connectionId: string): number {
     const connResources = resources[connectionId]
