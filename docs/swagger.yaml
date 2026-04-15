@@ -7726,49 +7726,6 @@ paths:
       summary: Get a connection
       tags:
       - connections
-  /v1/connections/{id}/resources/{type}:
-    get:
-      description: Fetches available resources of a specific type from the provider
-        API for a connection. For example, list all repositories for a GitHub connection.
-      parameters:
-      - description: Connection ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Resource type (e.g., repository, project)
-        in: path
-        name: type
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List available resources for a connection
-      tags:
-      - connections
   /v1/connections/available-scopes:
     get:
       description: Returns active connections enriched with their available actions
@@ -9183,6 +9140,49 @@ paths:
       security:
       - BearerAuth: []
       summary: Create a reconnect session for an existing connection
+      tags:
+      - in-connections
+  /v1/in/connections/{id}/resources/{type}:
+    get:
+      description: Fetches available resources of a specific type from the provider
+        API. For example, list all repositories for a GitHub connection.
+      parameters:
+      - description: In-Connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resource type (e.g., repository, project)
+        in: path
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List available resources for a connection
       tags:
       - in-connections
   /v1/in/connections/{id}/webhook-configured:
