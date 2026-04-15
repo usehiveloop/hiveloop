@@ -54,13 +54,12 @@ func (h *MemoryMCPHandler) serverFactory(r *http.Request) *mcpsdk.Server {
 	}
 
 	srv, err := h.cache.GetOrBuild(agentID, func() (*mcpsdk.Server, time.Time, error) {
-		// Load agent with identity
 		var agent model.Agent
-		if err := h.db.Preload("Identity").Where("id = ?", agentID).First(&agent).Error; err != nil {
+		if err := h.db.Where("id = ?", agentID).First(&agent).Error; err != nil {
 			return nil, time.Time{}, err
 		}
 
-		server := BuildMemoryServer(&agent, agent.Identity, h.client)
+		server := BuildMemoryServer(&agent, h.client)
 
 		// Cache for 1 hour (agent config rarely changes mid-conversation)
 		return server, time.Now().Add(1 * time.Hour), nil

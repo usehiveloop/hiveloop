@@ -10,23 +10,29 @@ import (
 	"github.com/ziraloop/ziraloop/internal/model"
 )
 
-// BuildMemoryServer creates an MCP server with memory tools (recall, retain, reflect)
-// scoped to a specific agent's identity bank.
-func BuildMemoryServer(agent *model.Agent, identity *model.Identity, client *Client) *mcp.Server {
-	var bankID string
-	if identity != nil {
-		bankID = "identity-" + identity.ID.String()
-	} else {
-		bankID = "agent-" + agent.ID.String()
+// BuildMemoryServer creates an MCP server with memory tools (recall, retain, reflect).
+// Memory is scoped per org. SharedMemory=true uses the org bank (agent sees all org
+// memories). SharedMemory=false uses the org bank with tag-based isolation (agent only
+// sees its own memories).
+func BuildMemoryServer(agent *model.Agent, client *Client) *mcp.Server {
+	if agent.OrgID == nil {
+		return nil
 	}
+	bankID := "org-" + agent.OrgID.String()
+	agentTag := "agent:" + agent.ID.String()
 
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "ziraloop-memory",
 		Version: "v1.0.0",
 	}, nil)
 
-	// Tag group filter: agent sees own team + shared memories
-	tagGroups := buildTagGroups(agent.Team)
+	// Tag filter: SharedMemory=true sees everything, false sees only own memories
+	var tagGroups []any
+	if !agent.SharedMemory {
+		tagGroups = []any{
+			map[string]any{"tags": []string{agentTag}, "match": "all_strict"},
+		}
+	}
 
 	// --- memory_recall ---
 	server.AddTool(
@@ -88,11 +94,6 @@ Do NOT recall and retain in the same turn — retained memories are not immediat
 	)
 
 	// --- memory_retain ---
-	retainSharedDesc := "If true, this memory will be visible to ALL agents in the organization, not just your team. Only use for information that is broadly relevant (company announcements, cross-team decisions, org-wide policies). Requires shared memory permission."
-	if !agent.SharedMemory {
-		retainSharedDesc = "This agent does not have shared memory permission. Always omit this field or set to false."
-	}
-
 	server.AddTool(
 		&mcp.Tool{
 			Name: "memory_retain",
@@ -123,10 +124,6 @@ Write the content as a clear, specific factual statement. Bad: "User talked abou
 						"type":        "string",
 						"description": "Describe the nature and source of this information. This significantly improves how the memory is indexed and retrieved. Examples: 'Technical architecture discussion', 'User preference stated during onboarding', 'Decision from Q2 planning meeting'. Do NOT use generic values like 'conversation' or 'chat'.",
 					},
-					"shared": map[string]any{
-						"type":        "boolean",
-						"description": retainSharedDesc,
-					},
 				},
 				"required": []string{"content"},
 			},
@@ -135,7 +132,6 @@ Write the content as a clear, specific factual statement. Bad: "User talked abou
 			var params struct {
 				Content string `json:"content"`
 				Context string `json:"context"`
-				Shared  bool   `json:"shared"`
 			}
 			if req.Params.Arguments != nil {
 				json.Unmarshal(req.Params.Arguments, &params)
@@ -144,23 +140,11 @@ Write the content as a clear, specific factual statement. Bad: "User talked abou
 				return toolError("content is required"), nil
 			}
 
-			// Build tags based on agent permissions
-			tags := []string{"team:" + agent.Team, "agent:" + agent.ID.String()}
-			if params.Shared {
-				if identity == nil {
-					return toolError("shared memory requires an identity"), nil
-				}
-				if !agent.SharedMemory {
-					return toolError("this agent does not have permission to store shared memories"), nil
-				}
-				tags = append(tags, "shared")
-			}
-
 			result, err := client.Retain(ctx, bankID, &RetainRequest{
 				Items: []RetainItem{{
 					Content: params.Content,
 					Context: params.Context,
-					Tags:    tags,
+					Tags:    []string{agentTag},
 				}},
 				Async: true,
 			})
@@ -222,18 +206,6 @@ Reflect is slower than recall (1-3 seconds) but produces deeper, more nuanced an
 	return server
 }
 
-// buildTagGroups creates the tag filter for recall/reflect.
-// Agent sees: own team memories + shared memories.
-func buildTagGroups(team string) []any {
-	return []any{
-		map[string]any{
-			"or": []any{
-				map[string]any{"tags": []string{"team:" + team}, "match": "all_strict"},
-				map[string]any{"tags": []string{"shared"}, "match": "all_strict"},
-			},
-		},
-	}
-}
 
 func toolError(msg string) *mcp.CallToolResult {
 	return &mcp.CallToolResult{
