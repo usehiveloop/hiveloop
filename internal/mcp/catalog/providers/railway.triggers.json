@@ -117,10 +117,10 @@
           }
         },
         {
-          "action": "service",
-          "as": "service_details",
+          "action": "project",
+          "as": "project_topology",
           "params": {
-            "id": "$refs.service_id"
+            "id": "$refs.project_id"
           }
         },
         {
@@ -131,7 +131,7 @@
               "serviceId": "$refs.service_id",
               "environmentId": "$refs.environment_id"
             },
-            "first": 5
+            "first": 10
           }
         }
       ]
@@ -153,7 +153,43 @@
         "commit_hash": "details.commitHash",
         "branch": "details.branch",
         "commit_author": "details.commitAuthor"
-      }
+      },
+      "enrichment": [
+        {
+          "action": "deployment_logs",
+          "as": "crash_logs",
+          "params": {
+            "deploymentId": "$refs.deployment_id",
+            "limit": 500
+          }
+        },
+        {
+          "action": "build_logs",
+          "as": "build_logs",
+          "params": {
+            "deploymentId": "$refs.deployment_id",
+            "limit": 200
+          }
+        },
+        {
+          "action": "project",
+          "as": "project_topology",
+          "params": {
+            "id": "$refs.project_id"
+          }
+        },
+        {
+          "action": "deployments",
+          "as": "recent_deployments",
+          "params": {
+            "input": {
+              "serviceId": "$refs.service_id",
+              "environmentId": "$refs.environment_id"
+            },
+            "first": 10
+          }
+        }
+      ]
     },
     "Deployment.removed": {
       "display_name": "Deployment Removed",
