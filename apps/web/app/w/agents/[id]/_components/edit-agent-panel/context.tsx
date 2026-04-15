@@ -12,6 +12,8 @@ import type { TriggerConfig } from "@/app/w/agents/_components/create-agent/type
 
 type Agent = components["schemas"]["agentResponse"]
 
+type PermissionLevel = "allow" | "deny" | "require_approval"
+
 export interface EditAgentFormValues {
   name: string
   description: string
@@ -22,6 +24,7 @@ export interface EditAgentFormValues {
   instructions: string
   team: string
   sharedMemory: boolean
+  permissions: Record<string, PermissionLevel>
 }
 
 interface EditAgentContextValue {
@@ -92,6 +95,7 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
       instructions: "",
       team: "",
       sharedMemory: false,
+      permissions: {},
     },
   })
 
@@ -108,6 +112,14 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
       providerPrompts[provider] = config.system_prompt ?? ""
     }
 
+    const rawPermissions = (agent.permissions ?? {}) as Record<string, string>
+    const parsedPermissions: Record<string, PermissionLevel> = {}
+    for (const [key, value] of Object.entries(rawPermissions)) {
+      if (value === "allow" || value === "deny" || value === "require_approval") {
+        parsedPermissions[key] = value
+      }
+    }
+
     form.reset({
       name: agent.name ?? "",
       description: agent.description ?? "",
@@ -118,6 +130,7 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
       instructions: agent.instructions ?? "",
       team: agent.team ?? "",
       sharedMemory: agent.shared_memory ?? false,
+      permissions: parsedPermissions,
     })
     setIntegrations(parseAgentIntegrations(agent.integrations))
     setTriggers(parseAgentTriggers(agent))
@@ -174,6 +187,7 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
       })),
       shared_memory: values.sharedMemory,
       team: values.team.trim() || undefined,
+      permissions: values.permissions,
     }
 
     updateAgent.mutate(
