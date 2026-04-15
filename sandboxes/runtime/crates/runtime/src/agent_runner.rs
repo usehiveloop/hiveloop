@@ -25,6 +25,8 @@ pub struct SubAgentEntry {
     pub name: String,
     pub description: String,
     pub agent: Arc<BridgeAgent>,
+    /// Tool names and descriptions registered for this subagent at build time.
+    pub registered_tools: Vec<(String, String)>,
 }
 
 /// Session store for subagent history persistence and resumption.

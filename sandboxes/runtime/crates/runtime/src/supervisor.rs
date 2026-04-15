@@ -318,6 +318,7 @@ impl AgentSupervisor {
                 name: tools::self_agent::SELF_AGENT_NAME.to_string(),
                 description: "Self-delegation agent".to_string(),
                 agent: Arc::new(rig_agent.clone()),
+                registered_tools: vec![], // uses parent's tool registry
             },
         );
 
@@ -577,6 +578,7 @@ impl AgentSupervisor {
                                 name: original.name.clone(),
                                 description: original.description.clone(),
                                 agent: Arc::new(sub_agent),
+                                registered_tools: original.registered_tools.clone(),
                             },
                         );
                     } else {
@@ -587,6 +589,7 @@ impl AgentSupervisor {
                                 name: original.name.clone(),
                                 description: original.description.clone(),
                                 agent: original.agent.clone(),
+                                registered_tools: original.registered_tools.clone(),
                             },
                         );
                     }
@@ -598,6 +601,7 @@ impl AgentSupervisor {
                             name: original.name.clone(),
                             description: original.description.clone(),
                             agent: original.agent.clone(),
+                            registered_tools: original.registered_tools.clone(),
                         },
                     );
                 }
@@ -1194,6 +1198,7 @@ impl AgentSupervisor {
                 name: tools::self_agent::SELF_AGENT_NAME.to_string(),
                 description: "Self-delegation agent".to_string(),
                 agent: Arc::new(rig_agent.clone()),
+                registered_tools: vec![], // uses parent's tool registry
             },
         );
 
@@ -1681,6 +1686,13 @@ async fn build_subagents(
             sub_registry.remove(name);
         }
 
+        // Capture tool list before consuming the registry
+        let registered_tools: Vec<(String, String)> = sub_registry
+            .list()
+            .into_iter()
+            .map(|(name, desc)| (name.to_string(), desc.to_string()))
+            .collect();
+
         let sub_executors: Vec<Arc<dyn tools::ToolExecutor>> = sub_registry
             .list()
             .iter()
@@ -1701,6 +1713,7 @@ async fn build_subagents(
                 name: subagent_def.name.clone(),
                 description,
                 agent: Arc::new(sub_agent),
+                registered_tools,
             },
         );
     }

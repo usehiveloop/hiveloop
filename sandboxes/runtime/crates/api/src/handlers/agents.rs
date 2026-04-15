@@ -46,6 +46,9 @@ pub struct SubAgentSummary {
     pub provider: ProviderSummary,
     pub config: AgentConfig,
     pub tools: Vec<ToolDefinition>,
+    pub mcp_servers: Vec<McpServerDefinition>,
+    /// All tools registered and available to this subagent at runtime.
+    pub registered_tools: Vec<RegisteredToolSummary>,
 }
 
 /// Summary of a registered tool (built-in, MCP, or integration).
@@ -104,17 +107,39 @@ async fn build_agent_response(
     let subagents = def
         .subagents
         .iter()
-        .map(|sa| SubAgentSummary {
-            name: sa.name.clone(),
-            description: sa.description.clone(),
-            system_prompt: truncate(&sa.system_prompt, prompt_len),
-            provider: ProviderSummary {
-                provider_type: sa.provider.provider_type.clone(),
-                model: sa.provider.model.clone(),
-                base_url: sa.provider.base_url.clone(),
-            },
-            config: sa.config.clone(),
-            tools: sa.tools.clone(),
+        .map(|sa| {
+            // Look up registered tools from the runtime subagent entry
+            let registered_tools = agent
+                .subagents
+                .get(&sa.name)
+                .map(|entry| {
+                    let mut tools: Vec<RegisteredToolSummary> = entry
+                        .registered_tools
+                        .iter()
+                        .map(|(name, desc)| RegisteredToolSummary {
+                            name: name.clone(),
+                            description: desc.clone(),
+                        })
+                        .collect();
+                    tools.sort_by(|a, b| a.name.cmp(&b.name));
+                    tools
+                })
+                .unwrap_or_default();
+
+            SubAgentSummary {
+                name: sa.name.clone(),
+                description: sa.description.clone(),
+                system_prompt: truncate(&sa.system_prompt, prompt_len),
+                provider: ProviderSummary {
+                    provider_type: sa.provider.provider_type.clone(),
+                    model: sa.provider.model.clone(),
+                    base_url: sa.provider.base_url.clone(),
+                },
+                config: sa.config.clone(),
+                tools: sa.tools.clone(),
+                mcp_servers: sa.mcp_servers.clone(),
+                registered_tools,
+            }
         })
         .collect();
 
