@@ -13,6 +13,7 @@ import { AgentStatusIndicator } from "./agent-status"
 import { AgentActions } from "./agent-actions"
 import { EnvVarsDialog } from "./env-vars-dialog"
 import { SetupCommandsDialog } from "./setup-commands-dialog"
+import { ConfigureResourcesDialog } from "./configure-resources-dialog"
 import type { AgentStatus } from "../_data/agents"
 import type { components } from "@/lib/api/schema"
 
@@ -54,6 +55,7 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
   const [deleting, setDeleting] = useState<Agent | null>(null)
   const [envVarsAgent, setEnvVarsAgent] = useState<Agent | null>(null)
   const [setupCommandsAgent, setSetupCommandsAgent] = useState<Agent | null>(null)
+  const [resourcesAgent, setResourcesAgent] = useState<Agent | null>(null)
   const deleteAgent = $api.useMutation("delete", "/v1/agents/{id}")
 
   const { data: connectionsData } = $api.useQuery("get", "/v1/in/connections")
@@ -134,6 +136,7 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
                   onDelete={() => setDeleting(agent)}
                   onEnvVars={() => setEnvVarsAgent(agent)}
                   onSetupCommands={() => setSetupCommandsAgent(agent)}
+                  onConfigureResources={() => setResourcesAgent(agent)}
                 />
               </div>
             </Link>
@@ -196,6 +199,14 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
         onOpenChange={(open) => { if (!open) setSetupCommandsAgent(null) }}
         agentName={setupCommandsAgent?.name ?? ""}
       />
+
+      {resourcesAgent && (
+        <ConfigureResourcesDialog
+          open={resourcesAgent !== null}
+          onOpenChange={(open) => { if (!open) setResourcesAgent(null) }}
+          agent={resourcesAgent}
+        />
+      )}
     </>
   )
 }
