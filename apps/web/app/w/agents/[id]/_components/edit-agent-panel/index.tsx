@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ProviderPromptEditor } from "@/app/w/agents/_components/create-agent/provider-prompt-editor"
+import { AddTriggerDialog } from "@/app/w/agents/_components/add-trigger-dialog"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -110,8 +111,9 @@ function SandboxOption({
 // ---------------------------------------------------------------------------
 
 function EditAgentForm() {
-  const { form, integrations, triggers, isSubmitting, setIntegrations, removeIntegration, removeTrigger, handleSave } = useEditAgent()
+  const { form, integrations, triggers, isSubmitting, setIntegrations, removeIntegration, addTrigger, removeTrigger, handleSave } = useEditAgent()
   const [integrationsOpen, setIntegrationsOpen] = useState(false)
+  const [addTriggerOpen, setAddTriggerOpen] = useState(false)
 
   const credentialId = form.watch("credentialId")
   const sandboxType = form.watch("sandboxType")
@@ -359,7 +361,23 @@ function EditAgentForm() {
                 </div>
               ))
             )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit mt-1"
+              onClick={() => setAddTriggerOpen(true)}
+            >
+              <HugeiconsIcon icon={FlashIcon} size={14} data-icon="inline-start" />
+              Add trigger
+            </Button>
           </div>
+
+          <AddTriggerDialog
+            open={addTriggerOpen}
+            onOpenChange={setAddTriggerOpen}
+            onAdd={addTrigger}
+          />
         </section>
 
         <Separator />
