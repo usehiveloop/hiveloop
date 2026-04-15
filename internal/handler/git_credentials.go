@@ -67,10 +67,11 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find the running dedicated sandbox for this agent
+	// Find the latest dedicated sandbox for this agent
 	var sandbox model.Sandbox
 	if err := h.db.
-		Where("agent_id = ? AND status = 'running' AND sandbox_type = 'dedicated'", agentID).
+		Where("agent_id = ? AND sandbox_type = 'dedicated'", agentID).
+		Order("created_at DESC").
 		First(&sandbox).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no running sandbox for agent"})
