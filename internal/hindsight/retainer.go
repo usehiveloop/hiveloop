@@ -51,14 +51,9 @@ func NewRetainer(bus *streaming.EventBus, db *gorm.DB, client *Client) *Retainer
 	}
 }
 
-// BankID returns the Hindsight bank ID for an identity.
-func (r *Retainer) BankID(identityID uuid.UUID) string {
-	return "identity-" + identityID.String()
-}
-
-// MCPURL returns the Hindsight MCP server URL for an identity's bank.
-func (r *Retainer) MCPURL(identityID uuid.UUID) string {
-	return r.client.baseURL + "/mcp/" + r.BankID(identityID) + "/"
+// OrgBankID returns the Hindsight bank ID for an org.
+func OrgBankID(orgID uuid.UUID) string {
+	return "org-" + orgID.String()
 }
 
 // Run starts the retainer loop. Blocks until ctx is cancelled.
@@ -164,43 +159,26 @@ func (r *Retainer) processStream(ctx context.Context, convID string) {
 
 // retainConversation builds the full transcript and retains it to Hindsight.
 func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
-	// Load conversation with agent and identity
+	// Load conversation with agent
 	var conv model.AgentConversation
-	if err := r.db.Preload("Agent").Preload("Agent.Identity").
+	if err := r.db.Preload("Agent").
 		Where("id = ?", convID).First(&conv).Error; err != nil {
 		slog.Debug("hindsight retainer: conversation not found", "conversation_id", convID)
 		return
 	}
 
 	agent := conv.Agent
-	identity := agent.Identity
 
-	// Skip agents without a team (memory is opt-in via team assignment)
-	if agent.Team == "" {
+	// Skip agents without an org (system agents)
+	if agent.OrgID == nil {
 		return
 	}
 
-	// Determine bank ID and check memory config
-	var bankID string
-	if identity != nil {
-		memCfg := ParseMemoryConfig(identity.MemoryConfig)
-		if !memCfg.IsEnabled() {
-			return
-		}
-		bankID = r.BankID(identity.ID)
-		if err := r.ensureBankConfigured(ctx, identity); err != nil {
-			slog.Error("hindsight retainer: failed to ensure bank",
-				"identity_id", identity.ID, "error", err)
-			return
-		}
-	} else {
-		// Agent-scoped bank (no identity) — memory enabled by default
-		bankID = "agent-" + agent.ID.String()
-		if err := r.ensureAgentBankConfigured(ctx, &agent); err != nil {
-			slog.Error("hindsight retainer: failed to ensure agent bank",
-				"agent_id", agent.ID, "error", err)
-			return
-		}
+	bankID := "org-" + agent.OrgID.String()
+	if err := r.ensureOrgBankConfigured(ctx, &agent); err != nil {
+		slog.Error("hindsight retainer: failed to ensure org bank",
+			"agent_id", agent.ID, "org_id", agent.OrgID, "error", err)
+		return
 	}
 
 	// Build transcript from persisted events
@@ -219,7 +197,7 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 	if agent.Description != nil && *agent.Description != "" {
 		agentContext += " (" + *agent.Description + ")"
 	}
-	agentContext += fmt.Sprintf(" [%s team] agent conversation", agent.Team)
+	agentContext += " agent conversation"
 
 	// Retain
 	_, err = r.client.Retain(ctx, bankID, &RetainRequest{
@@ -227,7 +205,7 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 			Content:    transcript,
 			Context:    agentContext,
 			DocumentID: "conv-" + convID.String(),
-			Tags:       []string{"team:" + agent.Team, "agent:" + agent.ID.String(), "conv:" + convID.String()},
+			Tags:       []string{"agent:" + agent.ID.String(), "conv:" + convID.String()},
 			Timestamp:  conv.CreatedAt.Format(time.RFC3339),
 		}},
 		Async: true,
@@ -242,8 +220,7 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 
 	slog.Debug("hindsight retainer: retained conversation",
 		"conversation_id", convID,
-		"bank_id", bankID,
-		"team", agent.Team)
+		"bank_id", bankID)
 }
 
 // buildTranscript reconstructs the conversation from persisted events.
@@ -295,130 +272,53 @@ func (r *Retainer) buildTranscript(convID uuid.UUID) (string, error) {
 	return strings.TrimSpace(buf.String()), nil
 }
 
-// ensureBankConfigured creates and configures the Hindsight bank for an identity
+// ensureOrgBankConfigured creates and configures the org-scoped Hindsight bank
 // if it doesn't exist yet, or re-applies config if it has changed.
-func (r *Retainer) ensureBankConfigured(ctx context.Context, identity *model.Identity) error {
-	bankID := r.BankID(identity.ID)
-	memCfg := ParseMemoryConfig(identity.MemoryConfig)
-
-	// Collect distinct teams from this identity's agents for observation scopes
-	var teams []string
-	r.db.Model(&model.Agent{}).
-		Where("identity_id = ? AND team != '' AND status = 'active'", identity.ID).
-		Distinct("team").Pluck("team", &teams)
-
-	// Build observation scopes from teams
-	var scopes [][]string
-	for _, t := range teams {
-		scopes = append(scopes, []string{"team:" + t})
-	}
-	scopes = append(scopes, []string{"shared"})
-
-	// Compute config hash (includes teams so new teams trigger re-config)
-	hashInput := memCfg.Hash() + "|" + strings.Join(teams, ",")
-	configHash := fmt.Sprintf("%x", hashInput)
-
-	// Check existing bank record
-	var bank model.HindsightBank
-	err := r.db.Where("bank_id = ?", bankID).First(&bank).Error
-
-	if err == gorm.ErrRecordNotFound {
-		// First time — create bank, apply config, create mental model
-		if err := r.client.ConfigureBank(ctx, bankID, memCfg.ToBankConfigUpdate(scopes)); err != nil {
-			return fmt.Errorf("configuring bank: %w", err)
-		}
-
-		// Create default mental model
-		_ = r.client.CreateMentalModel(ctx, bankID, &CreateMentalModelRequest{
-			Name:        "Identity Profile",
-			SourceQuery: "Summarize everything known about this user/identity: preferences, context, history, ongoing work, and relationships.",
-			Trigger:     &MentalModelTrigger{RefreshAfterConsolidation: true},
-		})
-
-		// Record in DB
-		bank = model.HindsightBank{
-			IdentityID: &identity.ID,
-			BankID:     bankID,
-			ConfigHash: configHash,
-		}
-		if err := r.db.Create(&bank).Error; err != nil {
-			// Duplicate key = another goroutine created it first — that's fine
-			if !isDuplicateKey(err) {
-				return fmt.Errorf("recording bank: %w", err)
-			}
-		}
-		slog.Info("hindsight retainer: bank created",
-			"bank_id", bankID, "identity_id", identity.ID, "teams", teams)
-		return nil
-	}
-
-	if err != nil {
-		return fmt.Errorf("checking bank: %w", err)
-	}
-
-	// Bank exists — check if config changed
-	if bank.ConfigHash != configHash {
-		if err := r.client.ConfigureBank(ctx, bankID, memCfg.ToBankConfigUpdate(scopes)); err != nil {
-			return fmt.Errorf("updating bank config: %w", err)
-		}
-		r.db.Model(&bank).Update("config_hash", configHash)
-		slog.Info("hindsight retainer: bank config updated",
-			"bank_id", bankID, "identity_id", identity.ID)
-	}
-
-	return nil
-}
-
-// ensureAgentBankConfigured creates and configures a Hindsight bank for an agent
-// (private bank, no shared observation scopes).
-func (r *Retainer) ensureAgentBankConfigured(ctx context.Context, agent *model.Agent) error {
-	bankID := "agent-" + agent.ID.String()
+// Observation scopes are set per-agent so consolidated patterns stay isolated.
+func (r *Retainer) ensureOrgBankConfigured(ctx context.Context, agent *model.Agent) error {
+	bankID := OrgBankID(*agent.OrgID)
 	memCfg := DefaultMemoryConfig()
 
-	// Agent-scoped banks: only this agent's team scope, no shared
-	var scopes [][]string
-	if agent.Team != "" {
-		scopes = append(scopes, []string{"team:" + agent.Team})
-	}
+	// Per-agent observation scope so observations don't bleed across agents
+	scopes := [][]string{{"agent:" + agent.ID.String()}}
 
-	configHash := fmt.Sprintf("%x", memCfg.Hash()+"|agent")
+	configHash := fmt.Sprintf("%x", memCfg.Hash()+"|org-"+agent.OrgID.String())
 
 	var bank model.HindsightBank
 	err := r.db.Where("bank_id = ?", bankID).First(&bank).Error
 
 	if err == gorm.ErrRecordNotFound {
 		if err := r.client.ConfigureBank(ctx, bankID, memCfg.ToBankConfigUpdate(scopes)); err != nil {
-			return fmt.Errorf("configuring agent bank: %w", err)
+			return fmt.Errorf("configuring org bank: %w", err)
 		}
 
 		_ = r.client.CreateMentalModel(ctx, bankID, &CreateMentalModelRequest{
-			Name:        "Agent Memory",
-			SourceQuery: "Summarize everything this agent has learned across conversations.",
+			Name:        "Organization Memory",
+			SourceQuery: "Summarize everything known across all agents in this organization.",
 			Trigger:     &MentalModelTrigger{RefreshAfterConsolidation: true},
 		})
 
 		bank = model.HindsightBank{
-			AgentID:    &agent.ID,
 			BankID:     bankID,
 			ConfigHash: configHash,
 		}
 		if err := r.db.Create(&bank).Error; err != nil {
 			if !isDuplicateKey(err) {
-				return fmt.Errorf("recording agent bank: %w", err)
+				return fmt.Errorf("recording org bank: %w", err)
 			}
 		}
-		slog.Info("hindsight retainer: agent bank created",
-			"bank_id", bankID, "agent_id", agent.ID)
+		slog.Info("hindsight retainer: org bank created",
+			"bank_id", bankID, "org_id", agent.OrgID)
 		return nil
 	}
 
 	if err != nil {
-		return fmt.Errorf("checking agent bank: %w", err)
+		return fmt.Errorf("checking org bank: %w", err)
 	}
 
 	if bank.ConfigHash != configHash {
 		if err := r.client.ConfigureBank(ctx, bankID, memCfg.ToBankConfigUpdate(scopes)); err != nil {
-			return fmt.Errorf("updating agent bank config: %w", err)
+			return fmt.Errorf("updating org bank config: %w", err)
 		}
 		r.db.Model(&bank).Update("config_hash", configHash)
 	}

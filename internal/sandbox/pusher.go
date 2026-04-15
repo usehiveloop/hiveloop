@@ -524,8 +524,8 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 			*mcpServers = append(*mcpServers, ourMCP)
 		}
 	}
-	// Add Hindsight memory MCP server (if configured and agent has a team)
-	if p.hindsightMCPURL != nil && agent.Team != "" {
+	// Add Hindsight memory MCP server (always, when configured)
+	if p.hindsightMCPURL != nil {
 		hsMCP := buildHindsightMCPServer(p.hindsightMCPURL(agent.ID))
 		if mcpServers == nil {
 			servers := []bridgepkg.McpServerDefinition{hsMCP}
