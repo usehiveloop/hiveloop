@@ -838,10 +838,22 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 	// Run agent-level setup commands for dedicated sandboxes
 	if agent != nil && len(agent.SetupCommands) > 0 {
 		if err := o.runSetupCommands(ctx, &sb, agent.SetupCommands); err != nil {
-			slog.Warn("setup commands failed but sandbox is still usable",
-				"sandbox_id", sb.ID,
-				"error", err,
-			)
+			o.db.Model(&sb).Updates(map[string]any{
+				"status":        "error",
+				"error_message": fmt.Sprintf("setup commands failed: %v", err),
+			})
+			return nil, fmt.Errorf("setup commands failed: %w", err)
+		}
+	}
+
+	// Clone configured repositories into the sandbox
+	if agent != nil {
+		if err := o.cloneAgentRepositories(ctx, &sb, agent); err != nil {
+			o.db.Model(&sb).Updates(map[string]any{
+				"status":        "error",
+				"error_message": fmt.Sprintf("repository cloning failed: %v", err),
+			})
+			return nil, fmt.Errorf("cloning repositories: %w", err)
 		}
 	}
 
@@ -1270,6 +1282,103 @@ func (o *Orchestrator) mergeUserEnvVars(envVars map[string]string, encrypted []b
 		}
 		envVars[k] = v
 	}
+}
+
+// repoResource is a single repository from the agent's resources config.
+type repoResource struct {
+	ID   string `json:"id"`   // e.g. "owner/repo-name"
+	Name string `json:"name"` // e.g. "repo-name"
+}
+
+// cloneAgentRepositories parses the agent's configured resources, clones any
+// github-app repositories into /home/daytona/repos/{name}, and creates a
+// codedb snapshot for each so CodeDB tools have a pre-built index.
+func (o *Orchestrator) cloneAgentRepositories(ctx context.Context, sb *model.Sandbox, agent *model.Agent) error {
+	if agent.Resources == nil || len(agent.Resources) == 0 {
+		return nil
+	}
+
+	// Collect repos from all connections
+	var repos []repoResource
+	for _, resourceTypes := range agent.Resources {
+		typesMap, ok := resourceTypes.(map[string]any)
+		if !ok {
+			continue
+		}
+		repoList, ok := typesMap["repository"]
+		if !ok {
+			continue
+		}
+		repoSlice, ok := repoList.([]any)
+		if !ok {
+			continue
+		}
+		for _, item := range repoSlice {
+			itemMap, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			repoID, _ := itemMap["id"].(string)
+			repoName, _ := itemMap["name"].(string)
+			if repoID != "" && repoName != "" {
+				repos = append(repos, repoResource{ID: repoID, Name: repoName})
+			}
+		}
+	}
+
+	if len(repos) == 0 {
+		return nil
+	}
+
+	// Create the repos directory
+	if _, err := o.ExecuteCommand(ctx, sb, "mkdir -p /home/daytona/repos"); err != nil {
+		return fmt.Errorf("creating repos directory: %w", err)
+	}
+
+	for _, repo := range repos {
+		repoPath := "/home/daytona/repos/" + repo.Name
+		cloneURL := "https://github.com/" + repo.ID + ".git"
+
+		slog.Info("cloning repository into sandbox",
+			"sandbox_id", sb.ID,
+			"repo", repo.ID,
+			"path", repoPath,
+		)
+
+		// Clone — git credential helper handles auth automatically
+		output, err := o.ExecuteCommand(ctx, sb,
+			fmt.Sprintf("git clone --depth=1 %s %s", cloneURL, repoPath))
+		if err != nil {
+			slog.Error("git clone failed",
+				"sandbox_id", sb.ID,
+				"repo", repo.ID,
+				"output", output,
+				"error", err,
+			)
+			return fmt.Errorf("cloning %s: %w", repo.ID, err)
+		}
+
+		// Create codedb snapshot so CodeDB tools have a pre-built index
+		output, err = o.ExecuteCommand(ctx, sb,
+			fmt.Sprintf("codedb %s snapshot", repoPath))
+		if err != nil {
+			slog.Warn("codedb snapshot failed, continuing without index",
+				"sandbox_id", sb.ID,
+				"repo", repo.ID,
+				"output", output,
+				"error", err,
+			)
+			// Non-fatal — the agent can still work without codedb indexing
+		}
+
+		slog.Info("repository cloned and indexed",
+			"sandbox_id", sb.ID,
+			"repo", repo.ID,
+			"path", repoPath,
+		)
+	}
+
+	return nil
 }
 
 // runSetupCommands executes a list of shell commands inside the sandbox sequentially.
