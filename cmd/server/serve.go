@@ -686,17 +686,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	mcpRouter.Use(chimw.Recoverer)
 	mcpRouter.Use(middleware.RequestLog(logger))
 
-	if cfg.HindsightAPIURL != "" {
-		memoryHandler := hindsight.NewMemoryMCPHandler(database, hindsight.NewClient(cfg.HindsightAPIURL))
-		mcpRouter.Route("/memory/{agentID}", func(r chi.Router) {
-			r.Use(middleware.TokenAuth(signingKey, database))
-			r.Use(memoryHandler.ValidateAgentToken)
-			r.Handle("/*", memoryHandler.StreamableHTTPHandler())
-			r.Handle("/", memoryHandler.StreamableHTTPHandler())
-		})
-		memoryHandler.StartCleanup(ctx, 5*time.Minute)
-		slog.Info("hindsight memory MCP tools registered on /memory/{agentID}")
-	}
 
 	mcpRouter.Route("/forge/{forgeRunID}", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, database))
