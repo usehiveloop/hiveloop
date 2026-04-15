@@ -191,6 +191,13 @@ func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *m
 		return fmt.Errorf("minting new token: %w", err)
 	}
 
+	// Build scopes from agent integrations.
+	rotateScopes := buildScopesFromIntegrations(agent.Integrations)
+	var rotateScopesJSON model.JSON
+	if len(rotateScopes) > 0 {
+		rotateScopesJSON = model.JSON{"scopes": rotateScopes}
+	}
+
 	// Store in DB
 	now := time.Now()
 	expiresAt := now.Add(agentTokenTTL)
@@ -199,6 +206,7 @@ func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *m
 		CredentialID: cred.ID,
 		JTI:          jti,
 		ExpiresAt:    expiresAt,
+		Scopes:       rotateScopesJSON,
 		Meta:         model.JSON{"agent_id": agent.ID.String(), "identity_id": ptrToString(agent.IdentityID), "type": "agent_proxy"},
 	}
 	if err := p.db.Create(&dbToken).Error; err != nil {
@@ -257,6 +265,13 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		return fmt.Errorf("minting proxy token: %w", err)
 	}
 
+	// Build scopes from agent integrations so the MCP server exposes tools.
+	scopes := buildScopesFromIntegrations(agent.Integrations)
+	var scopesJSON model.JSON
+	if len(scopes) > 0 {
+		scopesJSON = model.JSON{"scopes": scopes}
+	}
+
 	// Store the token in DB
 	now := time.Now()
 	expiresAt := now.Add(agentTokenTTL)
@@ -265,6 +280,7 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		CredentialID: cred.ID,
 		JTI:          jti,
 		ExpiresAt:    expiresAt,
+		Scopes:       scopesJSON,
 		Meta:         model.JSON{"agent_id": agent.ID.String(), "identity_id": ptrToString(agent.IdentityID), "type": "agent_proxy"},
 	}
 	if err := p.db.Create(&dbToken).Error; err != nil {
@@ -604,6 +620,44 @@ func buildZiraLoopMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDe
 		Name:      "ziraloop",
 		Transport: transport,
 	}
+}
+
+// buildScopesFromIntegrations converts the agent's Integrations JSON
+// (map[connectionID] → {actions: [...]}) into MCP TokenScope format.
+func buildScopesFromIntegrations(integrations model.JSON) []map[string]any {
+	if len(integrations) == 0 {
+		return nil
+	}
+
+	var scopes []map[string]any
+	for connectionID, config := range integrations {
+		configMap, ok := config.(map[string]any)
+		if !ok {
+			continue
+		}
+		actionsRaw, ok := configMap["actions"]
+		if !ok {
+			continue
+		}
+		actionsSlice, ok := actionsRaw.([]any)
+		if !ok {
+			continue
+		}
+		actions := make([]string, 0, len(actionsSlice))
+		for _, action := range actionsSlice {
+			if actionStr, ok := action.(string); ok {
+				actions = append(actions, actionStr)
+			}
+		}
+		if len(actions) > 0 {
+			scopes = append(scopes, map[string]any{
+				"connection_id": connectionID,
+				"actions":       actions,
+			})
+		}
+	}
+
+	return scopes
 }
 
 func ptrToString(id *uuid.UUID) string {
