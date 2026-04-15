@@ -377,6 +377,7 @@ function EditAgentForm() {
             open={addTriggerOpen}
             onOpenChange={setAddTriggerOpen}
             onAdd={addTrigger}
+            connectionIds={new Set(Object.keys(integrations))}
           />
         </section>
 
