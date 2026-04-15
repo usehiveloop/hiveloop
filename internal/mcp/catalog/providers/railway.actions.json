@@ -118,7 +118,7 @@
         },
         "graphql_operation": "query",
         "graphql_field": "buildLogs",
-        "graphql_query": "query($deploymentId: String!, $limit: Int, $filter: String, $startDate: DateTime, $endDate: DateTime) { buildLogs(deploymentId: $deploymentId, limit: $limit, filter: $filter, startDate: $startDate, endDate: $endDate) { timestamp message severity } }"
+        "graphql_query": "query($deploymentId: String!, $limit: Int, $filter: String, $startDate: DateTime, $endDate: DateTime) { buildLogs(deploymentId: $deploymentId, limit: $limit, filter: $filter, startDate: $startDate, endDate: $endDate) { timestamp message severity attributes { key value } } }"
       },
       "response_schema": "log"
     },
@@ -295,7 +295,7 @@
         },
         "graphql_operation": "query",
         "graphql_field": "deploymentLogs",
-        "graphql_query": "query($deploymentId: String!, $limit: Int, $filter: String, $startDate: DateTime, $endDate: DateTime) { deploymentLogs(deploymentId: $deploymentId, limit: $limit, filter: $filter, startDate: $startDate, endDate: $endDate) { timestamp message severity } }"
+        "graphql_query": "query($deploymentId: String!, $limit: Int, $filter: String, $startDate: DateTime, $endDate: DateTime) { deploymentLogs(deploymentId: $deploymentId, limit: $limit, filter: $filter, startDate: $startDate, endDate: $endDate) { timestamp message severity attributes { key value } } }"
       },
       "response_schema": "log"
     },
@@ -476,7 +476,7 @@
         },
         "graphql_operation": "query",
         "graphql_field": "deployments",
-        "graphql_query": "query($input: DeploymentListInput!, $first: Int, $after: String) { deployments(input: $input, first: $first, after: $after) { edges { node { id status createdAt staticUrl creator { name } } } } }"
+        "graphql_query": "query($input: DeploymentListInput!, $first: Int, $after: String) { deployments(input: $input, first: $first, after: $after) { edges { node { id status createdAt meta staticUrl canRedeploy creator { name } } } } }"
       },
       "response_schema": "query_deployments_connection"
     },
@@ -975,19 +975,19 @@
     },
     "project": {
       "display_name": "Project",
-      "description": "Get a project by ID",
+      "description": "Full project state: environments, services, deployments, domains, volumes",
       "access": "read",
-      "resource_type": "project",
       "parameters": {
+        "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "Project ID"
           }
         },
         "required": [
           "id"
-        ],
-        "type": "object"
+        ]
       },
       "execution": {
         "method": "POST",
@@ -996,7 +996,8 @@
           "id": "id"
         },
         "graphql_operation": "query",
-        "graphql_field": "project"
+        "graphql_field": "project",
+        "graphql_query": "query($id: String!) { project(id: $id) { id name deletedAt workspace { name } environments { edges { node { id name canAccess deletedAt serviceInstances { edges { node { id serviceId serviceName environmentId latestDeployment { id status createdAt meta canRedeploy } source { repo image } domains { serviceDomains { domain targetPort } customDomains { domain targetPort } } startCommand healthcheckPath numReplicas cronSchedule } } } volumeInstances { edges { node { serviceId mountPath currentSizeMB sizeMB volume { name id } } } } } } } services { edges { node { id name } } } } }"
       },
       "response_schema": "project"
     },
@@ -1248,7 +1249,7 @@
         },
         "graphql_operation": "query",
         "graphql_field": "service",
-        "graphql_query": "query($id: String!) { service(id: $id) { id name icon updatedAt } }"
+        "graphql_query": "query($id: String!) { service(id: $id) { id name icon updatedAt deployments(first: 1) { edges { node { id status createdAt meta staticUrl creator { name } } } } } }"
       },
       "response_schema": "service"
     },
