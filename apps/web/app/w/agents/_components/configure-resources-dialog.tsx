@@ -272,10 +272,16 @@ function ResourceInstanceListView({ connectionId, resourceType, isSelected, onTo
 interface ConfigureResourcesDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  agent: Agent
+  agent: Agent | null
 }
 
-export function ConfigureResourcesDialog({ open, onOpenChange, agent }: ConfigureResourcesDialogProps) {
+export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp }: ConfigureResourcesDialogProps) {
+  // Keep a ref to the last non-null agent so the dialog can animate out with stale data
+  const lastAgent = useRef<Agent | null>(null)
+  if (agentProp) lastAgent.current = agentProp
+  const agent = agentProp ?? lastAgent.current
+  if (!agent) return null
+
   const queryClient = useQueryClient()
   const updateAgent = $api.useMutation("put", "/v1/agents/{id}")
   const direction = useRef<1 | -1>(1)
@@ -369,7 +375,7 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent }: Configur
 
   // Save
   function handleSave() {
-    if (!agent.id) return
+    if (!agent?.id) return
 
     const cleanedResources: AgentResources = {}
     for (const [connId, types] of Object.entries(resources)) {
@@ -381,7 +387,7 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent }: Configur
     }
 
     updateAgent.mutate(
-      { params: { path: { id: agent.id } }, body: { resources: cleanedResources } as never },
+      { params: { path: { id: agent!.id } }, body: { resources: cleanedResources } as never },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["get", "/v1/agents"] })
