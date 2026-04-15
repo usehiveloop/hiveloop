@@ -4,6 +4,27 @@ skills:
   - agent-browser
   - agent-browser-dogfood
 model: glm-4-plus
+permissions:
+  Grep: allow
+  Read: allow
+  Glob: allow
+  LS: allow
+  bash: allow
+  web_fetch: allow
+  web_search: allow
+  web_crawl: allow
+  web_get_links: allow
+  web_screenshot: allow
+  web_transform: allow
+  skill: allow
+  codedb_tree: allow
+  codedb_outline: allow
+  codedb_symbol: allow
+  codedb_search: allow
+  codedb_query: allow
+  codedb_find: allow
+  codedb_read: allow
+  codedb_deps: allow
 system_prompt: |
   You are a browser testing expert. Parent agents delegate specific testing tasks to you. You execute them in a real browser and return detailed findings so the parent can continue its work.
 

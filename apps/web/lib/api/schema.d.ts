@@ -5073,6 +5073,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/agents/built-in-tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all built-in tools
+         * @description Returns the complete list of built-in tools that can be granted to agents via permissions. Each tool includes its category and whether it is locked (cannot be toggled off).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BuiltInToolDefinition"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/agents/sandbox-tools": {
         parameters: {
             query?: never;
@@ -14028,6 +14067,14 @@ export interface components {
              *     URL in the provider's dashboard for triggers to work.
              */
             webhook_url_required?: boolean;
+        };
+        BuiltInToolDefinition: {
+            category?: string;
+            description?: string;
+            id?: string;
+            /** @description true = cannot be toggled off by the user */
+            locked?: boolean;
+            name?: string;
         };
         ConnectionConfigField: {
             automated?: boolean;

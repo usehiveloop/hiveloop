@@ -501,6 +501,19 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate permission keys are recognized built-in tool IDs
+	if len(req.Permissions) > 0 {
+		permKeys := make(map[string]string, len(req.Permissions))
+		for key, val := range req.Permissions {
+			str, _ := val.(string)
+			permKeys[key] = str
+		}
+		if invalid := model.ValidatePermissionKeys(permKeys); invalid != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid permission tool: %q", invalid)})
+			return
+		}
+	}
+
 	// Validate identity exists and belongs to org (optional)
 	var identity *model.Identity
 	if req.IdentityID != "" {
@@ -1040,6 +1053,15 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		updates["agent_config"] = req.AgentConfig
 	}
 	if req.Permissions != nil {
+		permKeys := make(map[string]string, len(req.Permissions))
+		for key, val := range req.Permissions {
+			str, _ := val.(string)
+			permKeys[key] = str
+		}
+		if invalid := model.ValidatePermissionKeys(permKeys); invalid != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid permission tool: %q", invalid)})
+			return
+		}
 		updates["permissions"] = req.Permissions
 	}
 	if req.Team != nil {
@@ -1511,5 +1533,17 @@ func (h *AgentHandler) UpdateSetup(w http.ResponseWriter, r *http.Request) {
 // @Router /v1/agents/sandbox-tools [get]
 func (h *AgentHandler) ListSandboxTools(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, model.ValidSandboxTools)
+}
+
+// ListBuiltInTools handles GET /v1/agents/built-in-tools.
+// @Summary List all built-in tools
+// @Description Returns the complete list of built-in tools that can be granted to agents via permissions. Each tool includes its category and whether it is locked (cannot be toggled off).
+// @Tags agents
+// @Produce json
+// @Success 200 {array} model.BuiltInToolDefinition
+// @Security BearerAuth
+// @Router /v1/agents/built-in-tools [get]
+func (h *AgentHandler) ListBuiltInTools(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, model.ValidBuiltInTools)
 }
 
