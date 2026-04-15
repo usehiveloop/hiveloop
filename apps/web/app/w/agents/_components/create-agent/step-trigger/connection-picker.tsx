@@ -12,22 +12,23 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { IntegrationLogo } from "@/components/integration-logo"
 import { $api } from "@/lib/api/hooks"
-import { useCreateAgent } from "../context"
 
 interface ConnectionPickerViewProps {
   search: string
   onSearchChange: (value: string) => void
   onPickConnection: (connectionId: string, connectionName: string, provider: string) => void
   onBack: () => void
+  connectionIds?: Set<string>
 }
 
-export function ConnectionPickerView({ search, onSearchChange, onPickConnection, onBack }: ConnectionPickerViewProps) {
-  const { selectedIntegrations } = useCreateAgent()
+export function ConnectionPickerView({ search, onSearchChange, onPickConnection, onBack, connectionIds }: ConnectionPickerViewProps) {
   const { data: connectionsData, isLoading } = $api.useQuery("get", "/v1/in/connections")
   const allConnections = connectionsData?.data ?? []
   const connections = useMemo(
-    () => allConnections.filter((connection) => selectedIntegrations.has(connection.id!)),
-    [allConnections, selectedIntegrations],
+    () => connectionIds
+      ? allConnections.filter((connection) => connectionIds.has(connection.id!))
+      : allConnections,
+    [allConnections, connectionIds],
   )
 
   const filtered = useMemo(() => {
