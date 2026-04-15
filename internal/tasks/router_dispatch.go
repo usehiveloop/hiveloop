@@ -100,27 +100,6 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 	// Run deterministic enrichment for new conversations (best effort).
 	handler.runDeterministicEnrichment(ctx, logger, dispatches, payload)
 
-	// Log the full enriched message and built instructions for each dispatch.
-	for dispatchIndex, agentDispatch := range dispatches {
-		if agentDispatch.EnrichedMessage != "" {
-			logger.Info("enriched message (full output)",
-				"dispatch_index", dispatchIndex,
-				"agent_id", agentDispatch.AgentID,
-				"message_bytes", len(agentDispatch.EnrichedMessage),
-				"message", agentDispatch.EnrichedMessage,
-			)
-		}
-
-		instructions := buildDispatchInstructions(agentDispatch)
-		logger.Info("built agent instructions",
-			"dispatch_index", dispatchIndex,
-			"agent_id", agentDispatch.AgentID,
-			"instruction_source", instructionSource(agentDispatch),
-			"instruction_bytes", len(instructions),
-			"instructions", instructions,
-		)
-	}
-
 	// TODO: re-enable executor after dedicated agent sandbox creation is implemented.
 	// logger.Info("executor starting", "dispatch_count", len(dispatches))
 	// if err := handler.executor.Execute(ctx, dispatches); err != nil {
@@ -128,9 +107,15 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 	// 	return fmt.Errorf("router execute: %w", err)
 	// }
 
-	logger.Info("pipeline complete (executor disabled)",
+	logger.Info("pipeline complete",
 		"agents_dispatched", len(dispatches),
 		"enriched", len(dispatches) > 0 && dispatches[0].EnrichedMessage != "",
+		"instruction_bytes", func() int {
+			if len(dispatches) > 0 {
+				return len(buildDispatchInstructions(dispatches[0]))
+			}
+			return 0
+		}(),
 	)
 	return nil
 }
@@ -216,9 +201,3 @@ func buildDispatchInstructions(agentDispatch dispatch.AgentDispatch) string {
 	return builder.String()
 }
 
-func instructionSource(agentDispatch dispatch.AgentDispatch) string {
-	if agentDispatch.EnrichedMessage != "" {
-		return "enriched"
-	}
-	return "flat_refs"
-}
