@@ -159,7 +159,7 @@ func TestCreateConversationWithOptions_SerialisesMcpServers(t *testing.T) {
 	var transport McpTransport
 	transport.FromMcpTransport1(McpTransport1{
 		Type:    StreamableHttp,
-		Url:     "https://mcp.example.com/forge-context/run-42",
+		Url:     "https://mcp.example.com/test-mcp/run-42",
 		Headers: &headers,
 	})
 
@@ -171,7 +171,7 @@ func TestCreateConversationWithOptions_SerialisesMcpServers(t *testing.T) {
 			ApiKey:       "sk-test",
 		},
 		McpServers: &[]McpServerDefinition{
-			{Name: "forge-context", Transport: transport},
+			{Name: "test-mcp", Transport: transport},
 		},
 	})
 	if err != nil {
@@ -190,8 +190,8 @@ func TestCreateConversationWithOptions_SerialisesMcpServers(t *testing.T) {
 		t.Fatalf("expected 1 mcp_server in request body, got %v", receivedBody["mcp_servers"])
 	}
 	first := mcpServers[0].(map[string]any)
-	if first["name"] != "forge-context" {
-		t.Errorf("mcp_servers[0].name: got %q, want forge-context", first["name"])
+	if first["name"] != "test-mcp" {
+		t.Errorf("mcp_servers[0].name: got %q, want test-mcp", first["name"])
 	}
 }
 

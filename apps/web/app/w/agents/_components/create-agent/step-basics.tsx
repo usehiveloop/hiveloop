@@ -71,7 +71,7 @@ export function StepBasics() {
 
       <div className="pt-4 shrink-0">
         <Button
-          onClick={() => goTo(mode === "scratch" ? "system-prompt" : "forge-judge")}
+          onClick={() => goTo("system-prompt")}
           className="w-full"
           disabled={!canSubmit}
         >

@@ -16,7 +16,6 @@ import (
 
 	"github.com/ziraloop/ziraloop/internal/crypto"
 	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/forge"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/model"
@@ -38,7 +37,6 @@ type AgentHandler struct {
 	pusher          AgentPusher              // nil if sandbox orchestrator is not configured
 	encKey          *crypto.SymmetricKey     // for encrypting env vars
 	enqueuer        enqueue.TaskEnqueuer     // nil if worker not configured
-	forgeController *forge.ForgeController   // nil if forge not configured
 	actionsCatalog  *catalog.Catalog         // nil if not configured
 }
 
@@ -48,11 +46,6 @@ func NewAgentHandler(db *gorm.DB, reg *registry.Registry, pusher AgentPusher, en
 		h.enqueuer = enqueuer[0]
 	}
 	return h
-}
-
-// SetForgeController sets the forge controller for agent creation with forge=true.
-func (h *AgentHandler) SetForgeController(fc *forge.ForgeController) {
-	h.forgeController = fc
 }
 
 // SetCatalog sets the actions catalog for trigger validation during agent creation.
@@ -106,12 +99,6 @@ type createAgentRequest struct {
 	SkillIDs          []string                    `json:"skill_ids,omitempty"`      // skills from /v1/skills to attach on create
 	SubagentIDs       []string                    `json:"subagent_ids,omitempty"`   // subagents from /v1/subagents to attach on create
 	Triggers          []agentTriggerInput         `json:"triggers,omitempty"`       // webhook triggers to create
-	Forge             *forgeOptions               `json:"forge,omitempty"`          // triggers forge context gathering on create
-}
-
-type forgeOptions struct {
-	JudgeCredentialID string `json:"judge_credential_id"`
-	JudgeModel        string `json:"judge_model"`
 }
 
 type updateAgentRequest struct {
@@ -182,9 +169,6 @@ type agentResponse struct {
 	Triggers            []agentTriggerResponse  `json:"triggers"`
 	AttachedSubagents   []agentSubagentSummary  `json:"subagents"`
 	AttachedSkills      []agentSkillSummary     `json:"attached_skills"`
-	ForgeRunID          *string                 `json:"forge_run_id,omitempty"`
-	ForgeConversationID *string                 `json:"forge_conversation_id,omitempty"`
-	ForgeRun            *forgeRunResponse       `json:"forge_run,omitempty"`
 	CreatedAt           string                  `json:"created_at"`
 	UpdatedAt           string                  `json:"updated_at"`
 }
@@ -483,15 +467,9 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name, credential_id, and model are required"})
 		return
 	}
-	if req.SystemPrompt == "" && req.Forge == nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "system_prompt is required (or use forge to generate one)"})
+	if req.SystemPrompt == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "system_prompt is required"})
 		return
-	}
-	if req.Forge != nil {
-		if req.Forge.JudgeCredentialID == "" || req.Forge.JudgeModel == "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "forge.judge_credential_id and forge.judge_model are required"})
-			return
-		}
 	}
 	if !validSandboxTypes[req.SandboxType] {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "sandbox_type must be 'dedicated' or 'shared'"})
@@ -545,18 +523,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate forge judge credential if forge is requested
-	if req.Forge != nil {
-		var judgeCred model.Credential
-		if err := h.db.Where("id = ? AND org_id = ? AND revoked_at IS NULL", req.Forge.JudgeCredentialID, org.ID).First(&judgeCred).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "forge judge credential not found or revoked"})
-				return
-			}
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to validate forge judge credential"})
-			return
-		}
-	}
 
 	// Validate model is supported by the credential's provider
 	if cred.ProviderID != "" {
@@ -773,35 +739,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	resp := toAgentResponse(agent)
 	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]
 
-	// Auto-create forge run with context gathering if requested.
-	if req.Forge != nil && h.forgeController != nil {
-		judgeCredID, _ := uuid.Parse(req.Forge.JudgeCredentialID)
-		forgeRun := model.ForgeRun{
-			OrgID:                    org.ID,
-			AgentID:                  agent.ID,
-			ArchitectCredentialID:    cred.ID,
-			ArchitectModel:           agent.Model,
-			EvalDesignerCredentialID: cred.ID,
-			EvalDesignerModel:        agent.Model,
-			JudgeCredentialID:        judgeCredID,
-			JudgeModel:               req.Forge.JudgeModel,
-			Status:                   model.ForgeStatusGatheringContext,
-		}
-		if err := h.db.Create(&forgeRun).Error; err != nil {
-			slog.Error("failed to create forge run", "agent_id", agent.ID, "error", err)
-		} else {
-			result, err := h.forgeController.SetupContextGathering(r.Context(), &agent, &cred, &forgeRun)
-			if err != nil {
-				slog.Error("failed to setup context gathering", "agent_id", agent.ID, "forge_run_id", forgeRun.ID, "error", err)
-			} else {
-				runID := result.ForgeRunID.String()
-				convID := result.ConversationID
-				resp.ForgeRunID = &runID
-				resp.ForgeConversationID = &convID
-			}
-		}
-	}
-
 	writeJSON(w, http.StatusCreated, resp)
 }
 
@@ -916,15 +853,6 @@ func (h *AgentHandler) Get(w http.ResponseWriter, r *http.Request) {
 	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]
 	resp.AttachedSubagents = h.loadAgentSubagents(agent.ID)[agent.ID]
 	resp.AttachedSkills = h.loadAgentSkills(agent.ID)[agent.ID]
-
-	// Include the latest forge run if one exists.
-	var forgeRun model.ForgeRun
-	if err := h.db.Where("agent_id = ? AND org_id = ?", agent.ID, org.ID).
-		Order("created_at DESC").
-		First(&forgeRun).Error; err == nil {
-		fr := toForgeRunResponse(forgeRun)
-		resp.ForgeRun = &fr
-	}
 
 	writeJSON(w, http.StatusOK, resp)
 }

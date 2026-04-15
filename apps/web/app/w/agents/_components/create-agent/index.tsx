@@ -14,7 +14,6 @@ import { StepLlmKey } from "./step-llm-key"
 import { StepBasics } from "./step-basics"
 import { StepSystemPrompt } from "./step-system-prompt"
 import { StepInstructions } from "./step-instructions"
-import { StepForgeJudge } from "./step-forge-judge"
 import { StepSkills } from "./step-skills"
 import { StepSubagents } from "./step-subagents"
 import { StepSummary } from "./step-summary"
@@ -54,7 +53,6 @@ function StepRouter() {
           {step === "basics" && <StepBasics />}
           {step === "system-prompt" && <StepSystemPrompt />}
           {step === "instructions" && <StepInstructions />}
-          {step === "forge-judge" && <StepForgeJudge />}
           {step === "skills" && <StepSkills />}
           {step === "subagents" && <StepSubagents />}
           {step === "summary" && <StepSummary />}

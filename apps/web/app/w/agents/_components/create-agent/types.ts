@@ -1,4 +1,4 @@
-export type CreationMode = "scratch" | "forge" | "marketplace"
+export type CreationMode = "scratch" | "marketplace"
 
 export type Step =
   | "mode"
@@ -9,7 +9,6 @@ export type Step =
   | "basics"
   | "system-prompt"
   | "instructions"
-  | "forge-judge"
   | "skills"
   | "subagents"
   | "summary"
@@ -29,20 +28,6 @@ export const scratchSteps: Step[] = [
   "subagents",
   "summary",
 ]
-
-export const forgeSteps: Step[] = [
-  "mode",
-  "sandbox",
-  "integrations",
-  "trigger",
-  "llm-key",
-  "basics",
-  "forge-judge",
-  "skills",
-  "subagents",
-  "summary",
-]
-
 
 export const marketplaceSteps: Step[] = [
   "mode",

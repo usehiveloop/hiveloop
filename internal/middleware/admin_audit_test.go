@@ -34,7 +34,6 @@ func TestParseAdminPath(t *testing.T) {
 		{"POST", "/admin/v1/sandboxes/cleanup", "sandboxes", "", "cleanup_sandboxes"},
 		{"POST", "/admin/v1/credentials/abc-123/revoke", "credentials", "abc-123", "revoke_credential"},
 		{"POST", "/admin/v1/api-keys/abc-123/revoke", "api-keys", "abc-123", "revoke_api_key"},
-		{"POST", "/admin/v1/forge-runs/abc-123/cancel", "forge-runs", "abc-123", "cancel_forge_run"},
 		{"DELETE", "/admin/v1/sandbox-templates/abc-123", "sandbox-templates", "abc-123", "delete_sandbox_template"},
 		{"DELETE", "/admin/v1/connect-sessions/abc-123", "connect-sessions", "abc-123", "delete_connect_session"},
 		{"DELETE", "/admin/v1/custom-domains/abc-123", "custom-domains", "abc-123", "delete_custom_domain"},

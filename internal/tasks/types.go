@@ -3,9 +3,6 @@ package tasks
 // Task type constants for all Asynq tasks.
 const (
 	// On-demand tasks (enqueued by HTTP handlers / middleware)
-	TypeForgeRun                  = "forge:run"
-	TypeForgeDesignEvals          = "forge:design_evals"
-	TypeForgeEvalJudge            = "forge:eval_judge"
 	TypeWebhookForward            = "webhook:forward"
 	TypeAuditWrite                = "audit:write"
 	TypeGenerationWrite           = "generation:write"

@@ -164,7 +164,6 @@ export default function AgentDetailPage() {
           <RunsEmpty
             onStartRun={handleStartRun}
             startingRun={createConversation.isPending}
-            onForgeAgent={() => {/* TODO: start forge run */}}
             onEditAgent={() => setEditOpen(true)}
           />
         )}

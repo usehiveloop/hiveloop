@@ -160,8 +160,6 @@ func parseAdminPath(method, path string) (resource, resourceID, action string) {
 		singular = "sandbox_template"
 	} else if resource == "api-keys" {
 		singular = "api_key"
-	} else if resource == "forge-runs" {
-		singular = "forge_run"
 	} else if resource == "connect-sessions" {
 		singular = "connect_session"
 	} else if resource == "custom-domains" {

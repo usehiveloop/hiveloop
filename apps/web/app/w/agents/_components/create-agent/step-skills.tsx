@@ -121,7 +121,7 @@ export function StepSkills() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   const selectedCount = selectedSkills.size
-  const backTarget = mode === "forge" ? "forge-judge" : "instructions"
+  const backTarget = "instructions"
 
   return (
     <div className="flex flex-col h-full">

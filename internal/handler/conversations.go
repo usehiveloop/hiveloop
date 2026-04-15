@@ -25,7 +25,7 @@ type ConversationHandler struct {
 	orchestrator *sandbox.Orchestrator
 	pusher       *sandbox.Pusher
 	eventBus     *streaming.EventBus    // nil = use legacy Bridge SSE proxy
-	enqueuer     enqueue.TaskEnqueuer   // nil = forge approval trigger disabled
+	enqueuer     enqueue.TaskEnqueuer
 }
 
 // NewConversationHandler creates a conversation handler.
@@ -33,7 +33,7 @@ func NewConversationHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, pus
 	return &ConversationHandler{db: db, orchestrator: orchestrator, pusher: pusher, eventBus: eventBus}
 }
 
-// SetEnqueuer sets the task enqueuer for forge approval triggers.
+// SetEnqueuer sets the task enqueuer.
 func (h *ConversationHandler) SetEnqueuer(enqueuer enqueue.TaskEnqueuer) {
 	h.enqueuer = enqueuer
 }
@@ -600,52 +600,7 @@ func (h *ConversationHandler) ResolveApproval(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Check if this approval triggers a forge context → queued transition.
-	if req.Decision == "approve" {
-		h.maybeStartForgeAfterApproval(conv)
-	}
-
 	writeJSON(w, http.StatusOK, map[string]string{"status": "resolved"})
-}
-
-// maybeStartForgeAfterApproval checks if the conversation belongs to a forge
-// context-gathering run. If so and context has been captured, it transitions
-// the forge run from gathering_context → designing_evals and enqueues the
-// eval design task.
-func (h *ConversationHandler) maybeStartForgeAfterApproval(conv *model.AgentConversation) {
-	if h.enqueuer == nil {
-		return
-	}
-
-	var run model.ForgeRun
-	if err := h.db.Where("context_conversation_id = ? AND status = ?", conv.ID, model.ForgeStatusGatheringContext).First(&run).Error; err != nil {
-		return // not a forge context conversation
-	}
-
-	if len(run.Context) == 0 {
-		slog.Warn("forge approval triggered but context is empty", "forge_run_id", run.ID)
-		return
-	}
-
-	if err := h.db.Model(&run).Update("status", model.ForgeStatusDesigningEvals).Error; err != nil {
-		slog.Error("failed to transition forge run to designing_evals", "forge_run_id", run.ID, "error", err)
-		return
-	}
-
-	task, err := tasks.NewForgeDesignEvalsTask(run.ID)
-	if err != nil {
-		slog.Error("failed to create forge design evals task", "forge_run_id", run.ID, "error", err)
-		return
-	}
-	if _, err := h.enqueuer.Enqueue(task); err != nil {
-		slog.Error("failed to enqueue forge design evals after approval", "forge_run_id", run.ID, "error", err)
-		return
-	}
-
-	slog.Info("forge: context approved, designing evals",
-		"forge_run_id", run.ID,
-		"conversation_id", conv.ID,
-	)
 }
 
 // ListEvents handles GET /v1/conversations/{convID}/events.

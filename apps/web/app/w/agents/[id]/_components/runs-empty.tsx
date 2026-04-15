@@ -1,14 +1,13 @@
 import { HugeiconsIcon } from "@hugeicons/react"
-import { SparklesIcon, PencilEdit02Icon, AiGenerativeIcon, ArrowRight01Icon, Loading03Icon } from "@hugeicons/core-free-icons"
+import { SparklesIcon, PencilEdit02Icon, ArrowRight01Icon, Loading03Icon } from "@hugeicons/core-free-icons"
 
 interface RunsEmptyProps {
   onStartRun: () => void
   startingRun?: boolean
-  onForgeAgent: () => void
   onEditAgent: () => void
 }
 
-export function RunsEmpty({ onStartRun, startingRun, onForgeAgent, onEditAgent }: RunsEmptyProps) {
+export function RunsEmpty({ onStartRun, startingRun, onEditAgent }: RunsEmptyProps) {
   return (
     <div className="flex flex-col items-center py-12">
       <div className="text-center mb-8">
@@ -41,21 +40,6 @@ export function RunsEmpty({ onStartRun, startingRun, onForgeAgent, onEditAgent }
           ) : (
             <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground/30 shrink-0 mt-0.5" />
           )}
-        </button>
-
-        <button
-          type="button"
-          onClick={onForgeAgent}
-          className="group flex items-start gap-4 w-full rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted cursor-pointer"
-        >
-          <HugeiconsIcon icon={AiGenerativeIcon} size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground">Forge agent</p>
-            <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
-              Let AI optimize the system prompt and configuration for better results.
-            </p>
-          </div>
-          <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground/30 shrink-0 mt-0.5" />
         </button>
 
         <button

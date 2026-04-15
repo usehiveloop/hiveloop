@@ -61,9 +61,7 @@ export function StepSummary() {
           <DialogTitle>Review & create</DialogTitle>
         </div>
         <DialogDescription className="mt-2">
-          {mode === "forge"
-            ? "Review your configuration. Forge will generate and optimize your agent's system prompt automatically."
-            : "Review your configuration before creating your agent."}
+          Review your configuration before creating your agent.
         </DialogDescription>
       </DialogHeader>
 
@@ -140,14 +138,7 @@ export function StepSummary() {
 
       <div className="pt-4 shrink-0">
         <Button onClick={handleCreate} className="w-full" loading={isSubmitting}>
-          {mode === "forge" ? (
-            <>
-              <HugeiconsIcon icon={SparklesIcon} size={16} data-icon="inline-start" />
-              Forge agent
-            </>
-          ) : (
-            "Create agent"
-          )}
+          Create agent
         </Button>
       </div>
     </div>

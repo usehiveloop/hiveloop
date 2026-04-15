@@ -23,9 +23,6 @@ type WorkerDeps struct {
 	Orchestrator     *sandbox.Orchestrator // nil if sandbox not configured
 	Pusher           *sandbox.Pusher       // nil if sandbox not configured
 	EncKey           *crypto.SymmetricKey  // nil if not configured
-	ForgeExecute     ForgeExecuteFunc      // nil if forge not configured
-	ForgeDesignEvals ForgeDesignEvalsFunc  // nil if forge not configured
-	ForgeEvalJudge   ForgeEvalJudgeFunc    // nil if forge not configured
 	EmailSend        EmailSenderFunc       // nil if email not configured
 	PolarClient      *polargo.Polar        // nil if billing not configured
 	EventBus         *streaming.EventBus   // nil if streaming not configured
@@ -46,17 +43,6 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 
 	// Webhook forwarding
 	mux.HandleFunc(TypeWebhookForward, NewWebhookForwardHandler(deps.EncKey).Handle)
-
-	// Forge orchestration
-	if deps.ForgeExecute != nil {
-		mux.HandleFunc(TypeForgeRun, NewForgeRunHandler(deps.ForgeExecute).Handle)
-	}
-	if deps.ForgeDesignEvals != nil {
-		mux.HandleFunc(TypeForgeDesignEvals, NewForgeDesignEvalsHandler(deps.ForgeDesignEvals).Handle)
-	}
-	if deps.ForgeEvalJudge != nil {
-		mux.HandleFunc(TypeForgeEvalJudge, NewForgeEvalJudgeHandler(deps.ForgeEvalJudge).Handle)
-	}
 
 	// Email sending
 	if deps.EmailSend != nil {

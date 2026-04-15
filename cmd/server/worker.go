@@ -12,10 +12,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/bootstrap"
 	"github.com/ziraloop/ziraloop/internal/email"
 	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/forge"
 	"github.com/ziraloop/ziraloop/internal/goroutine"
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/registry"
 	"github.com/ziraloop/ziraloop/internal/skills"
 	subagents "github.com/ziraloop/ziraloop/internal/sub-agents"
 	"github.com/ziraloop/ziraloop/internal/tasks"
@@ -74,18 +71,6 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		Enqueuer:     enqueue.NewClient(redisOpt),
 	}
 
-	// Create forge controller for the worker (if sandbox is configured)
-	if deps.Orchestrator != nil && deps.AgentPusher != nil {
-		forgeCtrl := forge.NewForgeController(
-			deps.DB, deps.Orchestrator, deps.AgentPusher,
-			deps.SigningKey, deps.Config, deps.EventBus, catalog.Global(),
-			registry.Global(), redisOpt,
-		)
-		workerDeps.ForgeExecute = forgeCtrl.Execute
-		workerDeps.ForgeDesignEvals = forgeCtrl.DesignEvals
-		workerDeps.ForgeEvalJudge = forgeCtrl.ExecuteEvalJudge
-		slog.Info("forge controller ready (worker)")
-	}
 	mux := tasks.NewServeMux(workerDeps)
 
 	srv := asynq.NewServer(redisOpt, asynq.Config{
