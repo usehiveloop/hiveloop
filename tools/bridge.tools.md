@@ -43,6 +43,13 @@ Complete index of all tools available to Bridge agents.
 | `journal_write` | Write an entry to the conversation journal. Persists across context resets during chain handoffs. Supports optional category. |
 | `journal_read` | Read all journal entries including notes and checkpoint summaries from previous context chains. |
 
+## Scheduling
+
+| Name | Description |
+|------|-------------|
+| `ping_me_back_in` | Schedule a delayed self-reminder. After the specified number of seconds, the agent receives a notification with a custom message. Returns a ping ID for cancellation. Useful for polling, timeouts, and deferred follow-ups. |
+| `cancel_ping_me_back` | Cancel a pending ping by its ID (returned by `ping_me_back_in`). Lists all pending pings if called without an ID. |
+
 ## Code Intelligence
 
 | Name | Description |
@@ -88,7 +95,8 @@ Complete index of all tools available to Bridge agents.
 | web_fetch | Yes | Yes | Always |
 | web_search, web_crawl, web_get_links, web_screenshot, web_transform | Yes | Yes | `BRIDGE_WEB_URL` set |
 | todowrite, todoread | Yes | Yes | Always |
-| journal_write, journal_read | Yes | Yes | Always |
+| journal_write, journal_read | Yes | Yes | Immortal mode configured |
+| ping_me_back_in, cancel_ping_me_back | Yes | No | Always |
 | lsp | Yes | No | LSP configured |
 | agent, sub_agent, parallel_agent | Yes | No | Always (prevents recursion) |
 | join | Yes | No | Always |

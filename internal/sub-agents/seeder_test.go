@@ -57,7 +57,7 @@ func TestAllYAMLsParse(t *testing.T) {
 }
 
 func TestLoadGroupMergesProviders(t *testing.T) {
-	group, err := loadGroup("browser-expert")
+	group, err := loadGroup("browser-tester-expert")
 	if err != nil {
 		t.Fatalf("loadGroup: %v", err)
 	}
