@@ -109,41 +109,6 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 		providerSchemas = providerDef.Schemas
 	}
 
-	logger.Info("deterministic enrichment: credentials resolved",
-		"provider_name", providerName,
-		"provider_cfg_key", providerCfgKey,
-		"nango_conn_id", nangoConnID,
-	)
-
-	// Debug: fetch Nango connection to inspect token/credentials status.
-	if connData, connErr := enricher.nangoClient.GetConnection(ctx, nangoConnID, providerCfgKey); connErr != nil {
-		logger.Warn("deterministic enrichment: failed to fetch nango connection for debug",
-			"error", connErr,
-		)
-	} else {
-		// Extract just the fields we need to avoid Railway log truncation.
-		creds, _ := connData["credentials"].(map[string]any)
-		rawCreds, _ := creds["raw"].(map[string]any)
-		accessToken, _ := creds["access_token"].(string)
-		tokenPrefix := ""
-		if len(accessToken) > 10 {
-			tokenPrefix = accessToken[:10] + "..."
-		}
-		logger.Info("deterministic enrichment: nango connection debug",
-			"connection_id", connData["connection_id"],
-			"provider", connData["provider"],
-			"provider_config_key", connData["provider_config_key"],
-			"created_at", connData["created_at"],
-			"updated_at", connData["updated_at"],
-			"last_fetched_at", connData["last_fetched_at"],
-			"credentials_type", creds["type"],
-			"credentials_expires_at", creds["expires_at"],
-			"credentials_token_prefix", tokenPrefix,
-			"credentials_scope", rawCreds["scope"],
-			"errors", connData["errors"],
-		)
-	}
-
 	// Run all enrichment actions in parallel.
 	results := make([]enrichmentResult, len(triggerDef.Enrichment))
 	var waitGroup sync.WaitGroup
@@ -166,12 +131,6 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 				return
 			}
 
-			logger.Info("deterministic enrichment: executing action",
-				"action", action.Action,
-				"as", action.As,
-				"params", params,
-			)
-
 			// Execute the action directly via Nango proxy.
 			data, err := mcpserver.ExecuteAction(
 				ctx,
@@ -192,25 +151,24 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 
 	waitGroup.Wait()
 
-	// Log results.
+	// Log summary.
 	successCount := 0
+	var failedActions []string
 	for _, result := range results {
 		if result.Err != nil {
-			logger.Warn("deterministic enrichment: action failed",
-				"action", result.Action,
-				"as", result.As,
-				"error", result.Err,
-			)
+			failedActions = append(failedActions, result.Action+": "+result.Err.Error())
 		} else {
 			successCount++
-			logger.Info("deterministic enrichment: action succeeded",
-				"action", result.Action,
-				"as", result.As,
-			)
 		}
 	}
 
-	logger.Info("deterministic enrichment: complete",
+	if len(failedActions) > 0 {
+		logger.Warn("enrichment actions failed",
+			"failed", failedActions,
+		)
+	}
+
+	logger.Info("enrichment complete",
 		"total", len(results),
 		"succeeded", successCount,
 		"failed", len(results)-successCount,
