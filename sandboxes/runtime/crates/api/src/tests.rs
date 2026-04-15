@@ -923,6 +923,15 @@ async fn subagent_with_no_tools_field_reports_empty_tools_in_api() {
         !reg_names.contains(&"parallel_agent"),
         "subagent should NOT have parallel_agent tool"
     );
+    // Subagents should NOT have ping-me-back tools
+    assert!(
+        !reg_names.contains(&"ping_me_back_in"),
+        "subagent should NOT have ping_me_back_in tool"
+    );
+    assert!(
+        !reg_names.contains(&"cancel_ping_me_back"),
+        "subagent should NOT have cancel_ping_me_back tool"
+    );
 }
 
 #[tokio::test]

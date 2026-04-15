@@ -209,14 +209,8 @@ pub fn register_builtin_tools_for_subagent(registry: &mut ToolRegistry) {
     )));
     registry.register(Arc::new(crate::todo::TodoReadTool::with_state(todo_state)));
 
-    // Ping-me-back tools — non-blocking delayed self-reminder
-    let ping_state = crate::ping_me_back::PingState::new();
-    registry.register(Arc::new(crate::ping_me_back::PingMeBackTool::new(
-        ping_state.clone(),
-    )));
-    registry.register(Arc::new(crate::ping_me_back::CancelPingTool::new(
-        ping_state,
-    )));
+    // No ping-me-back tools — subagents don't have their own conversation
+    // loop with PingState wired into the select!, so these would be no-ops.
 
     // No agent tool — subagents cannot spawn other subagents
 
