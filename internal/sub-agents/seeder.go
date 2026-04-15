@@ -18,11 +18,12 @@ import (
 var subagentsFS embed.FS
 
 type subagentFile struct {
-	Name         string   `yaml:"name"`
-	Description  string   `yaml:"description"`
-	Model        string   `yaml:"model"`
-	SystemPrompt string   `yaml:"system_prompt"`
-	Skills       []string `yaml:"skills"`
+	Name         string            `yaml:"name"`
+	Description  string            `yaml:"description"`
+	Model        string            `yaml:"model"`
+	SystemPrompt string            `yaml:"system_prompt"`
+	Skills       []string          `yaml:"skills"`
+	Permissions  map[string]string `yaml:"permissions"`
 }
 
 // subagentGroup collects all provider YAML files for a single subagent type.
@@ -30,6 +31,7 @@ type subagentGroup struct {
 	name        string
 	description string
 	skills      []string
+	permissions map[string]string
 	providers   map[string]subagentFile // provider_group -> parsed YAML
 }
 
@@ -107,6 +109,9 @@ func loadGroup(subagentType string) (*subagentGroup, error) {
 		if len(sf.Skills) > 0 && len(group.skills) == 0 {
 			group.skills = sf.Skills
 		}
+		if len(sf.Permissions) > 0 && len(group.permissions) == 0 {
+			group.permissions = sf.Permissions
+		}
 
 		group.providers[providerGroup] = sf
 	}
@@ -151,14 +156,22 @@ func seedGroup(db *gorm.DB, group *subagentGroup) error {
 
 	skillsJSON := resolveSkills(db, group.skills, group.name)
 
+	permissionsJSON := "{}"
+	if len(group.permissions) > 0 {
+		permBytes, err := json.Marshal(group.permissions)
+		if err == nil {
+			permissionsJSON = string(permBytes)
+		}
+	}
+
 	now := time.Now()
 
 	result := db.Exec(`
 		INSERT INTO agents (name, description, is_system, agent_type, system_prompt, model, provider_prompts, sandbox_type, status, tools, mcp_servers, skills, integrations, agent_config, permissions, created_at, updated_at)
-		VALUES (?, ?, true, 'subagent', ?, ?, ?, '', 'active', '{}', '{}', ?, '{}', '{}', '{}', ?, ?)
+		VALUES (?, ?, true, 'subagent', ?, ?, ?, '', 'active', '{}', '{}', ?, '{}', '{}', ?, ?, ?)
 		ON CONFLICT (name) WHERE org_id IS NULL
-		DO UPDATE SET description = EXCLUDED.description, system_prompt = EXCLUDED.system_prompt, model = EXCLUDED.model, provider_prompts = EXCLUDED.provider_prompts, agent_type = 'subagent', skills = EXCLUDED.skills, updated_at = EXCLUDED.updated_at
-	`, group.name, description, defaultProvider.SystemPrompt, defaultProvider.Model, string(providerPromptsJSON), skillsJSON, now, now)
+		DO UPDATE SET description = EXCLUDED.description, system_prompt = EXCLUDED.system_prompt, model = EXCLUDED.model, provider_prompts = EXCLUDED.provider_prompts, agent_type = 'subagent', skills = EXCLUDED.skills, permissions = EXCLUDED.permissions, updated_at = EXCLUDED.updated_at
+	`, group.name, description, defaultProvider.SystemPrompt, defaultProvider.Model, string(providerPromptsJSON), skillsJSON, permissionsJSON, now, now)
 
 	if result.Error != nil {
 		return fmt.Errorf("seeding subagent %s: %w", group.name, result.Error)
