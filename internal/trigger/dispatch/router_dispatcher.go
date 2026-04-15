@@ -76,77 +76,36 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 		eventKey = input.EventType + "." + input.EventAction
 	}
 
-	dispatcher.logger.Info("step 1: finding matching triggers",
-		"event_key", eventKey,
-		"provider", input.Provider,
-		"org_id", input.OrgID,
-		"connection_id", input.ConnectionID,
-	)
-
 	// 1. Find matching router triggers.
 	triggerMatches, err := dispatcher.store.FindMatchingTriggers(ctx, input.OrgID, input.ConnectionID, []string{eventKey})
 	if err != nil {
 		return nil, fmt.Errorf("finding matching triggers: %w", err)
 	}
 	if len(triggerMatches) == 0 {
-		dispatcher.logger.Info("step 1: no matching triggers found", "event_key", eventKey)
+		dispatcher.logger.Debug("no matching triggers", "event_key", eventKey, "connection_id", input.ConnectionID)
 		return nil, nil
 	}
 
-	dispatcher.logger.Info("step 1: triggers matched", "count", len(triggerMatches))
-
 	var allDispatches []AgentDispatch
 
-	for matchIndex, match := range triggerMatches {
+	for _, match := range triggerMatches {
 		trigger := match.Trigger
 		router := match.Router
-
-		dispatcher.logger.Info("step 2: looking up trigger definition",
-			"match_index", matchIndex,
-			"trigger_id", trigger.ID,
-			"router_id", router.ID,
-			"routing_mode", trigger.RoutingMode,
-			"provider", input.Provider,
-			"event_key", eventKey,
-		)
 
 		// 2. Extract refs from payload.
 		triggerDef := dispatcher.lookupTriggerDef(input.Provider, eventKey)
 		refs, _ := extractRefs(input.Payload, triggerDef.Refs)
 
-		dispatcher.logger.Info("step 2: refs extracted",
-			"match_index", matchIndex,
-			"trigger_def_found", triggerDef.DisplayName != "",
-			"trigger_def_name", triggerDef.DisplayName,
-			"ref_count", len(refs),
-			"refs", refs,
-		)
-
 		// 3. Resolve resource key.
 		resourceDef := dispatcher.lookupResourceDef(trigger, triggerDef)
 		resourceKey := resolveRouterResourceKey(resourceDef, refs)
 
-		dispatcher.logger.Info("step 3: resource key resolved",
-			"match_index", matchIndex,
-			"resource_key", resourceKey,
-			"has_resource_def", resourceDef != nil,
-		)
-
 		// 4. Thread affinity: check for existing conversation.
-		dispatcher.logger.Info("step 4: checking thread affinity",
-			"match_index", matchIndex,
-			"resource_key", resourceKey,
-		)
 		existingConv, err := dispatcher.store.FindExistingConversation(ctx, input.OrgID, input.ConnectionID, resourceKey)
 		if err != nil {
-			dispatcher.logger.Error("step 4: thread affinity check failed", "error", err)
+			dispatcher.logger.Error("thread affinity check failed", "error", err)
 		}
 		if existingConv != nil {
-			dispatcher.logger.Info("step 4: continuing existing conversation",
-				"match_index", matchIndex,
-				"agent_id", existingConv.AgentID,
-				"conversation_id", existingConv.BridgeConversationID,
-			)
 			allDispatches = append(allDispatches, AgentDispatch{
 				AgentID:                existingConv.AgentID,
 				RunIntent:              "continue",
@@ -161,18 +120,11 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 			continue
 		}
 
-		dispatcher.logger.Info("step 4: no existing conversation, creating new")
-
 		// 5. Route: rule-based or LLM triage.
 		var selectedAgents []zira.AgentSelection
 		var enrichmentPlan []zira.PlannedEnrichment
 		routingMode := trigger.RoutingMode
 		routingStart := time.Now()
-
-		dispatcher.logger.Info("step 5: routing",
-			"match_index", matchIndex,
-			"routing_mode", routingMode,
-		)
 
 		switch routingMode {
 		case "rule":
@@ -211,12 +163,7 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 			}
 		}
 
-		dispatcher.logger.Info("step 5: routing complete",
-			"match_index", matchIndex,
-			"selected_count", len(selectedAgents),
-			"routing_mode", routingMode,
-			"latency_ms", time.Since(routingStart).Milliseconds(),
-		)
+		routingLatency := time.Since(routingStart).Milliseconds()
 
 		// 6. Fallback to default agent if no agents selected.
 		if len(selectedAgents) == 0 && router.DefaultAgentID != nil {
@@ -228,22 +175,18 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 		}
 
 		if len(selectedAgents) == 0 {
-			dispatcher.logger.Info("step 6: no agents selected, skipping", "event", eventKey, "trigger_id", trigger.ID)
+			dispatcher.logger.Info("no agents selected", "event", eventKey, "trigger_id", trigger.ID)
 			continue
 		}
 
-		dispatcher.logger.Info("step 6: agents selected",
-			"match_index", matchIndex,
-			"count", len(selectedAgents),
+		dispatcher.logger.Info("trigger matched",
+			"trigger_id", trigger.ID,
+			"event_key", eventKey,
+			"routing_mode", routingMode,
+			"routing_latency_ms", routingLatency,
+			"ref_count", len(refs),
+			"agents_selected", len(selectedAgents),
 		)
-		for agentIndex, selection := range selectedAgents {
-			dispatcher.logger.Info("step 6: selected agent detail",
-				"agent_index", agentIndex,
-				"agent_id", selection.AgentID,
-				"priority", selection.Priority,
-				"reason", selection.Reason,
-			)
-		}
 
 		// 7. Build dispatches.
 		// The reply connection is resolved by the executor from the trigger's
