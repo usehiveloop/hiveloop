@@ -35,7 +35,7 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { IntegrationLogo } from "@/components/integration-logo"
-import { useConnectIntegration } from "../_hooks/use-connect-integration"
+import { useReconnectIntegration } from "../_hooks/use-reconnect-integration"
 
 export interface InConnection {
   id?: string
@@ -73,7 +73,7 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
   const [webhookConfiguring, setWebhookConfiguring] = useState<InConnection | null>(null)
   const deleteConnection = $api.useMutation("delete", "/v1/in/connections/{id}")
   const markWebhookConfigured = $api.useMutation("patch", "/v1/in/connections/{id}/webhook-configured")
-  const { connect, connectingId } = useConnectIntegration()
+  const { reconnect, reconnectingId } = useReconnectIntegration()
 
   function handleDisconnect() {
     if (!disconnecting?.id) return
@@ -138,8 +138,8 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
               <div className="w-8 shrink-0 flex justify-center">
                 <ConnectionActions
                   onDisconnect={() => setDisconnecting(connection)}
-                  onReconnect={() => connection.in_integration_id && connect(connection.in_integration_id)}
-                  reconnecting={connectingId === connection.in_integration_id}
+                  onReconnect={() => connection.in_integration_id && reconnect(connection.in_integration_id)}
+                  reconnecting={reconnectingId === connection.in_integration_id}
                 />
               </div>
             </div>
@@ -165,8 +165,8 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
                 </div>
                 <ConnectionActions
                   onDisconnect={() => setDisconnecting(connection)}
-                  onReconnect={() => connection.in_integration_id && connect(connection.in_integration_id)}
-                  reconnecting={connectingId === connection.in_integration_id}
+                  onReconnect={() => connection.in_integration_id && reconnect(connection.in_integration_id)}
+                  reconnecting={reconnectingId === connection.in_integration_id}
                 />
               </div>
             </div>
