@@ -138,6 +138,7 @@
       "id_field": "full_name",
       "name_field": "name",
       "icon": "repo",
+      "configurable": true,
       "list_action": "/installation/repositories",
       "request_config": {
         "method": "GET",

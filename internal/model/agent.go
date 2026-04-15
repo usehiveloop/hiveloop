@@ -33,6 +33,7 @@ type Agent struct {
 	Integrations JSON   `gorm:"type:jsonb;not null;default:'{}'"` // selected integration IDs/configs
 	AgentConfig  JSON   `gorm:"type:jsonb;not null;default:'{}'"` // max_tokens, max_turns, temperature, etc.
 	Permissions  JSON   `gorm:"type:jsonb;not null;default:'{}'"` // tool permission overrides
+	Resources    JSON   `gorm:"type:jsonb;not null;default:'{}'"` // per-connection resource scoping: {connID: {resourceKey: [{id, name}]}}
 	Team         string `gorm:"not null;default:''"` // team tag for memory scoping (e.g. "engineering", "sales")
 	SharedMemory bool   `gorm:"not null;default:false"` // can store shared memories visible to all agents in identity
 
