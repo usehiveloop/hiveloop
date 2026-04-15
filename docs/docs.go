@@ -15600,6 +15600,12 @@ const docTemplate = `{
                 "actions_count": {
                     "type": "integer"
                 },
+                "configurable_resources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.ConfigurableResourceSummary"
+                    }
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -15678,12 +15684,6 @@ const docTemplate = `{
         "internal_handler.integConnResponse": {
             "type": "object",
             "properties": {
-                "configurable_resources": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.ConfigurableResourceSummary"
-                    }
-                },
                 "created_at": {
                     "type": "string"
                 },
