@@ -16,6 +16,7 @@ import {
   PlayIcon,
   CommandLineIcon,
   Key01Icon,
+  FolderLibraryIcon,
 } from "@hugeicons/core-free-icons"
 import type { components } from "@/lib/api/schema"
 
@@ -56,6 +57,10 @@ export function AgentActions({
           <DropdownMenuItem>
             <HugeiconsIcon icon={Copy01Icon} size={16} className="text-muted-foreground" />
             Duplicate
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <HugeiconsIcon icon={FolderLibraryIcon} size={16} className="text-muted-foreground" />
+            Configure resources
           </DropdownMenuItem>
         </DropdownMenuGroup>
         {isDedicated && (

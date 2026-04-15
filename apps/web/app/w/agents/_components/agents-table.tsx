@@ -125,7 +125,7 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
                 {agent.created_at ? formatDate(agent.created_at) : "\u2014"}
               </span>
               <div className="w-6 shrink-0 flex justify-center">
-                <AgentStatusIndicator status={(agent.status ?? "active") as AgentStatus} />
+                <AgentStatusIndicator status={(agent.status ?? "active") as AgentStatus} agent={agent} />
               </div>
               <div className="w-8 shrink-0 flex justify-center" onClick={(event) => event.preventDefault()}>
                 <AgentActions
@@ -149,7 +149,7 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
                 </div>
                 <div className="flex items-center gap-2">
                   <IntegrationLogos integrations={getIntegrationSummaries(agent.integrations, connectionsById)} size={18} />
-                  <AgentStatusIndicator status={(agent.status ?? "active") as AgentStatus} />
+                  <AgentStatusIndicator status={(agent.status ?? "active") as AgentStatus} agent={agent} />
                 </div>
               </div>
               <div className="flex items-center justify-between">
