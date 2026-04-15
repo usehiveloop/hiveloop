@@ -28,6 +28,7 @@ interface AgentActionsProps {
   onDelete?: () => void
   onEnvVars?: () => void
   onSetupCommands?: () => void
+  onConfigureResources?: () => void
 }
 
 export function AgentActions({
@@ -36,6 +37,7 @@ export function AgentActions({
   onDelete,
   onEnvVars,
   onSetupCommands,
+  onConfigureResources,
 }: AgentActionsProps) {
   const isDedicated = agent.sandbox_type === "dedicated"
 
@@ -58,7 +60,7 @@ export function AgentActions({
             <HugeiconsIcon icon={Copy01Icon} size={16} className="text-muted-foreground" />
             Duplicate
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={onConfigureResources}>
             <HugeiconsIcon icon={FolderLibraryIcon} size={16} className="text-muted-foreground" />
             Configure resources
           </DropdownMenuItem>
