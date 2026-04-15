@@ -41,14 +41,6 @@ func PeriodicTaskConfigs(cfg *config.Config) []*asynq.PeriodicTaskConfig {
 			})
 		}
 
-		// Re-push every system agent into the singleton system sandbox.
-		// Catches Bridge restarts that lost in-memory definitions, recovers
-		// the sandbox if it died, and propagates YAML edits between deploys.
-		configs = append(configs, &asynq.PeriodicTaskConfig{
-			Cronspec: "@every 1m",
-			Task:     asynq.NewTask(TypeSystemAgentSync, nil),
-			Opts:     []asynq.Option{asynq.Queue(QueuePeriodic), asynq.MaxRetry(1), asynq.Timeout(5 * time.Minute)},
-		})
 	}
 
 	return configs

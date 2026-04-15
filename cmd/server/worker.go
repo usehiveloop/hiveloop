@@ -41,23 +41,6 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 			return
 		}
 		slog.Info("subagents seeded")
-
-		if deps.Orchestrator == nil || deps.AgentPusher == nil {
-			slog.Info("orchestrator not configured, skipping system sandbox provisioning")
-			return
-		}
-
-		sb, err := deps.Orchestrator.EnsureSystemSandbox(ctx)
-		if err != nil {
-			slog.Error("failed to ensure system sandbox", "error", err)
-			return
-		}
-		slog.Info("system sandbox ensured", "sandbox_id", sb.ID, "external_id", sb.ExternalID)
-
-		if err := deps.AgentPusher.PushAllSystemAgents(ctx, sb); err != nil {
-			slog.Error("failed to push system agents to bridge", "error", err)
-			return
-		}
 	})
 
 	// Start long-running stream consumers as goroutines
