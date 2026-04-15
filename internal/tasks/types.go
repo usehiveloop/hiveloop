@@ -19,6 +19,7 @@ const (
 	TypeSkillHydrate              = "skill:hydrate"
 	TypeTriggerDispatch           = "trigger:dispatch"
 	TypeRouterDispatch            = "router:dispatch"
+	TypeAgentConversationCreate   = "agent:conversation_create"
 
 	// Periodic tasks (scheduled by the worker)
 	TypeTokenCleanup         = "periodic:token_cleanup"

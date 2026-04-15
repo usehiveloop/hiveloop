@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/nango"
 	"github.com/ziraloop/ziraloop/internal/sandbox"
@@ -13,7 +14,6 @@ import (
 	"github.com/ziraloop/ziraloop/internal/streaming"
 	"github.com/ziraloop/ziraloop/internal/trigger/dispatch"
 	"github.com/ziraloop/ziraloop/internal/trigger/enrichment"
-	"github.com/ziraloop/ziraloop/internal/trigger/executor"
 )
 
 // WorkerDeps holds the dependencies needed by task handlers.
@@ -31,6 +31,7 @@ type WorkerDeps struct {
 	EventBus         *streaming.EventBus   // nil if streaming not configured
 	SkillFetcher     *skills.GitFetcher    // nil disables git skill hydration
 	NangoClient      *nango.Client         // nil disables deterministic enrichment
+	Enqueuer         enqueue.TaskEnqueuer  // required for enqueuing sub-tasks
 }
 
 // NewServeMux creates an Asynq ServeMux with all task handlers registered.
@@ -104,14 +105,17 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 			nil, // RouterAgent wired separately when credential picker is ready
 			nil, // logger — defaults to slog.Default()
 		)
-		routerExecutor := executor.NewExecutor(deps.DB, deps.Orchestrator, nil, nil)
-		routerHandler := NewRouterDispatchHandler(routerDispatcher, routerExecutor)
+		routerHandler := NewRouterDispatchHandler(routerDispatcher, deps.Enqueuer)
 		if deps.NangoClient != nil {
 			routerHandler.SetDeterministicEnrichment(
 				enrichment.NewDeterministicEnricher(deps.NangoClient, catalog.Global(), deps.DB),
 			)
 		}
 		mux.HandleFunc(TypeRouterDispatch, routerHandler.Handle)
+
+		// Agent conversation creation (sandbox provisioning + Bridge push + first message).
+		mux.HandleFunc(TypeAgentConversationCreate,
+			NewAgentConversationCreateHandler(deps.DB, deps.Orchestrator, deps.Pusher).Handle)
 	}
 
 	return mux

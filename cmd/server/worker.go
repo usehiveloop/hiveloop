@@ -11,6 +11,7 @@ import (
 
 	"github.com/ziraloop/ziraloop/internal/bootstrap"
 	"github.com/ziraloop/ziraloop/internal/email"
+	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/forge"
 	"github.com/ziraloop/ziraloop/internal/goroutine"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
@@ -87,6 +88,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		PolarClient:  deps.PolarClient,
 		SkillFetcher: skills.NewGitFetcher(cfg.GitHubToken),
 		NangoClient:  deps.NangoClient,
+		Enqueuer:     enqueue.NewClient(redisOpt),
 	}
 
 	// Create forge controller for the worker (if sandbox is configured)
