@@ -297,6 +297,37 @@ func (c *Client) CreateConnectSession(ctx context.Context, req CreateConnectSess
 	return &ConnectSessionResponse{Token: token, ExpiresAt: expiresAt}, nil
 }
 
+// CreateReconnectSessionRequest is the payload for reconnecting an existing connection.
+type CreateReconnectSessionRequest struct {
+	ConnectionID  string `json:"connection_id"`
+	IntegrationID string `json:"integration_id"`
+}
+
+// CreateReconnectSession creates a Nango reconnect session for an existing connection.
+// POST /connect/sessions/reconnect
+func (c *Client) CreateReconnectSession(ctx context.Context, req CreateReconnectSessionRequest) (*ConnectSessionResponse, error) {
+	slog.Info("nango: creating reconnect session", "connection_id", req.ConnectionID, "integration_id", req.IntegrationID)
+	resp, err := c.doJSON(ctx, http.MethodPost, "/connect/sessions/reconnect", req)
+	if err != nil {
+		slog.Error("nango: create reconnect session failed", "error", err)
+		return nil, err
+	}
+
+	data, ok := resp["data"].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("unexpected reconnect session response: missing 'data' key")
+	}
+
+	token, _ := data["token"].(string)
+	expiresAt, _ := data["expires_at"].(string)
+	if token == "" {
+		return nil, fmt.Errorf("unexpected reconnect session response: missing 'token'")
+	}
+
+	slog.Info("nango: reconnect session created")
+	return &ConnectSessionResponse{Token: token, ExpiresAt: expiresAt}, nil
+}
+
 // ProxyRequest makes a request through Nango's proxy to the provider's API.
 // This allows making authenticated requests to the provider's API using the stored credentials.
 func (c *Client) ProxyRequest(ctx context.Context, method, providerConfigKey, connectionID, path string, queryParams map[string]string, body any) (map[string]any, error) {
