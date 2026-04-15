@@ -163,7 +163,7 @@ func (h *RailwayProxyHandler) getRailwayToken(w http.ResponseWriter, r *http.Req
 		return "", fmt.Errorf("integration error")
 	}
 
-	providerConfigKey := fmt.Sprintf("%s_%s", orgID.String(), integration.UniqueKey)
+	providerConfigKey := "in_" + integration.UniqueKey
 	nangoConn, err := h.nango.GetConnection(r.Context(), conn.NangoConnectionID, providerConfigKey)
 	if err != nil {
 		slog.Error("railway-proxy: failed to fetch from nango",
