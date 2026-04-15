@@ -36,6 +36,7 @@ import {
   ManageIntegrationsDialog,
 } from "@/app/w/agents/_components/manage-integrations-dialog"
 import { EditAgentProvider, useEditAgent } from "./context"
+import { ToolPermissionsSection } from "./tool-permissions"
 import type { components } from "@/lib/api/schema"
 
 type Agent = components["schemas"]["agentResponse"]
@@ -378,6 +379,20 @@ function EditAgentForm() {
             onOpenChange={setAddTriggerOpen}
             onAdd={addTrigger}
             connectionIds={new Set(Object.keys(integrations))}
+          />
+        </section>
+
+        <Separator />
+
+        {/* Tool Permissions */}
+        <section className="flex flex-col gap-4">
+          <SectionHeader
+            title="Tool permissions"
+            description="Control which built-in tools this agent can use. Click a tool to cycle between allow, require approval, and deny."
+          />
+          <ToolPermissionsSection
+            permissions={form.watch("permissions")}
+            onChange={(nextPermissions) => form.setValue("permissions", nextPermissions)}
           />
         </section>
 
