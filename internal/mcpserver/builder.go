@@ -32,17 +32,28 @@ func BuildServer(
 	}, nil)
 
 	for _, scope := range scopes {
-		// Load connection + integration from DB
+		// Load connection from either connections (org-scoped) or in_connections (user-scoped).
+		var provider, providerCfgKey, nangoConnID string
+
 		var conn model.Connection
 		if err := db.Preload("Integration").
 			Where("id = ? AND revoked_at IS NULL", scope.ConnectionID).
-			First(&conn).Error; err != nil {
-			return nil, fmt.Errorf("loading connection %s: %w", scope.ConnectionID, err)
+			First(&conn).Error; err == nil {
+			provider = conn.Integration.Provider
+			providerCfgKey = fmt.Sprintf("%s_%s", token.OrgID.String(), conn.Integration.UniqueKey)
+			nangoConnID = conn.NangoConnectionID
+		} else {
+			// Fallback to in_connections
+			var inConn model.InConnection
+			if err := db.Preload("InIntegration").
+				Where("id = ? AND revoked_at IS NULL", scope.ConnectionID).
+				First(&inConn).Error; err != nil {
+				return nil, fmt.Errorf("loading connection %s: %w", scope.ConnectionID, err)
+			}
+			provider = inConn.InIntegration.Provider
+			providerCfgKey = fmt.Sprintf("in_%s", inConn.InIntegration.UniqueKey)
+			nangoConnID = inConn.NangoConnectionID
 		}
-
-		provider := conn.Integration.Provider
-		providerCfgKey := fmt.Sprintf("%s_%s", token.OrgID.String(), conn.Integration.UniqueKey)
-		nangoConnID := conn.NangoConnectionID
 
 		// Skip providers that are accessed via proxy instead of MCP.
 		if providerDef, ok := cat.GetProvider(provider); ok && !providerDef.ShouldPushToMCP() {
