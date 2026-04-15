@@ -16,8 +16,14 @@ import (
 	"github.com/ziraloop/ziraloop/internal/nango"
 )
 
+// MemoryToolsFunc is a callback that registers memory tools on a server.
+// Used to avoid an import cycle between mcpserver and hindsight.
+type MemoryToolsFunc func(server *mcp.Server, agentID string, db *gorm.DB)
+
 // BuildServer creates an MCP server with tools registered from token scopes.
 // Each scope's connection+actions are turned into MCP tools via the catalog.
+// If addMemoryTools is non-nil, it is called to register memory tools on the
+// same server after integration tools are registered.
 func BuildServer(
 	token *model.Token,
 	scopes []mcppkg.TokenScope,
@@ -25,6 +31,7 @@ func BuildServer(
 	nangoClient *nango.Client,
 	db *gorm.DB,
 	ctr *counter.Counter,
+	addMemoryTools MemoryToolsFunc,
 ) (*mcp.Server, error) {
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "ziraloop",
@@ -159,6 +166,14 @@ func BuildServer(
 			)
 
 			slog.Debug("registered MCP tool", "tool", toolName, "provider", provider, "action", actionKey)
+		}
+	}
+
+	// Register memory tools if callback provided
+	if addMemoryTools != nil {
+		agentID, _ := token.Meta["agent_id"].(string)
+		if agentID != "" {
+			addMemoryTools(server, agentID, db)
 		}
 	}
 

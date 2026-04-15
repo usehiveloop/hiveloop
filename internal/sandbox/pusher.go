@@ -42,22 +42,20 @@ const (
 // Pusher constructs Bridge AgentDefinitions from our Agent model
 // and pushes them to Bridge instances running in sandboxes.
 type Pusher struct {
-	db              *gorm.DB
-	orchestrator    *Orchestrator
-	signingKey      []byte // JWT signing key for minting proxy tokens
-	cfg             *config.Config
-	pushed          sync.Map // key: "{sandboxID}:{agentID}" → true
-	hindsightMCPURL func(uuid.UUID) string // nil = no memory; returns MCP URL for an agent
+	db           *gorm.DB
+	orchestrator *Orchestrator
+	signingKey   []byte // JWT signing key for minting proxy tokens
+	cfg          *config.Config
+	pushed       sync.Map // key: "{sandboxID}:{agentID}" → true
 }
 
-// NewPusher creates an agent pusher. hindsightMCPURL is optional (nil disables memory MCP injection).
-func NewPusher(db *gorm.DB, orchestrator *Orchestrator, signingKey []byte, cfg *config.Config, hindsightMCPURL func(uuid.UUID) string) *Pusher {
+// NewPusher creates an agent pusher.
+func NewPusher(db *gorm.DB, orchestrator *Orchestrator, signingKey []byte, cfg *config.Config) *Pusher {
 	return &Pusher{
-		db:              db,
-		orchestrator:    orchestrator,
-		signingKey:      signingKey,
-		cfg:             cfg,
-		hindsightMCPURL: hindsightMCPURL,
+		db:           db,
+		orchestrator: orchestrator,
+		signingKey:   signingKey,
+		cfg:          cfg,
 	}
 }
 
@@ -524,17 +522,6 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 			*mcpServers = append(*mcpServers, ourMCP)
 		}
 	}
-	// Add Hindsight memory MCP server (always, when configured)
-	if p.hindsightMCPURL != nil {
-		hsMCP := buildHindsightMCPServer(p.hindsightMCPURL(agent.ID))
-		if mcpServers == nil {
-			servers := []bridgepkg.McpServerDefinition{hsMCP}
-			mcpServers = &servers
-		} else {
-			*mcpServers = append(*mcpServers, hsMCP)
-		}
-	}
-
 	// Add CodeDB MCP servers for configured repositories
 	for _, codedbMCP := range buildCodeDBMCPServers(agent.Resources) {
 		if mcpServers == nil {
@@ -599,20 +586,6 @@ func (p *Pusher) buildSubagentDefinitions(parent *model.Agent, parentCred *model
 	}
 
 	return defs, nil
-}
-
-func buildHindsightMCPServer(mcpURL string) bridgepkg.McpServerDefinition {
-	var transport bridgepkg.McpTransport
-	httpTransport := bridgepkg.McpTransport1{
-		Type: bridgepkg.StreamableHttp,
-		Url:  mcpURL,
-	}
-	transport.FromMcpTransport1(httpTransport)
-
-	return bridgepkg.McpServerDefinition{
-		Name:      "memory",
-		Transport: transport,
-	}
 }
 
 func buildZiraLoopMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDefinition {

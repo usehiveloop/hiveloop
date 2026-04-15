@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
@@ -55,7 +54,6 @@ type Deps struct {
 	Flusher        *streaming.Flusher
 	Cleanup        *streaming.Cleanup
 	Retainer        *hindsight.Retainer         // nil if Hindsight not configured
-	HindsightMCPURL func(uuid.UUID) string     // nil if Hindsight not configured
 	SpiderClient    *spider.Client             // nil if spider not configured
 	ToolUsageWriter *middleware.ToolUsageWriter // nil if spider not configured
 	PolarClient     *polargo.Polar             // nil if POLAR_ACCESS_TOKEN not set
@@ -192,8 +190,6 @@ func New(ctx context.Context) (*Deps, error) {
 	// 14. Sandbox orchestrator (optional)
 	var orchestrator *sandbox.Orchestrator
 	var agentPusher *sandbox.Pusher
-	var hindsightMCPURL func(uuid.UUID) string
-
 	if cfg.SandboxProviderKey != "" && sandboxEncKey != nil {
 		sandboxProvider, err := daytona.NewDriver(daytona.Config{
 			APIURL: cfg.SandboxProviderURL,
@@ -214,15 +210,7 @@ func New(ctx context.Context) (*Deps, error) {
 		}
 
 		orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, tursoProvisioner, sandboxEncKey, cfg)
-
-		if cfg.HindsightAPIURL != "" {
-			mcpBase := cfg.MCPBaseURL
-			hindsightMCPURL = func(agentID uuid.UUID) string {
-				return mcpBase + "/memory/" + agentID.String()
-			}
-		}
-
-		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg, hindsightMCPURL)
+		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg)
 		slog.Info("sandbox orchestrator ready")
 	}
 
@@ -282,7 +270,6 @@ func New(ctx context.Context) (*Deps, error) {
 		Flusher:         flusher,
 		Cleanup:         cleanup,
 		Retainer:        retainer,
-		HindsightMCPURL: hindsightMCPURL,
 		SpiderClient:    spiderClient,
 		ToolUsageWriter: toolUsageWriter,
 		PolarClient:     polarClient,

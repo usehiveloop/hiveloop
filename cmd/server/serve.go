@@ -61,6 +61,9 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	// Handlers
 	mcpHandler := handler.NewMCPHandler(database, signingKey, actionsCatalog, nangoClient, ctr)
+	if cfg.HindsightAPIURL != "" {
+		mcpHandler.SetMemoryTools(hindsight.NewMemoryToolsFunc(hindsight.NewClient(cfg.HindsightAPIURL)))
+	}
 	credHandler := handler.NewCredentialHandler(database, deps.KMS, cacheManager, ctr)
 	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr, actionsCatalog, cfg.MCPBaseURL, mcpHandler.ServerCache)
 	identityHandler := handler.NewIdentityHandler(database, sandboxEncKey)
