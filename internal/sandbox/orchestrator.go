@@ -1359,20 +1359,7 @@ func (o *Orchestrator) cloneAgentRepositories(ctx context.Context, sb *model.San
 			return fmt.Errorf("cloning %s: %w", repo.ID, err)
 		}
 
-		// Create codedb snapshot so CodeDB tools have a pre-built index
-		output, err = o.ExecuteCommand(ctx, sb,
-			fmt.Sprintf("codedb %s snapshot", repoPath))
-		if err != nil {
-			slog.Warn("codedb snapshot failed, continuing without index",
-				"sandbox_id", sb.ID,
-				"repo", repo.ID,
-				"output", output,
-				"error", err,
-			)
-			// Non-fatal — the agent can still work without codedb indexing
-		}
-
-		slog.Info("repository cloned and indexed",
+		slog.Info("repository cloned",
 			"sandbox_id", sb.ID,
 			"repo", repo.ID,
 			"path", repoPath,

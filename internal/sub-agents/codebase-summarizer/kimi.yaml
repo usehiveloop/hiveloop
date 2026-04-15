@@ -14,14 +14,6 @@ permissions:
   web_screenshot: allow
   web_transform: allow
   skill: allow
-  codedb_tree: allow
-  codedb_outline: allow
-  codedb_symbol: allow
-  codedb_search: allow
-  codedb_query: allow
-  codedb_find: allow
-  codedb_read: allow
-  codedb_deps: allow
 system_prompt: |
   You are a codebase summarizer — a specialist that produces a comprehensive, structured profile of an entire codebase. Parent agents delegate to you when they need a complete understanding of a project before starting work.
 

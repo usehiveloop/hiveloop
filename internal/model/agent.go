@@ -38,7 +38,7 @@ type Agent struct {
 	SharedMemory bool   `gorm:"not null;default:false"` // can store shared memories visible to all agents in identity
 
 	// Sandbox setup (dedicated agents only — ignored for shared agents)
-	SandboxTools     pq.StringArray `gorm:"type:text[];default:'{}'"`  // enabled sandbox tools (e.g. "chrome", "codedb", "codebase-memory")
+	SandboxTools     pq.StringArray `gorm:"type:text[];default:'{}'"`  // enabled sandbox tools (e.g. "chrome", "codebase-memory")
 	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"`  // shell commands run on dedicated sandbox creation
 	EncryptedEnvVars []byte         `gorm:"type:bytea"`                // AES-256-GCM encrypted JSON map of env vars
 
@@ -68,7 +68,6 @@ type SandboxToolDefinition struct {
 // ValidSandboxTools is the canonical list of sandbox tools the platform supports.
 var ValidSandboxTools = []SandboxToolDefinition{
 	{ID: "chrome", Name: "Chrome browser", Description: "Headless Chrome for web scraping, testing, and browser automation via agent-browser."},
-	{ID: "codedb", Name: "CodeDB", Description: "Code intelligence tools for searching, navigating, and understanding codebases."},
 	{ID: "codebase-memory", Name: "Codebase memory", Description: "MCP server that builds a structural code graph from ASTs for deep code understanding."},
 }
 
@@ -149,25 +148,6 @@ var ValidBuiltInTools = []BuiltInToolDefinition{
 	{ID: "memory_retain", Name: "Retain memory", Description: "Store important information to long-term memory.", Category: "memory", Locked: true},
 	{ID: "memory_reflect", Name: "Reflect on memory", Description: "Get a synthesized answer by analyzing full memory.", Category: "memory", Locked: true},
 
-	// ── CodeDB ──
-	{ID: "codedb_tree", Name: "File tree", Description: "Get the full file tree with language detection, line counts, and symbol counts.", Category: "codedb"},
-	{ID: "codedb_outline", Name: "Outline", Description: "Get structural outline of a file: functions, structs, imports with line numbers.", Category: "codedb"},
-	{ID: "codedb_symbol", Name: "Find symbol", Description: "Find where a symbol is defined across the codebase.", Category: "codedb"},
-	{ID: "codedb_search", Name: "Search code", Description: "Trigram-accelerated full-text search across all indexed files.", Category: "codedb"},
-	{ID: "codedb_query", Name: "Query pipeline", Description: "Composable search pipeline — chain find, search, filter, outline, read steps.", Category: "codedb"},
-	{ID: "codedb_find", Name: "Find file", Description: "Fuzzy file search with typo-tolerant subsequence matching.", Category: "codedb"},
-	{ID: "codedb_read", Name: "Read indexed", Description: "Read file contents from the index with line ranges and caching.", Category: "codedb"},
-	{ID: "codedb_deps", Name: "Dependencies", Description: "Get reverse dependencies: which files import the given file.", Category: "codedb"},
-	{ID: "codedb_word", Name: "Word lookup", Description: "O(1) inverted index exact word lookup across the codebase.", Category: "codedb"},
-	{ID: "codedb_edit", Name: "Edit file", Description: "Apply a line-based edit to a file: replace, insert, or delete.", Category: "codedb"},
-	{ID: "codedb_bundle", Name: "Bundle queries", Description: "Batch multiple read-only queries in one call (max 20).", Category: "codedb"},
-	{ID: "codedb_snapshot", Name: "Snapshot", Description: "Get the full pre-rendered snapshot of the codebase as JSON.", Category: "codedb"},
-	{ID: "codedb_status", Name: "Index status", Description: "Get current index status: file count and sequence number.", Category: "codedb"},
-	{ID: "codedb_changes", Name: "Changes", Description: "Get files that changed since a sequence number.", Category: "codedb"},
-	{ID: "codedb_hot", Name: "Hot files", Description: "Get the most recently modified files.", Category: "codedb"},
-	{ID: "codedb_index", Name: "Index folder", Description: "Index a local folder and create a codedb.snapshot.", Category: "codedb"},
-	{ID: "codedb_remote", Name: "Remote query", Description: "Query any GitHub repo via cloud intelligence without cloning.", Category: "codedb"},
-	{ID: "codedb_projects", Name: "List projects", Description: "List all locally indexed projects on this machine.", Category: "codedb"},
 }
 
 // validBuiltInToolIDs is a set for fast validation lookups.

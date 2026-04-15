@@ -102,7 +102,7 @@ type createAgentRequest struct {
 	Resources         model.JSON                  `json:"resources,omitempty"`
 	Team              string                      `json:"team,omitempty"`
 	SharedMemory      bool                        `json:"shared_memory,omitempty"`
-	SandboxTools      []string                    `json:"sandbox_tools,omitempty"`  // tools to enable in dedicated sandbox (e.g. "chrome", "codedb")
+	SandboxTools      []string                    `json:"sandbox_tools,omitempty"`  // tools to enable in dedicated sandbox (e.g. "chrome")
 	SkillIDs          []string                    `json:"skill_ids,omitempty"`      // skills from /v1/skills to attach on create
 	SubagentIDs       []string                    `json:"subagent_ids,omitempty"`   // subagents from /v1/subagents to attach on create
 	Triggers          []agentTriggerInput         `json:"triggers,omitempty"`       // webhook triggers to create

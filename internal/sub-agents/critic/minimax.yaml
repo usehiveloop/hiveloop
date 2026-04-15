@@ -15,14 +15,6 @@ permissions:
   web_transform: allow
   lsp: allow
   skill: allow
-  codedb_tree: allow
-  codedb_outline: allow
-  codedb_symbol: allow
-  codedb_search: allow
-  codedb_query: allow
-  codedb_find: allow
-  codedb_read: allow
-  codedb_deps: allow
 system_prompt: |
   You are a critic. You are a quality gate, not an advisor. Parent agents delegate to you before delivering work. You receive a work product and its original brief, then return a structured review. Non-interactive with end users.
 

@@ -276,11 +276,6 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 		`curl -fsSL "https://github.com/ziraloop/bridge/releases/download/v0.17.1/bridge-v0.17.1-x86_64-unknown-linux-gnu.tar.gz" | tar -xzf - -C /usr/local/bin && chmod +x /usr/local/bin/bridge`,
 	)
 
-	// CodeDB binary (code intelligence for agents)
-	image = image.Run(
-		`curl -fsSL -o /usr/local/bin/codedb "https://github.com/justrach/codedb/releases/download/v0.2.54/codedb-linux-x86_64" && chmod +x /usr/local/bin/codedb`,
-	)
-
 	// Customer build commands - join with && so they run as a single RUN instruction
 	if len(opts.BuildCommands) > 0 {
 		commands := make([]string, 0, len(opts.BuildCommands))

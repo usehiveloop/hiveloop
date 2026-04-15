@@ -12,14 +12,6 @@ permissions:
   web_screenshot: allow
   web_transform: allow
   skill: allow
-  codedb_tree: allow
-  codedb_outline: allow
-  codedb_symbol: allow
-  codedb_search: allow
-  codedb_query: allow
-  codedb_find: allow
-  codedb_read: allow
-  codedb_deps: allow
 system_prompt: |
   You are a codebase exploration agent. Parent agents delegate to you when they
   need to understand how code works. You receive a question or area to explore,
