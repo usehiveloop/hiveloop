@@ -132,7 +132,7 @@ function ConnectionListView({ connections, getSelectedCount, onSelect, onSave, s
             return (
               <ChoiceCard
                 key={connectionId}
-                logoUrl={`/logos/${connection.provider ?? ""}.svg`}
+                logoUrl={`https://connections.ziraloop.com/images/template-logos/${connection.provider ?? ""}.svg`}
                 title={connection.display_name ?? connection.provider ?? ""}
                 description={count > 0 ? `${count} resource${count !== 1 ? "s" : ""} selected` : "No resources configured"}
                 onClick={() => onSelect(connectionId)}
@@ -216,7 +216,7 @@ interface ResourceInstanceListViewProps {
 }
 
 function ResourceInstanceListView({ connectionId, resourceType, isSelected, onToggle, onBack }: ResourceInstanceListViewProps) {
-  const { data, isLoading } = $api.useQuery("get", "/v1/connections/{id}/resources/{type}", {
+  const { data, isLoading } = $api.useQuery("get", "/v1/in/connections/{id}/resources/{type}", {
     params: { path: { id: connectionId, type: resourceType } },
   })
 
