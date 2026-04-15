@@ -168,7 +168,8 @@
           "input": "input"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "customDomainCreate"
+        "graphql_field": "customDomainCreate",
+        "graphql_query": "mutation($input: CustomDomainCreateInput!) { customDomainCreate(input: $input) { id domain } }"
       },
       "response_schema": "custom_domain"
     },
@@ -195,7 +196,8 @@
           "id": "id"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "customDomainDelete"
+        "graphql_field": "customDomainDelete",
+        "graphql_query": "mutation($id: String!) { customDomainDelete(id: $id) }"
       },
       "response_schema": "boolean"
     },
@@ -222,7 +224,8 @@
           "id": "id"
         },
         "graphql_operation": "query",
-        "graphql_field": "deployment"
+        "graphql_field": "deployment",
+        "graphql_query": "query($id: String!) { deployment(id: $id) { id status createdAt updatedAt meta staticUrl canRedeploy canRollback deploymentStopped creator { name email } environment { id name } service { id name } } }"
       },
       "response_schema": "deployment"
     },
@@ -249,7 +252,8 @@
           "id": "id"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "deploymentCancel"
+        "graphql_field": "deploymentCancel",
+        "graphql_query": "mutation($id: String!) { deploymentCancel(id: $id) { id status } }"
       },
       "response_schema": "boolean"
     },
@@ -326,7 +330,8 @@
           "usePreviousImageTag": "usePreviousImageTag"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "deploymentRedeploy"
+        "graphql_field": "deploymentRedeploy",
+        "graphql_query": "mutation($id: String!) { deploymentRedeploy(id: $id) { id status createdAt } }"
       },
       "response_schema": "deployment"
     },
@@ -353,7 +358,8 @@
           "id": "id"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "deploymentRestart"
+        "graphql_field": "deploymentRestart",
+        "graphql_query": "mutation($id: String!) { deploymentRestart(id: $id) { id status createdAt } }"
       },
       "response_schema": "boolean"
     },
@@ -380,7 +386,8 @@
           "id": "id"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "deploymentRollback"
+        "graphql_field": "deploymentRollback",
+        "graphql_query": "mutation($id: String!) { deploymentRollback(id: $id) { id status createdAt } }"
       },
       "response_schema": "boolean"
     },
@@ -407,7 +414,8 @@
           "id": "id"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "deploymentStop"
+        "graphql_field": "deploymentStop",
+        "graphql_query": "mutation($id: String!) { deploymentRemove(id: $id) }"
       },
       "response_schema": "boolean"
     },
@@ -476,7 +484,7 @@
         },
         "graphql_operation": "query",
         "graphql_field": "deployments",
-        "graphql_query": "query($input: DeploymentListInput!, $first: Int, $after: String) { deployments(input: $input, first: $first, after: $after) { edges { node { id status createdAt meta staticUrl canRedeploy creator { name } } } } }"
+        "graphql_query": "query($input: DeploymentListInput!, $first: Int, $after: String) { deployments(input: $input, first: $first, after: $after) { edges { node { id status createdAt updatedAt meta staticUrl canRedeploy canRollback deploymentStopped creator { name } } } pageInfo { hasNextPage endCursor } } }"
       },
       "response_schema": "query_deployments_connection"
     },
@@ -513,7 +521,8 @@
           "serviceId": "serviceId"
         },
         "graphql_operation": "query",
-        "graphql_field": "domains"
+        "graphql_field": "domains",
+        "graphql_query": "query($environmentId: String!, $projectId: String!, $serviceId: String!) { domains(environmentId: $environmentId, projectId: $projectId, serviceId: $serviceId) { serviceDomains { id domain targetPort suffix } customDomains { id domain targetPort status } } }"
       },
       "response_schema": "all_domains"
     },
@@ -544,7 +553,8 @@
           "projectId": "projectId"
         },
         "graphql_operation": "query",
-        "graphql_field": "environment"
+        "graphql_field": "environment",
+        "graphql_query": "query($id: String!) { environment(id: $id) { id name createdAt updatedAt deletedAt canAccess isEphemeral unmergedChangesCount sourceEnvironment { id name } meta { prNumber prTitle prRepo branch baseBranch } serviceInstances { edges { node { serviceId serviceName latestDeployment { id status createdAt meta } source { repo image } domains { serviceDomains { domain } customDomains { domain } } startCommand healthcheckPath numReplicas } } } volumeInstances { edges { node { serviceId mountPath currentSizeMB sizeMB volume { name id } } } } } }"
       },
       "response_schema": "environment"
     },
@@ -602,7 +612,8 @@
           "input": "input"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "environmentCreate"
+        "graphql_field": "environmentCreate",
+        "graphql_query": "mutation($projectId: String!, $name: String!, $sourceId: String) { environmentCreate(input: { projectId: $projectId, name: $name, ephemeral: false, stagingEnvironmentId: $sourceId }) { id name createdAt } }"
       },
       "response_schema": "environment"
     },
@@ -629,7 +640,8 @@
           "id": "id"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "environmentDelete"
+        "graphql_field": "environmentDelete",
+        "graphql_query": "mutation($id: String!) { environmentDelete(id: $id) }"
       },
       "response_schema": "boolean"
     },
@@ -686,7 +698,8 @@
           "filter": "filter"
         },
         "graphql_operation": "query",
-        "graphql_field": "environmentLogs"
+        "graphql_field": "environmentLogs",
+        "graphql_query": "query($environmentId: String!, $limit: Int, $filter: String, $startDate: DateTime, $endDate: DateTime) { environmentLogs(environmentId: $environmentId, limit: $limit, filter: $filter, startDate: $startDate, endDate: $endDate) { timestamp message severity attributes { key value } tags { serviceId serviceName deploymentId deploymentInstanceId } } }"
       },
       "response_schema": "log"
     },
@@ -729,7 +742,8 @@
           "input": "input"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "environmentTriggersDeploy"
+        "graphql_field": "environmentTriggersDeploy",
+        "graphql_query": "mutation($environmentId: String!, $serviceId: String!) { serviceInstanceDeployV2(environmentId: $environmentId, serviceId: $serviceId) }"
       },
       "response_schema": "boolean"
     },
@@ -776,7 +790,8 @@
           "projectId": "projectId"
         },
         "graphql_operation": "query",
-        "graphql_field": "environments"
+        "graphql_field": "environments",
+        "graphql_query": "query($projectId: String!, $isEphemeral: Boolean, $first: Int, $after: String) { environments(projectId: $projectId, isEphemeral: $isEphemeral, first: $first, after: $after) { edges { node { id name isEphemeral createdAt updatedAt canAccess deletedAt unmergedChangesCount sourceEnvironment { id name } meta { prNumber prTitle prRepo branch baseBranch } } } pageInfo { hasNextPage endCursor } } }"
       },
       "response_schema": "query_environments_connection"
     },
@@ -808,7 +823,8 @@
           "repo": "repo"
         },
         "graphql_operation": "query",
-        "graphql_field": "githubRepoBranches"
+        "graphql_field": "githubRepoBranches",
+        "graphql_query": "query($owner: String!, $repo: String!) { githubRepoBranches(owner: $owner, repo: $repo) { name } }"
       },
       "response_schema": "git_hub_branch"
     },
@@ -870,7 +886,8 @@
         "method": "POST",
         "path": "/graphql/v2",
         "graphql_operation": "query",
-        "graphql_field": "githubRepos"
+        "graphql_field": "githubRepos",
+        "graphql_query": "query { githubRepos { fullName defaultBranch isPrivate } }"
       },
       "response_schema": "git_hub_repo"
     },
@@ -887,7 +904,8 @@
         "method": "POST",
         "path": "/graphql/v2",
         "graphql_operation": "query",
-        "graphql_field": "me"
+        "graphql_field": "me",
+        "graphql_query": "query { me { id name email teams { edges { node { id name } } } workspaces { id name team { id } } } }"
       },
       "response_schema": "user"
     },
@@ -969,7 +987,8 @@
           "workspaceId": "workspaceId"
         },
         "graphql_operation": "query",
-        "graphql_field": "metrics"
+        "graphql_field": "metrics",
+        "graphql_query": "query($serviceId: String, $environmentId: String, $startDate: DateTime!, $endDate: DateTime, $measurements: [MetricMeasurement!]!, $sampleRateSeconds: Int) { metrics(serviceId: $serviceId, environmentId: $environmentId, startDate: $startDate, endDate: $endDate, measurements: $measurements, sampleRateSeconds: $sampleRateSeconds) { measurement values { ts value } } }"
       },
       "response_schema": "metrics_result"
     },
@@ -997,7 +1016,7 @@
         },
         "graphql_operation": "query",
         "graphql_field": "project",
-        "graphql_query": "query($id: String!) { project(id: $id) { id name deletedAt workspace { name } environments { edges { node { id name canAccess deletedAt serviceInstances { edges { node { id serviceId serviceName environmentId latestDeployment { id status createdAt meta canRedeploy } source { repo image } domains { serviceDomains { domain targetPort } customDomains { domain targetPort } } startCommand healthcheckPath numReplicas cronSchedule } } } volumeInstances { edges { node { serviceId mountPath currentSizeMB sizeMB volume { name id } } } } } } } services { edges { node { id name } } } } }"
+        "graphql_query": "query($id: String!) { project(id: $id) { id name description deletedAt createdAt updatedAt workspace { id name } buckets { edges { node { id name } } } environments { edges { node { id name canAccess deletedAt unmergedChangesCount serviceInstances { edges { node { id serviceId serviceName environmentId latestDeployment { id status createdAt meta canRedeploy deploymentStopped } activeDeployments { id status createdAt meta } source { repo image } domains { serviceDomains { id domain targetPort } customDomains { id domain targetPort } } startCommand healthcheckPath numReplicas cronSchedule nextCronRunAt restartPolicyType restartPolicyMaxRetries region sleepApplication rootDirectory buildCommand } } } volumeInstances { edges { node { serviceId mountPath environmentId currentSizeMB sizeMB volume { name id } } } } } } } services { edges { node { id name icon } } } } }"
       },
       "response_schema": "project"
     },
@@ -1065,7 +1084,8 @@
           "input": "input"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "projectCreate"
+        "graphql_field": "projectCreate",
+        "graphql_query": "mutation($name: String, $description: String, $workspaceId: String) { projectCreate(input: { name: $name, description: $description, workspaceId: $workspaceId }) { id name environments { edges { node { id name } } } } }"
       },
       "response_schema": "project"
     },
@@ -1092,7 +1112,8 @@
           "id": "id"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "projectDelete"
+        "graphql_field": "projectDelete",
+        "graphql_query": "mutation($id: String!) { projectScheduleDelete(id: $id) }"
       },
       "response_schema": "boolean"
     },
@@ -1197,7 +1218,8 @@
           "workspaceId": "workspaceId"
         },
         "graphql_operation": "query",
-        "graphql_field": "projects"
+        "graphql_field": "projects",
+        "graphql_query": "query { projects { edges { node { id name description updatedAt createdAt deletedAt workspace { id name } environments { edges { node { id name } } } services { edges { node { id name } } } } } } }"
       },
       "response_schema": "query_projects_connection"
     },
@@ -1221,7 +1243,8 @@
           "projectId": "projectId"
         },
         "graphql_operation": "query",
-        "graphql_field": "regions"
+        "graphql_field": "regions",
+        "graphql_query": "query { regions { name country railwayMetal location } }"
       },
       "response_schema": "region"
     },
@@ -1249,7 +1272,7 @@
         },
         "graphql_operation": "query",
         "graphql_field": "service",
-        "graphql_query": "query($id: String!) { service(id: $id) { id name icon updatedAt deployments(first: 1) { edges { node { id status createdAt meta staticUrl creator { name } } } } } }"
+        "graphql_query": "query($id: String!) { service(id: $id) { id name icon updatedAt createdAt templateThreadSlug deployments(first: 5) { edges { node { id status createdAt meta staticUrl } } } } }"
       },
       "response_schema": "service"
     },
@@ -1380,7 +1403,8 @@
           "input": "input"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "serviceCreate"
+        "graphql_field": "serviceCreate",
+        "graphql_query": "mutation($name: String, $projectId: String!, $environmentId: String!, $source: ServiceSourceInput, $branch: String, $variables: EnvironmentVariables) { serviceCreate(input: { name: $name, projectId: $projectId, environmentId: $environmentId, source: $source, variables: $variables, branch: $branch }) { id name } }"
       },
       "response_schema": "service"
     },
@@ -1412,7 +1436,8 @@
           "id": "id"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "serviceDelete"
+        "graphql_field": "serviceDelete",
+        "graphql_query": "mutation($environmentId: String!, $serviceId: String!) { serviceDelete(environmentId: $environmentId, id: $serviceId) }"
       },
       "response_schema": "boolean"
     },
@@ -1481,7 +1506,8 @@
           "input": "input"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "serviceDomainCreate"
+        "graphql_field": "serviceDomainCreate",
+        "graphql_query": "mutation($environmentId: String!, $serviceId: String!) { serviceDomainCreate(input: { environmentId: $environmentId, serviceId: $serviceId }) { id domain } }"
       },
       "response_schema": "service_domain"
     },
@@ -1508,7 +1534,8 @@
           "id": "id"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "serviceDomainDelete"
+        "graphql_field": "serviceDomainDelete",
+        "graphql_query": "mutation($id: String!) { serviceDomainDelete(id: $id) }"
       },
       "response_schema": "boolean"
     },
@@ -1548,7 +1575,8 @@
           "serviceId": "serviceId"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "serviceInstanceDeploy"
+        "graphql_field": "serviceInstanceDeploy",
+        "graphql_query": "mutation($environmentId: String!, $serviceId: String!) { serviceInstanceDeployV2(environmentId: $environmentId, serviceId: $serviceId) }"
       },
       "response_schema": "boolean"
     },
@@ -1580,7 +1608,8 @@
           "serviceId": "serviceId"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "serviceInstanceRedeploy"
+        "graphql_field": "serviceInstanceRedeploy",
+        "graphql_query": "mutation($environmentId: String!, $serviceId: String!) { serviceInstanceRedeploy(environmentId: $environmentId, serviceId: $serviceId) }"
       },
       "response_schema": "boolean"
     },
@@ -1708,7 +1737,8 @@
           "serviceId": "serviceId"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "serviceInstanceUpdate"
+        "graphql_field": "serviceInstanceUpdate",
+        "graphql_query": "mutation($serviceId: String!, $environmentId: String, $input: ServiceInstanceUpdateInput!) { serviceInstanceUpdate(serviceId: $serviceId, environmentId: $environmentId, input: $input) }"
       },
       "response_schema": "boolean"
     },
@@ -1904,7 +1934,8 @@
           "input": "input"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "variableCollectionUpsert"
+        "graphql_field": "variableCollectionUpsert",
+        "graphql_query": "mutation($projectId: String!, $environmentId: String!, $serviceId: String!, $variables: EnvironmentVariables!, $skipDeploys: Boolean) { variableCollectionUpsert(input: { projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId, variables: $variables, skipDeploys: $skipDeploys }) }"
       },
       "response_schema": "boolean"
     },
@@ -1950,7 +1981,8 @@
           "input": "input"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "variableDelete"
+        "graphql_field": "variableDelete",
+        "graphql_query": "mutation($projectId: String!, $environmentId: String!, $name: String!, $serviceId: String) { variableDelete(input: { projectId: $projectId, environmentId: $environmentId, name: $name, serviceId: $serviceId }) }"
       },
       "response_schema": "boolean"
     },
@@ -2004,7 +2036,8 @@
           "input": "input"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "variableUpsert"
+        "graphql_field": "variableUpsert",
+        "graphql_query": "mutation($projectId: String!, $environmentId: String!, $serviceId: String!, $name: String!, $value: String!) { variableUpsert(input: { projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId, name: $name, value: $value }) }"
       },
       "response_schema": "boolean"
     },
@@ -2045,7 +2078,8 @@
           "unrendered": "unrendered"
         },
         "graphql_operation": "query",
-        "graphql_field": "variables"
+        "graphql_field": "variables",
+        "graphql_query": "query($projectId: String!, $environmentId: String!, $serviceId: String!) { variablesForServiceDeployment(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId) }"
       },
       "response_schema": "environment_variables"
     },
@@ -2098,7 +2132,8 @@
           "input": "input"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "volumeCreate"
+        "graphql_field": "volumeCreate",
+        "graphql_query": "mutation($projectId: String!, $environmentId: String!, $serviceId: String!, $mountPath: String!) { volumeCreate(input: { projectId: $projectId, environmentId: $environmentId }) { id name } }"
       },
       "response_schema": "volume"
     },
@@ -2125,7 +2160,8 @@
           "volumeId": "volumeId"
         },
         "graphql_operation": "mutation",
-        "graphql_field": "volumeDelete"
+        "graphql_field": "volumeDelete",
+        "graphql_query": "mutation($id: String!) { volumeDelete(volumeId: $id) }"
       },
       "response_schema": "boolean"
     },
@@ -2152,7 +2188,8 @@
           "id": "id"
         },
         "graphql_operation": "query",
-        "graphql_field": "volumeInstance"
+        "graphql_field": "volumeInstance",
+        "graphql_query": "query($id: String!, $environmentId: String!) { volumeInstance(id: $id, environmentId: $environmentId) { id mountPath currentSizeMB sizeMB environmentId externalId volume { id name createdAt } } }"
       },
       "response_schema": "volume_instance"
     },
