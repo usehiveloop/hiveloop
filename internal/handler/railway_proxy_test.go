@@ -109,35 +109,47 @@ func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler h
 		t.Fatalf("create test sandbox: %v", err)
 	}
 
-	// Create railway integration + connection
-	integrationID := uuid.New()
-	integration := model.Integration{
-		ID:          integrationID,
-		OrgID:       orgID,
-		UniqueKey:   "railway-test",
+	// Create a user (required FK for InConnection)
+	userID := uuid.New()
+	user := model.User{
+		ID:    userID,
+		Email: fmt.Sprintf("railway-test-%s@example.com", uuid.New().String()[:8]),
+		Name:  "Test User",
+	}
+	if err := database.Create(&user).Error; err != nil {
+		t.Fatalf("create test user: %v", err)
+	}
+
+	// Create in_integration + in_connection for railway
+	inIntegrationID := uuid.New()
+	inIntegration := model.InIntegration{
+		ID:          inIntegrationID,
+		UniqueKey:   fmt.Sprintf("railway-test-%s", uuid.New().String()[:8]),
 		Provider:    "railway",
 		DisplayName: "Test Railway",
 	}
-	if err := database.Create(&integration).Error; err != nil {
-		t.Fatalf("create test integration: %v", err)
+	if err := database.Create(&inIntegration).Error; err != nil {
+		t.Fatalf("create test in_integration: %v", err)
 	}
 
-	connectionID := uuid.New()
-	connection := model.Connection{
-		ID:                connectionID,
+	inConnectionID := uuid.New()
+	inConnection := model.InConnection{
+		ID:                inConnectionID,
 		OrgID:             orgID,
-		IntegrationID:     integrationID,
+		UserID:            userID,
+		InIntegrationID:   inIntegrationID,
 		NangoConnectionID: "nango-railway-conn-123",
 	}
-	if err := database.Create(&connection).Error; err != nil {
-		t.Fatalf("create test connection: %v", err)
+	if err := database.Create(&inConnection).Error; err != nil {
+		t.Fatalf("create test in_connection: %v", err)
 	}
 
 	t.Cleanup(func() {
-		database.Where("org_id = ?", orgID).Delete(&model.Connection{})
-		database.Where("org_id = ?", orgID).Delete(&model.Integration{})
+		database.Where("org_id = ?", orgID).Delete(&model.InConnection{})
+		database.Where("id = ?", inIntegrationID).Delete(&model.InIntegration{})
 		database.Where("id = ?", sandboxID).Delete(&model.Sandbox{})
 		database.Where("org_id = ?", orgID).Delete(&model.Agent{})
+		database.Where("id = ?", userID).Delete(&model.User{})
 		database.Where("id = ?", orgID).Delete(&model.Org{})
 	})
 
@@ -304,7 +316,7 @@ func TestRailwayProxy_NoRailwayConnection(t *testing.T) {
 	harness := newRailwayHarness(t, nangoHandler, railwayHandler)
 
 	// Delete railway connection
-	harness.db.Where("org_id = ?", harness.orgID).Delete(&model.Connection{})
+	harness.db.Where("org_id = ?", harness.orgID).Delete(&model.InConnection{})
 
 	req := httptest.NewRequest(http.MethodPost,
 		"/internal/railway-proxy/"+harness.agentID.String(),
