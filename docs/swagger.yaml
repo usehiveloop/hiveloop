@@ -3455,6 +3455,11 @@ definitions:
         type: string
       shared_memory:
         type: boolean
+      skill_ids:
+        description: nil=don't touch, []=detach all, [ids]=sync to these
+        items:
+          type: string
+        type: array
       skills:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       system_prompt:

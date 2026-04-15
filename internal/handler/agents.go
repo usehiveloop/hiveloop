@@ -134,6 +134,7 @@ type updateAgentRequest struct {
 	Team              *string    `json:"team,omitempty"`
 	SharedMemory      *bool      `json:"shared_memory,omitempty"`
 	SandboxTools      []string   `json:"sandbox_tools,omitempty"` // tools to enable in dedicated sandbox
+	SkillIDs          *[]string  `json:"skill_ids,omitempty"`     // nil=don't touch, []=detach all, [ids]=sync to these
 	Triggers          *[]agentTriggerInput `json:"triggers,omitempty"` // nil=don't touch, []=remove all
 }
 
@@ -1154,8 +1155,33 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Reconcile skills: sync to the provided list.
+	if req.SkillIDs != nil {
+		if err := h.db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Where("agent_id = ?", agent.ID).Delete(&model.AgentSkill{}).Error; err != nil {
+				return err
+			}
+			for _, rawID := range *req.SkillIDs {
+				skillUUID, parseErr := uuid.Parse(rawID)
+				if parseErr != nil {
+					continue
+				}
+				if err := tx.Create(&model.AgentSkill{
+					AgentID: agent.ID,
+					SkillID: skillUUID,
+				}).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		}); err != nil {
+			slog.Error("failed to sync skills during update", "agent_id", agent.ID, "error", err)
+		}
+	}
+
 	resp := toAgentResponse(agent)
 	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]
+	resp.AttachedSkills = h.loadAgentSkills(agent.ID)[agent.ID]
 	writeJSON(w, http.StatusOK, resp)
 }
 

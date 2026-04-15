@@ -17602,6 +17602,13 @@ const docTemplate = `{
                 "shared_memory": {
                     "type": "boolean"
                 },
+                "skill_ids": {
+                    "description": "nil=don't touch, []=detach all, [ids]=sync to these",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "skills": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
