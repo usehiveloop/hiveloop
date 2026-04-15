@@ -10,7 +10,6 @@ import { ConnectionsResource } from "./resources/connections.js";
 import { ConversationsResource } from "./resources/conversations.js";
 import { CredentialsResource } from "./resources/credentials.js";
 import { CustomDomainsResource } from "./resources/custom-domains.js";
-import { ForgeResource } from "./resources/forge.js";
 import { GenerationsResource } from "./resources/generations.js";
 import { IdentitiesResource } from "./resources/identities.js";
 import { IntegrationsResource } from "./resources/integrations.js";
@@ -33,7 +32,6 @@ export class ZiraLoop {
   public readonly conversations: ConversationsResource;
   public readonly credentials: CredentialsResource;
   public readonly customDomains: CustomDomainsResource;
-  public readonly forge: ForgeResource;
   public readonly generations: GenerationsResource;
   public readonly identities: IdentitiesResource;
   public readonly integrations: IntegrationsResource;
@@ -64,7 +62,6 @@ export class ZiraLoop {
     this.conversations = new ConversationsResource(client, baseUrl, config.apiKey);
     this.credentials = new CredentialsResource(client);
     this.customDomains = new CustomDomainsResource(client);
-    this.forge = new ForgeResource(client, baseUrl, config.apiKey);
     this.generations = new GenerationsResource(client);
     this.identities = new IdentitiesResource(client);
     this.integrations = new IntegrationsResource(client);

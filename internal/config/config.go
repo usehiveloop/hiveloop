@@ -156,7 +156,6 @@ type Config struct {
 	// Asynq worker
 	WorkerHealthPort      int           `env:"WORKER_HEALTH_PORT" envDefault:"8090"`
 	AsynqConcurrency      int           `env:"ASYNQ_CONCURRENCY" envDefault:"30"`
-	AsynqForgeConcurrency int           `env:"ASYNQ_FORGE_CONCURRENCY" envDefault:"20"`
 	AsynqShutdownTimeout  time.Duration `env:"ASYNQ_SHUTDOWN_TIMEOUT" envDefault:"120s"`
 }
 

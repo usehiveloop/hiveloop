@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
-import { scratchSteps, forgeSteps, marketplaceSteps } from "./types"
+import { scratchSteps, marketplaceSteps } from "./types"
 import type { CreationMode, Step, SkillPreview, SubagentPreview, TriggerConfig } from "./types"
 
 export interface CreateAgentFormValues {
@@ -92,7 +92,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
   const [triggers, setTriggers] = useState<TriggerConfig[]>([])
   const direction = useRef<1 | -1>(1)
 
-  const currentSteps = mode === "marketplace" ? marketplaceSteps : mode === "forge" ? forgeSteps : scratchSteps
+  const currentSteps = mode === "marketplace" ? marketplaceSteps : scratchSteps
 
   const goTo = useCallback((next: Step) => {
     direction.current = currentSteps.indexOf(next) > currentSteps.indexOf(step) ? 1 : -1
@@ -238,27 +238,13 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       }))
     }
 
-    if (mode === "forge" && values.judgeKeyId && values.judgeModel) {
-      body.forge = {
-        judge_credential_id: values.judgeKeyId,
-        judge_model: values.judgeModel,
-      }
-    }
-
     createAgent.mutate(
       { body: body as never },
       {
-        onSuccess: (data) => {
+        onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["get", "/v1/agents"] })
-          const agentData = data as { id?: string; forge_run_id?: string }
-          if (mode === "forge" && agentData.id) {
-            toast.success(`Agent "${values.name}" created — starting forge`)
-            onClose()
-            router.push(`/w/agents/${agentData.id}/forge`)
-          } else {
-            toast.success(`Agent "${values.name}" created`)
-            onClose()
-          }
+          toast.success(`Agent "${values.name}" created`)
+          onClose()
         },
         onError: (error) => {
           toast.error(extractErrorMessage(error, "Failed to create agent"))

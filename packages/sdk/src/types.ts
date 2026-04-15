@@ -141,8 +141,6 @@ export type CommandResult = Schemas["commandResult"];
 
 // Forge
 export type StartForgeRequest = Schemas["startForgeRequest"];
-export type ForgeRunResponse = Schemas["forgeRunResponse"];
-export type ForgeGetRunResponse = Schemas["forgeGetRunResponse"];
 export type ForgeEvent = Schemas["ForgeEvent"];
 export type ForgeEvalResult = Schemas["ForgeEvalResult"];
 export type ForgeIteration = Schemas["ForgeIteration"];

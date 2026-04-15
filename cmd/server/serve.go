@@ -17,11 +17,9 @@ import (
 	"github.com/ziraloop/ziraloop/internal/bootstrap"
 	"github.com/ziraloop/ziraloop/internal/email"
 	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/forge"
 	"github.com/ziraloop/ziraloop/internal/goroutine"
 	"github.com/ziraloop/ziraloop/internal/handler"
 	"github.com/ziraloop/ziraloop/internal/hindsight"
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/mcpserver"
 	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/proxy"
@@ -105,21 +103,15 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	reportingHandler := handler.NewReportingHandler(database)
 	proxyHandler := handler.NewProxyHandler(cacheManager, &proxy.CaptureTransport{Inner: proxy.NewTransport()})
 
-	// Conversation + Forge handlers (require sandbox orchestrator)
+	// Conversation handlers (require sandbox orchestrator)
 	var conversationHandler *handler.ConversationHandler
-	var forgeHandler *handler.ForgeHandler
 	var systemConvHandler *handler.SystemConversationHandler
-	forgeMCPHandler := forge.NewForgeMCPHandler(database)
-	var forgeCtrl *forge.ForgeController
 	if orchestrator != nil && agentPusher != nil {
 		conversationHandler = handler.NewConversationHandler(database, orchestrator, agentPusher, eventBus)
 		if enqueuer != nil {
 			conversationHandler.SetEnqueuer(enqueuer)
 		}
 		systemConvHandler = handler.NewSystemConversationHandler(database, orchestrator, agentPusher, eventBus, signingKey, cfg)
-		forgeCtrl = forge.NewForgeController(database, orchestrator, agentPusher, signingKey, cfg, eventBus, catalog.Global(), reg, cfg.AsynqRedisOpt())
-		forgeHandler = handler.NewForgeHandler(database, forgeCtrl, eventBus, enqueuer)
-		slog.Info("forge controller ready")
 	}
 
 	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus)
@@ -140,9 +132,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	}
 	agentHandler := handler.NewAgentHandler(database, reg, pusherForHandler, sandboxEncKey, enqueuer)
 	agentHandler.SetCatalog(actionsCatalog)
-	if forgeCtrl != nil {
-		agentHandler.SetForgeController(forgeCtrl)
-	}
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
 
 	// Drive handler (optional — nil S3Client means drive is disabled)
@@ -374,10 +363,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 						r.Post("/{agentID}/conversations", conversationHandler.Create)
 						r.Get("/{agentID}/conversations", conversationHandler.List)
 					}
-					if forgeHandler != nil {
-						r.Post("/{agentID}/forge", forgeHandler.Start)
-						r.Get("/{agentID}/forge", forgeHandler.GetLatestRun)
-					}
 					// Agent triggers removed — routing is now handled by the
 					// Zira router at /v1/router/triggers.
 				})
@@ -410,23 +395,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 					r.Put("/{id}", marketplaceHandler.Update)
 					r.Delete("/{id}", marketplaceHandler.Delete)
 				})
-				if forgeHandler != nil {
-					r.Route("/forge-runs/{runID}", func(r chi.Router) {
-						r.Get("/", forgeHandler.GetRun)
-						r.Get("/stream", forgeHandler.Stream)
-						r.Get("/events", forgeHandler.ListEvents)
-						r.Post("/cancel", forgeHandler.Cancel)
-						r.Post("/apply", forgeHandler.Apply)
-						r.Get("/iterations/{iterationID}/evals", forgeHandler.ListEvals)
-						r.Get("/eval-cases", forgeHandler.ListEvalCases)
-						r.Post("/eval-cases", forgeHandler.CreateEvalCase)
-						r.Get("/eval-cases/{caseID}", forgeHandler.GetEvalCase)
-						r.Put("/eval-cases/{caseID}", forgeHandler.UpdateEvalCase)
-						r.Delete("/eval-cases/{caseID}", forgeHandler.DeleteEvalCase)
-						r.Post("/approve-context", forgeHandler.ApproveContext)
-						r.Post("/approve-evals", forgeHandler.ApproveEvals)
-					})
-				}
 				if conversationHandler != nil {
 					r.Route("/conversations/{convID}", func(r chi.Router) {
 						r.Get("/", conversationHandler.Get)
@@ -584,9 +552,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			r.Get("/conversations", adminHandler.ListConversations)
 			r.Get("/conversations/{id}", adminHandler.GetConversation)
 			r.Delete("/conversations/{id}", adminHandler.EndConversation)
-			r.Get("/forge-runs", adminHandler.ListForgeRuns)
-			r.Get("/forge-runs/{id}", adminHandler.GetForgeRun)
-			r.Post("/forge-runs/{id}/cancel", adminHandler.CancelForgeRun)
 			r.Get("/generations", adminHandler.ListGenerations)
 			r.Get("/generations/stats", adminHandler.GenerationStats)
 			r.Get("/integrations", adminHandler.ListIntegrations)
@@ -686,43 +651,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	mcpRouter.Use(chimw.Recoverer)
 	mcpRouter.Use(middleware.RequestLog(logger))
 
-
-	mcpRouter.Route("/forge/{forgeRunID}", func(r chi.Router) {
-		r.Use(middleware.TokenAuth(signingKey, database))
-		r.Handle("/*", forgeMCPHandler.StreamableHTTPHandler())
-		r.Handle("/", forgeMCPHandler.StreamableHTTPHandler())
-	})
-	slog.Info("forge MCP tools registered on /forge/{forgeRunID}")
-
-	forgeContextMCPHandler := forge.NewForgeContextMCPHandler(database)
-	mcpRouter.Route("/forge-context/{forgeRunID}", func(r chi.Router) {
-		r.Use(middleware.TokenAuth(signingKey, database))
-		r.Handle("/*", forgeContextMCPHandler.StreamableHTTPHandler())
-		r.Handle("/", forgeContextMCPHandler.StreamableHTTPHandler())
-	})
-	slog.Info("forge context MCP registered on /forge-context/{forgeRunID}")
-
-	forgeArchitectMCP := forge.NewForgeArchitectMCPHandler(database)
-	mcpRouter.Route("/forge-architect/{forgeRunID}", func(r chi.Router) {
-		r.Use(middleware.TokenAuth(signingKey, database))
-		r.Handle("/*", forgeArchitectMCP.StreamableHTTPHandler())
-		r.Handle("/", forgeArchitectMCP.StreamableHTTPHandler())
-	})
-
-	forgeEvalDesignerMCP := forge.NewForgeEvalDesignerMCPHandler(database, eventBus).WithCatalog(catalog.Global())
-	mcpRouter.Route("/forge-eval-designer/{forgeRunID}", func(r chi.Router) {
-		r.Use(middleware.TokenAuth(signingKey, database))
-		r.Handle("/*", forgeEvalDesignerMCP.StreamableHTTPHandler())
-		r.Handle("/", forgeEvalDesignerMCP.StreamableHTTPHandler())
-	})
-
-	forgeJudgeMCP := forge.NewForgeJudgeMCPHandler(database)
-	mcpRouter.Route("/forge-judge/{forgeRunID}", func(r chi.Router) {
-		r.Use(middleware.TokenAuth(signingKey, database))
-		r.Handle("/*", forgeJudgeMCP.StreamableHTTPHandler())
-		r.Handle("/", forgeJudgeMCP.StreamableHTTPHandler())
-	})
-	slog.Info("forge agent MCP tools registered (architect, eval-designer, judge)")
 
 	// Zira reply MCP — exposes per-connection write tools for specialist agents
 	// to post back to the source channel (Slack thread, GitHub issue, etc.).
