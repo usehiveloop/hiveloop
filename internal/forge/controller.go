@@ -93,22 +93,8 @@ type ForgeController struct {
 // All built-in tools are disabled — the forge-mock MCP server provides mocks.
 func evalTargetConfig() *bridgepkg.AgentConfig {
 	config := defaultAgentConfig()
-	config.DisabledTools = []string{
-		// Filesystem
-		"Read", "write", "edit", "multiedit", "apply_patch", "Glob", "Grep", "LS",
-		// Shell
-		"bash",
-		// Web
-		"web_fetch", "web_search", "web_crawl", "web_get_links", "web_screenshot", "web_transform",
-		// Agent orchestration
-		"agent", "sub_agent", "parallel_agent", "batch", "join",
-		// Task management
-		"todowrite", "todoread",
-		// Journal
-		"journal_write", "journal_read",
-		// Code intelligence
-		"lsp", "skill",
-	}
+	disabledTools := model.BuiltInToolIDs()
+	config.DisabledTools = &disabledTools
 	return config
 }
 
@@ -231,7 +217,7 @@ func (fc *ForgeController) SetupContextGathering(ctx context.Context, agent *mod
 	contextMCPURL := fmt.Sprintf("%s/forge-context/%s", fc.cfg.MCPBaseURL, forgeRun.ID.String())
 	convResp, err := client.CreateConversationWithOptions(ctx, gathererAgent.ID.String(), bridgepkg.CreateConversationRequest{
 		Provider: &providerOverride,
-		McpServers: []bridgepkg.McpServerDefinition{
+		McpServers: &[]bridgepkg.McpServerDefinition{
 			{Name: "forge-context", Transport: buildMcpTransport(contextMCPURL, proxyToken)},
 		},
 	})
@@ -416,7 +402,7 @@ func (fc *ForgeController) DesignEvals(ctx context.Context, runID uuid.UUID) {
 	evalMCPURL := fmt.Sprintf("%s/forge-eval-designer/%s", fc.cfg.MCPBaseURL, run.ID.String())
 	evalConv, err := evalClient.CreateConversationWithOptions(ctx, evalDesignerAgent.ID.String(), bridgepkg.CreateConversationRequest{
 		Provider: &evalProviderOverride,
-		McpServers: []bridgepkg.McpServerDefinition{
+		McpServers: &[]bridgepkg.McpServerDefinition{
 			{Name: "forge-eval-designer", Transport: buildMcpTransport(evalMCPURL, evalDesignerToken)},
 		},
 	})
@@ -691,7 +677,7 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 	archMCPURL := fmt.Sprintf("%s/forge-architect/%s", fc.cfg.MCPBaseURL, run.ID.String())
 	archConv, err := archClient.CreateConversationWithOptions(ctx, archAgent.ID.String(), bridgepkg.CreateConversationRequest{
 		Provider: &archProviderOverride,
-		McpServers: []bridgepkg.McpServerDefinition{
+		McpServers: &[]bridgepkg.McpServerDefinition{
 			{Name: "forge-architect", Transport: buildMcpTransport(archMCPURL, archToken)},
 		},
 	})
@@ -836,8 +822,8 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 func (fc *ForgeController) runIteration(
 	ctx context.Context, run *model.ForgeRun, iteration int,
 	archAgent *model.Agent, archClient *bridgepkg.BridgeClient, archAgentConvID uuid.UUID,
-	evalDesignerAgent *model.Agent, evalDesignerClient *bridgepkg.BridgeClient, evalDesignerOverride bridgepkg.ConversationProviderOverride,
-	judgeAgent *model.Agent, judgeClient *bridgepkg.BridgeClient, judgeOverride bridgepkg.ConversationProviderOverride,
+	evalDesignerAgent *model.Agent, evalDesignerClient *bridgepkg.BridgeClient, evalDesignerOverride bridgepkg.ProviderConfig,
+	judgeAgent *model.Agent, judgeClient *bridgepkg.BridgeClient, judgeOverride bridgepkg.ProviderConfig,
 	targetProviderID, evalTargetToken string,
 ) (*model.ForgeIteration, error) {
 	_ = archAgent // architect uses persistent conversation from run.ArchitectConversationID
@@ -956,7 +942,7 @@ func (fc *ForgeController) runIteration(
 		evalMCPURL := fmt.Sprintf("%s/forge-eval-designer/%s", fc.cfg.MCPBaseURL, run.ID.String())
 		evalConv, err := evalDesignerClient.CreateConversationWithOptions(ctx, evalDesignerAgent.ID.String(), bridgepkg.CreateConversationRequest{
 			Provider: &evalDesignerOverride,
-			McpServers: []bridgepkg.McpServerDefinition{
+			McpServers: &[]bridgepkg.McpServerDefinition{
 				{Name: "forge-eval-designer", Transport: buildMcpTransport(evalMCPURL, evalDesignerOverride.ApiKey)},
 			},
 		})
@@ -1240,7 +1226,7 @@ evalPhase:
 			judgeMCPURL := fmt.Sprintf("%s/forge-judge/%s", fc.cfg.MCPBaseURL, run.ID.String())
 			judgeConvInline, judgeConvErr := judgeClient.CreateConversationWithOptions(ctx, judgeAgent.ID.String(), bridgepkg.CreateConversationRequest{
 				Provider: &judgeOverride,
-				McpServers: []bridgepkg.McpServerDefinition{
+				McpServers: &[]bridgepkg.McpServerDefinition{
 					{Name: "forge-judge", Transport: buildMcpTransport(judgeMCPURL, judgeOverride.ApiKey)},
 				},
 			})
@@ -1785,7 +1771,7 @@ func (fc *ForgeController) loadSystemAgent(name string) (*model.Agent, error) {
 // buildProviderOverride creates a per-conversation provider override from a
 // credential and proxy token. Uses BestModelForForge to pick the optimal model
 // for the credential's provider.
-func (fc *ForgeController) buildProviderOverride(cred *model.Credential, proxyToken string) bridgepkg.ConversationProviderOverride {
+func (fc *ForgeController) buildProviderOverride(cred *model.Credential, proxyToken string) bridgepkg.ProviderConfig {
 	// Map credential provider to Bridge provider type.
 	providerType := bridgepkg.Custom
 	if pt, ok := providerTypeMap[cred.ProviderID]; ok {
@@ -1803,11 +1789,11 @@ func (fc *ForgeController) buildProviderOverride(cred *model.Credential, proxyTo
 	// Build proxy base URL.
 	proxyBaseURL := fmt.Sprintf("https://%s", fc.cfg.ProxyHost)
 
-	return bridgepkg.ConversationProviderOverride{
+	return bridgepkg.ProviderConfig{
 		ProviderType: providerType,
 		Model:        model,
 		ApiKey:       proxyToken,
-		BaseUrl:      proxyBaseURL,
+		BaseUrl:      &proxyBaseURL,
 	}
 }
 
@@ -2124,7 +2110,7 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 	judgeMCPURL := fmt.Sprintf("%s/forge-judge/%s", fc.cfg.MCPBaseURL, run.ID.String())
 	judgeConv, judgeConvErr := judgeClient.CreateConversationWithOptions(ctx, judgeAgent.ID.String(), bridgepkg.CreateConversationRequest{
 		Provider: &judgeOverride,
-		McpServers: []bridgepkg.McpServerDefinition{
+		McpServers: &[]bridgepkg.McpServerDefinition{
 			{Name: "forge-judge", Transport: buildMcpTransport(judgeMCPURL, judgeToken)},
 		},
 	})

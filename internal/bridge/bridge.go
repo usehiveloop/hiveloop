@@ -128,30 +128,6 @@ func (c *BridgeClient) HydrateConversations(ctx context.Context, agentID string,
 
 // --- Conversation operations ---
 
-// ConversationProviderOverride overrides the agent's LLM provider for a single
-// conversation. Supported since Bridge v0.17.1.
-type ConversationProviderOverride struct {
-	ProviderType ProviderType `json:"provider_type"`
-	Model        string       `json:"model"`
-	ApiKey       string       `json:"api_key"`
-	BaseUrl      string       `json:"base_url,omitempty"`
-}
-
-// CreateConversationRequest is the request body for POST /agents/{id}/conversations.
-// All fields are optional — pass an empty struct or nil to use agent defaults.
-type CreateConversationRequest struct {
-	// Provider overrides the agent's LLM provider for this conversation only.
-	Provider *ConversationProviderOverride `json:"provider,omitempty"`
-
-	// McpServers attaches additional MCP servers scoped to this conversation
-	// only. Bridge connects them at creation and tears them down on every
-	// termination path (end, abort, drain, signal, max_turns, error).
-	// Tools from these servers are merged on top of the agent's existing tools.
-	// Name collisions with existing agent tools are rejected (HTTP 400).
-	// Requires Bridge v0.18.0+.
-	McpServers []McpServerDefinition `json:"mcp_servers,omitempty"`
-}
-
 // CreateConversation creates a new conversation for an agent with default settings.
 func (c *BridgeClient) CreateConversation(ctx context.Context, agentID string) (*CreateConversationResponse, error) {
 	return c.CreateConversationWithOptions(ctx, agentID, CreateConversationRequest{})
@@ -159,7 +135,7 @@ func (c *BridgeClient) CreateConversation(ctx context.Context, agentID string) (
 
 // CreateConversationWithProvider creates a new conversation with a per-conversation
 // provider override. Convenience wrapper around CreateConversationWithOptions.
-func (c *BridgeClient) CreateConversationWithProvider(ctx context.Context, agentID string, provider ConversationProviderOverride) (*CreateConversationResponse, error) {
+func (c *BridgeClient) CreateConversationWithProvider(ctx context.Context, agentID string, provider ProviderConfig) (*CreateConversationResponse, error) {
 	return c.CreateConversationWithOptions(ctx, agentID, CreateConversationRequest{
 		Provider: &provider,
 	})
