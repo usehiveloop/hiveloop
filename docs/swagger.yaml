@@ -9064,6 +9064,32 @@ paths:
       summary: Disconnect an in-connection
       tags:
       - in-connections
+  /v1/in/connections/{id}/reconnect-session:
+    post:
+      description: Creates a Nango connect session scoped to an existing connection,
+        allowing OAuth re-authorization without creating a duplicate.
+      parameters:
+      - description: Connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.inConnectSessionResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a reconnect session for an existing connection
+      tags:
+      - in-connections
   /v1/in/connections/{id}/webhook-configured:
     patch:
       description: Sets the webhook_configured flag to true on a connection, indicating

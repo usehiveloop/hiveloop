@@ -511,6 +511,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			r.Post("/integrations/{id}/connections", inConnectionHandler.Create)
 			r.Get("/connections", inConnectionHandler.List)
 			r.Get("/connections/{id}", inConnectionHandler.Get)
+			r.Post("/connections/{id}/reconnect-session", inConnectionHandler.CreateReconnectSession)
 			r.Patch("/connections/{id}/webhook-configured", inConnectionHandler.MarkWebhookConfigured)
 			r.Delete("/connections/{id}", inConnectionHandler.Revoke)
 		})

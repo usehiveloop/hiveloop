@@ -12,12 +12,12 @@ export function useReconnectIntegration() {
   const [reconnectingId, setReconnectingId] = useState<string | null>(null)
 
   const mutation = useMutation({
-    mutationFn: async ({ integrationId }: { integrationId: string }) => {
-      const session = await api.POST("/v1/in/integrations/{id}/connect-session", {
-        params: { path: { id: integrationId } },
+    mutationFn: async ({ connectionId }: { connectionId: string }) => {
+      const session = await api.POST("/v1/in/connections/{id}/reconnect-session", {
+        params: { path: { id: connectionId } },
       })
 
-      if (session.error) throw new Error("Failed to create session")
+      if (session.error) throw new Error("Failed to create reconnect session")
 
       const { token, provider_config_key: providerConfigKey } =
         session.data as { token: string; provider_config_key: string }
@@ -29,8 +29,8 @@ export function useReconnectIntegration() {
 
       await nango.reconnect(providerConfigKey)
     },
-    onMutate: ({ integrationId }) => {
-      setReconnectingId(integrationId)
+    onMutate: ({ connectionId }) => {
+      setReconnectingId(connectionId)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get", "/v1/in/connections"] })
@@ -45,8 +45,8 @@ export function useReconnectIntegration() {
     },
   })
 
-  function reconnect(integrationId: string) {
-    mutation.mutate({ integrationId })
+  function reconnect(connectionId: string) {
+    mutation.mutate({ connectionId })
   }
 
   return { reconnect, reconnectingId }

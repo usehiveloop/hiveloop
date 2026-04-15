@@ -10028,6 +10028,53 @@
         }
       }
     },
+    "/v1/in/connections/{id}/reconnect-session": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a Nango connect session scoped to an existing connection, allowing OAuth re-authorization without creating a duplicate.",
+        "tags": [
+          "in-connections"
+        ],
+        "summary": "Create a reconnect session for an existing connection",
+        "parameters": [
+          {
+            "description": "Connection ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inConnectSessionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/in/connections/{id}/webhook-configured": {
       "patch": {
         "security": [

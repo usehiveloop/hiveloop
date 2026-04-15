@@ -138,8 +138,8 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
               <div className="w-8 shrink-0 flex justify-center">
                 <ConnectionActions
                   onDisconnect={() => setDisconnecting(connection)}
-                  onReconnect={() => connection.in_integration_id && reconnect(connection.in_integration_id)}
-                  reconnecting={reconnectingId === connection.in_integration_id}
+                  onReconnect={() => connection.id && reconnect(connection.id)}
+                  reconnecting={reconnectingId === connection.id}
                 />
               </div>
             </div>
@@ -165,8 +165,8 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
                 </div>
                 <ConnectionActions
                   onDisconnect={() => setDisconnecting(connection)}
-                  onReconnect={() => connection.in_integration_id && reconnect(connection.in_integration_id)}
-                  reconnecting={reconnectingId === connection.in_integration_id}
+                  onReconnect={() => connection.id && reconnect(connection.id)}
+                  reconnecting={reconnectingId === connection.id}
                 />
               </div>
             </div>
