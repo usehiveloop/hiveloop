@@ -67,28 +67,35 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find the latest dedicated sandbox for this agent
-	var sandbox model.Sandbox
-	if err := h.db.
-		Where("agent_id = ? AND sandbox_type = 'dedicated'", agentID).
-		Order("created_at DESC").
-		First(&sandbox).Error; err != nil {
+	// Load the agent
+	var agent model.Agent
+	if err := h.db.Where("id = ? AND deleted_at IS NULL", agentID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no running sandbox for agent"})
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return
 		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up sandbox"})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up agent"})
 		return
 	}
 
-	// Verify the bearer token matches the sandbox's Bridge API key
-	decryptedKey, err := h.encKey.DecryptString(sandbox.EncryptedBridgeAPIKey)
-	if err != nil {
-		slog.Error("git-credentials: failed to decrypt bridge api key", "agent_id", agentID, "error", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "auth verification failed"})
+	// Verify the bearer token matches any sandbox's Bridge API key for this agent
+	var sandboxes []model.Sandbox
+	if err := h.db.Where("agent_id = ?", agentID).Find(&sandboxes).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up sandboxes"})
 		return
 	}
-	if subtle.ConstantTimeCompare([]byte(bearerToken), []byte(decryptedKey)) != 1 {
+	authenticated := false
+	for _, sb := range sandboxes {
+		decryptedKey, err := h.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
+		if err != nil {
+			continue
+		}
+		if subtle.ConstantTimeCompare([]byte(bearerToken), []byte(decryptedKey)) == 1 {
+			authenticated = true
+			break
+		}
+	}
+	if !authenticated {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		return
 	}
@@ -99,12 +106,11 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Look up org's github-app connection
-	if sandbox.OrgID == nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "sandbox has no org"})
+	if agent.OrgID == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent has no org"})
 		return
 	}
-	orgID := *sandbox.OrgID
+	orgID := *agent.OrgID
 
 	var conn model.InConnection
 	err = h.db.
