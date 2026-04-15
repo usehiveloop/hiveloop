@@ -41,32 +41,27 @@ type integConnCreateRequest struct {
 }
 
 type integConnResponse struct {
-	ID                    string                              `json:"id"`
-	IntegrationID         string                              `json:"integration_id"`
-	NangoConnectionID     string                              `json:"nango_connection_id"`
-	IdentityID            *string                             `json:"identity_id,omitempty"`
-	Meta                  model.JSON                          `json:"meta,omitempty"`
-	ProviderConfig        model.JSON                          `json:"provider_config,omitempty"`
-	WebhookConfigured     bool                                `json:"webhook_configured"`
-	ConfigurableResources []catalog.ConfigurableResourceSummary `json:"configurable_resources"`
-	RevokedAt             *string                             `json:"revoked_at,omitempty"`
-	CreatedAt             string                              `json:"created_at"`
-	UpdatedAt             string                              `json:"updated_at"`
+	ID                string     `json:"id"`
+	IntegrationID     string     `json:"integration_id"`
+	NangoConnectionID string     `json:"nango_connection_id"`
+	IdentityID        *string    `json:"identity_id,omitempty"`
+	Meta              model.JSON `json:"meta,omitempty"`
+	ProviderConfig    model.JSON `json:"provider_config,omitempty"`
+	WebhookConfigured bool       `json:"webhook_configured"`
+	RevokedAt         *string    `json:"revoked_at,omitempty"`
+	CreatedAt         string     `json:"created_at"`
+	UpdatedAt         string     `json:"updated_at"`
 }
 
-func toIntegConnResponse(conn model.Connection, configurableResources []catalog.ConfigurableResourceSummary) integConnResponse {
-	if configurableResources == nil {
-		configurableResources = []catalog.ConfigurableResourceSummary{}
-	}
+func toIntegConnResponse(conn model.Connection) integConnResponse {
 	resp := integConnResponse{
-		ID:                    conn.ID.String(),
-		IntegrationID:         conn.IntegrationID.String(),
-		NangoConnectionID:     conn.NangoConnectionID,
-		Meta:                  conn.Meta,
-		WebhookConfigured:     derefBool(conn.WebhookConfigured, true),
-		ConfigurableResources: configurableResources,
-		CreatedAt:             conn.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:             conn.UpdatedAt.Format(time.RFC3339),
+		ID:                conn.ID.String(),
+		IntegrationID:     conn.IntegrationID.String(),
+		NangoConnectionID: conn.NangoConnectionID,
+		Meta:              conn.Meta,
+		WebhookConfigured: derefBool(conn.WebhookConfigured, true),
+		CreatedAt:         conn.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:         conn.UpdatedAt.Format(time.RFC3339),
 	}
 	if conn.IdentityID != nil {
 		s := conn.IdentityID.String()
@@ -211,7 +206,7 @@ func (h *ConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, toIntegConnResponse(conn, h.catalog.GetConfigurableResources(integ.Provider)))
+	writeJSON(w, http.StatusCreated, toIntegConnResponse(conn))
 }
 
 // List handles GET /v1/integrations/{id}/connections.
@@ -279,10 +274,9 @@ func (h *ConnectionHandler) List(w http.ResponseWriter, r *http.Request) {
 		connections = connections[:limit]
 	}
 
-	configurableRes := h.catalog.GetConfigurableResources(integ.Provider)
 	resp := make([]integConnResponse, len(connections))
 	for i, conn := range connections {
-		resp[i] = toIntegConnResponse(conn, configurableRes)
+		resp[i] = toIntegConnResponse(conn)
 	}
 
 	result := paginatedResponse[integConnResponse]{
@@ -337,7 +331,7 @@ func (h *ConnectionHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := toIntegConnResponse(conn, h.catalog.GetConfigurableResources(conn.Integration.Provider))
+	resp := toIntegConnResponse(conn)
 
 	nangoKey := fmt.Sprintf("%s_%s", org.ID.String(), conn.Integration.UniqueKey)
 	nangoResp, err := h.nango.GetConnection(r.Context(), conn.NangoConnectionID, nangoKey)
