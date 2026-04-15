@@ -20,9 +20,10 @@ interface AddTriggerDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onAdd: (trigger: TriggerConfig) => void
+  connectionIds: Set<string>
 }
 
-export function AddTriggerDialog({ open, onOpenChange, onAdd }: AddTriggerDialogProps) {
+export function AddTriggerDialog({ open, onOpenChange, onAdd, connectionIds }: AddTriggerDialogProps) {
   const [view, setView] = useState<TriggerView>("connections")
   const [selectedConnection, setSelectedConnection] = useState<{
     id: string
@@ -168,6 +169,7 @@ export function AddTriggerDialog({ open, onOpenChange, onAdd }: AddTriggerDialog
                   onSearchChange={setSearch}
                   onPickConnection={handlePickConnection}
                   onBack={() => handleOpenChange(false)}
+                  connectionIds={connectionIds}
                 />
               )}
               {view === "triggers" && selectedConnection && (
