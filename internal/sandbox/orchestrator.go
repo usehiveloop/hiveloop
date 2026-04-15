@@ -110,7 +110,7 @@ func (o *Orchestrator) setEmbeddingEnvVars(envVars map[string]string, orgID uuid
 		return
 	}
 
-	envVars["ZIRALOOP_EMBEDDING_ENDPOINT"] = fmt.Sprintf("https://%s/v1/proxy", o.cfg.ProxyHost)
+	envVars["ZIRALOOP_EMBEDDING_ENDPOINT"] = fmt.Sprintf("https://%s", o.cfg.ProxyHost)
 	envVars["ZIRALOOP_EMBEDDING_API_KEY"] = proxyToken.TokenString
 	envVars["ZIRALOOP_EMBEDDING_MODEL"] = "text-embedding-3-large"
 	envVars["ZIRALOOP_EMBEDDINGS_DB"] = "/tmp/ziraloop-vectors.db"
@@ -1375,6 +1375,28 @@ func (o *Orchestrator) cloneAgentRepositories(ctx context.Context, sb *model.San
 			"sandbox_id", sb.ID,
 			"repo", repo.ID,
 			"path", repoPath,
+		)
+	}
+
+	// Run ziraloop-embeddings init across all cloned repos in one call.
+	// This builds a vector index for semantic code search. Non-fatal if
+	// the binary is missing or the org has no OpenAI credential.
+	repoPaths := make([]string, len(repos))
+	for index, repo := range repos {
+		repoPaths[index] = "/home/daytona/repos/" + repo.Name
+	}
+	embeddingsCmd := fmt.Sprintf("ziraloop-embeddings init --repos=%s", strings.Join(repoPaths, ","))
+	output, err := o.ExecuteCommand(ctx, sb, embeddingsCmd)
+	if err != nil {
+		slog.Warn("ziraloop-embeddings init failed, continuing without vector index",
+			"sandbox_id", sb.ID,
+			"output", output,
+			"error", err,
+		)
+	} else {
+		slog.Info("ziraloop-embeddings indexed all repos",
+			"sandbox_id", sb.ID,
+			"repo_count", len(repos),
 		)
 	}
 

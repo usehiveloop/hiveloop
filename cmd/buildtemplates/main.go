@@ -170,9 +170,8 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	// Download Chrome for Testing and install its Linux shared-library
 	// dependencies (libnss3, libatk, libgbm, fonts, etc.) in one step.
 	// agent-browser auto-detects container environments and adds --no-sandbox.
-	// HOME must be set to /home/daytona so Chrome installs into the daytona
-	// user's home directory (the sandbox runs as daytona, not root).
-	image = image.Run("HOME=/home/daytona agent-browser install --with-deps")
+	// Sandbox runs as root, so Chrome installs to /root/.agent-browser/.
+	image = image.Run("agent-browser install --with-deps")
 
 	// Dev tools: compilers, databases, media, terminal multiplexers,
 	// network diagnostics, archive utilities, editors.
@@ -205,11 +204,11 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	)
 
 	// Code intelligence: structural graph, AST parsing, vector search.
-	// These are the building blocks for Greptile-level code review:
 	//   - codebase-memory-mcp: builds a code graph (calls, refs, deps) from
 	//     tree-sitter ASTs, queryable via MCP tools. Single static binary.
-	//   - tree-sitter CLI: AST parsing for function-granularity chunking
-	//     (agents generate docstrings per function, embed them in pgvector).
+	//   - tree-sitter CLI: AST parsing for function-granularity chunking.
+	//   - ziraloop-embeddings: vector embedding index for semantic code search.
+	//     Resolves latest release at build time via GitHub API.
 	//   - pgvector: added via apt above (postgresql-16-pgvector).
 	image = image.Run(
 		`curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash -s -- --dir=/usr/local/bin --skip-config`,
@@ -217,6 +216,10 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	image = image.Run(
 		"curl -fsSL https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-linux-x64.gz | gunzip > /usr/local/bin/tree-sitter && " +
 			"chmod +x /usr/local/bin/tree-sitter",
+	)
+	image = image.Run(
+		`EMBED_URL=$(curl -sfL "https://api.github.com/repos/ziraloop/ziraloop/releases" | jq -r '[.[] | select(.tag_name | startswith("embeddings-"))][0].assets[] | select(.name == "ziraloop-embeddings-linux-amd64") | .browser_download_url') && ` +
+			`curl -fsSL -o /usr/local/bin/ziraloop-embeddings "$EMBED_URL" && chmod +x /usr/local/bin/ziraloop-embeddings`,
 	)
 
 	// Git credential helper — fetches GitHub tokens from the control plane
@@ -226,6 +229,10 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 			`chmod +x /usr/local/bin/git-credential-ziraloop`,
 	)
 	image = image.Run("git config --system credential.helper /usr/local/bin/git-credential-ziraloop")
+	image = image.Run("git config --system user.name ziraloop")
+	image = image.Run("git config --system user.email help@ziraloop.com")
+	image = image.Run("git config --global user.name ziraloop")
+	image = image.Run("git config --global user.email help@ziraloop.com")
 
 	image = image.Workdir(daytonaHome)
 	// agent-browser's daemon starts lazily on the first CLI command, so
