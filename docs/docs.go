@@ -14689,7 +14689,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "sandbox_tools": {
-                    "description": "tools to enable in dedicated sandbox (e.g. \"chrome\", \"codedb\")",
+                    "description": "tools to enable in dedicated sandbox (e.g. \"chrome\")",
                     "type": "array",
                     "items": {
                         "type": "string"

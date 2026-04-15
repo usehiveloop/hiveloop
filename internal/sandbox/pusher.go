@@ -522,16 +522,6 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 			*mcpServers = append(*mcpServers, ourMCP)
 		}
 	}
-	// Add CodeDB MCP servers for configured repositories
-	for _, codedbMCP := range buildCodeDBMCPServers(agent.Resources) {
-		if mcpServers == nil {
-			servers := []bridgepkg.McpServerDefinition{codedbMCP}
-			mcpServers = &servers
-		} else {
-			*mcpServers = append(*mcpServers, codedbMCP)
-		}
-	}
-
 	if mcpServers != nil && len(*mcpServers) > 0 {
 		def.McpServers = mcpServers
 	}
@@ -798,53 +788,3 @@ func defaultTemperature(providerID, modelName string) float64 {
 	}
 }
 
-// buildCodeDBMCPServers parses the agent's resources and returns a CodeDB
-// stdio MCP server definition for each configured repository.
-func buildCodeDBMCPServers(resources model.JSON) []bridgepkg.McpServerDefinition {
-	if resources == nil || len(resources) == 0 {
-		return nil
-	}
-
-	var servers []bridgepkg.McpServerDefinition
-	for _, resourceTypes := range resources {
-		typesMap, ok := resourceTypes.(map[string]any)
-		if !ok {
-			continue
-		}
-		repoList, ok := typesMap["repository"]
-		if !ok {
-			continue
-		}
-		repoSlice, ok := repoList.([]any)
-		if !ok {
-			continue
-		}
-		for _, item := range repoSlice {
-			itemMap, ok := item.(map[string]any)
-			if !ok {
-				continue
-			}
-			repoName, _ := itemMap["name"].(string)
-			if repoName == "" {
-				continue
-			}
-
-			repoPath := "/home/daytona/repos/" + repoName
-			args := []string{"mcp", repoPath}
-
-			var transport bridgepkg.McpTransport
-			transport.FromMcpTransport0(bridgepkg.McpTransport0{
-				Type:    bridgepkg.Stdio,
-				Command: "codedb",
-				Args:    &args,
-			})
-
-			servers = append(servers, bridgepkg.McpServerDefinition{
-				Name:      "codedb-" + repoName,
-				Transport: transport,
-			})
-		}
-	}
-
-	return servers
-}

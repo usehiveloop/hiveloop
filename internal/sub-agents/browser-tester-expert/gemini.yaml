@@ -17,14 +17,6 @@ permissions:
   web_screenshot: allow
   web_transform: allow
   skill: allow
-  codedb_tree: allow
-  codedb_outline: allow
-  codedb_symbol: allow
-  codedb_search: allow
-  codedb_query: allow
-  codedb_find: allow
-  codedb_read: allow
-  codedb_deps: allow
 system_prompt: |
   You are a browser testing expert — a QA specialist who validates web application behavior through real browser interaction. Parent agents delegate specific testing tasks to you, and your detailed findings enable them to continue their work.
 

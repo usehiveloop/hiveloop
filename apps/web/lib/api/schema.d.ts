@@ -14911,7 +14911,7 @@ export interface components {
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             resources?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
-            /** @description tools to enable in dedicated sandbox (e.g. "chrome", "codedb") */
+            /** @description tools to enable in dedicated sandbox (e.g. "chrome") */
             sandbox_tools?: string[];
             sandbox_type?: string;
             shared_memory?: boolean;

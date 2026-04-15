@@ -111,12 +111,6 @@ func buildBaseImage(bridgeVersion string) *daytona.DockerImage {
 		downloadURL, bridgeDir, bridgeDir,
 	))
 
-	// CodeDB binary (code intelligence for agents)
-	image = image.Run(fmt.Sprintf(
-		`curl -fsSL -o %s/codedb "https://github.com/justrach/codedb/releases/download/v0.2.57/codedb-linux-x86_64" && chmod +x %s/codedb`,
-		bridgeDir, bridgeDir,
-	))
-
 	return image
 }
 
