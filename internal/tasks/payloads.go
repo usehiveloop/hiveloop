@@ -430,3 +430,41 @@ func NewRouterDispatchTask(payload TriggerDispatchPayload) (*asynq.Task, error) 
 		asynq.Timeout(5*time.Minute),
 	), nil
 }
+
+// ---------------------------------------------------------------------------
+// agent:conversation_create
+// ---------------------------------------------------------------------------
+
+// AgentConversationCreatePayload carries everything needed to create a sandbox,
+// push the agent to Bridge, create a conversation, and send the first message.
+type AgentConversationCreatePayload struct {
+	AgentID             uuid.UUID         `json:"agent_id"`
+	OrgID               uuid.UUID         `json:"org_id"`
+	DeliveryID          string            `json:"delivery_id"`
+	ConnectionID        uuid.UUID         `json:"connection_id"`
+	RouterTriggerID     uuid.UUID         `json:"router_trigger_id"`
+	ResourceKey         string            `json:"resource_key"`
+	RouterPersona       string            `json:"router_persona,omitempty"`
+	MemoryTeam          string            `json:"memory_team,omitempty"`
+	Instructions        string            `json:"instructions"`
+}
+
+// NewAgentConversationCreateTask creates a task that provisions a sandbox,
+// pushes the agent definition, creates a Bridge conversation, and sends
+// the enriched instructions as the first message.
+//
+// Timeout is 5 minutes — sandbox creation can take 30-60s, plus Bridge push
+// and health check. MaxRetry is 1 — sandbox creation is not idempotent.
+func NewAgentConversationCreateTask(payload AgentConversationCreatePayload) (*asynq.Task, error) {
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshal agent conversation create payload: %w", err)
+	}
+	return asynq.NewTask(
+		TypeAgentConversationCreate,
+		encoded,
+		asynq.Queue(QueueCritical),
+		asynq.MaxRetry(1),
+		asynq.Timeout(5*time.Minute),
+	), nil
+}

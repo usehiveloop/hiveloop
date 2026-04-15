@@ -9,23 +9,23 @@ import (
 
 	"github.com/hibiken/asynq"
 
+	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/trigger/dispatch"
 	"github.com/ziraloop/ziraloop/internal/trigger/enrichment"
-	"github.com/ziraloop/ziraloop/internal/trigger/executor"
 )
 
 // RouterDispatchHandler handles the TypeRouterDispatch Asynq task.
 // It runs the router dispatcher pipeline, enriches context via deterministic
-// API calls, then runs the executor to create or continue Bridge conversations.
+// API calls, then enqueues agent conversation creation jobs.
 type RouterDispatchHandler struct {
-	dispatcher           *dispatch.RouterDispatcher
-	executor             *executor.Executor
+	dispatcher            *dispatch.RouterDispatcher
+	enqueuer              enqueue.TaskEnqueuer
 	deterministicEnricher *enrichment.DeterministicEnricher // nil = skip enrichment
 }
 
-// NewRouterDispatchHandler creates a task handler with the dispatcher and executor.
-func NewRouterDispatchHandler(dispatcher *dispatch.RouterDispatcher, execut *executor.Executor) *RouterDispatchHandler {
-	return &RouterDispatchHandler{dispatcher: dispatcher, executor: execut}
+// NewRouterDispatchHandler creates a task handler with the dispatcher and enqueuer.
+func NewRouterDispatchHandler(dispatcher *dispatch.RouterDispatcher, enqueuer enqueue.TaskEnqueuer) *RouterDispatchHandler {
+	return &RouterDispatchHandler{dispatcher: dispatcher, enqueuer: enqueuer}
 }
 
 // SetDeterministicEnrichment configures the deterministic enrichment engine.
@@ -100,22 +100,47 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 	// Run deterministic enrichment for new conversations (best effort).
 	handler.runDeterministicEnrichment(ctx, logger, dispatches, payload)
 
-	// TODO: re-enable executor after dedicated agent sandbox creation is implemented.
-	// logger.Info("executor starting", "dispatch_count", len(dispatches))
-	// if err := handler.executor.Execute(ctx, dispatches); err != nil {
-	// 	logger.Error("executor failed", "error", err)
-	// 	return fmt.Errorf("router execute: %w", err)
-	// }
+	// Enqueue a conversation creation job for each dispatch.
+	enqueuedCount := 0
+	for _, agentDispatch := range dispatches {
+		if agentDispatch.RunIntent != "normal" {
+			continue // TODO: handle "continue" intent separately
+		}
+
+		instructions := buildDispatchInstructions(agentDispatch)
+		task, taskErr := NewAgentConversationCreateTask(AgentConversationCreatePayload{
+			AgentID:         agentDispatch.AgentID,
+			OrgID:          agentDispatch.ReplyOrgID,
+			DeliveryID:     payload.DeliveryID,
+			ConnectionID:   agentDispatch.ReplyConnectionID,
+			RouterTriggerID: agentDispatch.RouterTriggerID,
+			ResourceKey:    agentDispatch.ResourceKey,
+			RouterPersona:  agentDispatch.RouterPersona,
+			MemoryTeam:     agentDispatch.MemoryTeam,
+			Instructions:   instructions,
+		})
+		if taskErr != nil {
+			logger.Error("failed to build conversation create task",
+				"agent_id", agentDispatch.AgentID,
+				"error", taskErr,
+			)
+			continue
+		}
+
+		if _, enqErr := handler.enqueuer.Enqueue(task); enqErr != nil {
+			logger.Error("failed to enqueue conversation create task",
+				"agent_id", agentDispatch.AgentID,
+				"error", enqErr,
+			)
+			continue
+		}
+		enqueuedCount++
+	}
 
 	logger.Info("pipeline complete",
 		"agents_dispatched", len(dispatches),
+		"conversations_enqueued", enqueuedCount,
 		"enriched", len(dispatches) > 0 && dispatches[0].EnrichedMessage != "",
-		"instruction_bytes", func() int {
-			if len(dispatches) > 0 {
-				return len(buildDispatchInstructions(dispatches[0]))
-			}
-			return 0
-		}(),
 	)
 	return nil
 }
