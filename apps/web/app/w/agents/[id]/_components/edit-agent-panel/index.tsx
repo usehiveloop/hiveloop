@@ -36,6 +36,7 @@ import {
   ManageIntegrationsDialog,
 } from "@/app/w/agents/_components/manage-integrations-dialog"
 import { EditAgentProvider, useEditAgent } from "./context"
+import { SkillsSection } from "./skills-section"
 import { ToolPermissionsSection } from "./tool-permissions"
 import type { components } from "@/lib/api/schema"
 
@@ -112,7 +113,7 @@ function SandboxOption({
 // ---------------------------------------------------------------------------
 
 function EditAgentForm() {
-  const { form, integrations, triggers, isSubmitting, setIntegrations, removeIntegration, addTrigger, removeTrigger, handleSave } = useEditAgent()
+  const { form, integrations, triggers, skillIds, isSubmitting, setIntegrations, removeIntegration, addTrigger, removeTrigger, toggleSkill, handleSave } = useEditAgent()
   const [integrationsOpen, setIntegrationsOpen] = useState(false)
   const [addTriggerOpen, setAddTriggerOpen] = useState(false)
 
@@ -381,6 +382,11 @@ function EditAgentForm() {
             connectionIds={new Set(Object.keys(integrations))}
           />
         </section>
+
+        <Separator />
+
+        {/* Skills */}
+        <SkillsSection skillIds={skillIds} onToggle={toggleSkill} />
 
         <Separator />
 
