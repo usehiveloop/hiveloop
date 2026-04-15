@@ -78,36 +78,41 @@ func (h *RailwayProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find the latest dedicated sandbox for this agent
-	var sandbox model.Sandbox
-	if err := h.db.
-		Where("agent_id = ? AND sandbox_type = 'dedicated'", agentID).
-		Order("created_at DESC").
-		First(&sandbox).Error; err != nil {
+	// Load the agent
+	var agent model.Agent
+	if err := h.db.Where("id = ? AND deleted_at IS NULL", agentID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no running sandbox for agent"})
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return
 		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up sandbox"})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up agent"})
 		return
 	}
 
-	// Verify the bearer token matches the sandbox's Bridge API key
-	decryptedKey, err := h.encKey.DecryptString(sandbox.EncryptedBridgeAPIKey)
-	if err != nil {
-		slog.Error("railway-proxy: failed to decrypt bridge api key", "agent_id", agentID, "error", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "auth verification failed"})
+	// Verify the bearer token matches any sandbox's Bridge API key for this agent
+	var sandboxes []model.Sandbox
+	if err := h.db.Where("agent_id = ?", agentID).Find(&sandboxes).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up sandboxes"})
 		return
 	}
-	if subtle.ConstantTimeCompare([]byte(bearerToken), []byte(decryptedKey)) != 1 {
+	authenticated := false
+	for _, sb := range sandboxes {
+		decryptedKey, err := h.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
+		if err != nil {
+			continue
+		}
+		if subtle.ConstantTimeCompare([]byte(bearerToken), []byte(decryptedKey)) == 1 {
+			authenticated = true
+			break
+		}
+	}
+	if !authenticated {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		return
 	}
 
-	// TODO: authorization — check that the agent/org is allowed to use Railway
-
 	// Get Railway token (cached or fresh from Nango)
-	railwayToken, err := h.getRailwayToken(w, r, sandbox, agentID)
+	railwayToken, err := h.getRailwayToken(w, r, &agent, agentID)
 	if err != nil {
 		return // error already written to w
 	}
@@ -125,22 +130,22 @@ func (h *RailwayProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 // getRailwayToken returns a Railway API token for the agent's org, using
 // the in-memory cache or fetching fresh from Nango. Cached by org ID so
 // all agents in the same org share one token.
-func (h *RailwayProxyHandler) getRailwayToken(w http.ResponseWriter, r *http.Request, sandbox model.Sandbox, agentID uuid.UUID) (string, error) {
-	if sandbox.OrgID == nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "sandbox has no org"})
+func (h *RailwayProxyHandler) getRailwayToken(w http.ResponseWriter, r *http.Request, agent *model.Agent, agentID uuid.UUID) (string, error) {
+	if agent.OrgID == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent has no org"})
 		return "", fmt.Errorf("no org")
 	}
-	orgID := *sandbox.OrgID
+	orgID := *agent.OrgID
 
 	if entry, ok := h.cache.Get(orgID); ok {
 		return entry.token, nil
 	}
 
-	var conn model.Connection
+	var conn model.InConnection
 	err := h.db.
-		Joins("JOIN integrations ON integrations.id = connections.integration_id AND integrations.deleted_at IS NULL").
-		Where("connections.org_id = ? AND connections.revoked_at IS NULL AND integrations.provider = ?", orgID, railwayProvider).
-		Order("connections.created_at ASC").
+		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
+		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?", orgID, railwayProvider).
+		Order("in_connections.created_at ASC").
 		First(&conn).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -151,9 +156,9 @@ func (h *RailwayProxyHandler) getRailwayToken(w http.ResponseWriter, r *http.Req
 		return "", fmt.Errorf("db error")
 	}
 
-	var integration model.Integration
-	if err := h.db.Where("id = ?", conn.IntegrationID).First(&integration).Error; err != nil {
-		slog.Error("railway-proxy: failed to load integration", "integration_id", conn.IntegrationID, "error", err)
+	var integration model.InIntegration
+	if err := h.db.Where("id = ?", conn.InIntegrationID).First(&integration).Error; err != nil {
+		slog.Error("railway-proxy: failed to load integration", "integration_id", conn.InIntegrationID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load integration"})
 		return "", fmt.Errorf("integration error")
 	}
