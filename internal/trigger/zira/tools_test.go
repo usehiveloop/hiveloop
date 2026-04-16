@@ -28,7 +28,7 @@ func testAgents() []model.Agent {
 func testConnections() []ConnectionWithActions {
 	return []ConnectionWithActions{
 		{
-			Connection: model.Connection{ID: uuid.MustParse("cccccccc-0000-0000-0000-000000000001")},
+			Connection: model.InConnection{ID: uuid.MustParse("cccccccc-0000-0000-0000-000000000001")},
 			Provider:   "github-app",
 			ReadActions: map[string]catalog.ActionDef{
 				"pulls_get": {
@@ -49,7 +49,7 @@ func testConnections() []ConnectionWithActions {
 			},
 		},
 		{
-			Connection: model.Connection{ID: uuid.MustParse("cccccccc-0000-0000-0000-000000000002")},
+			Connection: model.InConnection{ID: uuid.MustParse("cccccccc-0000-0000-0000-000000000002")},
 			Provider:   "slack",
 			ReadActions: map[string]catalog.ActionDef{
 				"conversations_replies": {

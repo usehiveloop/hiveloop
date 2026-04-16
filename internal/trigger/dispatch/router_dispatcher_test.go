@@ -211,7 +211,7 @@ func setupTriageStore(triggerID uuid.UUID, mock *zira.MockCompletionClient) (*Me
 			Parameters: json.RawMessage(`{"type":"object","properties":{"owner":{"type":"string"},"repo":{"type":"string"},"pull_number":{"type":"integer"}},"required":["owner","repo","pull_number"]}`)},
 	}
 	store.AddConnection(zira.ConnectionWithActions{
-		Connection:  model.Connection{ID: uuid.New(), OrgID: testOrgID},
+		Connection:  model.InConnection{ID: uuid.New(), OrgID: testOrgID},
 		Provider:    "github-app",
 		ReadActions: readActions,
 	})
