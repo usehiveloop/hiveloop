@@ -10,7 +10,6 @@ type AuditEntry struct {
 	ID           int64      `gorm:"primaryKey;autoIncrement"`
 	OrgID        uuid.UUID  `gorm:"type:uuid;not null;index:idx_audit_org_created"`
 	CredentialID *uuid.UUID `gorm:"type:uuid;index:idx_audit_credential"`
-	IdentityID   *uuid.UUID `gorm:"type:uuid;index:idx_audit_identity"`
 	Action       string     `gorm:"not null"`
 	Metadata     JSON       `gorm:"type:jsonb;default:'{}'"`
 	IPAddress    *string    `gorm:"type:inet"`
