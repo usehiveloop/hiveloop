@@ -741,7 +741,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Tools to disable for this agent. Takes priority over everything else —\ndisabled tools are removed from the registry before the agent is built,\nso the LLM never sees them. Works for built-in tools, MCP tools, codedb\ntools, integration tools, and spider tools."
+            "description": "Tools to disable for this agent. Takes priority over everything else —\ndisabled tools are removed from the registry before the agent is built,\nso the LLM never sees them. Works for built-in tools, MCP tools,\nintegration tools, and spider tools."
           },
           "immortal": {
             "oneOf": [
@@ -2271,7 +2271,9 @@
           "system_prompt",
           "provider",
           "config",
-          "tools"
+          "tools",
+          "mcp_servers",
+          "registered_tools"
         ],
         "properties": {
           "config": {
@@ -2283,11 +2285,24 @@
               "null"
             ]
           },
+          "mcp_servers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpServerDefinition"
+            }
+          },
           "name": {
             "type": "string"
           },
           "provider": {
             "$ref": "#/components/schemas/ProviderSummary"
+          },
+          "registered_tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegisteredToolSummary"
+            },
+            "description": "All tools registered and available to this subagent at runtime."
           },
           "system_prompt": {
             "type": "string"
