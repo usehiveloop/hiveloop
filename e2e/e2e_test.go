@@ -147,14 +147,12 @@ func newHarness(t *testing.T) *testHarness {
 	// Credential + token + identity handlers
 	credHandler := handler.NewCredentialHandler(db, kms, cm, ctr)
 	tokenHandler := handler.NewTokenHandler(db, signingKey, cm, ctr, actionsCatalog, "", nil)
-	identityHandler := handler.NewIdentityHandler(db, nil)
 
 	// Provider handler
 	reg := registry.Global()
 	providerHandler := handler.NewProviderHandler(reg)
 
 	// Connect handlers
-	connectSessionHandler := handler.NewConnectSessionHandler(db)
 	// Nango mock — no external Nango instance required
 	nangoMockServer := newNangoMock(t)
 	nangoClient := nango.NewClient(nangoMockServer.URL(), "mock-secret-key")
@@ -162,13 +160,9 @@ func newHarness(t *testing.T) *testHarness {
 		t.Fatalf("failed to fetch Nango providers: %v", err)
 	}
 
-	connectAPIHandler := handler.NewConnectAPIHandler(db, kms, reg, nangoClient, actionsCatalog)
-	settingsHandler := handler.NewSettingsHandler(db, nil)
 	t.Logf("Nango provider cache loaded: %d providers", len(nangoClient.GetProviders()))
 
 	// Integration + connection handlers
-	integrationHandler := handler.NewIntegrationHandler(db, nangoClient, actionsCatalog)
-	connectionHandler := handler.NewConnectionHandler(db, nangoClient, actionsCatalog)
 
 	// Management routes (no JWT auth in E2E — we set org on context directly)
 	r.Route("/v1", func(r chi.Router) {
@@ -177,17 +171,9 @@ func newHarness(t *testing.T) *testHarness {
 		r.Delete("/credentials/{id}", credHandler.Revoke)
 		r.Post("/tokens", tokenHandler.Mint)
 		r.Delete("/tokens/{jti}", tokenHandler.Revoke)
-		r.Post("/identities", identityHandler.Create)
-		r.Get("/identities", identityHandler.List)
-		r.Get("/identities/{id}", identityHandler.Get)
-		r.Put("/identities/{id}", identityHandler.Update)
-		r.Delete("/identities/{id}", identityHandler.Delete)
 		r.Get("/providers", providerHandler.List)
 		r.Get("/providers/{id}", providerHandler.Get)
 		r.Get("/providers/{id}/models", providerHandler.Models)
-		r.Post("/connect/sessions", connectSessionHandler.Create)
-		r.Get("/settings/connect", settingsHandler.GetConnectSettings)
-		r.Put("/settings/connect", settingsHandler.UpdateConnectSettings)
 		r.Get("/integrations/providers", integrationHandler.ListProviders)
 		r.Post("/integrations", integrationHandler.Create)
 		r.Get("/integrations", integrationHandler.List)
@@ -206,21 +192,9 @@ func newHarness(t *testing.T) *testHarness {
 		r.Use(middleware.ConnectSecurityHeaders())
 		r.Use(middleware.ConnectCORS())
 
-		r.Get("/session", connectAPIHandler.SessionInfo)
-		r.Get("/providers", connectAPIHandler.ListProviders)
 		r.Route("/integrations", func(r chi.Router) {
 			r.Get("/providers", integrationHandler.ListProviders)
-			r.Get("/", connectAPIHandler.ListIntegrations)
-			r.Post("/{id}/connect-session", connectAPIHandler.CreateIntegrationConnectSession)
-			r.Get("/{id}/resources/{type}/available", connectAPIHandler.ListAvailableResources)
-			r.Post("/{id}/connections", connectAPIHandler.CreateIntegrationConnection)
-			r.Patch("/{id}/connections/{connectionId}", connectAPIHandler.PatchIntegrationConnection)
-			r.Delete("/{id}/connections/{connectionId}", connectAPIHandler.DeleteIntegrationConnection)
 		})
-		r.Get("/connections", connectAPIHandler.ListConnections)
-		r.Post("/connections", connectAPIHandler.CreateConnection)
-		r.Delete("/connections/{id}", connectAPIHandler.DeleteConnection)
-		r.Post("/connections/{id}/verify", connectAPIHandler.VerifyConnection)
 	})
 
 	// Proxy route (token auth + identity rate limits + request caps + audit)
