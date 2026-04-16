@@ -690,7 +690,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Updates credential label and/or identity assignment.",
+                "description": "Updates credential label.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3896,7 +3896,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Creates a new agent tied to an identity and credential. Shared agents are pushed to Bridge immediately.",
+                "description": "Creates a new agent tied to a credential. Shared agents are pushed to Bridge immediately.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5617,12 +5617,6 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter by identity external ID",
-                        "name": "external_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
                         "description": "Filter by JSONB metadata (e.g. {\\",
                         "name": "meta",
                         "in": "query"
@@ -6977,7 +6971,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Comma-separated grouping dimensions: model, provider, credential, user, identity",
+                        "description": "Comma-separated grouping dimensions: model, provider, credential, user",
                         "name": "group_by",
                         "in": "query"
                     },
@@ -10927,14 +10921,6 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.identityStats": {
-            "type": "object",
-            "properties": {
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
         "internal_handler.inConnectSessionResponse": {
             "type": "object",
             "properties": {
@@ -12761,9 +12747,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/internal_handler.errorRate"
                     }
-                },
-                "identities": {
-                    "$ref": "#/definitions/internal_handler.identityStats"
                 },
                 "latency": {
                     "type": "array",

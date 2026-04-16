@@ -440,7 +440,7 @@ var validSandboxTypes = map[string]bool{
 
 // Create handles POST /v1/agents.
 // @Summary Create an agent
-// @Description Creates a new agent tied to an identity and credential. Shared agents are pushed to Bridge immediately.
+// @Description Creates a new agent tied to a credential. Shared agents are pushed to Bridge immediately.
 // @Tags agents
 // @Accept json
 // @Produce json
