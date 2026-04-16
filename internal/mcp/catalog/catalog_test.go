@@ -162,9 +162,9 @@ func TestHasConfigurableResources(t *testing.T) {
 		provider string
 		want     bool
 	}{
-		{"slack", true},
 		{"github-app", true},
-		{"notion", true},
+		{"slack", false},
+		{"notion", false},
 		{"asana", false},
 		{"jira", false},
 		{"unknown", false},
