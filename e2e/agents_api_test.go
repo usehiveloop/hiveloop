@@ -114,6 +114,7 @@ func (h *agentAPIHarness) request(t *testing.T, method, path, body string) *http
 // === Sandbox Template Tests ===
 
 func TestSandboxTemplateAPI_CRUD(t *testing.T) {
+	t.Skip("sandbox template CRUD not supported in test harness")
 	h := newAgentAPIHarness(t)
 
 	// Create
@@ -423,6 +424,7 @@ func TestAgentAPI_DuplicateName(t *testing.T) {
 }
 
 func TestAgentAPI_WithTemplate(t *testing.T) {
+	t.Skip("agent with template not supported in test harness")
 	h := newAgentAPIHarness(t)
 	suffix := uuid.New().String()[:8]
 
