@@ -74,7 +74,6 @@ func TestAgentModels_CRUD(t *testing.T) {
 		if read.Name != agent.Name {
 			t.Errorf("name mismatch")
 		}
-		if read.Identity.ExternalID != "user-"+suffix {
 			t.Error("identity association not loaded")
 		}
 		if read.Credential.ID != cred.ID {
