@@ -18,7 +18,7 @@ async function refreshTokens(refreshToken: string): Promise<SessionData | null> 
   return {
     access_token: data.access_token,
     refresh_token: data.refresh_token,
-    expires_at: Date.now() + (data.expires_in ?? 900) * 1000,
+    expires_at: Date.now() + (data.expires_in ?? 900),
   }
 }
 
