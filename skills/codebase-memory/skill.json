@@ -1,5 +1,0 @@
-{
-  "name": "codebase-memory",
-  "description": "Code knowledge graph for structural queries. Trace call chains, find definitions, analyze impact, detect dead code.",
-  "root": "./SKILL.md"
-}
