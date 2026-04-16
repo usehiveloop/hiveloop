@@ -3852,12 +3852,6 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter by identity ID",
-                        "name": "identity_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
                         "description": "Filter by status (active, archived)",
                         "name": "status",
                         "in": "query"
@@ -5621,12 +5615,6 @@ const docTemplate = `{
                 ],
                 "summary": "List credentials",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by identity ID",
-                        "name": "identity_id",
-                        "in": "query"
-                    },
                     {
                         "type": "string",
                         "description": "Filter by identity external ID",
@@ -7491,12 +7479,6 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filter by status (running, stopped, error)",
                         "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by identity ID",
-                        "name": "identity_id",
                         "in": "query"
                     },
                     {
@@ -10234,9 +10216,6 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
-                "identity_id": {
-                    "type": "string"
-                },
                 "ip_address": {
                     "type": "string"
                 },
@@ -10896,9 +10875,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "string"
-                },
-                "identity_id": {
                     "type": "string"
                 },
                 "input_tokens": {
@@ -11933,9 +11909,6 @@ const docTemplate = `{
                 },
                 "error_count": {
                     "type": "integer"
-                },
-                "identity_id": {
-                    "type": "string"
                 },
                 "input_tokens": {
                     "type": "integer"

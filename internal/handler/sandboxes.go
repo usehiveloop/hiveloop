@@ -62,7 +62,6 @@ func toSandboxResponse(s model.Sandbox) sandboxResponse {
 // @Tags sandboxes
 // @Produce json
 // @Param status query string false "Filter by status (running, stopped, error)"
-// @Param identity_id query string false "Filter by identity ID"
 // @Param limit query int false "Page size"
 // @Param cursor query string false "Pagination cursor"
 // @Success 200 {object} paginatedResponse[sandboxResponse]
@@ -84,9 +83,6 @@ func (h *SandboxHandler) List(w http.ResponseWriter, r *http.Request) {
 	q := h.db.Where("org_id = ?", org.ID)
 	if status := r.URL.Query().Get("status"); status != "" {
 		q = q.Where("status = ?", status)
-	}
-	if identityID := r.URL.Query().Get("identity_id"); identityID != "" {
-		q = q.Where("identity_id = ?", identityID)
 	}
 	q = applyPagination(q, cursor, limit)
 

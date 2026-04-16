@@ -29,7 +29,6 @@ type auditEntryResponse struct {
 	Status       int     `json:"status,omitempty"`
 	LatencyMs    int64   `json:"latency_ms,omitempty"`
 	CredentialID *string `json:"credential_id,omitempty"`
-	IdentityID   *string `json:"identity_id,omitempty"`
 	IPAddress    *string `json:"ip_address,omitempty"`
 	CreatedAt    string  `json:"created_at"`
 }
@@ -89,7 +88,6 @@ func (h *AuditHandler) List(w http.ResponseWriter, r *http.Request) {
 		ID           int64      `gorm:"column:id"`
 		Action       string     `gorm:"column:action"`
 		CredentialID *string    `gorm:"column:credential_id"`
-		IdentityID   *string    `gorm:"column:identity_id"`
 		IPAddress    *string    `gorm:"column:ip_address"`
 		Metadata     []byte     `gorm:"column:metadata"`
 		CreatedAt    time.Time  `gorm:"column:created_at"`
@@ -112,7 +110,6 @@ func (h *AuditHandler) List(w http.ResponseWriter, r *http.Request) {
 			ID:           r.ID,
 			Action:       r.Action,
 			CredentialID: r.CredentialID,
-			IdentityID:   r.IdentityID,
 			IPAddress:    r.IPAddress,
 			CreatedAt:    r.CreatedAt.Format(time.RFC3339),
 		}

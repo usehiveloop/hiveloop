@@ -4370,8 +4370,6 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    /** @description Filter by identity ID */
-                    identity_id?: string;
                     /** @description Filter by status (active, archived) */
                     status?: string;
                     /** @description Filter by sandbox type (shared, dedicated) */
@@ -6388,8 +6386,6 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    /** @description Filter by identity ID */
-                    identity_id?: string;
                     /** @description Filter by identity external ID */
                     external_id?: string;
                     /** @description Filter by JSONB metadata (e.g. {\ */
@@ -8534,8 +8530,6 @@ export interface paths {
                 query?: {
                     /** @description Filter by status (running, stopped, error) */
                     status?: string;
-                    /** @description Filter by identity ID */
-                    identity_id?: string;
                     /** @description Page size */
                     limit?: number;
                     /** @description Pagination cursor */
@@ -10378,7 +10372,6 @@ export interface components {
             created_at?: string;
             credential_id?: string;
             id?: number;
-            identity_id?: string;
             ip_address?: string;
             latency_ms?: number;
             method?: string;
@@ -10601,7 +10594,6 @@ export interface components {
             error_message?: string;
             error_type?: string;
             id?: string;
-            identity_id?: string;
             input_tokens?: number;
             ip_address?: string;
             is_streaming?: boolean;
@@ -10934,7 +10926,6 @@ export interface components {
             cached_tokens?: number;
             credential_id?: string;
             error_count?: number;
-            identity_id?: string;
             input_tokens?: number;
             model?: string;
             output_tokens?: number;

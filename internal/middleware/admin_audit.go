@@ -161,7 +161,6 @@ func parseAdminPath(method, path string) (resource, resourceID, action string) {
 	} else if resource == "api-keys" {
 		singular = "api_key"
 	} else if resource == "connect-sessions" {
-		singular = "connect_session"
 	} else if resource == "custom-domains" {
 		singular = "custom_domain"
 	} else if resource == "workspace-storage" {

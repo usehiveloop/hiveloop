@@ -732,7 +732,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Description Returns agents for the current organization with optional filters.
 // @Tags agents
 // @Produce json
-// @Param identity_id query string false "Filter by identity ID"
 // @Param status query string false "Filter by status (active, archived)"
 // @Param sandbox_type query string false "Filter by sandbox type (shared, dedicated)"
 // @Param limit query int false "Page size (default 50, max 100)"
