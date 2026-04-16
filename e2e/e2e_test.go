@@ -174,16 +174,6 @@ func newHarness(t *testing.T) *testHarness {
 		r.Get("/providers", providerHandler.List)
 		r.Get("/providers/{id}", providerHandler.Get)
 		r.Get("/providers/{id}/models", providerHandler.Models)
-		r.Get("/integrations/providers", integrationHandler.ListProviders)
-		r.Post("/integrations", integrationHandler.Create)
-		r.Get("/integrations", integrationHandler.List)
-		r.Get("/integrations/{id}", integrationHandler.Get)
-		r.Put("/integrations/{id}", integrationHandler.Update)
-		r.Delete("/integrations/{id}", integrationHandler.Delete)
-		r.Post("/integrations/{id}/connections", connectionHandler.Create)
-		r.Get("/integrations/{id}/connections", connectionHandler.List)
-		r.Get("/connections/{id}", connectionHandler.Get)
-		r.Delete("/connections/{id}", connectionHandler.Revoke)
 	})
 
 	// Connect API (session-authenticated)
@@ -193,7 +183,6 @@ func newHarness(t *testing.T) *testHarness {
 		r.Use(middleware.ConnectCORS())
 
 		r.Route("/integrations", func(r chi.Router) {
-			r.Get("/providers", integrationHandler.ListProviders)
 		})
 	})
 
