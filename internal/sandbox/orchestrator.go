@@ -1223,28 +1223,6 @@ func (o *Orchestrator) cloneAgentRepositories(ctx context.Context, sb *model.San
 		)
 	}
 
-	// Run ziraloop-embeddings init across all cloned repos in one call.
-	// This builds a vector index for semantic code search. Non-fatal if
-	// the binary is missing or the org has no OpenAI credential.
-	repoPaths := make([]string, len(repos))
-	for index, repo := range repos {
-		repoPaths[index] = "/home/daytona/repos/" + repo.Name
-	}
-	embeddingsCmd := fmt.Sprintf("ziraloop-embeddings init --repos=%s", strings.Join(repoPaths, ","))
-	output, err := o.ExecuteCommand(ctx, sb, embeddingsCmd)
-	if err != nil {
-		slog.Warn("ziraloop-embeddings init failed, continuing without vector index",
-			"sandbox_id", sb.ID,
-			"output", output,
-			"error", err,
-		)
-	} else {
-		slog.Info("ziraloop-embeddings indexed all repos",
-			"sandbox_id", sb.ID,
-			"repo_count", len(repos),
-		)
-	}
-
 	return nil
 }
 

@@ -197,25 +197,6 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 			"ln -sf /usr/local/cargo/bin/rustup /usr/local/bin/rustup",
 	)
 
-	// Code intelligence: structural graph, AST parsing, vector search.
-	//   - codebase-memory-mcp: builds a code graph (calls, refs, deps) from
-	//     tree-sitter ASTs, queryable via MCP tools. Single static binary.
-	//   - tree-sitter CLI: AST parsing for function-granularity chunking.
-	//   - ziraloop-embeddings: vector embedding index for semantic code search.
-	//     Resolves latest release at build time via GitHub API.
-	//   - pgvector: added via apt above (postgresql-16-pgvector).
-	image = image.Run(
-		`curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash -s -- --dir=/usr/local/bin --skip-config`,
-	)
-	image = image.Run(
-		"curl -fsSL https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-linux-x64.gz | gunzip > /usr/local/bin/tree-sitter && " +
-			"chmod +x /usr/local/bin/tree-sitter",
-	)
-	image = image.Run(
-		`EMBED_URL=$(curl -sfL "https://api.github.com/repos/ziraloop/ziraloop/releases" | jq -r '[.[] | select(.tag_name | startswith("embeddings-"))][0].assets[] | select(.name == "ziraloop-embeddings-linux-amd64") | .browser_download_url') && ` +
-			`curl -fsSL -o /usr/local/bin/ziraloop-embeddings "$EMBED_URL" && chmod +x /usr/local/bin/ziraloop-embeddings`,
-	)
-
 	// Git credential helper — fetches GitHub tokens from the control plane
 	// on demand. Token never touches disk; git calls this on every auth request.
 	image = image.Run(
