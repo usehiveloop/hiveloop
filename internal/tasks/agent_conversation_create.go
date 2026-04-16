@@ -109,57 +109,90 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		)
 	}
 
-	// TODO: enable conversation creation after verifying sandbox + push work.
-	logger.Info("step 4: SKIPPED — conversation creation disabled for testing",
+	// 4. Get Bridge client.
+	logger.Info("step 4: getting bridge client", "sandbox_id", sb.ID)
+	client, err := handler.orchestrator.GetBridgeClient(ctx, sb)
+	if err != nil {
+		logger.Error("step 4: FAILED to get bridge client",
+			"error", err.Error(),
+			"sandbox_id", sb.ID,
+			"bridge_url", sb.BridgeURL,
+		)
+		return fmt.Errorf("getting bridge client: %w", err)
+	}
+	logger.Info("step 4: bridge client ready", "sandbox_id", sb.ID)
+
+	// 5. Create conversation.
+	logger.Info("step 5: creating conversation",
+		"agent_id", agent.ID,
 		"sandbox_id", sb.ID,
-		"instruction_bytes", len(payload.Instructions),
+	)
+	conv, err := client.CreateConversation(ctx, agent.ID.String())
+	if err != nil {
+		logger.Error("step 5: FAILED to create conversation",
+			"error", err.Error(),
+			"agent_id", agent.ID,
+			"sandbox_id", sb.ID,
+		)
+		return fmt.Errorf("creating conversation: %w", err)
+	}
+	logger.Info("step 5: conversation created",
+		"conversation_id", conv.ConversationId,
+		"sandbox_id", sb.ID,
 	)
 
-	// // 4. Get Bridge client.
-	// client, err := handler.orchestrator.GetBridgeClient(ctx, sb)
-	// if err != nil {
-	// 	return fmt.Errorf("getting bridge client: %w", err)
-	// }
-	//
-	// // 5. Create conversation.
-	// conv, err := client.CreateConversation(ctx, agent.ID.String())
-	// if err != nil {
-	// 	return fmt.Errorf("creating conversation: %w", err)
-	// }
-	//
-	// logger.Info("conversation created",
-	// 	"conversation_id", conv.ConversationId,
-	// 	"sandbox_id", sb.ID,
-	// )
-	//
-	// // 6. Store RouterConversation for thread affinity.
-	// if err := handler.db.Create(&model.RouterConversation{
-	// 	OrgID:                payload.OrgID,
-	// 	RouterTriggerID:      payload.RouterTriggerID,
-	// 	AgentID:              payload.AgentID,
-	// 	ConnectionID:         payload.ConnectionID,
-	// 	ResourceKey:          payload.ResourceKey,
-	// 	BridgeConversationID: conv.ConversationId,
-	// 	SandboxID:            sb.ID,
-	// }).Error; err != nil {
-	// 	slog.Error("failed to store router conversation", "error", err)
-	// }
-	//
-	// // 7. Send instructions as first message.
-	// if payload.Instructions != "" {
-	// 	if err := client.SendMessage(ctx, conv.ConversationId, payload.Instructions); err != nil {
-	// 		return fmt.Errorf("sending instructions: %w", err)
-	// 	}
-	// 	logger.Info("instructions sent",
-	// 		"conversation_id", conv.ConversationId,
-	// 		"instruction_bytes", len(payload.Instructions),
-	// 	)
-	// }
-	//
-	// logger.Info("conversation ready",
-	// 	"conversation_id", conv.ConversationId,
-	// 	"sandbox_id", sb.ID,
-	// )
+	// 6. Store RouterConversation for thread affinity.
+	logger.Info("step 6: storing router conversation",
+		"conversation_id", conv.ConversationId,
+		"router_trigger_id", payload.RouterTriggerID,
+		"connection_id", payload.ConnectionID,
+		"resource_key", payload.ResourceKey,
+	)
+	if err := handler.db.Create(&model.RouterConversation{
+		OrgID:                payload.OrgID,
+		RouterTriggerID:      payload.RouterTriggerID,
+		AgentID:              payload.AgentID,
+		ConnectionID:         payload.ConnectionID,
+		ResourceKey:          payload.ResourceKey,
+		BridgeConversationID: conv.ConversationId,
+		SandboxID:            sb.ID,
+	}).Error; err != nil {
+		logger.Error("step 6: FAILED to store router conversation",
+			"error", err.Error(),
+			"conversation_id", conv.ConversationId,
+		)
+	} else {
+		logger.Info("step 6: router conversation stored",
+			"conversation_id", conv.ConversationId,
+		)
+	}
+
+	// 7. Send instructions as first message.
+	if payload.Instructions != "" {
+		logger.Info("step 7: sending instructions",
+			"conversation_id", conv.ConversationId,
+			"instruction_bytes", len(payload.Instructions),
+		)
+		if err := client.SendMessage(ctx, conv.ConversationId, payload.Instructions); err != nil {
+			logger.Error("step 7: FAILED to send instructions",
+				"error", err.Error(),
+				"conversation_id", conv.ConversationId,
+			)
+			return fmt.Errorf("sending instructions: %w", err)
+		}
+		logger.Info("step 7: instructions sent",
+			"conversation_id", conv.ConversationId,
+			"instruction_bytes", len(payload.Instructions),
+		)
+	} else {
+		logger.Info("step 7: no instructions to send")
+	}
+
+	logger.Info("conversation ready",
+		"conversation_id", conv.ConversationId,
+		"sandbox_id", sb.ID,
+		"agent_id", agent.ID,
+	)
 
 	return nil
 }

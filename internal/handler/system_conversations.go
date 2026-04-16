@@ -15,7 +15,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/model"
 	"github.com/ziraloop/ziraloop/internal/sandbox"
 	"github.com/ziraloop/ziraloop/internal/streaming"
-	systemagents "github.com/ziraloop/ziraloop/internal/system-agents"
+	subagents "github.com/ziraloop/ziraloop/internal/sub-agents"
 	"github.com/ziraloop/ziraloop/internal/token"
 )
 
@@ -88,7 +88,7 @@ func (h *SystemConversationHandler) Create(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Map credential provider to system agent name
-	providerGroup := systemagents.MapProviderToGroup(cred.ProviderID, "")
+	providerGroup := subagents.MapProviderToGroup(cred.ProviderID, "")
 	systemAgentName := fmt.Sprintf("%s-%s", agentType, providerGroup)
 
 	// Load the system agent

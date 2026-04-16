@@ -16,23 +16,13 @@ import (
 	"github.com/ziraloop/ziraloop/internal/skills"
 	subagents "github.com/ziraloop/ziraloop/internal/sub-agents"
 	"github.com/ziraloop/ziraloop/internal/tasks"
-	systemagents "github.com/ziraloop/ziraloop/internal/system-agents"
 )
 
 func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	cfg := deps.Config
 
-	// Seed system agents and provision the singleton system sandbox.
-	// Both steps are idempotent and run once on every worker startup.
-	// Bridge agent definitions are pushed eagerly here and refreshed by
-	// the periodic SystemAgentSync task afterwards.
+	// Seed subagents on startup — idempotent, runs on every worker boot.
 	goroutine.Go(func() {
-		if err := systemagents.Seed(deps.DB); err != nil {
-			slog.Error("failed to seed system agents", "error", err)
-			return
-		}
-		slog.Info("system agents seeded")
-
 		if err := subagents.Seed(deps.DB); err != nil {
 			slog.Error("failed to seed subagents", "error", err)
 			return
