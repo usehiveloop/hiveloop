@@ -15,7 +15,7 @@ import type { components } from "@/lib/api/schema"
 type Agent = components["schemas"]["agentResponse"]
 
 export default function AgentsPage() {
-  const [search, setSearch] = useState(123)
+  const [search, setSearch] = useState("")
   const [createOpen, setCreateOpen] = useState(false)
   const [createMode, setCreateMode] = useState<CreationMode | undefined>(undefined)
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null)

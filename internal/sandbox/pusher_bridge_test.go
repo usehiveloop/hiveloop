@@ -145,19 +145,36 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	assertContains(t, "system_prompt bridge repo", def.SystemPrompt, "ziraloop/bridge")
 	assertContains(t, "system_prompt ziraloop repo", def.SystemPrompt, "ziraloop/ziraloop")
 
-	// Permissions
+	// Permissions — deny entries should be stripped out and moved to DisabledTools
 	if def.Permissions == nil {
 		t.Fatal("permissions should not be nil")
 	}
 	perms := *def.Permissions
-	if len(perms) != 12 {
-		t.Errorf("permissions: expected 12 keys, got %d", len(perms))
+	if len(perms) != 6 {
+		t.Errorf("permissions: expected 6 allow keys, got %d", len(perms))
 	}
 	if perms["Grep"] != bridgepkg.ToolPermissionAllow {
 		t.Errorf("permissions[Grep]: got %q, want allow", perms["Grep"])
 	}
-	if perms["edit"] != bridgepkg.ToolPermissionDeny {
-		t.Errorf("permissions[edit]: got %q, want deny", perms["edit"])
+	if _, hasDeny := perms["edit"]; hasDeny {
+		t.Error("permissions should not contain denied tool 'edit'")
+	}
+
+	// DisabledTools — denied permissions should appear here
+	if def.Config == nil || def.Config.DisabledTools == nil {
+		t.Fatal("config.disabled_tools should not be nil")
+	}
+	disabledSet := make(map[string]bool)
+	for _, tool := range *def.Config.DisabledTools {
+		disabledSet[tool] = true
+	}
+	if len(disabledSet) != 6 {
+		t.Errorf("disabled_tools: expected 6, got %d: %v", len(disabledSet), *def.Config.DisabledTools)
+	}
+	for _, denied := range []string{"edit", "write", "multiedit", "web_fetch", "web_search", "web_crawl"} {
+		if !disabledSet[denied] {
+			t.Errorf("disabled_tools: missing %q", denied)
+		}
 	}
 
 	// MCP servers (ziraloop MCP should be present because agent has integrations)

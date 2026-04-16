@@ -4,79 +4,24 @@ import { useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  Search01Icon,
-  Add01Icon,
   Wrench01Icon,
   ArrowDown01Icon,
   BrowserIcon,
   CommandLineIcon,
-  ArrowUp01Icon,
   MoreHorizontalIcon,
   Robot01Icon,
   SentIcon,
   LinkSquare02Icon,
   SparklesIcon,
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  ArrowReloadHorizontalIcon,
 } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  sidebarConversations,
   activeConversationMessages,
   terminalOutput,
   browserContent,
-  type ConversationSummary,
   type MessageItem,
-} from "../_data/conversation-mock"
-
-/* ────────────────────────────────────────────────────────────
-   Variant 9 — Linear-Clean Sidebar with Pill Indicators
-
-   Layout: Original spec (sidebar left, canvas right, panels top-right)
-   Sidebar style: Ultra-refined with sliding pill active state (layoutId),
-                  horizontal rule date dividers, generous spacing
-   Messages: Avatar-based with gradient rings, large text, wide leading
-   Animations: Spring pill slide, staggered list items, message stagger
-   ──────────────────────────────────────────────────────────── */
-
-function ConversationItem({ conversation, isActive, onClick, index }: {
-  conversation: ConversationSummary
-  isActive: boolean
-  onClick: () => void
-  index: number
-}) {
-  return (
-    <motion.button
-      initial={{ opacity: 0, x: -6 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.03, type: "spring", stiffness: 400, damping: 30 }}
-      onClick={onClick}
-      className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all cursor-pointer w-full ${
-        isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      {isActive && (
-        <motion.div
-          layoutId="v9-active-pill"
-          className="absolute inset-0 rounded-xl bg-primary/8 border border-primary/12"
-          style={{ zIndex: -1 }}
-          transition={{ type: "spring", stiffness: 500, damping: 35 }}
-        />
-      )}
-      <span className="relative flex items-center gap-3 flex-1 min-w-0">
-        <span className={`h-2 w-2 rounded-full shrink-0 ${
-          conversation.status === "active" ? "bg-green-500" : conversation.status === "error" ? "bg-destructive" : "bg-muted-foreground/15"
-        }`} />
-        <span className="flex-1 min-w-0">
-          <span className="text-[13px] font-medium truncate block leading-tight">{conversation.title}</span>
-          <span className="text-[11px] text-muted-foreground/40 font-mono mt-0.5 block">{conversation.date}</span>
-        </span>
-      </span>
-    </motion.button>
-  )
-}
+} from "../../_data/conversation-mock"
 
 function ToolCallMessage({ message }: { message: MessageItem }) {
   const [expanded, setExpanded] = useState(false)
@@ -215,109 +160,59 @@ function TerminalPanel() {
   )
 }
 
-export default function ConversationV9() {
-  const [activeConversation, setActiveConversation] = useState("conv_001")
+export default function ConversationPage() {
   const [showBrowser, setShowBrowser] = useState(false)
   const [showTerminal, setShowTerminal] = useState(false)
   const panelsOpen = showBrowser || showTerminal
 
-  let conversationIndex = 0
-
   return (
-    <div className="flex h-[calc(100vh-54px)] overflow-hidden bg-background">
-      {/* ── Left: Sidebar ─────────────────────────────────── */}
-      <aside className="flex flex-col w-[300px] shrink-0 border-r border-border bg-sidebar h-full">
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-border">
-          <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-xl bg-primary/15 flex items-center justify-center">
-              <HugeiconsIcon icon={Robot01Icon} size={14} className="text-primary" />
-            </div>
-            <div>
-              <h2 className="text-[13px] font-semibold text-foreground leading-tight">Issue Triage</h2>
-              <span className="text-[10px] text-muted-foreground/40 font-mono">claude-sonnet-4</span>
-            </div>
+    <>
+      <div className="flex flex-col w-full max-w-[728px] shrink-0 border-r border-border">
+        <div className="flex items-center justify-between px-8 py-3.5 border-b border-border shrink-0">
+          <div className="flex items-center gap-3">
+            <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }} className="h-2 w-2 rounded-full bg-green-500" />
+            <h2 className="text-[15px] font-semibold text-foreground">Debug Safari login regression</h2>
           </div>
-          <button className="h-7 w-7 rounded-lg hover:bg-primary/8 flex items-center justify-center transition-colors">
-            <HugeiconsIcon icon={Add01Icon} size={14} className="text-primary/60" />
-          </button>
-        </div>
-
-        <div className="px-3 py-2">
-          <div className="flex items-center gap-2 rounded-xl bg-muted/30 px-3 py-2 cursor-text hover:bg-muted/50 transition-colors">
-            <HugeiconsIcon icon={Search01Icon} size={13} className="text-muted-foreground/30" />
-            <span className="text-[12px] text-muted-foreground/30">Search conversations...</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Button variant={showBrowser ? "secondary" : "outline"} size="sm" onClick={() => setShowBrowser(!showBrowser)} className="h-7 text-xs"><HugeiconsIcon icon={BrowserIcon} size={13} data-icon="inline-start" />Browser</Button>
+            <Button variant={showTerminal ? "secondary" : "outline"} size="sm" onClick={() => setShowTerminal(!showTerminal)} className="h-7 text-xs"><HugeiconsIcon icon={CommandLineIcon} size={13} data-icon="inline-start" />Terminal</Button>
+            <button className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors ml-1"><HugeiconsIcon icon={MoreHorizontalIcon} size={14} className="text-muted-foreground" /></button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-2 py-1">
-          {Object.entries(sidebarConversations).map(([group, items]) => (
-            <div key={group} className="mb-3">
-              <div className="flex items-center gap-2 px-3 py-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-[1.5px] text-muted-foreground/25">{group}</span>
-                <div className="flex-1 h-px bg-border/40" />
-              </div>
-              {items.map((conversation) => {
-                const currentIndex = conversationIndex++
-                return (
-                  <ConversationItem key={conversation.id} conversation={conversation} isActive={conversation.id === activeConversation} onClick={() => setActiveConversation(conversation.id)} index={currentIndex} />
-                )
-              })}
-            </div>
-          ))}
-        </div>
-      </aside>
-
-      {/* ── Right: Canvas + panels ────────────────────────── */}
-      <div className="flex flex-1 min-w-0">
-        {/* Chat area — fixed max width 728px */}
-        <div className="flex flex-col w-full max-w-[728px] shrink-0 border-r border-border">
-          <div className="flex items-center justify-between px-8 py-3.5 border-b border-border shrink-0">
-            <div className="flex items-center gap-3">
-              <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }} className="h-2 w-2 rounded-full bg-green-500" />
-              <h2 className="text-[15px] font-semibold text-foreground">Debug Safari login regression</h2>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Button variant={showBrowser ? "secondary" : "outline"} size="sm" onClick={() => setShowBrowser(!showBrowser)} className="h-7 text-xs"><HugeiconsIcon icon={BrowserIcon} size={13} data-icon="inline-start" />Browser</Button>
-              <Button variant={showTerminal ? "secondary" : "outline"} size="sm" onClick={() => setShowTerminal(!showTerminal)} className="h-7 text-xs"><HugeiconsIcon icon={CommandLineIcon} size={13} data-icon="inline-start" />Terminal</Button>
-              <button className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors ml-1"><HugeiconsIcon icon={MoreHorizontalIcon} size={14} className="text-muted-foreground" /></button>
-            </div>
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          <div className="flex flex-col gap-1">
+            {activeConversationMessages.map((message, index) => (
+              <MessageBubble key={message.id} message={message} index={index} />
+            ))}
           </div>
-
-          <div className="flex-1 overflow-y-auto px-8 py-6">
-            <div className="flex flex-col gap-1">
-              {activeConversationMessages.map((message, index) => (
-                <MessageBubble key={message.id} message={message} index={index} />
-              ))}
-            </div>
-          </div>
-
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, type: "spring", stiffness: 400, damping: 30 }} className="shrink-0 px-8 pb-6">
-            <div className="rounded-2xl border border-border bg-muted/10 p-1.5 transition-colors focus-within:border-primary/30">
-              <Textarea placeholder="Ask the agent anything..." className="border-0 bg-transparent min-h-[60px] max-h-32 focus-visible:ring-0 focus-visible:border-transparent text-[14px]" />
-              <div className="flex items-center justify-between px-2 pt-1">
-                <span className="font-mono text-[9px] text-muted-foreground/20">claude-sonnet-4-20250514 &middot; 12.4k in / 4.8k out</span>
-                <button className="h-7 w-7 rounded-lg bg-primary text-primary-foreground hover:bg-primary/80 flex items-center justify-center transition-colors"><HugeiconsIcon icon={SentIcon} size={13} /></button>
-              </div>
-            </div>
-          </motion.div>
         </div>
 
-        {/* Panels — fill remaining space */}
-        <AnimatePresence>
-          {panelsOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ type: "spring", stiffness: 400, damping: 35 }}
-              className="flex flex-col flex-1 min-w-0 overflow-hidden"
-            >
-              {showBrowser && <div className={showTerminal ? "h-[60%]" : "h-full"}><BrowserPanel /></div>}
-              {showTerminal && <div className={showBrowser ? "h-[40%]" : "h-full"}><TerminalPanel /></div>}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, type: "spring", stiffness: 400, damping: 30 }} className="shrink-0 px-8 pb-6">
+          <div className="rounded-2xl border border-border bg-muted/10 p-1.5 transition-colors focus-within:border-primary/30">
+            <Textarea placeholder="Ask the agent anything..." className="border-0 bg-transparent min-h-[60px] max-h-32 focus-visible:ring-0 focus-visible:border-transparent text-[14px]" />
+            <div className="flex items-center justify-between px-2 pt-1">
+              <span className="font-mono text-[9px] text-muted-foreground/20">claude-sonnet-4-20250514 &middot; 12.4k in / 4.8k out</span>
+              <button className="h-7 w-7 rounded-lg bg-primary text-primary-foreground hover:bg-primary/80 flex items-center justify-center transition-colors"><HugeiconsIcon icon={SentIcon} size={13} /></button>
+            </div>
+          </div>
+        </motion.div>
       </div>
-    </div>
+
+      <AnimatePresence>
+        {panelsOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 35 }}
+            className="flex flex-col flex-1 min-w-0 overflow-hidden"
+          >
+            {showBrowser && <div className={showTerminal ? "h-[60%]" : "h-full"}><BrowserPanel /></div>}
+            {showTerminal && <div className={showBrowser ? "h-[40%]" : "h-full"}><TerminalPanel /></div>}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }
