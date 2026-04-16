@@ -685,7 +685,7 @@ export interface paths {
         };
         /**
          * Update a credential
-         * @description Updates credential label and/or identity assignment.
+         * @description Updates credential label.
          */
         put: {
             parameters: {
@@ -4408,7 +4408,7 @@ export interface paths {
         put?: never;
         /**
          * Create an agent
-         * @description Creates a new agent tied to an identity and credential. Shared agents are pushed to Bridge immediately.
+         * @description Creates a new agent tied to a credential. Shared agents are pushed to Bridge immediately.
          */
         post: {
             parameters: {
@@ -6386,8 +6386,6 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    /** @description Filter by identity external ID */
-                    external_id?: string;
                     /** @description Filter by JSONB metadata (e.g. {\ */
                     meta?: string;
                     /** @description Page size (default 50, max 100) */
@@ -7996,7 +7994,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    /** @description Comma-separated grouping dimensions: model, provider, credential, user, identity */
+                    /** @description Comma-separated grouping dimensions: model, provider, credential, user */
                     group_by?: string;
                     /** @description Time granularity: hour or day (default: day) */
                     date_part?: string;
@@ -10610,9 +10608,6 @@ export interface components {
             upstream_status?: number;
             user_id?: string;
         };
-        identityStats: {
-            total?: number;
-        };
         inConnectSessionResponse: {
             provider_config_key?: string;
             token?: string;
@@ -11214,7 +11209,6 @@ export interface components {
             credentials?: components["schemas"]["credentialStats"];
             daily_requests?: components["schemas"]["dailyRequests"][];
             error_rates?: components["schemas"]["errorRate"][];
-            identities?: components["schemas"]["identityStats"];
             latency?: components["schemas"]["latencyStats"][];
             requests?: components["schemas"]["requestStats"];
             /** @description Generation-based analytics */

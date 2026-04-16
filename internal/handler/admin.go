@@ -2982,7 +2982,7 @@ type adminUpdateCredentialRequest struct {
 
 // UpdateCredential handles PUT /admin/v1/credentials/{id}.
 // @Summary Update a credential
-// @Description Updates credential label and/or identity assignment.
+// @Description Updates credential label.
 // @Tags admin
 // @Accept json
 // @Produce json
