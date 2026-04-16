@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
@@ -79,11 +80,23 @@ func validateCredentials(provider nango.Provider, creds *nango.Credentials) erro
 	switch mode {
 	case "OAUTH1", "OAUTH2", "TBA":
 		if creds == nil {
-			return nil // OAuth providers work without explicit credentials (Nango manages)
+			return fmt.Errorf("credentials required for %s auth mode", mode)
 		}
-	case "API_KEY":
+		if creds.Type != mode {
+			return fmt.Errorf("credentials.type must be %q for provider %q", mode, provider.Name)
+		}
+		if creds.ClientID == "" {
+			return fmt.Errorf("client_id is required for %s auth mode", mode)
+		}
+		if creds.ClientSecret == "" {
+			return fmt.Errorf("client_secret is required for %s auth mode", mode)
+		}
+	case "APP":
 		if creds == nil {
-			return nil
+			return fmt.Errorf("credentials required for APP auth mode")
+		}
+		if creds.Type != "APP" {
+			return fmt.Errorf("credentials.type must be \"APP\" for provider %q", provider.Name)
 		}
 	}
 	return nil
