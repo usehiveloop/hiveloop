@@ -688,7 +688,6 @@ func TestEnsureSystemSandbox_CreatesWhenMissing(t *testing.T) {
 	if sb.OrgID != nil {
 		t.Error("system sandbox should have nil OrgID")
 	}
-	}
 	if sb.Status != "running" {
 		t.Errorf("status: got %q, want running", sb.Status)
 	}
