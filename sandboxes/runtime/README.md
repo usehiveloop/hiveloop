@@ -39,6 +39,13 @@ Bridge loads configuration in this order (later sources override earlier ones):
 | `BRIDGE_WEBSOCKET_ENABLED` | No | `false` | Enable WebSocket event stream on `/ws/events` |
 | `BRIDGE_DRAIN_TIMEOUT_SECS` | No | `60` | Graceful shutdown timeout in seconds |
 | `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` | No | unlimited | Max concurrent conversations |
+| `BRIDGE_MAX_CONCURRENT_LLM_CALLS` | No | `500` | Global ceiling on simultaneous outbound LLM API calls |
+| `BRIDGE_SKILL_DISCOVERY_ENABLED` | No | `false` | Auto-discover skills from `.claude/skills/`, `.cursor/rules/`, etc. |
+| `BRIDGE_SKILL_DISCOVERY_DIR` | No | cwd | Working directory for skill discovery |
+| `BRIDGE_ALLOW_STDIO_MCP_FROM_API` | No | `false` | Allow API clients to attach `stdio` MCP servers per conversation |
+| `BRIDGE_STANDALONE_AGENT` | No | `false` | Inject sandbox environment system reminder (resource limits, installed tools) |
+| `BRIDGE_OTEL_ENDPOINT` | No | — | OpenTelemetry OTLP gRPC endpoint for trace export (e.g. `http://localhost:4317`) |
+| `BRIDGE_OTEL_SERVICE_NAME` | No | `bridge` | OpenTelemetry service name |
 
 #### config.toml
 
@@ -51,6 +58,21 @@ log_format = "text"
 drain_timeout_secs = 60
 webhook_url = "https://your-control-plane/webhooks"
 websocket_enabled = true  # Enable /ws/events endpoint
+max_concurrent_llm_calls = 500
+skill_discovery_enabled = false
+skill_discovery_dir = "/path/to/workspace"
+allow_stdio_mcp_from_api = false
+standalone_agent = false
+otel_endpoint = "http://localhost:4317"
+otel_service_name = "bridge"
+
+# Optional: webhook delivery tuning (ignored when webhook_url is not set)
+[webhook_config]
+max_concurrent_deliveries = 50
+max_idle_connections = 20
+delivery_timeout_secs = 10
+max_retries = 3
+worker_idle_timeout_secs = 300
 
 # Optional: LSP servers for code intelligence tools
 # Set to false to disable, or configure per-server:
@@ -131,6 +153,7 @@ Installation runs **non-blocking** in the background after bridge starts. Alread
 | POST | `/conversations/{conv_id}/messages` | Send a message |
 | GET | `/conversations/{conv_id}/stream` | SSE stream for real-time events |
 | GET | `/ws/events?token={api_key}` | WebSocket stream for all events (all agents/conversations) |
+| GET | `/events?token={api_key}&after={seq}` | Poll for events (fallback when WS/SSE fails) |
 | POST | `/conversations/{conv_id}/abort` | Abort the current turn |
 | DELETE | `/conversations/{conv_id}` | End a conversation |
 
@@ -165,15 +188,25 @@ The `/conversations/{conv_id}/stream` endpoint emits these Server-Sent Events:
 
 | Event | Description |
 |-------|-------------|
+| `conversation_created` | Conversation initialized |
+| `message_received` | User message received |
 | `message_start` | New assistant message begins |
 | `content_delta` | Text content chunk |
+| `reasoning_delta` | Extended thinking / reasoning chunk |
 | `tool_call_start` | Tool call initiated |
 | `tool_call_result` | Tool execution result |
 | `tool_approval_required` | Tool call waiting for user approval |
 | `tool_approval_resolved` | Approval decision made |
 | `todo_updated` | Task list update (see [Todo Tools](#todo-tools)) |
 | `background_task_completed` | Background bash/subagent task finished |
+| `sub_agent_started` | Sub-agent conversation spawned |
+| `sub_agent_completed` | Sub-agent conversation finished |
+| `chain_started` | Multi-step chain began |
+| `chain_completed` | Multi-step chain finished |
+| `conversation_compacted` | Conversation context was compacted |
+| `turn_completed` | Agent turn finished (all tool calls resolved) |
 | `message_end` | Message complete |
+| `conversation_ended` | Conversation terminated |
 | `error` | Error occurred |
 | `done` | Stream terminated |
 
@@ -281,6 +314,7 @@ crates/
   core/      # Domain models, schemas, error types, config
   llm/       # LLM provider integration, tool call execution, permissions
   runtime/   # Agent supervisor, conversation management
+  storage/   # Conversation persistence (SQLite backend)
   tools/     # Built-in tool implementations (filesystem, bash, search, todo)
   mcp/       # Model Context Protocol client (stdio + HTTP transports)
   lsp/       # Language Server Protocol integration
