@@ -22,7 +22,6 @@ type agentAPIHarness struct {
 	*testHarness
 	org      model.Org
 	cred     model.Credential
-	identity model.Identity
 	router   *chi.Mux
 }
 
@@ -59,12 +58,10 @@ func newAgentAPIHarness(t *testing.T) *agentAPIHarness {
 	})
 
 	// Create identity (agents must be tied to an identity)
-	identity := model.Identity{OrgID: org.ID, ExternalID: "test-user-" + suffix}
 	if err := h.db.Create(&identity).Error; err != nil {
 		t.Fatalf("create identity: %v", err)
 	}
 	t.Cleanup(func() {
-		h.db.Where("id = ?", identity.ID).Delete(&model.Identity{})
 	})
 
 	// Build router with agent routes (no auth middleware — we inject org context directly)

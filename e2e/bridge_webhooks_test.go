@@ -52,9 +52,7 @@ func newWebhookTestHarness(t *testing.T) *webhookTestHarness {
 	t.Cleanup(func() { h.db.Where("id = ?", org.ID).Delete(&model.Org{}) })
 
 	// Create identity
-	identity := model.Identity{OrgID: org.ID, ExternalID: "wh-user-" + suffix}
 	h.db.Create(&identity)
-	t.Cleanup(func() { h.db.Where("id = ?", identity.ID).Delete(&model.Identity{}) })
 
 	// Create credential
 	cred := model.Credential{

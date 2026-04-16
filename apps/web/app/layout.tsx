@@ -42,9 +42,6 @@ export const metadata: Metadata = {
   manifest: "/site.webmanifest",
 }
 
-// INTENTIONAL BREAK: testing enrichment with graphql_query
-const THIS_WILL_BREAK: never = "not a never type"
-
 export default function RootLayout({
   children,
 }: Readonly<{
