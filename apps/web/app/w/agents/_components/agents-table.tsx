@@ -61,7 +61,7 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
   const { data: connectionsData } = $api.useQuery("get", "/v1/in/connections")
   const connections = connectionsData?.data ?? []
   const connectionsById = new Map(
-    connections.filter((c) => c.id).map((c) => [c.id as string, c]),
+    connections.filter((c) => c.id).map((c) => [c.id, c]),
   )
 
   function handleDelete() {
