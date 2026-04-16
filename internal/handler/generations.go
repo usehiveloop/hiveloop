@@ -25,7 +25,6 @@ type generationResponse struct {
 	ID              string   `json:"id"`
 	OrgID           string   `json:"org_id"`
 	CredentialID    string   `json:"credential_id"`
-	IdentityID      *string  `json:"identity_id,omitempty"`
 	TokenJTI        string   `json:"token_jti"`
 	ProviderID      string   `json:"provider_id"`
 	Model           string   `json:"model"`
@@ -71,10 +70,6 @@ func toGenerationResponse(g model.Generation) generationResponse {
 		ErrorMessage:    g.ErrorMessage,
 		IPAddress:       g.IPAddress,
 		CreatedAt:       g.CreatedAt.Format(time.RFC3339),
-	}
-	if g.IdentityID != nil {
-		s := g.IdentityID.String()
-		resp.IdentityID = &s
 	}
 	if resp.Tags == nil {
 		resp.Tags = []string{}

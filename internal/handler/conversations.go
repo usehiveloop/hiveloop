@@ -101,7 +101,7 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Load agent with associations
 	var agent model.Agent
-	if err := h.db.Preload("Credential").Preload("Identity").
+	if err := h.db.Preload("Credential").
 		Where("id = ? AND org_id = ? AND status = 'active'", agentID, org.ID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})

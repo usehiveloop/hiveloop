@@ -1026,8 +1026,6 @@ definitions:
         type: string
       id:
         type: integer
-      identity_id:
-        type: string
       ip_address:
         type: string
       latency_ms:
@@ -1459,8 +1457,6 @@ definitions:
       error_type:
         type: string
       id:
-        type: string
-      identity_id:
         type: string
       input_tokens:
         type: integer
@@ -2135,8 +2131,6 @@ definitions:
         type: string
       error_count:
         type: integer
-      identity_id:
-        type: string
       input_tokens:
         type: integer
       model:
@@ -5203,10 +5197,6 @@ paths:
     get:
       description: Returns agents for the current organization with optional filters.
       parameters:
-      - description: Filter by identity ID
-        in: query
-        name: identity_id
-        type: string
       - description: Filter by status (active, archived)
         in: query
         name: status
@@ -6351,10 +6341,6 @@ paths:
       description: Returns credentials for the current organization with cursor-based
         pagination and usage stats.
       parameters:
-      - description: Filter by identity ID
-        in: query
-        name: identity_id
-        type: string
       - description: Filter by identity external ID
         in: query
         name: external_id
@@ -7560,10 +7546,6 @@ paths:
       - description: Filter by status (running, stopped, error)
         in: query
         name: status
-        type: string
-      - description: Filter by identity ID
-        in: query
-        name: identity_id
         type: string
       - description: Page size
         in: query

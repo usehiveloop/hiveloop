@@ -3247,19 +3247,8 @@ func (h *AdminHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
-// Update Identity
 // ---------------------------------------------------------------------------
 
-type adminUpdateIdentityRequest struct {
-	ExternalID   *string    `json:"external_id,omitempty"`
-	Meta         model.JSON `json:"meta,omitempty"`
-	MemoryConfig model.JSON `json:"memory_config,omitempty"`
-	RateLimits   []struct {
-		Name     string `json:"name"`
-		Limit    int64  `json:"limit"`
-		Duration int64  `json:"duration"`
-	} `json:"ratelimits,omitempty"`
-}
 
 // ---------------------------------------------------------------------------
 // Update Sandbox Template

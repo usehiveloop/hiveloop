@@ -27,7 +27,6 @@ type reportRow struct {
 	ProviderID      string  `json:"provider_id,omitempty"`
 	CredentialID    string  `json:"credential_id,omitempty"`
 	UserID          string  `json:"user_id,omitempty"`
-	IdentityID      string  `json:"identity_id,omitempty"`
 	RequestCount    int64   `json:"request_count"`
 	InputTokens     int64   `json:"input_tokens"`
 	OutputTokens    int64   `json:"output_tokens"`
@@ -46,7 +45,6 @@ var validGroupBys = map[string]string{
 	"provider":   "provider_id",
 	"credential": "credential_id",
 	"user":       "user_id",
-	"identity":   "identity_id",
 }
 
 // Get handles GET /v1/reporting.
@@ -191,7 +189,6 @@ func (h *ReportingHandler) Get(w http.ResponseWriter, r *http.Request) {
 		ProviderID      string    `gorm:"column:provider_id"`
 		CredentialID    string    `gorm:"column:credential_id"`
 		UserID          string    `gorm:"column:user_id"`
-		IdentityID      string    `gorm:"column:identity_id"`
 		RequestCount    int64     `gorm:"column:request_count"`
 		InputTokens     int64     `gorm:"column:input_tokens"`
 		OutputTokens    int64     `gorm:"column:output_tokens"`
@@ -224,7 +221,6 @@ func (h *ReportingHandler) Get(w http.ResponseWriter, r *http.Request) {
 			ProviderID:      row.ProviderID,
 			CredentialID:    row.CredentialID,
 			UserID:          row.UserID,
-			IdentityID:      row.IdentityID,
 			RequestCount:    row.RequestCount,
 			InputTokens:     row.InputTokens,
 			OutputTokens:    row.OutputTokens,

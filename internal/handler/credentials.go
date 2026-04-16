@@ -214,7 +214,6 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Description Returns credentials for the current organization with cursor-based pagination and usage stats.
 // @Tags credentials
 // @Produce json
-// @Param identity_id query string false "Filter by identity ID"
 // @Param external_id query string false "Filter by identity external ID"
 // @Param meta query string false "Filter by JSONB metadata (e.g. {\"key\":\"value\"})"
 // @Param limit query int false "Page size (default 50, max 100)"

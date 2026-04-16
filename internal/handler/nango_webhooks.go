@@ -67,7 +67,6 @@ type webhookPayload struct {
 	IntegrationID   string `json:"integration_id,omitempty"`
 	IntegrationName string `json:"integration_name,omitempty"`
 	ConnectionID    string `json:"connection_id,omitempty"`
-	IdentityID      string `json:"identity_id,omitempty"`
 }
 
 // webhookContext holds resolved entities from a Nango webhook.
