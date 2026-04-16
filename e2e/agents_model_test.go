@@ -13,8 +13,7 @@ import (
 func TestAgentModels_CRUD(t *testing.T) {
 	h := newHarness(t)
 	suffix := uuid.New().String()[:8]
-
-	// --- Setup: org, credential, identity ---
+	// --- Setup: org, credential ---
 	org := model.Org{Name: "e2e-agents-" + suffix}
 	h.db.Create(&org)
 	t.Cleanup(func() { h.db.Where("id = ?", org.ID).Delete(&model.Org{}) })
@@ -60,7 +59,7 @@ func TestAgentModels_CRUD(t *testing.T) {
 	t.Run("Agent_CRUD", func(t *testing.T) {
 		desc := "A test agent"
 		agent := model.Agent{
-			OrgID: &org.ID, IdentityID: &identity.ID, Name: "test-agent-" + suffix,
+			OrgID: &org.ID, Name: "test-agent-" + suffix,
 			Description: &desc, CredentialID: &cred.ID, SandboxType: "shared",
 			SystemPrompt: "You are a helpful assistant.", Model: "gpt-4o",
 			Tools: model.JSON{"0": map[string]any{"name": "read"}},
@@ -75,9 +74,6 @@ func TestAgentModels_CRUD(t *testing.T) {
 		if read.Name != agent.Name {
 			t.Errorf("name mismatch")
 		}
-		if read.IdentityID == nil || *read.IdentityID != identity.ID {
-			t.Errorf("identity_id mismatch")
-		}
 		if read.Identity.ExternalID != "user-"+suffix {
 			t.Error("identity association not loaded")
 		}
@@ -91,7 +87,7 @@ func TestAgentModels_CRUD(t *testing.T) {
 
 		// Unique constraint
 		dup := model.Agent{
-			OrgID: &org.ID, IdentityID: &identity.ID, Name: agent.Name,
+			OrgID: &org.ID, Name: agent.Name,
 			CredentialID: &cred.ID, SandboxType: "dedicated", SystemPrompt: "dup", Model: "gpt-4o",
 		}
 		if err := h.db.Create(&dup).Error; err == nil {
@@ -99,11 +95,10 @@ func TestAgentModels_CRUD(t *testing.T) {
 			t.Fatal("expected unique constraint violation")
 		}
 	})
-
-	// === Sandbox (with identity) ===
+	// === Sandbox ===
 	t.Run("Sandbox_CRUD", func(t *testing.T) {
 		sandbox := model.Sandbox{
-			OrgID: &org.ID, IdentityID: &identity.ID, SandboxType: "shared",
+			OrgID: &org.ID, SandboxType: "shared",
 			ExternalID: "daytona-ws-" + suffix, BridgeURL: "https://sandbox.test:8080",
 			EncryptedBridgeAPIKey: []byte("encrypted-bridge-key"), Status: "creating",
 		}
@@ -112,9 +107,6 @@ func TestAgentModels_CRUD(t *testing.T) {
 
 		var read model.Sandbox
 		h.db.Where("id = ?", sandbox.ID).First(&read)
-		if read.IdentityID == nil || *read.IdentityID != identity.ID {
-			t.Errorf("identity_id mismatch")
-		}
 		if read.Status != "creating" {
 			t.Errorf("status: got %q", read.Status)
 		}
@@ -154,14 +146,14 @@ func TestAgentModels_CRUD(t *testing.T) {
 	// === AgentConversation + ConversationEvent ===
 	t.Run("AgentConversation_and_Events", func(t *testing.T) {
 		agent := model.Agent{
-			OrgID: &org.ID, IdentityID: &identity.ID, Name: "conv-agent-" + suffix,
+			OrgID: &org.ID, Name: "conv-agent-" + suffix,
 			CredentialID: &cred.ID, SandboxType: "shared", SystemPrompt: "test", Model: "gpt-4o",
 		}
 		h.db.Create(&agent)
 		t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
 
 		sandbox := model.Sandbox{
-			OrgID: &org.ID, IdentityID: &identity.ID, SandboxType: "shared",
+			OrgID: &org.ID, SandboxType: "shared",
 			ExternalID: "conv-ws-" + suffix, BridgeURL: "https://conv.test:8080",
 			EncryptedBridgeAPIKey: []byte("encrypted-bridge-key"), Status: "running",
 		}
@@ -221,13 +213,13 @@ func TestAgentModels_CascadeDelete(t *testing.T) {
 	h.db.Create(&st)
 
 	agent := model.Agent{
-		OrgID: &org.ID, IdentityID: &identity.ID, Name: "cascade-agent-" + suffix,
+		OrgID: &org.ID, Name: "cascade-agent-" + suffix,
 		CredentialID: &cred.ID, SandboxType: "shared", SystemPrompt: "test", Model: "gpt-4o",
 	}
 	h.db.Create(&agent)
 
 	sandbox := model.Sandbox{
-		OrgID: &org.ID, IdentityID: &identity.ID, SandboxType: "shared",
+		OrgID: &org.ID, SandboxType: "shared",
 		ExternalID: "cascade-ws-" + suffix, BridgeURL: "https://test:8080",
 		EncryptedBridgeAPIKey: []byte("encrypted-bridge-key"), Status: "running",
 	}
