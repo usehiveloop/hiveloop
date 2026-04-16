@@ -1164,7 +1164,7 @@ func ensureStringSlice(s []string) []string {
 }
 
 // sharedAgentTools are the only tools available to shared sandbox agents.
-// No filesystem, shell, code intelligence, or CodeDB tools.
+// No filesystem, shell, or code intelligence tools.
 var sharedAgentTools = []string{
 	// Web
 	"web_fetch", "web_search", "web_crawl", "web_get_links", "web_screenshot", "web_transform",
