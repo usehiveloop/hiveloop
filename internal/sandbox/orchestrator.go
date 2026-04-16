@@ -116,13 +116,6 @@ func (o *Orchestrator) setEmbeddingEnvVars(envVars map[string]string, orgID uuid
 	envVars["ZIRALOOP_EMBEDDINGS_DB"] = "/tmp/ziraloop-vectors.db"
 }
 
-// setIdentityEnvVars adds identity-level environment variables to the env map.
-func setIdentityEnvVars(envVars map[string]string, identityID *uuid.UUID) {
-	if identityID == nil {
-		return
-	}
-	envVars["ZIRALOOP_IDENTITY_ID"] = identityID.String()
-}
 
 // Orchestrator manages sandbox lifecycle — creating, starting, stopping sandboxes
 // and providing BridgeClients to talk to them.
@@ -507,16 +500,7 @@ func (o *Orchestrator) CreateDedicatedSandbox(ctx context.Context, agent *model.
 		return nil, fmt.Errorf("loading org: %w", err)
 	}
 
-	var identity *model.Identity
-	if agent.IdentityID != nil {
-		var ident model.Identity
-		if err := o.db.Where("id = ?", *agent.IdentityID).First(&ident).Error; err != nil {
-			return nil, fmt.Errorf("loading identity: %w", err)
-		}
-		identity = &ident
-	}
-
-	return o.createSandbox(ctx, &org, identity, agent)
+	return o.createSandbox(ctx, &org, agent)
 }
 
 
@@ -580,7 +564,7 @@ func (o *Orchestrator) StartHealthChecker(ctx context.Context) {
 
 // createSandbox creates a dedicated sandbox for an agent.
 // Pool/shared sandboxes use createPoolSandbox instead.
-func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identity *model.Identity, agent *model.Agent) (*model.Sandbox, error) {
+func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent *model.Agent) (*model.Sandbox, error) {
 	// Ensure Turso storage for the org (optional — Bridge works without it)
 	var storageURL, authToken string
 	if o.turso != nil {
@@ -607,9 +591,6 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 		EncryptedBridgeAPIKey: encryptedKey,
 		Status:                "creating",
 	}
-	if identity != nil {
-		sb.IdentityID = &identity.ID
-	}
 	if agent != nil {
 		sb.AgentID = &agent.ID
 		if agent.SandboxTemplateID != nil {
@@ -627,9 +608,6 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 	setAgentEnvVars(envVars, agent, o.cfg)
 	setDriveEndpoint(envVars, sb.ID, o.cfg)
 	o.setEmbeddingEnvVars(envVars, org.ID)
-	if identity != nil {
-		setIdentityEnvVars(envVars, &identity.ID)
-	}
 	if storageURL != "" {
 		envVars["BRIDGE_STORAGE_URL"] = storageURL
 		envVars["BRIDGE_STORAGE_AUTH_TOKEN"] = authToken
@@ -644,16 +622,13 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 	snapshotID := o.resolveSnapshot(agent)
 
 	// Build sandbox name
-	name := o.buildSandboxName(identity, agent)
+	name := o.buildSandboxName(agent)
 
 	// Build labels
 	labels := map[string]string{
 		"org_id":       org.ID.String(),
 		"sandbox_type": "dedicated",
 		"sandbox_id":   sb.ID.String(),
-	}
-	if identity != nil {
-		labels["identity_id"] = identity.ID.String()
 	}
 	if agent != nil {
 		labels["agent_id"] = agent.ID.String()
@@ -827,14 +802,13 @@ func (o *Orchestrator) resolveSnapshot(agent *model.Agent) string {
 	return o.cfg.BridgeBaseDedicatedImagePrefix
 }
 
-func (o *Orchestrator) buildSandboxName(identity *model.Identity, agent *model.Agent) string {
+func (o *Orchestrator) buildSandboxName(agent *model.Agent) string {
 	ts := time.Now().Unix()
 	if agent != nil {
 		safeName := sanitizeName(agent.Name)
 		return fmt.Sprintf("zira-ded-%s-%s-%d", safeName, shortID(agent.ID), ts)
 	}
-	short := shortID(identity.ID)
-	return fmt.Sprintf("zira-ded-%s-%d", short, ts)
+	return fmt.Sprintf("zira-ded-%d", ts)
 }
 
 // RunHealthCheck syncs sandbox status from the provider and auto-stops idle sandboxes.

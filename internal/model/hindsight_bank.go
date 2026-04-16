@@ -11,8 +11,6 @@ import (
 // Banks are either identity-scoped (shared across agents) or agent-scoped (private).
 type HindsightBank struct {
 	ID         uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	IdentityID *uuid.UUID `gorm:"type:uuid;index"`                                // set for identity-scoped banks
-	Identity   *Identity  `gorm:"foreignKey:IdentityID;constraint:OnDelete:CASCADE"`
 	AgentID    *uuid.UUID `gorm:"type:uuid;index"`                                // set for agent-scoped banks
 	BankID     string     `gorm:"not null;uniqueIndex"` // "identity-{uuid}" or "agent-{uuid}"
 	ConfigHash string     `gorm:"not null;default:''"` // SHA256 of applied MemoryConfig

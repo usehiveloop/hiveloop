@@ -164,10 +164,6 @@ func Audit(aw *AuditWriter, action ...string) func(http.Handler) http.Handler {
 					}
 				}
 			}
-			if identID, ok := CredentialIdentityIDFromContext(r.Context()); ok && identID != nil {
-				entry.IdentityID = identID
-			}
-
 			aw.Write(entry)
 		})
 	}

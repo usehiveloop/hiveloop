@@ -11,8 +11,6 @@ type Agent struct {
 	ID                uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	OrgID             *uuid.UUID       `gorm:"type:uuid;index:idx_agent_org_id"` // nil for system agents
 	Org               *Org             `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	IdentityID        *uuid.UUID       `gorm:"type:uuid;index"`
-	Identity          *Identity        `gorm:"foreignKey:IdentityID;constraint:OnDelete:SET NULL"`
 	Name              string           `gorm:"not null"`
 	Description       *string          `gorm:"type:text"`
 	CredentialID      *uuid.UUID       `gorm:"type:uuid;index"` // nil for system agents

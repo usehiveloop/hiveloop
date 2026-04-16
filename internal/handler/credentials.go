@@ -46,7 +46,6 @@ type createCredentialRequest struct {
 	BaseURL        string     `json:"base_url"`
 	AuthScheme     string     `json:"auth_scheme"`
 	APIKey         string     `json:"api_key"`
-	IdentityID     *string    `json:"identity_id,omitempty"`
 	ExternalID     *string    `json:"external_id,omitempty"`
 	Remaining      *int64     `json:"remaining,omitempty"`
 	RefillAmount   *int64     `json:"refill_amount,omitempty"`
@@ -60,7 +59,6 @@ type credentialResponse struct {
 	BaseURL        string     `json:"base_url"`
 	AuthScheme     string     `json:"auth_scheme"`
 	ProviderID     string     `json:"provider_id,omitempty"`
-	IdentityID     *string    `json:"identity_id,omitempty"`
 	Remaining      *int64     `json:"remaining,omitempty"`
 	RefillAmount   *int64     `json:"refill_amount,omitempty"`
 	RefillInterval *string    `json:"refill_interval,omitempty"`
@@ -167,38 +165,6 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var identityID *uuid.UUID
-	if req.IdentityID != nil {
-		id, err := uuid.Parse(*req.IdentityID)
-		if err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid identity_id"})
-			return
-		}
-		var ident model.Identity
-		if err := h.db.Where("id = ? AND org_id = ?", id, org.ID).First(&ident).Error; err != nil {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "identity not found"})
-			return
-		}
-		identityID = &id
-	} else if req.ExternalID != nil && *req.ExternalID != "" {
-		var ident model.Identity
-		err := h.db.Where("external_id = ? AND org_id = ?", *req.ExternalID, org.ID).First(&ident).Error
-		if err == gorm.ErrRecordNotFound {
-			ident = model.Identity{
-				ID:         uuid.New(),
-				OrgID:      org.ID,
-				ExternalID: *req.ExternalID,
-			}
-			if err := h.db.Create(&ident).Error; err != nil {
-				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create identity"})
-				return
-			}
-		} else if err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to resolve identity"})
-			return
-		}
-		identityID = &ident.ID
-	}
 
 	cred := model.Credential{
 		ID:             uuid.New(),
@@ -207,7 +173,6 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 		BaseURL:        req.BaseURL,
 		AuthScheme:     req.AuthScheme,
 		ProviderID:     req.ProviderID,
-		IdentityID:     identityID,
 		EncryptedKey:   encryptedKey,
 		WrappedDEK:     wrappedDEK,
 		Remaining:      req.Remaining,
@@ -223,9 +188,6 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("credential created", "org_id", org.ID, "credential_id", cred.ID, "provider_id", req.ProviderID, "label", req.Label)
-	if cred.IdentityID != nil {
-		slog.Info("credential linked to identity", "credential_id", cred.ID, "identity_id", *cred.IdentityID)
-	}
 
 	// Seed Redis counter if a cap is configured
 	if cred.Remaining != nil && h.counter != nil {
@@ -243,10 +205,6 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 		RefillInterval: cred.RefillInterval,
 		Meta:           cred.Meta,
 		CreatedAt:      cred.CreatedAt.Format(time.RFC3339),
-	}
-	if cred.IdentityID != nil {
-		s := cred.IdentityID.String()
-		credResp.IdentityID = &s
 	}
 	writeJSON(w, http.StatusCreated, credResp)
 }
@@ -282,13 +240,6 @@ func (h *CredentialHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	q := h.db.Where("credentials.org_id = ?", org.ID)
 
-	if identityID := r.URL.Query().Get("identity_id"); identityID != "" {
-		q = q.Where("identity_id = ?", identityID)
-	}
-	if externalID := r.URL.Query().Get("external_id"); externalID != "" {
-		q = q.Joins("JOIN identities ON identities.id = credentials.identity_id").
-			Where("identities.external_id = ? AND identities.org_id = ?", externalID, org.ID)
-	}
 	if metaFilter := r.URL.Query().Get("meta"); metaFilter != "" {
 		q = q.Where("credentials.meta @> ?::jsonb", metaFilter)
 	}
@@ -343,10 +294,6 @@ func (h *CredentialHandler) List(w http.ResponseWriter, r *http.Request) {
 			RefillInterval: c.RefillInterval,
 			Meta:           c.Meta,
 			CreatedAt:      c.CreatedAt.Format(time.RFC3339),
-		}
-		if c.IdentityID != nil {
-			s := c.IdentityID.String()
-			resp[i].IdentityID = &s
 		}
 		if c.RevokedAt != nil {
 			s := c.RevokedAt.Format(time.RFC3339)
@@ -421,10 +368,6 @@ func (h *CredentialHandler) Get(w http.ResponseWriter, r *http.Request) {
 		RefillInterval: cred.RefillInterval,
 		Meta:           cred.Meta,
 		CreatedAt:      cred.CreatedAt.Format(time.RFC3339),
-	}
-	if cred.IdentityID != nil {
-		s := cred.IdentityID.String()
-		resp.IdentityID = &s
 	}
 	if cred.RevokedAt != nil {
 		s := cred.RevokedAt.Format(time.RFC3339)

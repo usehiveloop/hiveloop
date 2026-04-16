@@ -25,7 +25,7 @@ func dispatchTrigger(
 	wh *nangoWebhook,
 	wctx *webhookContext,
 ) {
-	if enqueuer == nil || wctx == nil || wctx.connection == nil || wctx.inConnection == nil || wctx.integration == nil {
+	if enqueuer == nil || wctx == nil || wctx.inConnection == nil {
 		return
 	}
 	if wh.Type != "forward" || len(wh.Payload) == 0 {
@@ -34,7 +34,7 @@ func dispatchTrigger(
 
 	// Skip providers without triggers in the catalog. The variant fallback
 	// (github-app → github) means we have to check both names.
-	providerName := wctx.integration.Provider
+	providerName := wctx.inConnection.InIntegration.Provider
 	cat := catalog.Global()
 	if !cat.HasTriggers(providerName) {
 		if _, ok := cat.GetProviderTriggersForVariant(providerName); !ok {

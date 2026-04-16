@@ -16,8 +16,6 @@ type AgentTrigger struct {
 	Org            Org            `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
 	AgentID        uuid.UUID      `gorm:"type:uuid;not null;index"`
 	Agent          Agent          `gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE"`
-	ConnectionID   uuid.UUID      `gorm:"type:uuid;not null;index"`
-	Connection     Connection     `gorm:"foreignKey:ConnectionID;constraint:OnDelete:CASCADE"`
 	TriggerKeys    pq.StringArray `gorm:"type:text[];not null"` // e.g. {"issues.opened","issues.reopened"}, validated against catalog
 	Enabled        bool           `gorm:"not null;default:true"`
 	Conditions     RawJSON        `gorm:"type:jsonb"`                    // TriggerMatch JSON

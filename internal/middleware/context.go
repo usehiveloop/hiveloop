@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/ziraloop/ziraloop/internal/model"
 )
 
@@ -13,10 +12,7 @@ type contextKey int
 const (
 	orgKey contextKey = iota
 	claimsKey
-	connectSessionKey
-	identityKey
 	apiKeyClaimsKey
-	credentialIdentityKey
 	userKey
 	adminAuditChangesKey
 )
@@ -50,28 +46,6 @@ func WithClaims(r *http.Request, claims *TokenClaims) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), claimsKey, claims))
 }
 
-// ConnectSessionFromContext retrieves the connect session from the request context.
-func ConnectSessionFromContext(ctx context.Context) (*model.ConnectSession, bool) {
-	sess, ok := ctx.Value(connectSessionKey).(*model.ConnectSession)
-	return sess, ok
-}
-
-// WithConnectSession sets the connect session on the request context.
-func WithConnectSession(r *http.Request, sess *model.ConnectSession) *http.Request {
-	return r.WithContext(context.WithValue(r.Context(), connectSessionKey, sess))
-}
-
-// IdentityFromContext retrieves the identity from the request context.
-func IdentityFromContext(ctx context.Context) (*model.Identity, bool) {
-	ident, ok := ctx.Value(identityKey).(*model.Identity)
-	return ident, ok
-}
-
-// WithIdentity sets the identity on the request context.
-func WithIdentity(r *http.Request, ident *model.Identity) *http.Request {
-	return r.WithContext(context.WithValue(r.Context(), identityKey, ident))
-}
-
 // APIKeyClaims holds extracted claims from a validated API key.
 type APIKeyClaims struct {
 	KeyID  string
@@ -90,17 +64,6 @@ func WithAPIKeyClaims(r *http.Request, claims *APIKeyClaims) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), apiKeyClaimsKey, claims))
 }
 
-// CredentialIdentityIDFromContext retrieves the credential's identity ID from the request context.
-func CredentialIdentityIDFromContext(ctx context.Context) (*uuid.UUID, bool) {
-	id, ok := ctx.Value(credentialIdentityKey).(*uuid.UUID)
-	return id, ok
-}
-
-// WithCredentialIdentityID sets the credential's identity ID on the request context.
-func WithCredentialIdentityID(r *http.Request, id *uuid.UUID) *http.Request {
-	return r.WithContext(context.WithValue(r.Context(), credentialIdentityKey, id))
-}
-
 // UserFromContext retrieves the authenticated User from the request context.
 func UserFromContext(ctx context.Context) (*model.User, bool) {
 	user, ok := ctx.Value(userKey).(*model.User)
@@ -117,28 +80,21 @@ func WithUser(r *http.Request, user *model.User) *http.Request {
 type AdminAuditChanges map[string]any
 
 // AdminAuditBucket is a shared pointer that the middleware allocates and places
-// on the context. Handlers write their diff into it. Because it's a pointer,
-// the middleware can read the result after the handler returns without needing
-// the handler's replacement *http.Request.
+// on the context before the handler runs. The handler stores its changes map
+// in it, and the middleware reads it after the handler returns.
 type AdminAuditBucket struct {
 	Changes AdminAuditChanges
 }
 
-// AdminAuditBucketFromContext retrieves the shared audit bucket from context.
 func AdminAuditBucketFromContext(ctx context.Context) *AdminAuditBucket {
-	b, _ := ctx.Value(adminAuditChangesKey).(*AdminAuditBucket)
-	return b
+	bucket, _ := ctx.Value(adminAuditChangesKey).(*AdminAuditBucket)
+	return bucket
 }
 
-// WithAdminAuditBucket places a shared audit bucket on the request context.
-// Called by the middleware before the handler runs.
 func WithAdminAuditBucket(r *http.Request, bucket *AdminAuditBucket) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), adminAuditChangesKey, bucket))
 }
 
-// SetAdminAuditChanges writes the computed diff into the shared bucket on the
-// request context. This does NOT create a new request — the handler's local r
-// is sufficient because the bucket is a shared pointer.
 func SetAdminAuditChanges(r *http.Request, changes AdminAuditChanges) {
 	if bucket := AdminAuditBucketFromContext(r.Context()); bucket != nil {
 		bucket.Changes = changes

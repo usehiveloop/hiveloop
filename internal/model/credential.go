@@ -13,8 +13,6 @@ type Credential struct {
 	Label          string     `gorm:"not null;default:''"`
 	BaseURL        string     `gorm:"not null"`
 	AuthScheme     string     `gorm:"not null"`
-	IdentityID     *uuid.UUID `gorm:"type:uuid;index"`
-	Identity       *Identity  `gorm:"foreignKey:IdentityID;constraint:OnDelete:SET NULL"`
 	EncryptedKey   []byte     `gorm:"type:bytea;not null"`
 	WrappedDEK     []byte     `gorm:"type:bytea;not null"`
 	Remaining      *int64     `gorm:"column:remaining"`

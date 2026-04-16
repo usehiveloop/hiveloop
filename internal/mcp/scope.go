@@ -45,8 +45,8 @@ func ValidateScopes(db *gorm.DB, orgID uuid.UUID, cat *catalog.Catalog, scopes [
 		}
 
 		// Verify connection exists, belongs to org, and is not revoked
-		var conn model.Connection
-		if err := db.Preload("Integration").
+		var conn model.InConnection
+		if err := db.Preload("InIntegration").
 			Where("id = ? AND org_id = ? AND revoked_at IS NULL", connUUID, orgID).
 			First(&conn).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
@@ -56,11 +56,11 @@ func ValidateScopes(db *gorm.DB, orgID uuid.UUID, cat *catalog.Catalog, scopes [
 		}
 
 		// Check the integration is not soft-deleted
-		if conn.Integration.DeletedAt != nil {
+		if conn.InIntegration.DeletedAt != nil {
 			return fmt.Errorf("scope[%d]: integration for connection %q has been deleted", i, scope.ConnectionID)
 		}
 
-		provider := conn.Integration.Provider
+		provider := conn.InIntegration.Provider
 
 		// Validate actions against catalog
 		if err := cat.ValidateActions(provider, scope.Actions); err != nil {
