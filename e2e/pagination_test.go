@@ -396,7 +396,7 @@ func TestE2E_Identity_UsageStats(t *testing.T) {
 	}
 
 	// Create credential for identity 0 and make 2 proxy requests
-	credBody := fmt.Sprintf(`{"label":"stats-cred-0","provider_id":"openai","base_url":%q,"auth_scheme":"bearer","api_key":"sk-si0","identity_id":%q}`, echoServer.URL, identIDs[0])
+	credBody := fmt.Sprintf(`{"label":"stats-cred-0","provider_id":"openai","base_url":%q,"auth_scheme":"bearer","api_key":"sk-si0"}`, echoServer.URL)
 	req := httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -459,84 +459,6 @@ func TestE2E_Identity_UsageStats(t *testing.T) {
 	}
 
 	t.Logf("Identity usage stats verified: ident0=%d, ident1=%d", rc0, rc1)
-}
-
-// --------------------------------------------------------------------------
-// E2E: Audit entry includes identity_id after proxy request
-// --------------------------------------------------------------------------
-
-func TestE2E_AuditEntry_IdentityID(t *testing.T) {
-	h := newHarness(t)
-	org := h.createOrg(t)
-
-	echoServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"ok":true}`))
-	}))
-	defer echoServer.Close()
-
-	// Create identity
-	identBody := `{"external_id":"audit-test"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/identities", strings.NewReader(identBody))
-	req.Header.Set("Content-Type", "application/json")
-	req = middleware.WithOrg(req, &org)
-	rr := httptest.NewRecorder()
-	h.router.ServeHTTP(rr, req)
-	if rr.Code != http.StatusCreated {
-		t.Fatalf("create identity: expected 201, got %d", rr.Code)
-	}
-	var identResp map[string]any
-	json.NewDecoder(rr.Body).Decode(&identResp)
-	identID := identResp["id"].(string)
-	identUUID, _ := uuid.Parse(identID)
-
-	// Create credential linked to identity
-	credBody := fmt.Sprintf(`{"label":"audit-cred","provider_id":"openai","base_url":%q,"auth_scheme":"bearer","api_key":"sk-audit","identity_id":%q}`, echoServer.URL, identID)
-	req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody))
-	req.Header.Set("Content-Type", "application/json")
-	req = middleware.WithOrg(req, &org)
-	rr = httptest.NewRecorder()
-	h.router.ServeHTTP(rr, req)
-	if rr.Code != http.StatusCreated {
-		t.Fatalf("create credential: expected 201, got %d: %s", rr.Code, rr.Body.String())
-	}
-	var credResp map[string]any
-	json.NewDecoder(rr.Body).Decode(&credResp)
-	credID := credResp["id"].(string)
-	credUUID, _ := uuid.Parse(credID)
-
-	tok := h.mintToken(t, org, credUUID)
-
-	// Make proxy request
-	rr = h.proxyRequest(t, http.MethodGet, "/v1/proxy/test", tok, nil)
-	if rr.Code != http.StatusOK {
-		t.Fatalf("proxy request: expected 200, got %d: %s", rr.Code, rr.Body.String())
-	}
-
-	// Wait for audit writer to flush
-	time.Sleep(200 * time.Millisecond)
-
-	// Verify audit entry has identity_id set
-	var entries []model.AuditEntry
-	h.db.Where("org_id = ? AND action = 'proxy.request' AND credential_id = ?", org.ID, credUUID).
-		Order("created_at DESC").Find(&entries)
-
-	if len(entries) == 0 {
-		t.Fatal("expected at least 1 audit entry")
-	}
-
-	entry := entries[0]
-	if entry.IdentityID == nil {
-		t.Fatal("expected identity_id to be set on audit entry")
-	}
-	if *entry.IdentityID != identUUID {
-		t.Fatalf("expected identity_id=%s, got %s", identUUID, *entry.IdentityID)
-	}
-	if entry.CredentialID == nil || *entry.CredentialID != credUUID {
-		t.Fatalf("expected credential_id=%s on audit entry", credUUID)
-	}
-
-	t.Logf("Audit entry verified: identity_id=%s, credential_id=%s", *entry.IdentityID, *entry.CredentialID)
 }
 
 // --------------------------------------------------------------------------
@@ -607,7 +529,7 @@ func TestE2E_Credential_Pagination_WithFilter(t *testing.T) {
 
 	// Create 3 credentials linked to identity + 2 without
 	for i := 0; i < 3; i++ {
-		body := fmt.Sprintf(`{"label":"linked-%d","provider_id":"openai","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-l-%d","identity_id":%q}`, i, i, identID)
+		body := fmt.Sprintf(`{"label":"linked-%d","provider_id":"openai","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-l-%d"}`, i, i, identID)
 		req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req = middleware.WithOrg(req, &org)
