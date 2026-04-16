@@ -323,7 +323,7 @@ func (agent *EnrichmentAgent) newFetchHandler(
 			"params", string(paramsJSON),
 		)
 
-		providerCfgKey := fmt.Sprintf("%s_%s", orgID.String(), conn.Connection.Integration.UniqueKey)
+		providerCfgKey := fmt.Sprintf("%s_%s", orgID.String(), conn.Connection.InIntegration.UniqueKey)
 		nangoConnID := conn.Connection.NangoConnectionID
 
 		fetchStart := time.Now()

@@ -159,7 +159,6 @@ type adminCredentialResponse struct {
 	OrgID      string  `json:"org_id"`
 	Label      string  `json:"label"`
 	ProviderID string  `json:"provider_id"`
-	IdentityID *string `json:"identity_id,omitempty"`
 	RevokedAt  *string `json:"revoked_at,omitempty"`
 	CreatedAt  string  `json:"created_at"`
 }
@@ -171,10 +170,6 @@ func toAdminCredentialResponse(c model.Credential) adminCredentialResponse {
 		Label:      c.Label,
 		ProviderID: c.ProviderID,
 		CreatedAt:  c.CreatedAt.Format(time.RFC3339),
-	}
-	if c.IdentityID != nil {
-		id := c.IdentityID.String()
-		resp.IdentityID = &id
 	}
 	if c.RevokedAt != nil {
 		t := c.RevokedAt.Format(time.RFC3339)
@@ -240,24 +235,6 @@ func toAdminTokenResponse(t model.Token) adminTokenResponse {
 	return resp
 }
 
-type adminIdentityResponse struct {
-	ID         string     `json:"id"`
-	OrgID      string     `json:"org_id"`
-	ExternalID string     `json:"external_id"`
-	Meta       model.JSON `json:"meta"`
-	CreatedAt  string     `json:"created_at"`
-}
-
-func toAdminIdentityResponse(i model.Identity) adminIdentityResponse {
-	return adminIdentityResponse{
-		ID:         i.ID.String(),
-		OrgID:      i.OrgID.String(),
-		ExternalID: i.ExternalID,
-		Meta:       i.Meta,
-		CreatedAt:  i.CreatedAt.Format(time.RFC3339),
-	}
-}
-
 type adminAgentResponse struct {
 	ID          string  `json:"id"`
 	OrgID       string  `json:"org_id"`
@@ -265,7 +242,6 @@ type adminAgentResponse struct {
 	Model       string  `json:"model"`
 	SandboxType string  `json:"sandbox_type"`
 	Status      string  `json:"status"`
-	IdentityID  string  `json:"identity_id"`
 	SandboxID   *string `json:"sandbox_id,omitempty"`
 	CreatedAt   string  `json:"created_at"`
 }
@@ -282,9 +258,6 @@ func toAdminAgentResponse(a model.Agent) adminAgentResponse {
 	if a.OrgID != nil {
 		resp.OrgID = a.OrgID.String()
 	}
-	if a.IdentityID != nil {
-		resp.IdentityID = a.IdentityID.String()
-	}
 	if a.SandboxID != nil {
 		id := a.SandboxID.String()
 		resp.SandboxID = &id
@@ -295,7 +268,6 @@ func toAdminAgentResponse(a model.Agent) adminAgentResponse {
 type adminSandboxResponse struct {
 	ID               string  `json:"id"`
 	OrgID            *string `json:"org_id,omitempty"`
-	IdentityID       *string `json:"identity_id,omitempty"`
 	SandboxType      string  `json:"sandbox_type"`
 	Status           string  `json:"status"`
 	ExternalID       string  `json:"external_id"`
@@ -323,10 +295,6 @@ func toAdminSandboxResponse(s model.Sandbox) adminSandboxResponse {
 	if s.OrgID != nil {
 		id := s.OrgID.String()
 		resp.OrgID = &id
-	}
-	if s.IdentityID != nil {
-		id := s.IdentityID.String()
-		resp.IdentityID = &id
 	}
 	if s.AgentID != nil {
 		id := s.AgentID.String()
@@ -397,84 +365,6 @@ func toAdminGenerationResponse(g model.Generation) adminGenerationResponse {
 		ErrorType:      g.ErrorType,
 		CreatedAt:      g.CreatedAt.Format(time.RFC3339),
 	}
-}
-
-type adminIntegrationResponse struct {
-	ID          string     `json:"id"`
-	OrgID       string     `json:"org_id"`
-	UniqueKey   string     `json:"unique_key"`
-	Provider    string     `json:"provider"`
-	DisplayName string     `json:"display_name"`
-	Meta        model.JSON `json:"meta"`
-	CreatedAt   string     `json:"created_at"`
-}
-
-func toAdminIntegrationResponse(i model.Integration) adminIntegrationResponse {
-	return adminIntegrationResponse{
-		ID:          i.ID.String(),
-		OrgID:       i.OrgID.String(),
-		UniqueKey:   i.UniqueKey,
-		Provider:    i.Provider,
-		DisplayName: i.DisplayName,
-		Meta:        i.Meta,
-		CreatedAt:   i.CreatedAt.Format(time.RFC3339),
-	}
-}
-
-type adminConnectionResponse struct {
-	ID            string  `json:"id"`
-	OrgID         string  `json:"org_id"`
-	IntegrationID string  `json:"integration_id"`
-	IdentityID    *string `json:"identity_id,omitempty"`
-	RevokedAt     *string `json:"revoked_at,omitempty"`
-	CreatedAt     string  `json:"created_at"`
-}
-
-func toAdminConnectionResponse(c model.Connection) adminConnectionResponse {
-	resp := adminConnectionResponse{
-		ID:            c.ID.String(),
-		OrgID:         c.OrgID.String(),
-		IntegrationID: c.IntegrationID.String(),
-		CreatedAt:     c.CreatedAt.Format(time.RFC3339),
-	}
-	if c.IdentityID != nil {
-		id := c.IdentityID.String()
-		resp.IdentityID = &id
-	}
-	if c.RevokedAt != nil {
-		t := c.RevokedAt.Format(time.RFC3339)
-		resp.RevokedAt = &t
-	}
-	return resp
-}
-
-type adminConnectSessionResponse struct {
-	ID          string  `json:"id"`
-	OrgID       string  `json:"org_id"`
-	ExternalID  string  `json:"external_id"`
-	IdentityID  *string `json:"identity_id,omitempty"`
-	ActivatedAt *string `json:"activated_at,omitempty"`
-	ExpiresAt   string  `json:"expires_at"`
-	CreatedAt   string  `json:"created_at"`
-}
-
-func toAdminConnectSessionResponse(s model.ConnectSession) adminConnectSessionResponse {
-	resp := adminConnectSessionResponse{
-		ID:         s.ID.String(),
-		OrgID:      s.OrgID.String(),
-		ExternalID: s.ExternalID,
-		ExpiresAt:  s.ExpiresAt.Format(time.RFC3339),
-		CreatedAt:  s.CreatedAt.Format(time.RFC3339),
-	}
-	if s.IdentityID != nil {
-		id := s.IdentityID.String()
-		resp.IdentityID = &id
-	}
-	if s.ActivatedAt != nil {
-		t := s.ActivatedAt.Format(time.RFC3339)
-		resp.ActivatedAt = &t
-	}
-	return resp
 }
 
 type adminCustomDomainResponse struct {
@@ -1535,122 +1425,6 @@ func (h *AdminHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
-// Identities
-// ---------------------------------------------------------------------------
-
-// ListIdentities handles GET /admin/v1/identities.
-// @Summary List all identities
-// @Description Returns identities across all organizations.
-// @Tags admin
-// @Produce json
-// @Param org_id query string false "Filter by org ID"
-// @Param external_id query string false "Filter by external ID"
-// @Param limit query int false "Page size"
-// @Param cursor query string false "Pagination cursor"
-// @Success 200 {object} paginatedResponse[adminIdentityResponse]
-// @Security BearerAuth
-// @Router /admin/v1/identities [get]
-func (h *AdminHandler) ListIdentities(w http.ResponseWriter, r *http.Request) {
-	limit, cursor, err := parsePagination(r)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
-	}
-
-	q := h.db.Model(&model.Identity{})
-	if orgID := r.URL.Query().Get("org_id"); orgID != "" {
-		q = q.Where("org_id = ?", orgID)
-	}
-	if extID := r.URL.Query().Get("external_id"); extID != "" {
-		q = q.Where("external_id = ?", extID)
-	}
-
-	q = applyPagination(q, cursor, limit)
-
-	var identities []model.Identity
-	if err := q.Find(&identities).Error; err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list identities"})
-		return
-	}
-
-	hasMore := len(identities) > limit
-	if hasMore {
-		identities = identities[:limit]
-	}
-
-	resp := make([]adminIdentityResponse, len(identities))
-	for i, id := range identities {
-		resp[i] = toAdminIdentityResponse(id)
-	}
-
-	result := paginatedResponse[adminIdentityResponse]{Data: resp, HasMore: hasMore}
-	if hasMore {
-		last := identities[len(identities)-1]
-		c := encodeCursor(last.CreatedAt, last.ID)
-		result.NextCursor = &c
-	}
-	writeJSON(w, http.StatusOK, result)
-}
-
-// GetIdentity handles GET /admin/v1/identities/{id}.
-// @Summary Get identity details
-// @Description Returns identity details with rate limits.
-// @Tags admin
-// @Produce json
-// @Param id path string true "Identity ID"
-// @Success 200 {object} adminIdentityResponse
-// @Failure 404 {object} errorResponse
-// @Security BearerAuth
-// @Router /admin/v1/identities/{id} [get]
-func (h *AdminHandler) GetIdentity(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-
-	var identity model.Identity
-	if err := h.db.Preload("RateLimits").Where("id = ?", id).First(&identity).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "identity not found"})
-			return
-		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get identity"})
-		return
-	}
-
-	writeJSON(w, http.StatusOK, toAdminIdentityResponse(identity))
-}
-
-// DeleteIdentity handles DELETE /admin/v1/identities/{id}.
-// @Summary Delete an identity
-// @Description Permanently deletes an identity and cascades to related data.
-// @Tags admin
-// @Produce json
-// @Param id path string true "Identity ID"
-// @Success 200 {object} map[string]string
-// @Failure 404 {object} errorResponse
-// @Security BearerAuth
-// @Router /admin/v1/identities/{id} [delete]
-func (h *AdminHandler) DeleteIdentity(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-
-	var identity model.Identity
-	if err := h.db.Where("id = ?", id).First(&identity).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "identity not found"})
-			return
-		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get identity"})
-		return
-	}
-
-	if err := h.db.Delete(&identity).Error; err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete identity"})
-		return
-	}
-
-	slog.Info("admin: identity deleted", "identity_id", id)
-	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
-}
-
-// ---------------------------------------------------------------------------
 // Agents
 // ---------------------------------------------------------------------------
 
@@ -2335,142 +2109,6 @@ func (h *AdminHandler) GenerationStats(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
-// Integrations & Connections
-// ---------------------------------------------------------------------------
-
-// ListIntegrations handles GET /admin/v1/integrations.
-// @Summary List all integrations
-// @Description Returns org integrations across all organizations.
-// @Tags admin
-// @Produce json
-// @Param org_id query string false "Filter by org ID"
-// @Param limit query int false "Page size"
-// @Param cursor query string false "Pagination cursor"
-// @Success 200 {object} paginatedResponse[adminIntegrationResponse]
-// @Security BearerAuth
-// @Router /admin/v1/integrations [get]
-func (h *AdminHandler) ListIntegrations(w http.ResponseWriter, r *http.Request) {
-	limit, cursor, err := parsePagination(r)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
-	}
-
-	q := h.db.Model(&model.Integration{})
-	if orgID := r.URL.Query().Get("org_id"); orgID != "" {
-		q = q.Where("org_id = ?", orgID)
-	}
-
-	q = applyPagination(q, cursor, limit)
-
-	var integrations []model.Integration
-	if err := q.Find(&integrations).Error; err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list integrations"})
-		return
-	}
-
-	hasMore := len(integrations) > limit
-	if hasMore {
-		integrations = integrations[:limit]
-	}
-
-	resp := make([]adminIntegrationResponse, len(integrations))
-	for i, integ := range integrations {
-		resp[i] = toAdminIntegrationResponse(integ)
-	}
-
-	result := paginatedResponse[adminIntegrationResponse]{Data: resp, HasMore: hasMore}
-	if hasMore {
-		last := integrations[len(integrations)-1]
-		c := encodeCursor(last.CreatedAt, last.ID)
-		result.NextCursor = &c
-	}
-	writeJSON(w, http.StatusOK, result)
-}
-
-// ListConnections handles GET /admin/v1/connections.
-// @Summary List all connections
-// @Description Returns OAuth connections across all organizations.
-// @Tags admin
-// @Produce json
-// @Param org_id query string false "Filter by org ID"
-// @Param revoked query string false "Filter by revoked status (true/false)"
-// @Param limit query int false "Page size"
-// @Param cursor query string false "Pagination cursor"
-// @Success 200 {object} paginatedResponse[adminConnectionResponse]
-// @Security BearerAuth
-// @Router /admin/v1/connections [get]
-func (h *AdminHandler) ListConnections(w http.ResponseWriter, r *http.Request) {
-	limit, cursor, err := parsePagination(r)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
-	}
-
-	q := h.db.Model(&model.Connection{})
-	if orgID := r.URL.Query().Get("org_id"); orgID != "" {
-		q = q.Where("org_id = ?", orgID)
-	}
-	if r.URL.Query().Get("revoked") == "true" {
-		q = q.Where("revoked_at IS NOT NULL")
-	} else if r.URL.Query().Get("revoked") == "false" {
-		q = q.Where("revoked_at IS NULL")
-	}
-
-	q = applyPagination(q, cursor, limit)
-
-	var connections []model.Connection
-	if err := q.Find(&connections).Error; err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list connections"})
-		return
-	}
-
-	hasMore := len(connections) > limit
-	if hasMore {
-		connections = connections[:limit]
-	}
-
-	resp := make([]adminConnectionResponse, len(connections))
-	for i, c := range connections {
-		resp[i] = toAdminConnectionResponse(c)
-	}
-
-	result := paginatedResponse[adminConnectionResponse]{Data: resp, HasMore: hasMore}
-	if hasMore {
-		last := connections[len(connections)-1]
-		c := encodeCursor(last.CreatedAt, last.ID)
-		result.NextCursor = &c
-	}
-	writeJSON(w, http.StatusOK, result)
-}
-
-// RevokeConnection handles POST /admin/v1/connections/{id}/revoke.
-// @Summary Revoke a connection
-// @Description Force-revokes an OAuth connection.
-// @Tags admin
-// @Produce json
-// @Param id path string true "Connection ID"
-// @Success 200 {object} map[string]string
-// @Failure 404 {object} errorResponse
-// @Security BearerAuth
-// @Router /admin/v1/connections/{id}/revoke [post]
-func (h *AdminHandler) RevokeConnection(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	now := time.Now()
-
-	result := h.db.Model(&model.Connection{}).Where("id = ? AND revoked_at IS NULL", id).Update("revoked_at", now)
-	if result.Error != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to revoke connection"})
-		return
-	}
-	if result.RowsAffected == 0 {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "connection not found or already revoked"})
-		return
-	}
-
-	slog.Info("admin: connection revoked", "connection_id", id)
-	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
-}
 
 // ListInIntegrations handles GET /admin/v1/in-integrations.
 // @Summary List platform integrations
@@ -2538,93 +2176,6 @@ func (h *AdminHandler) ListInConnections(w http.ResponseWriter, r *http.Request)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"data": connections, "has_more": hasMore})
-}
-
-// ---------------------------------------------------------------------------
-// Connect Sessions
-// ---------------------------------------------------------------------------
-
-// ListConnectSessions handles GET /admin/v1/connect-sessions.
-// @Summary List all connect sessions
-// @Description Returns connect sessions across all organizations.
-// @Tags admin
-// @Produce json
-// @Param org_id query string false "Filter by org ID"
-// @Param expired query string false "Filter by expired status (true/false)"
-// @Param limit query int false "Page size"
-// @Param cursor query string false "Pagination cursor"
-// @Success 200 {object} paginatedResponse[adminConnectSessionResponse]
-// @Security BearerAuth
-// @Router /admin/v1/connect-sessions [get]
-func (h *AdminHandler) ListConnectSessions(w http.ResponseWriter, r *http.Request) {
-	limit, cursor, err := parsePagination(r)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
-	}
-
-	q := h.db.Model(&model.ConnectSession{})
-	if orgID := r.URL.Query().Get("org_id"); orgID != "" {
-		q = q.Where("org_id = ?", orgID)
-	}
-	if r.URL.Query().Get("expired") == "true" {
-		q = q.Where("expires_at < ?", time.Now())
-	} else if r.URL.Query().Get("expired") == "false" {
-		q = q.Where("expires_at >= ?", time.Now())
-	}
-
-	q = applyPagination(q, cursor, limit)
-
-	var sessions []model.ConnectSession
-	if err := q.Find(&sessions).Error; err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list connect sessions"})
-		return
-	}
-
-	hasMore := len(sessions) > limit
-	if hasMore {
-		sessions = sessions[:limit]
-	}
-
-	resp := make([]adminConnectSessionResponse, len(sessions))
-	for i, s := range sessions {
-		resp[i] = toAdminConnectSessionResponse(s)
-	}
-
-	result := paginatedResponse[adminConnectSessionResponse]{Data: resp, HasMore: hasMore}
-	if hasMore {
-		last := sessions[len(sessions)-1]
-		c := encodeCursor(last.CreatedAt, last.ID)
-		result.NextCursor = &c
-	}
-	writeJSON(w, http.StatusOK, result)
-}
-
-// DeleteConnectSession handles DELETE /admin/v1/connect-sessions/{id}.
-// @Summary Delete a connect session
-// @Description Force-deletes a connect session.
-// @Tags admin
-// @Produce json
-// @Param id path string true "Session ID"
-// @Success 200 {object} map[string]string
-// @Failure 404 {object} errorResponse
-// @Security BearerAuth
-// @Router /admin/v1/connect-sessions/{id} [delete]
-func (h *AdminHandler) DeleteConnectSession(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-
-	result := h.db.Where("id = ?", id).Delete(&model.ConnectSession{})
-	if result.Error != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete connect session"})
-		return
-	}
-	if result.RowsAffected == 0 {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "connect session not found"})
-		return
-	}
-
-	slog.Info("admin: connect session deleted", "session_id", id)
-	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
 // ---------------------------------------------------------------------------
@@ -3427,7 +2978,6 @@ func (h *AdminHandler) UpdateOrgFull(w http.ResponseWriter, r *http.Request) {
 
 type adminUpdateCredentialRequest struct {
 	Label      *string `json:"label,omitempty"`
-	IdentityID *string `json:"identity_id,omitempty"`
 }
 
 // UpdateCredential handles PUT /admin/v1/credentials/{id}.
@@ -3463,7 +3013,6 @@ func (h *AdminHandler) UpdateCredential(w http.ResponseWriter, r *http.Request) 
 
 	var req struct {
 		Label      *string `json:"label,omitempty"`
-		IdentityID *string `json:"identity_id,omitempty"` // empty string = unassign
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
@@ -3481,24 +3030,6 @@ func (h *AdminHandler) UpdateCredential(w http.ResponseWriter, r *http.Request) 
 		updates["label"] = label
 	}
 
-	if req.IdentityID != nil {
-		if *req.IdentityID == "" {
-			updates["identity_id"] = nil
-		} else {
-			identID, err := uuid.Parse(*req.IdentityID)
-			if err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid identity_id format"})
-				return
-			}
-			// Validate identity exists in the same org
-			var ident model.Identity
-			if err := h.db.Where("id = ? AND org_id = ?", identID, cred.OrgID).First(&ident).Error; err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "identity not found in the same organization"})
-				return
-			}
-			updates["identity_id"] = identID
-		}
-	}
 
 	if len(updates) == 0 {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "no fields to update"})
@@ -3506,9 +3037,6 @@ func (h *AdminHandler) UpdateCredential(w http.ResponseWriter, r *http.Request) 
 	}
 
 	old := map[string]any{"label": cred.Label}
-	if cred.IdentityID != nil {
-		old["identity_id"] = cred.IdentityID.String()
-	}
 	setAuditDiff(r, old, updates)
 
 	if err := h.db.Model(&cred).Updates(updates).Error; err != nil {
@@ -3731,143 +3259,6 @@ type adminUpdateIdentityRequest struct {
 		Limit    int64  `json:"limit"`
 		Duration int64  `json:"duration"`
 	} `json:"ratelimits,omitempty"`
-}
-
-// UpdateIdentity handles PUT /admin/v1/identities/{id}.
-// @Summary Update an identity
-// @Description Updates identity external_id, metadata, memory config, and rate limits.
-// @Tags admin
-// @Accept json
-// @Produce json
-// @Param id path string true "Identity ID"
-// @Param body body adminUpdateIdentityRequest true "Fields to update"
-// @Success 200 {object} adminIdentityResponse
-// @Failure 400 {object} errorResponse
-// @Failure 404 {object} errorResponse
-// @Failure 409 {object} errorResponse
-// @Security BearerAuth
-// @Router /admin/v1/identities/{id} [put]
-func (h *AdminHandler) UpdateIdentity(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-
-	var ident model.Identity
-	if err := h.db.Preload("RateLimits").Where("id = ?", id).First(&ident).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "identity not found"})
-			return
-		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get identity"})
-		return
-	}
-
-	var req struct {
-		ExternalID   *string    `json:"external_id,omitempty"`
-		Meta         model.JSON `json:"meta,omitempty"`
-		MemoryConfig model.JSON `json:"memory_config,omitempty"`
-		RateLimits   []struct {
-			Name     string `json:"name"`
-			Limit    int64  `json:"limit"`
-			Duration int64  `json:"duration"`
-		} `json:"ratelimits,omitempty"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
-		return
-	}
-
-	// Validate rate limits if provided
-	for _, rl := range req.RateLimits {
-		if rl.Name == "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "each ratelimit must have a non-empty name"})
-			return
-		}
-		if rl.Limit <= 0 {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "each ratelimit limit must be > 0"})
-			return
-		}
-		if rl.Duration <= 0 {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "each ratelimit duration must be > 0"})
-			return
-		}
-	}
-
-	// Pre-compute diff for audit before transaction
-	auditChanges := middleware.AdminAuditChanges{}
-	if req.ExternalID != nil && strings.TrimSpace(*req.ExternalID) != ident.ExternalID {
-		auditChanges["external_id"] = map[string]any{"old": ident.ExternalID, "new": strings.TrimSpace(*req.ExternalID)}
-	}
-	if req.Meta != nil {
-		auditChanges["meta"] = map[string]any{"new": "(json updated)"}
-	}
-	if req.MemoryConfig != nil {
-		auditChanges["memory_config"] = map[string]any{"new": "(json updated)"}
-	}
-	if req.RateLimits != nil {
-		auditChanges["ratelimits"] = map[string]any{"old_count": len(ident.RateLimits), "new_count": len(req.RateLimits)}
-	}
-	if len(auditChanges) > 0 {
-		middleware.SetAdminAuditChanges(r, auditChanges)
-	}
-
-	err := h.db.Transaction(func(tx *gorm.DB) error {
-		updates := map[string]any{}
-		if req.ExternalID != nil {
-			extID := strings.TrimSpace(*req.ExternalID)
-			if extID == "" {
-				return fmt.Errorf("validation:external_id cannot be empty")
-			}
-			updates["external_id"] = extID
-		}
-		if req.Meta != nil {
-			updates["meta"] = req.Meta
-		}
-		if req.MemoryConfig != nil {
-			updates["memory_config"] = req.MemoryConfig
-		}
-		if len(updates) > 0 {
-			if err := tx.Model(&ident).Updates(updates).Error; err != nil {
-				return err
-			}
-		}
-
-		// Replace rate limits if provided (even empty array = clear all)
-		if req.RateLimits != nil {
-			if err := tx.Where("identity_id = ?", ident.ID).Delete(&model.IdentityRateLimit{}).Error; err != nil {
-				return err
-			}
-			for _, rl := range req.RateLimits {
-				newRL := model.IdentityRateLimit{
-					ID:         uuid.New(),
-					IdentityID: ident.ID,
-					Name:       rl.Name,
-					Limit:      rl.Limit,
-					Duration:   rl.Duration,
-				}
-				if err := tx.Create(&newRL).Error; err != nil {
-					return err
-				}
-			}
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "validation:") {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": strings.TrimPrefix(err.Error(), "validation:")})
-			return
-		}
-		if isDuplicateKeyError(err) {
-			writeJSON(w, http.StatusConflict, map[string]string{"error": "external_id already in use within this organization"})
-			return
-		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update identity"})
-		return
-	}
-
-	h.db.Preload("RateLimits").Where("id = ?", id).First(&ident)
-	slog.Info("admin: identity updated", "identity_id", id)
-	writeJSON(w, http.StatusOK, toAdminIdentityResponse(ident))
 }
 
 // ---------------------------------------------------------------------------

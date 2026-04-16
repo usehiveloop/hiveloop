@@ -193,10 +193,6 @@ func buildGeneration(r *http.Request, claims *TokenClaims, captured *observe.Cap
 	gen.Cost = calculateCost(reg, providerID, captured.Model, captured.Usage)
 
 	// Identity from context
-	if identID, ok := CredentialIdentityIDFromContext(r.Context()); ok && identID != nil {
-		gen.IdentityID = identID
-	}
-
 	// Attribution from token meta
 	extractAttribution(db, claims.JTI, &gen)
 

@@ -10,8 +10,6 @@ type Sandbox struct {
 	ID                uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	OrgID             *uuid.UUID       `gorm:"type:uuid;index"`                          // nil for pool sandboxes
 	Org               *Org             `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	IdentityID        *uuid.UUID       `gorm:"type:uuid;index"`                          // nil for pool sandboxes
-	Identity          *Identity        `gorm:"foreignKey:IdentityID;constraint:OnDelete:CASCADE"`
 	SandboxType       string           `gorm:"not null;index"` // "shared" or "dedicated"
 	AgentID           *uuid.UUID       `gorm:"type:uuid;index"`
 	Agent             *Agent           `gorm:"foreignKey:AgentID;constraint:OnDelete:SET NULL"`

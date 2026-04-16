@@ -1,13 +1,10 @@
 package handler
 
 import (
-	"bytes"
-	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -20,7 +17,6 @@ import (
 	"github.com/ziraloop/ziraloop/internal/crypto"
 	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/tasks"
 )
 
 // NangoWebhookHandler receives webhook events forwarded by Nango.
@@ -77,9 +73,7 @@ type webhookPayload struct {
 // webhookContext holds resolved entities from a Nango webhook.
 type webhookContext struct {
 	orgID        uuid.UUID
-	integration  *model.Integration
-	connection   *model.Connection    // old connections table — used for org webhook forwarding
-	inConnection *model.InConnection  // new in_connections table — used for trigger dispatch
+	inConnection *model.InConnection
 }
 
 // Handle processes POST /internal/webhooks/nango.
@@ -141,61 +135,12 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	// affect the other.
 	dispatchTrigger(h.enqueuer, &wh, wctx)
 
-	if h.enqueuer != nil {
-		h.enqueueForward(&wh, wctx, w)
-	} else {
-		h.syncForward(r.Context(), &wh, wctx, w)
-	}
+	h.acknowledge(w)
 }
 
-// enqueueForward builds the enriched payload and enqueues it for async delivery.
-func (h *NangoWebhookHandler) enqueueForward(wh *nangoWebhook, wctx *webhookContext, w http.ResponseWriter) {
-	var config model.OrgWebhookConfig
-	if err := h.db.Where("org_id = ?", wctx.orgID).First(&config).Error; err != nil {
-		slog.Info("nango webhook: no org webhook config, acknowledging", "org_id", wctx.orgID)
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-		return
-	}
-
-	body := h.buildEnrichedBody(wh, wctx)
-
-	task, err := tasks.NewWebhookForwardTask(config.URL, config.EncryptedSecret, body)
-	if err != nil {
-		slog.Error("nango webhook: failed to create forward task", "error", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
-		return
-	}
-
-	if _, err := h.enqueuer.Enqueue(task); err != nil {
-		slog.Error("nango webhook: failed to enqueue forward task", "error", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
-		return
-	}
-
-	slog.Info("nango webhook: enqueued for async delivery", "org_id", wctx.orgID, "webhook_url", config.URL)
+// acknowledge responds with a 200 OK to the Nango webhook.
+func (h *NangoWebhookHandler) acknowledge(w http.ResponseWriter) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-}
-
-// syncForward falls back to synchronous forwarding when no enqueuer is configured.
-func (h *NangoWebhookHandler) syncForward(ctx context.Context, wh *nangoWebhook, wctx *webhookContext, w http.ResponseWriter) {
-	statusCode, respBody, forwarded := h.forwardToOrg(ctx, wh, wctx)
-	if !forwarded {
-		slog.Info("nango webhook: no org webhook config, acknowledging", "org_id", wctx.orgID)
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-		return
-	}
-
-	slog.Info("nango webhook: forwarding complete",
-		"org_id", wctx.orgID,
-		"response_status", statusCode,
-		"response_size", len(respBody),
-	)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	if respBody != nil {
-		w.Write(respBody)
-	}
 }
 
 // buildEnrichedBody builds the JSON body for the enriched webhook payload.
@@ -209,17 +154,12 @@ func (h *NangoWebhookHandler) buildEnrichedBody(wh *nangoWebhook, wctx *webhookC
 		Payload:   wh.Payload,
 		OrgID:     wctx.orgID.String(),
 	}
-	if wctx.integration != nil {
-		payload.IntegrationID = wctx.integration.ID.String()
-		payload.IntegrationName = wctx.integration.DisplayName
+	if wctx.inConnection != nil {
+		payload.IntegrationID = wctx.inConnection.InIntegrationID.String()
+		payload.IntegrationName = wctx.inConnection.InIntegration.DisplayName
+		payload.ConnectionID = wctx.inConnection.ID.String()
 		if provider == "" {
-			payload.Provider = wctx.integration.Provider
-		}
-	}
-	if wctx.connection != nil {
-		payload.ConnectionID = wctx.connection.ID.String()
-		if wctx.connection.IdentityID != nil {
-			payload.IdentityID = wctx.connection.IdentityID.String()
+			payload.Provider = wctx.inConnection.InIntegration.Provider
 		}
 	}
 
@@ -257,58 +197,26 @@ func (h *NangoWebhookHandler) identify(wh *nangoWebhook) *webhookContext {
 
 	wctx := &webhookContext{orgID: orgID}
 
-	var integration model.Integration
-	if err := h.db.Where("org_id = ? AND unique_key = ? AND deleted_at IS NULL", orgID, uniqueKey).
-		First(&integration).Error; err != nil {
-		slog.Warn("nango webhook: integration not found",
+	var inConnection model.InConnection
+	if err := h.db.Preload("InIntegration").
+		Where("nango_connection_id = ? AND org_id = ? AND revoked_at IS NULL",
+			wh.ConnectionID, orgID).First(&inConnection).Error; err != nil {
+		slog.Warn("nango webhook: in-connection not found",
 			"org_id", orgID,
-			"unique_key", uniqueKey,
-			"type", wh.Type,
-			"error", err,
-		)
-		return wctx
-	}
-	wctx.integration = &integration
-
-	slog.Info("nango webhook: resolved integration",
-		"org_id", orgID,
-		"integration_id", integration.ID,
-		"provider", integration.Provider,
-		"display_name", integration.DisplayName,
-	)
-
-	var connection model.Connection
-	if err := h.db.Where("nango_connection_id = ? AND integration_id = ? AND revoked_at IS NULL",
-		wh.ConnectionID, integration.ID).First(&connection).Error; err != nil {
-		slog.Warn("nango webhook: connection not found",
-			"org_id", orgID,
-			"integration_id", integration.ID,
 			"nango_connection_id", wh.ConnectionID,
 			"type", wh.Type,
 			"error", err,
 		)
 		return wctx
 	}
-	wctx.connection = &connection
-
-	// Also resolve the InConnection (new integrations system) for trigger dispatch.
-	var inConnection model.InConnection
-	if err := h.db.Preload("InIntegration").
-		Where("nango_connection_id = ? AND org_id = ? AND revoked_at IS NULL",
-			wh.ConnectionID, orgID).First(&inConnection).Error; err == nil {
-		wctx.inConnection = &inConnection
-	}
+	wctx.inConnection = &inConnection
 
 	logAttrs := []any{
 		"type", wh.Type,
-		"provider", integration.Provider,
+		"provider", inConnection.InIntegration.Provider,
 		"org_id", orgID,
-		"integration_id", integration.ID,
-		"connection_id", connection.ID,
+		"connection_id", inConnection.ID,
 		"nango_connection_id", wh.ConnectionID,
-	}
-	if connection.IdentityID != nil {
-		logAttrs = append(logAttrs, "identity_id", *connection.IdentityID)
 	}
 	if wh.Type == "auth" {
 		logAttrs = append(logAttrs, "operation", wh.Operation)
@@ -322,126 +230,6 @@ func (h *NangoWebhookHandler) identify(wh *nangoWebhook) *webhookContext {
 	slog.Info("nango webhook: fully resolved", logAttrs...)
 
 	return wctx
-}
-
-// forwardToOrg forwards the enriched webhook to the org's configured endpoint.
-func (h *NangoWebhookHandler) forwardToOrg(
-	ctx context.Context,
-	wh *nangoWebhook,
-	wctx *webhookContext,
-) (statusCode int, respBody []byte, forwarded bool) {
-	var config model.OrgWebhookConfig
-	if err := h.db.Where("org_id = ?", wctx.orgID).First(&config).Error; err != nil {
-		return 0, nil, false
-	}
-
-	slog.Info("nango webhook: org webhook config found",
-		"org_id", wctx.orgID,
-		"webhook_url", config.URL,
-	)
-
-	if h.encKey == nil {
-		slog.Error("nango webhook: encryption key not configured, cannot decrypt signing secret",
-			"org_id", wctx.orgID,
-		)
-		return 0, nil, false
-	}
-	secret, err := h.encKey.DecryptString(config.EncryptedSecret)
-	if err != nil {
-		slog.Error("nango webhook: failed to decrypt webhook secret",
-			"org_id", wctx.orgID,
-			"error", err,
-		)
-		return http.StatusBadGateway, nil, true
-	}
-
-	provider := wh.Provider
-	payload := webhookPayload{
-		Type:      wh.Type,
-		Provider:  provider,
-		Operation: wh.Operation,
-		Success:   wh.Success,
-		Payload:   wh.Payload,
-		OrgID:     wctx.orgID.String(),
-	}
-	if wctx.integration != nil {
-		payload.IntegrationID = wctx.integration.ID.String()
-		payload.IntegrationName = wctx.integration.DisplayName
-		if provider == "" {
-			provider = wctx.integration.Provider
-			payload.Provider = provider
-		}
-	}
-	if wctx.connection != nil {
-		payload.ConnectionID = wctx.connection.ID.String()
-		if wctx.connection.IdentityID != nil {
-			payload.IdentityID = wctx.connection.IdentityID.String()
-		}
-	}
-
-	body, err := json.Marshal(payload)
-	if err != nil {
-		slog.Error("nango webhook: failed to marshal enriched payload",
-			"org_id", wctx.orgID,
-			"error", err,
-		)
-		return http.StatusBadGateway, nil, true
-	}
-
-	slog.Info("nango webhook: forwarding to org",
-		"org_id", wctx.orgID,
-		"webhook_url", config.URL,
-		"enriched_payload_size", len(body),
-		"provider", provider,
-		"type", wh.Type,
-	)
-
-	timestamp := time.Now().Unix()
-	signature := signWebhookPayload(body, secret, timestamp)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, config.URL, bytes.NewReader(body))
-	if err != nil {
-		slog.Error("nango webhook: failed to create forward request",
-			"org_id", wctx.orgID,
-			"webhook_url", config.URL,
-			"error", err,
-		)
-		return http.StatusBadGateway, nil, true
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-ZiraLoop-Signature", signature)
-	req.Header.Set("X-ZiraLoop-Timestamp", fmt.Sprintf("%d", timestamp))
-
-	resp, err := h.httpClient.Do(req)
-	if err != nil {
-		slog.Error("nango webhook: forward request failed",
-			"org_id", wctx.orgID,
-			"webhook_url", config.URL,
-			"error", err,
-		)
-		return http.StatusBadGateway, nil, true
-	}
-	defer resp.Body.Close()
-
-	respBytes, _ := io.ReadAll(resp.Body)
-
-	slog.Info("nango webhook: forward response received",
-		"org_id", wctx.orgID,
-		"webhook_url", config.URL,
-		"response_status", resp.StatusCode,
-		"response_size", len(respBytes),
-	)
-
-	if resp.StatusCode >= 500 {
-		slog.Warn("nango webhook: org endpoint returned 5xx, returning 502 to trigger Nango retry",
-			"org_id", wctx.orgID,
-			"webhook_url", config.URL,
-			"response_status", resp.StatusCode,
-		)
-		return http.StatusBadGateway, respBytes, true
-	}
-
-	return resp.StatusCode, respBytes, true
 }
 
 // parseProviderConfigKey splits "{orgID}_{uniqueKey}" into its parts.
@@ -464,13 +252,4 @@ func verifyNangoSignature(body []byte, secret string, signature string) bool {
 	mac.Write(body)
 	expected := hex.EncodeToString(mac.Sum(nil))
 	return hmac.Equal([]byte(expected), []byte(signature))
-}
-
-// signWebhookPayload signs a payload for forwarding to the org's endpoint.
-// Format: HMAC-SHA256("{timestamp}.{body}", secret), hex-encoded.
-func signWebhookPayload(body []byte, secret string, timestamp int64) string {
-	message := fmt.Sprintf("%d.%s", timestamp, string(body))
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write([]byte(message))
-	return hex.EncodeToString(mac.Sum(nil))
 }

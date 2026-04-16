@@ -64,14 +64,8 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	}
 	credHandler := handler.NewCredentialHandler(database, deps.KMS, cacheManager, ctr)
 	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr, actionsCatalog, cfg.MCPBaseURL, mcpHandler.ServerCache)
-	identityHandler := handler.NewIdentityHandler(database, sandboxEncKey)
 	providerHandler := handler.NewProviderHandler(reg)
-	connectSessionHandler := handler.NewConnectSessionHandler(database)
-	connectAPIHandler := handler.NewConnectAPIHandler(database, deps.KMS, reg, nangoClient, actionsCatalog)
-	settingsHandler := handler.NewSettingsHandler(database, sandboxEncKey)
 	customDomainHandler := handler.NewCustomDomainHandler(database, cfg)
-	integrationHandler := handler.NewIntegrationHandler(database, nangoClient, actionsCatalog)
-	connectionHandler := handler.NewConnectionHandler(database, nangoClient, actionsCatalog)
 	inIntegrationHandler := handler.NewInIntegrationHandler(database, nangoClient, actionsCatalog)
 	inConnectionHandler := handler.NewInConnectionHandler(database, nangoClient, actionsCatalog)
 	orgHandler := handler.NewOrgHandler(database)
@@ -283,39 +277,18 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("all"))
-				r.Post("/identities", identityHandler.Create)
-				r.Get("/identities", identityHandler.List)
-				r.Get("/identities/{id}", identityHandler.Get)
-				r.Put("/identities/{id}", identityHandler.Update)
-				r.Delete("/identities/{id}", identityHandler.Delete)
 			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("connect"))
-				r.Post("/connect/sessions", connectSessionHandler.Create)
-				r.Get("/connect/sessions", connectSessionHandler.List)
-				r.Get("/connect/sessions/{id}", connectSessionHandler.Get)
-				r.Delete("/connect/sessions/{id}", connectSessionHandler.Delete)
 			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("integrations"))
-				r.Get("/integrations/providers", integrationHandler.ListProviders)
-				r.Post("/integrations", integrationHandler.Create)
-				r.Get("/integrations", integrationHandler.List)
-				r.Get("/integrations/{id}", integrationHandler.Get)
-				r.Put("/integrations/{id}", integrationHandler.Update)
-				r.Delete("/integrations/{id}", integrationHandler.Delete)
-				r.Post("/integrations/{id}/connections", connectionHandler.Create)
-				r.Get("/integrations/{id}/connections", connectionHandler.List)
 			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("integrations"))
-				r.Get("/connections/available-scopes", connectionHandler.AvailableScopes)
-				r.Get("/connections/{id}", connectionHandler.Get)
-				r.HandleFunc("/connections/{id}/proxy/*", connectionHandler.Proxy)
-				r.Delete("/connections/{id}", connectionHandler.Revoke)
 			})
 
 			r.Group(func(r chi.Router) {
@@ -424,12 +397,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("all"))
-				r.Get("/settings/connect", settingsHandler.GetConnectSettings)
-				r.Put("/settings/connect", settingsHandler.UpdateConnectSettings)
-				r.Get("/settings/webhooks", settingsHandler.GetWebhookSettings)
-				r.Put("/settings/webhooks", settingsHandler.UpdateWebhookSettings)
-				r.Post("/settings/webhooks/rotate-secret", settingsHandler.RotateWebhookSecret)
-				r.Delete("/settings/webhooks", settingsHandler.DeleteWebhookSettings)
 				r.Post("/custom-domains", customDomainHandler.Create)
 				r.Get("/custom-domains", customDomainHandler.List)
 				r.Post("/custom-domains/{id}/verify", customDomainHandler.Verify)
@@ -439,26 +406,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	})
 
 	// Connect API (session-authenticated)
-	r.Route("/v1/widget", func(r chi.Router) {
-		r.Use(middleware.ConnectSessionAuth(database))
-		r.Use(middleware.ConnectSecurityHeaders())
-		r.Use(middleware.ConnectCORS())
-		r.Get("/session", connectAPIHandler.SessionInfo)
-		r.Get("/providers", connectAPIHandler.ListProviders)
-		r.Route("/integrations", func(r chi.Router) {
-			r.Get("/providers", integrationHandler.ListProviders)
-			r.Get("/", connectAPIHandler.ListIntegrations)
-			r.Post("/{id}/connect-session", connectAPIHandler.CreateIntegrationConnectSession)
-			r.Get("/{id}/resources/{type}/available", connectAPIHandler.ListAvailableResources)
-			r.Post("/{id}/connections", connectAPIHandler.CreateIntegrationConnection)
-			r.Patch("/{id}/connections/{connectionId}", connectAPIHandler.PatchIntegrationConnection)
-			r.Delete("/{id}/connections/{connectionId}", connectAPIHandler.DeleteIntegrationConnection)
-		})
-		r.Get("/connections", connectAPIHandler.ListConnections)
-		r.Post("/connections", connectAPIHandler.CreateConnection)
-		r.Delete("/connections/{id}", connectAPIHandler.DeleteConnection)
-		r.Post("/connections/{id}/verify", connectAPIHandler.VerifyConnection)
-	})
 
 	// In-integrations & in-connections
 	var platformAdminEmails []string
@@ -525,10 +472,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			r.Post("/api-keys/{id}/revoke", adminHandler.RevokeAPIKey)
 			r.Get("/tokens", adminHandler.ListTokens)
 			r.Post("/tokens/{id}/revoke", adminHandler.RevokeToken)
-			r.Get("/identities", adminHandler.ListIdentities)
-			r.Get("/identities/{id}", adminHandler.GetIdentity)
-			r.Put("/identities/{id}", adminHandler.UpdateIdentity)
-			r.Delete("/identities/{id}", adminHandler.DeleteIdentity)
 			r.Get("/agents", adminHandler.ListAgents)
 			r.Get("/agents/{id}", adminHandler.GetAgent)
 			r.Put("/agents/{id}", adminHandler.UpdateAgent)
@@ -554,9 +497,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			r.Delete("/conversations/{id}", adminHandler.EndConversation)
 			r.Get("/generations", adminHandler.ListGenerations)
 			r.Get("/generations/stats", adminHandler.GenerationStats)
-			r.Get("/integrations", adminHandler.ListIntegrations)
-			r.Get("/connections", adminHandler.ListConnections)
-			r.Post("/connections/{id}/revoke", adminHandler.RevokeConnection)
 			r.Get("/in-integration-providers", adminHandler.ListInIntegrationProviders)
 			r.Post("/in-integrations", adminHandler.CreateInIntegration)
 			r.Get("/in-integrations", adminHandler.ListInIntegrations)
@@ -564,8 +504,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			r.Put("/in-integrations/{id}", adminHandler.UpdateInIntegration)
 			r.Delete("/in-integrations/{id}", adminHandler.DeleteInIntegration)
 			r.Get("/in-connections", adminHandler.ListInConnections)
-			r.Get("/connect-sessions", adminHandler.ListConnectSessions)
-			r.Delete("/connect-sessions/{id}", adminHandler.DeleteConnectSession)
 			r.Get("/custom-domains", adminHandler.ListCustomDomains)
 			r.Delete("/custom-domains/{id}", adminHandler.DeleteCustomDomain)
 			r.Get("/audit", adminHandler.ListAudit)
@@ -584,7 +522,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	// Proxy routes
 	r.Route("/v1/proxy", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, database))
-		r.Use(middleware.IdentityRateLimit(redisClient, database))
 		r.Use(middleware.RemainingCheck(ctr))
 		r.Use(middleware.Audit(auditWriter, "proxy.request"))
 		r.Use(middleware.Generation(generationWriter, database))

@@ -205,7 +205,7 @@ func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *m
 		JTI:          jti,
 		ExpiresAt:    expiresAt,
 		Scopes:       rotateScopesJSON,
-		Meta:         model.JSON{"agent_id": agent.ID.String(), "identity_id": ptrToString(agent.IdentityID), "type": "agent_proxy"},
+		Meta:         model.JSON{"agent_id": agent.ID.String(), "type": "agent_proxy"},
 	}
 	if err := p.db.Create(&dbToken).Error; err != nil {
 		return fmt.Errorf("storing new token: %w", err)
@@ -279,7 +279,7 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		JTI:          jti,
 		ExpiresAt:    expiresAt,
 		Scopes:       scopesJSON,
-		Meta:         model.JSON{"agent_id": agent.ID.String(), "identity_id": ptrToString(agent.IdentityID), "type": "agent_proxy"},
+		Meta:         model.JSON{"agent_id": agent.ID.String(), "type": "agent_proxy"},
 	}
 	if err := p.db.Create(&dbToken).Error; err != nil {
 		return fmt.Errorf("storing proxy token: %w", err)

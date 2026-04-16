@@ -78,7 +78,6 @@ type agentTriggerResponse struct {
 type createAgentRequest struct {
 	Name              string     `json:"name"`
 	Description       *string    `json:"description,omitempty"`
-	IdentityID        string     `json:"identity_id"`
 	CredentialID      string     `json:"credential_id"`
 	SandboxType       string     `json:"sandbox_type"`
 	SandboxTemplateID *string    `json:"sandbox_template_id,omitempty"`
@@ -133,6 +132,16 @@ type agentSubagentSummary struct {
 	Model       string  `json:"model"`
 }
 
+type setupRequest struct {
+	SetupCommands []string          `json:"setup_commands"`
+	EnvVars       map[string]string `json:"env_vars"`
+}
+
+type setupResponse struct {
+	SetupCommands []string `json:"setup_commands"`
+	EnvVarKeys    []string `json:"env_var_keys"`
+}
+
 // agentSkillSummary is a lightweight skill included in agent responses.
 type agentSkillSummary struct {
 	ID          string  `json:"id"`
@@ -145,7 +154,6 @@ type agentResponse struct {
 	ID                string     `json:"id"`
 	Name              string     `json:"name"`
 	Description       *string    `json:"description,omitempty"`
-	IdentityID        *string    `json:"identity_id,omitempty"`
 	CredentialID      string     `json:"credential_id"`
 	ProviderID        string     `json:"provider_id"`
 	SandboxType       string     `json:"sandbox_type"`
@@ -199,10 +207,6 @@ func toAgentResponse(a model.Agent) agentResponse {
 	}
 	if a.CredentialID != nil {
 		resp.CredentialID = a.CredentialID.String()
-	}
-	if a.IdentityID != nil {
-		s := a.IdentityID.String()
-		resp.IdentityID = &s
 	}
 	if a.SandboxID != nil {
 		s := a.SandboxID.String()
@@ -497,21 +501,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Validate identity exists and belongs to org (optional)
-	var identity *model.Identity
-	if req.IdentityID != "" {
-		var ident model.Identity
-		if err := h.db.Where("id = ? AND org_id = ?", req.IdentityID, org.ID).First(&ident).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "identity not found"})
-				return
-			}
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to validate identity"})
-			return
-		}
-		identity = &ident
-	}
-
 	// Validate credential exists, belongs to org, and is not revoked
 	var cred model.Credential
 	if err := h.db.Where("id = ? AND org_id = ? AND revoked_at IS NULL", req.CredentialID, org.ID).First(&cred).Error; err != nil {
@@ -568,10 +557,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		SandboxTools: pq.StringArray(req.SandboxTools),
 		Status:       "active",
 	}
-	if identity != nil {
-		agent.IdentityID = &identity.ID
-	}
-
 	// Set default tool permissions if not explicitly provided.
 	if len(agent.Permissions) == 0 {
 		agent.Permissions = defaultToolPermissions(agent.SandboxType)
@@ -725,7 +710,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Reload with credential for response
-	h.db.Preload("Credential").Preload("Identity").Where("id = ?", agent.ID).First(&agent)
+	h.db.Preload("Credential").Where("id = ?", agent.ID).First(&agent)
 
 	// Push shared agents to Bridge (dedicated agents are pushed lazily on conversation create)
 	if h.pusher != nil && agent.SandboxType == "shared" {
@@ -769,11 +754,8 @@ func (h *AgentHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := h.db.Preload("Credential").Preload("Identity").Where("agents.org_id = ? AND agents.is_system = false AND agents.deleted_at IS NULL", org.ID)
+	q := h.db.Preload("Credential").Where("agents.org_id = ? AND agents.is_system = false AND agents.deleted_at IS NULL", org.ID)
 
-	if identityID := r.URL.Query().Get("identity_id"); identityID != "" {
-		q = q.Where("agents.identity_id = ?", identityID)
-	}
 	if status := r.URL.Query().Get("status"); status != "" {
 		q = q.Where("agents.status = ?", status)
 	}
@@ -840,7 +822,7 @@ func (h *AgentHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 	var agent model.Agent
-	if err := h.db.Preload("Credential").Preload("Identity").Where("id = ? AND org_id = ? AND is_system = false AND deleted_at IS NULL", id, org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Preload("Credential").Where("id = ? AND org_id = ? AND is_system = false AND deleted_at IS NULL", id, org.ID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return
@@ -1064,7 +1046,7 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Reload with credential
-	h.db.Preload("Credential").Preload("Identity").Where("id = ?", agent.ID).First(&agent)
+	h.db.Preload("Credential").Where("id = ?", agent.ID).First(&agent)
 
 	// Re-push shared agents to Bridge on update (including dedicated → shared transition)
 	if h.pusher != nil && agent.SandboxType == "shared" && len(updates) > 0 {

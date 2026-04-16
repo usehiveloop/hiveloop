@@ -79,7 +79,7 @@ func (r *PlannedStepRegistry) Names() []string {
 
 // ConnectionWithActions pairs a connection with its provider's read actions.
 type ConnectionWithActions struct {
-	Connection  model.Connection
+	Connection  model.InConnection
 	Provider    string
 	ReadActions map[string]catalog.ActionDef // keyed by action key
 }

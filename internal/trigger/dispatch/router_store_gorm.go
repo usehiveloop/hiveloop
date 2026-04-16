@@ -104,8 +104,8 @@ func (store *GormRouterTriggerStore) LoadOrgAgents(ctx context.Context, orgID uu
 }
 
 func (store *GormRouterTriggerStore) LoadOrgConnections(ctx context.Context, orgID uuid.UUID, excludeConnID uuid.UUID) ([]zira.ConnectionWithActions, error) {
-	var connections []model.Connection
-	query := store.db.WithContext(ctx).Preload("Integration").
+	var connections []model.InConnection
+	query := store.db.WithContext(ctx).Preload("InIntegration").
 		Where("org_id = ? AND revoked_at IS NULL", orgID)
 	if excludeConnID != uuid.Nil {
 		query = query.Where("id != ?", excludeConnID)
@@ -116,7 +116,7 @@ func (store *GormRouterTriggerStore) LoadOrgConnections(ctx context.Context, org
 
 	results := make([]zira.ConnectionWithActions, 0, len(connections))
 	for _, conn := range connections {
-		provider := conn.Integration.Provider
+		provider := conn.InIntegration.Provider
 
 		// Build read-actions map from catalog.
 		providerDef, ok := store.catalog.GetProvider(provider)
