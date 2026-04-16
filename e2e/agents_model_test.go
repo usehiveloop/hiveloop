@@ -26,8 +26,6 @@ func TestAgentModels_CRUD(t *testing.T) {
 	h.db.Create(&cred)
 	t.Cleanup(func() { h.db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
 
-	h.db.Create(&identity)
-
 	// === SandboxTemplate ===
 	t.Run("SandboxTemplate_CRUD", func(t *testing.T) {
 		st := model.SandboxTemplate{
@@ -218,8 +216,6 @@ func TestAgentModels_CascadeDelete(t *testing.T) {
 		EncryptedKey: []byte("enc"), WrappedDEK: []byte("dek"),
 	}
 	h.db.Create(&cred)
-
-	h.db.Create(&identity)
 
 	st := model.SandboxTemplate{OrgID: &org.ID, Name: "cascade-tmpl-" + suffix, Slug: "zira-cascade-" + suffix, Tags: model.JSON{}}
 	h.db.Create(&st)
