@@ -35,7 +35,6 @@ const sections = [
       { label: "Credentials", href: "/dashboard/credentials" },
       { label: "API Keys", href: "/dashboard/api-keys" },
       { label: "Tokens", href: "/dashboard/tokens" },
-      { label: "Identities", href: "/dashboard/identities" },
     ],
   },
   {
@@ -53,9 +52,6 @@ const sections = [
     label: "Integrations",
     items: [
       { label: "Platform Integrations", href: "/dashboard/in-integrations" },
-      { label: "Org Integrations", href: "/dashboard/integrations" },
-      { label: "Connections", href: "/dashboard/connections" },
-      { label: "Connect Sessions", href: "/dashboard/connect-sessions" },
     ],
   },
   {

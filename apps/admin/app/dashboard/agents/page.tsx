@@ -189,7 +189,6 @@ export default function AgentsPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Model</TableHead>
                 <TableHead>Org ID</TableHead>
-                <TableHead>Identity ID</TableHead>
                 <TableHead>Sandbox Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
@@ -209,7 +208,6 @@ export default function AgentsPage() {
                     {agent.org_id?.slice(0, 8) ?? "--"}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
-                    {agent.identity_id?.slice(0, 8) ?? "--"}
                   </TableCell>
                   <TableCell className="capitalize">
                     {agent.sandbox_type || "--"}
