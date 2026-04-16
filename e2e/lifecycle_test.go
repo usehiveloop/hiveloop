@@ -37,8 +37,6 @@ func newLifecycleHarness(t *testing.T) *lifecycleHarness {
 	h.db.Create(&org)
 	t.Cleanup(func() { h.db.Where("id = ?", org.ID).Delete(&model.Org{}) })
 
-	h.db.Create(&identity)
-
 	cred := model.Credential{
 		OrgID: org.ID, BaseURL: "https://api.openai.com", AuthScheme: "bearer",
 		ProviderID: "openai", EncryptedKey: []byte("enc"), WrappedDEK: []byte("dek"),
@@ -105,7 +103,6 @@ func newLifecycleHarness(t *testing.T) *lifecycleHarness {
 	return &lifecycleHarness{
 		testHarness: h,
 		org:         org,
-		identity:    identity,
 		cred:        cred,
 		agent:       agent,
 		sandbox:     sandbox,
@@ -260,7 +257,7 @@ func TestListSandboxes_FilterByStatus(t *testing.T) {
 func TestListSandboxes_FilterByIdentity(t *testing.T) {
 	lh := newLifecycleHarness(t)
 
-	rr := lh.request(t, http.MethodGet, fmt.Sprintf("/v1/sandboxes?identity_id=%s", lh.identity.ID))
+	rr := lh.request(t, http.MethodGet, fmt.Sprintf("/v1/sandboxes?identity_id=%s", luuid.New()))
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rr.Code)
 	}

@@ -58,9 +58,6 @@ func newAgentAPIHarness(t *testing.T) *agentAPIHarness {
 	})
 
 	// Create identity (agents must be tied to an identity)
-	if err := h.db.Create(&identity).Error; err != nil {
-		t.Fatalf("create identity: %v", err)
-	}
 	t.Cleanup(func() {
 	})
 
@@ -96,7 +93,6 @@ func newAgentAPIHarness(t *testing.T) *agentAPIHarness {
 		testHarness: h,
 		org:         org,
 		cred:        cred,
-		identity:    identity,
 		router:      r,
 	}
 }
@@ -235,14 +231,13 @@ func TestAgentAPI_CRUD(t *testing.T) {
 	body := fmt.Sprintf(`{
 		"name": "support-agent-%s",
 		"description": "Customer support bot",
-		"identity_id": %q,
 		"credential_id": %q,
 		"sandbox_type": "shared",
 		"system_prompt": "You are a helpful customer support agent.",
 		"model": "gpt-5.4",
 		"agent_config": {"max_tokens": 4096, "temperature": 0.3},
 		"permissions": {"bash": "require_approval"}
-	}`, suffix, h.identity.ID.String(), h.cred.ID.String())
+	}`, suffix, h.cred.ID.String())
 
 	rr := h.request(t, http.MethodPost, "/v1/agents", body)
 	if rr.Code != http.StatusCreated {
@@ -253,7 +248,6 @@ func TestAgentAPI_CRUD(t *testing.T) {
 		ID           string         `json:"id"`
 		Name         string         `json:"name"`
 		Description  *string        `json:"description"`
-		IdentityID   *string        `json:"identity_id"`
 		CredentialID string         `json:"credential_id"`
 		ProviderID   string         `json:"provider_id"`
 		SandboxType  string         `json:"sandbox_type"`
@@ -274,9 +268,6 @@ func TestAgentAPI_CRUD(t *testing.T) {
 	}
 	if created.Description == nil || *created.Description != "Customer support bot" {
 		t.Errorf("description: got %v", created.Description)
-	}
-	if created.IdentityID == nil || *created.IdentityID != h.identity.ID.String() {
-		t.Errorf("identity_id: got %v, want %s", created.IdentityID, h.identity.ID)
 	}
 	if created.CredentialID != h.cred.ID.String() {
 		t.Errorf("credential_id: got %q", created.CredentialID)
@@ -366,27 +357,27 @@ func TestAgentAPI_Validation(t *testing.T) {
 
 	// Invalid sandbox_type
 	rr = h.request(t, http.MethodPost, "/v1/agents", fmt.Sprintf(`{
-		"name": "test", "identity_id": %q, "credential_id": %q, "sandbox_type": "invalid",
+		"name": "test", "credential_id": %q, "sandbox_type": "invalid",
 		"system_prompt": "test", "model": "gpt-5.4"
-	}`, h.identity.ID.String(), h.cred.ID.String()))
+	}`, h.cred.ID.String()))
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("invalid sandbox_type: expected 400, got %d: %s", rr.Code, rr.Body.String())
 	}
 
 	// Non-existent credential
 	rr = h.request(t, http.MethodPost, "/v1/agents", fmt.Sprintf(`{
-		"name": "test", "identity_id": %q, "credential_id": %q, "sandbox_type": "shared",
+		"name": "test", "credential_id": %q, "sandbox_type": "shared",
 		"system_prompt": "test", "model": "gpt-5.4"
-	}`, h.identity.ID.String(), uuid.New().String()))
+	}`, uuid.New().String()))
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("bad credential: expected 400, got %d: %s", rr.Code, rr.Body.String())
 	}
 
 	// Model not supported by provider
 	rr = h.request(t, http.MethodPost, "/v1/agents", fmt.Sprintf(`{
-		"name": "test", "identity_id": %q, "credential_id": %q, "sandbox_type": "shared",
+		"name": "test", "credential_id": %q, "sandbox_type": "shared",
 		"system_prompt": "test", "model": "claude-opus-4-20250514"
-	}`, h.identity.ID.String(), h.cred.ID.String()))
+	}`, h.cred.ID.String()))
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("wrong provider model: expected 400, got %d: %s", rr.Code, rr.Body.String())
 	}
@@ -409,9 +400,9 @@ func TestAgentAPI_DuplicateName(t *testing.T) {
 	name := "dup-agent-" + suffix
 
 	body := fmt.Sprintf(`{
-		"name": %q, "identity_id": %q, "credential_id": %q, "sandbox_type": "shared",
+		"name": %q, "credential_id": %q, "sandbox_type": "shared",
 		"system_prompt": "test", "model": "gpt-5.4"
-	}`, name, h.identity.ID.String(), h.cred.ID.String())
+	}`, name, h.cred.ID.String())
 
 	// First create succeeds
 	rr := h.request(t, http.MethodPost, "/v1/agents", body)
@@ -458,13 +449,12 @@ func TestAgentAPI_WithTemplate(t *testing.T) {
 	// Create agent with template
 	body := fmt.Sprintf(`{
 		"name": "agent-with-tmpl-%s",
-		"identity_id": %q,
 		"credential_id": %q,
 		"sandbox_type": "dedicated",
 		"sandbox_template_id": %q,
 		"system_prompt": "test",
 		"model": "gpt-5.4"
-	}`, suffix, h.identity.ID.String(), h.cred.ID.String(), tmpl.ID)
+	}`, suffix, h.cred.ID.String(), tmpl.ID)
 
 	rr = h.request(t, http.MethodPost, "/v1/agents", body)
 	if rr.Code != http.StatusCreated {
