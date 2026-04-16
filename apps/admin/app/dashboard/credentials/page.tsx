@@ -55,9 +55,7 @@ export default function CredentialsPage() {
   const [editingCredential, setEditingCredential] = useState<{
     id: string
     label: string
-    identity_id: string
   } | null>(null)
-  const [editForm, setEditForm] = useState({ label: "", identity_id: "" })
   const [editError, setEditError] = useState<string | null>(null)
   const [editSaving, setEditSaving] = useState(false)
 
@@ -86,16 +84,13 @@ export default function CredentialsPage() {
     }
   }
 
-  function openEditDialog(cred: { id?: string; label?: string; identity_id?: string }) {
     setEditForm({
       label: cred.label || "",
-      identity_id: cred.identity_id || "",
     })
     setEditError(null)
     setEditingCredential({
       id: cred.id!,
       label: cred.label || "",
-      identity_id: cred.identity_id || "",
     })
   }
 
@@ -108,7 +103,6 @@ export default function CredentialsPage() {
         params: { path: { id: editingCredential.id } },
         body: {
           label: editForm.label,
-          identity_id: editForm.identity_id || undefined,
         },
       })
       if (res.error) {
@@ -188,7 +182,6 @@ export default function CredentialsPage() {
                 <TableHead>Label</TableHead>
                 <TableHead>Provider</TableHead>
                 <TableHead>Org ID</TableHead>
-                <TableHead>Identity ID</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -207,7 +200,6 @@ export default function CredentialsPage() {
                     {cred.org_id ? cred.org_id.slice(0, 8) + "..." : "--"}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
-                    {cred.identity_id ? cred.identity_id.slice(0, 8) + "..." : "--"}
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={cred.revoked_at ? "revoked" : "active"} />
@@ -273,7 +265,6 @@ export default function CredentialsPage() {
           <DialogHeader>
             <DialogTitle>Edit credential</DialogTitle>
             <DialogDescription>
-              Update the label or identity assignment for this credential.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -289,12 +280,8 @@ export default function CredentialsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-identity-id">Identity ID</Label>
               <Input
-                id="edit-identity-id"
-                value={editForm.identity_id}
                 onChange={(e) =>
-                  setEditForm((f) => ({ ...f, identity_id: e.target.value }))
                 }
                 placeholder="Leave empty to unassign"
               />
