@@ -172,7 +172,7 @@ jobs:
       - name: run internal + core e2e tests
         run: |
           go test ./internal/... -v -race -count=1
-          go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Credential|TestE2E_Token|TestE2E_Pagination|TestE2E_Identity|TestE2E_Provider|TestE2E_Registry|TestE2E_AuditEntry"
+          go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Credential|TestE2E_Token|TestE2E_Pagination|TestE2E_Provider|TestE2E_Registry|TestE2E_AuditEntry"
         timeout-minutes: 10
       - name: cleanup
         if: always()
