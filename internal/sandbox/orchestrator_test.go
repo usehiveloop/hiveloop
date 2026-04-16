@@ -614,7 +614,6 @@ func TestCreateDedicatedSandbox(t *testing.T) {
 	if sb.AgentID == nil || *sb.AgentID != agent.ID {
 		t.Error("agent_id should be set")
 	}
-	}
 	if sb.OrgID == nil || *sb.OrgID != org.ID {
 		t.Error("org_id should be set for dedicated sandboxes")
 	}
