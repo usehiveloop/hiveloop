@@ -470,7 +470,6 @@ func TestAssign_EmptyPool_CreatesAndPersistsSandbox(t *testing.T) {
 	if persisted.OrgID != nil {
 		t.Error("persisted sandbox should have nil OrgID (pool sandbox)")
 	}
-	}
 	if persisted.Status != "running" {
 		t.Errorf("persisted status: got %q, want running", persisted.Status)
 	}
