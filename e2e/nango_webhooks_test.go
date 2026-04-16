@@ -51,7 +51,6 @@ func newNangoWebhookHarness(t *testing.T) *nangoWebhookHarness {
 	t.Cleanup(func() { h.db.Where("id = ?", integration.ID).Delete(&model.Integration{}) })
 
 	// Create identity for the connection
-	h.db.Create(&identity)
 
 	// Create connection
 	connection := model.Connection{

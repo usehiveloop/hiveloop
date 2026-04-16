@@ -50,13 +50,8 @@ export interface AvailableScopeConnection {
 
 
 
-export type IntegrationResponse = Schemas["integrationResponse"];
-export type CreateIntegrationRequest = Schemas["createIntegrationRequest"];
-export type UpdateIntegrationRequest = Schemas["updateIntegrationRequest"];
 export type NangoCredentials = Schemas["github_com_ziraloop_ziraloop_internal_nango.Credentials"];
 
-export type IntegConnResponse = Schemas["integConnResponse"];
-export type IntegConnCreateRequest = Schemas["integConnCreateRequest"];
 
 export type UsageResponse = Schemas["usageResponse"];
 export type AuditEntryResponse = Schemas["auditEntryResponse"];
@@ -69,10 +64,7 @@ export type ModelSummary = Schemas["modelSummary"];
 
 export type PaginatedApiKeys = Schemas["paginatedResponse-apiKeyResponse"];
 export type PaginatedCredentials = Schemas["paginatedResponse-credentialResponse"];
-export type PaginatedIdentities = Schemas["paginatedResponse-identityResponse"];
 export type PaginatedAuditEntries = Schemas["paginatedResponse-auditEntryResponse"];
-export type PaginatedIntegrations = Schemas["paginatedResponse-integrationResponse"];
-export type PaginatedIntegConns = Schemas["paginatedResponse-integConnResponse"];
 
 export type ErrorResponse = Schemas["errorResponse"];
 export type JSON = Schemas["JSON"];
@@ -94,8 +86,6 @@ export type VerifyDomainResponse = Schemas["verifyDomainResponse"];
 export type DnsRecord = Schemas["dnsRecord"];
 
 // Connect Sessions
-export type ConnectSessionListItem = Schemas["connectSessionListItem"];
-export type PaginatedConnectSessions = Schemas["paginatedResponse-connectSessionListItem"];
 
 // Catalog
 export type IntegrationSummary = Schemas["integrationSummary"];
@@ -131,9 +121,4 @@ export type ExecRequest = Schemas["execRequest"];
 export type ExecResponse = Schemas["execResponse"];
 export type CommandResult = Schemas["commandResult"];
 
-// Forge
-export type StartForgeRequest = Schemas["startForgeRequest"];
-export type ForgeEvent = Schemas["ForgeEvent"];
-export type ForgeEvalResult = Schemas["ForgeEvalResult"];
-export type ForgeIteration = Schemas["ForgeIteration"];
 
