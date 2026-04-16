@@ -9,10 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 
 	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // --------------------------------------------------------------------------
