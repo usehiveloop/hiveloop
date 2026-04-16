@@ -117,7 +117,6 @@ func TestUsageHandler_WithData(t *testing.T) {
 		h.db.Where("org_id = ?", org.ID).Delete(&model.AuditEntry{})
 		h.db.Where("org_id = ?", org.ID).Delete(&model.Token{})
 		h.db.Where("org_id = ?", org.ID).Delete(&model.Credential{})
-		h.db.Where("org_id = ?", org.ID).Delete(&model.Identity{})
 		h.db.Where("org_id = ?", org.ID).Delete(&model.APIKey{})
 		cleanupOrg(t, h.db, org.ID)
 	})
@@ -176,7 +175,6 @@ func TestUsageHandler_WithData(t *testing.T) {
 	h.db.Create(&tok3)
 
 	// Create identities
-	h.db.Create(&model.Identity{
 		ID:         uuid.New(),
 		OrgID:      org.ID,
 		ExternalID: fmt.Sprintf("ext-%s", uuid.New().String()[:8]),

@@ -123,12 +123,9 @@ func createTestOrg(t *testing.T, db *gorm.DB) model.Org {
 	return org
 }
 
-func createTestIdentity(t *testing.T, db *gorm.DB, orgID uuid.UUID) model.Identity {
 	t.Helper()
 	suffix := uuid.New().String()[:8]
-	identity := model.Identity{OrgID: orgID, ExternalID: "user-" + suffix}
 	db.Create(&identity)
-	t.Cleanup(func() { db.Where("id = ?", identity.ID).Delete(&model.Identity{}) })
 	return identity
 }
 
@@ -185,7 +182,6 @@ func seedSharedSandbox(t *testing.T, db *gorm.DB, memUsed, memLimit int64) model
 func TestSelection_PicksLowestMemoryUsage(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
 
@@ -219,7 +215,6 @@ func TestSelection_PicksLowestMemoryUsage(t *testing.T) {
 func TestSelection_SkipsOverThreshold(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
 
@@ -244,7 +239,6 @@ func TestSelection_SkipsOverThreshold(t *testing.T) {
 func TestSelection_AllOverThreshold_CreatesNew(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
 
@@ -273,7 +267,6 @@ func TestSelection_AllOverThreshold_CreatesNew(t *testing.T) {
 func TestSelection_UnmeasuredSandboxesPreferred(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
 
@@ -299,7 +292,6 @@ func TestSelection_UnmeasuredSandboxesPreferred(t *testing.T) {
 func TestSelection_SkipsNonRunningSandboxes(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
 
@@ -323,7 +315,6 @@ func TestSelection_SkipsNonRunningSandboxes(t *testing.T) {
 func TestSelection_SkipsDedicatedSandboxes(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
 
@@ -357,12 +348,10 @@ func TestSelection_CrossOrg(t *testing.T) {
 
 	// Two different orgs, each with an agent
 	org1 := createTestOrg(t, db)
-	identity1 := createTestIdentity(t, db, org1.ID)
 	cred1 := createTestCred(t, db, org1.ID)
 	agent1 := createTestAgent(t, db, org1.ID, identity1.ID, cred1.ID, "shared")
 
 	org2 := createTestOrg(t, db)
-	identity2 := createTestIdentity(t, db, org2.ID)
 	cred2 := createTestCred(t, db, org2.ID)
 	agent2 := createTestAgent(t, db, org2.ID, identity2.ID, cred2.ID, "shared")
 
@@ -395,7 +384,6 @@ func TestSelection_CrossOrg(t *testing.T) {
 func TestAssign_AgentWithExistingSandbox_ReturnsIt(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
 
@@ -422,7 +410,6 @@ func TestAssign_AgentWithExistingSandbox_ReturnsIt(t *testing.T) {
 func TestRelease_ClearsAgentSandboxID(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
 
@@ -445,7 +432,6 @@ func TestRelease_ClearsAgentSandboxID(t *testing.T) {
 func TestRelease_NilSandboxID_Noop(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
 
@@ -460,7 +446,6 @@ func TestRelease_NilSandboxID_Noop(t *testing.T) {
 func TestAssign_EmptyPool_CreatesAndPersistsSandbox(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
 	cred := createTestCred(t, db, org.ID)
 	agent1 := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
 	agent2 := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
@@ -538,7 +523,6 @@ func TestAssign_EmptyPool_CreatesAndPersistsSandbox(t *testing.T) {
 func TestHealthCheck_SharedSandboxWithAgents_NotStopped(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
 
@@ -586,7 +570,6 @@ func TestHealthCheck_SharedSandboxEmpty_Stopped(t *testing.T) {
 func TestHealthCheck_SharedSandboxError_UnassignsAgents(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
 	cred := createTestCred(t, db, org.ID)
 	agent1 := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
 	agent2 := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
@@ -620,7 +603,6 @@ func TestHealthCheck_SharedSandboxError_UnassignsAgents(t *testing.T) {
 func TestCreateDedicatedSandbox(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "dedicated")
 

@@ -43,9 +43,7 @@ func TestRealDaytona_PoolSandboxLifecycle(t *testing.T) {
 	db.Create(&org)
 	t.Cleanup(func() { db.Where("id = ?", org.ID).Delete(&model.Org{}) })
 
-	identity := model.Identity{OrgID: org.ID, ExternalID: "real-test-" + suffix}
 	db.Create(&identity)
-	t.Cleanup(func() { db.Where("id = ?", identity.ID).Delete(&model.Identity{}) })
 
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")

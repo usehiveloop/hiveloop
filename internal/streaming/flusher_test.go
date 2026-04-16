@@ -40,7 +40,6 @@ func setupFlusherTest(t *testing.T) (*EventBus, *Flusher, *gorm.DB, *redis.Clien
 func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 	t.Helper()
 	orgID := uuid.New()
-	identityID := uuid.New()
 	credID := uuid.New()
 	agentID := uuid.New()
 	convID := uuid.New()
@@ -50,7 +49,6 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 	org := model.Org{ID: orgID, Name: "test-flusher-" + suffix, Active: true}
 	db.Create(&org)
 
-	identity := model.Identity{ID: identityID, OrgID: orgID, ExternalID: "test-" + suffix}
 	db.Create(&identity)
 
 	cred := model.Credential{
@@ -65,7 +63,6 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 	sandboxID := uuid.New()
 
 	sandbox := model.Sandbox{
-		ID: sandboxID, OrgID: &orgID, IdentityID: &identityID,
 		SandboxType: "shared", Status: "running",
 		ExternalID: "ext-" + suffix, BridgeURL: "https://test.local",
 		EncryptedBridgeAPIKey: []byte("test"),
@@ -76,7 +73,6 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 
 	emptyJSON := model.JSON{}
 	agent := model.Agent{
-		ID: agentID, OrgID: &orgID, IdentityID: &identityID, CredentialID: &credID,
 		Name: "test-agent-" + suffix, Model: "test",
 		SystemPrompt: "test", SandboxType: "shared", Status: "active",
 		Tools: emptyJSON, McpServers: emptyJSON, Skills: emptyJSON,
