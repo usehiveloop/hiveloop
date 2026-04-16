@@ -225,8 +225,6 @@ func (h *testHarness) createOrg(t *testing.T) model.Org {
 		h.db.Where("org_id = ?", org.ID).Delete(&model.AuditEntry{})
 		h.db.Where("org_id = ?", org.ID).Delete(&model.Token{})
 		h.db.Where("org_id = ?", org.ID).Delete(&model.Credential{})
-		h.db.Where("org_id = ?", org.ID).Delete(&model.Connection{})
-		h.db.Unscoped().Where("org_id = ?", org.ID).Delete(&model.Integration{})
 		h.db.Where("id = ?", org.ID).Delete(&model.Org{})
 	})
 	return org
