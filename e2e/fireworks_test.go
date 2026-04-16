@@ -1,3 +1,5 @@
+//go:build llm
+
 package e2e
 
 import (
