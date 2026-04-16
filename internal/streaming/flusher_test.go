@@ -49,7 +49,6 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 	org := model.Org{ID: orgID, Name: "test-flusher-" + suffix, Active: true}
 	db.Create(&org)
 
-	db.Create(&identity)
 
 	cred := model.Credential{
 		ID: credID, OrgID: orgID, ProviderID: "openrouter",
@@ -97,7 +96,6 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 		db.Delete(&agent)
 		db.Delete(&cred)
 		db.Delete(&sandbox)
-		db.Delete(&identity)
 		db.Delete(&org)
 	})
 
