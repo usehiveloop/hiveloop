@@ -76,8 +76,6 @@ func TestUsageHandler_EmptyOrg(t *testing.T) {
 		APIKeys struct {
 			Total int64 `json:"total"`
 		} `json:"api_keys"`
-		Identities struct {
-			Total int64 `json:"total"`
 		Requests struct {
 			Total     int64 `json:"total"`
 			Today     int64 `json:"today"`
@@ -224,8 +222,6 @@ func TestUsageHandler_WithData(t *testing.T) {
 			Expired int64 `json:"expired"`
 			Revoked int64 `json:"revoked"`
 		} `json:"tokens"`
-		Identities struct {
-			Total int64 `json:"total"`
 		Requests struct {
 			Total     int64 `json:"total"`
 			Today     int64 `json:"today"`
@@ -268,11 +264,6 @@ func TestUsageHandler_WithData(t *testing.T) {
 	if resp.Tokens.Revoked != 1 {
 		t.Errorf("tokens.revoked: got %d, want 1", resp.Tokens.Revoked)
 	}
-
-	// Identities
-	if resp.Identities.Total != 1 {
-	}
-
 	// Requests (5 today + 2 yesterday + 3 from 8 days ago = 10 total)
 	if resp.Requests.Total != 10 {
 		t.Errorf("requests.total: got %d, want 10", resp.Requests.Total)
