@@ -174,11 +174,6 @@ func TestUsageHandler_WithData(t *testing.T) {
 	h.db.Create(&tok2)
 	h.db.Create(&tok3)
 
-	// Create identities
-		ID:         uuid.New(),
-		OrgID:      org.ID,
-		ExternalID: fmt.Sprintf("ext-%s", uuid.New().String()[:8]),
-	})
 
 	// Create audit entries (proxy requests)
 	for i := 0; i < 5; i++ {

@@ -123,17 +123,12 @@ func createTestOrg(t *testing.T, db *gorm.DB) model.Org {
 	return org
 }
 
-	t.Helper()
-	suffix := uuid.New().String()[:8]
-	db.Create(&identity)
-	return identity
-}
 
-func createTestAgent(t *testing.T, db *gorm.DB, orgID, identityID, credID uuid.UUID, sandboxType string) model.Agent {
+func createTestAgent(t *testing.T, db *gorm.DB, orgID, credID uuid.UUID, sandboxType string) model.Agent {
 	t.Helper()
 	suffix := uuid.New().String()[:8]
 	agent := model.Agent{
-		OrgID: &orgID, IdentityID: &identityID, Name: "agent-" + suffix,
+		OrgID: &orgID, Name: "agent-" + suffix,
 		CredentialID: &credID, SandboxType: sandboxType,
 		SystemPrompt: "test", Model: "gpt-4o",
 	}
@@ -183,7 +178,7 @@ func TestSelection_PicksLowestMemoryUsage(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
-	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent := createTestAgent(t, db, org.ID, cred.ID, "shared")
 
 	gb := int64(1024 * 1024 * 1024)
 
@@ -216,7 +211,7 @@ func TestSelection_SkipsOverThreshold(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
-	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent := createTestAgent(t, db, org.ID, cred.ID, "shared")
 
 	gb := int64(1024 * 1024 * 1024)
 
@@ -240,7 +235,7 @@ func TestSelection_AllOverThreshold_CreatesNew(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
-	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent := createTestAgent(t, db, org.ID, cred.ID, "shared")
 
 	gb := int64(1024 * 1024 * 1024)
 
@@ -268,7 +263,7 @@ func TestSelection_UnmeasuredSandboxesPreferred(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
-	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent := createTestAgent(t, db, org.ID, cred.ID, "shared")
 
 	gb := int64(1024 * 1024 * 1024)
 
@@ -293,7 +288,7 @@ func TestSelection_SkipsNonRunningSandboxes(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
-	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent := createTestAgent(t, db, org.ID, cred.ID, "shared")
 
 	// Seed one stopped, one running
 	sbStopped := seedSharedSandbox(t, db, 0, 0)
@@ -316,14 +311,14 @@ func TestSelection_SkipsDedicatedSandboxes(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
-	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent := createTestAgent(t, db, org.ID, cred.ID, "shared")
 
 	// Seed a dedicated sandbox (should be ignored) and a shared one
 	encKey := testEncKey(t)
 	apiKey, _ := generateRandomHex(32)
 	encrypted, _ := encKey.EncryptString(apiKey)
 	dedicated := model.Sandbox{
-		OrgID: &org.ID, IdentityID: &identity.ID, SandboxType: "dedicated",
+		OrgID: &org.ID, SandboxType: "dedicated",
 		ExternalID: "ded-" + uuid.New().String()[:8], BridgeURL: "https://mock:25434",
 		EncryptedBridgeAPIKey: encrypted, Status: "running",
 	}
@@ -349,11 +344,11 @@ func TestSelection_CrossOrg(t *testing.T) {
 	// Two different orgs, each with an agent
 	org1 := createTestOrg(t, db)
 	cred1 := createTestCred(t, db, org1.ID)
-	agent1 := createTestAgent(t, db, org1.ID, identity1.ID, cred1.ID, "shared")
+	agent1 := createTestAgent(t, db, org1.ID, cred1.ID, "shared")
 
 	org2 := createTestOrg(t, db)
 	cred2 := createTestCred(t, db, org2.ID)
-	agent2 := createTestAgent(t, db, org2.ID, identity2.ID, cred2.ID, "shared")
+	agent2 := createTestAgent(t, db, org2.ID, cred2.ID, "shared")
 
 	// One shared sandbox in the pool (no org ownership)
 	sbPool := seedSharedSandbox(t, db, 0, 0)
@@ -385,7 +380,7 @@ func TestAssign_AgentWithExistingSandbox_ReturnsIt(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
-	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent := createTestAgent(t, db, org.ID, cred.ID, "shared")
 
 	sbExisting := seedSharedSandbox(t, db, 0, 0)
 	sbOther := seedSharedSandbox(t, db, 0, 0)
@@ -411,7 +406,7 @@ func TestRelease_ClearsAgentSandboxID(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
-	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent := createTestAgent(t, db, org.ID, cred.ID, "shared")
 
 	sb := seedSharedSandbox(t, db, 0, 0)
 	db.Model(&agent).Update("sandbox_id", sb.ID)
@@ -433,7 +428,7 @@ func TestRelease_NilSandboxID_Noop(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
-	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent := createTestAgent(t, db, org.ID, cred.ID, "shared")
 
 	ctx := context.Background()
 	if err := orch.ReleasePoolSandbox(ctx, &agent); err != nil {
@@ -447,8 +442,8 @@ func TestAssign_EmptyPool_CreatesAndPersistsSandbox(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
-	agent1 := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
-	agent2 := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent1 := createTestAgent(t, db, org.ID, cred.ID, "shared")
+	agent2 := createTestAgent(t, db, org.ID, cred.ID, "shared")
 
 	// No seeded sandboxes — pool is empty
 
@@ -475,8 +470,6 @@ func TestAssign_EmptyPool_CreatesAndPersistsSandbox(t *testing.T) {
 	if persisted.OrgID != nil {
 		t.Error("persisted sandbox should have nil OrgID (pool sandbox)")
 	}
-	if persisted.IdentityID != nil {
-		t.Error("persisted sandbox should have nil IdentityID (pool sandbox)")
 	}
 	if persisted.Status != "running" {
 		t.Errorf("persisted status: got %q, want running", persisted.Status)
@@ -524,7 +517,7 @@ func TestHealthCheck_SharedSandboxWithAgents_NotStopped(t *testing.T) {
 	orch, _, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
-	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent := createTestAgent(t, db, org.ID, cred.ID, "shared")
 
 	sb := seedSharedSandbox(t, db, 0, 0)
 	// Assign the agent to the sandbox
@@ -571,8 +564,8 @@ func TestHealthCheck_SharedSandboxError_UnassignsAgents(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
-	agent1 := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
-	agent2 := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent1 := createTestAgent(t, db, org.ID, cred.ID, "shared")
+	agent2 := createTestAgent(t, db, org.ID, cred.ID, "shared")
 
 	sb := seedSharedSandbox(t, db, 0, 0)
 	provider.registerSandbox(sb.ExternalID, StatusError)
@@ -604,7 +597,7 @@ func TestCreateDedicatedSandbox(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
-	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "dedicated")
+	agent := createTestAgent(t, db, org.ID, cred.ID, "dedicated")
 
 	ctx := context.Background()
 	sb, err := orch.CreateDedicatedSandbox(ctx, &agent)
@@ -622,8 +615,6 @@ func TestCreateDedicatedSandbox(t *testing.T) {
 	if sb.AgentID == nil || *sb.AgentID != agent.ID {
 		t.Error("agent_id should be set")
 	}
-	if sb.IdentityID == nil || *sb.IdentityID != identity.ID {
-		t.Error("identity_id should match agent's identity")
 	}
 	if sb.OrgID == nil || *sb.OrgID != org.ID {
 		t.Error("org_id should be set for dedicated sandboxes")
@@ -699,8 +690,6 @@ func TestEnsureSystemSandbox_CreatesWhenMissing(t *testing.T) {
 	if sb.OrgID != nil {
 		t.Error("system sandbox should have nil OrgID")
 	}
-	if sb.IdentityID != nil {
-		t.Error("system sandbox should have nil IdentityID")
 	}
 	if sb.Status != "running" {
 		t.Errorf("status: got %q, want running", sb.Status)
