@@ -79,7 +79,6 @@ var devToolPackages = []string{
 	"nano",
 	"libxml2-utils",
 	"xmlstarlet",
-	"postgresql-16-pgvector",
 	"s3cmd",
 }
 
@@ -98,6 +97,14 @@ func buildBaseImage(bridgeVersion string) *daytona.DockerImage {
 	downloadURL := bridgeDownloadURL(bridgeVersion)
 
 	image := daytona.Base(baseImage)
+
+	// Switch to Hetzner's mirror — Ubuntu's archive throttles Hetzner IPs to ~120KB/s
+	// while Hetzner's own mirror serves at 6+ MB/s.
+	// archive.ubuntu.com/ubuntu → mirror.hetzner.de/ubuntu/packages
+	// security.ubuntu.com/ubuntu → mirror.hetzner.de/ubuntu/packages
+	image = image.Run(
+		`sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirror.hetzner.de/ubuntu/packages|g; s|http://security.ubuntu.com/ubuntu|http://mirror.hetzner.de/ubuntu/packages|g' /etc/apt/sources.list.d/ubuntu.sources || ` +
+			`sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirror.hetzner.de/ubuntu/packages|g; s|http://security.ubuntu.com/ubuntu|http://mirror.hetzner.de/ubuntu/packages|g' /etc/apt/sources.list`)
 
 	// System packages
 	image = image.AptGet(basePackages)
@@ -157,9 +164,11 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 
 	// GitHub CLI (official apt repository).
 	image = image.Run(
-		"curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && " +
-			"echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main' > /etc/apt/sources.list.d/github-cli.list && " +
-			"apt-get update && apt-get install -y gh")
+		"mkdir -p -m 755 /etc/apt/keyrings && " +
+			"wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && " +
+			"chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && " +
+			"echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main' > /etc/apt/sources.list.d/github-cli.list && " +
+			"apt-get update && apt-get install -y gh && rm -rf /var/lib/apt/lists/*")
 
 	// Download Chrome for Testing and install its Linux shared-library
 	// dependencies (libnss3, libatk, libgbm, fonts, etc.) in one step.

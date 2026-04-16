@@ -1,0 +1,6 @@
+{
+  "name": "railway",
+  "description": "Deploy and manage services, environments, variables, domains, volumes, and databases on Railway via pre-authenticated GraphQL API.",
+  "root": "./SKILL.md",
+  "files": []
+}

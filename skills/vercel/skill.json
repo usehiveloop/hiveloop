@@ -1,0 +1,6 @@
+{
+  "name": "vercel",
+  "description": "Deploy and manage projects, domains, environment variables, DNS records, and rollbacks on Vercel via pre-authenticated REST API.",
+  "root": "./SKILL.md",
+  "files": []
+}
