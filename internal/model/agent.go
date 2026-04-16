@@ -36,7 +36,7 @@ type Agent struct {
 	SharedMemory bool   `gorm:"not null;default:false"` // can store shared memories visible to all agents in identity
 
 	// Sandbox setup (dedicated agents only — ignored for shared agents)
-	SandboxTools     pq.StringArray `gorm:"type:text[];default:'{}'"`  // enabled sandbox tools (e.g. "chrome", "codebase-memory")
+	SandboxTools     pq.StringArray `gorm:"type:text[];default:'{}'"`  // enabled sandbox tools (e.g. "chrome")
 	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"`  // shell commands run on dedicated sandbox creation
 	EncryptedEnvVars []byte         `gorm:"type:bytea"`                // AES-256-GCM encrypted JSON map of env vars
 
@@ -66,7 +66,6 @@ type SandboxToolDefinition struct {
 // ValidSandboxTools is the canonical list of sandbox tools the platform supports.
 var ValidSandboxTools = []SandboxToolDefinition{
 	{ID: "chrome", Name: "Chrome browser", Description: "Headless Chrome for web scraping, testing, and browser automation via agent-browser."},
-	{ID: "codebase-memory", Name: "Codebase memory", Description: "MCP server that builds a structural code graph from ASTs for deep code understanding."},
 }
 
 // validSandboxToolIDs is a set for fast validation lookups.
