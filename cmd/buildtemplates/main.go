@@ -92,7 +92,7 @@ func bridgeDownloadURL(version string) string {
 }
 
 // buildBaseImage installs the shared runtime layer used by every flavor:
-// system packages, the Bridge binary, and CodeDB. Each flavor is responsible
+// system packages and the Bridge binary. Each flavor is responsible
 // for its own GitHub tooling, additional layers, workdir, and entrypoint.
 func buildBaseImage(bridgeVersion string) *daytona.DockerImage {
 	downloadURL := bridgeDownloadURL(bridgeVersion)
