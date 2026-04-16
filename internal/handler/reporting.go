@@ -52,7 +52,7 @@ var validGroupBys = map[string]string{
 // @Description Returns aggregated analytics from generations with flexible grouping and filtering.
 // @Tags reporting
 // @Produce json
-// @Param group_by query string false "Comma-separated grouping dimensions: model, provider, credential, user, identity"
+// @Param group_by query string false "Comma-separated grouping dimensions: model, provider, credential, user"
 // @Param date_part query string false "Time granularity: hour or day (default: day)"
 // @Param start_date query string false "Start date inclusive (YYYY-MM-DD)"
 // @Param end_date query string false "End date inclusive (YYYY-MM-DD)"

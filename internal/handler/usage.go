@@ -42,9 +42,6 @@ type apiKeyStats struct {
 	Revoked int64 `json:"revoked"`
 }
 
-type identityStats struct {
-	Total int64 `json:"total"`
-}
 
 type requestStats struct {
 	Total     int64 `json:"total"`
@@ -107,7 +104,6 @@ type usageResponse struct {
 	Credentials    credentialStats `json:"credentials"`
 	Tokens         tokenStats      `json:"tokens"`
 	APIKeys        apiKeyStats     `json:"api_keys"`
-	Identities     identityStats   `json:"identities"`
 	Requests       requestStats    `json:"requests"`
 	DailyRequests  []dailyRequests `json:"daily_requests"`
 	TopCredentials []topCredential `json:"top_credentials"`
@@ -192,7 +188,6 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 		var row struct {
 			AKTotal    int64
 			AKActive   int64
-			IdentTotal int64
 		}
 		if err := h.db.Raw(`
 			SELECT
@@ -203,7 +198,6 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 			return fmt.Errorf("api_keys_identities: %w", err)
 		}
 		resp.APIKeys = apiKeyStats{Total: row.AKTotal, Active: row.AKActive, Revoked: row.AKTotal - row.AKActive}
-		resp.Identities = identityStats{Total: row.IdentTotal}
 		return nil
 	})
 

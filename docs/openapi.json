@@ -803,7 +803,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Updates credential label and/or identity assignment.",
+        "description": "Updates credential label.",
         "tags": [
           "admin"
         ],
@@ -4512,7 +4512,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Creates a new agent tied to an identity and credential. Shared agents are pushed to Bridge immediately.",
+        "description": "Creates a new agent tied to a credential. Shared agents are pushed to Bridge immediately.",
         "tags": [
           "agents"
         ],
@@ -6568,14 +6568,6 @@
         "summary": "List credentials",
         "parameters": [
           {
-            "description": "Filter by identity external ID",
-            "name": "external_id",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "description": "Filter by JSONB metadata (e.g. {\\",
             "name": "meta",
             "in": "query",
@@ -8227,7 +8219,7 @@
         "summary": "Get analytics report",
         "parameters": [
           {
-            "description": "Comma-separated grouping dimensions: model, provider, credential, user, identity",
+            "description": "Comma-separated grouping dimensions: model, provider, credential, user",
             "name": "group_by",
             "in": "query",
             "schema": {
@@ -12555,14 +12547,6 @@
           }
         }
       },
-      "identityStats": {
-        "type": "object",
-        "properties": {
-          "total": {
-            "type": "integer"
-          }
-        }
-      },
       "inConnectSessionResponse": {
         "type": "object",
         "properties": {
@@ -14389,9 +14373,6 @@
             "items": {
               "$ref": "#/components/schemas/errorRate"
             }
-          },
-          "identities": {
-            "$ref": "#/components/schemas/identityStats"
           },
           "latency": {
             "type": "array",

@@ -1491,11 +1491,6 @@ definitions:
       user_id:
         type: string
     type: object
-  internal_handler.identityStats:
-    properties:
-      total:
-        type: integer
-    type: object
   internal_handler.inConnectSessionResponse:
     properties:
       provider_config_key:
@@ -2690,8 +2685,6 @@ definitions:
         items:
           $ref: '#/definitions/internal_handler.errorRate'
         type: array
-      identities:
-        $ref: '#/definitions/internal_handler.identityStats'
       latency:
         items:
           $ref: '#/definitions/internal_handler.latencyStats'
@@ -3173,7 +3166,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Updates credential label and/or identity assignment.
+      description: Updates credential label.
       parameters:
       - description: Credential ID
         in: path
@@ -5232,8 +5225,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates a new agent tied to an identity and credential. Shared
-        agents are pushed to Bridge immediately.
+      description: Creates a new agent tied to a credential. Shared agents are pushed
+        to Bridge immediately.
       parameters:
       - description: Agent definition
         in: body
@@ -6341,10 +6334,6 @@ paths:
       description: Returns credentials for the current organization with cursor-based
         pagination and usage stats.
       parameters:
-      - description: Filter by identity external ID
-        in: query
-        name: external_id
-        type: string
       - description: Filter by JSONB metadata (e.g. {\
         in: query
         name: meta
@@ -7223,7 +7212,7 @@ paths:
         and filtering.
       parameters:
       - description: 'Comma-separated grouping dimensions: model, provider, credential,
-          user, identity'
+          user'
         in: query
         name: group_by
         type: string
