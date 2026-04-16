@@ -192,10 +192,9 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 		if err := h.db.Raw(`
 			SELECT
 				(SELECT COUNT(*) FROM api_keys WHERE org_id = ?) AS ak_total,
-				(SELECT COUNT(*) FROM api_keys WHERE org_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)) AS ak_active,
-				(SELECT COUNT(*) FROM identities WHERE org_id = ?) AS ident_total`,
-			orgID, orgID, now, orgID).Scan(&row).Error; err != nil {
-			return fmt.Errorf("api_keys_identities: %w", err)
+				(SELECT COUNT(*) FROM api_keys WHERE org_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)) AS ak_active`,
+			orgID, orgID, now).Scan(&row).Error; err != nil {
+			return fmt.Errorf("api_keys: %w", err)
 		}
 		resp.APIKeys = apiKeyStats{Total: row.AKTotal, Active: row.AKActive, Revoked: row.AKTotal - row.AKActive}
 		return nil
