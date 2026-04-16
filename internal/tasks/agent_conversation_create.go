@@ -141,6 +141,28 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		"sandbox_id", sb.ID,
 	)
 
+	// 5b. Store AgentConversation — required for webhook pipeline to match
+	// incoming Bridge events to our internal conversation record.
+	agentConv := model.AgentConversation{
+		OrgID:                payload.OrgID,
+		AgentID:              payload.AgentID,
+		SandboxID:            sb.ID,
+		BridgeConversationID: conv.ConversationId,
+		Status:               "active",
+	}
+	if err := handler.db.Create(&agentConv).Error; err != nil {
+		logger.Error("step 5b: FAILED to store agent conversation",
+			"error", err.Error(),
+			"conversation_id", conv.ConversationId,
+		)
+		return fmt.Errorf("storing agent conversation: %w", err)
+	}
+	logger.Info("step 5b: agent conversation stored",
+		"agent_conversation_id", agentConv.ID,
+		"bridge_conversation_id", conv.ConversationId,
+		"sandbox_id", sb.ID,
+	)
+
 	// 6. Store RouterConversation for thread affinity.
 	logger.Info("step 6: storing router conversation",
 		"conversation_id", conv.ConversationId,
