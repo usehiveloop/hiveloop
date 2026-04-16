@@ -99,8 +99,7 @@ export default function Home() {
               </span>
             </div>
             <h1 className="font-heading text-[28px] sm:text-[40px] lg:text-[56px] font-bold text-foreground text-center leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
-              Run production-grade <br className="hidden sm:block" /> agents at
-              scale
+              Run production-grade <br className="hidden sm:block" /> agents for your team
             </h1>
             <p className="text-base sm:text-lg lg:text-xl text-muted-foreground text-center leading-relaxed max-w-160">
               The complete platform for building, running and monitoring real world agents
