@@ -48,15 +48,7 @@ export interface AvailableScopeConnection {
   resources?: Record<string, AvailableScopeResource>;
 }
 
-export type IdentityResponse = Schemas["identityResponse"];
-export type CreateIdentityRequest = Schemas["createIdentityRequest"];
-export type UpdateIdentityRequest = Schemas["updateIdentityRequest"];
-export type IdentityRateLimitParams = Schemas["identityRateLimitParams"];
 
-export type ConnectSessionResponse = Schemas["connectSessionResponse"];
-export type CreateConnectSessionRequest = Schemas["createConnectSessionRequest"];
-export type ConnectSettingsRequest = Schemas["connectSettingsRequest"];
-export type ConnectSettingsResponse = Schemas["connectSettingsResponse"];
 
 export type IntegrationResponse = Schemas["integrationResponse"];
 export type CreateIntegrationRequest = Schemas["createIntegrationRequest"];
