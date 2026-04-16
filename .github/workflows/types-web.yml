@@ -3,11 +3,8 @@ name: types-web
 on:
   push:
     branches: [main]
-    paths:
-      - "apps/web/**"
   pull_request:
-    paths:
-      - "apps/web/**"
+    branches: [main]
 
 jobs:
   typecheck:

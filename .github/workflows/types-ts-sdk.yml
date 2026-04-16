@@ -3,11 +3,8 @@ name: types-ts-sdk
 on:
   push:
     branches: [main]
-    paths:
-      - "packages/sdk/**"
   pull_request:
-    paths:
-      - "packages/sdk/**"
+    branches: [main]
 
 jobs:
   typecheck:

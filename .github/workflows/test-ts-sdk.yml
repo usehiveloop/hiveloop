@@ -3,11 +3,8 @@ name: test-ts-sdk
 on:
   push:
     branches: [main]
-    paths:
-      - "packages/sdk/**"
   pull_request:
-    paths:
-      - "packages/sdk/**"
+    branches: [main]
 
 concurrency:
   group: test-ts-sdk-${{ github.ref }}
