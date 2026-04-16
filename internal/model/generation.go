@@ -13,7 +13,6 @@ type Generation struct {
 	ID             string         `gorm:"primaryKey" json:"id"`
 	OrgID          uuid.UUID      `gorm:"type:uuid;not null;index:idx_gen_org_created" json:"org_id"`
 	CredentialID   uuid.UUID      `gorm:"type:uuid;not null;index:idx_gen_org_credential" json:"credential_id"`
-	IdentityID     *uuid.UUID     `gorm:"type:uuid" json:"identity_id,omitempty"`
 	TokenJTI       string         `gorm:"column:token_jti;not null" json:"token_jti"`
 
 	// Request metadata
