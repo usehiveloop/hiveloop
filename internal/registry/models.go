@@ -972,6 +972,27 @@ var curatedProviders = []Provider{
 					Output:  131000,
 				},
 			},
+			"z-ai/glm-5.1": {
+				ID:          "z-ai/glm-5.1",
+				Name:        "GLM-5.1",
+				Family:      "glm",
+				Reasoning:   true,
+				ToolCall:    true,
+				OpenWeights: true,
+				ReleaseDate: "2026-04-16",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  1,
+					Output: 3.2,
+				},
+				Limit: &Limit{
+					Context: 202752,
+					Output:  131000,
+				},
+			},
 			"minimax/minimax-m2.5": {
 				ID:          "minimax/minimax-m2.5",
 				Name:        "MiniMax M2.5",
