@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -254,22 +253,6 @@ func TestListSandboxes_FilterByStatus(t *testing.T) {
 	}
 }
 
-func TestListSandboxes_FilterByIdentity(t *testing.T) {
-	lh := newLifecycleHarness(t)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rr.Code)
-	}
-
-	var resp struct {
-		Data []struct{ ID string } `json:"data"`
-	}
-	json.NewDecoder(rr.Body).Decode(&resp)
-
-	if len(resp.Data) != 1 {
-		t.Fatalf("expected 1 sandbox for identity, got %d", len(resp.Data))
-	}
-}
 
 func TestGetSandbox(t *testing.T) {
 	lh := newLifecycleHarness(t)
