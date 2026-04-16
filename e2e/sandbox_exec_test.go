@@ -33,9 +33,7 @@ func newExecHarness(t *testing.T) *execHarness {
 	h.db.Create(&org)
 	t.Cleanup(func() { h.db.Where("id = ?", org.ID).Delete(&model.Org{}) })
 
-	identity := model.Identity{OrgID: org.ID, ExternalID: "exec-user-" + suffix}
 	h.db.Create(&identity)
-	t.Cleanup(func() { h.db.Where("id = ?", identity.ID).Delete(&model.Identity{}) })
 
 	sandbox := model.Sandbox{
 		OrgID: &org.ID, IdentityID: &identity.ID, SandboxType: "shared",

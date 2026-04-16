@@ -264,11 +264,8 @@ func (h *testHarness) createOrg(t *testing.T) model.Org {
 	}
 	t.Cleanup(func() {
 		h.db.Where("org_id = ?", org.ID).Delete(&model.AuditEntry{})
-		h.db.Where("org_id = ?", org.ID).Delete(&model.ConnectSession{})
 		h.db.Where("org_id = ?", org.ID).Delete(&model.Token{})
 		h.db.Where("org_id = ?", org.ID).Delete(&model.Credential{})
-		h.db.Where("identity_id IN (SELECT id FROM identities WHERE org_id = ?)", org.ID).Delete(&model.IdentityRateLimit{})
-		h.db.Where("org_id = ?", org.ID).Delete(&model.Identity{})
 		h.db.Where("org_id = ?", org.ID).Delete(&model.Connection{})
 		h.db.Unscoped().Where("org_id = ?", org.ID).Delete(&model.Integration{})
 		h.db.Where("id = ?", org.ID).Delete(&model.Org{})

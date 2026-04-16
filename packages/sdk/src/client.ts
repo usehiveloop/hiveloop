@@ -16,7 +16,6 @@ import { SandboxesResource } from "./resources/sandboxes.js";
 import { SandboxTemplatesResource } from "./resources/sandbox-templates.js";
 import { TokensResource } from "./resources/tokens.js";
 import { UsageResource } from "./resources/usage.js";
-import { WebhooksResource } from "./resources/webhooks.js";
 
 export class ZiraLoop {
   public readonly agents: AgentsResource;
@@ -34,7 +33,6 @@ export class ZiraLoop {
   public readonly sandboxTemplates: SandboxTemplatesResource;
   public readonly tokens: TokensResource;
   public readonly usage: UsageResource;
-  public readonly webhooks: WebhooksResource;
 
   constructor(config: ZiraLoopConfig) {
     const baseUrl = config.baseUrl ?? "https://api.ziraloop.com";
@@ -60,6 +58,5 @@ export class ZiraLoop {
     this.sandboxTemplates = new SandboxTemplatesResource(client);
     this.tokens = new TokensResource(client);
     this.usage = new UsageResource(client);
-    this.webhooks = new WebhooksResource(client);
   }
 }

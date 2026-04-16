@@ -21,7 +21,6 @@ import (
 type lifecycleHarness struct {
 	*testHarness
 	org      model.Org
-	identity model.Identity
 	cred     model.Credential
 	agent    model.Agent
 	sandbox  model.Sandbox
@@ -38,9 +37,7 @@ func newLifecycleHarness(t *testing.T) *lifecycleHarness {
 	h.db.Create(&org)
 	t.Cleanup(func() { h.db.Where("id = ?", org.ID).Delete(&model.Org{}) })
 
-	identity := model.Identity{OrgID: org.ID, ExternalID: "lc-user-" + suffix}
 	h.db.Create(&identity)
-	t.Cleanup(func() { h.db.Where("id = ?", identity.ID).Delete(&model.Identity{}) })
 
 	cred := model.Credential{
 		OrgID: org.ID, BaseURL: "https://api.openai.com", AuthScheme: "bearer",

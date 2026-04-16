@@ -137,6 +137,3 @@ export type ForgeEvent = Schemas["ForgeEvent"];
 export type ForgeEvalResult = Schemas["ForgeEvalResult"];
 export type ForgeIteration = Schemas["ForgeIteration"];
 
-// Webhooks
-export type WebhookSettingsResponse = Schemas["webhookSettingsResponse"];
-export type WebhookSettingsCreateResponse = Schemas["webhookSettingsCreateResponse"];
