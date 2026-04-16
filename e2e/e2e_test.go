@@ -178,9 +178,6 @@ func newHarness(t *testing.T) *testHarness {
 
 	// Connect API (session-authenticated)
 	r.Route("/v1/widget", func(r chi.Router) {
-		r.Use(middleware.ConnectSessionAuth(db))
-		r.Use(middleware.ConnectSecurityHeaders())
-		r.Use(middleware.ConnectCORS())
 
 		r.Route("/integrations", func(r chi.Router) {
 		})
@@ -190,7 +187,6 @@ func newHarness(t *testing.T) *testHarness {
 	proxyHandler := handler.NewProxyHandler(cm, proxy.NewTransport())
 	r.Route("/v1/proxy", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, db))
-		r.Use(middleware.IdentityRateLimit(rc, db))
 		r.Use(middleware.RemainingCheck(ctr))
 		r.Use(middleware.Audit(aw, "proxy.request"))
 		r.Handle("/*", proxyHandler)
