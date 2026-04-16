@@ -257,7 +257,6 @@ func TestListSandboxes_FilterByStatus(t *testing.T) {
 func TestListSandboxes_FilterByIdentity(t *testing.T) {
 	lh := newLifecycleHarness(t)
 
-	rr := lh.request(t, http.MethodGet, fmt.Sprintf("/v1/sandboxes?identity_id=%s", luuid.New()))
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rr.Code)
 	}
