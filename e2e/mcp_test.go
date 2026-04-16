@@ -50,7 +50,6 @@ func newMCPHarness(t *testing.T) *mcpTestHarness {
 	})
 
 	// Register available-scopes on the harness router
-	h.router.Get("/v1/connections/available-scopes", handler.NewConnectionHandler(h.db, h.nangoClient, actionsCatalog).AvailableScopes)
 
 	// Build MCP chi router (same structure as main.go)
 	mcpRouter := chi.NewRouter()

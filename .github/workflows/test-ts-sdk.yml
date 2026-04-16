@@ -37,4 +37,4 @@ jobs:
         working-directory: packages/sdk
         run: npm test
         env:
-          LLM_VAULT_API_KEY: ${{ secrets.LLM_VAULT_API_KEY }}
+          ZIRALOOP_API_KEY: ${{ secrets.ZIRALOOP_API_KEY }}
