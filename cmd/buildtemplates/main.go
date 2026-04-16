@@ -218,6 +218,15 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	image = image.Run("git config --global user.name ziraloop")
 	image = image.Run("git config --global user.email help@ziraloop.com")
 
+	// gh CLI wrapper — fetches a fresh GitHub token on every invocation so
+	// `gh issue create`, `gh issue list`, etc. work without manual auth.
+	// /usr/local/bin takes precedence over /usr/bin on PATH.
+	image = image.Run(
+		`printf '#!/bin/sh\nexport GH_NO_KEYRING=1\nexport GH_TOKEN=$(curl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$ZIRALOOP_GIT_CREDENTIALS_URL" | grep password | cut -d= -f2)\nexec /usr/bin/gh "$@"\n' > /usr/local/bin/gh-wrapper && ` +
+			`chmod +x /usr/local/bin/gh-wrapper && ` +
+			`ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh`,
+	)
+
 	image = image.Workdir(daytonaHome)
 	// agent-browser's daemon starts lazily on the first CLI command, so
 	// the entrypoint only needs to launch Bridge. No daemon pre-warming

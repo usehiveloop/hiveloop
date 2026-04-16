@@ -500,10 +500,26 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 	// Set config with defaults for any unspecified fields
 	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), cred.ProviderID, agent.Model)
 
-	// Set permissions if present
+	// Set permissions if present. Tools with "deny" are removed from
+	// permissions and added to DisabledTools so Bridge never presents
+	// them to the LLM — the agent won't waste turns calling denied tools.
 	permissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
 	if permissions != nil && len(*permissions) > 0 {
-		def.Permissions = permissions
+		var disabledTools []string
+		allowed := make(map[string]bridgepkg.ToolPermission)
+		for tool, perm := range *permissions {
+			if perm == bridgepkg.ToolPermissionDeny {
+				disabledTools = append(disabledTools, tool)
+			} else {
+				allowed[tool] = perm
+			}
+		}
+		if len(allowed) > 0 {
+			def.Permissions = &allowed
+		}
+		if len(disabledTools) > 0 {
+			def.Config.DisabledTools = &disabledTools
+		}
 	}
 
 	// Set tools if present.

@@ -76,6 +76,7 @@ func setAgentEnvVars(envVars map[string]string, agent *model.Agent, cfg *config.
 	envVars["ZIRALOOP_RAILWAY_API_URL"] = fmt.Sprintf("https://%s/internal/railway-proxy/%s", cfg.BridgeHost, agent.ID)
 	envVars["ZIRALOOP_RAILWAY_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
 	envVars["ZIRALOOP_VERCEL_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
+	envVars["GH_NO_KEYRING"] = "1"
 }
 
 // setDriveEndpoint sets the ZIRALOOP_DRIVE_ENDPOINT env var once the sandbox ID is known.
