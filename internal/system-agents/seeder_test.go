@@ -110,6 +110,6 @@ func TestYAMLDefinitions_AllParseable(t *testing.T) {
 
 	// 6 agent types x 6 providers + 1 zira (anthropic only) = 37 definitions.
 	if count != 37 {
-		t.Errorf("expected 37 YAML definitions, got %d", count)
+		t.Errorf("expected 7 YAML definitions, got %d", count)
 	}
 }
