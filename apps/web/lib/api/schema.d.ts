@@ -10412,6 +10412,7 @@ export interface components {
             agent_id?: string;
             created_at?: string;
             id?: string;
+            name?: string;
             status?: string;
             stream_url?: string;
         };

@@ -46,6 +46,7 @@ type createConversationRequest struct {
 type conversationResponse struct {
 	ID        string  `json:"id"`
 	AgentID   string  `json:"agent_id"`
+	Name      string  `json:"name,omitempty"`
 	Status    string  `json:"status"`
 	StreamURL string  `json:"stream_url"`
 	CreatedAt string  `json:"created_at"`
@@ -227,6 +228,7 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, conversationResponse{
 		ID:        conv.ID.String(),
 		AgentID:   agent.ID.String(),
+		Name:      conv.Name,
 		Status:    "active",
 		StreamURL: fmt.Sprintf("/v1/conversations/%s/stream", conv.ID),
 		CreatedAt: conv.CreatedAt.Format(time.RFC3339),
@@ -281,6 +283,7 @@ func (h *ConversationHandler) List(w http.ResponseWriter, r *http.Request) {
 		resp[i] = conversationResponse{
 			ID:        c.ID.String(),
 			AgentID:   c.AgentID.String(),
+			Name:      c.Name,
 			Status:    c.Status,
 			StreamURL: fmt.Sprintf("/v1/conversations/%s/stream", c.ID),
 			CreatedAt: c.CreatedAt.Format(time.RFC3339),
@@ -315,6 +318,7 @@ func (h *ConversationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, conversationResponse{
 		ID:        conv.ID.String(),
 		AgentID:   conv.AgentID.String(),
+		Name:      conv.Name,
 		Status:    conv.Status,
 		StreamURL: fmt.Sprintf("/v1/conversations/%s/stream", conv.ID),
 		CreatedAt: conv.CreatedAt.Format(time.RFC3339),

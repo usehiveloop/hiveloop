@@ -92,7 +92,7 @@ func newWebhookTestHarness(t *testing.T) *webhookTestHarness {
 	})
 
 	// Router
-	webhookHandler := handler.NewBridgeWebhookHandler(h.db, encKey, nil)
+	webhookHandler := handler.NewBridgeWebhookHandler(h.db, encKey, nil, nil)
 	r := chi.NewRouter()
 	r.Post("/internal/webhooks/bridge/{sandboxID}", webhookHandler.Handle)
 

@@ -5,6 +5,7 @@ import (
 	polargo "github.com/polarsource/polar-go"
 	"gorm.io/gorm"
 
+	"github.com/ziraloop/ziraloop/internal/cache"
 	"github.com/ziraloop/ziraloop/internal/crypto"
 	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
@@ -28,6 +29,7 @@ type WorkerDeps struct {
 	EventBus         *streaming.EventBus   // nil if streaming not configured
 	SkillFetcher     *skills.GitFetcher    // nil disables git skill hydration
 	NangoClient      *nango.Client         // nil disables deterministic enrichment
+	CacheManager     *cache.Manager        // nil disables tasks that need credential decryption
 	Enqueuer         enqueue.TaskEnqueuer  // required for enqueuing sub-tasks
 }
 
@@ -76,6 +78,14 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 	// Skill hydration from git repos
 	if deps.SkillFetcher != nil {
 		mux.HandleFunc(TypeSkillHydrate, NewSkillHydrateHandler(deps.DB, deps.SkillFetcher).Handle)
+	}
+
+	// Conversation naming (async title generation from the first message).
+	// Requires the cache manager for credential decryption.
+	if deps.CacheManager != nil {
+		if handler := NewConversationNameHandler(deps.DB, deps.CacheManager); handler != nil {
+			mux.HandleFunc(TypeConversationName, handler.Handle)
+		}
 	}
 
 	// Router dispatch (Zira routing system).

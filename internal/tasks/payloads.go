@@ -393,3 +393,36 @@ func NewAgentConversationCreateTask(payload AgentConversationCreatePayload) (*as
 		asynq.Timeout(5*time.Minute),
 	), nil
 }
+
+// ---------------------------------------------------------------------------
+// conversation:name
+// ---------------------------------------------------------------------------
+
+// ConversationNamePayload is the payload for TypeConversationName tasks.
+// The worker loads everything else (conversation, agent, credential, first
+// message) from the DB — we only need the ID.
+type ConversationNamePayload struct {
+	ConversationID uuid.UUID `json:"conversation_id"`
+}
+
+// NewConversationNameTask creates a task that generates a title for a
+// conversation by calling the cheapest model available to the conversation's
+// credential provider. Bulk queue — this is nice-to-have UX, not critical
+// path. MaxRetry is 3: transient provider failures are common and the
+// handler is idempotent (refuses to overwrite an already-set name).
+func NewConversationNameTask(conversationID uuid.UUID) (*asynq.Task, error) {
+	encoded, err := json.Marshal(ConversationNamePayload{ConversationID: conversationID})
+	if err != nil {
+		return nil, fmt.Errorf("marshal conversation name payload: %w", err)
+	}
+	return asynq.NewTask(
+		TypeConversationName,
+		encoded,
+		asynq.Queue(QueueBulk),
+		asynq.MaxRetry(3),
+		asynq.Timeout(30*time.Second),
+		// Dedupe: prevents enqueuing twice if two message_received events for
+		// the same conversation arrive close together (rare, but cheap insurance).
+		asynq.Unique(5*time.Minute),
+	), nil
+}
