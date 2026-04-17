@@ -41,6 +41,8 @@ pub async fn ws_events(
 
 /// Main WebSocket connection loop. Forwards broadcast events to the client
 /// and handles ping/pong and close frames.
+// Suppressed: clippy would collapse inner `if .await.is_err()` into a guard, which async disallows.
+#[allow(clippy::collapsible_match)]
 async fn handle_socket(
     mut socket: WebSocket,
     mut rx: broadcast::Receiver<BridgeEvent>,
