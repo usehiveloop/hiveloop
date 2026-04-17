@@ -1,0 +1,925 @@
+[
+  {
+    "id": "d2de83d1-9ae2-4177-ba2b-bdf1b3d3c515",
+    "event_id": "04b5c9aa-1ab9-410c-ad83-fe79afe5ee2d",
+    "event_type": "done",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:56Z",
+    "sequence_number": 157,
+    "data": {},
+    "created_at": "2026-04-16T17:02:57Z"
+  },
+  {
+    "id": "ba8bf517-83c8-4647-8450-5c9e370c815a",
+    "event_id": "21762d30-0ff4-4d89-9ee8-4022421dd097",
+    "event_type": "turn_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:56Z",
+    "sequence_number": 158,
+    "data": {
+      "model": "z-ai/glm-5",
+      "timestamp": "2026-04-16T17:02:56.785201817+00:00",
+      "turn_number": 0,
+      "input_tokens": 939134,
+      "output_tokens": 5369,
+      "cumulative_input_tokens": 939134,
+      "cumulative_output_tokens": 5369
+    },
+    "created_at": "2026-04-16T17:02:57Z"
+  },
+  {
+    "id": "1d069772-0e42-46c5-9c74-aeec53d99ebf",
+    "event_id": "d63ddcbb-ac62-47dc-9a64-305d185eed7d",
+    "event_type": "response_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:56Z",
+    "sequence_number": 156,
+    "data": {
+      "model": "z-ai/glm-5",
+      "timestamp": "2026-04-16T17:02:56.785187077+00:00",
+      "message_id": "60e0b57f-82c6-4d0e-abec-6736f914f6b3",
+      "input_tokens": 939134,
+      "full_response": "Investigation complete. Created GitHub issue #3: https://github.com/ziraloop/ziraloop/issues/3\n\n**Root cause:** TypeScript build failure in `apps/web/app/w/agents/page.tsx` - the `search` state variable was initialized as `useState(123)` (number) instead of `useState(\"\")` (string), causing the `.trim()` call on line 27 to fail compilation.\n\n**Fix:** Change line 18 from `useState(123)` to `useState(\"\")`.",
+      "output_tokens": 5369
+    },
+    "created_at": "2026-04-16T17:02:57Z"
+  },
+  {
+    "id": "cb5fd8ba-6c71-40ec-9db1-2f73d49e83d4",
+    "event_id": "4a85eaa8-a15b-4e51-9318-ea609cc1029e",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:47Z",
+    "sequence_number": 50,
+    "data": {
+      "id": "MfL9WSHGTxlSZe7I1nDuB",
+      "name": "memory_retain",
+      "arguments": {
+        "content": "ziraloop.com project (project_id: 55776e03-e6c2-4a9b-828b-4e759495aa70) has production environment (environment_id: 3c177170-0fb2-4dcb-a034-12676bb242c6) with services: web.ziraloop.com (service_id: b6c22e03-d8f6-4966-b3d7-c6540e864f41), api.postgres.ziraloop.com (service_id: f8c26c6c-399d-48f1-9b49-f411df99e508), drive.ziraloop.com bucket (bucket_id: d4edbc26-7385-4536-8115-14415508508c). Workspace ID: 71ad85f8-ff26-4f3b-938a-adc10ae2655f.",
+        "context": "Infrastructure topology discovered during deployment failure investigation"
+      }
+    },
+    "created_at": "2026-04-16T17:02:49Z"
+  },
+  {
+    "id": "5b575ce3-3019-4aa9-93ae-6163f7194f6e",
+    "event_id": "7242b91b-50f2-4771-9f2a-6c601998e920",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:47Z",
+    "sequence_number": 51,
+    "data": {
+      "id": "MfL9WSHGTxlSZe7I1nDuB",
+      "result": "\"{\\\"success\\\":true,\\\"bank_id\\\":\\\"org-d59ce252-51e8-4786-9c41-474bf9d39e71\\\",\\\"items_count\\\":1,\\\"async\\\":true,\\\"operation_id\\\":\\\"ea5d0ea0-f577-477e-8579-1325fd1dc53e\\\"}\"",
+      "is_error": false,
+      "tool_name": "memory_retain",
+      "duration_ms": 247
+    },
+    "created_at": "2026-04-16T17:02:49Z"
+  },
+  {
+    "id": "5aa85ec9-50da-484f-b7e9-9456e569474d",
+    "event_id": "51fd1d77-54d6-4fb0-b82d-3862850eb175",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:47Z",
+    "sequence_number": 49,
+    "data": {
+      "id": "j2Yo_HP5klQazq047cRIw",
+      "result": "\"{\\\"success\\\":true,\\\"bank_id\\\":\\\"org-d59ce252-51e8-4786-9c41-474bf9d39e71\\\",\\\"items_count\\\":1,\\\"async\\\":true,\\\"operation_id\\\":\\\"7aec709e-4252-4125-930b-6a095e0bbd38\\\"}\"",
+      "is_error": false,
+      "tool_name": "memory_retain",
+      "duration_ms": 577
+    },
+    "created_at": "2026-04-16T17:02:49Z"
+  },
+  {
+    "id": "38f104eb-5398-4bb7-92c6-76d5f714fb0d",
+    "event_id": "747b3232-1547-416f-a734-943b666160b2",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:47Z",
+    "sequence_number": 48,
+    "data": {
+      "id": "j2Yo_HP5klQazq047cRIw",
+      "name": "memory_retain",
+      "arguments": {
+        "content": "Incident 2026-04-16: web.ziraloop.com deployment failed (deployment_id: 9bea0d73-4372-4680-961a-b96684859ef8, commit: 62e88369c333090dc60c957750f85e21d2ba3bf3). Root cause: TypeScript error in apps/web/app/w/agents/page.tsx line 18 - search state initialized as number (123) instead of string, causing .trim() call on line 27 to fail. Fix: change useState(123) to useState(\"\"). GitHub issue: #3 (https://github.com/ziraloop/ziraloop/issues/3).",
+        "context": "Deployment failure incident for web.ziraloop.com production"
+      }
+    },
+    "created_at": "2026-04-16T17:02:47Z"
+  },
+  {
+    "id": "457c25ef-4ef0-4198-becd-5c5525779546",
+    "event_id": "83fa4e56-359f-47dd-a279-35d081c4e00a",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:33Z",
+    "sequence_number": 47,
+    "data": {
+      "id": "XFpvghhCAK-Clj5t6TY_7",
+      "result": "\"{\\\"output\\\":\\\"{\\\\n  \\\\\\\"number\\\\\\\": 3,\\\\n  \\\\\\\"html_url\\\\\\\": \\\\\\\"https://github.com/ziraloop/ziraloop/issues/3\\\\\\\",\\\\n  \\\\\\\"title\\\\\\\": \\\\\\\"[Incident] web.ziraloop.com: TypeScript build failure - search state initialized as number\\\\\\\"\\\\n}\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 906
+    },
+    "created_at": "2026-04-16T17:02:33Z"
+  },
+  {
+    "id": "2e883907-a5b8-40e7-be5e-58ac607e5836",
+    "event_id": "42be3fb4-aa79-4d6f-ae43-4833d4f7ed89",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:32Z",
+    "sequence_number": 46,
+    "data": {
+      "id": "XFpvghhCAK-Clj5t6TY_7",
+      "name": "bash",
+      "arguments": {
+        "command": "curl -s -X POST \"https://api.github.com/repos/ziraloop/ziraloop/issues\" \\\n  -H \"Authorization: token ghs_REDACTED\" \\\n  -H \"Accept: application/vnd.github+json\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"title\": \"[Incident] web.ziraloop.com: TypeScript build failure - search state initialized as number\",\n    \"body\": \"## Summary\\n\\n**Service:** web.ziraloop.com\\n**Environment:** production\\n**Status:** FAILED\\n**Detected:** 2026-04-16T16:58:37Z\\n\\n## Root Cause\\n\\nTypeScript error in `apps/web/app/w/agents/page.tsx` at line 18: the `search` state variable is initialized as a number (`123`) instead of a string, but the code at line 27 calls `.trim()` on it, which is a string method.\\n\\n**File:** `apps/web/app/w/agents/page.tsx`\\n**Lines:** 18, 27\\n\\n```tsx\\n// Line 18 - incorrect initialization\\nconst [search, setSearch] = useState(123)\\n\\n// Line 27 - calls .trim() on number, causing TypeScript error\\nif (!search.trim()) return agents\\n```\\n\\nThe commit message from the previous failed deployment (6dd0957a) mentioned: \\\"Also includes intentional type error in agents page to trigger dispatch webhook.\\\" This error appears to be a leftover from that testing and was not removed before merging.\\n\\n## Evidence\\n\\nBuild log error:\\n```\\nFailed to compile.\\n\\n./app/w/agents/page.tsx:27:17\\nType error: Property trim does not exist on type number.\\n\\n  25 |\\n  26 |   const filtered = useMemo(() => {\\n> 27 |     if (!search.trim()) return agents\\n     |                 ^\\n  28 |     const query = search.toLowerCase()\\n```\\n\\nDeployment: 9bea0d73-4372-4680-961a-b96684859ef8\\nCommit: 62e88369c333090dc60c957750f85e21d2ba3bf3\\n\\n## Recommended Fix\\n\\nChange line 18 from:\\n```tsx\\nconst [search, setSearch] = useState(123)\\n```\\n\\nTo:\\n```tsx\\nconst [search, setSearch] = useState(\\\"\\\")\\n```\\n\\n## Impact\\n\\nProduction deployment is blocked. The previous deployment is also failed, so web.ziraloop.com may be running an older healthy deployment or may be down. Need to verify the last successful deployment status.\",\n    \"labels\": [\"incident\"]\n  }' | jq '{number, html_url, title}'",
+        "description": "Create GitHub issue with correct token"
+      }
+    },
+    "created_at": "2026-04-16T17:02:33Z"
+  },
+  {
+    "id": "d4f77bc5-d94b-42ba-b098-4b339475aeb4",
+    "event_id": "360fe103-ec99-41a2-8914-f9006d686941",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:13Z",
+    "sequence_number": 45,
+    "data": {
+      "id": "1YC-fdRkRMuIH3L6TlRzn",
+      "result": "\"{\\\"output\\\":\\\"username=x-access-token\\\\npassword=ghs_REDACTED\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 430
+    },
+    "created_at": "2026-04-16T17:02:15Z"
+  },
+  {
+    "id": "05ea65bd-6105-4734-a0e9-e822addb5c83",
+    "event_id": "caac3200-700b-4eaf-a13c-4c8075be5e8e",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:13Z",
+    "sequence_number": 44,
+    "data": {
+      "id": "1YC-fdRkRMuIH3L6TlRzn",
+      "name": "bash",
+      "arguments": {
+        "command": "curl -sf -X POST -H \"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\" \"$ZIRALOOP_GIT_CREDENTIALS_URL\"",
+        "description": "Test git credential helper directly"
+      }
+    },
+    "created_at": "2026-04-16T17:02:13Z"
+  },
+  {
+    "id": "80557af3-45c5-485e-a7d9-c98c5da029eb",
+    "event_id": "4a588800-d20d-49b2-889e-5b95066030bb",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:08Z",
+    "sequence_number": 42,
+    "data": {
+      "id": "G0WAfqvV02_ptjx1A-FMP",
+      "name": "bash",
+      "arguments": {
+        "command": "cat /usr/local/bin/git-credential-ziraloop",
+        "description": "Check git credential helper"
+      }
+    },
+    "created_at": "2026-04-16T17:02:09Z"
+  },
+  {
+    "id": "7d550d1f-0047-4957-8eba-748c7240444e",
+    "event_id": "c5dd1099-e5eb-4a05-b166-c5e57f47a1de",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:08Z",
+    "sequence_number": 43,
+    "data": {
+      "id": "G0WAfqvV02_ptjx1A-FMP",
+      "result": "\"{\\\"output\\\":\\\"#!/bin/sh\\\\ncurl -sf -X POST -H \\\\\\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\\\\\" \\\\\\\"$ZIRALOOP_GIT_CREDENTIALS_URL\\\\\\\"\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 2
+    },
+    "created_at": "2026-04-16T17:02:09Z"
+  },
+  {
+    "id": "2a236221-1079-44f6-9730-b8d5ca64084d",
+    "event_id": "cd813908-f58d-45e3-9c30-8c6d4b2c14bc",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:01Z",
+    "sequence_number": 41,
+    "data": {
+      "id": "P5TskWPifGP12NXaPCOBC",
+      "result": "\"{\\\"output\\\":\\\"origin\\\\thttps://github.com/ziraloop/ziraloop.git (fetch)\\\\norigin\\\\thttps://github.com/ziraloop/ziraloop.git (push)\\\\ncredential.helper=/usr/local/bin/git-credential-ziraloop\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 5
+    },
+    "created_at": "2026-04-16T17:02:03Z"
+  },
+  {
+    "id": "ecda6320-5e9a-4b13-b615-c3f6724fa841",
+    "event_id": "2edf2ed8-abf6-42da-b92c-63384de02f7f",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:02:01Z",
+    "sequence_number": 40,
+    "data": {
+      "id": "P5TskWPifGP12NXaPCOBC",
+      "name": "bash",
+      "arguments": {
+        "command": "cd /home/daytona/repos/ziraloop && git remote -v && git config --list | grep -i credential",
+        "description": "Check git remote and credentials"
+      }
+    },
+    "created_at": "2026-04-16T17:02:01Z"
+  },
+  {
+    "id": "08868f8d-9dfe-4838-a6a5-eaa97964ed71",
+    "event_id": "129c29a6-a801-4aa1-9af0-f67d7bd127c5",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:01:53Z",
+    "sequence_number": 39,
+    "data": {
+      "id": "qx6Uu7A9PQIu3d7x4lO3X",
+      "result": "\"{\\\"output\\\":\\\"\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 508
+    },
+    "created_at": "2026-04-16T17:01:55Z"
+  },
+  {
+    "id": "c7f3a398-590d-4ef7-8549-f2cfa8d4271c",
+    "event_id": "10d62576-7ecb-48a7-ae3b-e210cb6a599a",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:01:53Z",
+    "sequence_number": 38,
+    "data": {
+      "id": "qx6Uu7A9PQIu3d7x4lO3X",
+      "name": "bash",
+      "arguments": {
+        "command": "curl -s \"$ZIRALOOP_GIT_CREDENTIALS_URL\" -H \"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\"",
+        "description": "Fetch GitHub credentials raw"
+      }
+    },
+    "created_at": "2026-04-16T17:01:53Z"
+  },
+  {
+    "id": "e4c5525c-b171-4376-b868-af514bdfb3d4",
+    "event_id": "e09932d4-c801-4404-89b5-4f3590fd0cf4",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:01:48Z",
+    "sequence_number": 36,
+    "data": {
+      "id": "tyl50sW5FUzLl_kFLiTxR",
+      "name": "bash",
+      "arguments": {
+        "command": "curl -s \"$ZIRALOOP_GIT_CREDENTIALS_URL\" -H \"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\" | jq '.'",
+        "description": "Fetch GitHub credentials with auth"
+      }
+    },
+    "created_at": "2026-04-16T17:01:49Z"
+  },
+  {
+    "id": "917d4591-adb3-4703-9346-45748518e9d2",
+    "event_id": "50956e63-77d2-4f42-8abc-d238d5cf1fc5",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:01:48Z",
+    "sequence_number": 37,
+    "data": {
+      "id": "tyl50sW5FUzLl_kFLiTxR",
+      "result": "\"{\\\"output\\\":\\\"\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 464
+    },
+    "created_at": "2026-04-16T17:01:49Z"
+  },
+  {
+    "id": "d86b8023-b76b-4cf9-901c-ac1c8dc2fb6e",
+    "event_id": "859615b3-8e00-4c62-96bb-0ebbff9ebef1",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:01:40Z",
+    "sequence_number": 34,
+    "data": {
+      "id": "_bDt5pHijIDVULowdnIXl",
+      "name": "bash",
+      "arguments": {
+        "command": "curl -s \"$ZIRALOOP_GIT_CREDENTIALS_URL\" | jq '.'",
+        "description": "Fetch GitHub credentials from internal endpoint"
+      }
+    },
+    "created_at": "2026-04-16T17:01:41Z"
+  },
+  {
+    "id": "66755d49-143f-4184-854a-55b2f8193cca",
+    "event_id": "42524834-4a5c-4d43-92e2-879bcc10d340",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:01:41Z",
+    "sequence_number": 35,
+    "data": {
+      "id": "_bDt5pHijIDVULowdnIXl",
+      "result": "\"{\\\"output\\\":\\\"\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 462
+    },
+    "created_at": "2026-04-16T17:01:41Z"
+  },
+  {
+    "id": "72618c9a-837e-4f52-87a5-757dc2248fec",
+    "event_id": "01fcb543-720d-4062-8b2c-6c943b808a53",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:01:34Z",
+    "sequence_number": 33,
+    "data": {
+      "id": "TtkbXusLuDXIiqSa7T_PP",
+      "result": "\"{\\\"output\\\":\\\"BRIDGE_CONTROL_PLANE_API_KEY=8e439a02c6bf7de334fe4d6dc66a8d4eb3f44ac728f7db9ee5c143f894689ef6\\\\nBRIDGE_LISTEN_ADDR=0.0.0.0:25434\\\\nBRIDGE_LOG_FORMAT=json\\\\nBRIDGE_STORAGE_PATH=/home/daytona/.bridge/storage\\\\nBRIDGE_WEBHOOK_URL=https://api.ziraloop.com/internal/webhooks/bridge/606f3639-45ca-4347-adad-da4d43d955ba\\\\nBRIDGE_WEB_URL=https://api.ziraloop.com/spider\\\\nCARGO_HOME=/usr/local/cargo\\\\nDAYTONA_ORGANIZATION_ID=55f6dcd2-9e22-4820-b769-7df237fe5e9d\\\\nDAYTONA_REGION_ID=us\\\\nDAYTONA_SANDBOX_ID=992c5f5a-6104-499c-b2a4-342ce13ecf28\\\\nDAYTONA_SANDBOX_SNAPSHOT=77.42.84.83:6000/daytona/daytona-6996c895deeb61c6368d5f5f3da35b6d550fb773798e936f5a6ff1ff07cc9cfa:daytona\\\\nDAYTONA_SANDBOX_USER=daytona\\\\nHOME=/root\\\\nHOSTNAME=992c5f5a-6104-499c-b2a4-342ce13ecf28\\\\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\\\\nPWD=/home/daytona\\\\nRUSTUP_HOME=/usr/local/rustup\\\\nSHLVL=1\\\\nZIRALOOP_AGENT_ID=55fd683a-6124-46de-95f8-a033946e9282\\\\nZIRALOOP_DRIVE_ENDPOINT=https://api.ziraloop.com/internal/sandbox-drive/606f3639-45ca-4347-adad-da4d43d955ba\\\\nZIRALOOP_GIT_CREDENTIALS_URL=https://api.ziraloop.com/internal/git-credentials/55fd683a-6124-46de-95f8-a033946e9282\\\\nZIRALOOP_ORG_ID=d59ce252-51e8-4786-9c41-474bf9d39e71\\\\nZIRALOOP_RAILWAY_API_KEY=8e439a02c6bf7de334fe4d6dc66a8d4eb3f44ac728f7db9ee5c143f894689ef6\\\\nZIRALOOP_RAILWAY_API_URL=https://api.ziraloop.com/internal/railway-proxy/55fd683a-6124-46de-95f8-a033946e9282\\\\nZIRALOOP_SANDBOX_ID=606f3639-45ca-4347-adad-da4d43d955ba\\\\nZIRALOOP_VERCEL_API_KEY=8e439a02c6bf7de334fe4d6dc66a8d4eb3f44ac728f7db9ee5c143f894689ef6\\\\n_=/bin/sh\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 4
+    },
+    "created_at": "2026-04-16T17:01:35Z"
+  },
+  {
+    "id": "68aecbb5-53f6-4ecf-a299-77d965a28fac",
+    "event_id": "fa134eb1-485f-4c67-8632-bd34a21fd451",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:01:34Z",
+    "sequence_number": 32,
+    "data": {
+      "id": "TtkbXusLuDXIiqSa7T_PP",
+      "name": "bash",
+      "arguments": {
+        "command": "env | sort",
+        "description": "List all environment variables"
+      }
+    },
+    "created_at": "2026-04-16T17:01:35Z"
+  },
+  {
+    "id": "d87973fc-d683-49fa-8589-80e3594110a4",
+    "event_id": "ef849f24-858d-4c68-bffe-147b70c975bb",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:01:27Z",
+    "sequence_number": 30,
+    "data": {
+      "id": "aCxa13mLObXE22gjrDPA3",
+      "name": "bash",
+      "arguments": {
+        "command": "curl -s -X POST \"https://api.github.com/repos/ziraloop/ziraloop/issues\" \\\n  -H \"Authorization: token $GH_TOKEN\" \\\n  -H \"Accept: application/vnd.github+json\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"title\": \"[Incident] web.ziraloop.com: TypeScript build failure - search state initialized as number\",\n    \"body\": \"## Summary\\n\\n**Service:** web.ziraloop.com\\n**Environment:** production\\n**Status:** FAILED\\n**Detected:** 2026-04-16T16:58:37Z\\n\\n## Root Cause\\n\\nTypeScript error in `apps/web/app/w/agents/page.tsx` at line 18: the `search` state variable is initialized as a number (`123`) instead of a string, but the code at line 27 calls `.trim()` on it, which is a string method.\\n\\n**File:** `apps/web/app/w/agents/page.tsx`\\n**Lines:** 18, 27\\n\\n```tsx\\n// Line 18 - incorrect initialization\\nconst [search, setSearch] = useState(123)\\n\\n// Line 27 - calls .trim() on number, causing TypeScript error\\nif (!search.trim()) return agents\\n```\\n\\nThe commit message from the previous failed deployment (6dd0957a) mentioned: \\\"Also includes intentional type error in agents page to trigger dispatch webhook.\\\" This error appears to be a leftover from that testing and was not removed before merging.\\n\\n## Evidence\\n\\nBuild log error:\\n```\\nFailed to compile.\\n\\n./app/w/agents/page.tsx:27:17\\nType error: Property trim does not exist on type number.\\n\\n  25 |\\n  26 |   const filtered = useMemo(() => {\\n> 27 |     if (!search.trim()) return agents\\n     |                 ^\\n  28 |     const query = search.toLowerCase()\\n```\\n\\nDeployment: 9bea0d73-4372-4680-961a-b96684859ef8\\nCommit: 62e88369c333090dc60c957750f85e21d2ba3bf3\\n\\n## Recommended Fix\\n\\nChange line 18 from:\\n```tsx\\nconst [search, setSearch] = useState(123)\\n```\\n\\nTo:\\n```tsx\\nconst [search, setSearch] = useState(\\\"\\\")\\n```\\n\\n## Impact\\n\\nProduction deployment is blocked. The previous deployment is also failed, so web.ziraloop.com may be running an older healthy deployment or may be down. Need to verify the last successful deployment status.\",\n    \"labels\": [\"incident\"]\n  }'",
+        "description": "Create GitHub issue via API - check full response"
+      }
+    },
+    "created_at": "2026-04-16T17:01:29Z"
+  },
+  {
+    "id": "49c6068c-d71f-41f9-b571-aa2e196696da",
+    "event_id": "4d4af752-30e0-42c3-bc9f-cc2b6e594cfe",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:01:28Z",
+    "sequence_number": 31,
+    "data": {
+      "id": "aCxa13mLObXE22gjrDPA3",
+      "result": "\"{\\\"output\\\":\\\"{\\\\r\\\\n  \\\\\\\"message\\\\\\\": \\\\\\\"Bad credentials\\\\\\\",\\\\r\\\\n  \\\\\\\"documentation_url\\\\\\\": \\\\\\\"https://docs.github.com/rest\\\\\\\",\\\\r\\\\n  \\\\\\\"status\\\\\\\": \\\\\\\"401\\\\\\\"\\\\r\\\\n}\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 178
+    },
+    "created_at": "2026-04-16T17:01:29Z"
+  },
+  {
+    "id": "17b2a1d4-a75d-4d93-9e08-f8168ccb06ea",
+    "event_id": "3dcc1d03-3c8c-42b3-abb7-6606a3ec2c91",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:01:13Z",
+    "sequence_number": 29,
+    "data": {
+      "id": "DArTlZWxca8ovfx5y3BUD",
+      "result": "\"{\\\"output\\\":\\\"{\\\\n  \\\\\\\"number\\\\\\\": null,\\\\n  \\\\\\\"html_url\\\\\\\": null,\\\\n  \\\\\\\"title\\\\\\\": null\\\\n}\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 186
+    },
+    "created_at": "2026-04-16T17:01:15Z"
+  },
+  {
+    "id": "b2526fbc-fb3e-4e80-940c-7b27a0673c0a",
+    "event_id": "9dbc2e79-dfed-4723-aa0e-1c623a775a84",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:01:13Z",
+    "sequence_number": 28,
+    "data": {
+      "id": "DArTlZWxca8ovfx5y3BUD",
+      "name": "bash",
+      "arguments": {
+        "command": "curl -s -X POST \"https://api.github.com/repos/ziraloop/ziraloop/issues\" \\\n  -H \"Authorization: token $GH_TOKEN\" \\\n  -H \"Accept: application/vnd.github+json\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"title\": \"[Incident] web.ziraloop.com: TypeScript build failure - search state initialized as number\",\n    \"body\": \"## Summary\\n\\n**Service:** web.ziraloop.com\\n**Environment:** production\\n**Status:** FAILED\\n**Detected:** 2026-04-16T16:58:37Z\\n\\n## Root Cause\\n\\nTypeScript error in `apps/web/app/w/agents/page.tsx` at line 18: the `search` state variable is initialized as a number (`123`) instead of a string, but the code at line 27 calls `.trim()` on it, which is a string method.\\n\\n**File:** `apps/web/app/w/agents/page.tsx`\\n**Lines:** 18, 27\\n\\n```tsx\\n// Line 18 - incorrect initialization\\nconst [search, setSearch] = useState(123)\\n\\n// Line 27 - calls .trim() on number, causing TypeScript error\\nif (!search.trim()) return agents\\n```\\n\\nThe commit message from the previous failed deployment (6dd0957a) mentioned: \\\"Also includes intentional type error in agents page to trigger dispatch webhook.\\\" This error appears to be a leftover from that testing and was not removed before merging.\\n\\n## Evidence\\n\\nBuild log error:\\n```\\nFailed to compile.\\n\\n./app/w/agents/page.tsx:27:17\\nType error: Property '\\\"'\\''trim'\\\"'\\'' does not exist on type '\\\"'\\''number'\\\"'\\''.\\n\\n  25 |\\n  26 |   const filtered = useMemo(() => {\\n> 27 |     if (!search.trim()) return agents\\n     |                 ^\\n  28 |     const query = search.toLowerCase()\\n```\\n\\nDeployment: `9bea0d73-4372-4680-961a-b96684859ef8`\\nCommit: `62e88369c333090dc60c957750f85e21d2ba3bf3`\\n\\n## Recommended Fix\\n\\nChange line 18 from:\\n```tsx\\nconst [search, setSearch] = useState(123)\\n```\\n\\nTo:\\n```tsx\\nconst [search, setSearch] = useState(\\\"\\\")\\n```\\n\\n## Impact\\n\\nProduction deployment is blocked. The previous deployment is also failed, so web.ziraloop.com may be running an older healthy deployment or may be down. Need to verify the last successful deployment status.\",\n    \"labels\": [\"incident\"]\n  }' | jq '{number, html_url, title}'",
+        "description": "Create GitHub issue via API"
+      }
+    },
+    "created_at": "2026-04-16T17:01:13Z"
+  },
+  {
+    "id": "f2ef62e4-520c-4c4e-b75b-a40ed09f289d",
+    "event_id": "16d3bcbf-7a15-4075-a9db-718f7d0b4f9d",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:58Z",
+    "sequence_number": 26,
+    "data": {
+      "id": "t81o9CdUz1_eafBnBOPOv",
+      "name": "bash",
+      "arguments": {
+        "command": "env | grep -i github | head -5",
+        "description": "Check GitHub environment variables"
+      }
+    },
+    "created_at": "2026-04-16T17:00:59Z"
+  },
+  {
+    "id": "2d858c39-8f70-4bc5-bf20-43a77b201c1e",
+    "event_id": "eb6abcc1-3769-45d0-9180-c17ccb6e4d65",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:58Z",
+    "sequence_number": 27,
+    "data": {
+      "id": "t81o9CdUz1_eafBnBOPOv",
+      "result": "\"{\\\"output\\\":\\\"\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 3
+    },
+    "created_at": "2026-04-16T17:00:59Z"
+  },
+  {
+    "id": "f100b1bf-ae4f-4d4e-a00b-d8e29dba5b87",
+    "event_id": "ee432e38-de43-40aa-8b98-013ccfde91d8",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:53Z",
+    "sequence_number": 25,
+    "data": {
+      "id": "aWMPSqyqyCT90Rc_1X2PF",
+      "result": "\"{\\\"output\\\":\\\"github.com:\\\\n  oauth_token: \\\\n  user: ziraloop\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 23
+    },
+    "created_at": "2026-04-16T17:00:55Z"
+  },
+  {
+    "id": "0774c368-2b2c-4037-8373-141a368928ef",
+    "event_id": "efe3dce6-e103-4515-b422-0c9ecadb5bc4",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:53Z",
+    "sequence_number": 24,
+    "data": {
+      "id": "aWMPSqyqyCT90Rc_1X2PF",
+      "name": "bash",
+      "arguments": {
+        "command": "mkdir -p ~/.config/gh && printf \"github.com:\\n  oauth_token: %s\\n  user: ziraloop\\n\" \"$GH_TOKEN\" > ~/.config/gh/hosts.yml && cat ~/.config/gh/hosts.yml | head -3",
+        "description": "Configure gh CLI with token properly"
+      }
+    },
+    "created_at": "2026-04-16T17:00:53Z"
+  },
+  {
+    "id": "bd87f795-16f1-49ce-b495-8154526cea73",
+    "event_id": "327f2dd4-5951-49ca-8ee5-882380d41abe",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:47Z",
+    "sequence_number": 23,
+    "data": {
+      "id": "x8naCmKY3SYnyRQbKkBjJ",
+      "result": "\"{\\\"output\\\":\\\"-e github.com:\\\\n  oauth_token: \\\\n  user: ziraloop\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 4
+    },
+    "created_at": "2026-04-16T17:00:49Z"
+  },
+  {
+    "id": "3a25363f-a23b-4d37-8418-f1dedb019ef7",
+    "event_id": "005ada47-c662-499e-810d-8d94eadb0b26",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:47Z",
+    "sequence_number": 22,
+    "data": {
+      "id": "x8naCmKY3SYnyRQbKkBjJ",
+      "name": "bash",
+      "arguments": {
+        "command": "mkdir -p ~/.config/gh && echo -e \"github.com:\\n  oauth_token: $GH_TOKEN\\n  user: ziraloop\" > ~/.config/gh/hosts.yml && cat ~/.config/gh/hosts.yml",
+        "description": "Configure gh CLI with token"
+      }
+    },
+    "created_at": "2026-04-16T17:00:47Z"
+  },
+  {
+    "id": "e6d3b66d-194b-4a4d-a281-c5f276831155",
+    "event_id": "9b7491a8-d785-47e2-bcec-25a8c88fb397",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:40Z",
+    "sequence_number": 21,
+    "data": {
+      "id": "BJXRPtRisy2wuyQKlIdLQ",
+      "result": "\"{\\\"output\\\":\\\"To get started with GitHub CLI, please run:  gh auth login\\\\nAlternatively, populate the GH_TOKEN environment variable with a GitHub API authentication token.\\\\n\\\",\\\"exit_code\\\":4,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 36
+    },
+    "created_at": "2026-04-16T17:00:41Z"
+  },
+  {
+    "id": "25fd3f63-2911-439b-89e7-d71faee1dc6f",
+    "event_id": "02ec0fc0-242b-4fc0-ba17-498f4eb983ae",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:40Z",
+    "sequence_number": 20,
+    "data": {
+      "id": "BJXRPtRisy2wuyQKlIdLQ",
+      "name": "bash",
+      "arguments": {
+        "command": "cd /home/daytona/repos/ziraloop && GH_TOKEN=\"$GH_TOKEN\" gh issue list --search \"agents page type error\" --state open 2>&1",
+        "description": "Test gh CLI with explicit token"
+      }
+    },
+    "created_at": "2026-04-16T17:00:41Z"
+  },
+  {
+    "id": "ffeb46ef-06a2-4be9-9feb-85f8d7a83a83",
+    "event_id": "3412d5bd-0b0c-4488-9cc3-597f5ecb59c7",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:30Z",
+    "sequence_number": 19,
+    "data": {
+      "id": "ForPzadQLnPTUX6K_Su48",
+      "result": "\"{\\\"output\\\":\\\"GH_TOKEN set: yes\\\\nGITHUB_TOKEN set: yes\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 2
+    },
+    "created_at": "2026-04-16T17:00:31Z"
+  },
+  {
+    "id": "8ae60066-3cbf-44cc-ab0b-cd37eae6f8fc",
+    "event_id": "c95479ce-6632-46ec-958a-068d35dc80d3",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:30Z",
+    "sequence_number": 18,
+    "data": {
+      "id": "ForPzadQLnPTUX6K_Su48",
+      "name": "bash",
+      "arguments": {
+        "command": "echo \"GH_TOKEN set: $([ -n \\\"$GH_TOKEN\\\" ] && echo 'yes' || echo 'no')\" && echo \"GITHUB_TOKEN set: $([ -n \\\"$GITHUB_TOKEN\\\" ] && echo 'yes' || echo 'no')\"",
+        "description": "Check for GitHub token environment variables"
+      }
+    },
+    "created_at": "2026-04-16T17:00:31Z"
+  },
+  {
+    "id": "46911aab-3250-4cef-afa9-5b5111236394",
+    "event_id": "7db9042a-814a-43ef-ab70-cc172ee80584",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:23Z",
+    "sequence_number": 17,
+    "data": {
+      "id": "oRrwpR7lXTH4YgeV1Dv3e",
+      "result": "\"{\\\"output\\\":\\\"To get started with GitHub CLI, please run:  gh auth login\\\\nAlternatively, populate the GH_TOKEN environment variable with a GitHub API authentication token.\\\\n\\\",\\\"exit_code\\\":4,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 35
+    },
+    "created_at": "2026-04-16T17:00:25Z"
+  },
+  {
+    "id": "86e584d7-75af-4785-a279-3599ff600b15",
+    "event_id": "0686e8ae-93b8-4ad2-b019-028c7c231b07",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:23Z",
+    "sequence_number": 16,
+    "data": {
+      "id": "oRrwpR7lXTH4YgeV1Dv3e",
+      "name": "bash",
+      "arguments": {
+        "command": "cd /home/daytona/repos/ziraloop && gh issue create \\\n  --title \"[Incident] web.ziraloop.com: TypeScript build failure - search state initialized as number\" \\\n  --body \"$(cat <<'ISSUE_EOF'\n## Summary\n\n**Service:** web.ziraloop.com\n**Environment:** production\n**Status:** FAILED\n**Detected:** 2026-04-16T16:58:37Z\n\n## Root Cause\n\nTypeScript error in `apps/web/app/w/agents/page.tsx` at line 18: the `search` state variable is initialized as a number (`123`) instead of a string, but the code at line 27 calls `.trim()` on it, which is a string method.\n\n**File:** `apps/web/app/w/agents/page.tsx`\n**Lines:** 18, 27\n\n```tsx\n// Line 18 - incorrect initialization\nconst [search, setSearch] = useState(123)\n\n// Line 27 - calls .trim() on number, causing TypeScript error\nif (!search.trim()) return agents\n```\n\nThe commit message from the previous failed deployment (6dd0957a) mentioned: \"Also includes intentional type error in agents page to trigger dispatch webhook.\" This error appears to be a leftover from that testing and was not removed before merging.\n\n## Evidence\n\nBuild log error:\n```\nFailed to compile.\n\n./app/w/agents/page.tsx:27:17\nType error: Property 'trim' does not exist on type 'number'.\n\n  25 |\n  26 |   const filtered = useMemo(() => {\n> 27 |     if (!search.trim()) return agents\n     |                 ^\n  28 |     const query = search.toLowerCase()\n```\n\nDeployment: `9bea0d73-4372-4680-961a-b96684859ef8`\nCommit: `62e88369c333090dc60c957750f85e21d2ba3bf3`\n\n## Recommended Fix\n\nChange line 18 from:\n```tsx\nconst [search, setSearch] = useState(123)\n```\n\nTo:\n```tsx\nconst [search, setSearch] = useState(\"\")\n```\n\n## Impact\n\nProduction deployment is blocked. The previous deployment is also failed, so web.ziraloop.com may be running an older healthy deployment or may be down. Need to verify the last successful deployment status.\nISSUE_EOF\n)\" \\\n  --label \"incident\"",
+        "description": "Create GitHub issue for deployment failure"
+      }
+    },
+    "created_at": "2026-04-16T17:00:23Z"
+  },
+  {
+    "id": "3fe154db-8e43-4785-924f-eed0e7a83c1f",
+    "event_id": "ca211d52-59be-4781-8d5c-f395c6eadb7e",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:00Z",
+    "sequence_number": 15,
+    "data": {
+      "id": "KhbXQig1Mm1G-TCXUHci9",
+      "result": "\"{\\\"output\\\":\\\"\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 35
+    },
+    "created_at": "2026-04-16T17:00:01Z"
+  },
+  {
+    "id": "11637045-df97-43cb-b65d-6bb68781686e",
+    "event_id": "2967a95b-b33e-4e69-b1ce-d844612fc3a4",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T17:00:00Z",
+    "sequence_number": 14,
+    "data": {
+      "id": "KhbXQig1Mm1G-TCXUHci9",
+      "name": "bash",
+      "arguments": {
+        "command": "cd /home/daytona/repos/ziraloop && gh issue list --search \"agents page type error trim\" --state open 2>/dev/null | head -20",
+        "description": "Search for existing issues about this error"
+      }
+    },
+    "created_at": "2026-04-16T17:00:01Z"
+  },
+  {
+    "id": "d102c5d0-6ae7-4cb7-aa50-526fac3bb36d",
+    "event_id": "06f3cc25-74e7-41cf-81f9-002873cdf130",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T16:59:49Z",
+    "sequence_number": 11,
+    "data": {
+      "id": "h3RaacYIwI2SstcMye4kJ",
+      "result": "\"{\\\"output\\\":\\\"commit 62e88369c333090dc60c957750f85e21d2ba3bf3\\\\nAuthor: kimiduck <ops@llmvault.dev>\\\\nDate:   Thu Apr 16 17:55:52 2026 +0100\\\\n\\\\n    add z-ai/glm-5.1 model to OpenRouter registry\\\\n\\\\n .DS_Store                                          |   Bin 0 -> 14340 bytes\\\\n .air.toml                                          |    17 +\\\\n .dockerignore                                      |    47 +\\\\n .github/workflows/build-web.yml                    |    31 +\\\\n .github/workflows/publish-api-image.yml            |    57 +\\\\n .github/workflows/test-api.yml                     |   197 +\\\\n .github/workflows/types-ts-sdk.yml                 |    31 +\\\\n .github/workflows/types-web.yml                    |    31 +\\\\n .gitignore                                         |    35 +\\\\n .golangci.yml                                      |    24 +\\\\n AGENTS.md                                          |   101 +\\\\n CLAUDE.md                                          |   101 +\\\\n Dockerfile                                         |    32 +\\\\n Doc\\\\n\\\\n... [Output truncated. Full output (75069 bytes) saved to: /tmp/bridge_bash_0cd35ced-fc8a-495d-bdb1-c91c1a8eea1e.txt] ...\\\\n\\\\n |   259 +\\\\n .../07-catalog-validation-report.md                |   247 +\\\\n .../08-design-decisions-deferred.md                |   138 +\\\\n trigger-architecture/09-known-limitations.md       |   237 +\\\\n trigger-architecture/README.md                     |   120 +\\\\n .../agent-playbook/01-agent-design-principles.md   |   153 +\\\\n .../02-trigger-configuration-strategy.md           |   428 +\\\\n .../03-lifecycle-and-state-management.md           |   217 +\\\\n .../04-safety-and-loop-prevention.md               |   238 +\\\\n .../agent-playbook/05-economics-and-performance.md |   235 +\\\\n .../06-observability-and-debugging.md              |   279 +\\\\n .../agent-playbook/07-worked-examples.md           |   566 +\\\\n .../agent-playbook/08-anti-patterns.md             |   468 +\\\\n .../agent-playbook/09-practical-limitations.md     |   233 +\\\\n trigger-architecture/agent-playbook/README.md      |    67 +\\\\n upload                                             |   Bin 0 -> 8287106 bytes\\\\n 1197 files changed, 728621 insertions(+)\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 156
+    },
+    "created_at": "2026-04-16T16:59:49Z"
+  },
+  {
+    "id": "b069cd60-3530-41bf-9901-45735a91a8cd",
+    "event_id": "c6372ec6-7743-4a98-8f7c-304e3e9aff04",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T16:59:49Z",
+    "sequence_number": 13,
+    "data": {
+      "id": "_bqAO5HPadICf4usFg-yJ",
+      "result": "\"{\\\"content\\\":\\\"1: \\\\\\\"use client\\\\\\\"\\\\n2: \\\\n3: import { useState, useMemo } from \\\\\\\"react\\\\\\\"\\\\n4: import { $api } from \\\\\\\"@/lib/api/hooks\\\\\\\"\\\\n5: import { AgentsHeader } from \\\\\\\"./_components/agents-header\\\\\\\"\\\\n6: import { AgentsSearch } from \\\\\\\"./_components/agents-search\\\\\\\"\\\\n7: import { AgentsTable } from \\\\\\\"./_components/agents-table\\\\\\\"\\\\n8: import { AgentsEmpty } from \\\\\\\"./_components/agents-empty\\\\\\\"\\\\n9: import { CreateAgentDialog } from \\\\\\\"./_components/create-agent-dialog\\\\\\\"\\\\n10: import { EditAgentPanel } from \\\\\\\"./[id]/_components/edit-agent-panel\\\\\\\"\\\\n11: import { PageLoader } from \\\\\\\"@/components/page-loader\\\\\\\"\\\\n12: import type { CreationMode } from \\\\\\\"./_components/create-agent/types\\\\\\\"\\\\n13: import type { components } from \\\\\\\"@/lib/api/schema\\\\\\\"\\\\n14: \\\\n15: type Agent = components[\\\\\\\"schemas\\\\\\\"][\\\\\\\"agentResponse\\\\\\\"]\\\\n16: \\\\n17: export default function AgentsPage() {\\\\n18:   const [search, setSearch] = useState(123)\\\\n19:   const [createOpen, setCreateOpen] = useState(false)\\\\n20:   const [createMode, setCreateMode] = useState<CreationMode | undefined>(undefined)\\\\n21:   const [editingAgent, setEditingAgent] = useState<Agent | null>(null)\\\\n22: \\\\n23:   const { data, isLoading } = $api.useQuery(\\\\\\\"get\\\\\\\", \\\\\\\"/v1/agents\\\\\\\")\\\\n24:   const agents = data?.data ?? []\\\\n25: \\\\n26:   const filtered = useMemo(() => {\\\\n27:     if (!search.trim()) return agents\\\\n28:     const query = search.toLowerCase()\\\\n29:     return agents.filter((agent) =>\\\\n30:       (agent.name ?? \\\\\\\"\\\\\\\").toLowerCase().includes(query) ||\\\\n31:       (agent.model ?? \\\\\\\"\\\\\\\").toLowerCase().includes(query) ||\\\\n32:       (agent.provider_id ?? \\\\\\\"\\\\\\\").toLowerCase().includes(query),\\\\n33:     )\\\\n34:   }, [agents, search])\\\\n35: \\\\n36:   function openCreateWith(mode: CreationMode) {\\\\n37:     setCreateMode(mode)\\\\n38:     setCreateOpen(true)\\\\n39:   }\\\\n40: \\\\n41:   if (isLoading) {\\\\n42:     return <PageLoader description=\\\\\\\"Loading your agents\\\\\\\" />\\\\n43:   }\\\\n44: \\\\n45:   if (agents.length === 0) {\\\\n46:     return (\\\\n47:       <>\\\\n48:         <AgentsEmpty\\\\n49:           onCreateFromScratch={() => openCreateWith(\\\\\\\"scratch\\\\\\\")}\\\\n50:           onCreateFromMarketplace={() => openCreateWith(\\\\\\\"marketplace\\\\\\\")}\\\\n51:         />\\\\n52:         <CreateAgentDialog\\\\n53:           open={createOpen}\\\\n54:           onOpenChange={(open) => {\\\\n55:             setCreateOpen(open)\\\\n56:             if (!open) setCreateMode(undefined)\\\\n57:           }}\\\\n58:           initialMode={createMode}\\\\n59:         />\\\\n60:       </>\\\\n61:     )\\\\n62:   }\\\\n63: \\\\n64:   return (\\\\n65:     <>\\\\n66:       <div className=\\\\\\\"max-w-464 mx-auto w-full px-4 py-8\\\\\\\">\\\\n67:         <AgentsHeader count={agents.length} />\\\\n68:         <AgentsSearch value={search} onChange={setSearch} />\\\\n69:         <AgentsTable agents={filtered} onEditAgent={setEditingAgent} />\\\\n70:       </div>\\\\n71: \\\\n72:       <EditAgentPanel\\\\n73:         open={editingAgent !== null}\\\\n74:         onOpenChange={(open) => { if (!open) setEditingAgent(null) }}\\\\n75:         agent={editingAgent}\\\\n76:       />\\\\n77:     </>\\\\n78:   )\\\\n79: }\\\\n\\\",\\\"total_lines\\\":79,\\\"lines_read\\\":79,\\\"truncated\\\":false}\"",
+      "is_error": false,
+      "tool_name": "Read",
+      "duration_ms": 0
+    },
+    "created_at": "2026-04-16T16:59:49Z"
+  },
+  {
+    "id": "453a00cc-8e63-4a8a-9674-535e08ab09ae",
+    "event_id": "3c241c5e-9ca6-4ace-b525-2897cd118b76",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T16:59:49Z",
+    "sequence_number": 12,
+    "data": {
+      "id": "_bqAO5HPadICf4usFg-yJ",
+      "name": "Read",
+      "arguments": {
+        "file_path": "/home/daytona/repos/ziraloop/apps/web/app/w/agents/page.tsx"
+      }
+    },
+    "created_at": "2026-04-16T16:59:49Z"
+  },
+  {
+    "id": "269ac1ba-7829-47e5-ab44-5a3759fa722b",
+    "event_id": "075fa1ff-caa5-4dc9-9cce-737042c5f093",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T16:59:49Z",
+    "sequence_number": 10,
+    "data": {
+      "id": "h3RaacYIwI2SstcMye4kJ",
+      "name": "bash",
+      "arguments": {
+        "command": "cd /home/daytona/repos/ziraloop && git show 62e88369c333090dc60c957750f85e21d2ba3bf3 --stat",
+        "description": "Show commit details for failed deployment"
+      }
+    },
+    "created_at": "2026-04-16T16:59:49Z"
+  },
+  {
+    "id": "e86a3101-c9c0-40ad-abf5-2509e7d49c3f",
+    "event_id": "48c1888d-7b7f-4865-a329-a8034df0c52d",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T16:59:36Z",
+    "sequence_number": 9,
+    "data": {
+      "id": "Xy6k-5hcgEPL_V5GCSbMP",
+      "result": "\"{\\\"output\\\":\\\"+ class-variance-authority 0.7.1\\\\n+ clsx 2.1.1\\\\n+ cmdk 1.1.1\\\\n+ fumadocs-core 16.7.10\\\\n+ fumadocs-mdx 14.2.11\\\\n+ fumadocs-openapi 10.6.7\\\\n+ fumadocs-ui 16.7.10\\\\n+ input-otp 1.4.2\\\\n+ motion 12.38.0\\\\n+ next 16.1.7\\\\n+ next-themes 0.4.6\\\\n+ openapi-fetch 0.17.0\\\\n+ openapi-react-query 0.5.4\\\\n+ pino 10.3.1\\\\n+ react 19.2.4\\\\n+ react-dom 19.2.4\\\\n+ react-hook-form 7.72.1\\\\n+ react-markdown 10.1.0\\\\n+ react-scroll-to-bottom 4.2.0\\\\n+ react-syntax-highlighter 16.1.1\\\\n+ recharts 3.8.0\\\\n+ remark-gfm 4.0.1\\\\n+ shadcn 4.1.2\\\\n+ sonner 2.0.7\\\\n+ streamdown 2.5.0\\\\n+ tailwind-merge 3.5.0\\\\n+ tw-animate-css 1.4.0\\\\n+ zod 3.25.76\\\\n\\\\ndevDependencies:\\\\n+ @eslint/eslintrc 3.3.5\\\\n+ @tailwindcss/postcss 4.2.2\\\\n+ @types/node 25.5.2\\\\n+ @types/react 19.2.14\\\\n+ @types/react-dom 19.2.3\\\\n+ @types/react-scroll-to-bottom 4.2.5\\\\n+ @types/react-syntax-highlighter 15.5.13\\\\n+ eslint 9.39.4\\\\n+ eslint-config-next 16.1.7\\\\n+ monaco-editor 0.55.1\\\\n+ openapi-typescript 7.13.0\\\\n+ postcss 8.5.8\\\\n+ prettier 3.8.1\\\\n+ prettier-plugin-tailwindcss 0.7.2\\\\n+ tailwindcss 4.2.2\\\\n+ tsx 4.21.0\\\\n+ typescript 5.9.3\\\\n\\\\n\\\\n2026-04-16T16:57:33.903008943Z [info] \\\\n> web-2@0.0.1 postinstall /app\\\\n> fumadocs-mdx\\\\n\\\\n\\\\n2026-04-16T16:57:35.537574785Z [info] [MDX] generated files in 37.44659999999999ms\\\\n\\\\n2026-04-16T16:57:35.699533909Z [info] Done in 29.5s using pnpm v9.15.9\\\\n\\\\n2026-04-16T16:57:46.652394400Z [info] pnpm install --frozen-lockfile --prefer-offline\\\\n2026-04-16T16:57:46.748069129Z [info] copy / /app\\\\n2026-04-16T16:57:55.972682132Z [info] copy / /app\\\\n2026-04-16T16:57:56.040310885Z [info] pnpm run build\\\\n2026-04-16T16:57:59.518760985Z [info] \\\\n> web-2@0.0.1 build /app\\\\n> next build\\\\n\\\\n\\\\n2026-04-16T16:58:00.620204174Z [info] ▲ Next.js 16.1.7 (Turbopack)\\\\n\\\\n2026-04-16T16:58:00.620261429Z [info] \\\\n2026-04-16T16:58:01.144453084Z [info] ⚠ The \\\\\\\"middleware\\\\\\\" file convention is deprecated. Please use \\\\\\\"proxy\\\\\\\" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy\\\\n\\\\n2026-04-16T16:58:01.194026931Z [info] [MDX] generated files in 116.8266450000001ms\\\\n\\\\n2026-04-16T16:58:01.200279047Z [info]   Creating an optimized production build ...\\\\n\\\\n2026-04-16T16:58:15.003458566Z [info] ✓ Compiled successfully in 13.3s\\\\n\\\\n2026-04-16T16:58:15.028757528Z [info]   Running TypeScript ...\\\\n\\\\n2026-04-16T16:58:37.567325903Z [info] Failed to compile.\\\\n\\\\n\\\\n2026-04-16T16:58:37.567337460Z [info] ./app/w/agents/page.tsx:27:17\\\\nType error: Property 'trim' does not exist on type 'number'.\\\\n\\\\n\\\\u001b[0m \\\\u001b[90m 25 |\\\\u001b[39m\\\\n \\\\u001b[90m 26 |\\\\u001b[39m   \\\\u001b[36mconst\\\\u001b[39m filtered \\\\u001b[33m=\\\\u001b[39m useMemo(() \\\\u001b[33m=>\\\\u001b[39m {\\\\n\\\\u001b[31m\\\\u001b[1m>\\\\u001b[22m\\\\u001b[39m\\\\u001b[90m 27 |\\\\u001b[39m     \\\\u001b[36mif\\\\u001b[39m (\\\\u001b[33m!\\\\u001b[39msearch\\\\u001b[33m.\\\\u001b[39mtrim()) \\\\u001b[36mreturn\\\\u001b[39m agents\\\\n \\\\u001b[90m    |\\\\u001b[39m                 \\\\u001b[31m\\\\u001b[1m^\\\\u001b[22m\\\\u001b[39m\\\\n \\\\u001b[90m 28 |\\\\u001b[39m     \\\\u001b[36mconst\\\\u001b[39m query \\\\u001b[33m=\\\\u001b[39m search\\\\u001b[33m.\\\\u001b[39mtoLowerCase()\\\\n \\\\u001b[90m 29 |\\\\u001b[39m     \\\\u001b[36mreturn\\\\u001b[39m agents\\\\u001b[33m.\\\\u001b[39mfilter((agent) \\\\u001b[33m=>\\\\u001b[39m\\\\n \\\\u001b[90m 30 |\\\\u001b[39m       (agent\\\\u001b[33m.\\\\u001b[39mname \\\\u001b[33m?\\\\u001b[39m\\\\u001b[33m?\\\\u001b[39m \\\\u001b[32m\\\\\\\"\\\\\\\"\\\\u001b[39m)\\\\u001b[33m.\\\\u001b[39mtoLowerCase()\\\\u001b[33m.\\\\u001b[39mincludes(query) \\\\u001b[33m||\\\\u001b[39m\\\\u001b[0m\\\\n\\\\n2026-04-16T16:58:37.805682926Z [info] Next.js build worker exited with code: 1 and signal: null\\\\n\\\\n2026-04-16T16:58:38.057028078Z [info]  ELIFECYCLE  Command failed with exit code 1.\\\\n\\\\n2026-04-16T16:58:57.149210973Z [error] pnpm run build\\\\n2026-04-16T16:58:57.617028391Z [error] Build Failed: build daemon returned an error < failed to solve: process \\\\\\\"pnpm run build\\\\\\\" did not complete successfully: exit code: 1 >\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 3847
+    },
+    "created_at": "2026-04-16T16:59:37Z"
+  },
+  {
+    "id": "a9b5a5a3-fee5-4d3e-a8fa-9594915c29d4",
+    "event_id": "3d75751a-61d0-4d20-a636-75c42663a333",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T16:59:32Z",
+    "sequence_number": 8,
+    "data": {
+      "id": "Xy6k-5hcgEPL_V5GCSbMP",
+      "name": "bash",
+      "arguments": {
+        "command": "curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\" -H \"Content-Type: application/json\" -d '{\"query\": \"query($d: String!) { buildLogs(deploymentId: $d, limit: 500) { timestamp message severity attributes { key value } } }\", \"variables\": {\"d\": \"9bea0d73-4372-4680-961a-b96684859ef8\"}}' | jq -r '.data.buildLogs[] | \"\\(.timestamp) [\\(.severity)] \\(.message)\"' | tail -100",
+        "description": "Fetch build logs for failed deployment"
+      }
+    },
+    "created_at": "2026-04-16T16:59:33Z"
+  },
+  {
+    "id": "f4a8814d-712b-4d1e-a7b8-242f54d944d8",
+    "event_id": "d3146a3c-bc7f-459e-a65b-9b944aa667bc",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T16:59:18Z",
+    "sequence_number": 5,
+    "data": {
+      "id": "vTASNmcrr0-Jh5SyS3Mz5",
+      "result": "\"{\\\"results\\\":[]}\"",
+      "is_error": false,
+      "tool_name": "memory_recall",
+      "duration_ms": 1980
+    },
+    "created_at": "2026-04-16T16:59:19Z"
+  },
+  {
+    "id": "c388f22c-a029-4fd0-88dd-322faead1f62",
+    "event_id": "17c0a844-2db6-4b96-a78a-298fe7a59003",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T16:59:18Z",
+    "sequence_number": 6,
+    "data": {
+      "id": "X5kVE4-UBV1Pj9H24H8vX",
+      "name": "skill",
+      "arguments": {
+        "name": "railway"
+      }
+    },
+    "created_at": "2026-04-16T16:59:19Z"
+  },
+  {
+    "id": "a5a54e6d-bab2-4ca7-a23d-9a1d3d8de2fd",
+    "event_id": "9e310b08-e1bd-4b57-8335-e167ebd4abaa",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T16:59:18Z",
+    "sequence_number": 7,
+    "data": {
+      "id": "X5kVE4-UBV1Pj9H24H8vX",
+      "result": "\"<skill_content name=\\\"railway\\\" title=\\\"railway\\\" source=\\\"controlplane\\\">\\n---\\nname: railway\\ndescription: Use when deploying services, managing environments, reading logs, or configuring infrastructure on Railway - provides pre-authenticated GraphQL API patterns for projects, services, deployments, variables, domains, volumes, buckets, and templates via ${ZIRALOOP_RAILWAY_API_URL} proxy\\n---\\n\\n# Managing Railway Infrastructure\\n\\n## Overview\\n\\nManage Railway cloud infrastructure through a pre-authenticated GraphQL API proxy. All requests go to `${ZIRALOOP_RAILWAY_API_URL}` with `Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY`.\\n\\n## When to Use\\n\\n- Deploying or redeploying services on Railway\\n- Managing environment variables, domains, or volumes\\n- Reading build/deploy/runtime logs\\n- Creating projects, environments, or services\\n- Checking deployment status or resource metrics\\n- Provisioning databases, buckets, or templates\\n\\n## Quick Reference\\n\\nEvery call is `curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" -d '{\\\"query\\\": \\\"...\\\", \\\"variables\\\": {...}}'`. Always pipe through `jq`.\\n\\n### Queries\\n\\n| Operation | Key Variables | Purpose |\\n|-----------|--------------|---------|\\n| `UserMeta` | none | Get current user name/email |\\n| `UserProjects` | none | List all workspaces and projects |\\n| `Projects` | `workspaceId?` | List projects in a workspace |\\n| `Project` | `id!` | Full project state (environments, services, deployments, domains, volumes) |\\n| `Environments` | `projectId!` | List environments with PR metadata |\\n| `Deployments` | `input{projectId,serviceId,environmentId}` | List deployments with status |\\n| `LatestDeployment` | `serviceId!, environmentId!` | Quick deployment status check |\\n| `VariablesForServiceDeployment` | `projectId!, environmentId!, serviceId!` | Read rendered env vars |\\n| `Domains` | `environmentId!, projectId!, serviceId!` | List service/custom domains |\\n| `CustomDomainAvailable` | `domain!` | Check domain availability |\\n| `Regions` | none | List deployment regions |\\n| `DeploymentLogs` | `deploymentId!, limit?` | Runtime application logs |\\n| `BuildLogs` | `deploymentId!, limit?` | Build-phase logs |\\n| `HttpLogs` | `deploymentId!, beforeLimit!` | HTTP access logs |\\n| `Metrics` | `serviceId, environmentId, startDate!, measurements!` | CPU/memory/network/disk metrics |\\n| `Templates` | `verified?, recommended?, first?` | Discover templates |\\n| `TemplateDetail` | `code!` | Inspect template config |\\n| `BucketS3Credentials` | `projectId!, environmentId!, bucketId!` | Get S3 credentials |\\n| `BucketInstanceDetails` | `bucketId!, environmentId!` | Bucket size/object count |\\n| `WorkflowStatus` | `workflowId!` | Poll async operation completion |\\n\\n### Mutations\\n\\n| Operation | Key Variables | Purpose |\\n|-----------|--------------|---------|\\n| `ProjectCreate` | `name?, workspaceId?` | Create project |\\n| `ProjectScheduleDelete` | `id!` | Soft-delete project |\\n| `ServiceCreate` | `projectId!, environmentId!, source?, variables?` | Create service from image/repo |\\n| `ServiceDelete` | `environmentId!, serviceId!` | Delete service |\\n| `ServiceInstanceUpdate` | `serviceId!, environmentId?, input!` | Configure service (replicas, health checks, commands, regions, cron) |\\n| `ServiceInstanceDeploy` | `environmentId!, serviceId!` | Trigger deploy |\\n| `DeploymentRedeploy` | `id!` | Rebuild and redeploy |\\n| `DeploymentRestart` | `id!` | Restart without rebuild |\\n| `DeploymentRemove` | `id!` | Stop/remove deployment |\\n| `VariableCollectionUpsert` | `projectId!, serviceId!, environmentId!, variables!, skipDeploys?` | Set env vars |\\n| `VariableDelete` | `projectId!, environmentId!, name!, serviceId?` | Delete env var |\\n| `EnvironmentCreate` | `projectId!, name!, sourceId?` | Create/clone environment |\\n| `EnvironmentDelete` | `id!` | Delete environment |\\n| `ServiceDomainCreate` | `environmentId!, serviceId!` | Generate *.railway.app domain |\\n| `CustomDomainCreate` | `input{domain,environmentId,projectId,serviceId}` | Attach custom domain |\\n| `VolumeCreate` | `projectId!, environmentId!, serviceId!, mountPath!` | Create persistent volume |\\n| `VolumeDelete` | `id!` | Delete volume |\\n| `VolumeAttach` | `environmentId!, volumeId!, serviceId!` | Attach volume to service |\\n| `VolumeDetach` | `environmentId!, volumeId!` | Detach volume |\\n| `TemplateDeploy` | `projectId!, environmentId!, templateId!, serializedConfig!` | Deploy template (Postgres, Redis, etc.) |\\n| `BucketCreate` | `input{projectId!, name?, environmentId?}` | Create S3-compatible storage |\\n| `BucketCredentialsReset` | `projectId!, environmentId!, bucketId!` | Rotate bucket credentials |\\n| `UpdateRegions` | `environmentId!, serviceId!, multiRegionConfig!` | Set multi-region config |\\n\\n## Implementation\\n\\n### Request pattern\\n\\n```bash\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} \\\\\\n  -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" \\\\\\n  -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"...\\\", \\\"variables\\\": {...}}' \\\\\\n  | jq 'if .errors then {error: .errors[0].message} else .data end'\\n```\\n\\nEvery request must include `Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY`.\\n\\n### Rule 1: Always filter with jq\\n\\nNever let raw JSON into your context. Always pipe through `jq` to extract only what you need.\\n\\n```bash\\n# BAD\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" -d '...'\\n\\n# GOOD\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" -d '...' \\\\\\n  | jq '.data.project.services.edges[].node | {id, name}'\\n```\\n\\nCommon jq patterns:\\n```bash\\n| jq '.data.project.services.edges[].node | {id, name}'\\n| jq '.data.deployments.edges[].node | {id, status}'\\n| jq '.data.project.environments.edges[].node | select(.name == \\\"production\\\") | .id'\\n| jq '[.data.deployments.edges[].node.status] | group_by(.) | map({status: .[0], count: length})'\\n| jq 'if .errors then {error: .errors[0].message} else .data end'\\n```\\n\\n### Rule 2: Only request fields you need\\n\\nDo NOT copy full queries verbatim if you only need a subset. GraphQL lets you pick exactly what you need.\\n\\n```bash\\n# Only need service names? Don't request deployments, domains, volumes...\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"query { project(id: \\\\\\\"PROJECT_ID\\\\\\\") { services { edges { node { id name } } } } }\\\"}' \\\\\\n  | jq '.data.project.services.edges[].node'\\n```\\n\\n### Rule 3: Never expose sensitive data\\n\\nYour output is logged. Mask secrets, credentials, tokens, and connection strings.\\n\\n**Environment variables** — always mask sensitive values:\\n```bash\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"query($p:String!,$e:String!,$s:String!){variablesForServiceDeployment(projectId:$p,environmentId:$e,serviceId:$s)}\\\", \\\"variables\\\": {\\\"p\\\":\\\"...\\\",\\\"e\\\":\\\"...\\\",\\\"s\\\":\\\"...\\\"}}' \\\\\\n  | jq '.data.variablesForServiceDeployment | to_entries | map({key: .key, value: (if (.key | test(\\\"SECRET|KEY|TOKEN|PASSWORD|URL|DSN|CREDENTIALS|PRIVATE|MONGO|POSTGRES|MYSQL|REDIS|AMQP\\\"; \\\"i\\\")) then \\\"****\\\" else .value end)}) | from_entries'\\n```\\n\\n**Bucket credentials** — only non-secret fields: `| jq '.data.bucketS3Credentials | {endpoint, bucketName, region}'`\\n\\n**If you must use a secret**, pipe directly to file: `curl -s ... | jq -r '.data.bucketS3Credentials.secretAccessKey' > /tmp/.bucket_secret`\\n\\n### ID discovery\\n\\nMost operations need IDs. Start with discovery:\\n\\n1. `UserProjects` — enumerate all workspaces/projects\\n2. `Project` (with just the fields you need) — get environment, service, deployment IDs\\n3. Use returned IDs for subsequent operations\\n\\n### Workflows\\n\\n**Deploy service from image:**\\n```bash\\nSERVICE_ID=$(curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"mutation { serviceCreate(input: { name: \\\\\\\"my-api\\\\\\\", projectId: \\\\\\\"PROJ\\\\\\\", environmentId: \\\\\\\"ENV\\\\\\\", source: { image: \\\\\\\"node:20\\\\\\\" } }) { id } }\\\"}' \\\\\\n  | jq -r '.data.serviceCreate.id')\\n\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d \\\"{\\\\\\\"query\\\\\\\": \\\\\\\"mutation { serviceDomainCreate(input: { environmentId: \\\\\\\\\\\\\\\"ENV\\\\\\\\\\\\\\\", serviceId: \\\\\\\\\\\\\\\"$SERVICE_ID\\\\\\\\\\\\\\\" }) { domain } }\\\\\\\"}\\\" \\\\\\n  | jq -r '.data.serviceDomainCreate.domain'\\n```\\n\\n**Check status, read logs on failure:**\\n```bash\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"query { serviceInstance(environmentId: \\\\\\\"ENV\\\\\\\", serviceId: \\\\\\\"SVC\\\\\\\") { latestDeployment { id status } } }\\\"}' \\\\\\n  | jq '.data.serviceInstance.latestDeployment'\\n\\n# If FAILED/CRASHED — read build logs (messages only)\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"query { buildLogs(deploymentId: \\\\\\\"DEPLOY\\\\\\\", limit: 200) { timestamp message } }\\\"}' \\\\\\n  | jq -r '.data.buildLogs[] | \\\"\\\\(.timestamp) \\\\(.message)\\\"'\\n```\\n\\n**Batch env vars then deploy once:**\\n```bash\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"mutation($v: EnvironmentVariables!) { variableCollectionUpsert(input: { projectId: \\\\\\\"PROJ\\\\\\\", environmentId: \\\\\\\"ENV\\\\\\\", serviceId: \\\\\\\"SVC\\\\\\\", variables: $v, skipDeploys: true }) }\\\", \\\"variables\\\": {\\\"v\\\": {\\\"DB_URL\\\": \\\"...\\\", \\\"REDIS_URL\\\": \\\"...\\\"}}}' \\\\\\n  | jq '.data'\\n\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"mutation { serviceInstanceDeployV2(environmentId: \\\\\\\"ENV\\\\\\\", serviceId: \\\\\\\"SVC\\\\\\\") }\\\"}' \\\\\\n  | jq '.data'\\n```\\n\\n## Common Mistakes\\n\\n| Mistake | Fix |\\n|---------|-----|\\n| Dumping raw curl output into context | Always pipe through `jq` to extract needed fields |\\n| Copying full query when only needing 2 fields | Write a minimal query with just those fields |\\n| Printing env var values in output | Mask with jq `test(\\\"SECRET\\\\|KEY\\\\|TOKEN\\\\|PASSWORD\\\\|URL\\\"; \\\"i\\\")` filter |\\n| Printing bucket secretAccessKey | Only extract `{endpoint, bucketName, region}` unless writing to file |\\n| Forgetting Authorization header | Always include `-H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\"` |\\n| Triggering deploy after each variable change | Use `skipDeploys: true`, then one `ServiceInstanceDeploy` at end |\\n| Not checking for errors | Always check `.errors` before using `.data` |\\n\\n## ServiceInstanceUpdate Fields\\n\\n| Field | Type | Description |\\n|-------|------|-------------|\\n| `buildCommand` | String | Custom build command |\\n| `builder` | String | NIXPACKS or DOCKERFILE |\\n| `cronSchedule` | String | Cron expression |\\n| `dockerfilePath` | String | Path to Dockerfile |\\n| `healthcheckPath` | String | HTTP health check endpoint |\\n| `healthcheckTimeout` | Int | Health check timeout (seconds) |\\n| `numReplicas` | Int | Number of replicas |\\n| `region` | String | Deployment region |\\n| `restartPolicyType` | String | NEVER, ON_FAILURE, or ALWAYS |\\n| `restartPolicyMaxRetries` | Int | Max restart retries |\\n| `rootDirectory` | String | Root directory for builds |\\n| `startCommand` | String | Start command |\\n| `sleepApplication` | Boolean | Enable/disable sleep mode |\\n| `source` | Object | `{repo: \\\"owner/repo\\\"}` or `{image: \\\"image:tag\\\"}` |\\n| `preDeployCommand` | String | Pre-deploy command (e.g., migrations) |\\n| `multiRegionConfig` | JSON | Multi-region config |\\n| `watchPatterns` | [String] | File patterns triggering redeploy |\\n\\n## Enums\\n\\n**Deployment status:** `BUILDING`, `DEPLOYING`, `SUCCESS`, `FAILED`, `CRASHED`, `REMOVED`, `SLEEPING`, `QUEUED`, `INITIALIZING`, `WAITING`, `SKIPPED`, `NEEDS_APPROVAL`, `REMOVING`\\n\\n**Metric measurements:** `CPU_USAGE`, `MEMORY_USAGE_GB`, `NETWORK_RX_GB`, `NETWORK_TX_GB`, `DISK_USAGE_GB`\\n\\n---\\n\\n## GraphQL Query Bodies\\n\\nOnly request the fields you need — trim these down for your task.\\n\\n### UserMeta\\n\\n```graphql\\nquery UserMeta {\\n  me { name email }\\n}\\n```\\n\\n### UserProjects\\n\\n```graphql\\nquery UserProjects {\\n  externalWorkspaces {\\n    id name teamId\\n    projects {\\n      id name createdAt updatedAt deletedAt\\n      environments { edges { node { id name canAccess serviceInstances { edges { node { serviceId } } } } } }\\n      services { edges { node { id name } } }\\n    }\\n  }\\n  me {\\n    workspaces {\\n      id name\\n      team { id }\\n      projects(first: 500) {\\n        edges {\\n          node {\\n            id name createdAt updatedAt deletedAt\\n            environments { edges { node { id name canAccess serviceInstances { edges { node { serviceId } } } } } }\\n            services { edges { node { id name } } }\\n          }\\n        }\\n      }\\n    }\\n  }\\n}\\n```\\n\\n### Projects\\n\\n```graphql\\nquery Projects($workspaceId: String) {\\n  projects(workspaceId: $workspaceId) {\\n    edges {\\n      node {\\n        id name updatedAt\\n        workspace { id name }\\n        environments { edges { node { id name serviceInstances { edges { node { serviceId } } } } } }\\n        services { edges { node { id name } } }\\n      }\\n    }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"workspaceId\\\": \\\"optional-workspace-id\\\" }`\\n\\n### Project\\n\\nFull project state in one call.\\n\\n```graphql\\nquery Project($id: String!) {\\n  project(id: $id) {\\n    id name deletedAt\\n    workspace { name }\\n    buckets { edges { node { id name } } }\\n    environments {\\n      edges {\\n        node {\\n          id name canAccess deletedAt unmergedChangesCount\\n          serviceInstances {\\n            edges {\\n              node {\\n                id serviceId serviceName environmentId\\n                latestDeployment { canRedeploy id meta status createdAt deploymentStopped }\\n                activeDeployments { id status createdAt meta }\\n                source { repo image }\\n                domains {\\n                  serviceDomains { id domain targetPort }\\n                  customDomains { id domain targetPort }\\n                }\\n                cronSchedule nextCronRunAt startCommand\\n              }\\n            }\\n          }\\n          volumeInstances {\\n            edges {\\n              node {\\n                serviceId mountPath environmentId currentSizeMB sizeMB\\n                volume { name id }\\n              }\\n            }\\n          }\\n        }\\n      }\\n    }\\n    services { edges { node { id name } } }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"project-id\\\" }`\\n\\n### Environments\\n\\n```graphql\\nquery Environments($projectId: String!, $isEphemeral: Boolean, $first: Int, $after: String) {\\n  environments(projectId: $projectId, isEphemeral: $isEphemeral, first: $first, after: $after) {\\n    edges {\\n      node {\\n        id name isEphemeral createdAt updatedAt canAccess unmergedChangesCount\\n        sourceEnvironment { id name }\\n        meta { prNumber prTitle prRepo branch baseBranch }\\n      }\\n    }\\n    pageInfo { hasNextPage endCursor }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"project-id\\\", \\\"isEphemeral\\\": false, \\\"first\\\": 50 }`\\n\\n### Deployments\\n\\n```graphql\\nquery Deployments($input: DeploymentListInput!, $first: Int) {\\n  deployments(input: $input, first: $first) {\\n    edges { node { id createdAt status meta } }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"input\\\": { \\\"projectId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\" }, \\\"first\\\": 10 }`\\n\\n### LatestDeployment\\n\\n```graphql\\nquery LatestDeployment($serviceId: String!, $environmentId: String!) {\\n  serviceInstance(environmentId: $environmentId, serviceId: $serviceId) {\\n    latestDeployment { id status }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\" }`\\n\\n### VariablesForServiceDeployment\\n\\n```graphql\\nquery VariablesForServiceDeployment($projectId: String!, $environmentId: String!, $serviceId: String!) {\\n  variablesForServiceDeployment(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId)\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### Domains\\n\\n```graphql\\nquery Domains($environmentId: String!, $projectId: String!, $serviceId: String!) {\\n  domains(environmentId: $environmentId, projectId: $projectId, serviceId: $serviceId) {\\n    serviceDomains { id domain }\\n    customDomains { id domain }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"projectId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### CustomDomainAvailable\\n\\n```graphql\\nquery CustomDomainAvailable($domain: String!) {\\n  customDomainAvailable(domain: $domain) { available message }\\n}\\n```\\n\\nVariables: `{ \\\"domain\\\": \\\"app.example.com\\\" }`\\n\\n### Regions\\n\\n```graphql\\nquery Regions {\\n  regions { name country railwayMetal location }\\n}\\n```\\n\\n### DeploymentLogs\\n\\n```graphql\\nquery DeploymentLogs($deploymentId: String!, $limit: Int, $filter: String, $startDate: DateTime, $endDate: DateTime) {\\n  deploymentLogs(deploymentId: $deploymentId, limit: $limit, filter: $filter, startDate: $startDate, endDate: $endDate) {\\n    timestamp message\\n    attributes { key value }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"deploymentId\\\": \\\"...\\\", \\\"limit\\\": 100 }`\\n\\n### BuildLogs\\n\\n```graphql\\nquery BuildLogs($deploymentId: String!, $limit: Int, $startDate: DateTime, $endDate: DateTime, $filter: String) {\\n  buildLogs(deploymentId: $deploymentId, limit: $limit, startDate: $startDate, endDate: $endDate, filter: $filter) {\\n    timestamp message\\n    attributes { key value }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"deploymentId\\\": \\\"...\\\", \\\"limit\\\": 200 }`\\n\\n### HttpLogs\\n\\n```graphql\\nquery HttpLogs($deploymentId: String!, $filter: String, $beforeLimit: Int!, $beforeDate: String, $anchorDate: String, $afterDate: String, $afterLimit: Int) {\\n  httpLogs(deploymentId: $deploymentId, filter: $filter, beforeLimit: $beforeLimit, beforeDate: $beforeDate, anchorDate: $anchorDate, afterDate: $afterDate, afterLimit: $afterLimit) {\\n    timestamp method path httpStatus totalDuration requestId host\\n    clientUa srcIp edgeRegion txBytes rxBytes\\n    upstreamRqDuration upstreamAddress upstreamProto downstreamProto\\n    upstreamErrors responseDetails deploymentId deploymentInstanceId\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"deploymentId\\\": \\\"...\\\", \\\"beforeLimit\\\": 50 }`\\n\\n### Metrics\\n\\n```graphql\\nquery Metrics($serviceId: String, $environmentId: String, $startDate: DateTime!, $endDate: DateTime, $measurements: [MetricMeasurement!]!, $sampleRateSeconds: Int) {\\n  metrics(serviceId: $serviceId, environmentId: $environmentId, startDate: $startDate, endDate: $endDate, measurements: $measurements, sampleRateSeconds: $sampleRateSeconds) {\\n    measurement\\n    values { ts value }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"startDate\\\": \\\"2025-01-01T00:00:00Z\\\", \\\"measurements\\\": [\\\"CPU_USAGE\\\", \\\"MEMORY_USAGE_GB\\\"], \\\"sampleRateSeconds\\\": 3600 }`\\n\\n### Templates\\n\\n```graphql\\nquery Templates($verified: Boolean, $recommended: Boolean, $first: Int) {\\n  templates(verified: $verified, recommended: $recommended, first: $first) {\\n    edges { node { id code name } }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"recommended\\\": true, \\\"first\\\": 20 }`\\n\\n### TemplateDetail\\n\\n```graphql\\nquery TemplateDetail($code: String!) {\\n  template(code: $code) { id name serializedConfig }\\n}\\n```\\n\\nVariables: `{ \\\"code\\\": \\\"template-code\\\" }`\\n\\n### BucketS3Credentials\\n\\n```graphql\\nquery BucketS3Credentials($projectId: String!, $environmentId: String!, $bucketId: String!) {\\n  bucketS3Credentials(projectId: $projectId, environmentId: $environmentId, bucketId: $bucketId) {\\n    accessKeyId secretAccessKey endpoint bucketName region urlStyle\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"bucketId\\\": \\\"...\\\" }`\\n\\n### BucketInstanceDetails\\n\\n```graphql\\nquery BucketInstanceDetails($bucketId: String!, $environmentId: String!) {\\n  bucketInstanceDetails(bucketId: $bucketId, environmentId: $environmentId) { sizeBytes objectCount }\\n}\\n```\\n\\nVariables: `{ \\\"bucketId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\" }`\\n\\n### WorkflowStatus\\n\\n```graphql\\nquery WorkflowStatus($workflowId: String!) {\\n  workflowStatus(workflowId: $workflowId) { status error }\\n}\\n```\\n\\nVariables: `{ \\\"workflowId\\\": \\\"...\\\" }`\\n\\n---\\n\\n## GraphQL Mutation Bodies\\n\\n### ProjectCreate\\n\\n```graphql\\nmutation ProjectCreate($name: String, $description: String, $workspaceId: String) {\\n  projectCreate(input: { name: $name, description: $description, workspaceId: $workspaceId }) {\\n    name id\\n    environments { edges { node { id name } } }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"name\\\": \\\"my-project\\\", \\\"description\\\": \\\"optional\\\", \\\"workspaceId\\\": \\\"optional\\\" }`\\n\\n### ProjectScheduleDelete\\n\\n```graphql\\nmutation ProjectScheduleDelete($id: String!) {\\n  projectScheduleDelete(id: $id)\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"project-id\\\" }`\\n\\n### ServiceCreate\\n\\n```graphql\\nmutation ServiceCreate($name: String, $projectId: String!, $environmentId: String!, $source: ServiceSourceInput, $branch: String, $variables: EnvironmentVariables) {\\n  serviceCreate(input: { name: $name, projectId: $projectId, environmentId: $environmentId, source: $source, variables: $variables, branch: $branch }) { id name }\\n}\\n```\\n\\nFrom image: `{ \\\"name\\\": \\\"api\\\", \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"source\\\": { \\\"image\\\": \\\"nginx:latest\\\" }, \\\"variables\\\": { \\\"PORT\\\": \\\"8080\\\" } }`\\n\\nFrom repo: `{ \\\"name\\\": \\\"api\\\", \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"source\\\": { \\\"repo\\\": \\\"owner/repo\\\" }, \\\"branch\\\": \\\"main\\\" }`\\n\\n### ServiceDelete\\n\\n```graphql\\nmutation ServiceDelete($environmentId: String!, $serviceId: String!) {\\n  serviceDelete(environmentId: $environmentId, id: $serviceId)\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### ServiceInstanceUpdate\\n\\n```graphql\\nmutation ServiceInstanceUpdate($serviceId: String!, $environmentId: String, $input: ServiceInstanceUpdateInput!) {\\n  serviceInstanceUpdate(serviceId: $serviceId, environmentId: $environmentId, input: $input)\\n}\\n```\\n\\nScale: `{ \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"input\\\": { \\\"numReplicas\\\": 3, \\\"healthcheckPath\\\": \\\"/health\\\" } }`\\n\\nCron: `{ \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"input\\\": { \\\"startCommand\\\": \\\"node server.js\\\", \\\"cronSchedule\\\": \\\"0 */6 * * *\\\" } }`\\n\\n### ServiceInstanceDeploy\\n\\n```graphql\\nmutation ServiceInstanceDeploy($environmentId: String!, $serviceId: String!) {\\n  serviceInstanceDeployV2(environmentId: $environmentId, serviceId: $serviceId)\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### DeploymentRedeploy\\n\\n```graphql\\nmutation DeploymentRedeploy($id: String!) {\\n  deploymentRedeploy(id: $id) { id }\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"deployment-id\\\" }`\\n\\n### DeploymentRestart\\n\\n```graphql\\nmutation DeploymentRestart($id: String!) {\\n  deploymentRestart(id: $id)\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"deployment-id\\\" }`\\n\\n### DeploymentRemove\\n\\n```graphql\\nmutation DeploymentRemove($id: String!) {\\n  deploymentRemove(id: $id)\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"deployment-id\\\" }`\\n\\n### VariableCollectionUpsert\\n\\n```graphql\\nmutation VariableCollectionUpsert($projectId: String!, $serviceId: String!, $environmentId: String!, $variables: EnvironmentVariables!, $skipDeploys: Boolean) {\\n  variableCollectionUpsert(input: { projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId, variables: $variables, skipDeploys: $skipDeploys })\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"variables\\\": { \\\"DATABASE_URL\\\": \\\"postgres://...\\\", \\\"NODE_ENV\\\": \\\"production\\\" }, \\\"skipDeploys\\\": true }`\\n\\n### VariableDelete\\n\\n```graphql\\nmutation VariableDelete($projectId: String!, $environmentId: String!, $name: String!, $serviceId: String) {\\n  variableDelete(input: { projectId: $projectId, environmentId: $environmentId, name: $name, serviceId: $serviceId })\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"name\\\": \\\"OLD_API_KEY\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### EnvironmentCreate\\n\\n```graphql\\nmutation EnvironmentCreate($projectId: String!, $name: String!, $sourceId: String, $applyChangesInBackground: Boolean) {\\n  environmentCreate(input: { projectId: $projectId, name: $name, sourceEnvironmentId: $sourceId, applyChangesInBackground: $applyChangesInBackground }) { name id }\\n}\\n```\\n\\nClone: `{ \\\"projectId\\\": \\\"...\\\", \\\"name\\\": \\\"staging\\\", \\\"sourceId\\\": \\\"production-env-id\\\" }`\\n\\nNew: `{ \\\"projectId\\\": \\\"...\\\", \\\"name\\\": \\\"staging\\\" }`\\n\\n### EnvironmentDelete\\n\\n```graphql\\nmutation EnvironmentDelete($id: String!) {\\n  environmentDelete(id: $id)\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"environment-id\\\" }`\\n\\n### ServiceDomainCreate\\n\\n```graphql\\nmutation ServiceDomainCreate($environmentId: String!, $serviceId: String!) {\\n  serviceDomainCreate(input: { environmentId: $environmentId, serviceId: $serviceId }) { id domain }\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### CustomDomainCreate\\n\\n```graphql\\nmutation CustomDomainCreate($input: CustomDomainCreateInput!) {\\n  customDomainCreate(input: $input) {\\n    id domain serviceId environmentId projectId targetPort\\n    status {\\n      dnsRecords { hostlabel fqdn recordType requiredValue currentValue status zone purpose }\\n      certificateStatus verified\\n    }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"input\\\": { \\\"domain\\\": \\\"app.example.com\\\", \\\"environmentId\\\": \\\"...\\\", \\\"projectId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" } }`\\n\\n### VolumeCreate\\n\\n```graphql\\nmutation VolumeCreate($projectId: String!, $environmentId: String!, $serviceId: String!, $mountPath: String!) {\\n  volumeCreate(input: { projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId, mountPath: $mountPath }) { id name }\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\", \\\"mountPath\\\": \\\"/data\\\" }`\\n\\n### VolumeDelete\\n\\n```graphql\\nmutation VolumeDelete($id: String!) {\\n  volumeDelete(volumeId: $id)\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"volume-id\\\" }`\\n\\n### VolumeAttach\\n\\n```graphql\\nmutation VolumeAttach($environmentId: String!, $volumeId: String!, $serviceId: String!) {\\n  volumeInstanceUpdate(input: { serviceId: $serviceId }, environmentId: $environmentId, volumeId: $volumeId)\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"volumeId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### VolumeDetach\\n\\n```graphql\\nmutation VolumeDetach($environmentId: String!, $volumeId: String!) {\\n  volumeInstanceUpdate(input: { serviceId: null }, environmentId: $environmentId, volumeId: $volumeId)\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"volumeId\\\": \\\"...\\\" }`\\n\\n### VolumeMountPathUpdate\\n\\n```graphql\\nmutation VolumeMountPathUpdate($serviceId: String, $environmentId: String!, $volumeId: String!, $mountPath: String!) {\\n  volumeInstanceUpdate(input: { serviceId: $serviceId, mountPath: $mountPath }, environmentId: $environmentId, volumeId: $volumeId)\\n}\\n```\\n\\nVariables: `{ \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"volumeId\\\": \\\"...\\\", \\\"mountPath\\\": \\\"/new/path\\\" }`\\n\\n### VolumeNameUpdate\\n\\n```graphql\\nmutation VolumeNameUpdate($volumeId: String!, $name: String!) {\\n  volumeUpdate(volumeId: $volumeId, input: { name: $name }) { name }\\n}\\n```\\n\\nVariables: `{ \\\"volumeId\\\": \\\"...\\\", \\\"name\\\": \\\"new-name\\\" }`\\n\\n### UpdateRegions\\n\\n```graphql\\nmutation UpdateRegions($environmentId: String!, $serviceId: String!, $multiRegionConfig: JSON!) {\\n  serviceInstanceUpdate(environmentId: $environmentId, serviceId: $serviceId, input: { multiRegionConfig: $multiRegionConfig })\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\", \\\"multiRegionConfig\\\": { \\\"us-west1\\\": {}, \\\"eu-west1\\\": {} } }`\\n\\n### TemplateDeploy\\n\\n```graphql\\nmutation TemplateDeploy($projectId: String!, $environmentId: String!, $templateId: String!, $serializedConfig: SerializedTemplateConfig!) {\\n  templateDeployV2(input: { projectId: $projectId, environmentId: $environmentId, templateId: $templateId, serializedConfig: $serializedConfig }) { projectId workflowId }\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"templateId\\\": \\\"...\\\", \\\"serializedConfig\\\": {} }`\\n\\nPoll `WorkflowStatus` with the returned `workflowId` until complete.\\n\\n### BucketCreate\\n\\n```graphql\\nmutation BucketCreate($input: BucketCreateInput!) {\\n  bucketCreate(input: $input) { id name projectId }\\n}\\n```\\n\\nVariables: `{ \\\"input\\\": { \\\"projectId\\\": \\\"...\\\", \\\"name\\\": \\\"my-bucket\\\", \\\"environmentId\\\": \\\"...\\\" } }`\\n\\n### BucketUpdate\\n\\n```graphql\\nmutation BucketUpdate($id: String!, $input: BucketUpdateInput!) {\\n  bucketUpdate(id: $id, input: $input) { id name projectId }\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"bucket-id\\\", \\\"input\\\": { \\\"name\\\": \\\"new-name\\\" } }`\\n\\n### BucketCredentialsReset\\n\\nRotates credentials. Do NOT print secretAccessKey — confirm success only.\\n\\n```graphql\\nmutation BucketCredentialsReset($projectId: String!, $environmentId: String!, $bucketId: String!) {\\n  bucketCredentialsReset(projectId: $projectId, environmentId: $environmentId, bucketId: $bucketId) {\\n    accessKeyId secretAccessKey endpoint bucketName region urlStyle\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"bucketId\\\": \\\"...\\\" }`\\n\\nSafe jq: `| jq '{success: (.data.bucketCredentialsReset.accessKeyId != null), endpoint: .data.bucketCredentialsReset.endpoint}'`\\n\\n</skill_content>\"",
+      "is_error": false,
+      "tool_name": "skill",
+      "duration_ms": 1
+    },
+    "created_at": "2026-04-16T16:59:19Z"
+  },
+  {
+    "id": "46c43efc-4f95-48f4-92b2-74d3edbdc0ca",
+    "event_id": "ed173287-404c-4b44-be2c-ebc5a2dd646b",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T16:59:16Z",
+    "sequence_number": 4,
+    "data": {
+      "id": "vTASNmcrr0-Jh5SyS3Mz5",
+      "name": "memory_recall",
+      "arguments": {
+        "query": "ziraloop.com project infrastructure topology service IDs environment IDs past incidents"
+      }
+    },
+    "created_at": "2026-04-16T16:59:17Z"
+  },
+  {
+    "id": "96e0be0c-2623-496b-a616-9e885af24914",
+    "event_id": "8e590cd7-781c-4293-b625-9e78ddfc25be",
+    "event_type": "message_received",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T16:59:09Z",
+    "sequence_number": 2,
+    "data": {
+      "content": "## Deployment.failed\n\n| Field | Value |\n|---|---|\n| project_id | 55776e03-e6c2-4a9b-828b-4e759495aa70 |\n| project_name | ziraloop.com |\n| service_id | b6c22e03-d8f6-4966-b3d7-c6540e864f41 |\n| branch | main |\n| environment_name | production |\n| commit_hash | 62e88369c333090dc60c957750f85e21d2ba3bf3 |\n| deployment_id | 9bea0d73-4372-4680-961a-b96684859ef8 |\n| service_name | web.ziraloop.com |\n| environment_id | 3c177170-0fb2-4dcb-a034-12676bb242c6 |\n| workspace_id | 71ad85f8-ff26-4f3b-938a-adc10ae2655f |\n| commit_author | x-ziraloop |\n\n---\n\n### build_logs\n\n```json\n{\n  \"data\": {\n    \"buildLogs\": [\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"scheduling build on Metal builder \\\"builder-grgzpb\\\"\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:55:59.103870449Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"scheduling build on Metal builder \\\"builder-grgzpb\\\"\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:05.238004205Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"[snapshot] received sha256:09eaaae069d3695ae4dcd2e342865a1b8e67965c64451d5490a89958603038b8 md5:993c636de64fe6899df21d126d0f1ce4\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:09.557616036Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"source\",\n            \"value\": \"\\\"railway.progress\\\"\"\n          },\n          {\n            \"key\": \"status\",\n            \"value\": \"\\\"complete\\\"\"\n          },\n          {\n            \"key\": \"size\",\n            \"value\": \"8331446\"\n          },\n          {\n            \"key\": \"duration_ms\",\n            \"value\": \"1375\"\n          },\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"receiving snapshot\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:09.557714624Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"source\",\n            \"value\": \"\\\"railway.snapshot_analyze\\\"\"\n          },\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"debug\\\"\"\n          }\n        ],\n        \"message\": \"root directory set as 'apps/web'\",\n        \"severity\": \"debug\",\n        \"timestamp\": \"2026-04-16T16:56:09.743073929Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"source\",\n            \"value\": \"\\\"railway.snapshot_analyze\\\"\"\n          },\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"debug\\\"\"\n          }\n        ],\n        \"message\": \"skipping 'Dockerfile' at 'Dockerfile' as it is not rooted at a valid path (root_dir=apps/web, fileOpts={acceptChildOfRepoRoot:false})\",\n        \"severity\": \"debug\",\n        \"timestamp\": \"2026-04-16T16:56:09.743089793Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"source\",\n            \"value\": \"\\\"railway.progress\\\"\"\n          },\n          {\n            \"key\": \"status\",\n            \"value\": \"\\\"complete\\\"\"\n          },\n          {\n            \"key\": \"size\",\n            \"value\": \"8331446\"\n          },\n          {\n            \"key\": \"duration_ms\",\n            \"value\": \"185\"\n          },\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"analyzing snapshot\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:09.743175351Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"source\",\n            \"value\": \"\\\"railway.progress\\\"\"\n          },\n          {\n            \"key\": \"status\",\n            \"value\": \"\\\"complete\\\"\"\n          },\n          {\n            \"key\": \"size\",\n            \"value\": \"8331446\"\n          },\n          {\n            \"key\": \"duration_ms\",\n            \"value\": \"187\"\n          },\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"uploading snapshot\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:09.930226567Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"fetched snapshot sha256:09eaaae069d3695ae4dcd2e342865a1b8e67965c64451d5490a89958603038b8 (8.3 MB bytes)\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:14.598198641Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"source\",\n            \"value\": \"\\\"railway.progress\\\"\"\n          },\n          {\n            \"key\": \"status\",\n            \"value\": \"\\\"complete\\\"\"\n          },\n          {\n            \"key\": \"size\",\n            \"value\": \"8331446\"\n          },\n          {\n            \"key\": \"duration_ms\",\n            \"value\": \"332\"\n          },\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"fetching snapshot\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:14.598404419Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"source\",\n            \"value\": \"\\\"railway.progress\\\"\"\n          },\n          {\n            \"key\": \"status\",\n            \"value\": \"\\\"complete\\\"\"\n          },\n          {\n            \"key\": \"size\",\n            \"value\": \"37355520\"\n          },\n          {\n            \"key\": \"duration_ms\",\n            \"value\": \"340\"\n          },\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"unpacking archive\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:15.104698814Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"using build driver railpack-v0.23.0\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:15.280485768Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"                   \",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:15.663993940Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[38;2;125;86;243m╭─────────────────╮\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:15.664004115Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[38;2;125;86;243m│\\u001b[0m Railpack 0.23.0 \\u001b[38;2;125;86;243m│\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:15.664005397Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[38;2;125;86;243m╰─────────────────╯\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:15.664005778Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:15.664006199Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"  \\u001b[97m↳ Detected Node\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:15.664006960Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"  \\u001b[97m↳ Using pnpm package manager\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:15.664008452Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"            \",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T16:56:15.664009354Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"\n... (truncated)\n```\n\n### runtime_logs\n\n```json\n{\n  \"data\": {\n    \"deploymentLogs\": []\n  }\n}\n```\n\n### project_topology\n\n```json\n{\n  \"data\": {\n    \"project\": {\n      \"buckets\": {\n        \"edges\": [\n          {\n            \"node\": {\n              \"id\": \"d4edbc26-7385-4536-8115-14415508508c\",\n              \"name\": \"drive.ziraloop.com\"\n            }\n          }\n        ]\n      },\n      \"createdAt\": \"2026-03-12T18:58:27.783Z\",\n      \"deletedAt\": null,\n      \"description\": \"\",\n      \"environments\": {\n        \"edges\": [\n          {\n            \"node\": {\n              \"canAccess\": true,\n              \"deletedAt\": null,\n              \"id\": \"3c177170-0fb2-4dcb-a034-12676bb242c6\",\n              \"name\": \"production\",\n              \"serviceInstances\": {\n                \"edges\": [\n                  {\n                    \"node\": {\n                      \"activeDeployments\": [\n                        {\n                          \"createdAt\": \"2026-04-08T14:14:37.948Z\",\n                          \"id\": \"7863256c-c7de-456b-9154-a572492825c9\",\n                          \"meta\": {\n                            \"ignoreWatchPatterns\": true,\n                            \"image\": \"ghcr.io/railwayapp-templates/postgres-ssl:17\",\n                            \"imageDigest\": \"sha256:626e63984ef48a96b1782a4e796408b65bcd0bf4ad637c898aed8900ce0aff9c\",\n                            \"logsV2\": true,\n                            \"patchId\": \"007f9c8e-5484-4330-a9d7-535c1ac8c344\",\n                            \"reason\": \"redeploy\",\n                            \"runtime\": \"V2\",\n                            \"serviceManifest\": {\n                              \"build\": {\n                                \"buildCommand\": null,\n                                \"buildEnvironment\": null,\n                                \"builder\": \"RAILPACK\",\n                                \"dockerfilePath\": null,\n                                \"nixpacksConfigPath\": null,\n                                \"nixpacksPlan\": null,\n                                \"watchPatterns\": []\n                              },\n                              \"deploy\": {\n                                \"cronSchedule\": null,\n                                \"drainingSeconds\": null,\n                                \"healthcheckPath\": null,\n                                \"healthcheckTimeout\": null,\n                                \"ipv6EgressEnabled\": false,\n                                \"limitOverride\": null,\n                                \"multiRegionConfig\": {\n                                  \"us-west2\": {\n                                    \"numReplicas\": 1\n                                  }\n                                },\n                                \"numReplicas\": 1,\n                                \"overlapSeconds\": null,\n                                \"preDeployCommand\": null,\n                                \"region\": null,\n                                \"registryCredentials\": null,\n                                \"requiredMountPath\": \"/var/lib/postgresql/data\",\n                                \"restartPolicyMaxRetries\": 10,\n                                \"restartPolicyType\": \"ON_FAILURE\",\n                                \"runtime\": \"V2\",\n                                \"sleepApplication\": false,\n                                \"startCommand\": null,\n                                \"useLegacyStacker\": false\n                              }\n                            },\n                            \"skipBuildCache\": true,\n                            \"volumeMounts\": [\n                              \"/var/lib/postgresql/data\"\n                            ]\n                          },\n                          \"status\": \"SUCCESS\"\n                        }\n                      ],\n                      \"buildCommand\": null,\n                      \"cronSchedule\": null,\n                      \"domains\": {\n                        \"customDomains\": [],\n                        \"serviceDomains\": []\n                      },\n                      \"environmentId\": \"3c177170-0fb2-4dcb-a034-12676bb242c6\",\n                      \"healthcheckPath\": null,\n                      \"id\": \"18b4049f-fb3d-4fa8-88bc-8b03c03a40ec\",\n                      \"latestDeployment\": {\n                        \"canRedeploy\": true,\n                        \"createdAt\": \"2026-04-08T14:14:37.948Z\",\n                        \"deploymentStopped\": false,\n                        \"id\": \"7863256c-c7de-456b-9154-a572492825c9\",\n                        \"meta\": {\n                          \"ignoreWatchPatterns\": true,\n                          \"image\": \"ghcr.io/railwayapp-templates/postgres-ssl:17\",\n                          \"imageDigest\": \"sha256:626e63984ef48a96b1782a4e796408b65bcd0bf4ad637c898aed8900ce0aff9c\",\n                          \"logsV2\": true,\n                          \"patchId\": \"007f9c8e-5484-4330-a9d7-535c1ac8c344\",\n                          \"reason\": \"redeploy\",\n                          \"runtime\": \"V2\",\n                          \"serviceManifest\": {\n                            \"build\": {\n                              \"buildCommand\": null,\n                              \"buildEnvironment\": null,\n                              \"builder\": \"RAILPACK\",\n                              \"dockerfilePath\": null,\n                              \"nixpacksConfigPath\": null,\n                              \"nixpacksPlan\": null,\n                              \"watchPatterns\": []\n                            },\n                            \"deploy\": {\n                              \"cronSchedule\": null,\n                              \"drainingSeconds\": null,\n                              \"healthcheckPath\": null,\n                              \"healthcheckTimeout\": null,\n                              \"ipv6EgressEnabled\": false,\n                              \"limitOverride\": null,\n                              \"multiRegionConfig\": {\n                                \"us-west2\": {\n                                  \"numReplicas\": 1\n                                }\n                              },\n                              \"numReplicas\": 1,\n                              \"overlapSeconds\": null,\n                              \"preDeployCommand\": null,\n                              \"region\": null,\n                              \"registryCredentials\": null,\n                              \"requiredMountPath\": \"/var/lib/postgresql/data\",\n                              \"restartPolicyMaxRetries\": 10,\n                              \"restartPolicyType\": \"ON_FAILURE\",\n                              \"runtime\": \"V2\",\n                              \"sleepApplication\": false,\n                              \"startCommand\": null,\n                              \"useLegacyStacker\": false\n                            }\n                          },\n                          \"skipBuildCache\": true,\n                          \"volumeMounts\": [\n                            \"/var/lib/postgresql/data\"\n                          ]\n                        },\n                        \"status\": \"SUCCESS\"\n                      },\n                      \"nextCronRunAt\": null,\n                      \"numReplicas\": null,\n                      \"region\": null,\n                      \"restartPolicyMaxRetries\": 10,\n                      \"restartPolicyType\": \"ON_FAILURE\",\n                      \"rootDirectory\": null,\n                      \"serviceId\": \"f8c26c6c-399d-48f1-9b49-f411df99e508\",\n                      \"serviceName\": \"api.postgres.ziraloop.com\",\n                      \"sleepApplication\": false,\n                      \"source\": {\n                        \"image\": \"ghcr.io/railwayapp-templates/postgres-ssl:17\",\n                        \"repo\": null\n                      },\n                      \"startCommand\": null\n                    }\n                  },\n                  {\n                    \"node\": {\n                      \"activeDeployments\": [\n                        {\n                          \"createdAt\": \"2026-04-16T16:55:58.707Z\",\n                          \"id\": \"f4cec7ee-707d-481d-ae27-ac66575f5523\",\n                          \"meta\": {\n                            \"branch\": \"main\",\n\n... (truncated)\n```\n\n### recent_deployments\n\n```json\n{\n  \"data\": {\n    \"deployments\": {\n      \"edges\": [\n        {\n          \"node\": {\n            \"canRedeploy\": true,\n            \"canRollback\": false,\n            \"createdAt\": \"2026-04-16T16:55:57.563Z\",\n            \"creator\": {\n              \"name\": \"ziraloop\"\n            },\n            \"deploymentStopped\": true,\n            \"id\": \"9bea0d73-4372-4680-961a-b96684859ef8\",\n            \"meta\": {\n              \"branch\": \"main\",\n              \"buildOnly\": false,\n              \"commitAuthor\": \"x-ziraloop\",\n              \"commitHash\": \"62e88369c333090dc60c957750f85e21d2ba3bf3\",\n              \"commitMessage\": \"add z-ai/glm-5.1 model to OpenRouter registry\",\n              \"fileServiceManifest\": {},\n              \"logsV2\": true,\n              \"nixpacksProviders\": [],\n              \"plan\": \"pro\",\n              \"propertyFileMapping\": {},\n              \"reason\": \"deploy\",\n              \"repo\": \"ziraloop/ziraloop\",\n              \"rootDirectory\": \"apps/web\",\n              \"runtime\": \"V2\",\n              \"serviceManifest\": {\n                \"build\": {\n                  \"buildCommand\": null,\n                  \"buildEnvironment\": \"V3\",\n                  \"builder\": \"RAILPACK\",\n                  \"dockerfilePath\": null,\n                  \"nixpacksConfigPath\": null,\n                  \"nixpacksPlan\": null,\n                  \"watchPatterns\": []\n                },\n                \"deploy\": {\n                  \"cronSchedule\": null,\n                  \"drainingSeconds\": null,\n                  \"healthcheckPath\": \"/api/health\",\n                  \"healthcheckTimeout\": 180,\n                  \"ipv6EgressEnabled\": false,\n                  \"limitOverride\": null,\n                  \"multiRegionConfig\": {\n                    \"us-west2\": {\n                      \"numReplicas\": 1\n                    }\n                  },\n                  \"numReplicas\": 1,\n                  \"overlapSeconds\": null,\n                  \"preDeployCommand\": null,\n                  \"region\": null,\n                  \"registryCredentials\": null,\n                  \"requiredMountPath\": null,\n                  \"restartPolicyMaxRetries\": 10,\n                  \"restartPolicyType\": \"ON_FAILURE\",\n                  \"runtime\": \"V2\",\n                  \"sleepApplication\": false,\n                  \"startCommand\": null,\n                  \"useLegacyStacker\": false\n                }\n              },\n              \"volumeMounts\": []\n            },\n            \"staticUrl\": \"ziraloop.com\",\n            \"status\": \"FAILED\",\n            \"updatedAt\": \"2026-04-16T16:58:50.144Z\"\n          }\n        },\n        {\n          \"node\": {\n            \"canRedeploy\": true,\n            \"canRollback\": false,\n            \"createdAt\": \"2026-04-16T16:44:29.880Z\",\n            \"creator\": {\n              \"name\": \"ziraloop\"\n            },\n            \"deploymentStopped\": true,\n            \"id\": \"89437124-3357-4061-b548-e0ebd2f18961\",\n            \"meta\": {\n              \"branch\": \"main\",\n              \"buildOnly\": false,\n              \"commitAuthor\": \"x-ziraloop\",\n              \"commitHash\": \"6dd0957ace4f064758bc739d2c7f82a05c95b258\",\n              \"commitMessage\": \"store AgentConversation record before sending first message\\n\\nWithout this record, Bridge webhook events are silently dropped\\nbecause processEvent looks up AgentConversation by bridge_conversation_id.\\nAlso includes intentional type error in agents page to trigger dispatch webhook.\",\n              \"fileServiceManifest\": {},\n              \"ignoreWatchPatterns\": true,\n              \"logsV2\": true,\n              \"nixpacksProviders\": [],\n              \"plan\": \"pro\",\n              \"propertyFileMapping\": {},\n              \"reason\": \"redeploy\",\n              \"repo\": \"ziraloop/ziraloop\",\n              \"rootDirectory\": \"apps/web\",\n              \"runtime\": \"V2\",\n              \"serviceManifest\": {\n                \"build\": {\n                  \"buildCommand\": null,\n                  \"buildEnvironment\": \"V3\",\n                  \"builder\": \"RAILPACK\",\n                  \"dockerfilePath\": null,\n                  \"nixpacksConfigPath\": null,\n                  \"nixpacksPlan\": null,\n                  \"watchPatterns\": []\n                },\n                \"deploy\": {\n                  \"cronSchedule\": null,\n                  \"drainingSeconds\": null,\n                  \"healthcheckPath\": \"/api/health\",\n                  \"healthcheckTimeout\": 180,\n                  \"ipv6EgressEnabled\": false,\n                  \"limitOverride\": null,\n                  \"multiRegionConfig\": {\n                    \"us-west2\": {\n                      \"numReplicas\": 1\n                    }\n                  },\n                  \"numReplicas\": 1,\n                  \"overlapSeconds\": null,\n                  \"preDeployCommand\": null,\n                  \"region\": null,\n                  \"registryCredentials\": null,\n                  \"requiredMountPath\": null,\n                  \"restartPolicyMaxRetries\": 10,\n                  \"restartPolicyType\": \"ON_FAILURE\",\n                  \"runtime\": \"V2\",\n                  \"sleepApplication\": false,\n                  \"startCommand\": null,\n                  \"useLegacyStacker\": false\n                }\n              },\n              \"skipBuildCache\": true,\n              \"volumeMounts\": []\n            },\n            \"staticUrl\": \"ziraloop.com\",\n            \"status\": \"FAILED\",\n            \"updatedAt\": \"2026-04-16T16:45:21.303Z\"\n          }\n        },\n        {\n          \"node\": {\n            \"canRedeploy\": true,\n            \"canRollback\": false,\n            \"createdAt\": \"2026-04-16T15:40:57.084Z\",\n            \"creator\": {\n              \"name\": \"ziraloop\"\n            },\n            \"deploymentStopped\": true,\n            \"id\": \"ec090946-9a1e-45f6-8b07-fb74f5cb6efc\",\n            \"meta\": {\n              \"branch\": \"main\",\n              \"buildOnly\": false,\n              \"commitAuthor\": \"x-ziraloop\",\n              \"commitHash\": \"6dd0957ace4f064758bc739d2c7f82a05c95b258\",\n              \"commitMessage\": \"store AgentConversation record before sending first message\\n\\nWithout this record, Bridge webhook events are silently dropped\\nbecause processEvent looks up AgentConversation by bridge_conversation_id.\\nAlso includes intentional type error in agents page to trigger dispatch webhook.\",\n              \"fileServiceManifest\": {},\n              \"ignoreWatchPatterns\": true,\n              \"logsV2\": true,\n              \"nixpacksProviders\": [],\n              \"plan\": \"pro\",\n              \"propertyFileMapping\": {},\n              \"reason\": \"redeploy\",\n              \"repo\": \"ziraloop/ziraloop\",\n              \"rootDirectory\": \"apps/web\",\n              \"runtime\": \"V2\",\n              \"serviceManifest\": {\n                \"build\": {\n                  \"buildCommand\": null,\n                  \"buildEnvironment\": \"V3\",\n                  \"builder\": \"RAILPACK\",\n                  \"dockerfilePath\": null,\n                  \"nixpacksConfigPath\": null,\n                  \"nixpacksPlan\": null,\n                  \"watchPatterns\": []\n                },\n                \"deploy\": {\n                  \"cronSchedule\": null,\n                  \"drainingSeconds\": null,\n                  \"healthcheckPath\": \"/api/health\",\n                  \"healthcheckTimeout\": 180,\n                  \"ipv6EgressEnabled\": false,\n                  \"limitOverride\": null,\n                  \"multiRegionConfig\": {\n                    \"us-west2\": {\n                      \"numReplicas\": 1\n                    }\n                  },\n                  \"numReplicas\": 1,\n                  \"overlapSeconds\": null,\n                  \"preDeployCommand\": null,\n                  \"region\": null,\n                  \"registryCredentials\": null,\n                  \"requiredMountPath\": null,\n                  \"restartPolicyMaxRetries\": 10,\n                  \"restartPolicyType\": \"ON_FAILURE\",\n                  \"runtime\": \"V2\",\n                  \"sleepApplication\": false,\n                  \"startCommand\": null,\n                  \"useLegacyStacker\": false\n                }\n              },\n              \"skipBuildCa\n... (truncated)\n```\n\n"
+    },
+    "created_at": "2026-04-16T16:59:11Z"
+  },
+  {
+    "id": "6c7371e3-0ce2-4312-8858-95ecb11a11d3",
+    "event_id": "ce99c555-be9f-4c0f-a76d-b9b694ff7453",
+    "event_type": "conversation_created",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T16:59:09Z",
+    "sequence_number": 1,
+    "data": {},
+    "created_at": "2026-04-16T16:59:11Z"
+  },
+  {
+    "id": "3e70ef97-36d0-4fbd-82f7-1e5d139e5db5",
+    "event_id": "cb62e4fd-4907-4272-8504-480b0ed06516",
+    "event_type": "response_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd",
+    "timestamp": "2026-04-16T16:59:09Z",
+    "sequence_number": 3,
+    "data": {
+      "message_id": "60e0b57f-82c6-4d0e-abec-6736f914f6b3",
+      "conversation_id": "a9ead000-3b03-407b-bfd4-f038b134d2bd"
+    },
+    "created_at": "2026-04-16T16:59:11Z"
+  }
+]

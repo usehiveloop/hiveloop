@@ -51,6 +51,8 @@ const nvmVersion = "v0.40.4"
 
 const goVersion = "1.24.2"
 
+const astGrepVersion = "0.42.1"
+
 // devToolPackages are CLI tools and server binaries that ship dormant in the
 // dev-box image. None of these start daemons at boot — the entrypoint only
 // runs Bridge at boot. Agents start postgres/redis explicitly.
@@ -80,6 +82,7 @@ var devToolPackages = []string{
 	"libxml2-utils",
 	"xmlstarlet",
 	"s3cmd",
+	"ripgrep",
 }
 
 // sizes re-exports model.TemplateSizes for local convenience.
@@ -186,6 +189,16 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 		`curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq`,
 	)
 
+	// ast-grep (structural code search/rewrite) — not in apt, installed from
+	// the official GitHub release. Ships two binaries: ast-grep and sg.
+	image = image.Run(fmt.Sprintf(
+		`curl -fsSL https://github.com/ast-grep/ast-grep/releases/download/%s/app-x86_64-unknown-linux-gnu.zip -o /tmp/ast-grep.zip && `+
+			`unzip -o /tmp/ast-grep.zip -d /usr/local/bin/ && `+
+			`chmod +x /usr/local/bin/ast-grep /usr/local/bin/sg && `+
+			`rm /tmp/ast-grep.zip`,
+		astGrepVersion,
+	))
+
 	// Go (official tarball, symlinked into /usr/local/bin for default PATH).
 	image = image.Run(fmt.Sprintf(
 		"curl -fsSL https://go.dev/dl/go%s.linux-amd64.tar.gz | tar -C /usr/local -xzf - && "+
@@ -205,6 +218,10 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 			"ln -sf /usr/local/cargo/bin/cargo /usr/local/bin/cargo && " +
 			"ln -sf /usr/local/cargo/bin/rustup /usr/local/bin/rustup",
 	)
+
+	// Pre-install all language servers supported by Bridge so agents don't
+	// pay cold-start cost on first LSP request.
+	image = image.Run("/usr/local/bin/bridge install-lsp all")
 
 	// Git credential helper — fetches GitHub tokens from the control plane
 	// on demand. Token never touches disk; git calls this on every auth request.

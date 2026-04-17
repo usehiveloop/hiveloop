@@ -279,8 +279,8 @@ type AgentConfig struct {
 
 	// DisabledTools Tools to disable for this agent. Takes priority over everything else —
 	// disabled tools are removed from the registry before the agent is built,
-	// so the LLM never sees them. Works for built-in tools, MCP tools, codedb
-	// tools, integration tools, and spider tools.
+	// so the LLM never sees them. Works for built-in tools, MCP tools,
+	// integration tools, and spider tools.
 	DisabledTools *[]string `json:"disabled_tools,omitempty"`
 
 	// Immortal Configuration for immortal conversations (chain-based context management).
@@ -969,14 +969,18 @@ type String = string
 // SubAgentSummary Subagent summary for API responses.
 type SubAgentSummary struct {
 	// Config Configuration options for an agent.
-	Config      AgentConfig `json:"config"`
-	Description *string     `json:"description,omitempty"`
-	Name        string      `json:"name"`
+	Config      AgentConfig           `json:"config"`
+	Description *string               `json:"description,omitempty"`
+	McpServers  []McpServerDefinition `json:"mcp_servers"`
+	Name        string                `json:"name"`
 
 	// Provider Provider info with secrets redacted.
-	Provider     ProviderSummary  `json:"provider"`
-	SystemPrompt string           `json:"system_prompt"`
-	Tools        []ToolDefinition `json:"tools"`
+	Provider ProviderSummary `json:"provider"`
+
+	// RegisteredTools All tools registered and available to this subagent at runtime.
+	RegisteredTools []RegisteredToolSummary `json:"registered_tools"`
+	SystemPrompt    string                  `json:"system_prompt"`
+	Tools           []ToolDefinition        `json:"tools"`
 }
 
 // ToolCall A request to call a tool.

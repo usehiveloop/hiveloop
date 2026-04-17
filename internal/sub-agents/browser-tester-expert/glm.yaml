@@ -5,7 +5,8 @@ skills:
   - agent-browser-dogfood
 model: glm-4-plus
 permissions:
-  Grep: allow
+  RipGrep: allow
+  AstGrep: allow
   Read: allow
   Glob: allow
   LS: allow
