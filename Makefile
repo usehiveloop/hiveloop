@@ -52,10 +52,21 @@ build-templates:
 upload-skills:
 	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./skills/upload
 
-# Generate Bridge Go client from OpenAPI spec
+# Generate Bridge Go client from OpenAPI spec.
+# Bridge emits OpenAPI 3.1 schemas oapi-codegen can't handle:
+#   1. {oneOf: [{type:null}, {$ref}]} for nullable refs → collapse to the $ref
+#   2. {type: ["integer", "null"]} array-form types → strip "null", keep scalar
 generate-bridge-client:
+	jq 'walk( \
+		if type == "object" and has("oneOf") and (.oneOf | type == "array") and (.oneOf | length == 2) and (.oneOf | any(. == {"type":"null"})) then \
+			(.oneOf | map(select(. != {"type":"null"}))[0]) \
+		elif type == "object" and has("type") and (.type | type == "array") then \
+			.type |= (map(select(. != "null")) | if length == 1 then .[0] else . end) \
+		else . end)' \
+		openapi/bridge.json > openapi/bridge.generated.json
 	go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest \
-		--config=internal/bridge/oapi-codegen.yaml openapi/bridge.json
+		--config=internal/bridge/oapi-codegen.yaml openapi/bridge.generated.json
+	rm openapi/bridge.generated.json
 
 # Generate all embedded assets. Note: the model registry is hand-curated in
 # internal/registry/models.go and is NOT a generate target — additions go

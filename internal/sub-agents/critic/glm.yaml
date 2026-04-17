@@ -2,7 +2,8 @@ name: critic
 description: Reviews work products from parent agents using a structured 5-lens methodology. Returns actionable findings with severity classification and concrete fixes.
 model: glm-4-plus
 permissions:
-  Grep: allow
+  RipGrep: allow
+  AstGrep: allow
   Read: allow
   Glob: allow
   LS: allow

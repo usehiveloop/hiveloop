@@ -8,7 +8,8 @@ Complete index of all tools available to Bridge agents.
 
 | Name | Description |
 |------|-------------|
-| `Grep` | Search file contents using regular expressions. Supports glob/type filters, context lines, and multiple output modes (content, file paths, counts). Results sorted by modification time. |
+| `RipGrep` | Regex/text search over file contents using ripgrep. Supports glob/type filters, context lines, and multiple output modes (content, file paths, counts). Results sorted by modification time. |
+| `AstGrep` | Structural code search and rewrite using ast-grep patterns. Syntax-aware — matches AST nodes rather than text, so it can find structural code patterns regex cannot express. |
 | `Read` | Read a file from the filesystem. Returns up to 2000 lines with line numbers. Supports offset/limit for partial reads. Handles images (returns base64), PDFs (page ranges), and Jupyter notebooks. |
 | `Glob` | Find files by glob pattern (e.g. `**/*.ts`, `src/**/*.rs`). Returns matching paths sorted by modification time. Respects `.gitignore`. |
 | `LS` | List files and directories as a tree structure. Uses absolute paths. Respects `.gitignore`. |
@@ -60,10 +61,8 @@ Complete index of all tools available to Bridge agents.
 
 | Name | Description |
 |------|-------------|
-| `agent` | Launch a clone of the parent agent for a focused subtask. Shares system prompt, tools, and capabilities. Supports background execution. Not available to subagents. |
-| `sub_agent` | Launch a named subagent (from the agent's `subagents` list) to handle a task. Supports background execution. Not available to subagents. |
-| `parallel_agent` | Spawn up to 25 subagents in parallel and wait for all to complete. Supports per-task timeout and max concurrency. Not available to subagents. |
-| `join` | Wait for background subagent tasks to complete. Blocks until all specified task IDs finish or timeout. Returns combined results. |
+| `agent` | Launch a clone of the parent agent for a focused subtask. Shares system prompt, tools, and capabilities. Set `runInBackground: true` to detach — the result is auto-injected into the parent's next user turn. Not available to subagents. |
+| `sub_agent` | Launch a named subagent (from the agent's `subagents` list) to handle a task. Set `runInBackground: true` to detach. For parallel fan-out, emit multiple `sub_agent` tool_use blocks in a single assistant turn — the runtime dispatches them concurrently. Not available to subagents. |
 | `batch` | Execute 1-25 independent tool calls concurrently in a single operation. Partial failures don't stop other calls. No recursive batching. |
 
 ## Skills
@@ -90,7 +89,7 @@ Complete index of all tools available to Bridge agents.
 
 | Tool | Parent | Subagent | Condition |
 |------|--------|----------|-----------|
-| Grep, Read, Glob, LS | Yes | Yes | Always |
+| RipGrep, AstGrep, Read, Glob, LS | Yes | Yes | Always |
 | bash, edit, write, apply_patch, multiedit | Yes | Yes | Always |
 | web_fetch | Yes | Yes | Always |
 | web_search, web_crawl, web_get_links, web_screenshot, web_transform | Yes | Yes | `BRIDGE_WEB_URL` set |
@@ -98,8 +97,7 @@ Complete index of all tools available to Bridge agents.
 | journal_write, journal_read | Yes | Yes | Immortal mode configured |
 | ping_me_back_in, cancel_ping_me_back | Yes | No | Always |
 | lsp | Yes | No | LSP configured |
-| agent, sub_agent, parallel_agent | Yes | No | Always (prevents recursion) |
-| join | Yes | No | Always |
+| agent, sub_agent | Yes | No | Always (prevents recursion) |
 | batch | Yes | Yes | Always |
 | skill | Yes | Yes | Agent/subagent has `skills` defined |
 | Integration tools | Yes | Inherited from parent | Agent has `integrations` defined |

@@ -107,7 +107,8 @@ var ValidBuiltInTools = []BuiltInToolDefinition{
 	{ID: "multiedit", Name: "Multi-edit file", Description: "Apply multiple edits to a single file in one call.", Category: "filesystem"},
 	{ID: "apply_patch", Name: "Apply patch", Description: "Apply a unified diff patch to one or more files.", Category: "filesystem"},
 	{ID: "Glob", Name: "Glob", Description: "Find files matching a glob pattern.", Category: "filesystem"},
-	{ID: "Grep", Name: "Grep", Description: "Search file contents using regex patterns.", Category: "filesystem"},
+	{ID: "RipGrep", Name: "RipGrep", Description: "Search file contents using ripgrep regex patterns with glob/type filters and context lines.", Category: "filesystem"},
+	{ID: "AstGrep", Name: "AstGrep", Description: "Structural code search using ast-grep patterns (syntax-aware match/rewrite).", Category: "filesystem"},
 	{ID: "LS", Name: "List directory", Description: "List files and directories at a given path.", Category: "filesystem"},
 
 	// ── Shell ──
@@ -123,10 +124,8 @@ var ValidBuiltInTools = []BuiltInToolDefinition{
 
 	// ── Agent orchestration ──
 	{ID: "agent", Name: "Agent", Description: "Launch a clone of yourself to handle a focused task autonomously.", Category: "orchestration"},
-	{ID: "sub_agent", Name: "Sub-agent", Description: "Launch a named subagent to handle complex multistep tasks.", Category: "orchestration"},
-	{ID: "parallel_agent", Name: "Parallel agent", Description: "Spawn multiple subagents in parallel and wait for all to complete.", Category: "orchestration"},
+	{ID: "sub_agent", Name: "Sub-agent", Description: "Launch a named subagent to handle complex multistep tasks. Emit multiple calls in one turn for parallel fan-out.", Category: "orchestration"},
 	{ID: "batch", Name: "Batch", Description: "Execute multiple independent tool calls concurrently.", Category: "orchestration"},
-	{ID: "join", Name: "Join", Description: "Wait for multiple background subagent tasks to complete.", Category: "orchestration"},
 
 	// ── Task management ──
 	{ID: "todowrite", Name: "Write tasks", Description: "Create and manage a structured task list for the current session.", Category: "tasks"},

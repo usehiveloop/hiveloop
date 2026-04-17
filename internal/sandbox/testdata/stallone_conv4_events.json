@@ -1,0 +1,685 @@
+[
+  {
+    "id": "ce108053-379b-4429-a23a-a5a6718bcaa9",
+    "event_id": "13d61800-c4da-4815-b59d-611aa0af3c7d",
+    "event_type": "turn_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:39:56Z",
+    "sequence_number": 181,
+    "data": {
+      "model": "z-ai/glm-5",
+      "timestamp": "2026-04-16T17:39:56.849002635+00:00",
+      "turn_number": 0,
+      "input_tokens": 406021,
+      "output_tokens": 4327,
+      "cumulative_input_tokens": 406021,
+      "cumulative_output_tokens": 4327
+    },
+    "created_at": "2026-04-16T17:39:58Z"
+  },
+  {
+    "id": "80414457-33e0-43a1-b57c-709f54ab1039",
+    "event_id": "a4623edf-6b97-4570-a773-a7ded90deaad",
+    "event_type": "done",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:39:56Z",
+    "sequence_number": 180,
+    "data": {},
+    "created_at": "2026-04-16T17:39:58Z"
+  },
+  {
+    "id": "5ae72118-c6f9-40d6-8eb1-5aa36558f2b9",
+    "event_id": "3d1c33a9-f38d-44cb-bd97-6d6ef47ba486",
+    "event_type": "response_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:39:56Z",
+    "sequence_number": 179,
+    "data": {
+      "model": "z-ai/glm-5",
+      "timestamp": "2026-04-16T17:39:56.848987555+00:00",
+      "message_id": "288752d1-b00e-4113-833a-e34952f3141e",
+      "input_tokens": 406021,
+      "full_response": "Investigation complete. Updated existing GitHub issue #5 with additional findings about the incomplete credentials page that has multiple structural issues beyond just the syntax error:\n\n**Root Cause:** The file `/apps/admin/app/dashboard/credentials/page.tsx` was committed in an incomplete state with:\n1. Orphaned code block without a function declaration (lines 87-95)\n2. Missing `useState` declaration for `editForm`\n3. Empty `onChange` handler causing the build failure\n\n**Action Taken:** Added comment to existing issue #5 with the additional findings and recommended fixes.\n\n**Memory Persisted:**\n- Incident details and root cause\n- Infrastructure topology (project ID, environment ID, service IDs)",
+      "output_tokens": 4327
+    },
+    "created_at": "2026-04-16T17:39:58Z"
+  },
+  {
+    "id": "2a73554b-55e1-4133-b1d0-567719c337a5",
+    "event_id": "afe6404b-6731-4c2a-a3e9-e991c7beb239",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:39:45Z",
+    "sequence_number": 35,
+    "data": {
+      "id": "OCasgoxhrPlbDiZFNvgZo",
+      "result": "\"{\\\"success\\\":true,\\\"bank_id\\\":\\\"org-d59ce252-51e8-4786-9c41-474bf9d39e71\\\",\\\"items_count\\\":1,\\\"async\\\":true,\\\"operation_id\\\":\\\"16c23bf7-2b4e-4e91-b8eb-c1978b018699\\\"}\"",
+      "is_error": false,
+      "tool_name": "memory_retain",
+      "duration_ms": 454
+    },
+    "created_at": "2026-04-16T17:39:46Z"
+  },
+  {
+    "id": "2a040f6c-ebdd-4511-b7d7-6bacd5fb953b",
+    "event_id": "a879e8d3-408c-49db-95aa-0c0bfca80e59",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:39:44Z",
+    "sequence_number": 34,
+    "data": {
+      "id": "OCasgoxhrPlbDiZFNvgZo",
+      "name": "memory_retain",
+      "arguments": {
+        "content": "Incident 2026-04-16: zeus.ziraloop.com deployment failures due to syntax error in /apps/admin/app/dashboard/credentials/page.tsx. The file was committed in an incomplete state with: (1) orphaned code block without function declaration, (2) missing useState for editForm, (3) empty onChange handler. GitHub issue #5 created. Root cause: incomplete code committed as part of large 1190-file change.",
+        "context": "Production incident for zeus.ziraloop.com service"
+      }
+    },
+    "created_at": "2026-04-16T17:39:46Z"
+  },
+  {
+    "id": "282ae91b-d923-4a93-8f22-defcc5675df4",
+    "event_id": "4a86455c-502b-4b67-a0f9-dc258c3328c2",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:39:45Z",
+    "sequence_number": 36,
+    "data": {
+      "id": "tM2vmz0s5nyaHVvZlJsXO",
+      "name": "memory_retain",
+      "arguments": {
+        "content": "Railway project ziraloop.com (ID: 55776e03-e6c2-4a9b-828b-4e759495aa70) has production environment (ID: 3c177170-0fb2-4dcb-a034-12676bb242c6). Service zeus.ziraloop.com (ID: 1a5a0fa2-aca3-4c4b-9489-1167a20471c7) is the admin dashboard app at apps/admin in ziraloop/ziraloop repo. Other services include api.postgres.ziraloop.com (PostgreSQL database).",
+        "context": "Infrastructure topology from deployment failure investigation"
+      }
+    },
+    "created_at": "2026-04-16T17:39:46Z"
+  },
+  {
+    "id": "0d197992-6688-422c-8b98-e36cbc1e96f5",
+    "event_id": "bde24510-86bf-4d32-ba74-f846bbc221c5",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:39:45Z",
+    "sequence_number": 37,
+    "data": {
+      "id": "tM2vmz0s5nyaHVvZlJsXO",
+      "result": "\"{\\\"success\\\":true,\\\"bank_id\\\":\\\"org-d59ce252-51e8-4786-9c41-474bf9d39e71\\\",\\\"items_count\\\":1,\\\"async\\\":true,\\\"operation_id\\\":\\\"d8abda40-5af7-4cdf-8ce7-c08ee8478f01\\\"}\"",
+      "is_error": false,
+      "tool_name": "memory_retain",
+      "duration_ms": 354
+    },
+    "created_at": "2026-04-16T17:39:46Z"
+  },
+  {
+    "id": "b5b2e232-0531-441f-b1d6-c2d97476afa5",
+    "event_id": "977e4792-efdd-463c-a669-c72167e5de87",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:39:30Z",
+    "sequence_number": 33,
+    "data": {
+      "id": "uuwTEhw46HcDnygIXHxJh",
+      "result": "\"{\\\"output\\\":\\\"https://github.com/ziraloop/ziraloop/issues/5#issuecomment-4262192878\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 1450
+    },
+    "created_at": "2026-04-16T17:39:32Z"
+  },
+  {
+    "id": "882e7695-aee1-440d-99f2-7e57aa039881",
+    "event_id": "f63283ae-6c95-4fd4-a8c4-b6e3b274e005",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:39:29Z",
+    "sequence_number": 32,
+    "data": {
+      "id": "uuwTEhw46HcDnygIXHxJh",
+      "name": "bash",
+      "arguments": {
+        "command": "gh issue comment 5 --repo ziraloop/ziraloop --body \"$(cat <<'COMMENT_EOF'\n## Update: Second Deployment Failure (Same Root Cause)\n\nA subsequent deployment (deployment ID: `6d9fed2d-0b77-456e-9f11-266e9f50eef2`) from commit `73e9aef82e68a0e891032507aa2b81b5f03b887a` also failed with the same syntax error.\n\n### Additional Findings\n\nUpon deeper inspection, the file `/apps/admin/app/dashboard/credentials/page.tsx` has **multiple structural issues** beyond just the empty `onChange` handler:\n\n1. **Missing function declaration (lines 87-95)**: There is orphaned code that appears to be the body of a function that was never declared:\n```tsx\n    setEditForm({\n      label: cred.label || \"\",\n    })\n    setEditError(null)\n    setEditingCredential({\n      id: cred.id!,\n      label: cred.label || \"\",\n    })\n  }\n```\nThis should be wrapped in a function like:\n```tsx\nfunction startEditing(cred: Credential) {\n  setEditForm({\n    label: cred.label || \"\",\n  })\n  // ...\n}\n```\n\n2. **Missing state declaration**: `editForm` is used (via `setEditForm`) but there is no corresponding `useState` hook for it. The file declares `editingCredential`, `editError`, and `editSaving` but not `editForm`.\n\n3. **Empty onChange handler (line 284-285)**: As originally reported, `onChange={(e) => }` is syntactically invalid.\n\n### Recommended Fix\n\nThe entire credentials page needs to be reviewed and completed. At minimum:\n1. Add `const [editForm, setEditForm] = useState({ label: \"\" })` to state declarations\n2. Add the missing function wrapper for the edit initialization logic\n3. Complete or remove the incomplete Input component at lines 282-288\n\nThis file appears to have been committed in an incomplete state despite the commit message suggesting it was about \"stream token expiry\" - the credentials page was added as part of a large change (1190 files changed in this commit).\nCOMMENT_EOF\n)\"",
+        "description": null
+      }
+    },
+    "created_at": "2026-04-16T17:39:30Z"
+  },
+  {
+    "id": "e7f51593-14a3-426d-83d2-0bb2afd335a4",
+    "event_id": "3d561f76-ec11-4235-a344-cfa2305d470f",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:39:20Z",
+    "sequence_number": 30,
+    "data": {
+      "id": "eQthV1wLWdpXslRiufqwD",
+      "name": "Read",
+      "arguments": {
+        "limit": 50,
+        "offset": 55,
+        "file_path": "/home/daytona/repos/ziraloop/apps/admin/app/dashboard/credentials/page.tsx"
+      }
+    },
+    "created_at": "2026-04-16T17:39:22Z"
+  },
+  {
+    "id": "39a7a8f2-40e6-4025-978a-45f133e89595",
+    "event_id": "48c2ed12-d56c-4e3d-93ca-b705d30cbb3c",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:39:20Z",
+    "sequence_number": 31,
+    "data": {
+      "id": "eQthV1wLWdpXslRiufqwD",
+      "result": "\"{\\\"content\\\":\\\"55:   const [editingCredential, setEditingCredential] = useState<{\\\\n56:     id: string\\\\n57:     label: string\\\\n58:   } | null>(null)\\\\n59:   const [editError, setEditError] = useState<string | null>(null)\\\\n60:   const [editSaving, setEditSaving] = useState(false)\\\\n61: \\\\n62:   const revokedParam = tab === \\\\\\\"active\\\\\\\" ? \\\\\\\"false\\\\\\\" : tab === \\\\\\\"revoked\\\\\\\" ? \\\\\\\"true\\\\\\\" : undefined\\\\n63: \\\\n64:   const { data, isLoading, error } = $api.useQuery(\\\\\\\"get\\\\\\\", \\\\\\\"/admin/v1/credentials\\\\\\\", {\\\\n65:     params: {\\\\n66:       query: {\\\\n67:         ...(orgFilter ? { org_id: orgFilter } : {}),\\\\n68:         ...(providerFilter ? { provider_id: providerFilter } : {}),\\\\n69:         ...(revokedParam ? { revoked: revokedParam } : {}),\\\\n70:         limit: 50,\\\\n71:       },\\\\n72:     },\\\\n73:   })\\\\n74: \\\\n75:   async function handleRevoke(id: string) {\\\\n76:     setRevokingId(id)\\\\n77:     try {\\\\n78:       await api.POST(\\\\\\\"/admin/v1/credentials/{id}/revoke\\\\\\\", {\\\\n79:         params: { path: { id } },\\\\n80:       })\\\\n81:       queryClient.invalidateQueries({ queryKey: [\\\\\\\"get\\\\\\\", \\\\\\\"/admin/v1/credentials\\\\\\\"] })\\\\n82:     } finally {\\\\n83:       setRevokingId(null)\\\\n84:     }\\\\n85:   }\\\\n86: \\\\n87:     setEditForm({\\\\n88:       label: cred.label || \\\\\\\"\\\\\\\",\\\\n89:     })\\\\n90:     setEditError(null)\\\\n91:     setEditingCredential({\\\\n92:       id: cred.id!,\\\\n93:       label: cred.label || \\\\\\\"\\\\\\\",\\\\n94:     })\\\\n95:   }\\\\n96: \\\\n97:   async function handleEdit() {\\\\n98:     if (!editingCredential) return\\\\n99:     setEditSaving(true)\\\\n100:     setEditError(null)\\\\n101:     try {\\\\n102:       const res = await api.PUT(\\\\\\\"/admin/v1/credentials/{id}\\\\\\\", {\\\\n103:         params: { path: { id: editingCredential.id } },\\\\n104:         body: {\\\\n\\\",\\\"total_lines\\\":308,\\\"lines_read\\\":50,\\\"truncated\\\":true}\"",
+      "is_error": false,
+      "tool_name": "Read",
+      "duration_ms": 1
+    },
+    "created_at": "2026-04-16T17:39:22Z"
+  },
+  {
+    "id": "e508ae77-791f-4360-befd-7c73df92d472",
+    "event_id": "744d4cfd-bdc5-456b-ab51-be7ab018964a",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:39:08Z",
+    "sequence_number": 29,
+    "data": {
+      "id": "BvLf5YMmcRdvLZnS5Jug4",
+      "result": "\"{\\\"output\\\":\\\"\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 4
+    },
+    "created_at": "2026-04-16T17:39:10Z"
+  },
+  {
+    "id": "e5ee33f7-677b-48d3-b7d0-e3f933d059e8",
+    "event_id": "e0d6caf5-532b-44f2-9c95-df0186202f3b",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:39:08Z",
+    "sequence_number": 28,
+    "data": {
+      "id": "BvLf5YMmcRdvLZnS5Jug4",
+      "name": "bash",
+      "arguments": {
+        "command": "cd /home/daytona/repos/ziraloop && git show 2dbcd20e0fa9f82d608c418dfefca3d6caf0b665:apps/admin/app/dashboard/credentials/page.tsx 2>/dev/null | head -100 || echo \"File did not exist in previous commit\"",
+        "description": null
+      }
+    },
+    "created_at": "2026-04-16T17:39:08Z"
+  },
+  {
+    "id": "fcc85c88-90c5-44fa-8bbb-0679bf9f1f61",
+    "event_id": "d00b1480-debd-4f42-98e3-b73c1ba1ad63",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:59Z",
+    "sequence_number": 26,
+    "data": {
+      "id": "77-UKQEcFvGh2IKMniAvd",
+      "name": "Read",
+      "arguments": {
+        "limit": 50,
+        "offset": 85,
+        "file_path": "/home/daytona/repos/ziraloop/apps/admin/app/dashboard/credentials/page.tsx"
+      }
+    },
+    "created_at": "2026-04-16T17:39:00Z"
+  },
+  {
+    "id": "125f7680-3096-48ef-9e30-cbf3d126f7dd",
+    "event_id": "c71e5f26-b006-4e5a-bb28-cc6efb74d45b",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:59Z",
+    "sequence_number": 27,
+    "data": {
+      "id": "77-UKQEcFvGh2IKMniAvd",
+      "result": "\"{\\\"content\\\":\\\"85:   }\\\\n86: \\\\n87:     setEditForm({\\\\n88:       label: cred.label || \\\\\\\"\\\\\\\",\\\\n89:     })\\\\n90:     setEditError(null)\\\\n91:     setEditingCredential({\\\\n92:       id: cred.id!,\\\\n93:       label: cred.label || \\\\\\\"\\\\\\\",\\\\n94:     })\\\\n95:   }\\\\n96: \\\\n97:   async function handleEdit() {\\\\n98:     if (!editingCredential) return\\\\n99:     setEditSaving(true)\\\\n100:     setEditError(null)\\\\n101:     try {\\\\n102:       const res = await api.PUT(\\\\\\\"/admin/v1/credentials/{id}\\\\\\\", {\\\\n103:         params: { path: { id: editingCredential.id } },\\\\n104:         body: {\\\\n105:           label: editForm.label,\\\\n106:         },\\\\n107:       })\\\\n108:       if (res.error) {\\\\n109:         const msg = (res.error as { message?: string }).message || \\\\\\\"Failed to update credential.\\\\\\\"\\\\n110:         setEditError(msg)\\\\n111:         return\\\\n112:       }\\\\n113:       queryClient.invalidateQueries({ queryKey: [\\\\\\\"get\\\\\\\", \\\\\\\"/admin/v1/credentials\\\\\\\"] })\\\\n114:       setEditingCredential(null)\\\\n115:     } catch {\\\\n116:       setEditError(\\\\\\\"An unexpected error occurred.\\\\\\\")\\\\n117:     } finally {\\\\n118:       setEditSaving(false)\\\\n119:     }\\\\n120:   }\\\\n121: \\\\n122:   const credentials = data?.data ?? []\\\\n123: \\\\n124:   return (\\\\n125:     <div className=\\\\\\\"space-y-6\\\\\\\">\\\\n126:       <PageHeader\\\\n127:         title=\\\\\\\"Credentials\\\\\\\"\\\\n128:         description=\\\\\\\"Manage encrypted API credentials across all organizations.\\\\\\\"\\\\n129:       />\\\\n130: \\\\n131:       <div className=\\\\\\\"flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between\\\\\\\">\\\\n132:         <Tabs value={tab} onValueChange={setTab}>\\\\n133:           <TabsList>\\\\n134:             <TabsTrigger value=\\\\\\\"all\\\\\\\">All</TabsTrigger>\\\\n\\\",\\\"total_lines\\\":308,\\\"lines_read\\\":50,\\\"truncated\\\":true}\"",
+      "is_error": false,
+      "tool_name": "Read",
+      "duration_ms": 1
+    },
+    "created_at": "2026-04-16T17:39:00Z"
+  },
+  {
+    "id": "d641c7c7-c05c-460b-9086-7590961d908e",
+    "event_id": "db1779b8-9779-4519-b291-63e54a4e634f",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:51Z",
+    "sequence_number": 25,
+    "data": {
+      "id": "IFHxwVRr32swiovxwuvlM",
+      "result": "\"{\\\"output\\\":\\\"title:\\\\t[Incident] zeus.ziraloop.com: Build failed due to syntax error in credentials page\\\\nstate:\\\\tOPEN\\\\nauthor:\\\\tziraloop\\\\nlabels:\\\\tincident\\\\ncomments:\\\\t0\\\\nassignees:\\\\t\\\\nprojects:\\\\t\\\\nmilestone:\\\\t\\\\nnumber:\\\\t5\\\\n--\\\\n## Summary\\\\n\\\\n**Service:** zeus.ziraloop.com (apps/admin)\\\\n**Environment:** production\\\\n**Status:** FAILED\\\\n**Detected:** 2026-04-16T17:34:35Z\\\\n\\\\n## Root Cause\\\\n\\\\nSyntax error in `/apps/admin/app/dashboard/credentials/page.tsx` at line 285. The `onChange` handler for an Input component has an empty function body:\\\\n\\\\n```tsx\\\\n<Input\\\\n  onChange={(e) =>\\\\n  }\\\\n  placeholder=\\\\\\\"Leave empty to unassign\\\\\\\"\\\\n/>\\\\n```\\\\n\\\\nThe arrow function `onChange={(e) => }` is incomplete - there's no statement before the closing brace, causing a parsing error: \\\\\\\"Expected '</', got '}'\\\\\\\".\\\\n\\\\n## Evidence\\\\n\\\\nBuild log error:\\\\n```\\\\n> Build error occurred\\\\n\\\\nError: Turbopack build failed with 1 errors:\\\\n./app/dashboard/credentials/page.tsx:285:17\\\\nParsing ecmascript source code failed\\\\n\\\\n 283 |               <Input\\\\n 284 |                 onChange={(e) =>\\\\n>285 |                 }\\\\n     |                 ^\\\\n 286 |                 placeholder=\\\\\\\"Leave empty to unassign\\\\\\\"\\\\n\\\\nExpected '</', got '}'\\\\n```\\\\n\\\\nCommit: `2dbcd20e0fa9f82d608c418dfefca3d6caf0b665` by x-ziraloop\\\\nCommit message: \\\\\\\"fix type error, add conversations page, disabled_tools, gh wrapper\\\\\\\"\\\\n\\\\n## Recommended Fix\\\\n\\\\nComplete or remove the incomplete Input component at lines 282-288 in `/apps/admin/app/dashboard/credentials/page.tsx`.\\\\n\\\\nThe Input appears to be missing:\\\\n1. A `value` prop (controlled input)\\\\n2. A `Label` component (other form fields have one)\\\\n3. The body of the `onChange` handler\\\\n\\\\n**Option A - Remove the incomplete input:**\\\\n```tsx\\\\n// Delete lines 282-288 entirely if this input is not needed\\\\n```\\\\n\\\\n**Option B - Complete the input (if needed):**\\\\n```tsx\\\\n<div className=\\\\\\\"space-y-2\\\\\\\">\\\\n  <Label htmlFor=\\\\\\\"edit-value\\\\\\\">Value</Label>\\\\n  <Input\\\\n    id=\\\\\\\"edit-value\\\\\\\"\\\\n    value={editForm.value}\\\\n    onChange={(e) =>\\\\n      setEditForm((f) => ({ ...f, value: e.target.value }))\\\\n    }\\\\n    placeholder=\\\\\\\"Leave empty to unassign\\\\\\\"\\\\n  />\\\\n</div>\\\\n```\\\\n\\\\n## Impact\\\\n\\\\nThe production deployment of zeus.ziraloop.com (admin dashboard) failed. The previous successful deployment is still serving traffic. No user-facing impact beyond the new features in this commit not being deployed.\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 1090
+    },
+    "created_at": "2026-04-16T17:38:52Z"
+  },
+  {
+    "id": "2339abb0-ec44-4b1b-b3a6-830f0d3e65ae",
+    "event_id": "eec8e6a6-02f9-4132-91bd-73fd7345cc0a",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:50Z",
+    "sequence_number": 24,
+    "data": {
+      "id": "IFHxwVRr32swiovxwuvlM",
+      "name": "bash",
+      "arguments": {
+        "command": "gh issue view 5 --repo ziraloop/ziraloop",
+        "description": null
+      }
+    },
+    "created_at": "2026-04-16T17:38:52Z"
+  },
+  {
+    "id": "aad46516-4bc4-4498-8d7e-9d2cb6fd543e",
+    "event_id": "1952d66f-1a79-4f1f-ab6e-d4fb2d481abe",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:47Z",
+    "sequence_number": 23,
+    "data": {
+      "id": "2G6MiWO34szaAW13RU3u5",
+      "result": "\"{\\\"content\\\":\\\"1: \\\\\\\"use client\\\\\\\"\\\\n2: \\\\n3: import { useState } from \\\\\\\"react\\\\\\\"\\\\n4: import { useQueryClient } from \\\\\\\"@tanstack/react-query\\\\\\\"\\\\n5: import { $api } from \\\\\\\"@/lib/api/hooks\\\\\\\"\\\\n6: import { api } from \\\\\\\"@/lib/api/client\\\\\\\"\\\\n7: import { PageHeader } from \\\\\\\"@/components/admin/page-header\\\\\\\"\\\\n8: import { StatusBadge } from \\\\\\\"@/components/admin/status-badge\\\\\\\"\\\\n9: import { TimeAgo } from \\\\\\\"@/components/admin/time-ago\\\\\\\"\\\\n10: import { Button } from \\\\\\\"@/components/ui/button\\\\\\\"\\\\n11: import { Input } from \\\\\\\"@/components/ui/input\\\\\\\"\\\\n12: import { Label } from \\\\\\\"@/components/ui/label\\\\\\\"\\\\n13: import { Skeleton } from \\\\\\\"@/components/ui/skeleton\\\\\\\"\\\\n14: import {\\\\n15:   Dialog,\\\\n16:   DialogContent,\\\\n17:   DialogDescription,\\\\n18:   DialogFooter,\\\\n19:   DialogHeader,\\\\n20:   DialogTitle,\\\\n21: } from \\\\\\\"@/components/ui/dialog\\\\\\\"\\\\n22: import { Tabs, TabsList, TabsTrigger } from \\\\\\\"@/components/ui/tabs\\\\\\\"\\\\n23: import {\\\\n24:   Table,\\\\n25:   TableBody,\\\\n26:   TableCell,\\\\n27:   TableHead,\\\\n28:   TableHeader,\\\\n29:   TableRow,\\\\n30: } from \\\\\\\"@/components/ui/table\\\\\\\"\\\\n31: import {\\\\n32:   AlertDialog,\\\\n33:   AlertDialogAction,\\\\n34:   AlertDialogCancel,\\\\n35:   AlertDialogContent,\\\\n36:   AlertDialogDescription,\\\\n37:   AlertDialogFooter,\\\\n38:   AlertDialogHeader,\\\\n39:   AlertDialogTitle,\\\\n40:   AlertDialogTrigger,\\\\n41: } from \\\\\\\"@/components/ui/alert-dialog\\\\\\\"\\\\n42: import {\\\\n43:   Empty,\\\\n44:   EmptyHeader,\\\\n45:   EmptyTitle,\\\\n46:   EmptyDescription,\\\\n47: } from \\\\\\\"@/components/ui/empty\\\\\\\"\\\\n48: \\\\n49: export default function CredentialsPage() {\\\\n50:   const queryClient = useQueryClient()\\\\n51:   const [tab, setTab] = useState(\\\\\\\"all\\\\\\\")\\\\n52:   const [orgFilter, setOrgFilter] = useState(\\\\\\\"\\\\\\\")\\\\n53:   const [providerFilter, setProviderFilter] = useState(\\\\\\\"\\\\\\\")\\\\n54:   const [revokingId, setRevokingId] = useState<string | null>(null)\\\\n55:   const [editingCredential, setEditingCredential] = useState<{\\\\n56:     id: string\\\\n57:     label: string\\\\n58:   } | null>(null)\\\\n59:   const [editError, setEditError] = useState<string | null>(null)\\\\n60:   const [editSaving, setEditSaving] = useState(false)\\\\n61: \\\\n62:   const revokedParam = tab === \\\\\\\"active\\\\\\\" ? \\\\\\\"false\\\\\\\" : tab === \\\\\\\"revoked\\\\\\\" ? \\\\\\\"true\\\\\\\" : undefined\\\\n63: \\\\n64:   const { data, isLoading, error } = $api.useQuery(\\\\\\\"get\\\\\\\", \\\\\\\"/admin/v1/credentials\\\\\\\", {\\\\n65:     params: {\\\\n66:       query: {\\\\n67:         ...(orgFilter ? { org_id: orgFilter } : {}),\\\\n68:         ...(providerFilter ? { provider_id: providerFilter } : {}),\\\\n69:         ...(revokedParam ? { revoked: revokedParam } : {}),\\\\n70:         limit: 50,\\\\n71:       },\\\\n72:     },\\\\n73:   })\\\\n74: \\\\n75:   async function handleRevoke(id: string) {\\\\n76:     setRevokingId(id)\\\\n77:     try {\\\\n78:       await api.POST(\\\\\\\"/admin/v1/credentials/{id}/revoke\\\\\\\", {\\\\n79:         params: { path: { id } },\\\\n80:       })\\\\n81:       queryClient.invalidateQueries({ queryKey: [\\\\\\\"get\\\\\\\", \\\\\\\"/admin/v1/credentials\\\\\\\"] })\\\\n82:     } finally {\\\\n83:       setRevokingId(null)\\\\n84:     }\\\\n85:   }\\\\n86: \\\\n87:     setEditForm({\\\\n88:       label: cred.label || \\\\\\\"\\\\\\\",\\\\n89:     })\\\\n90:     setEditError(null)\\\\n91:     setEditingCredential({\\\\n92:       id: cred.id!,\\\\n93:       label: cred.label || \\\\\\\"\\\\\\\",\\\\n94:     })\\\\n95:   }\\\\n96: \\\\n97:   async function handleEdit() {\\\\n98:     if (!editingCredential) return\\\\n99:     setEditSaving(true)\\\\n100:     setEditError(null)\\\\n\\\",\\\"total_lines\\\":308,\\\"lines_read\\\":100,\\\"truncated\\\":true}\"",
+      "is_error": false,
+      "tool_name": "Read",
+      "duration_ms": 1
+    },
+    "created_at": "2026-04-16T17:38:48Z"
+  },
+  {
+    "id": "a23dddec-4800-4291-8604-4044841a1f79",
+    "event_id": "d41e7b67-bbc0-4cd7-b258-327f0e60cb74",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:47Z",
+    "sequence_number": 22,
+    "data": {
+      "id": "2G6MiWO34szaAW13RU3u5",
+      "name": "Read",
+      "arguments": {
+        "limit": 100,
+        "offset": 1,
+        "file_path": "/home/daytona/repos/ziraloop/apps/admin/app/dashboard/credentials/page.tsx"
+      }
+    },
+    "created_at": "2026-04-16T17:38:48Z"
+  },
+  {
+    "id": "f8deb621-39a0-4e56-b8c6-bf53e5e139fa",
+    "event_id": "809555df-c692-43f8-9b0f-20eadf850428",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:43Z",
+    "sequence_number": 21,
+    "data": {
+      "id": "w-Vbbi-cDB-3tax4Swacv",
+      "result": "\"{\\\"output\\\":\\\"commit 73e9aef82e68a0e891032507aa2b81b5f03b887a\\\\nAuthor: kimiduck <ops@llmvault.dev>\\\\nDate:   Thu Apr 16 18:37:16 2026 +0100\\\\n\\\\n    fix: align stream token expiry with backend response format\\\\n\\\\ndiff --git a/apps/admin/app/dashboard/credentials/page.tsx b/apps/admin/app/dashboard/credentials/page.tsx\\\\nnew file mode 100644\\\\nindex 0000000..bd0b13f\\\\n--- /dev/null\\\\n+++ b/apps/admin/app/dashboard/credentials/page.tsx\\\\n@@ -0,0 +1,308 @@\\\\n+\\\\\\\"use client\\\\\\\"\\\\n+\\\\n+import { useState } from \\\\\\\"react\\\\\\\"\\\\n+import { useQueryClient } from \\\\\\\"@tanstack/react-query\\\\\\\"\\\\n+import { $api } from \\\\\\\"@/lib/api/hooks\\\\\\\"\\\\n+import { api } from \\\\\\\"@/lib/api/client\\\\\\\"\\\\n+import { PageHeader } from \\\\\\\"@/components/admin/page-header\\\\\\\"\\\\n+import { StatusBadge } from \\\\\\\"@/components/admin/status-badge\\\\\\\"\\\\n+import { TimeAgo } from \\\\\\\"@/components/admin/time-ago\\\\\\\"\\\\n+import { Button } from \\\\\\\"@/components/ui/button\\\\\\\"\\\\n+import { Input } from \\\\\\\"@/components/ui/input\\\\\\\"\\\\n+import { Label } from \\\\\\\"@/components/ui/label\\\\\\\"\\\\n+import { Skeleton } from \\\\\\\"@/components/ui/skeleton\\\\\\\"\\\\n+import {\\\\n+  Dialog,\\\\n+  DialogContent,\\\\n+  DialogDescription,\\\\n+  DialogFooter,\\\\n+  DialogHeader,\\\\n+  DialogTitle,\\\\n+} from \\\\\\\"@/components/ui/dialog\\\\\\\"\\\\n+import { Tabs, TabsList, TabsTrigger } from \\\\\\\"@/components/ui/tabs\\\\\\\"\\\\n+import {\\\\n+  Table,\\\\n+  TableBody,\\\\n+  TableCell,\\\\n+  TableHead,\\\\n+  TableHeader,\\\\n+  TableRow,\\\\n+} from \\\\\\\"@/components/ui/table\\\\\\\"\\\\n+import {\\\\n+  AlertDialog,\\\\n+  AlertDialogAction,\\\\n+  AlertDialogCancel,\\\\n+  AlertDialogContent,\\\\n+  AlertDialogDescription,\\\\n+  AlertDialogFooter,\\\\n+  AlertDialogHeader,\\\\n+  AlertDialogTitle,\\\\n+  AlertDialogTrigger,\\\\n+} from \\\\\\\"@/components/ui/alert-dialog\\\\\\\"\\\\n+import {\\\\n+  Empty,\\\\n+  EmptyHeader,\\\\n+  EmptyTitle,\\\\n+  EmptyDescription,\\\\n+} from \\\\\\\"@/components/ui/empty\\\\\\\"\\\\n+\\\\n+export default function CredentialsPage() {\\\\n+  const queryClient = useQueryClient()\\\\n+  const [tab, setTab] = useState(\\\\\\\"all\\\\\\\")\\\\n+  const [orgFilter, setOrgFilter] = useState(\\\\\\\"\\\\\\\")\\\\n+  const [providerFilter, setProviderFilter] = useState(\\\\\\\"\\\\\\\")\\\\n+  const [revokingId, setRevokingId] = useState<string | null>(null)\\\\n+  const [editingCredential, setEditingCredential] = useState<{\\\\n+    id: string\\\\n+    label: string\\\\n+  } | null>(null)\\\\n+  const [editError, setEditError] = useState<string | null>(null)\\\\n+  const [editSaving, setEditSaving] = useState(false)\\\\n+\\\\n+  const revokedParam = tab === \\\\\\\"active\\\\\\\" ? \\\\\\\"false\\\\\\\" : tab === \\\\\\\"revoked\\\\\\\" ? \\\\\\\"true\\\\\\\" : undefined\\\\n+\\\\n+  const { data, isLoading, error } = $api.useQuery(\\\\\\\"get\\\\\\\", \\\\\\\"/admin/v1/credentials\\\\\\\", {\\\\n+    params: {\\\\n+      query: {\\\\n+        ...(orgFilter ? { org_id: orgFilter } : {}),\\\\n+        ...(providerFilter ? { provider_id: providerFilter } : {}),\\\\n+        ...(revokedParam ? { revoked: revokedParam } : {}),\\\\n+        limit: 50,\\\\n+      },\\\\n+    },\\\\n+  })\\\\n+\\\\n+  async function handleRevoke(id: string) {\\\\n+    setRevokingId(id)\\\\n+    try {\\\\n+      await api.POST(\\\\\\\"/admin/v1/credentials/{id}/revoke\\\\\\\", {\\\\n+        params: { path: { id } },\\\\n+      })\\\\n+      queryClient.invalidateQueries({ queryKey: [\\\\\\\"get\\\\\\\", \\\\\\\"/admin/v1/credentials\\\\\\\"] })\\\\n+    } finally {\\\\n+      setRevokingId(null)\\\\n+    }\\\\n+  }\\\\n+\\\\n+    setEditForm({\\\\n+      label: cred.label || \\\\\\\"\\\\\\\",\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 5
+    },
+    "created_at": "2026-04-16T17:38:44Z"
+  },
+  {
+    "id": "f4f9f92d-66c4-46fb-9476-a41336b7e94c",
+    "event_id": "e1ecda17-5f89-490f-9e50-85933a92cd91",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:43Z",
+    "sequence_number": 19,
+    "data": {
+      "id": "E70wtQ6HMnj9Q2my4aFQV",
+      "result": "\"{\\\"output\\\":\\\"5\\\\tOPEN\\\\t[Incident] zeus.ziraloop.com: Build failed due to syntax error in credentials page\\\\tincident\\\\t2026-04-16T17:36:08Z\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 1442
+    },
+    "created_at": "2026-04-16T17:38:44Z"
+  },
+  {
+    "id": "938834a7-3bdd-4f30-9817-aae1525704dc",
+    "event_id": "8a7b8188-1aa7-4aff-af8b-26f195d1a257",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:43Z",
+    "sequence_number": 20,
+    "data": {
+      "id": "w-Vbbi-cDB-3tax4Swacv",
+      "name": "bash",
+      "arguments": {
+        "command": "cd /home/daytona/repos/ziraloop && git show 73e9aef82e68a0e891032507aa2b81b5f03b887a -- apps/admin/app/dashboard/credentials/page.tsx 2>/dev/null | head -100",
+        "description": null
+      }
+    },
+    "created_at": "2026-04-16T17:38:44Z"
+  },
+  {
+    "id": "9ffafcce-843f-46ad-af60-35c18605a98c",
+    "event_id": "ac725b7a-677f-4f4e-9141-174f7a1d53f4",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:41Z",
+    "sequence_number": 17,
+    "data": {
+      "id": "M3AvEmBrWasfoc-RLJftg",
+      "result": "\"{\\\"output\\\":\\\"jq: error (at <stdin>:1): Cannot iterate over null (null)\\\\n\\\",\\\"exit_code\\\":5,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 560
+    },
+    "created_at": "2026-04-16T17:38:42Z"
+  },
+  {
+    "id": "58820e26-36b3-4df3-8c64-5ffba94dc5b4",
+    "event_id": "22054c17-6d16-4388-8c97-20ce2718ec41",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:41Z",
+    "sequence_number": 18,
+    "data": {
+      "id": "E70wtQ6HMnj9Q2my4aFQV",
+      "name": "bash",
+      "arguments": {
+        "command": "gh issue list --search \"zeus deployment failed credentials\" --state open --repo ziraloop/ziraloop 2>/dev/null || echo \"No issues found or repo not specified\"",
+        "description": null
+      }
+    },
+    "created_at": "2026-04-16T17:38:42Z"
+  },
+  {
+    "id": "220081c5-c2bd-401f-99b7-7b76cb00909e",
+    "event_id": "adfeff75-fad3-4922-b9b0-3f7861251307",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:41Z",
+    "sequence_number": 16,
+    "data": {
+      "id": "M3AvEmBrWasfoc-RLJftg",
+      "name": "bash",
+      "arguments": {
+        "command": "curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\" -H \"Content-Type: application/json\" -d '{\"query\": \"query($input:DeploymentListInput!,$f:Int){deployments(input:$input,first:$f){edges{node{id status createdAt meta{commitHash commitMessage}}}}}\",\"variables\":{\"input\":{\"projectId\":\"55776e03-e6c2-4a9b-828b-4e759495aa70\",\"serviceId\":\"1a5a0fa2-aca3-4c4b-9489-1167a20471c7\",\"environmentId\":\"3c177170-0fb2-4dcb-a034-12676bb242c6\"},\"f\":10}}' | jq '.data.deployments.edges[].node | {status, commitHash: .meta.commitHash, commitMessage: .meta.commitMessage}'",
+        "description": null
+      }
+    },
+    "created_at": "2026-04-16T17:38:42Z"
+  },
+  {
+    "id": "75126582-8826-4913-8eb4-2fcd62c41162",
+    "event_id": "e5d69018-fe54-406d-982f-a204d3facbad",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:34Z",
+    "sequence_number": 14,
+    "data": {
+      "id": "LCyR9jM8WKQY7vX23Ffon",
+      "name": "Read",
+      "arguments": {
+        "limit": 30,
+        "offset": 275,
+        "file_path": "/home/daytona/repos/ziraloop/apps/admin/app/dashboard/credentials/page.tsx"
+      }
+    },
+    "created_at": "2026-04-16T17:38:36Z"
+  },
+  {
+    "id": "33297ee0-1b80-4f5f-90c8-1f855b824af3",
+    "event_id": "82452b6d-b1e7-42bf-b615-8101ef8e66fb",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:34Z",
+    "sequence_number": 15,
+    "data": {
+      "id": "LCyR9jM8WKQY7vX23Ffon",
+      "result": "\"{\\\"content\\\":\\\"275:                 value={editForm.label}\\\\n276:                 onChange={(e) =>\\\\n277:                   setEditForm((f) => ({ ...f, label: e.target.value }))\\\\n278:                 }\\\\n279:                 placeholder=\\\\\\\"Credential label\\\\\\\"\\\\n280:               />\\\\n281:             </div>\\\\n282:             <div className=\\\\\\\"space-y-2\\\\\\\">\\\\n283:               <Input\\\\n284:                 onChange={(e) =>\\\\n285:                 }\\\\n286:                 placeholder=\\\\\\\"Leave empty to unassign\\\\\\\"\\\\n287:               />\\\\n288:             </div>\\\\n289:             {editError && (\\\\n290:               <p className=\\\\\\\"text-sm text-destructive\\\\\\\">{editError}</p>\\\\n291:             )}\\\\n292:           </div>\\\\n293:           <DialogFooter>\\\\n294:             <Button\\\\n295:               variant=\\\\\\\"outline\\\\\\\"\\\\n296:               onClick={() => setEditingCredential(null)}\\\\n297:             >\\\\n298:               Cancel\\\\n299:             </Button>\\\\n300:             <Button onClick={handleEdit} disabled={editSaving}>\\\\n301:               {editSaving ? \\\\\\\"Saving...\\\\\\\" : \\\\\\\"Save changes\\\\\\\"}\\\\n302:             </Button>\\\\n303:           </DialogFooter>\\\\n304:         </DialogContent>\\\\n\\\",\\\"total_lines\\\":308,\\\"lines_read\\\":30,\\\"truncated\\\":true}\"",
+      "is_error": false,
+      "tool_name": "Read",
+      "duration_ms": 1
+    },
+    "created_at": "2026-04-16T17:38:36Z"
+  },
+  {
+    "id": "9ac1fdda-e007-4077-ba63-0dd186531fe1",
+    "event_id": "08d8c3af-5642-49a0-b4d5-e276fa3e8533",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:29Z",
+    "sequence_number": 8,
+    "data": {
+      "id": "j8DupYRvkxkeUNkyyUHHd",
+      "name": "bash",
+      "arguments": {
+        "command": "curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\" -H \"Content-Type: application/json\" -d '{\"query\": \"query($d:String!,$l:Int){buildLogs(deploymentId:$d,limit:$l){timestamp message severity}}\", \"variables\": {\"d\":\"6d9fed2d-0b77-456e-9f11-266e9f50eef2\",\"l\":500}}' | jq -r '.data.buildLogs[] | \"\\(.timestamp) [\\(.severity)] \\(.message)\"' | tail -100",
+        "description": null
+      }
+    },
+    "created_at": "2026-04-16T17:38:30Z"
+  },
+  {
+    "id": "9a8f808e-ccc0-4f8b-bd35-7e5cc9431b9d",
+    "event_id": "2b403167-39df-403c-9090-f0f0786b2b54",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:30Z",
+    "sequence_number": 13,
+    "data": {
+      "id": "cWVCponlHtS2noUDiu02M",
+      "result": "\"{\\\"output\\\":\\\"commit 73e9aef82e68a0e891032507aa2b81b5f03b887a\\\\nAuthor: kimiduck <ops@llmvault.dev>\\\\nDate:   Thu Apr 16 18:37:16 2026 +0100\\\\n\\\\n    fix: align stream token expiry with backend response format\\\\n\\\\n .DS_Store                                          |   Bin 0 -> 14340 bytes\\\\n .air.toml                                          |    17 +\\\\n .dockerignore                                      |    47 +\\\\n .github/workflows/build-web.yml                    |    31 +\\\\n .github/workflows/publish-api-image.yml            |    57 +\\\\n .github/workflows/test-api.yml                     |   197 +\\\\n .github/workflows/types-ts-sdk.yml                 |    31 +\\\\n .github/workflows/types-web.yml                    |    31 +\\\\n .gitignore                                         |    35 +\\\\n .golangci.yml                                      |    24 +\\\\n AGENTS.md                                          |   101 +\\\\n CLAUDE.md                                          |   101 +\\\\n Dockerfile                                         \\\\n\\\\n... [Output truncated. Full output (74649 bytes) saved to: /tmp/bridge_bash_6f14c3b1-b1b4-466b-9b20-5861eeca1fa1.txt] ...\\\\n\\\\n |   259 +\\\\n .../07-catalog-validation-report.md                |   247 +\\\\n .../08-design-decisions-deferred.md                |   138 +\\\\n trigger-architecture/09-known-limitations.md       |   237 +\\\\n trigger-architecture/README.md                     |   120 +\\\\n .../agent-playbook/01-agent-design-principles.md   |   153 +\\\\n .../02-trigger-configuration-strategy.md           |   428 +\\\\n .../03-lifecycle-and-state-management.md           |   217 +\\\\n .../04-safety-and-loop-prevention.md               |   238 +\\\\n .../agent-playbook/05-economics-and-performance.md |   235 +\\\\n .../06-observability-and-debugging.md              |   279 +\\\\n .../agent-playbook/07-worked-examples.md           |   566 +\\\\n .../agent-playbook/08-anti-patterns.md             |   468 +\\\\n .../agent-playbook/09-practical-limitations.md     |   233 +\\\\n trigger-architecture/agent-playbook/README.md      |    67 +\\\\n upload                                             |   Bin 0 -> 8287106 bytes\\\\n 1190 files changed, 725397 insertions(+)\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 154
+    },
+    "created_at": "2026-04-16T17:38:30Z"
+  },
+  {
+    "id": "85f6c815-1d3a-4177-9bc4-a73565991dad",
+    "event_id": "1980690d-c708-4503-8a26-4cd7e4c904db",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:29Z",
+    "sequence_number": 11,
+    "data": {
+      "id": "B_Y8Iblnldi3-vEbF-K5T",
+      "result": "\"{\\\"output\\\":\\\"73e9aef fix: align stream token expiry with backend response format\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 3
+    },
+    "created_at": "2026-04-16T17:38:30Z"
+  },
+  {
+    "id": "635dd653-8759-4882-a28b-14bcdbf4a691",
+    "event_id": "23b1f2a9-8146-4ef9-9070-7c6f75ff9dd2",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:29Z",
+    "sequence_number": 12,
+    "data": {
+      "id": "cWVCponlHtS2noUDiu02M",
+      "name": "bash",
+      "arguments": {
+        "command": "cd /home/daytona/repos/ziraloop && git show 73e9aef82e68a0e891032507aa2b81b5f03b887a --stat",
+        "description": null
+      }
+    },
+    "created_at": "2026-04-16T17:38:30Z"
+  },
+  {
+    "id": "22a15621-2eb3-40c1-92d8-778689bed3f2",
+    "event_id": "521ce40d-b657-4f93-823c-2cc04e5dc1d2",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:29Z",
+    "sequence_number": 9,
+    "data": {
+      "id": "j8DupYRvkxkeUNkyyUHHd",
+      "result": "\"{\\\"output\\\":\\\"2026-04-16T17:37:44.215819737Z [info] Progress: resolved 744, reused 16, downloaded 728, added 744, done\\\\n\\\\n2026-04-16T17:37:44.378089681Z [info] .../node_modules/unrs-resolver postinstall$ napi-postinstall unrs-resolver 1.11.1 check\\\\n\\\\n2026-04-16T17:37:44.378365221Z [info] .../node_modules/msw postinstall$ node -e \\\\\\\"import('./config/scripts/postinstall.js').catch(() => void 0)\\\\\\\"\\\\n\\\\n2026-04-16T17:37:44.443662468Z [info] .../sharp@0.34.5/node_modules/sharp install$ node install/check.js || npm run build\\\\n\\\\n2026-04-16T17:37:44.505914425Z [info] .../node_modules/unrs-resolver postinstall: Done\\\\n\\\\n2026-04-16T17:37:44.563114760Z [info] .../node_modules/msw postinstall: Done\\\\n\\\\n2026-04-16T17:37:44.640056570Z [info] .../sharp@0.34.5/node_modules/sharp install: Done\\\\n\\\\n2026-04-16T17:37:44.794965719Z [info] \\\\ndependencies:\\\\n+ @base-ui/react 1.3.0\\\\n+ @hugeicons/core-free-icons 4.1.1\\\\n+ @hugeicons/react 1.1.6\\\\n+ @tanstack/react-query 5.96.2\\\\n+ class-variance-authority 0.7.1\\\\n+ clsx 2.1.1\\\\n+ cmdk 1.1.1\\\\n+ date-fns 4.1.0\\\\n+ embla-carousel-react 8.6.0\\\\n+ input-otp 1.4.2\\\\n+ next 16.1.7\\\\n+ next-themes 0.4.6\\\\n+ openapi-fetch 0.17.0\\\\n+ openapi-react-query 0.5.4\\\\n+ radix-ui 1.4.3\\\\n+ react 19.2.4\\\\n+ react-day-picker 9.14.0\\\\n+ react-dom 19.2.4\\\\n+ react-resizable-panels 4.9.0\\\\n+ recharts 3.8.0\\\\n+ shadcn 4.1.2\\\\n+ sonner 2.0.7\\\\n+ tailwind-merge 3.5.0\\\\n+ tw-animate-css 1.4.0\\\\n+ vaul 1.1.2\\\\n\\\\ndevDependencies:\\\\n+ @eslint/eslintrc 3.3.5\\\\n+ @tailwindcss/postcss 4.2.2\\\\n+ @types/node 25.5.2\\\\n+ @types/react 19.2.14\\\\n+ @types/react-dom 19.2.3\\\\n+ eslint 9.39.4\\\\n+ eslint-config-next 16.1.7\\\\n+ openapi-typescript 7.13.0\\\\n+ postcss 8.5.8\\\\n+ prettier 3.8.1\\\\n+ prettier-plugin-tailwindcss 0.7.2\\\\n+ tailwindcss 4.2.2\\\\n+ typescript 5.9.3\\\\n\\\\n\\\\n2026-04-16T17:37:45.051860345Z [info] Done in 5.7s using pnpm v9.15.9\\\\n\\\\n2026-04-16T17:37:45.422611887Z [info] pnpm install --frozen-lockfile --prefer-offline\\\\n2026-04-16T17:37:45.424244497Z [info] copy / /app\\\\n2026-04-16T17:37:45.955005196Z [info] copy / /app\\\\n2026-04-16T17:37:45.956952958Z [info] pnpm run build\\\\n2026-04-16T17:37:46.255713901Z [info] \\\\n> zeus@0.0.1 build /app\\\\n> next build\\\\n\\\\n\\\\n2026-04-16T17:37:46.808423376Z [info] ▲ Next.js 16.1.7 (Turbopack)\\\\n\\\\n2026-04-16T17:37:46.808526364Z [info] \\\\n\\\\n2026-04-16T17:37:46.810798656Z [info] ⚠ The \\\\\\\"middleware\\\\\\\" file convention is deprecated. Please use \\\\\\\"proxy\\\\\\\" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy\\\\n\\\\n2026-04-16T17:37:46.837976382Z [info]   Creating an optimized production build ...\\\\n\\\\n2026-04-16T17:37:49.674921498Z [info] \\\\n> Build error occurred\\\\n\\\\n2026-04-16T17:37:49.678734981Z [info] Error: Turbopack build failed with 1 errors:\\\\n./app/dashboard/credentials/page.tsx:285:17\\\\nParsing ecmascript source code failed\\\\n\\\\u001b[0m \\\\u001b[90m 283 |\\\\u001b[39m               \\\\u001b[33m<\\\\u001b[39m\\\\u001b[33mInput\\\\u001b[39m\\\\n \\\\u001b[90m 284 |\\\\u001b[39m                 onChange\\\\u001b[33m=\\\\u001b[39m{(e) \\\\u001b[33m=>\\\\u001b[39m\\\\n\\\\u001b[31m\\\\u001b[1m>\\\\u001b[22m\\\\u001b[39m\\\\u001b[90m 285 |\\\\u001b[39m                 }\\\\n \\\\u001b[90m     |\\\\u001b[39m                 \\\\u001b[31m\\\\u001b[1m^\\\\u001b[22m\\\\u001b[39m\\\\n \\\\u001b[90m 286 |\\\\u001b[39m                 placeholder\\\\u001b[33m=\\\\u001b[39m\\\\u001b[32m\\\\\\\"Leave empty to unassign\\\\\\\"\\\\u001b[39m\\\\n \\\\u001b[90m 287 |\\\\u001b[39m               \\\\u001b[33m/\\\\u001b[39m\\\\u001b[33m>\\\\u001b[39m\\\\n \\\\u001b[90m 288 |\\\\u001b[39m             \\\\u001b[33m<\\\\u001b[39m\\\\u001b[33m/\\\\u001b[39m\\\\u001b[33mdiv\\\\u001b[39m\\\\u001b[33m>\\\\u001b[39m\\\\u001b[0m\\\\n\\\\nExpected '</', got '}'\\\\n\\\\n\\\\n    at <unknown> (./app/dashboard/credentials/page.tsx:285:17)\\\\n\\\\n2026-04-16T17:37:49.757298045Z [info]  ELIFECYCLE  Command failed with exit code 1.\\\\n\\\\n2026-04-16T17:37:49.812435627Z [error] pnpm run build\\\\n2026-04-16T17:37:49.863862878Z [error] ERROR: failed to build: failed to solve: process \\\\\\\"pnpm run build\\\\\\\" did not complete successfully: exit code: 1\\\\n\\\",\\\"exit_code\\\":0,\\\"timed_out\\\":false}\"",
+      "is_error": false,
+      "tool_name": "bash",
+      "duration_ms": 836
+    },
+    "created_at": "2026-04-16T17:38:30Z"
+  },
+  {
+    "id": "042736ce-4452-42b9-ac74-af31d66d6a13",
+    "event_id": "ebd9ae6e-eec2-48f1-9bf3-dec5cc547467",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:29Z",
+    "sequence_number": 10,
+    "data": {
+      "id": "B_Y8Iblnldi3-vEbF-K5T",
+      "name": "bash",
+      "arguments": {
+        "command": "cd /home/daytona/repos/ziraloop && git log --oneline -10",
+        "description": null
+      }
+    },
+    "created_at": "2026-04-16T17:38:30Z"
+  },
+  {
+    "id": "e692c8bd-77e9-4db4-bc2e-146b5a65d7d8",
+    "event_id": "787ffde2-bd6a-443e-b895-8f678bbf3a02",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:21Z",
+    "sequence_number": 5,
+    "data": {
+      "id": "wvfLpBrIHRP7UYiiKXnT1",
+      "result": "\"{\\\"results\\\":[]}\"",
+      "is_error": false,
+      "tool_name": "memory_recall",
+      "duration_ms": 1318
+    },
+    "created_at": "2026-04-16T17:38:22Z"
+  },
+  {
+    "id": "ddd6c403-0861-42f4-b0d6-66572a613379",
+    "event_id": "b420d672-0408-4a39-8cd4-85c925c2c529",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:21Z",
+    "sequence_number": 6,
+    "data": {
+      "id": "4F6eUvu230c4pBgoZ6yzt",
+      "name": "skill",
+      "arguments": {
+        "name": "railway"
+      }
+    },
+    "created_at": "2026-04-16T17:38:22Z"
+  },
+  {
+    "id": "8f29dede-21d7-4863-9092-962c7827f8aa",
+    "event_id": "e14d5f42-e8c6-4c97-a4cb-864570b828af",
+    "event_type": "tool_call_completed",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:21Z",
+    "sequence_number": 7,
+    "data": {
+      "id": "4F6eUvu230c4pBgoZ6yzt",
+      "result": "\"<skill_content name=\\\"railway\\\" title=\\\"railway\\\" source=\\\"controlplane\\\">\\n---\\nname: railway\\ndescription: Use when deploying services, managing environments, reading logs, or configuring infrastructure on Railway - provides pre-authenticated GraphQL API patterns for projects, services, deployments, variables, domains, volumes, buckets, and templates via ${ZIRALOOP_RAILWAY_API_URL} proxy\\n---\\n\\n# Managing Railway Infrastructure\\n\\n## Overview\\n\\nManage Railway cloud infrastructure through a pre-authenticated GraphQL API proxy. All requests go to `${ZIRALOOP_RAILWAY_API_URL}` with `Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY`.\\n\\n## When to Use\\n\\n- Deploying or redeploying services on Railway\\n- Managing environment variables, domains, or volumes\\n- Reading build/deploy/runtime logs\\n- Creating projects, environments, or services\\n- Checking deployment status or resource metrics\\n- Provisioning databases, buckets, or templates\\n\\n## Quick Reference\\n\\nEvery call is `curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" -d '{\\\"query\\\": \\\"...\\\", \\\"variables\\\": {...}}'`. Always pipe through `jq`.\\n\\n### Queries\\n\\n| Operation | Key Variables | Purpose |\\n|-----------|--------------|---------|\\n| `UserMeta` | none | Get current user name/email |\\n| `UserProjects` | none | List all workspaces and projects |\\n| `Projects` | `workspaceId?` | List projects in a workspace |\\n| `Project` | `id!` | Full project state (environments, services, deployments, domains, volumes) |\\n| `Environments` | `projectId!` | List environments with PR metadata |\\n| `Deployments` | `input{projectId,serviceId,environmentId}` | List deployments with status |\\n| `LatestDeployment` | `serviceId!, environmentId!` | Quick deployment status check |\\n| `VariablesForServiceDeployment` | `projectId!, environmentId!, serviceId!` | Read rendered env vars |\\n| `Domains` | `environmentId!, projectId!, serviceId!` | List service/custom domains |\\n| `CustomDomainAvailable` | `domain!` | Check domain availability |\\n| `Regions` | none | List deployment regions |\\n| `DeploymentLogs` | `deploymentId!, limit?` | Runtime application logs |\\n| `BuildLogs` | `deploymentId!, limit?` | Build-phase logs |\\n| `HttpLogs` | `deploymentId!, beforeLimit!` | HTTP access logs |\\n| `Metrics` | `serviceId, environmentId, startDate!, measurements!` | CPU/memory/network/disk metrics |\\n| `Templates` | `verified?, recommended?, first?` | Discover templates |\\n| `TemplateDetail` | `code!` | Inspect template config |\\n| `BucketS3Credentials` | `projectId!, environmentId!, bucketId!` | Get S3 credentials |\\n| `BucketInstanceDetails` | `bucketId!, environmentId!` | Bucket size/object count |\\n| `WorkflowStatus` | `workflowId!` | Poll async operation completion |\\n\\n### Mutations\\n\\n| Operation | Key Variables | Purpose |\\n|-----------|--------------|---------|\\n| `ProjectCreate` | `name?, workspaceId?` | Create project |\\n| `ProjectScheduleDelete` | `id!` | Soft-delete project |\\n| `ServiceCreate` | `projectId!, environmentId!, source?, variables?` | Create service from image/repo |\\n| `ServiceDelete` | `environmentId!, serviceId!` | Delete service |\\n| `ServiceInstanceUpdate` | `serviceId!, environmentId?, input!` | Configure service (replicas, health checks, commands, regions, cron) |\\n| `ServiceInstanceDeploy` | `environmentId!, serviceId!` | Trigger deploy |\\n| `DeploymentRedeploy` | `id!` | Rebuild and redeploy |\\n| `DeploymentRestart` | `id!` | Restart without rebuild |\\n| `DeploymentRemove` | `id!` | Stop/remove deployment |\\n| `VariableCollectionUpsert` | `projectId!, serviceId!, environmentId!, variables!, skipDeploys?` | Set env vars |\\n| `VariableDelete` | `projectId!, environmentId!, name!, serviceId?` | Delete env var |\\n| `EnvironmentCreate` | `projectId!, name!, sourceId?` | Create/clone environment |\\n| `EnvironmentDelete` | `id!` | Delete environment |\\n| `ServiceDomainCreate` | `environmentId!, serviceId!` | Generate *.railway.app domain |\\n| `CustomDomainCreate` | `input{domain,environmentId,projectId,serviceId}` | Attach custom domain |\\n| `VolumeCreate` | `projectId!, environmentId!, serviceId!, mountPath!` | Create persistent volume |\\n| `VolumeDelete` | `id!` | Delete volume |\\n| `VolumeAttach` | `environmentId!, volumeId!, serviceId!` | Attach volume to service |\\n| `VolumeDetach` | `environmentId!, volumeId!` | Detach volume |\\n| `TemplateDeploy` | `projectId!, environmentId!, templateId!, serializedConfig!` | Deploy template (Postgres, Redis, etc.) |\\n| `BucketCreate` | `input{projectId!, name?, environmentId?}` | Create S3-compatible storage |\\n| `BucketCredentialsReset` | `projectId!, environmentId!, bucketId!` | Rotate bucket credentials |\\n| `UpdateRegions` | `environmentId!, serviceId!, multiRegionConfig!` | Set multi-region config |\\n\\n## Implementation\\n\\n### Request pattern\\n\\n```bash\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} \\\\\\n  -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" \\\\\\n  -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"...\\\", \\\"variables\\\": {...}}' \\\\\\n  | jq 'if .errors then {error: .errors[0].message} else .data end'\\n```\\n\\nEvery request must include `Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY`.\\n\\n### Rule 1: Always filter with jq\\n\\nNever let raw JSON into your context. Always pipe through `jq` to extract only what you need.\\n\\n```bash\\n# BAD\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" -d '...'\\n\\n# GOOD\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" -d '...' \\\\\\n  | jq '.data.project.services.edges[].node | {id, name}'\\n```\\n\\nCommon jq patterns:\\n```bash\\n| jq '.data.project.services.edges[].node | {id, name}'\\n| jq '.data.deployments.edges[].node | {id, status}'\\n| jq '.data.project.environments.edges[].node | select(.name == \\\"production\\\") | .id'\\n| jq '[.data.deployments.edges[].node.status] | group_by(.) | map({status: .[0], count: length})'\\n| jq 'if .errors then {error: .errors[0].message} else .data end'\\n```\\n\\n### Rule 2: Only request fields you need\\n\\nDo NOT copy full queries verbatim if you only need a subset. GraphQL lets you pick exactly what you need.\\n\\n```bash\\n# Only need service names? Don't request deployments, domains, volumes...\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"query { project(id: \\\\\\\"PROJECT_ID\\\\\\\") { services { edges { node { id name } } } } }\\\"}' \\\\\\n  | jq '.data.project.services.edges[].node'\\n```\\n\\n### Rule 3: Never expose sensitive data\\n\\nYour output is logged. Mask secrets, credentials, tokens, and connection strings.\\n\\n**Environment variables** — always mask sensitive values:\\n```bash\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"query($p:String!,$e:String!,$s:String!){variablesForServiceDeployment(projectId:$p,environmentId:$e,serviceId:$s)}\\\", \\\"variables\\\": {\\\"p\\\":\\\"...\\\",\\\"e\\\":\\\"...\\\",\\\"s\\\":\\\"...\\\"}}' \\\\\\n  | jq '.data.variablesForServiceDeployment | to_entries | map({key: .key, value: (if (.key | test(\\\"SECRET|KEY|TOKEN|PASSWORD|URL|DSN|CREDENTIALS|PRIVATE|MONGO|POSTGRES|MYSQL|REDIS|AMQP\\\"; \\\"i\\\")) then \\\"****\\\" else .value end)}) | from_entries'\\n```\\n\\n**Bucket credentials** — only non-secret fields: `| jq '.data.bucketS3Credentials | {endpoint, bucketName, region}'`\\n\\n**If you must use a secret**, pipe directly to file: `curl -s ... | jq -r '.data.bucketS3Credentials.secretAccessKey' > /tmp/.bucket_secret`\\n\\n### ID discovery\\n\\nMost operations need IDs. Start with discovery:\\n\\n1. `UserProjects` — enumerate all workspaces/projects\\n2. `Project` (with just the fields you need) — get environment, service, deployment IDs\\n3. Use returned IDs for subsequent operations\\n\\n### Workflows\\n\\n**Deploy service from image:**\\n```bash\\nSERVICE_ID=$(curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"mutation { serviceCreate(input: { name: \\\\\\\"my-api\\\\\\\", projectId: \\\\\\\"PROJ\\\\\\\", environmentId: \\\\\\\"ENV\\\\\\\", source: { image: \\\\\\\"node:20\\\\\\\" } }) { id } }\\\"}' \\\\\\n  | jq -r '.data.serviceCreate.id')\\n\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d \\\"{\\\\\\\"query\\\\\\\": \\\\\\\"mutation { serviceDomainCreate(input: { environmentId: \\\\\\\\\\\\\\\"ENV\\\\\\\\\\\\\\\", serviceId: \\\\\\\\\\\\\\\"$SERVICE_ID\\\\\\\\\\\\\\\" }) { domain } }\\\\\\\"}\\\" \\\\\\n  | jq -r '.data.serviceDomainCreate.domain'\\n```\\n\\n**Check status, read logs on failure:**\\n```bash\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"query { serviceInstance(environmentId: \\\\\\\"ENV\\\\\\\", serviceId: \\\\\\\"SVC\\\\\\\") { latestDeployment { id status } } }\\\"}' \\\\\\n  | jq '.data.serviceInstance.latestDeployment'\\n\\n# If FAILED/CRASHED — read build logs (messages only)\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"query { buildLogs(deploymentId: \\\\\\\"DEPLOY\\\\\\\", limit: 200) { timestamp message } }\\\"}' \\\\\\n  | jq -r '.data.buildLogs[] | \\\"\\\\(.timestamp) \\\\(.message)\\\"'\\n```\\n\\n**Batch env vars then deploy once:**\\n```bash\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"mutation($v: EnvironmentVariables!) { variableCollectionUpsert(input: { projectId: \\\\\\\"PROJ\\\\\\\", environmentId: \\\\\\\"ENV\\\\\\\", serviceId: \\\\\\\"SVC\\\\\\\", variables: $v, skipDeploys: true }) }\\\", \\\"variables\\\": {\\\"v\\\": {\\\"DB_URL\\\": \\\"...\\\", \\\"REDIS_URL\\\": \\\"...\\\"}}}' \\\\\\n  | jq '.data'\\n\\ncurl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\" -H \\\"Content-Type: application/json\\\" \\\\\\n  -d '{\\\"query\\\": \\\"mutation { serviceInstanceDeployV2(environmentId: \\\\\\\"ENV\\\\\\\", serviceId: \\\\\\\"SVC\\\\\\\") }\\\"}' \\\\\\n  | jq '.data'\\n```\\n\\n## Common Mistakes\\n\\n| Mistake | Fix |\\n|---------|-----|\\n| Dumping raw curl output into context | Always pipe through `jq` to extract needed fields |\\n| Copying full query when only needing 2 fields | Write a minimal query with just those fields |\\n| Printing env var values in output | Mask with jq `test(\\\"SECRET\\\\|KEY\\\\|TOKEN\\\\|PASSWORD\\\\|URL\\\"; \\\"i\\\")` filter |\\n| Printing bucket secretAccessKey | Only extract `{endpoint, bucketName, region}` unless writing to file |\\n| Forgetting Authorization header | Always include `-H \\\"Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY\\\"` |\\n| Triggering deploy after each variable change | Use `skipDeploys: true`, then one `ServiceInstanceDeploy` at end |\\n| Not checking for errors | Always check `.errors` before using `.data` |\\n\\n## ServiceInstanceUpdate Fields\\n\\n| Field | Type | Description |\\n|-------|------|-------------|\\n| `buildCommand` | String | Custom build command |\\n| `builder` | String | NIXPACKS or DOCKERFILE |\\n| `cronSchedule` | String | Cron expression |\\n| `dockerfilePath` | String | Path to Dockerfile |\\n| `healthcheckPath` | String | HTTP health check endpoint |\\n| `healthcheckTimeout` | Int | Health check timeout (seconds) |\\n| `numReplicas` | Int | Number of replicas |\\n| `region` | String | Deployment region |\\n| `restartPolicyType` | String | NEVER, ON_FAILURE, or ALWAYS |\\n| `restartPolicyMaxRetries` | Int | Max restart retries |\\n| `rootDirectory` | String | Root directory for builds |\\n| `startCommand` | String | Start command |\\n| `sleepApplication` | Boolean | Enable/disable sleep mode |\\n| `source` | Object | `{repo: \\\"owner/repo\\\"}` or `{image: \\\"image:tag\\\"}` |\\n| `preDeployCommand` | String | Pre-deploy command (e.g., migrations) |\\n| `multiRegionConfig` | JSON | Multi-region config |\\n| `watchPatterns` | [String] | File patterns triggering redeploy |\\n\\n## Enums\\n\\n**Deployment status:** `BUILDING`, `DEPLOYING`, `SUCCESS`, `FAILED`, `CRASHED`, `REMOVED`, `SLEEPING`, `QUEUED`, `INITIALIZING`, `WAITING`, `SKIPPED`, `NEEDS_APPROVAL`, `REMOVING`\\n\\n**Metric measurements:** `CPU_USAGE`, `MEMORY_USAGE_GB`, `NETWORK_RX_GB`, `NETWORK_TX_GB`, `DISK_USAGE_GB`\\n\\n---\\n\\n## GraphQL Query Bodies\\n\\nOnly request the fields you need — trim these down for your task.\\n\\n### UserMeta\\n\\n```graphql\\nquery UserMeta {\\n  me { name email }\\n}\\n```\\n\\n### UserProjects\\n\\n```graphql\\nquery UserProjects {\\n  externalWorkspaces {\\n    id name teamId\\n    projects {\\n      id name createdAt updatedAt deletedAt\\n      environments { edges { node { id name canAccess serviceInstances { edges { node { serviceId } } } } } }\\n      services { edges { node { id name } } }\\n    }\\n  }\\n  me {\\n    workspaces {\\n      id name\\n      team { id }\\n      projects(first: 500) {\\n        edges {\\n          node {\\n            id name createdAt updatedAt deletedAt\\n            environments { edges { node { id name canAccess serviceInstances { edges { node { serviceId } } } } } }\\n            services { edges { node { id name } } }\\n          }\\n        }\\n      }\\n    }\\n  }\\n}\\n```\\n\\n### Projects\\n\\n```graphql\\nquery Projects($workspaceId: String) {\\n  projects(workspaceId: $workspaceId) {\\n    edges {\\n      node {\\n        id name updatedAt\\n        workspace { id name }\\n        environments { edges { node { id name serviceInstances { edges { node { serviceId } } } } } }\\n        services { edges { node { id name } } }\\n      }\\n    }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"workspaceId\\\": \\\"optional-workspace-id\\\" }`\\n\\n### Project\\n\\nFull project state in one call.\\n\\n```graphql\\nquery Project($id: String!) {\\n  project(id: $id) {\\n    id name deletedAt\\n    workspace { name }\\n    buckets { edges { node { id name } } }\\n    environments {\\n      edges {\\n        node {\\n          id name canAccess deletedAt unmergedChangesCount\\n          serviceInstances {\\n            edges {\\n              node {\\n                id serviceId serviceName environmentId\\n                latestDeployment { canRedeploy id meta status createdAt deploymentStopped }\\n                activeDeployments { id status createdAt meta }\\n                source { repo image }\\n                domains {\\n                  serviceDomains { id domain targetPort }\\n                  customDomains { id domain targetPort }\\n                }\\n                cronSchedule nextCronRunAt startCommand\\n              }\\n            }\\n          }\\n          volumeInstances {\\n            edges {\\n              node {\\n                serviceId mountPath environmentId currentSizeMB sizeMB\\n                volume { name id }\\n              }\\n            }\\n          }\\n        }\\n      }\\n    }\\n    services { edges { node { id name } } }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"project-id\\\" }`\\n\\n### Environments\\n\\n```graphql\\nquery Environments($projectId: String!, $isEphemeral: Boolean, $first: Int, $after: String) {\\n  environments(projectId: $projectId, isEphemeral: $isEphemeral, first: $first, after: $after) {\\n    edges {\\n      node {\\n        id name isEphemeral createdAt updatedAt canAccess unmergedChangesCount\\n        sourceEnvironment { id name }\\n        meta { prNumber prTitle prRepo branch baseBranch }\\n      }\\n    }\\n    pageInfo { hasNextPage endCursor }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"project-id\\\", \\\"isEphemeral\\\": false, \\\"first\\\": 50 }`\\n\\n### Deployments\\n\\n```graphql\\nquery Deployments($input: DeploymentListInput!, $first: Int) {\\n  deployments(input: $input, first: $first) {\\n    edges { node { id createdAt status meta } }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"input\\\": { \\\"projectId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\" }, \\\"first\\\": 10 }`\\n\\n### LatestDeployment\\n\\n```graphql\\nquery LatestDeployment($serviceId: String!, $environmentId: String!) {\\n  serviceInstance(environmentId: $environmentId, serviceId: $serviceId) {\\n    latestDeployment { id status }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\" }`\\n\\n### VariablesForServiceDeployment\\n\\n```graphql\\nquery VariablesForServiceDeployment($projectId: String!, $environmentId: String!, $serviceId: String!) {\\n  variablesForServiceDeployment(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId)\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### Domains\\n\\n```graphql\\nquery Domains($environmentId: String!, $projectId: String!, $serviceId: String!) {\\n  domains(environmentId: $environmentId, projectId: $projectId, serviceId: $serviceId) {\\n    serviceDomains { id domain }\\n    customDomains { id domain }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"projectId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### CustomDomainAvailable\\n\\n```graphql\\nquery CustomDomainAvailable($domain: String!) {\\n  customDomainAvailable(domain: $domain) { available message }\\n}\\n```\\n\\nVariables: `{ \\\"domain\\\": \\\"app.example.com\\\" }`\\n\\n### Regions\\n\\n```graphql\\nquery Regions {\\n  regions { name country railwayMetal location }\\n}\\n```\\n\\n### DeploymentLogs\\n\\n```graphql\\nquery DeploymentLogs($deploymentId: String!, $limit: Int, $filter: String, $startDate: DateTime, $endDate: DateTime) {\\n  deploymentLogs(deploymentId: $deploymentId, limit: $limit, filter: $filter, startDate: $startDate, endDate: $endDate) {\\n    timestamp message\\n    attributes { key value }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"deploymentId\\\": \\\"...\\\", \\\"limit\\\": 100 }`\\n\\n### BuildLogs\\n\\n```graphql\\nquery BuildLogs($deploymentId: String!, $limit: Int, $startDate: DateTime, $endDate: DateTime, $filter: String) {\\n  buildLogs(deploymentId: $deploymentId, limit: $limit, startDate: $startDate, endDate: $endDate, filter: $filter) {\\n    timestamp message\\n    attributes { key value }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"deploymentId\\\": \\\"...\\\", \\\"limit\\\": 200 }`\\n\\n### HttpLogs\\n\\n```graphql\\nquery HttpLogs($deploymentId: String!, $filter: String, $beforeLimit: Int!, $beforeDate: String, $anchorDate: String, $afterDate: String, $afterLimit: Int) {\\n  httpLogs(deploymentId: $deploymentId, filter: $filter, beforeLimit: $beforeLimit, beforeDate: $beforeDate, anchorDate: $anchorDate, afterDate: $afterDate, afterLimit: $afterLimit) {\\n    timestamp method path httpStatus totalDuration requestId host\\n    clientUa srcIp edgeRegion txBytes rxBytes\\n    upstreamRqDuration upstreamAddress upstreamProto downstreamProto\\n    upstreamErrors responseDetails deploymentId deploymentInstanceId\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"deploymentId\\\": \\\"...\\\", \\\"beforeLimit\\\": 50 }`\\n\\n### Metrics\\n\\n```graphql\\nquery Metrics($serviceId: String, $environmentId: String, $startDate: DateTime!, $endDate: DateTime, $measurements: [MetricMeasurement!]!, $sampleRateSeconds: Int) {\\n  metrics(serviceId: $serviceId, environmentId: $environmentId, startDate: $startDate, endDate: $endDate, measurements: $measurements, sampleRateSeconds: $sampleRateSeconds) {\\n    measurement\\n    values { ts value }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"startDate\\\": \\\"2025-01-01T00:00:00Z\\\", \\\"measurements\\\": [\\\"CPU_USAGE\\\", \\\"MEMORY_USAGE_GB\\\"], \\\"sampleRateSeconds\\\": 3600 }`\\n\\n### Templates\\n\\n```graphql\\nquery Templates($verified: Boolean, $recommended: Boolean, $first: Int) {\\n  templates(verified: $verified, recommended: $recommended, first: $first) {\\n    edges { node { id code name } }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"recommended\\\": true, \\\"first\\\": 20 }`\\n\\n### TemplateDetail\\n\\n```graphql\\nquery TemplateDetail($code: String!) {\\n  template(code: $code) { id name serializedConfig }\\n}\\n```\\n\\nVariables: `{ \\\"code\\\": \\\"template-code\\\" }`\\n\\n### BucketS3Credentials\\n\\n```graphql\\nquery BucketS3Credentials($projectId: String!, $environmentId: String!, $bucketId: String!) {\\n  bucketS3Credentials(projectId: $projectId, environmentId: $environmentId, bucketId: $bucketId) {\\n    accessKeyId secretAccessKey endpoint bucketName region urlStyle\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"bucketId\\\": \\\"...\\\" }`\\n\\n### BucketInstanceDetails\\n\\n```graphql\\nquery BucketInstanceDetails($bucketId: String!, $environmentId: String!) {\\n  bucketInstanceDetails(bucketId: $bucketId, environmentId: $environmentId) { sizeBytes objectCount }\\n}\\n```\\n\\nVariables: `{ \\\"bucketId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\" }`\\n\\n### WorkflowStatus\\n\\n```graphql\\nquery WorkflowStatus($workflowId: String!) {\\n  workflowStatus(workflowId: $workflowId) { status error }\\n}\\n```\\n\\nVariables: `{ \\\"workflowId\\\": \\\"...\\\" }`\\n\\n---\\n\\n## GraphQL Mutation Bodies\\n\\n### ProjectCreate\\n\\n```graphql\\nmutation ProjectCreate($name: String, $description: String, $workspaceId: String) {\\n  projectCreate(input: { name: $name, description: $description, workspaceId: $workspaceId }) {\\n    name id\\n    environments { edges { node { id name } } }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"name\\\": \\\"my-project\\\", \\\"description\\\": \\\"optional\\\", \\\"workspaceId\\\": \\\"optional\\\" }`\\n\\n### ProjectScheduleDelete\\n\\n```graphql\\nmutation ProjectScheduleDelete($id: String!) {\\n  projectScheduleDelete(id: $id)\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"project-id\\\" }`\\n\\n### ServiceCreate\\n\\n```graphql\\nmutation ServiceCreate($name: String, $projectId: String!, $environmentId: String!, $source: ServiceSourceInput, $branch: String, $variables: EnvironmentVariables) {\\n  serviceCreate(input: { name: $name, projectId: $projectId, environmentId: $environmentId, source: $source, variables: $variables, branch: $branch }) { id name }\\n}\\n```\\n\\nFrom image: `{ \\\"name\\\": \\\"api\\\", \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"source\\\": { \\\"image\\\": \\\"nginx:latest\\\" }, \\\"variables\\\": { \\\"PORT\\\": \\\"8080\\\" } }`\\n\\nFrom repo: `{ \\\"name\\\": \\\"api\\\", \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"source\\\": { \\\"repo\\\": \\\"owner/repo\\\" }, \\\"branch\\\": \\\"main\\\" }`\\n\\n### ServiceDelete\\n\\n```graphql\\nmutation ServiceDelete($environmentId: String!, $serviceId: String!) {\\n  serviceDelete(environmentId: $environmentId, id: $serviceId)\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### ServiceInstanceUpdate\\n\\n```graphql\\nmutation ServiceInstanceUpdate($serviceId: String!, $environmentId: String, $input: ServiceInstanceUpdateInput!) {\\n  serviceInstanceUpdate(serviceId: $serviceId, environmentId: $environmentId, input: $input)\\n}\\n```\\n\\nScale: `{ \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"input\\\": { \\\"numReplicas\\\": 3, \\\"healthcheckPath\\\": \\\"/health\\\" } }`\\n\\nCron: `{ \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"input\\\": { \\\"startCommand\\\": \\\"node server.js\\\", \\\"cronSchedule\\\": \\\"0 */6 * * *\\\" } }`\\n\\n### ServiceInstanceDeploy\\n\\n```graphql\\nmutation ServiceInstanceDeploy($environmentId: String!, $serviceId: String!) {\\n  serviceInstanceDeployV2(environmentId: $environmentId, serviceId: $serviceId)\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### DeploymentRedeploy\\n\\n```graphql\\nmutation DeploymentRedeploy($id: String!) {\\n  deploymentRedeploy(id: $id) { id }\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"deployment-id\\\" }`\\n\\n### DeploymentRestart\\n\\n```graphql\\nmutation DeploymentRestart($id: String!) {\\n  deploymentRestart(id: $id)\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"deployment-id\\\" }`\\n\\n### DeploymentRemove\\n\\n```graphql\\nmutation DeploymentRemove($id: String!) {\\n  deploymentRemove(id: $id)\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"deployment-id\\\" }`\\n\\n### VariableCollectionUpsert\\n\\n```graphql\\nmutation VariableCollectionUpsert($projectId: String!, $serviceId: String!, $environmentId: String!, $variables: EnvironmentVariables!, $skipDeploys: Boolean) {\\n  variableCollectionUpsert(input: { projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId, variables: $variables, skipDeploys: $skipDeploys })\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"variables\\\": { \\\"DATABASE_URL\\\": \\\"postgres://...\\\", \\\"NODE_ENV\\\": \\\"production\\\" }, \\\"skipDeploys\\\": true }`\\n\\n### VariableDelete\\n\\n```graphql\\nmutation VariableDelete($projectId: String!, $environmentId: String!, $name: String!, $serviceId: String) {\\n  variableDelete(input: { projectId: $projectId, environmentId: $environmentId, name: $name, serviceId: $serviceId })\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"name\\\": \\\"OLD_API_KEY\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### EnvironmentCreate\\n\\n```graphql\\nmutation EnvironmentCreate($projectId: String!, $name: String!, $sourceId: String, $applyChangesInBackground: Boolean) {\\n  environmentCreate(input: { projectId: $projectId, name: $name, sourceEnvironmentId: $sourceId, applyChangesInBackground: $applyChangesInBackground }) { name id }\\n}\\n```\\n\\nClone: `{ \\\"projectId\\\": \\\"...\\\", \\\"name\\\": \\\"staging\\\", \\\"sourceId\\\": \\\"production-env-id\\\" }`\\n\\nNew: `{ \\\"projectId\\\": \\\"...\\\", \\\"name\\\": \\\"staging\\\" }`\\n\\n### EnvironmentDelete\\n\\n```graphql\\nmutation EnvironmentDelete($id: String!) {\\n  environmentDelete(id: $id)\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"environment-id\\\" }`\\n\\n### ServiceDomainCreate\\n\\n```graphql\\nmutation ServiceDomainCreate($environmentId: String!, $serviceId: String!) {\\n  serviceDomainCreate(input: { environmentId: $environmentId, serviceId: $serviceId }) { id domain }\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### CustomDomainCreate\\n\\n```graphql\\nmutation CustomDomainCreate($input: CustomDomainCreateInput!) {\\n  customDomainCreate(input: $input) {\\n    id domain serviceId environmentId projectId targetPort\\n    status {\\n      dnsRecords { hostlabel fqdn recordType requiredValue currentValue status zone purpose }\\n      certificateStatus verified\\n    }\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"input\\\": { \\\"domain\\\": \\\"app.example.com\\\", \\\"environmentId\\\": \\\"...\\\", \\\"projectId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" } }`\\n\\n### VolumeCreate\\n\\n```graphql\\nmutation VolumeCreate($projectId: String!, $environmentId: String!, $serviceId: String!, $mountPath: String!) {\\n  volumeCreate(input: { projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId, mountPath: $mountPath }) { id name }\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\", \\\"mountPath\\\": \\\"/data\\\" }`\\n\\n### VolumeDelete\\n\\n```graphql\\nmutation VolumeDelete($id: String!) {\\n  volumeDelete(volumeId: $id)\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"volume-id\\\" }`\\n\\n### VolumeAttach\\n\\n```graphql\\nmutation VolumeAttach($environmentId: String!, $volumeId: String!, $serviceId: String!) {\\n  volumeInstanceUpdate(input: { serviceId: $serviceId }, environmentId: $environmentId, volumeId: $volumeId)\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"volumeId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\" }`\\n\\n### VolumeDetach\\n\\n```graphql\\nmutation VolumeDetach($environmentId: String!, $volumeId: String!) {\\n  volumeInstanceUpdate(input: { serviceId: null }, environmentId: $environmentId, volumeId: $volumeId)\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"volumeId\\\": \\\"...\\\" }`\\n\\n### VolumeMountPathUpdate\\n\\n```graphql\\nmutation VolumeMountPathUpdate($serviceId: String, $environmentId: String!, $volumeId: String!, $mountPath: String!) {\\n  volumeInstanceUpdate(input: { serviceId: $serviceId, mountPath: $mountPath }, environmentId: $environmentId, volumeId: $volumeId)\\n}\\n```\\n\\nVariables: `{ \\\"serviceId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"volumeId\\\": \\\"...\\\", \\\"mountPath\\\": \\\"/new/path\\\" }`\\n\\n### VolumeNameUpdate\\n\\n```graphql\\nmutation VolumeNameUpdate($volumeId: String!, $name: String!) {\\n  volumeUpdate(volumeId: $volumeId, input: { name: $name }) { name }\\n}\\n```\\n\\nVariables: `{ \\\"volumeId\\\": \\\"...\\\", \\\"name\\\": \\\"new-name\\\" }`\\n\\n### UpdateRegions\\n\\n```graphql\\nmutation UpdateRegions($environmentId: String!, $serviceId: String!, $multiRegionConfig: JSON!) {\\n  serviceInstanceUpdate(environmentId: $environmentId, serviceId: $serviceId, input: { multiRegionConfig: $multiRegionConfig })\\n}\\n```\\n\\nVariables: `{ \\\"environmentId\\\": \\\"...\\\", \\\"serviceId\\\": \\\"...\\\", \\\"multiRegionConfig\\\": { \\\"us-west1\\\": {}, \\\"eu-west1\\\": {} } }`\\n\\n### TemplateDeploy\\n\\n```graphql\\nmutation TemplateDeploy($projectId: String!, $environmentId: String!, $templateId: String!, $serializedConfig: SerializedTemplateConfig!) {\\n  templateDeployV2(input: { projectId: $projectId, environmentId: $environmentId, templateId: $templateId, serializedConfig: $serializedConfig }) { projectId workflowId }\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"templateId\\\": \\\"...\\\", \\\"serializedConfig\\\": {} }`\\n\\nPoll `WorkflowStatus` with the returned `workflowId` until complete.\\n\\n### BucketCreate\\n\\n```graphql\\nmutation BucketCreate($input: BucketCreateInput!) {\\n  bucketCreate(input: $input) { id name projectId }\\n}\\n```\\n\\nVariables: `{ \\\"input\\\": { \\\"projectId\\\": \\\"...\\\", \\\"name\\\": \\\"my-bucket\\\", \\\"environmentId\\\": \\\"...\\\" } }`\\n\\n### BucketUpdate\\n\\n```graphql\\nmutation BucketUpdate($id: String!, $input: BucketUpdateInput!) {\\n  bucketUpdate(id: $id, input: $input) { id name projectId }\\n}\\n```\\n\\nVariables: `{ \\\"id\\\": \\\"bucket-id\\\", \\\"input\\\": { \\\"name\\\": \\\"new-name\\\" } }`\\n\\n### BucketCredentialsReset\\n\\nRotates credentials. Do NOT print secretAccessKey — confirm success only.\\n\\n```graphql\\nmutation BucketCredentialsReset($projectId: String!, $environmentId: String!, $bucketId: String!) {\\n  bucketCredentialsReset(projectId: $projectId, environmentId: $environmentId, bucketId: $bucketId) {\\n    accessKeyId secretAccessKey endpoint bucketName region urlStyle\\n  }\\n}\\n```\\n\\nVariables: `{ \\\"projectId\\\": \\\"...\\\", \\\"environmentId\\\": \\\"...\\\", \\\"bucketId\\\": \\\"...\\\" }`\\n\\nSafe jq: `| jq '{success: (.data.bucketCredentialsReset.accessKeyId != null), endpoint: .data.bucketCredentialsReset.endpoint}'`\\n\\n</skill_content>\"",
+      "is_error": false,
+      "tool_name": "skill",
+      "duration_ms": 1
+    },
+    "created_at": "2026-04-16T17:38:22Z"
+  },
+  {
+    "id": "dc2bc943-30a6-44a8-9b84-28df99e877a3",
+    "event_id": "dc4c7039-dc6b-4e99-a417-8b1139d43bc0",
+    "event_type": "tool_call_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:20Z",
+    "sequence_number": 4,
+    "data": {
+      "id": "wvfLpBrIHRP7UYiiKXnT1",
+      "name": "memory_recall",
+      "arguments": {
+        "query": "ziraloop infrastructure topology project service IDs past incidents"
+      }
+    },
+    "created_at": "2026-04-16T17:38:20Z"
+  },
+  {
+    "id": "f5b34009-aa4c-4bf3-84a0-efe422508618",
+    "event_id": "5820081c-ea0f-4755-9498-e6acaf2857f4",
+    "event_type": "response_started",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:08Z",
+    "sequence_number": 3,
+    "data": {
+      "message_id": "288752d1-b00e-4113-833a-e34952f3141e",
+      "conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160"
+    },
+    "created_at": "2026-04-16T17:38:10Z"
+  },
+  {
+    "id": "ac40915b-d8da-4de6-9414-e356deecd69f",
+    "event_id": "30bdf35e-e68d-4f26-94a1-819ec80a17e1",
+    "event_type": "conversation_created",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:08Z",
+    "sequence_number": 1,
+    "data": {},
+    "created_at": "2026-04-16T17:38:10Z"
+  },
+  {
+    "id": "4b4112fe-fa68-4530-8c05-e57fb4b74ab7",
+    "event_id": "4a3d46f4-6761-4978-bacf-6e29ed595f27",
+    "event_type": "message_received",
+    "agent_id": "55fd683a-6124-46de-95f8-a033946e9282",
+    "bridge_conversation_id": "c653d438-43b8-4f47-8aca-41b3a37e9160",
+    "timestamp": "2026-04-16T17:38:08Z",
+    "sequence_number": 2,
+    "data": {
+      "content": "## Deployment.failed\n\n| Field | Value |\n|---|---|\n| project_name | ziraloop.com |\n| service_id | 1a5a0fa2-aca3-4c4b-9489-1167a20471c7 |\n| branch | main |\n| deployment_id | 6d9fed2d-0b77-456e-9f11-266e9f50eef2 |\n| project_id | 55776e03-e6c2-4a9b-828b-4e759495aa70 |\n| service_name | zeus.ziraloop.com |\n| environment_id | 3c177170-0fb2-4dcb-a034-12676bb242c6 |\n| workspace_id | 71ad85f8-ff26-4f3b-938a-adc10ae2655f |\n| commit_author | x-ziraloop |\n| environment_name | production |\n| commit_hash | 73e9aef82e68a0e891032507aa2b81b5f03b887a |\n\n---\n\n### build_logs\n\n```json\n{\n  \"data\": {\n    \"buildLogs\": [\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:33.081116700Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[35m[Region: us-west1]\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:33.998176965Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095264047Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[38;2;125;86;243m╭─────────────────╮\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095302460Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[38;2;125;86;243m│\\u001b[0m Railpack 0.23.0 \\u001b[38;2;125;86;243m│\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095307272Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[38;2;125;86;243m╰─────────────────╯\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095310590Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095315699Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[97m↳ Detected Node\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095319115Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[97m↳ Using pnpm package manager\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095322390Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095325549Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[1mPackages\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095328886Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[38;5;238m──────────\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095332007Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[95mnode\\u001b[0m  \\u001b[38;5;238m│\\u001b[0m  \\u001b[96m22.22.2\\u001b[0m  \\u001b[38;5;238m│\\u001b[0m  railpack default (22)\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095334979Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[95mpnpm\\u001b[0m  \\u001b[38;5;238m│\\u001b[0m  \\u001b[96m9.15.9\\u001b[0m   \\u001b[38;5;238m│\\u001b[0m  railpack default (9)\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095338388Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095341875Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[1mSteps\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095344838Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[38;5;238m──────────\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095347850Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[95m▸ install\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095350580Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[38;5;245m$\\u001b[0m \\u001b[1mpnpm add -g node-gyp\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095353587Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[38;5;245m$\\u001b[0m \\u001b[1mpnpm install --frozen-lockfile --prefer-offline\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095356515Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095359429Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[95m▸ build\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095362314Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[38;5;245m$\\u001b[0m \\u001b[1mpnpm run build\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095365112Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095368254Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[1mDeploy\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095371084Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[38;5;238m──────────\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095373982Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\\u001b[38;5;245m$\\u001b[0m \\u001b[1mpnpm run start\\u001b[0m\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095377626Z\"\n      },\n      {\n        \"attributes\": [\n          {\n            \"key\": \"level\",\n            \"value\": \"\\\"info\\\"\"\n          }\n        ],\n        \"message\": \"\",\n        \"severity\": \"info\",\n        \"timestamp\": \"2026-04-16T17:37:34.095380622Z\"\n   \n... (truncated)\n```\n\n### runtime_logs\n\n```json\n{\n  \"data\": {\n    \"deploymentLogs\": []\n  }\n}\n```\n\n### project_topology\n\n```json\n{\n  \"data\": {\n    \"project\": {\n      \"buckets\": {\n        \"edges\": [\n          {\n            \"node\": {\n              \"id\": \"d4edbc26-7385-4536-8115-14415508508c\",\n              \"name\": \"drive.ziraloop.com\"\n            }\n          }\n        ]\n      },\n      \"createdAt\": \"2026-03-12T18:58:27.783Z\",\n      \"deletedAt\": null,\n      \"description\": \"\",\n      \"environments\": {\n        \"edges\": [\n          {\n            \"node\": {\n              \"canAccess\": true,\n              \"deletedAt\": null,\n              \"id\": \"3c177170-0fb2-4dcb-a034-12676bb242c6\",\n              \"name\": \"production\",\n              \"serviceInstances\": {\n                \"edges\": [\n                  {\n                    \"node\": {\n                      \"activeDeployments\": [\n                        {\n                          \"createdAt\": \"2026-04-08T14:14:37.948Z\",\n                          \"id\": \"7863256c-c7de-456b-9154-a572492825c9\",\n                          \"meta\": {\n                            \"ignoreWatchPatterns\": true,\n                            \"image\": \"ghcr.io/railwayapp-templates/postgres-ssl:17\",\n                            \"imageDigest\": \"sha256:626e63984ef48a96b1782a4e796408b65bcd0bf4ad637c898aed8900ce0aff9c\",\n                            \"logsV2\": true,\n                            \"patchId\": \"007f9c8e-5484-4330-a9d7-535c1ac8c344\",\n                            \"reason\": \"redeploy\",\n                            \"runtime\": \"V2\",\n                            \"serviceManifest\": {\n                              \"build\": {\n                                \"buildCommand\": null,\n                                \"buildEnvironment\": null,\n                                \"builder\": \"RAILPACK\",\n                                \"dockerfilePath\": null,\n                                \"nixpacksConfigPath\": null,\n                                \"nixpacksPlan\": null,\n                                \"watchPatterns\": []\n                              },\n                              \"deploy\": {\n                                \"cronSchedule\": null,\n                                \"drainingSeconds\": null,\n                                \"healthcheckPath\": null,\n                                \"healthcheckTimeout\": null,\n                                \"ipv6EgressEnabled\": false,\n                                \"limitOverride\": null,\n                                \"multiRegionConfig\": {\n                                  \"us-west2\": {\n                                    \"numReplicas\": 1\n                                  }\n                                },\n                                \"numReplicas\": 1,\n                                \"overlapSeconds\": null,\n                                \"preDeployCommand\": null,\n                                \"region\": null,\n                                \"registryCredentials\": null,\n                                \"requiredMountPath\": \"/var/lib/postgresql/data\",\n                                \"restartPolicyMaxRetries\": 10,\n                                \"restartPolicyType\": \"ON_FAILURE\",\n                                \"runtime\": \"V2\",\n                                \"sleepApplication\": false,\n                                \"startCommand\": null,\n                                \"useLegacyStacker\": false\n                              }\n                            },\n                            \"skipBuildCache\": true,\n                            \"volumeMounts\": [\n                              \"/var/lib/postgresql/data\"\n                            ]\n                          },\n                          \"status\": \"SUCCESS\"\n                        }\n                      ],\n                      \"buildCommand\": null,\n                      \"cronSchedule\": null,\n                      \"domains\": {\n                        \"customDomains\": [],\n                        \"serviceDomains\": []\n                      },\n                      \"environmentId\": \"3c177170-0fb2-4dcb-a034-12676bb242c6\",\n                      \"healthcheckPath\": null,\n                      \"id\": \"18b4049f-fb3d-4fa8-88bc-8b03c03a40ec\",\n                      \"latestDeployment\": {\n                        \"canRedeploy\": true,\n                        \"createdAt\": \"2026-04-08T14:14:37.948Z\",\n                        \"deploymentStopped\": false,\n                        \"id\": \"7863256c-c7de-456b-9154-a572492825c9\",\n                        \"meta\": {\n                          \"ignoreWatchPatterns\": true,\n                          \"image\": \"ghcr.io/railwayapp-templates/postgres-ssl:17\",\n                          \"imageDigest\": \"sha256:626e63984ef48a96b1782a4e796408b65bcd0bf4ad637c898aed8900ce0aff9c\",\n                          \"logsV2\": true,\n                          \"patchId\": \"007f9c8e-5484-4330-a9d7-535c1ac8c344\",\n                          \"reason\": \"redeploy\",\n                          \"runtime\": \"V2\",\n                          \"serviceManifest\": {\n                            \"build\": {\n                              \"buildCommand\": null,\n                              \"buildEnvironment\": null,\n                              \"builder\": \"RAILPACK\",\n                              \"dockerfilePath\": null,\n                              \"nixpacksConfigPath\": null,\n                              \"nixpacksPlan\": null,\n                              \"watchPatterns\": []\n                            },\n                            \"deploy\": {\n                              \"cronSchedule\": null,\n                              \"drainingSeconds\": null,\n                              \"healthcheckPath\": null,\n                              \"healthcheckTimeout\": null,\n                              \"ipv6EgressEnabled\": false,\n                              \"limitOverride\": null,\n                              \"multiRegionConfig\": {\n                                \"us-west2\": {\n                                  \"numReplicas\": 1\n                                }\n                              },\n                              \"numReplicas\": 1,\n                              \"overlapSeconds\": null,\n                              \"preDeployCommand\": null,\n                              \"region\": null,\n                              \"registryCredentials\": null,\n                              \"requiredMountPath\": \"/var/lib/postgresql/data\",\n                              \"restartPolicyMaxRetries\": 10,\n                              \"restartPolicyType\": \"ON_FAILURE\",\n                              \"runtime\": \"V2\",\n                              \"sleepApplication\": false,\n                              \"startCommand\": null,\n                              \"useLegacyStacker\": false\n                            }\n                          },\n                          \"skipBuildCache\": true,\n                          \"volumeMounts\": [\n                            \"/var/lib/postgresql/data\"\n                          ]\n                        },\n                        \"status\": \"SUCCESS\"\n                      },\n                      \"nextCronRunAt\": null,\n                      \"numReplicas\": null,\n                      \"region\": null,\n                      \"restartPolicyMaxRetries\": 10,\n                      \"restartPolicyType\": \"ON_FAILURE\",\n                      \"rootDirectory\": null,\n                      \"serviceId\": \"f8c26c6c-399d-48f1-9b49-f411df99e508\",\n                      \"serviceName\": \"api.postgres.ziraloop.com\",\n                      \"sleepApplication\": false,\n                      \"source\": {\n                        \"image\": \"ghcr.io/railwayapp-templates/postgres-ssl:17\",\n                        \"repo\": null\n                      },\n                      \"startCommand\": null\n                    }\n                  },\n                  {\n                    \"node\": {\n                      \"activeDeployments\": [\n                        {\n                          \"createdAt\": \"2026-04-16T17:37:22.591Z\",\n                          \"id\": \"ece97cca-2455-4c19-b6ec-e07770c88ed3\",\n                          \"meta\": {\n                            \"branch\": \"main\",\n\n... (truncated)\n```\n\n### recent_deployments\n\n```json\n{\n  \"data\": {\n    \"deployments\": {\n      \"edges\": [\n        {\n          \"node\": {\n            \"canRedeploy\": true,\n            \"canRollback\": false,\n            \"createdAt\": \"2026-04-16T17:37:21.612Z\",\n            \"creator\": {\n              \"name\": \"ziraloop\"\n            },\n            \"deploymentStopped\": true,\n            \"id\": \"6d9fed2d-0b77-456e-9f11-266e9f50eef2\",\n            \"meta\": {\n              \"branch\": \"main\",\n              \"buildOnly\": false,\n              \"commitAuthor\": \"x-ziraloop\",\n              \"commitHash\": \"73e9aef82e68a0e891032507aa2b81b5f03b887a\",\n              \"commitMessage\": \"fix: align stream token expiry with backend response format\",\n              \"fileServiceManifest\": {},\n              \"logsV2\": true,\n              \"nixpacksProviders\": [\n                \"node\"\n              ],\n              \"plan\": \"pro\",\n              \"propertyFileMapping\": {},\n              \"reason\": \"deploy\",\n              \"repo\": \"ziraloop/ziraloop\",\n              \"rootDirectory\": \"/apps/admin\",\n              \"runtime\": \"V2\",\n              \"serviceManifest\": {\n                \"build\": {\n                  \"buildCommand\": null,\n                  \"buildEnvironment\": null,\n                  \"builder\": \"RAILPACK\",\n                  \"dockerfilePath\": null,\n                  \"nixpacksConfigPath\": null,\n                  \"nixpacksPlan\": null,\n                  \"watchPatterns\": []\n                },\n                \"deploy\": {\n                  \"cronSchedule\": null,\n                  \"drainingSeconds\": null,\n                  \"healthcheckPath\": \"/api/health\",\n                  \"healthcheckTimeout\": 180,\n                  \"ipv6EgressEnabled\": false,\n                  \"limitOverride\": null,\n                  \"multiRegionConfig\": {\n                    \"us-west2\": {\n                      \"numReplicas\": 1\n                    }\n                  },\n                  \"numReplicas\": 1,\n                  \"overlapSeconds\": null,\n                  \"preDeployCommand\": null,\n                  \"region\": null,\n                  \"registryCredentials\": null,\n                  \"requiredMountPath\": null,\n                  \"restartPolicyMaxRetries\": 10,\n                  \"restartPolicyType\": \"ON_FAILURE\",\n                  \"runtime\": \"V2\",\n                  \"sleepApplication\": false,\n                  \"startCommand\": null,\n                  \"useLegacyStacker\": false\n                }\n              },\n              \"volumeMounts\": []\n            },\n            \"staticUrl\": \"zeusziraloopcom-production.up.railway.app\",\n            \"status\": \"FAILED\",\n            \"updatedAt\": \"2026-04-16T17:37:50.249Z\"\n          }\n        },\n        {\n          \"node\": {\n            \"canRedeploy\": true,\n            \"canRollback\": false,\n            \"createdAt\": \"2026-04-16T17:34:06.462Z\",\n            \"creator\": {\n              \"name\": \"ziraloop\"\n            },\n            \"deploymentStopped\": true,\n            \"id\": \"ce024589-402e-48ce-a8db-82bf471f9a48\",\n            \"meta\": {\n              \"branch\": \"main\",\n              \"buildOnly\": false,\n              \"commitAuthor\": \"x-ziraloop\",\n              \"commitHash\": \"2dbcd20e0fa9f82d608c418dfefca3d6caf0b665\",\n              \"commitMessage\": \"fix type error, add conversations page, disabled_tools, gh wrapper\\n\\n- Fix agents page type error (useState back to string)\\n- Add /w/agents/[id]/conversations route with layout + sidebar (real data)\\n- Move denied permissions to config.disabled_tools so Bridge hides them from LLM\\n- Add GH_NO_KEYRING env var to sandbox\\n- Add gh CLI wrapper in Dockerfile that auto-fetches token from credential helper\\n- Delete conversation-v1 through v10 mock pages\\n- Update pusher test for disabled_tools assertion\",\n              \"fileServiceManifest\": {},\n              \"logsV2\": true,\n              \"nixpacksProviders\": [\n                \"node\"\n              ],\n              \"plan\": \"pro\",\n              \"propertyFileMapping\": {},\n              \"reason\": \"deploy\",\n              \"repo\": \"ziraloop/ziraloop\",\n              \"rootDirectory\": \"/apps/admin\",\n              \"runtime\": \"V2\",\n              \"serviceManifest\": {\n                \"build\": {\n                  \"buildCommand\": null,\n                  \"buildEnvironment\": null,\n                  \"builder\": \"RAILPACK\",\n                  \"dockerfilePath\": null,\n                  \"nixpacksConfigPath\": null,\n                  \"nixpacksPlan\": null,\n                  \"watchPatterns\": []\n                },\n                \"deploy\": {\n                  \"cronSchedule\": null,\n                  \"drainingSeconds\": null,\n                  \"healthcheckPath\": \"/api/health\",\n                  \"healthcheckTimeout\": 180,\n                  \"ipv6EgressEnabled\": false,\n                  \"limitOverride\": null,\n                  \"multiRegionConfig\": {\n                    \"us-west2\": {\n                      \"numReplicas\": 1\n                    }\n                  },\n                  \"numReplicas\": 1,\n                  \"overlapSeconds\": null,\n                  \"preDeployCommand\": null,\n                  \"region\": null,\n                  \"registryCredentials\": null,\n                  \"requiredMountPath\": null,\n                  \"restartPolicyMaxRetries\": 10,\n                  \"restartPolicyType\": \"ON_FAILURE\",\n                  \"runtime\": \"V2\",\n                  \"sleepApplication\": false,\n                  \"startCommand\": null,\n                  \"useLegacyStacker\": false\n                }\n              },\n              \"volumeMounts\": []\n            },\n            \"staticUrl\": \"zeusziraloopcom-production.up.railway.app\",\n            \"status\": \"FAILED\",\n            \"updatedAt\": \"2026-04-16T17:34:35.915Z\"\n          }\n        },\n        {\n          \"node\": {\n            \"canRedeploy\": true,\n            \"canRollback\": false,\n            \"createdAt\": \"2026-04-16T16:55:57.953Z\",\n            \"creator\": {\n              \"name\": \"ziraloop\"\n            },\n            \"deploymentStopped\": true,\n            \"id\": \"6b3f6c7d-0b35-4515-9350-9a79f0011560\",\n            \"meta\": {\n              \"branch\": \"main\",\n              \"buildOnly\": false,\n              \"commitAuthor\": \"x-ziraloop\",\n              \"commitHash\": \"62e88369c333090dc60c957750f85e21d2ba3bf3\",\n              \"commitMessage\": \"add z-ai/glm-5.1 model to OpenRouter registry\",\n              \"fileServiceManifest\": {},\n              \"logsV2\": true,\n              \"nixpacksProviders\": [\n                \"node\"\n              ],\n              \"plan\": \"pro\",\n              \"propertyFileMapping\": {},\n              \"reason\": \"deploy\",\n              \"repo\": \"ziraloop/ziraloop\",\n              \"rootDirectory\": \"/apps/admin\",\n              \"runtime\": \"V2\",\n              \"serviceManifest\": {\n                \"build\": {\n                  \"buildCommand\": null,\n                  \"buildEnvironment\": null,\n                  \"builder\": \"RAILPACK\",\n                  \"dockerfilePath\": null,\n                  \"nixpacksConfigPath\": null,\n                  \"nixpacksPlan\": null,\n                  \"watchPatterns\": []\n                },\n                \"deploy\": {\n                  \"cronSchedule\": null,\n                  \"drainingSeconds\": null,\n                  \"healthcheckPath\": \"/api/health\",\n                  \"healthcheckTimeout\": 180,\n                  \"ipv6EgressEnabled\": false,\n                  \"limitOverride\": null,\n                  \"multiRegionConfig\": {\n                    \"us-west2\": {\n                      \"numReplicas\": 1\n                    }\n                  },\n                  \"numReplicas\": 1,\n                  \"overlapSeconds\": null,\n                  \"preDeployCommand\": null,\n                  \"region\": null,\n                  \"registryCredentials\": null,\n                  \"requiredMountPath\": null,\n                  \"restartPolicyMaxRetries\": 10,\n                  \"restartPolicyType\": \"ON_FAILURE\",\n                  \"runtime\": \"V2\",\n                  \"sleepApplication\": false,\n                  \"startCommand\": null,\n                  \"useLegacyStacker\": false\n            \n... (truncated)\n```\n\n"
+    },
+    "created_at": "2026-04-16T17:38:10Z"
+  }
+]

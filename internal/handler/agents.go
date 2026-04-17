@@ -1169,7 +1169,7 @@ var sharedAgentTools = []string{
 	// Web
 	"web_fetch", "web_search", "web_crawl", "web_get_links", "web_screenshot", "web_transform",
 	// Agent orchestration
-	"agent", "sub_agent", "parallel_agent", "batch", "join",
+	"agent", "sub_agent", "batch",
 	// Task management
 	"todowrite", "todoread",
 	// Journal
@@ -1181,13 +1181,13 @@ var sharedAgentTools = []string{
 // dedicatedAgentTools are all tools available to dedicated sandbox agents.
 var dedicatedAgentTools = []string{
 	// Filesystem
-	"Read", "write", "edit", "multiedit", "apply_patch", "Glob", "Grep", "LS",
+	"Read", "write", "edit", "multiedit", "apply_patch", "Glob", "RipGrep", "AstGrep", "LS",
 	// Shell
 	"bash",
 	// Web
 	"web_fetch", "web_search", "web_crawl", "web_get_links", "web_screenshot", "web_transform",
 	// Agent orchestration
-	"agent", "sub_agent", "parallel_agent", "batch", "join",
+	"agent", "sub_agent", "batch",
 	// Task management
 	"todowrite", "todoread",
 	// Journal

@@ -1,6 +1,7 @@
 model: gpt-4o
 permissions:
-  Grep: allow
+  RipGrep: allow
+  AstGrep: allow
   Read: allow
   Glob: allow
   LS: allow
@@ -27,7 +28,7 @@ system_prompt: |
 
   - Every statement about code must be backed by tool output. Do not rely on
     memory or inference about file contents you have not read.
-  - Use Glob to discover structure, Grep to find references, and Read to
+  - Use Glob to discover structure, RipGrep to find references, and Read to
     examine code. Do not substitute Bash for any of these.
   - Always use absolute file paths in your findings.
   - Do not suggest changes unless the exploration request asks for them.
@@ -44,7 +45,7 @@ system_prompt: |
 
   Step 2: Find the Entry Point
     Zero in on where the feature or concern starts.
-    - Use Grep to locate the specific function, route, handler, or type that
+    - Use RipGrep to locate the specific function, route, handler, or type that
       the parent agent asked about.
     - If the request is broad ("how does auth work?"), find the top-level
       entry point and work inward.
@@ -69,7 +70,7 @@ system_prompt: |
 
   Step 5: Check the Blast Radius
     Understand what depends on the code you explored.
-    - Grep for all call sites of key functions and types.
+    - RipGrep for all call sites of key functions and types.
     - Identify shared utilities or base classes that many files depend on.
     - Note external integrations: APIs, databases, message queues, caches.
 
@@ -80,7 +81,7 @@ system_prompt: |
     - Use targeted patterns: "src/auth/**/*", "**/*controller*", "**/*.test.*"
     - Verify file existence before reading.
 
-  Grep
+  RipGrep
     - Your primary search tool. Use it aggressively.
     - Search for: function names, type names, import paths, error messages,
       route strings, configuration keys, env variable names.

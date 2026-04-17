@@ -134,9 +134,20 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 		return
 	}
 
+	batchHasTerminal := false
+
 	for _, msg := range msgs {
 		eventType, _ := msg.Values["event_type"].(string)
 		dataStr, _ := msg.Values["data"].(string)
+
+		// Streaming token deltas aren't persisted. We accumulate them in Redis
+		// keyed by message_id so we can synthesize a row if response_completed
+		// never arrives; on success, they're dropped below.
+		if eventType == "response_chunk" {
+			f.accumulateChunk(ctx, convID, dataStr)
+			entryIDs = append(entryIDs, msg.ID)
+			continue
+		}
 
 		// Parse the full event payload to extract individual fields.
 		var full struct {
@@ -165,12 +176,39 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 			Data:                 model.RawJSON(full.Data),
 		})
 		entryIDs = append(entryIDs, msg.ID)
+
+		// A real completion supersedes any accumulator for this message.
+		if eventType == "response_completed" {
+			var d struct {
+				MessageID string `json:"message_id"`
+			}
+			if err := json.Unmarshal(full.Data, &d); err == nil && d.MessageID != "" {
+				f.bus.DropChunk(ctx, convID, d.MessageID)
+			}
+		}
+
+		if eventType == "done" || eventType == "ConversationEnded" || eventType == "AgentError" {
+			batchHasTerminal = true
+		}
+	}
+
+	// Fallback: if this batch ends a turn/conversation and any accumulators
+	// remain, synthesize response_completed rows from them.
+	var recoveredMsgIDs []string
+	if batchHasTerminal {
+		if recovered, err := f.bus.PeekChunks(ctx, convID); err == nil {
+			for messageID, content := range recovered {
+				events = append(events, buildRecoveredEvent(&conv, messageID, content))
+				recoveredMsgIDs = append(recoveredMsgIDs, messageID)
+			}
+		}
 	}
 
 	// Batch insert to Postgres
 	if err := f.db.CreateInBatches(events, 50).Error; err != nil {
 		slog.Error("flusher: batch insert failed", "conversation_id", convID, "count", len(events), "error", err)
-		// Don't ACK — events will be retried
+		// Don't ACK — events will be retried. Recovered accumulators stay in
+		// Redis so the retry can synthesize them again.
 		return
 	}
 
@@ -179,10 +217,55 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 		f.bus.Redis().XAck(ctx, streamKey, flusherGroup, entryIDs...)
 	}
 
+	// Safe to drop accumulators now that their synthesized rows are persisted.
+	for _, mid := range recoveredMsgIDs {
+		f.bus.DropChunk(ctx, convID, mid)
+	}
+
 	// Trim stream to keep it bounded
 	f.bus.Trim(ctx, convID, trimMaxLen)
 
 	slog.Debug("flusher: flushed events", "conversation_id", convID, "count", len(events))
+}
+
+// accumulateChunk extracts the delta + message_id from a response_chunk
+// envelope and appends to the Redis accumulator for that message.
+func (f *Flusher) accumulateChunk(ctx context.Context, convID, dataStr string) {
+	var envelope struct {
+		Data struct {
+			Delta     string `json:"delta"`
+			MessageID string `json:"message_id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(dataStr), &envelope); err != nil {
+		return
+	}
+	if envelope.Data.MessageID == "" || envelope.Data.Delta == "" {
+		return
+	}
+	if err := f.bus.AppendChunk(ctx, convID, envelope.Data.MessageID, envelope.Data.Delta); err != nil {
+		slog.Warn("flusher: failed to accumulate chunk", "conversation_id", convID, "error", err)
+	}
+}
+
+// buildRecoveredEvent constructs a synthesized response_completed row from
+// accumulated chunks. Flagged with recovered:true so downstream consumers can
+// tell it apart from a Bridge-sent completion.
+func buildRecoveredEvent(conv *model.AgentConversation, messageID, content string) model.ConversationEvent {
+	data, _ := json.Marshal(map[string]any{
+		"message_id":    messageID,
+		"full_response": content,
+		"recovered":     true,
+	})
+	return model.ConversationEvent{
+		OrgID:                conv.OrgID,
+		ConversationID:       conv.ID,
+		EventID:              "recovered-" + messageID,
+		EventType:            "response_completed",
+		BridgeConversationID: conv.BridgeConversationID,
+		Timestamp:            time.Now(),
+		Data:                 model.RawJSON(data),
+	}
 }
 
 // processPending re-processes entries that were read but not acknowledged (crash recovery).
