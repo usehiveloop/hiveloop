@@ -20,6 +20,7 @@ type AgentConversation struct {
 	TokenID              *uuid.UUID `gorm:"type:uuid"`
 	Token                *Token     `gorm:"foreignKey:TokenID;constraint:OnDelete:SET NULL"`
 	Status               string     `gorm:"not null;default:'active'"` // active, ended, error
+	Name                 string     `gorm:"type:text"`               // auto-generated title, set asynchronously after first message
 	IntegrationScopes    JSON       `gorm:"type:jsonb;default:'{}'"` // which integrations this conversation has
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
