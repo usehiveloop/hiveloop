@@ -116,7 +116,7 @@ export default function ConversationsLayout({ children }: { children: React.Reac
                 const isActive = convId === activeConversationId
                 const summary: ConversationSummary = {
                   id: convId,
-                  title: convId.slice(0, 8),
+                  title: conv.name && conv.name.length > 0 ? conv.name : convId.slice(0, 8),
                   preview: "",
                   status: (conv.status ?? "active") as ConversationSummary["status"],
                   date: conv.created_at ? new Date(conv.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",

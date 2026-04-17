@@ -58,6 +58,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		PolarClient:  deps.PolarClient,
 		SkillFetcher: skills.NewGitFetcher(cfg.GitHubToken),
 		NangoClient:  deps.NangoClient,
+		CacheManager: deps.CacheManager,
 		Enqueuer:     enqueue.NewClient(redisOpt),
 	}
 

@@ -108,7 +108,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		systemConvHandler = handler.NewSystemConversationHandler(database, orchestrator, agentPusher, eventBus, signingKey, cfg)
 	}
 
-	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus)
+	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus, enqueuer)
 	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey, sandboxEncKey, enqueuer)
 	incomingWebhookHandler := handler.NewIncomingWebhookHandler(database, enqueuer)
 

@@ -215,6 +215,7 @@ func (h *SystemConversationHandler) Create(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusCreated, conversationResponse{
 		ID:        conv.ID.String(),
 		AgentID:   agent.ID.String(),
+		Name:      conv.Name,
 		Status:    "active",
 		StreamURL: fmt.Sprintf("/v1/conversations/%s/stream", conv.ID),
 		CreatedAt: conv.CreatedAt.Format(time.RFC3339),
