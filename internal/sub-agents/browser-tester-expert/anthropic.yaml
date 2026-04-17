@@ -5,7 +5,8 @@ skills:
   - agent-browser-dogfood
 model: claude-sonnet-4-20250514
 permissions:
-  Grep: allow
+  RipGrep: allow
+  AstGrep: allow
   Read: allow
   Glob: allow
   LS: allow

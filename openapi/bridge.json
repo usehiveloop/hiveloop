@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.3",
+  "openapi": "3.1.0",
   "info": {
     "title": "Portal Bridge API",
     "description": "",
@@ -14,7 +14,7 @@
         "tags": [
           "crate::handlers::agents"
         ],
-        "summary": "GET /agents \u2014 list all loaded agents with full details (truncated system prompts).",
+        "summary": "GET /agents — list all loaded agents with full details (truncated system prompts).",
         "operationId": "list_agents",
         "responses": {
           "200": {
@@ -38,7 +38,7 @@
         "tags": [
           "crate::handlers::agents"
         ],
-        "summary": "GET /agents/:agent_id \u2014 get full agent details.",
+        "summary": "GET /agents/:agent_id — get full agent details.",
         "operationId": "get_agent",
         "parameters": [
           {
@@ -73,7 +73,7 @@
         "tags": [
           "crate::handlers::conversations"
         ],
-        "summary": "POST /agents/:agent_id/conversations \u2014 create a new conversation.",
+        "summary": "POST /agents/:agent_id/conversations — create a new conversation.",
         "operationId": "create_conversation",
         "parameters": [
           {
@@ -91,8 +91,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateConversationRequest",
-                "nullable": true
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CreateConversationRequest"
+                  }
+                ]
               }
             }
           }
@@ -278,7 +284,7 @@
         "tags": [
           "crate::handlers::conversations"
         ],
-        "summary": "DELETE /conversations/:conv_id \u2014 end a conversation.",
+        "summary": "DELETE /conversations/:conv_id — end a conversation.",
         "operationId": "end_conversation",
         "parameters": [
           {
@@ -313,7 +319,7 @@
         "tags": [
           "crate::handlers::conversations"
         ],
-        "summary": "POST /conversations/:conv_id/abort \u2014 abort the current in-flight turn.",
+        "summary": "POST /conversations/:conv_id/abort — abort the current in-flight turn.",
         "operationId": "abort_conversation",
         "parameters": [
           {
@@ -348,7 +354,7 @@
         "tags": [
           "crate::handlers::conversations"
         ],
-        "summary": "POST /conversations/:conv_id/messages \u2014 send a message to a conversation.",
+        "summary": "POST /conversations/:conv_id/messages — send a message to a conversation.",
         "operationId": "send_message",
         "parameters": [
           {
@@ -393,7 +399,7 @@
         "tags": [
           "crate::handlers::stream"
         ],
-        "summary": "GET /conversations/:conv_id/stream \u2014 SSE stream for a conversation.",
+        "summary": "GET /conversations/:conv_id/stream — SSE stream for a conversation.",
         "operationId": "stream_conversation",
         "parameters": [
           {
@@ -424,7 +430,7 @@
         "tags": [
           "crate::handlers::health"
         ],
-        "summary": "GET /health \u2014 health check endpoint.",
+        "summary": "GET /health — health check endpoint.",
         "operationId": "health",
         "responses": {
           "200": {
@@ -445,7 +451,7 @@
         "tags": [
           "crate::handlers::metrics"
         ],
-        "summary": "GET /metrics \u2014 collect and return metrics from all agents.",
+        "summary": "GET /metrics — collect and return metrics from all agents.",
         "operationId": "get_metrics",
         "responses": {
           "200": {
@@ -466,7 +472,7 @@
         "tags": [
           "crate::handlers::push"
         ],
-        "summary": "POST /push/agents \u2014 bulk seed agents.",
+        "summary": "POST /push/agents — bulk seed agents.",
         "operationId": "push_agents",
         "requestBody": {
           "content": {
@@ -505,7 +511,7 @@
         "tags": [
           "crate::handlers::push"
         ],
-        "summary": "PUT /push/agents/{agent_id} \u2014 add if new, update if version differs, no-op if same version.",
+        "summary": "PUT /push/agents/{agent_id} — add if new, update if version differs, no-op if same version.",
         "operationId": "upsert_agent",
         "parameters": [
           {
@@ -566,7 +572,7 @@
         "tags": [
           "crate::handlers::push"
         ],
-        "summary": "DELETE /push/agents/{agent_id} \u2014 remove an agent.",
+        "summary": "DELETE /push/agents/{agent_id} — remove an agent.",
         "operationId": "remove_agent",
         "parameters": [
           {
@@ -609,7 +615,7 @@
         "tags": [
           "crate::handlers::push"
         ],
-        "summary": "POST /push/agents/{agent_id}/conversations \u2014 hydrate conversations for an agent.",
+        "summary": "POST /push/agents/{agent_id}/conversations — hydrate conversations for an agent.",
         "operationId": "hydrate_conversations",
         "parameters": [
           {
@@ -665,7 +671,7 @@
         "tags": [
           "crate::handlers::push"
         ],
-        "summary": "POST /push/diff \u2014 apply a diff of agent changes.",
+        "summary": "POST /push/diff — apply a diff of agent changes.",
         "operationId": "push_diff",
         "requestBody": {
           "content": {
@@ -720,70 +726,96 @@
         "description": "Configuration options for an agent.",
         "properties": {
           "compaction": {
-            "$ref": "#/components/schemas/CompactionConfig",
-            "description": "Conversation compaction configuration",
-            "nullable": true
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CompactionConfig",
+                "description": "Conversation compaction configuration"
+              }
+            ]
           },
           "disabled_tools": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Tools to disable for this agent. Takes priority over everything else \u2014\ndisabled tools are removed from the registry before the agent is built,\nso the LLM never sees them. Works for built-in tools, MCP tools, codedb\ntools, integration tools, and spider tools."
+            "description": "Tools to disable for this agent. Takes priority over everything else —\ndisabled tools are removed from the registry before the agent is built,\nso the LLM never sees them. Works for built-in tools, MCP tools,\nintegration tools, and spider tools."
           },
           "immortal": {
-            "$ref": "#/components/schemas/ImmortalConfig",
-            "description": "Immortal conversation configuration (chain-based context management).\nWhen set, replaces compaction \u2014 the conversation chains into fresh context\nwindows transparently while maintaining a living journal.",
-            "nullable": true
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ImmortalConfig",
+                "description": "Immortal conversation configuration (chain-based context management).\nWhen set, replaces compaction — the conversation chains into fresh context\nwindows transparently while maintaining a living journal."
+              }
+            ]
           },
           "json_schema": {
             "description": "JSON schema for structured output"
           },
           "max_concurrent_conversations": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Maximum concurrent conversations for this specific agent.\nTakes precedence over the global max_concurrent_conversations.",
-            "minimum": 0,
-            "nullable": true
+            "minimum": 0
           },
           "max_tasks_per_conversation": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Maximum total subagent tasks per conversation. Limits resource consumption\nfrom recursive/parallel subagent spawning. Default: 50.",
-            "minimum": 0,
-            "nullable": true
+            "minimum": 0
           },
           "max_tokens": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Maximum tokens for LLM response",
-            "minimum": 0,
-            "nullable": true
+            "minimum": 0
           },
           "max_turns": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Maximum conversation turns",
-            "minimum": 0,
-            "nullable": true
+            "minimum": 0
           },
           "rate_limit_rpm": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Rate limit in requests per minute",
-            "minimum": 0,
-            "nullable": true
+            "minimum": 0
           },
           "temperature": {
-            "type": "number",
+            "type": [
+              "number",
+              "null"
+            ],
             "format": "double",
-            "description": "Temperature for LLM sampling",
-            "nullable": true
+            "description": "Temperature for LLM sampling"
           },
           "tool_calls_only": {
-            "type": "boolean",
-            "description": "When true, the agent can complete a turn with only tool calls and no text.\nEmpty text responses are treated as success if tool calls were executed.\nDefault: false.",
-            "nullable": true
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "When true, the agent can complete a turn with only tool calls and no text.\nEmpty text responses are treated as success if tool calls were executed.\nDefault: false."
           }
         }
       },
@@ -802,9 +834,11 @@
             "description": "Agent configuration options"
           },
           "description": {
-            "type": "string",
-            "description": "Human-readable description of the agent's purpose and capabilities.\nUsed in tool documentation when this agent is a subagent.",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable description of the agent's purpose and capabilities.\nUsed in tool documentation when this agent is a subagent."
           },
           "id": {
             "$ref": "#/components/schemas/String",
@@ -868,30 +902,38 @@
             "description": "Agent-defined tools"
           },
           "updated_at": {
-            "type": "string",
-            "description": "Last updated timestamp for change detection",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Last updated timestamp for change detection"
           },
           "version": {
-            "type": "string",
-            "description": "Version field for change detection during sync",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Version field for change detection during sync"
           },
           "webhook_secret": {
-            "type": "string",
-            "description": "Webhook secret for HMAC signing",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Webhook secret for HMAC signing"
           },
           "webhook_url": {
-            "type": "string",
-            "description": "Webhook URL for event delivery",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Webhook URL for event delivery"
           }
         }
       },
       "AgentResponse": {
         "type": "object",
-        "description": "Full agent response \u2014 returned by both list and detail endpoints.\nSystem prompts may be truncated on the list endpoint.",
+        "description": "Full agent response — returned by both list and detail endpoints.\nSystem prompts may be truncated on the list endpoint.",
         "required": [
           "id",
           "name",
@@ -917,8 +959,10 @@
             "$ref": "#/components/schemas/AgentConfig"
           },
           "description": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string"
@@ -982,16 +1026,22 @@
             }
           },
           "updated_at": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "version": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "webhook_url": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -1012,9 +1062,11 @@
             "description": "Agent name"
           },
           "version": {
-            "type": "string",
-            "description": "Agent version",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Agent version"
           }
         }
       },
@@ -1037,9 +1089,11 @@
             "$ref": "#/components/schemas/ApprovalDecision"
           },
           "reason": {
-            "type": "string",
-            "description": "Optional message explaining why the tool call was denied.\nIncluded in the error returned to the LLM so the agent can adjust.",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional message explaining why the tool call was denied.\nIncluded in the error returned to the LLM so the agent can adjust."
           }
         }
       },
@@ -1112,9 +1166,11 @@
             "$ref": "#/components/schemas/ApprovalDecision"
           },
           "reason": {
-            "type": "string",
-            "description": "Optional message explaining why the tool calls were denied.",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional message explaining why the tool calls were denied."
           },
           "request_ids": {
             "type": "array",
@@ -1156,13 +1212,15 @@
         ],
         "properties": {
           "summary_prompt": {
-            "type": "string",
-            "description": "Custom system prompt for the summarization call. Uses a default if None.",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Custom system prompt for the summarization call. Uses a default if None."
           },
           "summary_provider": {
             "$ref": "#/components/schemas/ProviderConfig",
-            "description": "Provider config for the summarization model (required \u2014 defined by control plane)."
+            "description": "Provider config for the summarization model (required — defined by control plane)."
           },
           "tail_messages": {
             "type": "integer",
@@ -1306,9 +1364,11 @@
             "description": "Full message history."
           },
           "title": {
-            "type": "string",
-            "description": "Optional human-readable title.",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional human-readable title."
           },
           "updated_at": {
             "type": "string",
@@ -1322,49 +1382,65 @@
         "description": "Optional request body for creating a conversation with tool/MCP scoping.",
         "properties": {
           "api_key": {
-            "type": "string",
-            "description": "When provided, overrides the agent's LLM API key for this conversation only.\nFor full provider/model override, use the `provider` field instead.",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When provided, overrides the agent's LLM API key for this conversation only.\nFor full provider/model override, use the `provider` field instead."
           },
           "mcp_server_names": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             },
-            "description": "When provided, only tools from these MCP servers are available.\nServer names must match the agent's configured MCP server names.",
-            "nullable": true
+            "description": "When provided, only tools from these MCP servers are available.\nServer names must match the agent's configured MCP server names."
           },
           "mcp_servers": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/McpServerDefinition"
             },
-            "description": "Additional MCP servers to load for this conversation only.\nConnected at conversation creation, torn down when the conversation ends\n(or is aborted, drained, or cancelled). Tool names produced by these\nservers must not collide with the agent's existing tool names.\n\nStdio transport requires the runtime config flag\n`allow_stdio_mcp_from_api` to be enabled; otherwise only\n`streamable_http` is accepted.",
-            "nullable": true
+            "description": "Additional MCP servers to load for this conversation only.\nConnected at conversation creation, torn down when the conversation ends\n(or is aborted, drained, or cancelled). Tool names produced by these\nservers must not collide with the agent's existing tool names.\n\nStdio transport requires the runtime config flag\n`allow_stdio_mcp_from_api` to be enabled; otherwise only\n`streamable_http` is accepted."
           },
           "provider": {
-            "$ref": "#/components/schemas/ProviderConfig",
-            "description": "When provided, fully overrides the agent's LLM provider for this conversation.\nAllows switching model, provider type, API key, and base URL per conversation\nwhile keeping the same agent definition (tools, system prompt, skills, etc.).",
-            "nullable": true
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProviderConfig",
+                "description": "When provided, fully overrides the agent's LLM provider for this conversation.\nAllows switching model, provider type, API key, and base URL per conversation\nwhile keeping the same agent definition (tools, system prompt, skills, etc.)."
+              }
+            ]
           },
           "subagent_api_keys": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "description": "Per-subagent API key overrides. Key = subagent name, Value = API key.\nOnly named subagents are overridden; others keep their configured keys.",
             "additionalProperties": {
               "type": "string"
             },
             "propertyNames": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "tool_names": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             },
-            "description": "When provided, only these tools are available in the conversation.\nTool names must match the agent's registered tool names exactly.",
-            "nullable": true
+            "description": "When provided, only these tools are available in the conversation.\nTool names must match the agent's registered tool names exactly."
           }
         }
       },
@@ -1489,9 +1565,11 @@
             "minimum": 0
           },
           "checkpoint_prompt": {
-            "type": "string",
-            "description": "Custom prompt for checkpoint extraction. Uses a built-in default if None.",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Custom prompt for checkpoint extraction. Uses a built-in default if None."
           },
           "checkpoint_provider": {
             "$ref": "#/components/schemas/ProviderConfig",
@@ -1580,7 +1658,7 @@
         "oneOf": [
           {
             "type": "object",
-            "description": "Stdio transport \u2014 spawns a child process",
+            "description": "Stdio transport — spawns a child process",
             "required": [
               "command",
               "type"
@@ -1617,7 +1695,7 @@
           },
           {
             "type": "object",
-            "description": "Streamable HTTP transport \u2014 connects to an HTTP endpoint",
+            "description": "Streamable HTTP transport — connects to an HTTP endpoint",
             "required": [
               "url",
               "type"
@@ -1669,9 +1747,11 @@
             "description": "Role of the message sender"
           },
           "system_reminder": {
-            "type": "string",
-            "description": "Optional per-message system reminder injected by the control plane.\nWrapped in `<system-reminder>` tags and prepended to the user message.",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional per-message system reminder injected by the control plane.\nWrapped in `<system-reminder>` tags and prepended to the user message."
           },
           "timestamp": {
             "type": "string",
@@ -1809,9 +1889,11 @@
             "description": "API key for authentication"
           },
           "base_url": {
-            "type": "string",
-            "description": "Optional custom endpoint URL",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional custom endpoint URL"
           },
           "model": {
             "type": "string",
@@ -1832,8 +1914,10 @@
         ],
         "properties": {
           "base_url": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "model": {
             "type": "string"
@@ -2012,9 +2096,11 @@
             "description": "The text content to send."
           },
           "system_reminder": {
-            "type": "string",
-            "description": "Optional system reminder to inject with this message.\nWill be wrapped in `<system-reminder>` tags and prepended to the user message.",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional system reminder to inject with this message.\nWill be wrapped in `<system-reminder>` tags and prepended to the user message."
           }
         }
       },
@@ -2060,9 +2146,15 @@
             }
           },
           "frontmatter": {
-            "$ref": "#/components/schemas/SkillFrontmatter",
-            "description": "Parsed frontmatter configuration from SKILL.md YAML header.",
-            "nullable": true
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SkillFrontmatter",
+                "description": "Parsed frontmatter configuration from SKILL.md YAML header."
+              }
+            ]
           },
           "id": {
             "$ref": "#/components/schemas/String",
@@ -2086,55 +2178,73 @@
         "description": "Frontmatter configuration parsed from a SKILL.md YAML header.\n\nOnly applicable to sources that support frontmatter (ClaudeCode, AgentSkills).",
         "properties": {
           "agent": {
-            "type": "string",
-            "description": "Sub-agent type to delegate to when context is \"fork\".",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Sub-agent type to delegate to when context is \"fork\"."
           },
           "allowed_tools": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             },
-            "description": "List of tools the skill is allowed to use.",
-            "nullable": true
+            "description": "List of tools the skill is allowed to use."
           },
           "argument_hint": {
-            "type": "string",
-            "description": "Hint text shown for the argument placeholder in autocomplete.",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Hint text shown for the argument placeholder in autocomplete."
           },
           "context": {
-            "type": "string",
-            "description": "Execution context. \"fork\" runs in an isolated subagent.",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Execution context. \"fork\" runs in an isolated subagent."
           },
           "disable_model_invocation": {
-            "type": "boolean",
-            "description": "When true, only users can invoke this skill (hidden from the model).",
-            "nullable": true
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "When true, only users can invoke this skill (hidden from the model)."
           },
           "effort": {
-            "type": "string",
-            "description": "Reasoning effort level (e.g., \"low\", \"medium\", \"high\").",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Reasoning effort level (e.g., \"low\", \"medium\", \"high\")."
           },
           "paths": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             },
-            "description": "Glob patterns for auto-activation on matching files.",
-            "nullable": true
+            "description": "Glob patterns for auto-activation on matching files."
           },
           "shell": {
-            "type": "string",
-            "description": "Shell to use for shell-related operations (e.g., \"bash\", \"powershell\").",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Shell to use for shell-related operations (e.g., \"bash\", \"powershell\")."
           },
           "user_invocable": {
-            "type": "boolean",
-            "description": "When false, only the model can invoke this skill (hidden from slash commands).",
-            "nullable": true
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "When false, only the model can invoke this skill (hidden from slash commands)."
           }
         }
       },
@@ -2161,21 +2271,38 @@
           "system_prompt",
           "provider",
           "config",
-          "tools"
+          "tools",
+          "mcp_servers",
+          "registered_tools"
         ],
         "properties": {
           "config": {
             "$ref": "#/components/schemas/AgentConfig"
           },
           "description": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mcp_servers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpServerDefinition"
+            }
           },
           "name": {
             "type": "string"
           },
           "provider": {
             "$ref": "#/components/schemas/ProviderSummary"
+          },
+          "registered_tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegisteredToolSummary"
+            },
+            "description": "All tools registered and available to this subagent at runtime."
           },
           "system_prompt": {
             "type": "string"

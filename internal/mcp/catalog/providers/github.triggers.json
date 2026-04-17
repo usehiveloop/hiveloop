@@ -68,7 +68,8 @@
         "repository": "repository.full_name",
         "sender": "sender.login",
         "issue_number": "issue.number",
-        "issue_title": "issue.title"
+        "issue_title": "issue.title",
+        "label_name": "label.name"
       }
     },
     "issue_comment.created": {

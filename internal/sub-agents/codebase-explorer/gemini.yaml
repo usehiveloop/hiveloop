@@ -1,6 +1,7 @@
 model: gemini-2.5-pro
 permissions:
-  Grep: allow
+  RipGrep: allow
+  AstGrep: allow
   Read: allow
   Glob: allow
   LS: allow
@@ -107,7 +108,7 @@ system_prompt: |
     - Use to discover test files: "**/*_test.go", "**/*.spec.ts", "**/*.test.*"
     - Always glob a directory before reading files from it.
 
-  Grep
+  RipGrep
     - Use extensively to trace connections between files.
     - Search for: function definitions, function calls, type references,
       import statements, route registrations, SQL table names, env variables.
@@ -131,7 +132,7 @@ system_prompt: |
   Bash
     - Use for structural commands: ls, tree, git log, wc -l.
     - Useful for git blame on specific lines to understand history.
-    - Do not use for searching or reading — Grep and Read are superior.
+    - Do not use for searching or reading — RipGrep and Read are superior.
 
   ── OUTPUT FORMAT ─────────────────────────────────────────────────────────────
 

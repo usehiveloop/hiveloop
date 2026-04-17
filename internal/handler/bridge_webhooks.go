@@ -18,14 +18,17 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/tasks"
 )
 
 // BridgeWebhookHandler receives webhook events from Bridge instances.
 type BridgeWebhookHandler struct {
 	db       *gorm.DB
 	encKey   *crypto.SymmetricKey
-	eventBus EventPublisher // nil-safe: if nil, events go directly to Postgres
+	eventBus EventPublisher      // nil-safe: if nil, events go directly to Postgres
+	enqueuer enqueue.TaskEnqueuer // nil-safe: if nil, conversation naming is skipped
 }
 
 // EventPublisher is the interface for publishing events to the streaming bus.
@@ -34,8 +37,8 @@ type EventPublisher interface {
 }
 
 // NewBridgeWebhookHandler creates a webhook handler.
-func NewBridgeWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey, eventBus EventPublisher) *BridgeWebhookHandler {
-	return &BridgeWebhookHandler{db: db, encKey: encKey, eventBus: eventBus}
+func NewBridgeWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey, eventBus EventPublisher, enqueuer enqueue.TaskEnqueuer) *BridgeWebhookHandler {
+	return &BridgeWebhookHandler{db: db, encKey: encKey, eventBus: eventBus, enqueuer: enqueuer}
 }
 
 // webhookEvent is a single event in a Bridge webhook batch.
@@ -193,10 +196,44 @@ func (h *BridgeWebhookHandler) processEvent(sb *model.Sandbox, event *webhookEve
 			"conversation_id", conv.ID,
 			"error", string(event.Data),
 		)
+	case "message_received":
+		h.maybeEnqueueConversationNaming(&conv)
+	}
+}
+
+// maybeEnqueueConversationNaming fires the async title-generation job when a
+// message_received event arrives for a still-unnamed conversation. The job
+// itself re-checks conv.Name and no-ops if it's been set by another path, so
+// this is best-effort — if the enqueuer isn't configured or enqueue fails, we
+// log and move on. The frontend falls back to deriving a title from the
+// message content.
+func (h *BridgeWebhookHandler) maybeEnqueueConversationNaming(conv *model.AgentConversation) {
+	if h.enqueuer == nil {
+		return
+	}
+	if conv.Name != "" {
+		return
+	}
+	task, err := tasks.NewConversationNameTask(conv.ID)
+	if err != nil {
+		slog.Warn("webhook: failed to build conversation naming task",
+			"conversation_id", conv.ID,
+			"error", err,
+		)
+		return
+	}
+	if _, err := h.enqueuer.Enqueue(task); err != nil {
+		slog.Warn("webhook: failed to enqueue conversation naming task",
+			"conversation_id", conv.ID,
+			"error", err,
+		)
 	}
 }
 
 func (h *BridgeWebhookHandler) writeEventToPostgres(conv *model.AgentConversation, event *webhookEvent) {
+	if event.EventType == "response_chunk" {
+		return
+	}
 	dbEvent := model.ConversationEvent{
 		OrgID:                conv.OrgID,
 		ConversationID:       conv.ID,

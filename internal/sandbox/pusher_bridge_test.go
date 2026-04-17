@@ -50,7 +50,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 
 	// 4. Create the agent with permissions and resources
 	permissions := model.JSON{
-		"Grep": "allow", "Read": "allow", "Glob": "allow", "LS": "allow",
+		"RipGrep": "allow", "Read": "allow", "Glob": "allow", "LS": "allow",
 		"bash": "allow", "skill": "allow",
 		"edit": "deny", "write": "deny", "multiedit": "deny",
 		"web_fetch": "deny", "web_search": "deny", "web_crawl": "deny",
@@ -153,8 +153,8 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	if len(perms) != 6 {
 		t.Errorf("permissions: expected 6 allow keys, got %d", len(perms))
 	}
-	if perms["Grep"] != bridgepkg.ToolPermissionAllow {
-		t.Errorf("permissions[Grep]: got %q, want allow", perms["Grep"])
+	if perms["RipGrep"] != bridgepkg.ToolPermissionAllow {
+		t.Errorf("permissions[RipGrep]: got %q, want allow", perms["RipGrep"])
 	}
 	if _, hasDeny := perms["edit"]; hasDeny {
 		t.Error("permissions should not contain denied tool 'edit'")
@@ -228,7 +228,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	}
 
 	// Each subagent should have:
-	// - permissions from YAML (Grep, Read, Glob, LS, bash, web_*, skill)
+	// - permissions from YAML (RipGrep, AstGrep, Read, Glob, LS, bash, web_*, skill)
 	// - no MCP servers (subagents don't get integration tools)
 	// - inherits parent model
 	for _, name := range []string{"codebase-explorer", "codebase-summarizer", "critic"} {
@@ -243,8 +243,11 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 			t.Errorf("subagent %q: permissions should not be empty", name)
 		} else {
 			subPerms := *sub.Permissions
-			if subPerms["Grep"] != bridgepkg.ToolPermissionAllow {
-				t.Errorf("subagent %q: Grep permission should be allow, got %q", name, subPerms["Grep"])
+			if subPerms["RipGrep"] != bridgepkg.ToolPermissionAllow {
+				t.Errorf("subagent %q: RipGrep permission should be allow, got %q", name, subPerms["RipGrep"])
+			}
+			if subPerms["AstGrep"] != bridgepkg.ToolPermissionAllow {
+				t.Errorf("subagent %q: AstGrep permission should be allow, got %q", name, subPerms["AstGrep"])
 			}
 			if subPerms["Read"] != bridgepkg.ToolPermissionAllow {
 				t.Errorf("subagent %q: Read permission should be allow, got %q", name, subPerms["Read"])
