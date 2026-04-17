@@ -847,7 +847,8 @@ async fn parent_agent_has_registered_tools() {
         .collect();
     assert!(tool_names.contains(&"bash"), "should have bash tool");
     assert!(tool_names.contains(&"Read"), "should have Read tool");
-    assert!(tool_names.contains(&"Grep"), "should have Grep tool");
+    assert!(tool_names.contains(&"RipGrep"), "should have RipGrep tool");
+    assert!(tool_names.contains(&"AstGrep"), "should have AstGrep tool");
     assert!(tool_names.contains(&"Glob"), "should have Glob tool");
     assert!(tool_names.contains(&"edit"), "should have edit tool");
     assert!(tool_names.contains(&"write"), "should have write tool");
@@ -908,7 +909,10 @@ async fn subagent_with_no_tools_field_reports_empty_tools_in_api() {
         .collect();
     assert!(reg_names.contains(&"bash"), "subagent should have bash");
     assert!(reg_names.contains(&"Read"), "subagent should have Read");
-    assert!(reg_names.contains(&"Grep"), "subagent should have Grep");
+    assert!(
+        reg_names.contains(&"RipGrep"),
+        "subagent should have RipGrep"
+    );
     assert!(reg_names.contains(&"edit"), "subagent should have edit");
     // Subagents should NOT have agent orchestration tools
     assert!(
@@ -918,10 +922,6 @@ async fn subagent_with_no_tools_field_reports_empty_tools_in_api() {
     assert!(
         !reg_names.contains(&"sub_agent"),
         "subagent should NOT have sub_agent tool"
-    );
-    assert!(
-        !reg_names.contains(&"parallel_agent"),
-        "subagent should NOT have parallel_agent tool"
     );
     // Subagents should NOT have ping-me-back tools
     assert!(
@@ -1003,10 +1003,6 @@ async fn parent_registered_tools_includes_agent_orchestration_tools() {
     assert!(
         tool_names.contains(&"sub_agent"),
         "parent should have sub_agent tool"
-    );
-    assert!(
-        tool_names.contains(&"parallel_agent"),
-        "parent should have parallel_agent tool"
     );
 }
 

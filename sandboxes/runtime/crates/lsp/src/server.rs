@@ -30,6 +30,19 @@ fn server(id: &str, command: &[&str], extensions: &[&str], root_markers: &[&str]
     }
 }
 
+/// Helper to build a ServerDef with initialization options.
+fn server_with_init(
+    id: &str,
+    command: &[&str],
+    extensions: &[&str],
+    root_markers: &[&str],
+    init_options: serde_json::Value,
+) -> ServerDef {
+    let mut def = server(id, command, extensions, root_markers);
+    def.init_options = Some(init_options);
+    def
+}
+
 /// Returns the built-in LSP server definitions.
 pub fn builtin_servers() -> Vec<ServerDef> {
     vec![
@@ -89,7 +102,7 @@ pub fn builtin_servers() -> Vec<ServerDef> {
         ),
         server(
             "svelte",
-            &["svelte-language-server", "--stdio"],
+            &["svelteserver", "--stdio"],
             &["svelte"],
             &[
                 "package.json",
@@ -98,7 +111,7 @@ pub fn builtin_servers() -> Vec<ServerDef> {
                 "pnpm-lock.yaml",
             ],
         ),
-        server(
+        server_with_init(
             "astro",
             &["astro-ls", "--stdio"],
             &["astro"],
@@ -108,6 +121,14 @@ pub fn builtin_servers() -> Vec<ServerDef> {
                 "yarn.lock",
                 "pnpm-lock.yaml",
             ],
+            // astro-ls requires a path to the local TypeScript SDK; resolved
+            // against the workspace root. Users must have `typescript` installed
+            // in their project (via npm install).
+            serde_json::json!({
+                "typescript": {
+                    "tsdk": "node_modules/typescript/lib"
+                }
+            }),
         ),
         // --- Systems ---
         server(
@@ -140,7 +161,7 @@ pub fn builtin_servers() -> Vec<ServerDef> {
         ),
         server(
             "ruby-lsp",
-            &["rubocop", "--lsp"],
+            &["ruby-lsp"],
             &["rb", "rake", "gemspec", "ru"],
             &["Gemfile"],
         ),
@@ -149,12 +170,6 @@ pub fn builtin_servers() -> Vec<ServerDef> {
             &["intelephense", "--stdio"],
             &["php"],
             &["composer.json"],
-        ),
-        server(
-            "lua-ls",
-            &["lua-language-server"],
-            &["lua"],
-            &[".luarc.json", ".stylua.toml"],
         ),
         server(
             "bash",
@@ -260,6 +275,24 @@ pub fn builtin_servers() -> Vec<ServerDef> {
             &["yaml-language-server", "--stdio"],
             &["yaml", "yml"],
             &[],
+        ),
+        server(
+            "vimls",
+            &["vim-language-server", "--stdio"],
+            &["vim"],
+            &[],
+        ),
+        server(
+            "graphql",
+            &["graphql-lsp", "server", "--method=stream"],
+            &["graphql", "gql"],
+            &[".graphqlrc", ".graphqlrc.yml", ".graphqlrc.json", "graphql.config.js"],
+        ),
+        server(
+            "cmake",
+            &["cmake-language-server"],
+            &["cmake"],
+            &["CMakeLists.txt"],
         ),
     ]
 }

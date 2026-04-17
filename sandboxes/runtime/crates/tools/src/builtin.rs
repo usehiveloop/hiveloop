@@ -38,9 +38,6 @@ pub fn register_builtin_tools_with_lsp(
 
     // Filesystem search tools
     registry.register(Arc::new(
-        crate::grep::GrepTool::new().with_boundary(boundary.clone()),
-    ));
-    registry.register(Arc::new(
         crate::read::ReadTool::new()
             .with_file_tracker(tracker.clone())
             .with_boundary(boundary.clone()),
@@ -49,6 +46,12 @@ pub fn register_builtin_tools_with_lsp(
         crate::glob::GlobTool::new().with_boundary(boundary.clone()),
     ));
     registry.register(Arc::new(crate::ls::LsTool::new()));
+    registry.register(Arc::new(
+        crate::ast_grep::AstGrepTool::new().with_boundary(boundary.clone()),
+    ));
+    registry.register(Arc::new(
+        crate::rip_grep::RipGrepTool::new().with_boundary(boundary.clone()),
+    ));
 
     // Write-side tools (with LSP manager for diagnostics)
     registry.register(Arc::new(crate::bash::BashTool::new()));
@@ -124,11 +127,11 @@ pub fn register_builtin_tools_with_lsp(
     // Self-delegation agent tool (uses task_local for context)
     registry.register(Arc::new(crate::self_agent::AgentTool::new()));
 
-    // Sub-agent tool — subagent invocation (uses task_local for context)
+    // Sub-agent tool — subagent invocation (uses task_local for context).
+    // Supports fire-and-forget background execution via `run_in_background: true`;
+    // background results are injected into the next user turn by the
+    // conversation loop. No explicit join/wait tool is needed.
     registry.register(Arc::new(crate::agent::SubAgentTool::new()));
-
-    // Parallel agent tool — spawn multiple subagents concurrently
-    registry.register(Arc::new(crate::parallel_agent::ParallelAgentTool::new()));
 
     // Batch tool — registered last with a snapshot of all other tools
     let tool_snapshot = registry.snapshot();
@@ -145,9 +148,6 @@ pub fn register_builtin_tools_for_subagent(registry: &mut ToolRegistry) {
 
     // Filesystem tools
     registry.register(Arc::new(
-        crate::grep::GrepTool::new().with_boundary(boundary.clone()),
-    ));
-    registry.register(Arc::new(
         crate::read::ReadTool::new()
             .with_file_tracker(tracker.clone())
             .with_boundary(boundary.clone()),
@@ -156,6 +156,12 @@ pub fn register_builtin_tools_for_subagent(registry: &mut ToolRegistry) {
         crate::glob::GlobTool::new().with_boundary(boundary.clone()),
     ));
     registry.register(Arc::new(crate::ls::LsTool::new()));
+    registry.register(Arc::new(
+        crate::ast_grep::AstGrepTool::new().with_boundary(boundary.clone()),
+    ));
+    registry.register(Arc::new(
+        crate::rip_grep::RipGrepTool::new().with_boundary(boundary.clone()),
+    ));
 
     // Write-side tools
     registry.register(Arc::new(crate::bash::BashTool::new()));
@@ -245,11 +251,6 @@ pub fn register_filtered_builtin_tools_with_lsp(
     // Filesystem search tools
     maybe_register(
         registry,
-        Arc::new(crate::grep::GrepTool::new().with_boundary(boundary.clone())),
-        filter,
-    );
-    maybe_register(
-        registry,
         Arc::new(
             crate::read::ReadTool::new()
                 .with_file_tracker(tracker.clone())
@@ -263,6 +264,16 @@ pub fn register_filtered_builtin_tools_with_lsp(
         filter,
     );
     maybe_register(registry, Arc::new(crate::ls::LsTool::new()), filter);
+    maybe_register(
+        registry,
+        Arc::new(crate::ast_grep::AstGrepTool::new().with_boundary(boundary.clone())),
+        filter,
+    );
+    maybe_register(
+        registry,
+        Arc::new(crate::rip_grep::RipGrepTool::new().with_boundary(boundary.clone())),
+        filter,
+    );
 
     // Write-side tools (with LSP manager for diagnostics)
     maybe_register(registry, Arc::new(crate::bash::BashTool::new()), filter);
@@ -398,7 +409,8 @@ mod tests {
         assert!(registry.get("Read").is_some());
         assert!(registry.get("edit").is_some());
         assert!(registry.get("write").is_some());
-        assert!(registry.get("Grep").is_some());
+        assert!(registry.get("RipGrep").is_some());
+        assert!(registry.get("AstGrep").is_some());
         assert!(registry.get("Glob").is_some());
         assert!(registry.get("todowrite").is_some());
         assert!(registry.get("todoread").is_some());

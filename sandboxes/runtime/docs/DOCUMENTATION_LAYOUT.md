@@ -57,7 +57,7 @@ docs/
 │   ├── web-tools.md              #   web_fetch, web_search
 │   ├── todo-tool.md              #   Task management
 │   ├── batch-tool.md             #   Batch operations
-│   ├── agent-tools.md            #   spawn_agent, parallel_agent, join
+│   ├── agent-tools.md            #   agent, sub_agent (with runInBackground)
 │   ├── skill-tool.md             #   skill tool & template substitution
 │   ├── lsp-tools.md              #   Code intelligence tools
 │   └── custom-tools.md           #   Creating custom tools

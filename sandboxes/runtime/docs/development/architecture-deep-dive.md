@@ -156,7 +156,7 @@ Providers are implemented via `rig-core`:
 `tool_hook.rs` provides `ToolCallEmitter` which:
 - Intercepts all tool calls before execution
 - Routes to permission manager if approval required
-- Executes agent/parallel_agent calls in-place (preserves task-local context)
+- Executes `agent` / `sub_agent` calls in-place (preserves task-local context)
 - Handles `AGENT_CONTEXT` extraction for subagent spawns
 
 ### Adding a Provider
@@ -204,8 +204,8 @@ pub trait ToolExecutor: Send + Sync {
 | Filesystem | `read`, `write`, `edit`, `apply_patch`, `multiedit`, `ls`, `Glob`, `Grep` |
 | Shell | `bash` |
 | Web | `web_fetch`, `web_search` |
-| Agents | `agent`, `parallel_agent` |
-| Tasks | `todowrite`, `todoread`, `join` |
+| Agents | `agent`, `sub_agent` |
+| Tasks | `todowrite`, `todoread` |
 | Batch | `batch` |
 | LSP | `lsp` |
 
@@ -219,18 +219,19 @@ tokio::task_local! {
 }
 
 pub struct AgentContext {
-    pub conversation_id: String,
-    pub agent_id: String,
-    pub subagent_runner: Arc<dyn SubAgentRunner>,
-    pub task_registry: Arc<TaskRegistry>,
-    pub stream_tx: mpsc::Sender<AgentTaskNotification>,
+    pub runner: Arc<dyn SubAgentRunner>,
+    pub notification_tx: mpsc::Sender<AgentTaskNotification>,
+    pub depth: usize,
+    pub max_depth: usize,
+    pub task_budget: Arc<TaskBudget>,
 }
 ```
 
 Used by:
-- `agent.rs` — spawns subagents
-- `parallel_agent.rs` — spawns parallel subagents
-- `bash.rs` — streams command output notifications
+- `agent.rs` / `self_agent.rs` — spawns subagents (foreground and background)
+- `bash.rs` — streams background command output notifications
+
+Background subagent and `bash` completions are delivered to the parent via `notification_tx`. The conversation loop (`crates/runtime/src/conversation.rs`) races the user-message channel against `notification_rx` in a `tokio::select!`; when a completion arrives it's injected as a user-role message (`[Background Agent Task Completed]` / `[Background Bash Task Completed]`) into the parent's next turn. No explicit wait/join tool is registered — the protocol requirement that every `tool_use` have exactly one paired `tool_result` is preserved (the fire-and-forget call returns a task-id placeholder immediately, and the real output is delivered as a subsequent user turn).
 
 ---
 

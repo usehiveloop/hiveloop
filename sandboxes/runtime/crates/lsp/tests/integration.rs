@@ -667,10 +667,11 @@ async fn test_no_server_for_unknown_extension() {
     let result = manager.open_document(&file).await;
     assert!(result.is_err());
     match result.unwrap_err() {
-        LspError::ServerNotAvailable { path } => {
+        LspError::NoServerForExtension { ext, path } => {
+            assert_eq!(ext, "xyz");
             assert!(path.contains("test.xyz"));
         }
-        other => panic!("expected ServerNotAvailable, got: {other}"),
+        other => panic!("expected NoServerForExtension, got: {other}"),
     }
 }
 

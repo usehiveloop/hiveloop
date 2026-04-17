@@ -1,0 +1,19 @@
+- Fast regex search tool powered by ripgrep (rg) CLI
+- Searches file contents using Rust regex syntax with high performance
+- Returns raw ripgrep output by default, or structured JSON with the json flag
+- Supports file type filtering (--type), glob patterns, fixed string matching, multiline mode, and context lines
+- Use this tool when you need direct access to ripgrep's full feature set
+- Respects .gitignore rules automatically and skips binary files
+
+Parameters:
+  - pattern: Regex pattern to search for (required)
+  - path: File or directory to search (default: current directory)
+  - file_type: Filter by file type (eg. "rust", "ts", "py")
+  - glob: Filter by glob pattern (eg. "*.rs", "*.{ts,tsx}")
+  - fixed_strings: Treat the pattern as a literal string, not a regex
+  - max_count: Limit matches per file
+  - context: Number of lines to show before and after each match
+  - multiline: Enable patterns that span multiple lines
+  - json: Return structured JSON output instead of raw text
+  - word_regexp: Only match whole words
+  - invert_match: Show lines that do NOT match the pattern

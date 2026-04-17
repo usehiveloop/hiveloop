@@ -120,8 +120,23 @@ Bridge follows [Semantic Versioning](https://semver.org/):
 No breaking changes. To use new features:
 
 1. Update skill definitions to use `{{args}}` templates
-2. Add `join` tool to parent agents
-3. No code changes required
+2. No code changes required
+
+### v0.19.x to Unreleased — BREAKING: subagent orchestration simplified
+
+Bridge now mirrors Claude Code's subagent model: one tool, one flag.
+
+1. The `parallel_agent` and `join` tools have been removed.
+2. The `background` parameter on `sub_agent` and `agent` has been renamed to `runInBackground`.
+3. Parallel fan-out is now done by emitting multiple `sub_agent` tool_use blocks in a single assistant turn (the runtime already dispatches them concurrently).
+4. Background results are auto-injected into the parent's next user turn as `[Background Agent Task Completed]` messages — there is no wait/join tool.
+
+**Migration steps:**
+
+- Replace `"background": true` with `"runInBackground": true` in system prompts, agent definitions, and any code that constructs tool calls.
+- Replace `parallel_agent` call sites with multiple `sub_agent` tool_use blocks in the same turn.
+- Remove any use of `join` — the parent now receives background outputs automatically.
+- Drop `parallel_agent` and `join` from any `tools` allowlist or `disabled_tools` list.
 
 ---
 
@@ -129,7 +144,7 @@ No breaking changes. To use new features:
 
 Changes on main branch, not yet released:
 
-- (None currently)
+- **BREAKING:** `parallel_agent` and `join` tools removed; `sub_agent` / `agent` parameter renamed from `background` to `runInBackground`. See migration guide above.
 
 ### v0.18.0 to v0.18.1
 

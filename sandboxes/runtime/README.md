@@ -104,18 +104,20 @@ The server starts on **port 8080** by default.
 
 ### Install LSP Servers (Optional)
 
-Bridge can automatically install LSP servers on startup for code intelligence support:
+Install LSP server binaries for code intelligence support. This is a standalone subcommand — run it once (or as part of your image build), then start bridge normally:
 
 ```bash
 # Install specific servers
-bridge --install-lsp-servers=rust,go,typescript
+bridge install-lsp rust,go,typescript
 
 # Install all 40+ available servers
-bridge --install-lsp-servers=all
+bridge install-lsp all
 
-# Run without installing (default)
+# Start the server (no install step)
 bridge
 ```
+
+Already-installed servers are skipped. The command exits with a non-zero status if any server fails.
 
 **Available servers include:**
 - **JavaScript/TypeScript**: typescript, eslint, biome, deno, vue, svelte, astro, tailwindcss
@@ -126,8 +128,6 @@ bridge
 - **Ruby**: ruby-lsp, ruby-lsp-official
 - **Functional**: haskell, elixir, gleam, ocaml, elm, clojure
 - **And more**: scala (metals), php, lua, bash, dart, cmake, ansible, vimls, nix, etc.
-
-Installation runs **non-blocking** in the background after bridge starts. Already-installed servers are skipped.
 
 ## API Endpoints
 

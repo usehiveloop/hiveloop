@@ -40,7 +40,7 @@ Connect your control plane:
 Browse the tool reference:
 
 - [Filesystem Tools](tools-reference/filesystem-tools.md) — read, write, edit files
-- [Agent Tools](tools-reference/agent-tools.md) — spawn_agent, parallel_agent, join
+- [Agent Tools](tools-reference/agent-tools.md) — `agent`, `sub_agent` (with `runInBackground`)
 - [All Tools](tools-reference/index.md) — Complete list
 
 ### 🚢 Deploying to production?

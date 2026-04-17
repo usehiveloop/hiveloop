@@ -23,12 +23,13 @@ pub struct AgentToolParams {
         description = "The detailed task for the agent to perform. Be specific and include all necessary context"
     )]
     pub prompt: String,
-    /// Set to true to run in background (returns immediately, notifies on completion).
+    /// Set to true to run in background (returns immediately; result injected
+    /// into the next user turn when the agent finishes).
     #[schemars(
-        description = "Set to true to run in background. Returns immediately with task_id; notifies on completion"
+        description = "Set to true to run in background. Returns immediately with task_id; the final result is automatically injected into the next user turn when the agent finishes."
     )]
     #[serde(default)]
-    pub background: bool,
+    pub run_in_background: bool,
     /// Resume a previous agent session by task_id.
     #[schemars(description = "Resume a previous agent session by providing its task_id")]
     #[serde(default)]
@@ -82,8 +83,9 @@ impl ToolExecutor for AgentTool {
             return Err(format!("Maximum agent depth ({}) reached", ctx.max_depth));
         }
 
-        if params.background {
-            // Background execution
+        if params.run_in_background {
+            // Background execution — result will arrive as a user-turn injection
+            // via the notification channel when the agent finishes.
             let handle = ctx
                 .runner
                 .run_background(SELF_AGENT_NAME, &params.prompt, &params.description)
@@ -92,7 +94,7 @@ impl ToolExecutor for AgentTool {
             serde_json::to_string(&serde_json::json!({
                 "task_id": handle.task_id,
                 "status": "running",
-                "message": "Background task started. You will be notified when it completes."
+                "message": "Background agent started. Its final output will appear in your next user turn — do not poll or wait."
             }))
             .map_err(|e| format!("Failed to serialize result: {e}"))
         } else {
@@ -162,7 +164,6 @@ mod tests {
         AgentContext {
             runner: Arc::new(MockRunner),
             notification_tx: tx,
-            task_registry: None,
             depth: 0,
             max_depth: 3,
             task_budget: Arc::new(TaskBudget::new(50)),
@@ -206,7 +207,7 @@ mod tests {
         let args = serde_json::json!({
             "description": "test task",
             "prompt": "write hello world",
-            "background": true
+            "runInBackground": true
         });
         let result = AGENT_CONTEXT
             .scope(ctx, async { tool.execute(args).await })
@@ -224,7 +225,6 @@ mod tests {
         let ctx = AgentContext {
             runner: Arc::new(MockRunner),
             notification_tx: tx,
-            task_registry: None,
             depth: 3,
             max_depth: 3,
             task_budget: Arc::new(TaskBudget::new(50)),
@@ -248,7 +248,6 @@ mod tests {
         let ctx = AgentContext {
             runner: Arc::new(MockRunner),
             notification_tx: tx,
-            task_registry: None,
             depth: 0,
             max_depth: 3,
             task_budget: budget,

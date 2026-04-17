@@ -1,0 +1,13 @@
+- AST-aware structural code search tool using ast-grep (sg). Read-only.
+- Searches code using AST patterns instead of regex, matching structural code patterns
+- Pattern syntax uses $VAR for single nodes and $$$ for multiple nodes (eg. "console.log($$$)", "if ($COND) { $$$ }")
+- Supports language-specific searches: javascript, typescript, rust, python, go, java, c, cpp, and more
+- Returns matches with file paths, line numbers, and matched code
+- Use this tool when you need to find code based on its structure rather than text patterns
+- Particularly useful for locating specific function call patterns or matching code constructs
+- For regex / textual search prefer the RipGrep tool
+- For rewriting matches use the edit, write, or apply_patch tools after locating them
+
+Additional notes:
+  - Respects .gitignore rules automatically
+  - When no language is specified, ast-grep infers from file extensions

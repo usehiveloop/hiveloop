@@ -21,9 +21,6 @@ use webhooks::EventBus;
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
-    /// Install LSP servers on startup (comma-separated list or "all")
-    #[arg(long, value_name = "SERVERS")]
-    install_lsp_servers: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -32,6 +29,12 @@ enum Commands {
     Tools {
         #[command(subcommand)]
         action: Option<ToolCommands>,
+    },
+    /// Install LSP servers (comma-separated list of IDs, or "all")
+    InstallLsp {
+        /// Comma-separated server IDs (e.g. "rust,go,typescript") or "all"
+        #[arg(value_name = "SERVERS")]
+        servers: String,
     },
 }
 
@@ -68,15 +71,54 @@ async fn main() -> anyhow::Result<()> {
             handle_tools_command(action).await?;
             Ok(())
         }
-        None => {
-            let servers_to_install = cli.install_lsp_servers.map(|s| {
-                s.split(',')
-                    .map(|s| s.trim().to_string())
-                    .collect::<Vec<String>>()
-            });
-            run_server(servers_to_install).await
+        Some(Commands::InstallLsp { servers }) => handle_install_lsp_command(servers).await,
+        None => run_server().await,
+    }
+}
+
+async fn handle_install_lsp_command(servers: String) -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
+
+    let server_ids: Vec<String> = servers
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    if server_ids.is_empty() {
+        anyhow::bail!("no servers specified; pass a comma-separated list or \"all\"");
+    }
+
+    info!(servers = ?server_ids, "starting LSP server installation");
+    let installer = lsp::LspInstaller::new();
+    let results = installer.install(&server_ids).await;
+
+    let mut succeeded = 0;
+    let mut failed = 0;
+    for (id, result) in &results {
+        match result {
+            Ok(_) => {
+                info!(server = %id, "installed successfully");
+                succeeded += 1;
+            }
+            Err(e) => {
+                warn!(server = %id, error = %e, "installation failed");
+                failed += 1;
+            }
         }
     }
+
+    info!(succeeded, failed, "LSP server installation complete");
+
+    if failed > 0 {
+        anyhow::bail!("{failed} server(s) failed to install");
+    }
+    Ok(())
 }
 
 async fn handle_tools_command(action: Option<ToolCommands>) -> anyhow::Result<()> {
@@ -128,8 +170,8 @@ fn get_tools_info(filter_read_only: bool) -> anyhow::Result<Vec<ToolInfo>> {
 
 fn categorize_tool(name: &str) -> String {
     match name {
-        "bash" | "agent" | "parallel_agent" | "join" | "Batch" => "action".to_string(),
-        "Read" | "write" | "edit" | "apply_patch" | "LS" | "Glob" | "Grep" => {
+        "bash" | "agent" | "sub_agent" | "Batch" => "action".to_string(),
+        "Read" | "write" | "edit" | "apply_patch" | "LS" | "Glob" | "RipGrep" | "AstGrep" => {
             "filesystem".to_string()
         }
         "web_fetch" | "WebSearch" => "web".to_string(),
@@ -144,11 +186,11 @@ fn categorize_tool(name: &str) -> String {
 fn is_read_only_tool(name: &str) -> bool {
     matches!(
         name,
-        "Read" | "Grep" | "Glob" | "LS" | "web_fetch" | "todoread"
+        "Read" | "RipGrep" | "AstGrep" | "Glob" | "LS" | "web_fetch" | "todoread"
     )
 }
 
-async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<()> {
+async fn run_server() -> anyhow::Result<()> {
     // Load configuration from config.toml and environment variables
     let config: RuntimeConfig = Figment::from(Serialized::defaults(RuntimeConfig::default()))
         .merge(Toml::file("config.toml"))
@@ -353,33 +395,6 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
         .await
         .context("failed to bind TCP listener")?;
     info!(addr = config.listen_addr, "listening");
-
-    // Spawn background LSP installer if requested
-    if let Some(server_ids) = servers_to_install {
-        tokio::spawn(async move {
-            info!(servers = ?server_ids, "starting LSP server installation");
-            let installer = lsp::LspInstaller::new();
-            let results = installer.install(&server_ids).await;
-
-            let mut succeeded = 0;
-            let mut failed = 0;
-
-            for (id, result) in results {
-                match result {
-                    Ok(_) => {
-                        info!(server = %id, "installed successfully");
-                        succeeded += 1;
-                    }
-                    Err(e) => {
-                        warn!(server = %id, error = %e, "installation failed");
-                        failed += 1;
-                    }
-                }
-            }
-
-            info!(succeeded, failed, "LSP server installation complete");
-        });
-    }
 
     // Serve with graceful shutdown
     axum::serve(listener, app)

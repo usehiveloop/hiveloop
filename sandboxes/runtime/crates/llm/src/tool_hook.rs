@@ -383,7 +383,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     agent_id = %self.agent_id,
                     conversation_id = %self.conversation_id,
                     subagent_name = "__self__",
-                    mode = if agent_params.background { "background" } else { "foreground" },
+                    mode = if agent_params.run_in_background { "background" } else { "foreground" },
                     "subagent_spawn"
                 );
                 return self
@@ -399,7 +399,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     agent_id = %self.agent_id,
                     conversation_id = %self.conversation_id,
                     subagent_name = %sub_agent_params.subagent_name,
-                    mode = if sub_agent_params.background { "background" } else { "foreground" },
+                    mode = if sub_agent_params.run_in_background { "background" } else { "foreground" },
                     "subagent_spawn"
                 );
                 return self
@@ -955,7 +955,7 @@ impl ToolCallEmitter {
         // Self-delegation always targets "__self__"
         let subagent_name = "__self__";
 
-        if params.background {
+        if params.run_in_background {
             let result = ctx
                 .runner
                 .run_background(subagent_name, &params.prompt, &params.description)
@@ -966,7 +966,7 @@ impl ToolCallEmitter {
                     let json = serde_json::json!({
                         "task_id": handle.task_id,
                         "status": "running",
-                        "message": "Background task started. You will be notified when it completes."
+                        "message": "Background agent started. Its final output will appear in your next user turn — do not poll or wait."
                     })
                     .to_string();
                     (json, false)
@@ -1144,7 +1144,7 @@ impl ToolCallEmitter {
             return ToolCallHookAction::Skip { reason: error };
         }
 
-        if params.background {
+        if params.run_in_background {
             let result = ctx
                 .runner
                 .run_background(&params.subagent_name, &params.prompt, &params.description)
@@ -1155,7 +1155,7 @@ impl ToolCallEmitter {
                     let json = serde_json::json!({
                         "task_id": handle.task_id,
                         "status": "running",
-                        "message": "Background task started. You will be notified when it completes."
+                        "message": "Background subagent started. Its final output will appear in your next user turn — do not poll or wait."
                     })
                     .to_string();
                     (json, false)
@@ -1469,7 +1469,6 @@ mod tests {
         let ctx = AgentContext {
             runner: Arc::new(MockRunner),
             notification_tx: notif_tx,
-            task_registry: None,
             depth: 0,
             max_depth: 3,
             task_budget: Arc::new(TaskBudget::new(50)),
@@ -1611,7 +1610,6 @@ mod tests {
         let ctx = AgentContext {
             runner: Arc::new(MockRunner),
             notification_tx: notif_tx,
-            task_registry: None,
             depth: 0,
             max_depth: 3,
             task_budget: Arc::new(TaskBudget::new(50)),

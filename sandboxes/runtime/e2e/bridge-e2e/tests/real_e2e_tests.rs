@@ -367,12 +367,13 @@ async fn test_theo_system_design() {
 
     step!("[theo] Verifying design workflow tools were called (SSE)");
     // The agent should use at least some tools for its design workflow.
-    // Built-in tools (Glob/Grep/Read) don't appear in the MCP log, so check SSE.
+    // Built-in tools (Glob/RipGrep/AstGrep/Read) don't appear in the MCP log, so check SSE.
     assert_any_tool_called_in_sse(
         &turn,
         &[
             "Glob",
-            "Grep",
+            "RipGrep",
+            "AstGrep",
             "Read",
             "LS",
             "getIssue",
@@ -424,13 +425,14 @@ async fn test_mimi_technical_writer() {
     assert_response_not_empty(&turn, "mimi");
 
     step!("[mimi] Verifying exploration tools were called (SSE)");
-    // Built-in tools (Glob/Grep/Read) are handled by the bridge runtime and
+    // Built-in tools (Glob/RipGrep/AstGrep/Read) are handled by the bridge runtime and
     // don't appear in the MCP tool call log — check SSE events instead.
     assert_any_tool_called_in_sse(
         &turn,
         &[
             "Glob",
-            "Grep",
+            "RipGrep",
+            "AstGrep",
             "Read",
             "LS",
             "getIssue",

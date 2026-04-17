@@ -50,11 +50,9 @@ Disabled tools are completely removed — the LLM never sees them. See [Tools Re
 
 | Tool | Description |
 |------|-------------|
-| `agent` | Launch a clone of yourself to handle a focused task autonomously. The clone runs in a fresh context with the same tools and system prompt. |
-| `sub_agent` | Launch a named subagent to handle complex, multistep tasks. Subagents can run in foreground (blocking) or background (concurrent). Each subagent has its own conversation history. |
-| `parallel_agent` | Spawn multiple subagents in parallel and wait for all to complete. Useful for independent tasks that can run concurrently. |
+| `agent` | Launch a clone of yourself to handle a focused task autonomously. The clone runs in a fresh context with the same tools and system prompt. Supports `runInBackground`. |
+| `sub_agent` | Launch a named subagent (from the agent's `subagents` list). Runs foreground by default; pass `runInBackground: true` to fire-and-forget — the subagent's final output is auto-injected into the parent's next user turn. Fan-out by emitting multiple `sub_agent` tool_use blocks in one assistant turn. |
 | `batch` | Execute multiple independent tool calls concurrently in a single request. Reduces latency by parallelizing tools that don't depend on each other. |
-| `join` | Wait for one or more background subagent tasks to complete by task ID. Returns the task results. |
 
 ## Task Management
 

@@ -100,7 +100,6 @@ mod tests {
             agent,
             ToolRegistry::new(),
             Arc::new(dashmap::DashMap::new()),
-            Arc::new(tools::join::TaskRegistry::new()),
             None,
             std::collections::HashMap::new(),
         ))

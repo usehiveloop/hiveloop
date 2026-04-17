@@ -10,9 +10,6 @@ lsp = { workspace = true }
 lsp-types = "0.97"
 ignore = { workspace = true }
 globset = { workspace = true }
-grep-regex = { workspace = true }
-grep-searcher = { workspace = true }
-grep-matcher = { workspace = true }
 regex = { workspace = true }
 dom_smoothie = { workspace = true }
 htmd = { workspace = true }

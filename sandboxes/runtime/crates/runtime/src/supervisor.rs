@@ -13,7 +13,6 @@ use tokio::sync::mpsc;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentContext, AgentTaskNotification};
-use tools::join::TaskRegistry;
 use tools::registry::ToolExecutor;
 use tools::ToolRegistry;
 use tracing::{error, info};
@@ -257,12 +256,6 @@ impl AgentSupervisor {
             )));
         }
 
-        // Create task registry for tracking background subagent tasks
-        let task_registry = Arc::new(TaskRegistry::new());
-
-        // Register join tool for waiting on background tasks
-        tool_registry.register(Arc::new(tools::join::JoinTool::new(task_registry.clone())));
-
         // Register integration tools and inject their permissions
         let control_plane_url = std::env::var("BRIDGE_CONTROL_PLANE_URL")
             .unwrap_or_else(|_| "http://localhost:3000".to_string());
@@ -329,7 +322,6 @@ impl AgentSupervisor {
             rig_agent,
             tool_registry,
             subagent_map,
-            task_registry,
             self.storage.clone(),
             mcp_server_tools,
         ));
@@ -624,7 +616,6 @@ impl AgentSupervisor {
                 metrics.clone(),
             )
             .with_compaction(subagent_compaction)
-            .with_task_registry(state.task_registry.clone())
             .with_task_budget(task_budget.clone())
             .with_agent_id(agent_id.to_string()),
         );
@@ -632,7 +623,6 @@ impl AgentSupervisor {
         let agent_context = AgentContext {
             runner,
             notification_tx,
-            task_registry: Some(state.task_registry.clone()),
             depth: 0,
             max_depth: 3,
             task_budget,
@@ -1146,12 +1136,6 @@ impl AgentSupervisor {
             )));
         }
 
-        // Create task registry for tracking background subagent tasks
-        let task_registry = Arc::new(TaskRegistry::new());
-
-        // Register join tool for waiting on background tasks
-        tool_registry.register(Arc::new(tools::join::JoinTool::new(task_registry.clone())));
-
         // Register integration tools and inject their permissions
         let control_plane_url = std::env::var("BRIDGE_CONTROL_PLANE_URL")
             .unwrap_or_else(|_| "http://localhost:3000".to_string());
@@ -1207,7 +1191,6 @@ impl AgentSupervisor {
             rig_agent,
             tool_registry,
             subagent_map,
-            task_registry,
             self.storage.clone(),
             mcp_server_tools,
         ));
@@ -1320,7 +1303,6 @@ impl AgentSupervisor {
                 metrics.clone(),
             )
             .with_compaction(subagent_compaction)
-            .with_task_registry(state.task_registry.clone())
             .with_task_budget(task_budget.clone())
             .with_agent_id(agent_id.to_string()),
         );
@@ -1328,7 +1310,6 @@ impl AgentSupervisor {
         let agent_context = AgentContext {
             runner,
             notification_tx,
-            task_registry: Some(state.task_registry.clone()),
             depth: 0,
             max_depth: 3,
             task_budget,

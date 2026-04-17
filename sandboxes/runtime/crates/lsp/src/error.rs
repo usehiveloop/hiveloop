@@ -6,8 +6,11 @@ pub enum LspError {
     #[error("failed to spawn LSP server '{server}': {reason}")]
     SpawnFailed { server: String, reason: String },
 
-    #[error("no LSP server available for file: {path}")]
-    ServerNotAvailable { path: String },
+    #[error("no LSP server registered for extension '{ext}' (file: {path})")]
+    NoServerForExtension { ext: String, path: String },
+
+    #[error("all matching LSP servers failed to start for file: {path} ({reason})")]
+    AllSpawnsFailed { path: String, reason: String },
 
     #[error("LSP operation failed: {0}")]
     OperationFailed(String),

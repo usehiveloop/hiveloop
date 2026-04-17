@@ -86,9 +86,10 @@ Bridge includes these tools out of the box:
 ### Agent Management
 | Tool | What it does |
 |------|--------------|
-| `spawn_agent` | Start a subagent task |
-| `parallel_agent` | Run multiple subagents at once |
-| `join` | Wait for subagents to finish |
+| `agent` | Self-delegation — spawn a clone of the parent agent |
+| `sub_agent` | Start a named subagent (foreground, or `runInBackground` for fire-and-forget) |
+
+Parallel fan-out: the LLM emits multiple `sub_agent` tool_use blocks in one assistant turn; the runtime runs them concurrently. Background results arrive as user-turn injections on the next turn — there is no separate wait/join tool.
 
 ### Task Tracking
 | Tool | What it does |
@@ -125,7 +126,6 @@ There is no hard limit on the total number of tools an agent can have, but speci
 | Context | Limit | Behavior When Exceeded |
 |---------|-------|------------------------|
 | `batch` tool | 25 tools | Excess tools are discarded with error |
-| `parallel_agent` tool | 25 tasks | Returns error: "Maximum 25 tasks allowed" |
 
 ---
 
@@ -287,9 +287,7 @@ Different tools have different timeout behaviors:
 | `web_search` | 15s | — | — |
 | Integration tools | 30s | — | 3 retries with exponential backoff |
 | Foreground subagent | 120s | — | — |
-| Background subagent | 300s (5 min) | — | — |
-| `join` tool | 300s (5 min) | — | Configurable |
-| `parallel_agent` | 300s (5 min) | — | Per-task timeout |
+| Background subagent | 300s (5 min) | — | Surfaced as `[ERROR]` in the injected user-turn message |
 
 ### Timeout Behavior
 

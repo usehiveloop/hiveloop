@@ -53,10 +53,8 @@ Complete index of all tools available to Bridge agents.
 
 | Name | Description |
 |------|-------------|
-| `agent` | Launch a clone of the parent agent for a focused subtask. Shares system prompt, tools, and capabilities. Supports background execution. Not available to subagents. |
-| `sub_agent` | Launch a named subagent (from the agent's `subagents` list) to handle a task. Supports background execution. Not available to subagents. |
-| `parallel_agent` | Spawn up to 25 subagents in parallel and wait for all to complete. Supports per-task timeout and max concurrency. Not available to subagents. |
-| `join` | Wait for background subagent tasks to complete. Blocks until all specified task IDs finish or timeout. Returns combined results. |
+| `agent` | Launch a clone of the parent agent for a focused subtask. Shares system prompt, tools, and capabilities. Supports `runInBackground`. Not available to subagents. |
+| `sub_agent` | Launch a named subagent (from the agent's `subagents` list). Supports `runInBackground` — background results are auto-injected into the next user turn; no separate wait/join call is needed. Parallel fan-out is achieved by emitting multiple tool_use blocks in a single turn. Not available to subagents. |
 | `batch` | Execute 1-25 independent tool calls concurrently in a single operation. Partial failures don't stop other calls. No recursive batching. |
 
 ## Skills
@@ -90,8 +88,7 @@ Complete index of all tools available to Bridge agents.
 | todowrite, todoread | Yes | Yes | Always |
 | journal_write, journal_read | Yes | Yes | Always |
 | lsp | Yes | No | LSP configured |
-| agent, sub_agent, parallel_agent | Yes | No | Always (prevents recursion) |
-| join | Yes | No | Always |
+| agent, sub_agent | Yes | No | Always (prevents recursion) |
 | batch | Yes | Yes | Always |
 | skill | Yes | Yes | Agent/subagent has `skills` defined |
 | Integration tools | Yes | Inherited from parent | Agent has `integrations` defined |

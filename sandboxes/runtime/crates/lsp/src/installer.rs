@@ -75,7 +75,7 @@ pub fn installable_servers() -> Vec<InstallableServer> {
         InstallableServer {
             id: "vue".to_string(),
             method: InstallMethod::Npm {
-                package: "@volar/vue-language-server".to_string(),
+                package: "@vue/language-server".to_string(),
             },
             binaries: vec!["vue-language-server".to_string()],
             description: "Vue language server".to_string(),
@@ -85,7 +85,7 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             method: InstallMethod::Npm {
                 package: "svelte-language-server".to_string(),
             },
-            binaries: vec!["svelte-language-server".to_string()],
+            binaries: vec!["svelteserver".to_string()],
             description: "Svelte language server".to_string(),
         },
         InstallableServer {
@@ -96,11 +96,20 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             binaries: vec!["astro-ls".to_string()],
             description: "Astro language server".to_string(),
         },
-        // Rust
+        // Rust — download the prebuilt rust-analyzer binary. `cargo install`
+        // builds from source and takes ~10 minutes; the release binary is a
+        // few-megabyte download.
         InstallableServer {
             id: "rust".to_string(),
-            method: InstallMethod::Cargo {
-                crate_name: "rust-analyzer".to_string(),
+            method: InstallMethod::Custom {
+                command: "bash".to_string(),
+                args: vec![
+                    "-c".to_string(),
+                    "set -eu; mkdir -p ~/.local/bin; \
+                     curl -fsSL https://github.com/rust-lang/rust-analyzer/releases/latest/download/rust-analyzer-x86_64-unknown-linux-gnu.gz \
+                       | gunzip > ~/.local/bin/rust-analyzer; \
+                     chmod +x ~/.local/bin/rust-analyzer".to_string(),
+                ],
             },
             binaries: vec!["rust-analyzer".to_string()],
             description: "Rust analyzer".to_string(),
@@ -123,14 +132,16 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             binaries: vec!["pyright-langserver".to_string()],
             description: "Pyright language server".to_string(),
         },
-        // Ruby
+        // Ruby — the real LSP is the `ruby-lsp` gem (Shopify). `rubocop --lsp`
+        // is a linter-only sidecar that doesn't provide document-symbol or
+        // navigation operations.
         InstallableServer {
             id: "ruby-lsp".to_string(),
             method: InstallMethod::Gem {
-                gem: "rubocop".to_string(),
+                gem: "ruby-lsp".to_string(),
             },
-            binaries: vec!["rubocop".to_string()],
-            description: "RuboCop LSP".to_string(),
+            binaries: vec!["ruby-lsp".to_string()],
+            description: "Ruby language server".to_string(),
         },
         // PHP
         InstallableServer {
@@ -140,19 +151,6 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             },
             binaries: vec!["intelephense".to_string()],
             description: "PHP language server".to_string(),
-        },
-        // Lua
-        InstallableServer {
-            id: "lua-ls".to_string(),
-            method: InstallMethod::Custom {
-                command: "bash".to_string(),
-                args: vec![
-                    "-c".to_string(),
-                    "cd /tmp && wget -q https://github.com/LuaLS/lua-language-server/releases/latest/download/lua-language-server-linux-x64.tar.gz -O luals.tar.gz && mkdir -p ~/.local/share/luals && tar -xzf luals.tar.gz -C ~/.local/share/luals && ln -sf ~/.local/share/luals/bin/lua-language-server ~/.local/bin/lua-language-server".to_string(),
-                ],
-            },
-            binaries: vec!["lua-language-server".to_string()],
-            description: "Lua language server".to_string(),
         },
         // Bash
         InstallableServer {
@@ -173,25 +171,38 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             binaries: vec!["dart".to_string()],
             description: "Dart language server".to_string(),
         },
-        // Java/Kotlin
+        // Java/Kotlin — Eclipse JDT ships a platform-neutral tarball.
         InstallableServer {
             id: "jdtls".to_string(),
             method: InstallMethod::Custom {
                 command: "bash".to_string(),
                 args: vec![
                     "-c".to_string(),
-                    "cd /tmp && wget -q https://download.eclipse.org/jdtls/snapshots/jdt-language-server-latest.tar.gz -O jdtls.tar.gz && mkdir -p ~/.local/share/jdtls && tar -xzf jdtls.tar.gz -C ~/.local/share/jdtls && ln -sf ~/.local/share/jdtls/bin/jdtls ~/.local/bin/jdtls".to_string(),
+                    "set -eu; mkdir -p ~/.local/share/jdtls ~/.local/bin; \
+                     wget -qO /tmp/jdtls.tar.gz https://download.eclipse.org/jdtls/snapshots/jdt-language-server-latest.tar.gz; \
+                     tar -xzf /tmp/jdtls.tar.gz -C ~/.local/share/jdtls; \
+                     ln -sf ~/.local/share/jdtls/bin/jdtls ~/.local/bin/jdtls; \
+                     rm -f /tmp/jdtls.tar.gz".to_string(),
                 ],
             },
             binaries: vec!["jdtls".to_string()],
             description: "Eclipse JDT Language Server".to_string(),
         },
-        // C/C++
+        // C/C++ — apt install clangd. Requires the sandbox to run as root (or
+        // passwordless sudo); the Dev-Box image ships with this.
         InstallableServer {
             id: "clangd".to_string(),
             method: InstallMethod::Custom {
                 command: "bash".to_string(),
-                args: vec!["-c".to_string(), "echo 'Please install clangd via your package manager: apt install clangd, brew install llvm, etc.'".to_string()],
+                args: vec![
+                    "-c".to_string(),
+                    "set -eu; export DEBIAN_FRONTEND=noninteractive; \
+                     if command -v sudo >/dev/null 2>&1 && [ \"$(id -u)\" != 0 ]; then \
+                         sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends clangd; \
+                     else \
+                         apt-get update -qq && apt-get install -y --no-install-recommends clangd; \
+                     fi".to_string(),
+                ],
             },
             binaries: vec!["clangd".to_string()],
             description: "Clangd C/C++ language server".to_string(),
@@ -203,7 +214,11 @@ pub fn installable_servers() -> Vec<InstallableServer> {
                 command: "bash".to_string(),
                 args: vec![
                     "-c".to_string(),
-                    "cd /tmp && wget -q https://github.com/zigtools/zls/releases/latest/download/zls-linux-x86_64.tar.gz -O zls.tar.gz && mkdir -p ~/.local/share/zls && tar -xzf zls.tar.gz -C ~/.local/share/zls && ln -sf ~/.local/share/zls/zls ~/.local/bin/zls".to_string(),
+                    "set -eu; mkdir -p ~/.local/share/zls ~/.local/bin; \
+                     wget -qO /tmp/zls.tar.gz https://github.com/zigtools/zls/releases/latest/download/zls-linux-x86_64.tar.gz; \
+                     tar -xzf /tmp/zls.tar.gz -C ~/.local/share/zls; \
+                     ln -sf ~/.local/share/zls/zls ~/.local/bin/zls; \
+                     rm -f /tmp/zls.tar.gz".to_string(),
                 ],
             },
             binaries: vec!["zls".to_string()],
@@ -236,7 +251,16 @@ pub fn installable_servers() -> Vec<InstallableServer> {
                 command: "bash".to_string(),
                 args: vec![
                     "-c".to_string(),
-                    "cd /tmp && wget -q https://releases.hashicorp.com/terraform-ls/latest/terraform-ls_$(curl -s https://releases.hashicorp.com/terraform-ls/latest | grep -oP 'terraform-ls_\\K[0-9.]+' | head -1)_linux_amd64.zip -O terraform-ls.zip && unzip -q terraform-ls.zip -d ~/.local/bin/".to_string(),
+                    // HashiCorp's /latest/ URL doesn't give the version directly,
+                    // so resolve it via the GitHub releases API.
+                    "set -eu; \
+                     version=$(curl -fsSL https://api.github.com/repos/hashicorp/terraform-ls/releases/latest | sed -n 's/.*\"tag_name\": *\"v\\{0,1\\}\\([^\"]*\\)\".*/\\1/p'); \
+                     [ -n \"$version\" ] || { echo 'could not resolve terraform-ls version' >&2; exit 1; }; \
+                     mkdir -p ~/.local/bin; \
+                     wget -qO /tmp/terraform-ls.zip \"https://releases.hashicorp.com/terraform-ls/${version}/terraform-ls_${version}_linux_amd64.zip\"; \
+                     unzip -q -o /tmp/terraform-ls.zip -d ~/.local/bin/; \
+                     chmod +x ~/.local/bin/terraform-ls; \
+                     rm -f /tmp/terraform-ls.zip".to_string(),
                 ],
             },
             binaries: vec!["terraform-ls".to_string()],
@@ -541,94 +565,101 @@ impl LspInstaller {
         results
     }
 
+    /// Run an installer command, capturing stderr and surfacing it on failure.
+    async fn run_install_cmd(
+        &self,
+        program: &str,
+        args: &[&str],
+        label: &str,
+    ) -> Result<(), String> {
+        let output = tokio::process::Command::new(program)
+            .args(args)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .await
+            .map_err(|e| format!("Failed to run {}: {}", program, e))?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let tail: String = stderr
+                .lines()
+                .rev()
+                .take(10)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect::<Vec<_>>()
+                .join(" | ");
+            let tail = if tail.is_empty() {
+                String::from_utf8_lossy(&output.stdout)
+                    .lines()
+                    .rev()
+                    .take(5)
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .rev()
+                    .collect::<Vec<_>>()
+                    .join(" | ")
+            } else {
+                tail
+            };
+            Err(format!(
+                "{} install failed for {}: {}",
+                program,
+                label,
+                tail.trim()
+            ))
+        }
+    }
+
     /// Install npm package globally
     async fn install_npm(&self, package: &str) -> Result<(), String> {
         debug!(package = %package, "running npm install");
-        let status = tokio::process::Command::new("npm")
-            .args(["install", "-g", package])
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .status()
+        self.run_install_cmd("npm", &["install", "-g", package], package)
             .await
-            .map_err(|e| format!("Failed to run npm: {}", e))?;
-
-        if status.success() {
-            Ok(())
-        } else {
-            Err(format!("npm install failed for {}", package))
-        }
     }
 
     /// Install cargo crate
     async fn install_cargo(&self, crate_name: &str) -> Result<(), String> {
         debug!(crate_name = %crate_name, "running cargo install");
-        let status = tokio::process::Command::new("cargo")
-            .args(["install", crate_name])
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .status()
+        self.run_install_cmd("cargo", &["install", crate_name], crate_name)
             .await
-            .map_err(|e| format!("Failed to run cargo: {}", e))?;
-
-        if status.success() {
-            Ok(())
-        } else {
-            Err(format!("cargo install failed for {}", crate_name))
-        }
     }
 
     /// Install go package
     async fn install_go(&self, path: &str) -> Result<(), String> {
         debug!(path = %path, "running go install");
-        let status = tokio::process::Command::new("go")
-            .args(["install", path])
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .status()
-            .await
-            .map_err(|e| format!("Failed to run go: {}", e))?;
-
-        if status.success() {
-            Ok(())
-        } else {
-            Err(format!("go install failed for {}", path))
-        }
+        self.run_install_cmd("go", &["install", path], path).await
     }
 
     /// Install gem
     async fn install_gem(&self, gem: &str) -> Result<(), String> {
         debug!(gem = %gem, "running gem install");
-        let status = tokio::process::Command::new("gem")
-            .args(["install", gem])
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .status()
-            .await
-            .map_err(|e| format!("Failed to run gem: {}", e))?;
-
-        if status.success() {
-            Ok(())
-        } else {
-            Err(format!("gem install failed for {}", gem))
-        }
+        self.run_install_cmd("gem", &["install", gem], gem).await
     }
 
-    /// Install pip package
+    /// Install pip package. Uses `python3 -m pip install --user
+    /// --break-system-packages` because (a) bare `pip` is missing on modern
+    /// systems, (b) PEP 668-marked distros (Homebrew Python, recent Debian)
+    /// reject `pip install` without the explicit override.
     async fn install_pip(&self, package: &str) -> Result<(), String> {
-        debug!(package = %package, "running pip install");
-        let status = tokio::process::Command::new("pip")
-            .args(["install", package])
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .status()
-            .await
-            .map_err(|e| format!("Failed to run pip: {}", e))?;
-
-        if status.success() {
-            Ok(())
-        } else {
-            Err(format!("pip install failed for {}", package))
-        }
+        debug!(package = %package, "running python3 -m pip install");
+        self.run_install_cmd(
+            "python3",
+            &[
+                "-m",
+                "pip",
+                "install",
+                "--user",
+                "--break-system-packages",
+                package,
+            ],
+            package,
+        )
+        .await
     }
 
     /// Install luarocks package

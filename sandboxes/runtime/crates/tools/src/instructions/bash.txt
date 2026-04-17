@@ -24,7 +24,7 @@ Usage notes:
   - The command argument is required.
   - You can specify an optional timeout in milliseconds. If not specified, commands will time out after 120000ms (2 minutes).
   - It is very helpful if you write a clear, concise description of what this command does in 5-10 words.
-  - If the output exceeds 50000 bytes, it will be truncated and the full output will be written to a file. You can use Read with offset/limit to read specific sections or Grep to search the full content. Because of this, you do NOT need to use `head`, `tail`, or other truncation commands to limit output - just run the command directly.
+  - If the output exceeds 50000 bytes, it will be truncated and the full output will be written to a file. You can use Read with offset/limit to read specific sections or RipGrep to search the full content. Because of this, you do NOT need to use `head`, `tail`, or other truncation commands to limit output - just run the command directly.
 
 ## Background execution
 Set `background: true` to run a command in the background. The tool returns immediately
@@ -34,7 +34,7 @@ or deployments where you don't need to block waiting for the result.
 
   - Avoid using Bash with the `find`, `grep`, `cat`, `head`, `tail`, `sed`, `awk`, or `echo` commands, unless explicitly instructed or when these commands are truly necessary for the task. Instead, always prefer using the dedicated tools for these commands:
     - File search: Use Glob (NOT find or ls)
-    - Content search: Use Grep (NOT grep or rg)
+    - Content search: Use RipGrep (NOT shell grep)
     - Read files: Use Read (NOT cat/head/tail)
     - Edit files: Use Edit (NOT sed/awk)
     - Write files: Use Write (NOT echo >/cat <<EOF)
@@ -107,7 +107,7 @@ reason: Use the Read tool instead of cat for reading files
 
 <bad_example>
 command: grep -r "pattern" .
-reason: Use the Grep tool instead of shell grep for searching
+reason: Use the RipGrep tool instead of shell grep for searching
 </bad_example>
 
 <bad_example>

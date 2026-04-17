@@ -5,7 +5,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
-use crate::join::TaskRegistry;
 use crate::ToolExecutor;
 
 /// Tracks and limits the total number of subagent tasks spawned
@@ -99,7 +98,6 @@ pub trait SubAgentRunner: Send + Sync {
 pub struct AgentContext {
     pub runner: Arc<dyn SubAgentRunner>,
     pub notification_tx: mpsc::Sender<AgentTaskNotification>,
-    pub task_registry: Option<Arc<TaskRegistry>>,
     pub depth: usize,
     pub max_depth: usize,
     /// Shared task budget across the entire conversation tree.
@@ -143,12 +141,13 @@ pub struct SubAgentToolParams {
     /// Which subagent to invoke (must match a defined subagent name).
     #[schemars(description = "Which subagent to invoke. Must match an available subagent name")]
     pub subagent_name: String,
-    /// Set to true to run in background (returns immediately, notifies on completion).
+    /// Set to true to run in background (returns immediately; result is injected
+    /// into the next user turn as a `[Background Agent Task Completed]` message).
     #[schemars(
-        description = "Set to true to run in background. Returns immediately with task_id; notifies on completion"
+        description = "Set to true to run in background. Returns immediately with task_id; the final result is automatically injected into the next user turn when the subagent finishes."
     )]
     #[serde(default)]
-    pub background: bool,
+    pub run_in_background: bool,
     /// Resume a previous subagent session by task_id.
     #[schemars(description = "Resume a previous subagent session by providing its task_id")]
     #[serde(default)]
@@ -251,8 +250,9 @@ impl ToolExecutor for SubAgentTool {
             ));
         }
 
-        if params.background {
-            // Background execution
+        if params.run_in_background {
+            // Background execution — result will arrive as a user-turn injection
+            // via the notification channel when the subagent finishes.
             let handle = ctx
                 .runner
                 .run_background(&params.subagent_name, &params.prompt, &params.description)
@@ -261,7 +261,7 @@ impl ToolExecutor for SubAgentTool {
             serde_json::to_string(&serde_json::json!({
                 "task_id": handle.task_id,
                 "status": "running",
-                "message": "Background task started. You will be notified when it completes."
+                "message": "Background subagent started. Its final output will appear in your next user turn — do not poll or wait."
             }))
             .map_err(|e| format!("Failed to serialize result: {e}"))
         } else {
@@ -330,7 +330,6 @@ mod tests {
         AgentContext {
             runner: Arc::new(MockRunner { subagents }),
             notification_tx: tx,
-            task_registry: None,
             depth: 0,
             max_depth: 3,
             task_budget: Arc::new(TaskBudget::new(50)),
@@ -392,7 +391,6 @@ mod tests {
                 subagents: vec![("coder".to_string(), "A coding agent".to_string())],
             }),
             notification_tx: tx,
-            task_registry: None,
             depth: 3,
             max_depth: 3,
             task_budget: Arc::new(TaskBudget::new(50)),
@@ -437,7 +435,7 @@ mod tests {
             "description": "test task",
             "prompt": "write hello world",
             "subagentName": "coder",
-            "background": true
+            "runInBackground": true
         });
         let result = AGENT_CONTEXT
             .scope(ctx, async { tool.execute(args).await })
@@ -510,7 +508,6 @@ mod tests {
         let ctx = AgentContext {
             runner: Arc::new(DelayedMockRunner),
             notification_tx: tx,
-            task_registry: None,
             depth: 0,
             max_depth: 3,
             task_budget: Arc::new(TaskBudget::new(50)),
@@ -583,7 +580,6 @@ mod tests {
         let ctx = AgentContext {
             runner: Arc::new(DelayedMockRunner),
             notification_tx: tx,
-            task_registry: None,
             depth: 0,
             max_depth: 3,
             task_budget: Arc::new(TaskBudget::new(50)),
@@ -594,7 +590,7 @@ mod tests {
             "description": "background task",
             "prompt": "do something slow in background",
             "subagentName": "coder",
-            "background": true
+            "runInBackground": true
         });
 
         let start = Instant::now();
@@ -722,7 +718,6 @@ mod tests {
                 subagents: vec![("coder".to_string(), "A coding agent".to_string())],
             }),
             notification_tx: tx,
-            task_registry: None,
             depth: 0,
             max_depth: 3,
             task_budget: budget,

@@ -9,7 +9,6 @@ use tokio::sync::mpsc;
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
-use tools::join::TaskRegistry;
 use tools::ToolRegistry;
 
 use crate::agent_runner::{AgentSessionStore, SubAgentEntry};
@@ -50,8 +49,6 @@ pub struct AgentState {
     pub subagents: Arc<DashMap<String, SubAgentEntry>>,
     /// Session store for subagent history persistence.
     pub session_store: Arc<AgentSessionStore>,
-    /// Task registry for tracking background subagent tasks.
-    pub task_registry: Arc<TaskRegistry>,
     /// Mapping from MCP server name to tool names provided by that server.
     pub mcp_server_tools: HashMap<String, Vec<String>>,
 }
@@ -63,7 +60,6 @@ impl AgentState {
         rig_agent: BridgeAgent,
         tool_registry: ToolRegistry,
         subagents: Arc<DashMap<String, SubAgentEntry>>,
-        task_registry: Arc<TaskRegistry>,
         storage: Option<StorageHandle>,
         mcp_server_tools: HashMap<String, Vec<String>>,
     ) -> Self {
@@ -78,7 +74,6 @@ impl AgentState {
             metrics: Arc::new(AgentMetrics::new()),
             subagents,
             session_store: Arc::new(AgentSessionStore::new(agent_id, storage)),
-            task_registry,
             mcp_server_tools,
         }
     }

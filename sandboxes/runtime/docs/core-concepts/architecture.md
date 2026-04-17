@@ -220,8 +220,8 @@ Built-in tools are registered by `register_builtin_tools()` in `builtin.rs`.
 - **Filesystem**: `read`, `write`, `edit`, `apply_patch`, `multiedit`, `ls`, `Glob`, `Grep`
 - **Shell**: `bash` command execution
 - **Web**: `web_fetch`, `web_search` (if SEARCH_ENDPOINT set)
-- **Agent management**: `agent`, `parallel_agent`
-- **Task tracking**: `todowrite`, `todoread`, `join`
+- **Agent management**: `agent`, `sub_agent`
+- **Task tracking**: `todowrite`, `todoread`
 - **Batch execution**: `batch`
 - **LSP integration**: `lsp` (if LSP manager provided)
 
@@ -230,8 +230,8 @@ Built-in tools are registered by `register_builtin_tools()` in `builtin.rs`.
 Tools execute within a Tokio task-local `AGENT_CONTEXT` that provides:
 - Conversation ID and agent ID
 - Subagent runner for spawning child agents
-- Task registry for background operations
-- Stream sender for real-time notifications
+- Notification channel for delivering background subagent results into the parent's next turn
+- Task budget for capping subagent spawns per conversation
 
 This context is set by the runtime's conversation loop and accessible via:
 ```rust

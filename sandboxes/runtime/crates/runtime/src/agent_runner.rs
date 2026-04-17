@@ -11,7 +11,6 @@ use tools::agent::{
     AgentContext, AgentTaskHandle, AgentTaskNotification, AgentTaskResult, SubAgentRunner,
     TaskBudget, AGENT_CONTEXT,
 };
-use tools::join::TaskRegistry;
 use tracing::{debug, warn};
 use webhooks::EventBus;
 
@@ -166,7 +165,6 @@ pub struct ConversationSubAgentRunner {
     depth: usize,
     max_depth: usize,
     compaction_config: Option<bridge_core::agent::CompactionConfig>,
-    task_registry: Option<Arc<TaskRegistry>>,
     task_budget: Arc<TaskBudget>,
     metrics: Arc<bridge_core::AgentMetrics>,
     /// Agent ID for event payloads.
@@ -196,7 +194,6 @@ impl ConversationSubAgentRunner {
             depth,
             max_depth,
             compaction_config: None,
-            task_registry: None,
             task_budget: Arc::new(TaskBudget::new(50)),
             metrics,
             agent_id: String::new(),
@@ -212,12 +209,6 @@ impl ConversationSubAgentRunner {
     /// Set the compaction configuration for subagent sessions.
     pub fn with_compaction(mut self, config: Option<bridge_core::agent::CompactionConfig>) -> Self {
         self.compaction_config = config;
-        self
-    }
-
-    /// Set the task registry for tracking background subagent tasks.
-    pub fn with_task_registry(mut self, registry: Arc<TaskRegistry>) -> Self {
-        self.task_registry = Some(registry);
         self
     }
 
@@ -414,7 +405,6 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         let conversation_id = self.conversation_id.clone();
         let depth = self.depth;
         let max_depth = self.max_depth;
-        let task_registry = self.task_registry.clone();
         let task_budget = self.task_budget.clone();
         let metrics_clone = self.metrics.clone();
         let agent_id_clone = self.agent_id.clone();
@@ -425,41 +415,23 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             let emitter_conv_id = conversation_id.clone();
             let event_conv_id = conversation_id.clone();
             // Build nested AgentContext for the background task
-            let nested_runner = Arc::new(ConversationSubAgentRunner::new(
-                subagents,
-                session_store.clone(),
-                notification_tx.clone(),
-                cancel.clone(),
-                event_bus.clone(),
-                conversation_id,
-                depth + 1,
-                max_depth,
-                metrics_clone.clone(),
-            ));
-            // Pass task_registry to nested runner if available
-            let nested_runner = if let Some(registry) = task_registry.clone() {
-                Arc::new(
-                    ConversationSubAgentRunner::new(
-                        nested_runner.subagents.clone(),
-                        nested_runner.session_store.clone(),
-                        nested_runner.notification_tx.clone(),
-                        nested_runner.cancel.clone(),
-                        nested_runner.event_bus.clone(),
-                        nested_runner.conversation_id.clone(),
-                        nested_runner.depth,
-                        nested_runner.max_depth,
-                        metrics_clone.clone(),
-                    )
-                    .with_task_registry(registry)
-                    .with_task_budget(task_budget.clone()),
+            let nested_runner = Arc::new(
+                ConversationSubAgentRunner::new(
+                    subagents,
+                    session_store.clone(),
+                    notification_tx.clone(),
+                    cancel.clone(),
+                    event_bus.clone(),
+                    conversation_id,
+                    depth + 1,
+                    max_depth,
+                    metrics_clone.clone(),
                 )
-            } else {
-                nested_runner
-            };
+                .with_task_budget(task_budget.clone()),
+            );
             let nested_ctx = AgentContext {
                 runner: nested_runner,
                 notification_tx: notification_tx.clone(),
-                task_registry: task_registry.clone(),
                 depth: depth + 1,
                 max_depth,
                 task_budget,
@@ -506,11 +478,6 @@ impl SubAgentRunner for ConversationSubAgentRunner {
 
             // Save history
             session_store.save(task_id_clone.clone(), history);
-
-            // Mark task as complete in registry (for join tool)
-            if let Some(registry) = task_registry {
-                registry.complete(task_id_clone.clone(), result.clone());
-            }
 
             // Emit SubAgentCompleted event
             {

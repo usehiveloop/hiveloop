@@ -231,7 +231,7 @@ mod tests {
             tool_name: "edit".to_string(),
         }));
         reg.register(Arc::new(StubTool {
-            tool_name: "Grep".to_string(),
+            tool_name: "RipGrep".to_string(),
         }));
         reg
     }

@@ -98,11 +98,9 @@ These tools are registered when the `BRIDGE_WEB_URL` environment variable is set
 
 | Tool Name | Description |
 |-----------|-------------|
-| `agent` | Self-delegation — the agent delegates a task to itself in a fresh context |
-| `sub_agent` | Spawn a subagent (foreground or background) |
-| `parallel_agent` | Run multiple subagents concurrently |
-| `batch` | Execute multiple tools sequentially in a single call |
-| `join` | Wait for a background task to complete by task ID |
+| `agent` | Self-delegation — spawn a clone of the parent agent in a fresh context. Supports `runInBackground`. |
+| `sub_agent` | Spawn a named subagent. Foreground by default; `runInBackground: true` returns immediately and auto-injects the result into the next user turn. Parallel fan-out via multiple tool_use blocks in one turn. |
+| `batch` | Execute multiple tools concurrently in a single call |
 
 ### Task Management
 
@@ -206,7 +204,7 @@ Any MCP server connected to the agent exposes its tools. Tool names are determin
   "integrations": [],
   "config": {
     "max_turns": 50,
-    "disabled_tools": ["parallel_agent", "batch"],
+    "disabled_tools": ["sub_agent", "batch"],
     "immortal": {
       "token_budget": 100000,
       "carry_forward_turns": 2,

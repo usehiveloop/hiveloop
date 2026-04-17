@@ -113,12 +113,14 @@ impl LspManager {
 
         let defs = self.servers_for_ext(ext);
         if defs.is_empty() {
-            return Err(LspError::ServerNotAvailable {
+            return Err(LspError::NoServerForExtension {
+                ext: ext.to_string(),
                 path: file.display().to_string(),
             });
         }
 
         let mut server_ids = Vec::new();
+        let mut spawn_errors: Vec<String> = Vec::new();
 
         for def in &defs {
             let root =
@@ -139,6 +141,7 @@ impl LspManager {
             {
                 let broken = self.broken.read().await;
                 if broken.contains(&reg_key) {
+                    spawn_errors.push(format!("{}: previously failed to start", def.id));
                     continue;
                 }
             }
@@ -154,6 +157,9 @@ impl LspManager {
                     let registered = self.registered.read().await;
                     if let Some(server_id) = registered.get(&reg_key) {
                         server_ids.push(server_id.clone());
+                    } else {
+                        spawn_errors
+                            .push(format!("{}: concurrent spawn attempt failed", def.id));
                     }
                     continue;
                 }
@@ -172,14 +178,21 @@ impl LspManager {
             self.spawning.write().await.remove(&reg_key);
             notify.notify_waiters();
 
-            if let Ok(server_id) = result {
-                server_ids.push(server_id);
+            match result {
+                Ok(server_id) => server_ids.push(server_id),
+                Err(e) => spawn_errors.push(format!("{}: {}", def.id, e)),
             }
         }
 
         if server_ids.is_empty() {
-            return Err(LspError::ServerNotAvailable {
+            let reason = if spawn_errors.is_empty() {
+                "no spawn attempts made".to_string()
+            } else {
+                spawn_errors.join("; ")
+            };
+            return Err(LspError::AllSpawnsFailed {
                 path: file.display().to_string(),
+                reason,
             });
         }
 

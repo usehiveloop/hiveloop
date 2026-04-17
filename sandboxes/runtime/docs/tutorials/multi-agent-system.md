@@ -35,13 +35,13 @@ Create `multi-agent-system.json` with all agents defined together:
     {
       "id": "senior-engineer",
       "name": "Senior Engineer",
-      "system_prompt": "You are a senior engineer coordinating a team. When given code to work on:\n1. Delegate review to the code_reviewer subagent\n2. Delegate tests to the test_writer subagent\n3. Delegate docs to the documenter subagent\n4. Collect results and present a summary\n\nUse parallel_agent tool for efficiency.",
+      "system_prompt": "You are a senior engineer coordinating a team. When given code to work on:\n1. Delegate review to the code_reviewer subagent\n2. Delegate tests to the test_writer subagent\n3. Delegate docs to the documenter subagent\n4. Collect results and present a summary\n\nFan out by emitting three sub_agent tool_use blocks in one turn so they run in parallel.",
       "provider": {
         "provider_type": "anthropic",
         "model": "claude-sonnet-4-20250514",
         "api_key": "YOUR_API_KEY"
       },
-      "tools": ["Read", "parallel_agent", "join"],
+      "tools": ["Read", "sub_agent"],
       "subagents": [
         {
           "id": "sub-reviewer",
@@ -147,49 +147,44 @@ curl -X POST http://localhost:8080/conversations/CONV_ID/messages \
 
 Watch the parent agent:
 1. Read the file
-2. Spawn 3 subagents in parallel using `parallel_agent`
-3. Collect results
-4. Present summary
+2. Emit three `sub_agent` tool_use blocks in a single assistant turn — the runtime runs them in parallel
+3. Receive three `tool_result` blocks on the next turn
+4. Present a consolidated summary
 
 ---
 
 ## How It Works
 
-The parent agent uses the `parallel_agent` tool to delegate tasks:
+The parent emits three `sub_agent` tool_use blocks in the same turn. The runtime dispatches them concurrently and each returns its own `tool_result`:
 
 ```json
-{
-  "name": "parallel_agent",
-  "arguments": {
-    "max_concurrent": 3,
-    "tasks": [
-      {
-        "subagent": "code_reviewer",
-        "description": "Review utils.js",
-        "prompt": "Review /home/user/projects/myapp/src/utils.js for bugs and security issues"
-      },
-      {
-        "subagent": "test_writer",
-        "description": "Write tests for utils.js",
-        "prompt": "Write comprehensive unit tests for /home/user/projects/myapp/src/utils.js"
-      },
-      {
-        "subagent": "documenter",
-        "description": "Document utils.js",
-        "prompt": "Write clear documentation for /home/user/projects/myapp/src/utils.js"
-      }
-    ]
-  }
-}
+{ "name": "sub_agent", "arguments": {
+    "subagentName": "code_reviewer",
+    "description": "Review utils.js",
+    "prompt": "Review /home/user/projects/myapp/src/utils.js for bugs and security issues"
+} }
+{ "name": "sub_agent", "arguments": {
+    "subagentName": "test_writer",
+    "description": "Write tests for utils.js",
+    "prompt": "Write comprehensive unit tests for /home/user/projects/myapp/src/utils.js"
+} }
+{ "name": "sub_agent", "arguments": {
+    "subagentName": "documenter",
+    "description": "Document utils.js",
+    "prompt": "Write clear documentation for /home/user/projects/myapp/src/utils.js"
+} }
 ```
+
+For longer-running work, add `"runInBackground": true` to any of the calls. The parent can then do other work; each subagent's final output is auto-injected into a later user turn as `[Background Agent Task Completed]`. No wait/join tool is needed.
 
 ---
 
 ## What You Learned
 
 - Creating specialized subagents
-- Configuring parent agent with subagents
-- Using parallel_agent for efficiency
+- Configuring a parent agent with subagents
+- Fanning out by emitting multiple `sub_agent` tool_use blocks in one turn
+- Using `runInBackground: true` for fire-and-forget long-running work
 - Coordinating work across agents
 
 ---

@@ -182,7 +182,7 @@ When set to `true`, the agent can complete a turn with only tool calls and no te
 
 #### `max_tasks_per_conversation`
 
-Maximum number of subagent tasks (foreground + background) that can be spawned within a single conversation. This limit is shared across the entire conversation tree, including nested subagents. When the limit is reached, further `spawn_agent` or `parallel_agent` calls return an error.
+Maximum number of subagent tasks (foreground + background) that can be spawned within a single conversation. This limit is shared across the entire conversation tree, including nested subagents. When the limit is reached, further `agent` or `sub_agent` calls return an error.
 
 Default: `50`
 

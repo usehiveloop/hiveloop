@@ -1162,13 +1162,6 @@ pub async fn run_conversation(params: ConversationParams) {
         store.remove_by_prefix(&conversation_id);
     }
 
-    // Cleanup task registry entries for this conversation (prevents unbounded growth)
-    if let Some(ref ctx) = agent_context {
-        if let Some(ref registry) = ctx.task_registry {
-            registry.cleanup_conversation(&conversation_id);
-        }
-    }
-
     // Disconnect any per-conversation MCP servers attached at creation time.
     // Runs on every loop-exit path (DELETE, abort, drain, SIGINT/SIGTERM,
     // max_turns, internal error) — panics and OS-level task aborts still skip it.

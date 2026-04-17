@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Changed — BREAKING
+
+- **Subagent orchestration simplified to match Claude Code's model.** Three tools collapsed to one:
+  - Removed `parallel_agent` and `join` tools entirely.
+  - `sub_agent` and `agent` rename the `background` parameter to `runInBackground`.
+  - Parallel fan-out is now achieved by emitting multiple `sub_agent` tool_use blocks in a single assistant turn — the runtime already dispatches tool calls in parallel. No array-taking tool is needed.
+  - Background subagent results are auto-injected into the parent's next user turn as `[Background Agent Task Completed]` messages. The `TaskRegistry` and its polling surface are gone — the existing `notification_tx` path was already doing the delivery, so `join` had become redundant double-delivery.
+  - `AgentContext.task_registry` field removed. `AgentState::new` no longer takes a `task_registry` argument. `ConversationSubAgentRunner::with_task_registry` removed.
+  - Net: ~1,100 lines deleted; no behavioural regressions in the workspace test suite.
+  - Migration: rename `"background": true` to `"runInBackground": true` in any agent definition or prompt. Replace `parallel_agent` calls with multiple `sub_agent` tool_use blocks in the same turn. Remove any use of `join` — background results arrive automatically.
+
 ### Added
 
 - **WebSocket Event Stream:** New `/ws/events` endpoint that delivers all events from all agents and conversations over a single persistent WebSocket connection. Efficient alternative to webhooks for high-throughput control planes.

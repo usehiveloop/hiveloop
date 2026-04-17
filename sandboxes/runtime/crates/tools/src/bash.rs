@@ -194,7 +194,9 @@ impl ToolExecutor for BashTool {
         });
 
         if args.background {
-            // Background execution: return immediately, notify on completion
+            // Background execution: return immediately, notify on completion.
+            // The result is injected into the next user turn by the
+            // conversation loop when the notification is received.
             let ctx = AGENT_CONTEXT
                 .try_with(|c| c.clone())
                 .map_err(|_| "Background bash requires a conversation context".to_string())?;
@@ -202,7 +204,6 @@ impl ToolExecutor for BashTool {
             let task_id = uuid::Uuid::new_v4().to_string();
             let task_id_clone = task_id.clone();
             let notification_tx = ctx.notification_tx.clone();
-            let task_registry = ctx.task_registry.clone();
 
             tokio::spawn(async move {
                 let result = run_command(&command, &workdir, timeout_ms).await;
@@ -214,11 +215,6 @@ impl ToolExecutor for BashTool {
                     },
                     Err(e) => Err(e),
                 };
-
-                // Mark task as complete in registry (for join tool)
-                if let Some(registry) = task_registry {
-                    registry.complete(task_id_clone.clone(), output.clone());
-                }
 
                 let notification = AgentTaskNotification {
                     task_id: task_id_clone,
@@ -286,7 +282,6 @@ mod tests {
         AgentContext, AgentTaskHandle, AgentTaskNotification, AgentTaskResult, SubAgentRunner,
         TaskBudget, AGENT_CONTEXT,
     };
-    use crate::join::{JoinResult, TaskRegistry};
     use std::sync::Arc;
     use tokio::sync::mpsc;
 
@@ -323,7 +318,6 @@ mod tests {
         let ctx = AgentContext {
             runner: Arc::new(MockRunner),
             notification_tx: tx,
-            task_registry: None,
             depth: 0,
             max_depth: 3,
             task_budget: Arc::new(TaskBudget::new(50)),
@@ -549,14 +543,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_bash_background_registers_with_task_registry() {
-        let registry = Arc::new(TaskRegistry::new());
+    async fn test_bash_background_delivers_notification() {
         let (tx, mut rx) = mpsc::channel(16);
-
         let ctx = AgentContext {
             runner: Arc::new(MockRunner),
             notification_tx: tx,
-            task_registry: Some(registry.clone()),
             depth: 0,
             max_depth: 3,
             task_budget: Arc::new(TaskBudget::new(50)),
@@ -564,12 +555,11 @@ mod tests {
 
         let tool = BashTool::new();
         let args = serde_json::json!({
-            "command": "echo registry_test_output",
+            "command": "echo background_bash_output",
             "background": true,
-            "description": "test registry integration"
+            "description": "test notification delivery"
         });
 
-        // Start background task
         let result = AGENT_CONTEXT
             .scope(ctx, async { tool.execute(args).await })
             .await;
@@ -579,182 +569,16 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&output).expect("parse JSON");
         let task_id = parsed["task_id"].as_str().unwrap();
 
-        // Wait for notification (to ensure task completes)
         let notification = tokio::time::timeout(Duration::from_secs(5), rx.recv())
             .await
             .expect("notification should arrive")
             .expect("channel should not be closed");
 
         assert_eq!(notification.task_id, task_id);
-
-        // Verify task is registered as completed in TaskRegistry
-        let completed_result = registry.is_completed(task_id);
-        assert!(
-            completed_result.is_some(),
-            "task should be marked as completed in registry"
-        );
-
-        let task_result = completed_result.unwrap();
-        assert_eq!(task_result.status, "completed");
-        assert!(task_result.output.is_some());
-        assert!(task_result
-            .output
-            .as_ref()
-            .unwrap()
-            .contains("registry_test_output"));
-        assert!(task_result.error.is_none());
-    }
-
-    #[tokio::test]
-    async fn test_bash_background_failed_command_registers_with_registry() {
-        let registry = Arc::new(TaskRegistry::new());
-        let (tx, mut rx) = mpsc::channel(16);
-
-        let ctx = AgentContext {
-            runner: Arc::new(MockRunner),
-            notification_tx: tx,
-            task_registry: Some(registry.clone()),
-            depth: 0,
-            max_depth: 3,
-            task_budget: Arc::new(TaskBudget::new(50)),
-        };
-
-        let tool = BashTool::new();
-        let args = serde_json::json!({
-            "command": "exit 42",
-            "background": true,
-            "description": "test failed command registry"
-        });
-
-        // Start background task
-        let result = AGENT_CONTEXT
-            .scope(ctx, async { tool.execute(args).await })
-            .await;
-
-        assert!(result.is_ok());
-        let output = result.unwrap();
-        let parsed: serde_json::Value = serde_json::from_str(&output).expect("parse JSON");
-        let task_id = parsed["task_id"].as_str().unwrap();
-
-        // Wait for notification
-        let notification = tokio::time::timeout(Duration::from_secs(5), rx.recv())
-            .await
-            .expect("notification should arrive")
-            .expect("channel should not be closed");
-
-        assert_eq!(notification.task_id, task_id);
-
-        // Verify task is registered as completed (even on failure)
-        let completed_result = registry.is_completed(task_id);
-        assert!(
-            completed_result.is_some(),
-            "task should be marked as completed in registry"
-        );
-
-        let task_result = completed_result.unwrap();
-        assert_eq!(task_result.status, "completed"); // bash exit code is still "completed" registry-wise
-        assert!(task_result.output.is_some());
-        // The output should contain exit_code: 42
-        assert!(task_result.output.as_ref().unwrap().contains("42"));
-    }
-
-    #[tokio::test]
-    async fn test_bash_background_works_without_registry() {
-        // Test that background bash still works when task_registry is None
-        let (tx, mut rx) = mpsc::channel(16);
-
-        let ctx = AgentContext {
-            runner: Arc::new(MockRunner),
-            notification_tx: tx,
-            task_registry: None, // No registry
-            depth: 0,
-            max_depth: 3,
-            task_budget: Arc::new(TaskBudget::new(50)),
-        };
-
-        let tool = BashTool::new();
-        let args = serde_json::json!({
-            "command": "echo no_registry_test",
-            "background": true,
-            "description": "test without registry"
-        });
-
-        // Should still work fine
-        let result = AGENT_CONTEXT
-            .scope(ctx, async { tool.execute(args).await })
-            .await;
-
-        assert!(result.is_ok());
-
-        // Notification should still arrive
-        let notification = tokio::time::timeout(Duration::from_secs(5), rx.recv())
-            .await
-            .expect("notification should arrive")
-            .expect("channel should not be closed");
-
         assert!(notification
             .output
             .expect("should be Ok")
-            .contains("no_registry_test"));
-    }
-
-    #[tokio::test]
-    async fn test_bash_background_and_join_integration() {
-        use crate::join::JoinTool;
-
-        let registry = Arc::new(TaskRegistry::new());
-        let join_tool = JoinTool::new(registry.clone());
-        let (tx, _rx) = mpsc::channel(16);
-
-        let ctx = AgentContext {
-            runner: Arc::new(MockRunner),
-            notification_tx: tx,
-            task_registry: Some(registry.clone()),
-            depth: 0,
-            max_depth: 3,
-            task_budget: Arc::new(TaskBudget::new(50)),
-        };
-
-        let tool = BashTool::new();
-        let args = serde_json::json!({
-            "command": "echo joinable_task",
-            "background": true,
-            "description": "test join integration"
-        });
-
-        // Start background task
-        let result = AGENT_CONTEXT
-            .scope(ctx.clone(), async { tool.execute(args).await })
-            .await;
-
-        assert!(result.is_ok());
-        let output = result.unwrap();
-        let parsed: serde_json::Value = serde_json::from_str(&output).expect("parse JSON");
-        let task_id = parsed["task_id"].as_str().unwrap().to_string();
-
-        // Use join tool to wait for the bash background task
-        let join_args = serde_json::json!({
-            "task_ids": [task_id],
-            "timeout_secs": 5
-        });
-
-        let join_result = AGENT_CONTEXT
-            .scope(ctx, async { join_tool.execute(join_args).await })
-            .await;
-
-        assert!(join_result.is_ok());
-        let join_output = join_result.unwrap();
-        let join_parsed: JoinResult = serde_json::from_str(&join_output).expect("parse JoinResult");
-
-        assert_eq!(join_parsed.total, 1);
-        assert_eq!(join_parsed.succeeded, 1);
-        assert!(join_parsed.all_succeeded);
-        assert_eq!(join_parsed.completed[0].status, "completed");
-        assert!(join_parsed.completed[0]
-            .output
-            .as_ref()
-            .unwrap()
-            .contains("joinable_task"));
+            .contains("background_bash_output"));
     }
 
     #[cfg(unix)]
