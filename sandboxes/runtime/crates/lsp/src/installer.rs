@@ -5,9 +5,16 @@
 
 use std::collections::HashMap;
 use std::process::Stdio;
-use tracing::{debug, error, info};
+use tracing::{debug, info, warn};
 
-/// Installation method for an LSP server
+/// Installation method for an LSP server.
+///
+/// Only package managers that are broadly available on typical Linux/macOS
+/// dev boxes are supported here. Servers whose only distribution is via
+/// rare toolchains (opam, luarocks, stack, gem, dart pub, coursier, ...)
+/// were dropped from `installable_servers()` because attempting to install
+/// them reliably fails with `No such file or directory` on boxes that
+/// haven't pre-installed the toolchain.
 #[derive(Debug, Clone)]
 pub enum InstallMethod {
     /// Install via npm: `npm install -g <package>`
@@ -16,17 +23,9 @@ pub enum InstallMethod {
     Cargo { crate_name: String },
     /// Install via go: `go install <path>@latest`
     Go { path: String },
-    /// Install via gem: `gem install <gem>`
-    Gem { gem: String },
     /// Install via pip: `pip install <package>`
     Pip { package: String },
-    /// Install via luarocks: `luarocks install <rock>`
-    LuaRocks { rock: String },
-    /// Install via opam: `opam install <package>`
-    Opam { package: String },
-    /// Install via stack: `stack install <package>`
-    Stack { package: String },
-    /// Custom install command
+    /// Custom install command (usually a curl/wget + unpack script).
     Custom { command: String, args: Vec<String> },
 }
 
@@ -70,6 +69,24 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             },
             binaries: vec!["biome".to_string()],
             description: "Biome LSP server for JS/TS/JSON/CSS".to_string(),
+        },
+        // Deno — the LSP is built into the `deno` CLI (`deno lsp`). The official
+        // install script honors DENO_INSTALL as a prefix, so the binary lands
+        // at ~/.local/bin/deno to match the other self-contained downloads.
+        InstallableServer {
+            id: "deno".to_string(),
+            method: InstallMethod::Custom {
+                command: "bash".to_string(),
+                args: vec![
+                    "-c".to_string(),
+                    "set -eu; mkdir -p \"$HOME/.local/bin\"; \
+                     DENO_INSTALL=\"$HOME/.local\" \
+                     curl -fsSL https://deno.land/install.sh | sh"
+                        .to_string(),
+                ],
+            },
+            binaries: vec!["deno".to_string()],
+            description: "Deno language server (built into the Deno CLI)".to_string(),
         },
         // Web frameworks
         InstallableServer {
@@ -132,17 +149,6 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             binaries: vec!["pyright-langserver".to_string()],
             description: "Pyright language server".to_string(),
         },
-        // Ruby — the real LSP is the `ruby-lsp` gem (Shopify). `rubocop --lsp`
-        // is a linter-only sidecar that doesn't provide document-symbol or
-        // navigation operations.
-        InstallableServer {
-            id: "ruby-lsp".to_string(),
-            method: InstallMethod::Gem {
-                gem: "ruby-lsp".to_string(),
-            },
-            binaries: vec!["ruby-lsp".to_string()],
-            description: "Ruby language server".to_string(),
-        },
         // PHP
         InstallableServer {
             id: "php".to_string(),
@@ -160,16 +166,6 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             },
             binaries: vec!["bash-language-server".to_string()],
             description: "Bash language server".to_string(),
-        },
-        // Dart
-        InstallableServer {
-            id: "dart".to_string(),
-            method: InstallMethod::Custom {
-                command: "dart".to_string(),
-                args: vec!["pub".to_string(), "global".to_string(), "activate".to_string(), "analyzer".to_string()],
-            },
-            binaries: vec!["dart".to_string()],
-            description: "Dart language server".to_string(),
         },
         // Java/Kotlin — Eclipse JDT ships a platform-neutral tarball.
         InstallableServer {
@@ -224,26 +220,6 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             binaries: vec!["zls".to_string()],
             description: "Zig language server".to_string(),
         },
-        // .NET
-        InstallableServer {
-            id: "csharp".to_string(),
-            method: InstallMethod::Custom {
-                command: "dotnet".to_string(),
-                args: vec!["tool".to_string(), "install".to_string(), "--global".to_string(), "csharp-ls".to_string()],
-            },
-            binaries: vec!["csharp-ls".to_string()],
-            description: "C# language server".to_string(),
-        },
-        // Haskell
-        InstallableServer {
-            id: "haskell".to_string(),
-            method: InstallMethod::Custom {
-                command: "bash".to_string(),
-                args: vec!["-c".to_string(), "echo 'Please install haskell-language-server via ghcup: ghcup install hls'".to_string()],
-            },
-            binaries: vec!["haskell-language-server-wrapper".to_string()],
-            description: "Haskell language server".to_string(),
-        },
         // Terraform
         InstallableServer {
             id: "terraform".to_string(),
@@ -284,16 +260,6 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             binaries: vec!["yaml-language-server".to_string()],
             description: "YAML language server".to_string(),
         },
-        // Nix
-        InstallableServer {
-            id: "nixd".to_string(),
-            method: InstallMethod::Custom {
-                command: "bash".to_string(),
-                args: vec!["-c".to_string(), "echo 'Please install nixd via nix: nix profile install nixpkgs#nixd'".to_string()],
-            },
-            binaries: vec!["nixd".to_string()],
-            description: "Nix language server".to_string(),
-        },
         // Prisma
         InstallableServer {
             id: "prisma".to_string(),
@@ -325,15 +291,6 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             binaries: vec!["language_server.sh".to_string()],
             description: "Elixir language server".to_string(),
         },
-        // OCaml
-        InstallableServer {
-            id: "ocaml-lsp".to_string(),
-            method: InstallMethod::Opam {
-                package: "ocaml-lsp-server".to_string(),
-            },
-            binaries: vec!["ocamllsp".to_string()],
-            description: "OCaml language server".to_string(),
-        },
         // Clojure
         InstallableServer {
             id: "clojure-lsp".to_string(),
@@ -347,26 +304,6 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             binaries: vec!["clojure-lsp".to_string()],
             description: "Clojure language server".to_string(),
         },
-        // Swift
-        InstallableServer {
-            id: "sourcekit-lsp".to_string(),
-            method: InstallMethod::Custom {
-                command: "bash".to_string(),
-                args: vec!["-c".to_string(), "echo 'Please install sourcekit-lsp via Swift toolchain'".to_string()],
-            },
-            binaries: vec!["sourcekit-lsp".to_string()],
-            description: "Swift language server".to_string(),
-        },
-        // Julia
-        InstallableServer {
-            id: "julials".to_string(),
-            method: InstallMethod::Custom {
-                command: "bash".to_string(),
-                args: vec!["-c".to_string(), "echo 'Julia LanguageServer is auto-installed by the Julia package on first run'".to_string()],
-            },
-            binaries: vec!["julia".to_string()],
-            description: "Julia language server".to_string(),
-        },
         // Typst
         InstallableServer {
             id: "tinymist".to_string(),
@@ -375,27 +312,6 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             },
             binaries: vec!["tinymist".to_string()],
             description: "Typst language server".to_string(),
-        },
-        // Deno
-        InstallableServer {
-            id: "deno".to_string(),
-            method: InstallMethod::Custom {
-                command: "bash".to_string(),
-                args: vec!["-c".to_string(), "echo 'Please install Deno: curl -fsSL https://deno.land/install.sh | sh'".to_string()],
-            },
-            binaries: vec!["deno".to_string()],
-            description: "Deno LSP (built into Deno CLI)".to_string(),
-        },
-        // Additional popular servers
-        // Scala
-        InstallableServer {
-            id: "metals".to_string(),
-            method: InstallMethod::Custom {
-                command: "bash".to_string(),
-                args: vec!["-c".to_string(), "cs install metals".to_string()],
-            },
-            binaries: vec!["metals".to_string()],
-            description: "Scala language server (Metals)".to_string(),
         },
         // Python - Ruff (very fast linter/formatter with LSP)
         InstallableServer {
@@ -423,15 +339,6 @@ pub fn installable_servers() -> Vec<InstallableServer> {
             },
             binaries: vec!["tailwindcss-language-server".to_string()],
             description: "Tailwind CSS language server".to_string(),
-        },
-        // Ruby - Official Ruby LSP (Shopify)
-        InstallableServer {
-            id: "ruby-lsp-official".to_string(),
-            method: InstallMethod::Gem {
-                gem: "ruby-lsp".to_string(),
-            },
-            binaries: vec!["ruby-lsp".to_string()],
-            description: "Official Ruby LSP by Shopify".to_string(),
         },
         // GraphQL
         InstallableServer {
@@ -527,11 +434,7 @@ impl LspInstaller {
             InstallMethod::Npm { package } => self.install_npm(package).await,
             InstallMethod::Cargo { crate_name } => self.install_cargo(crate_name).await,
             InstallMethod::Go { path } => self.install_go(path).await,
-            InstallMethod::Gem { gem } => self.install_gem(gem).await,
             InstallMethod::Pip { package } => self.install_pip(package).await,
-            InstallMethod::LuaRocks { rock } => self.install_luarocks(rock).await,
-            InstallMethod::Opam { package } => self.install_opam(package).await,
-            InstallMethod::Stack { package } => self.install_stack(package).await,
             InstallMethod::Custom { command, args } => self.install_custom(command, args).await,
         };
 
@@ -541,7 +444,12 @@ impl LspInstaller {
                 Ok(())
             }
             Err(e) => {
-                error!(server = %server_id, error = %e, "installation failed");
+                // Downgraded from error! → warn!: a single missing toolchain
+                // (opam, dotnet, gem, ...) should not make `bridge install-lsp
+                // all` look catastrophic. The CLI surfaces a summary at the
+                // end and always exits 0; the operator can install the
+                // underlying toolchain and re-run for the specific id.
+                warn!(server = %server_id, error = %e, "installation failed");
                 Err(e)
             }
         }
@@ -635,12 +543,6 @@ impl LspInstaller {
         self.run_install_cmd("go", &["install", path], path).await
     }
 
-    /// Install gem
-    async fn install_gem(&self, gem: &str) -> Result<(), String> {
-        debug!(gem = %gem, "running gem install");
-        self.run_install_cmd("gem", &["install", gem], gem).await
-    }
-
     /// Install pip package. Uses `python3 -m pip install --user
     /// --break-system-packages` because (a) bare `pip` is missing on modern
     /// systems, (b) PEP 668-marked distros (Homebrew Python, recent Debian)
@@ -660,60 +562,6 @@ impl LspInstaller {
             package,
         )
         .await
-    }
-
-    /// Install luarocks package
-    async fn install_luarocks(&self, rock: &str) -> Result<(), String> {
-        debug!(rock = %rock, "running luarocks install");
-        let status = tokio::process::Command::new("luarocks")
-            .args(["install", rock])
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .status()
-            .await
-            .map_err(|e| format!("Failed to run luarocks: {}", e))?;
-
-        if status.success() {
-            Ok(())
-        } else {
-            Err(format!("luarocks install failed for {}", rock))
-        }
-    }
-
-    /// Install opam package
-    async fn install_opam(&self, package: &str) -> Result<(), String> {
-        debug!(package = %package, "running opam install");
-        let status = tokio::process::Command::new("opam")
-            .args(["install", "-y", package])
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .status()
-            .await
-            .map_err(|e| format!("Failed to run opam: {}", e))?;
-
-        if status.success() {
-            Ok(())
-        } else {
-            Err(format!("opam install failed for {}", package))
-        }
-    }
-
-    /// Install stack package
-    async fn install_stack(&self, package: &str) -> Result<(), String> {
-        debug!(package = %package, "running stack install");
-        let status = tokio::process::Command::new("stack")
-            .args(["install", package])
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .status()
-            .await
-            .map_err(|e| format!("Failed to run stack: {}", e))?;
-
-        if status.success() {
-            Ok(())
-        } else {
-            Err(format!("stack install failed for {}", package))
-        }
     }
 
     /// Run custom install command

@@ -1,6 +1,14 @@
 # Changelog
 
-## [Unreleased]
+## [0.20.1] - 2026-04-17
+
+### Changed
+
+- **`bridge install-lsp` catalog trimmed to only servers with broadly-available install methods.** Servers whose only distribution is via niche toolchains (`opam`, `gem`, `dart pub`, `dotnet tool`, `cs`/Coursier) were dropped. Placeholder entries that only `echo`'d setup instructions (`haskell`, `nixd`, `julials`, `sourcekit-lsp`, old `deno`) were dropped. Removed ids: `ocaml-lsp`, `ruby-lsp`, `ruby-lsp-official`, `dart`, `metals`, `csharp`, `haskell`, `nixd`, `julials`, `sourcekit-lsp`. The `InstallMethod::{Gem, LuaRocks, Opam, Stack}` enum variants and their install paths are deleted as dead code.
+- **`deno` re-added** as a real install via the official `install.sh` with `DENO_INSTALL=$HOME/.local` so the binary lands alongside the other self-contained downloads in `~/.local/bin`.
+- **Per-server install failures are now non-fatal.** `bridge install-lsp <list>` downgrades individual failures from `error!` to `warn!` and always exits 0. The final log summarises which ids were skipped so the operator can install the missing toolchain and re-run the specific id. Previously one missing `opam` (or similar) would make the whole command exit 1.
+
+## [0.20.0] - 2026-04-17
 
 ### Changed — BREAKING
 
@@ -22,6 +30,10 @@
   - Supports multiple concurrent clients
   - Lagged client detection with warning messages
   - Can be used alongside webhooks or as the sole event delivery mechanism
+
+### Search tools
+
+- Replaced the generic `grep` tool with `RipGrep` (regex/text over file contents) and `AstGrep` (structural code search using ast-grep patterns).
 
 ## [0.3.0] - 2026-03-18
 

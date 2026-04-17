@@ -110,24 +110,24 @@ Install LSP server binaries for code intelligence support. This is a standalone 
 # Install specific servers
 bridge install-lsp rust,go,typescript
 
-# Install all 40+ available servers
+# Install every bundled server (~30)
 bridge install-lsp all
 
 # Start the server (no install step)
 bridge
 ```
 
-Already-installed servers are skipped. The command exits with a non-zero status if any server fails.
+Already-installed servers are skipped. Per-server failures are non-fatal — if a server's underlying package manager isn't on the host (e.g. `cargo`, `go`, `python3`, `npm`), that id is logged as a warning and skipped; the command still exits 0. The tail of the log summarises which ids were skipped so the operator can install the missing toolchain and re-run `bridge install-lsp <id>`.
 
-**Available servers include:**
-- **JavaScript/TypeScript**: typescript, eslint, biome, deno, vue, svelte, astro, tailwindcss
-- **Systems**: rust, go, zig, clangd
-- **Python**: python (pyright), ruff, pylsp
-- **Web**: yaml, json, dockerfile, terraform, graphql
-- **JVM**: jdtls (Java), kotlin-ls
-- **Ruby**: ruby-lsp, ruby-lsp-official
-- **Functional**: haskell, elixir, gleam, ocaml, elm, clojure
-- **And more**: scala (metals), php, lua, bash, dart, cmake, ansible, vimls, nix, etc.
+Only servers with broadly-available install methods (npm, pip, cargo, go, or self-contained curl/wget downloads) are bundled. Servers that would require niche toolchains (`opam`, `gem`, `dart pub`, `cs`/Coursier, `dotnet tool`, `ghcup`, `nix`) have been dropped from the installer — the runtime can still launch them if the binary is already on `PATH`, you just need to install it yourself.
+
+**Bundled servers:**
+- **JavaScript/TypeScript**: `typescript`, `eslint`, `biome`, `deno`, `vue`, `svelte`, `astro`, `tailwindcss`
+- **Systems**: `rust`, `go`, `zig`, `clangd`
+- **Python**: `python` (pyright), `ruff`, `pylsp`
+- **Config / infra**: `yaml-ls`, `dockerfile`, `terraform`, `graphql`, `cmake`, `ansible`
+- **JVM / BEAM / JVM-ish**: `jdtls` (Java), `elixir-ls`, `clojure-lsp`
+- **Misc**: `php`, `bash`, `prisma`, `elm`, `tinymist` (Typst), `vimls`
 
 ## API Endpoints
 

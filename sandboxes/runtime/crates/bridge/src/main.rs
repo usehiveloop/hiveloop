@@ -99,7 +99,7 @@ async fn handle_install_lsp_command(servers: String) -> anyhow::Result<()> {
     let results = installer.install(&server_ids).await;
 
     let mut succeeded = 0;
-    let mut failed = 0;
+    let mut failed: Vec<(String, String)> = Vec::new();
     for (id, result) in &results {
         match result {
             Ok(_) => {
@@ -108,15 +108,33 @@ async fn handle_install_lsp_command(servers: String) -> anyhow::Result<()> {
             }
             Err(e) => {
                 warn!(server = %id, error = %e, "installation failed");
-                failed += 1;
+                failed.push((id.clone(), e.clone()));
             }
         }
     }
 
-    info!(succeeded, failed, "LSP server installation complete");
+    info!(
+        succeeded,
+        failed = failed.len(),
+        "LSP server installation complete"
+    );
 
-    if failed > 0 {
-        anyhow::bail!("{failed} server(s) failed to install");
+    // Per-server failures are non-fatal: a missing toolchain (opam, gem,
+    // dotnet, ...) on the host should not stop the rest of `install-lsp all`
+    // from succeeding, nor should it make this command exit non-zero — the
+    // operator can install the underlying toolchain and re-run the specific
+    // id. We surface a single summary warning so the failure is visible.
+    if !failed.is_empty() {
+        let summary: String = failed
+            .iter()
+            .map(|(id, err)| format!("{} ({})", id, err))
+            .collect::<Vec<_>>()
+            .join(", ");
+        warn!(
+            count = failed.len(),
+            details = %summary,
+            "some LSP servers were skipped"
+        );
     }
     Ok(())
 }
