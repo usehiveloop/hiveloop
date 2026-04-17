@@ -158,8 +158,7 @@ impl LspManager {
                     if let Some(server_id) = registered.get(&reg_key) {
                         server_ids.push(server_id.clone());
                     } else {
-                        spawn_errors
-                            .push(format!("{}: concurrent spawn attempt failed", def.id));
+                        spawn_errors.push(format!("{}: concurrent spawn attempt failed", def.id));
                     }
                     continue;
                 }

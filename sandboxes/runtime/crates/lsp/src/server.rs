@@ -276,17 +276,17 @@ pub fn builtin_servers() -> Vec<ServerDef> {
             &["yaml", "yml"],
             &[],
         ),
-        server(
-            "vimls",
-            &["vim-language-server", "--stdio"],
-            &["vim"],
-            &[],
-        ),
+        server("vimls", &["vim-language-server", "--stdio"], &["vim"], &[]),
         server(
             "graphql",
             &["graphql-lsp", "server", "--method=stream"],
             &["graphql", "gql"],
-            &[".graphqlrc", ".graphqlrc.yml", ".graphqlrc.json", "graphql.config.js"],
+            &[
+                ".graphqlrc",
+                ".graphqlrc.yml",
+                ".graphqlrc.json",
+                "graphql.config.js",
+            ],
         ),
         server(
             "cmake",

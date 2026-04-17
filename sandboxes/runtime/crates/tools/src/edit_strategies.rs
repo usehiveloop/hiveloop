@@ -192,7 +192,7 @@ impl Replacer for BlockAnchorReplacer {
         }
 
         // Sort by position descending for reverse-order replacement
-        candidates.sort_by(|a, b| b.0.cmp(&a.0));
+        candidates.sort_by_key(|c| std::cmp::Reverse(c.0));
 
         let new_lines_vec: Vec<&str> = new_string.lines().collect();
         let mut result_lines: Vec<&str> = content_lines;
@@ -371,7 +371,7 @@ impl Replacer for IndentationFlexibleReplacer {
 
         let mut result_lines: Vec<String> = content_lines.iter().map(|l| l.to_string()).collect();
         let mut sorted = matches_to_apply;
-        sorted.sort_unstable_by(|a, b| b.0.cmp(&a.0));
+        sorted.sort_unstable_by_key(|s| std::cmp::Reverse(s.0));
         let count = sorted.len();
 
         for (start, actual_indent) in &sorted {

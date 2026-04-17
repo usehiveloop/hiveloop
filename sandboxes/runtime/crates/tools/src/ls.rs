@@ -195,7 +195,10 @@ mod tests {
             "should mention absolute path requirement"
         );
         assert!(desc.contains("Glob"), "should mention cross-tool guidance");
-        assert!(desc.contains("RipGrep"), "should mention cross-tool guidance");
+        assert!(
+            desc.contains("RipGrep"),
+            "should mention cross-tool guidance"
+        );
     }
 
     #[tokio::test]

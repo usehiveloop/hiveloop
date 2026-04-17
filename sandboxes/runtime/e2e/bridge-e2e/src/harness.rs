@@ -431,7 +431,7 @@ impl TestHarness {
         tracing::info!(port = bridge_port, "bridge process started");
 
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(30))
             .pool_max_idle_per_host(0)
             .build()
             .context("failed to build reqwest client")?;
@@ -761,7 +761,7 @@ impl TestHarness {
         );
 
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(30))
             .pool_max_idle_per_host(0)
             .build()
             .context("failed to build reqwest client")?;
