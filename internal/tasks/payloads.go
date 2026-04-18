@@ -426,3 +426,48 @@ func NewConversationNameTask(conversationID uuid.UUID) (*asynq.Task, error) {
 		asynq.Unique(5*time.Minute),
 	), nil
 }
+
+// ---------------------------------------------------------------------------
+// subscription:dispatch
+// ---------------------------------------------------------------------------
+
+// SubscriptionDispatchPayload carries the info needed to forward a webhook
+// event into every conversation that has an active subscription matching
+// the event's resource. Shape intentionally mirrors TriggerDispatchPayload
+// — if they stay aligned we can eventually share a single payload type.
+type SubscriptionDispatchPayload struct {
+	Provider     string    `json:"provider"`
+	EventType    string    `json:"event_type"`
+	EventAction  string    `json:"event_action"`
+	DeliveryID   string    `json:"delivery_id"`
+	OrgID        uuid.UUID `json:"org_id"`
+	ConnectionID uuid.UUID `json:"connection_id"`
+	PayloadJSON  []byte    `json:"payload"`
+}
+
+// NewSubscriptionDispatchTask creates a task that resolves the event's
+// resource_key and forwards the event into every matching active
+// conversation_subscription.
+//
+// Queue is Critical because delivery latency is user-visible: agents expect
+// events promptly. MaxRetry 3 handles transient Bridge SendMessage failures.
+// Timeout 2 minutes covers the worst case: wake a sleeping sandbox + N
+// parallel Bridge SendMessage calls for a fanned-out event.
+//
+// asynq.Unique with the delivery_id as the basis deduplicates redelivered
+// webhooks — Nango occasionally re-sends, and we don't want the agent to
+// see the same event twice.
+func NewSubscriptionDispatchTask(payload SubscriptionDispatchPayload) (*asynq.Task, error) {
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshal subscription dispatch payload: %w", err)
+	}
+	return asynq.NewTask(
+		TypeSubscriptionDispatch,
+		encoded,
+		asynq.Queue(QueueCritical),
+		asynq.MaxRetry(3),
+		asynq.Timeout(2*time.Minute),
+		asynq.Unique(2*time.Minute),
+	), nil
+}

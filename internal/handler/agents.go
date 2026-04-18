@@ -968,16 +968,14 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		updates["agent_config"] = req.AgentConfig
 	}
 	if req.Permissions != nil {
-		permKeys := make(map[string]string, len(req.Permissions))
+		filtered := make(model.JSON, len(req.Permissions))
 		for key, val := range req.Permissions {
-			str, _ := val.(string)
-			permKeys[key] = str
+			if !model.IsValidPermissionKey(key) {
+				continue
+			}
+			filtered[key] = val
 		}
-		if invalid := model.ValidatePermissionKeys(permKeys); invalid != "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid permission tool: %q", invalid)})
-			return
-		}
-		updates["permissions"] = req.Permissions
+		updates["permissions"] = filtered
 	}
 	if req.Resources != nil {
 		updates["resources"] = req.Resources

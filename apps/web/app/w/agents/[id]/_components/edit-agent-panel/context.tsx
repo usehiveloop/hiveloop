@@ -38,6 +38,7 @@ interface EditAgentContextValue {
   removeIntegration: (connectionId: string) => void
   addTrigger: (trigger: TriggerConfig) => void
   removeTrigger: (index: number) => void
+  updateTrigger: (index: number, newTriggers: TriggerConfig[]) => void
   toggleSkill: (skillId: string) => void
   handleSave: () => void
 }
@@ -153,6 +154,14 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
     setTriggers((previous) => previous.filter((_, triggerIndex) => triggerIndex !== index))
   }, [])
 
+  const updateTrigger = useCallback((index: number, newTriggers: TriggerConfig[]) => {
+    setTriggers((previous) => [
+      ...previous.slice(0, index),
+      ...newTriggers,
+      ...previous.slice(index + 1),
+    ])
+  }, [])
+
   const toggleSkill = useCallback((skillId: string) => {
     setSkillIds((prev) => {
       const next = new Set(prev)
@@ -243,6 +252,7 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
         removeIntegration,
         addTrigger,
         removeTrigger,
+        updateTrigger,
         toggleSkill,
         handleSave,
       }}

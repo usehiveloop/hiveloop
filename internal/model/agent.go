@@ -174,3 +174,8 @@ func ValidatePermissionKeys(permissions map[string]string) string {
 	}
 	return ""
 }
+
+// IsValidPermissionKey reports whether key refers to a known built-in tool ID.
+func IsValidPermissionKey(key string) bool {
+	return validBuiltInToolIDs[key]
+}
