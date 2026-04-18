@@ -108,6 +108,10 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		// Agent conversation creation (sandbox provisioning + Bridge push + first message).
 		mux.HandleFunc(TypeAgentConversationCreate,
 			NewAgentConversationCreateHandler(deps.DB, deps.Orchestrator, deps.Pusher).Handle)
+
+		// Subscription dispatch (fans webhook events into subscribed conversations).
+		mux.HandleFunc(TypeSubscriptionDispatch,
+			NewSubscriptionDispatchHandler(deps.DB, deps.Orchestrator, catalog.Global()).Handle)
 	}
 
 	return mux
