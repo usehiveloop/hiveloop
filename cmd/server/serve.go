@@ -20,6 +20,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/goroutine"
 	"github.com/ziraloop/ziraloop/internal/handler"
 	"github.com/ziraloop/ziraloop/internal/hindsight"
+	"github.com/ziraloop/ziraloop/internal/subscriptions"
 	"github.com/ziraloop/ziraloop/internal/mcpserver"
 	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/proxy"
@@ -62,6 +63,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	if cfg.HindsightAPIURL != "" {
 		mcpHandler.SetMemoryTools(hindsight.NewMemoryToolsFunc(hindsight.NewClient(cfg.HindsightAPIURL)))
 	}
+	mcpHandler.SetSubscriptionTools(subscriptions.RegisterTools(subscriptions.NewService(database, actionsCatalog)))
 	credHandler := handler.NewCredentialHandler(database, deps.KMS, cacheManager, ctr)
 	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr, actionsCatalog, cfg.MCPBaseURL, mcpHandler.ServerCache)
 	providerHandler := handler.NewProviderHandler(reg)

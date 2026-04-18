@@ -20,10 +20,17 @@ import (
 // Used to avoid an import cycle between mcpserver and hindsight.
 type MemoryToolsFunc func(server *mcp.Server, agentID string, db *gorm.DB)
 
+// SubscriptionToolsFunc is a callback that registers subscribe_to_events and
+// list_my_subscriptions on a server. Used to avoid an import cycle between
+// mcpserver and the subscriptions package.
+type SubscriptionToolsFunc func(server *mcp.Server, token *model.Token, db *gorm.DB)
+
 // BuildServer creates an MCP server with tools registered from token scopes.
 // Each scope's connection+actions are turned into MCP tools via the catalog.
 // If addMemoryTools is non-nil, it is called to register memory tools on the
 // same server after integration tools are registered.
+// If addSubscriptionTools is non-nil, it is called to register subscribe_to_events
+// on the same server after memory tools are registered.
 func BuildServer(
 	token *model.Token,
 	scopes []mcppkg.TokenScope,
@@ -32,6 +39,7 @@ func BuildServer(
 	db *gorm.DB,
 	ctr *counter.Counter,
 	addMemoryTools MemoryToolsFunc,
+	addSubscriptionTools SubscriptionToolsFunc,
 ) (*mcp.Server, error) {
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "ziraloop",
@@ -165,6 +173,11 @@ func BuildServer(
 		if agentID != "" {
 			addMemoryTools(server, agentID, db)
 		}
+	}
+
+	// Register subscription tools if callback provided
+	if addSubscriptionTools != nil {
+		addSubscriptionTools(server, token, db)
 	}
 
 	return server, nil

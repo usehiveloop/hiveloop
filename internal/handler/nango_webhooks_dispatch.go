@@ -12,29 +12,160 @@ import (
 	"github.com/ziraloop/ziraloop/internal/tasks"
 )
 
-// dispatchTrigger enqueues a TypeTriggerDispatch task for an incoming Nango
-// "forward" webhook. The dispatcher does the heavy lifting; this function's
-// job is to (1) decide whether the provider has triggers configured, (2)
-// extract event type/action from the payload, and (3) hand off to asynq.
+// dispatchWebhookEvent fans an inbound Nango "forward" webhook into two
+// parallel async pipelines:
 //
-// Called from NangoWebhookHandler.Handle after identify() resolves the
-// connection. Returns silently if there's nothing to dispatch — the existing
-// org-webhook forward path runs independently and is unaffected.
-func dispatchTrigger(
+//  1. Trigger dispatch — the existing router path. Spawns new conversations
+//     for agents whose AgentTrigger / RouterTrigger config matches this event.
+//  2. Subscription dispatch — the new subscription-driven path. Forwards the
+//     event into every active conversation_subscription whose resource_key
+//     the event resolves to.
+//
+// The two paths operate on the same input (provider, event_type, event_action,
+// payload) but are independent: a failure in one doesn't affect the other.
+// An event can legitimately trigger both — e.g. `issues.opened` spawns a new
+// Kira conversation AND matches a pre-existing Kobi subscription.
+//
+// Called from NangoWebhookHandler.Handle once the inbound connection is
+// identified. Returns silently if there's nothing to dispatch — the existing
+// org-webhook forward runs independently and is unaffected.
+func dispatchWebhookEvent(
 	enqueuer enqueue.TaskEnqueuer,
 	wh *nangoWebhook,
 	wctx *webhookContext,
 ) {
 	if enqueuer == nil || wctx == nil || wctx.inConnection == nil {
+		slog.Info("webhook dispatch: skipping, missing enqueuer or connection context",
+			"enqueuer_nil", enqueuer == nil,
+			"wctx_nil", wctx == nil,
+			"in_connection_nil", wctx == nil || wctx.inConnection == nil,
+		)
 		return
 	}
 	if wh.Type != "forward" || len(wh.Payload) == 0 {
+		slog.Info("webhook dispatch: skipping non-forward or empty event",
+			"type", wh.Type,
+			"payload_bytes", len(wh.Payload),
+		)
 		return
 	}
 
-	// Skip providers without triggers in the catalog. The variant fallback
-	// (github-app → github) means we have to check both names.
 	providerName := wctx.inConnection.InIntegration.Provider
+
+	slog.Info("webhook dispatch: beginning",
+		"provider", providerName,
+		"org_id", wctx.orgID,
+		"in_connection_id", wctx.inConnection.ID,
+		"nango_connection_id", wh.ConnectionID,
+		"nango_operation", wh.Operation,
+		"raw_envelope_bytes", len(wh.Payload),
+		"raw_envelope", string(wh.Payload),
+	)
+
+	metadata, ok := extractEventMetadata(wh, providerName)
+	if !ok {
+		slog.Info("webhook dispatch: event metadata extraction returned false, dropping")
+		return
+	}
+
+	deliveryID := wh.ConnectionID + ":" + uuid.New().String()
+
+	slog.Info("webhook dispatch: metadata extracted",
+		"delivery_id", deliveryID,
+		"provider", providerName,
+		"event_type", metadata.EventType,
+		"event_action", metadata.EventAction,
+		"org_id", wctx.orgID,
+		"in_connection_id", wctx.inConnection.ID,
+		"payload_bytes", len(metadata.RawBody),
+		"raw_payload", string(metadata.RawBody),
+		"headers", metadata.Headers,
+	)
+
+	enqueueTriggerDispatch(enqueuer, providerName, metadata, deliveryID, wctx)
+	enqueueSubscriptionDispatch(enqueuer, providerName, metadata, deliveryID, wctx)
+}
+
+// eventMetadata bundles the per-event fields derived from a Nango webhook
+// that both dispatch pipelines consume.
+type eventMetadata struct {
+	EventType   string
+	EventAction string
+	RawBody     []byte
+	Headers     map[string]string
+}
+
+// extractEventMetadata unwraps the Nango envelope, resolves the provider
+// event_type/action (from headers when available, falling back to shape
+// inference), and returns what both dispatch pipelines need. The second
+// return value is false when the event can't be identified — callers drop
+// silently in that case; the original webhook body is still stored by the
+// org-forward pipeline for audit.
+func extractEventMetadata(wh *nangoWebhook, providerName string) (eventMetadata, bool) {
+	rawBody, headers := unwrapNangoPayload(wh.Payload)
+	slog.Info("webhook dispatch: unwrapped nango envelope",
+		"provider", providerName,
+		"raw_body_bytes", len(rawBody),
+		"header_count", len(headers),
+		"headers", headers,
+	)
+
+	eventType, eventAction := inferEventFromHeaders(providerName, headers)
+	if eventType != "" {
+		slog.Info("webhook dispatch: event type inferred from headers",
+			"provider", providerName,
+			"event_type", eventType,
+		)
+	} else {
+		slog.Info("webhook dispatch: no header-based event type, falling back to payload shape",
+			"provider", providerName,
+		)
+		if providerName == "github" || strings.HasPrefix(providerName, "github") {
+			eventType, eventAction = inferGitHubEventFromPayload(rawBody)
+			slog.Info("webhook dispatch: github shape inference result",
+				"event_type", eventType,
+				"event_action", eventAction,
+			)
+		}
+	}
+	if eventType == "" {
+		slog.Info("webhook dispatch: could not determine event type, skipping",
+			"provider", providerName,
+		)
+		return eventMetadata{}, false
+	}
+
+	// For GitHub events where the header says the type but the body carries
+	// the action, pull the action from the body if we don't already have one.
+	if eventAction == "" && (providerName == "github" || strings.HasPrefix(providerName, "github")) {
+		var probe struct {
+			Action string `json:"action"`
+		}
+		_ = json.Unmarshal(rawBody, &probe)
+		eventAction = probe.Action
+		slog.Info("webhook dispatch: pulled action from body",
+			"event_action", eventAction,
+		)
+	}
+
+	return eventMetadata{
+		EventType:   eventType,
+		EventAction: eventAction,
+		RawBody:     rawBody,
+		Headers:     headers,
+	}, true
+}
+
+// enqueueTriggerDispatch sends the event into the existing router/trigger
+// dispatcher — unchanged behavior from before this refactor, just moved
+// behind the shared metadata helper.
+func enqueueTriggerDispatch(
+	enqueuer enqueue.TaskEnqueuer,
+	providerName string,
+	metadata eventMetadata,
+	deliveryID string,
+	wctx *webhookContext,
+) {
 	cat := catalog.Global()
 	if !cat.HasTriggers(providerName) {
 		if _, ok := cat.GetProviderTriggersForVariant(providerName); !ok {
@@ -42,63 +173,81 @@ func dispatchTrigger(
 		}
 	}
 
-	// Decode the payload once to extract event metadata. Nango sometimes wraps
-	// the provider body inside {headers, data}; handle both shapes.
-	rawBody, headers := unwrapNangoPayload(wh.Payload)
-
-	eventType, eventAction := inferEventFromHeaders(providerName, headers)
-	if eventType == "" {
-		// Fallback: shape-based inference for providers we know.
-		if providerName == "github" || strings.HasPrefix(providerName, "github") {
-			eventType, eventAction = inferGitHubEventFromPayload(rawBody)
-		}
-	}
-	if eventType == "" {
-		slog.Info("trigger dispatch: could not determine event type, skipping",
-			"provider", providerName,
-			"in_connection_id", wctx.inConnection.ID,
-		)
-		return
-	}
-
-	deliveryID := wh.ConnectionID + ":" + uuid.New().String()
-
-	slog.Info("trigger dispatch: webhook received",
-		"delivery_id", deliveryID,
-		"provider", providerName,
-		"event_type", eventType,
-		"event_action", eventAction,
-		"org_id", wctx.orgID,
-		"in_connection_id", wctx.inConnection.ID,
-		"payload_bytes", len(rawBody),
-		"payload", string(rawBody),
-	)
-
 	task, err := tasks.NewRouterDispatchTask(tasks.TriggerDispatchPayload{
 		Provider:     providerName,
-		EventType:    eventType,
-		EventAction:  eventAction,
+		EventType:    metadata.EventType,
+		EventAction:  metadata.EventAction,
 		DeliveryID:   deliveryID,
 		OrgID:        wctx.orgID,
 		ConnectionID: wctx.inConnection.ID,
-		PayloadJSON:  rawBody,
+		PayloadJSON:  metadata.RawBody,
 	})
 	if err != nil {
 		slog.Error("trigger dispatch: failed to build task",
-			"delivery_id", deliveryID,
-			"error", err,
+			"delivery_id", deliveryID, "error", err,
 		)
 		return
 	}
 	if _, err := enqueuer.Enqueue(task); err != nil {
 		slog.Error("trigger dispatch: failed to enqueue task",
-			"delivery_id", deliveryID,
-			"error", err,
+			"delivery_id", deliveryID, "error", err,
 		)
 		return
 	}
-	slog.Info("trigger dispatch: enqueued",
+	slog.Info("trigger dispatch: enqueued", "delivery_id", deliveryID)
+}
+
+// enqueueSubscriptionDispatch sends the event into the subscription-driven
+// forwarder. We only enqueue when the provider has triggers in the catalog —
+// without a trigger def, the handler can't resolve a resource_key, so there's
+// no point waking a worker to drop it.
+func enqueueSubscriptionDispatch(
+	enqueuer enqueue.TaskEnqueuer,
+	providerName string,
+	metadata eventMetadata,
+	deliveryID string,
+	wctx *webhookContext,
+) {
+	logger := slog.With(
+		"component", "subscription_dispatch_enqueue",
 		"delivery_id", deliveryID,
+		"provider", providerName,
+		"event_type", metadata.EventType,
+		"event_action", metadata.EventAction,
+		"org_id", wctx.orgID,
+	)
+
+	cat := catalog.Global()
+	hasTriggers := cat.HasTriggers(providerName)
+	_, hasVariant := cat.GetProviderTriggersForVariant(providerName)
+	logger.Info("subscription dispatch: catalog check",
+		"has_direct_triggers", hasTriggers,
+		"has_variant_triggers", hasVariant,
+	)
+	if !hasTriggers && !hasVariant {
+		logger.Info("subscription dispatch: provider has no triggers in catalog, dropping")
+		return
+	}
+
+	task, err := tasks.NewSubscriptionDispatchTask(tasks.SubscriptionDispatchPayload{
+		Provider:     providerName,
+		EventType:    metadata.EventType,
+		EventAction:  metadata.EventAction,
+		DeliveryID:   deliveryID,
+		OrgID:        wctx.orgID,
+		ConnectionID: wctx.inConnection.ID,
+		PayloadJSON:  metadata.RawBody,
+	})
+	if err != nil {
+		logger.Error("subscription dispatch: failed to build task", "error", err)
+		return
+	}
+	if _, err := enqueuer.Enqueue(task); err != nil {
+		logger.Error("subscription dispatch: failed to enqueue task", "error", err)
+		return
+	}
+	logger.Info("subscription dispatch: enqueued",
+		"payload_bytes", len(metadata.RawBody),
 	)
 }
 
@@ -168,6 +317,7 @@ func inferGitHubEventFromPayload(body []byte) (eventType, eventAction string) {
 		WorkflowRun  json.RawMessage `json:"workflow_run"`
 		WorkflowJob  json.RawMessage `json:"workflow_job"`
 		CheckRun     json.RawMessage `json:"check_run"`
+		CheckSuite   json.RawMessage `json:"check_suite"`
 		Release      json.RawMessage `json:"release"`
 		Discussion   json.RawMessage `json:"discussion"`
 		Deployment   json.RawMessage `json:"deployment"`
@@ -189,6 +339,8 @@ func inferGitHubEventFromPayload(body []byte) (eventType, eventAction string) {
 		return "workflow_run", eventAction
 	case len(probe.CheckRun) > 0:
 		return "check_run", eventAction
+	case len(probe.CheckSuite) > 0:
+		return "check_suite", eventAction
 	case len(probe.Review) > 0 && len(probe.PullRequest) > 0:
 		return "pull_request_review", eventAction
 	case len(probe.PullRequest) > 0 && len(probe.Comment) > 0:
@@ -208,13 +360,8 @@ func inferGitHubEventFromPayload(body []byte) (eventType, eventAction string) {
 	case len(probe.Deployment) > 0:
 		return "deployment_status", eventAction
 	case probe.Before != "" && probe.After != "":
-		// Push events have no `action` field — use empty string and let the
-		// dispatcher use just "push" as the trigger key.
 		return "push", ""
 	case probe.RefType != "" && eventAction == "":
-		// create/delete events also lack an `action` field; ref_type is the
-		// distinguishing marker. We can't tell create from delete here without
-		// a header — return ambiguous and let the inference fail.
 		return "", ""
 	}
 	return "", ""

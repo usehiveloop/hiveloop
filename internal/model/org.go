@@ -66,6 +66,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&SkillVersion{},
 		&AgentSkill{},
 		&AgentSubagent{},
+		&ConversationSubscription{},
 	); err != nil {
 		return err
 	}
@@ -93,6 +94,11 @@ func AutoMigrate(db *gorm.DB) error {
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_skill_versions_skill_sha ON skill_versions (skill_id, commit_sha) WHERE commit_sha IS NOT NULL`)
 	// GIN index for skill tag filtering in the marketplace.
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_skills_tags ON skills USING GIN (tags)`)
+
+	// Partial index: fast lookup of a conversation's active subscriptions by resource key.
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_conv_sub_by_key ON conversation_subscriptions (org_id, resource_key) WHERE status = 'active'`)
+	// Partial unique: re-subscribing to the same resource in the same conversation is a no-op.
+	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_conv_sub_idempotent ON conversation_subscriptions (conversation_id, resource_key) WHERE status = 'active'`)
 
 	return nil
 }

@@ -88,6 +88,7 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		"body_size", len(body),
 		"content_type", r.Header.Get("Content-Type"),
 		"has_signature", r.Header.Get("X-Nango-Hmac-Sha256") != "",
+		"raw_body", string(body),
 	)
 
 	signature := r.Header.Get("X-Nango-Hmac-Sha256")
@@ -132,7 +133,7 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	// to a customer-supplied URL, while trigger dispatch evaluates AgentTriggers
 	// against the payload and queues per-agent runs. Failures in one don't
 	// affect the other.
-	dispatchTrigger(h.enqueuer, &wh, wctx)
+	dispatchWebhookEvent(h.enqueuer, &wh, wctx)
 
 	h.acknowledge(w)
 }

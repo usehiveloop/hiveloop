@@ -129,6 +129,13 @@ func lookupPath(payload map[string]any, path string) (any, bool) {
 	return current, true
 }
 
+// ExtractRefs is the exported alias for extractRefs — callers outside this
+// package (subscription dispatch, future webhook routers) need the same
+// catalog-ref extraction logic and there's no reason to duplicate it.
+func ExtractRefs(payload map[string]any, defs map[string]string) (refs map[string]string, missing []string) {
+	return extractRefs(payload, defs)
+}
+
 // stringifyScalar converts a JSON-decoded value to its string form for templates
 // and URLs. JSON numbers come back from encoding/json as float64; we render
 // integers without the trailing ".0" so /repos/foo/bar/issues/1347 looks right
