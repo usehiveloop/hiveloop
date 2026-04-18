@@ -168,17 +168,22 @@ func (h *NangoWebhookHandler) buildEnrichedBody(wh *nangoWebhook, wctx *webhookC
 }
 
 // identify resolves the org, integration, and connection from the webhook.
+//
+// Provider_config_key has two shapes:
+//
+//  1. "in_<slug>" — the user's installed inbound integration (github-app,
+//     linear, etc.). There's no org prefix in the key; Nango publishes one
+//     config key per integration type and distinguishes tenants via the
+//     connection_id. We resolve the org by looking up the InConnection whose
+//     nango_connection_id matches.
+//
+//  2. "<orgID>_<slug>" — legacy org-scoped config keys. The org UUID is the
+//     prefix and we resolve the connection by (org_id, nango_connection_id).
+//
+// Anything else we log and drop.
 func (h *NangoWebhookHandler) identify(wh *nangoWebhook) *webhookContext {
 	if strings.HasPrefix(wh.ProviderConfigKey, "in_") {
-		slog.Info("nango webhook: in-integration event",
-			"type", wh.Type,
-			"provider_config_key", wh.ProviderConfigKey,
-			"nango_connection_id", wh.ConnectionID,
-			"operation", wh.Operation,
-			"success", wh.Success,
-			"provider", wh.Provider,
-		)
-		return nil
+		return h.identifyInIntegration(wh)
 	}
 
 	orgID, uniqueKey, ok := parseProviderConfigKey(wh.ProviderConfigKey)
@@ -230,6 +235,49 @@ func (h *NangoWebhookHandler) identify(wh *nangoWebhook) *webhookContext {
 	slog.Info("nango webhook: fully resolved", logAttrs...)
 
 	return wctx
+}
+
+// identifyInIntegration resolves the org+connection for a webhook whose
+// provider_config_key has the "in_*" shape. The config key itself doesn't
+// carry the org — we look the org up via the InConnection whose
+// nango_connection_id matches the webhook's connection_id, which Nango
+// assigns uniquely across all tenants.
+//
+// Non-forward types (auth create/revoke etc.) still go through this path so
+// the upstream filter in dispatchWebhookEvent can decide whether to dispatch;
+// we don't second-guess event types here.
+func (h *NangoWebhookHandler) identifyInIntegration(wh *nangoWebhook) *webhookContext {
+	var inConnection model.InConnection
+	err := h.db.Preload("InIntegration").
+		Where("nango_connection_id = ? AND revoked_at IS NULL", wh.ConnectionID).
+		Order("created_at DESC").
+		First(&inConnection).Error
+	if err != nil {
+		slog.Warn("nango webhook: in-connection not found for in_* provider_config_key",
+			"provider_config_key", wh.ProviderConfigKey,
+			"nango_connection_id", wh.ConnectionID,
+			"type", wh.Type,
+			"operation", wh.Operation,
+			"error", err,
+		)
+		return nil
+	}
+
+	slog.Info("nango webhook: resolved in-integration connection",
+		"type", wh.Type,
+		"provider_config_key", wh.ProviderConfigKey,
+		"nango_connection_id", wh.ConnectionID,
+		"in_connection_id", inConnection.ID,
+		"in_integration_id", inConnection.InIntegrationID,
+		"org_id", inConnection.OrgID,
+		"provider", inConnection.InIntegration.Provider,
+		"payload_size", len(wh.Payload),
+	)
+
+	return &webhookContext{
+		orgID:        inConnection.OrgID,
+		inConnection: &inConnection,
+	}
 }
 
 // parseProviderConfigKey splits "{orgID}_{uniqueKey}" into its parts.
