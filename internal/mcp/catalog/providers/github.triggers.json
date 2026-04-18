@@ -204,7 +204,7 @@
         "issue_number": "issue.number",
         "issue_title": "issue.title",
         "issue_state": "issue.state",
-        "issue_or_pr_slug": "issue.pull_request.url || _",
+        "issue_or_pr_slug": "?issue.pull_request:pull:issue",
         "pr_url": "issue.pull_request.url",
         "pr_html_url": "issue.pull_request.html_url",
         "comment_id": "comment.id",

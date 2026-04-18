@@ -46,6 +46,32 @@ func extractRefs(payload map[string]any, defs map[string]string) (refs map[strin
 func resolveRefPath(payload map[string]any, rawPath string) (any, bool) {
 	paths := splitFallbackPaths(rawPath)
 	for _, path := range paths {
+		// Literal support: "'some string'" resolves to the literal "some string".
+		// Use case: last-resort fallback in a `||` chain, e.g.
+		// `issue.pull_request.url || 'fallback'`.
+		if literal, ok := parseLiteral(path); ok {
+			return literal, true
+		}
+
+		// Conditional literal: "?path:if_present:if_absent" — resolves to the
+		// literal `if_present` when `path` exists (non-nil, non-empty),
+		// otherwise `if_absent`. This is how the catalog produces a
+		// discriminator like "pull" vs "issue" for shared event types (e.g.
+		// issue_comment.created fires on both Issues and PRs — the payload's
+		// `issue.pull_request` presence tells us which).
+		if cond, ok := parseConditionalLiteral(path); ok {
+			if _, present := lookupPath(payload, cond.path); present {
+				if cond.ifPresent != "" {
+					return cond.ifPresent, true
+				}
+				continue
+			}
+			if cond.ifAbsent != "" {
+				return cond.ifAbsent, true
+			}
+			continue
+		}
+
 		value, found := lookupPath(payload, path)
 		if !found {
 			continue
@@ -63,6 +89,55 @@ func resolveRefPath(payload map[string]any, rawPath string) (any, bool) {
 		return value, true
 	}
 	return nil, false
+}
+
+// parseLiteral recognizes single-quoted literals like "'pull'" and returns
+// the unquoted body. Quotes must balance; content may not itself contain a
+// single quote. Returns (value, true) on success; (_, false) means the
+// argument is not a literal expression and should be treated as a path.
+func parseLiteral(expr string) (string, bool) {
+	if len(expr) < 2 {
+		return "", false
+	}
+	if expr[0] != '\'' || expr[len(expr)-1] != '\'' {
+		return "", false
+	}
+	body := expr[1 : len(expr)-1]
+	if strings.Contains(body, "'") {
+		return "", false
+	}
+	return body, true
+}
+
+// conditionalLiteral is the parsed form of "?path:if_present:if_absent".
+type conditionalLiteral struct {
+	path      string
+	ifPresent string
+	ifAbsent  string
+}
+
+// parseConditionalLiteral recognizes the "?path:if_present:if_absent" form.
+// All three segments are required; missing colons or segments return !ok.
+// The literals are NOT single-quoted (to keep the syntax compact) and may
+// not themselves contain ':'.
+func parseConditionalLiteral(expr string) (conditionalLiteral, bool) {
+	if len(expr) < 2 || expr[0] != '?' {
+		return conditionalLiteral{}, false
+	}
+	rest := expr[1:]
+	parts := strings.SplitN(rest, ":", 3)
+	if len(parts) != 3 {
+		return conditionalLiteral{}, false
+	}
+	path := strings.TrimSpace(parts[0])
+	if path == "" {
+		return conditionalLiteral{}, false
+	}
+	return conditionalLiteral{
+		path:      path,
+		ifPresent: strings.TrimSpace(parts[1]),
+		ifAbsent:  strings.TrimSpace(parts[2]),
+	}, true
 }
 
 // splitFallbackPaths parses a fallback-list expression like
