@@ -107,9 +107,25 @@ resource_id format is per-type — see the reminder for the expected shape (e.g.
 }
 
 // resolveCallerContext extracts (agent_id, conversation_id, org_id) from the
-// token that authenticated this MCP session. The token's Meta map carries
-// agent_id (populated at mint time); the conversation is found via the
-// reverse FK on agent_conversations.
+// token that authenticated this MCP session.
+//
+// Two token-to-conversation binding shapes exist in production:
+//
+//  1. Per-conversation token (system_conversations path) — each conversation
+//     mints its own short-lived token and stores its PK on
+//     AgentConversation.TokenID. The tool finds the conversation via token.ID.
+//
+//  2. Agent-proxy token (trigger-dispatch path via pusher.RotateAPIKey) —
+//     Bridge holds a single long-lived token per agent and reuses it across
+//     every conversation that agent runs. The token's ID won't match any
+//     AgentConversation.TokenID, so we fall back to the most recently-created
+//     active conversation for this (agent_id, org_id) pair.
+//
+// The fallback is safe while trigger-dispatch creates at most one live
+// conversation per agent+sandbox at a time — which is the current behavior,
+// since each dedicated agent runs inside a single dedicated sandbox. If we
+// ever run concurrent conversations under the same agent-proxy token we'll
+// need to pass an explicit conversation id on the tool call.
 func resolveCallerContext(ctx context.Context, token *model.Token, db *gorm.DB) (agentID, conversationID, orgID uuid.UUID, err error) {
 	if token == nil {
 		err = errors.New("no active auth token on this session; subscribe_to_events requires an agent context")
@@ -130,19 +146,38 @@ func resolveCallerContext(ctx context.Context, token *model.Token, db *gorm.DB) 
 	}
 
 	var conv model.AgentConversation
-	lookup := db.WithContext(ctx).
+
+	// Primary: per-conversation token binding.
+	byToken := db.WithContext(ctx).
 		Where("token_id = ? AND status = ?", token.ID, "active").
 		Order("created_at DESC").
 		Limit(1).
 		First(&conv)
-	if lookup.Error != nil {
-		if errors.Is(lookup.Error, gorm.ErrRecordNotFound) {
-			err = errors.New("no active conversation is bound to this token; subscribe_to_events must be called from inside a live conversation")
-			return
-		}
-		err = fmt.Errorf("looking up conversation for token: %w", lookup.Error)
+	if byToken.Error == nil {
+		conversationID = conv.ID
 		return
 	}
+	if !errors.Is(byToken.Error, gorm.ErrRecordNotFound) {
+		err = fmt.Errorf("looking up conversation for token: %w", byToken.Error)
+		return
+	}
+
+	// Fallback: agent-proxy token. Pick the most recently-created active
+	// conversation for this agent on this org.
+	byAgent := db.WithContext(ctx).
+		Where("agent_id = ? AND org_id = ? AND status = ?", agentID, orgID, "active").
+		Order("created_at DESC").
+		Limit(1).
+		First(&conv)
+	if byAgent.Error != nil {
+		if errors.Is(byAgent.Error, gorm.ErrRecordNotFound) {
+			err = errors.New("no active conversation found for this agent; subscribe_to_events must be called from inside a live conversation")
+			return
+		}
+		err = fmt.Errorf("looking up active conversation for agent: %w", byAgent.Error)
+		return
+	}
+
 	conversationID = conv.ID
 	return
 }
