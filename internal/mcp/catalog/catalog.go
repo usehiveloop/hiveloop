@@ -19,6 +19,9 @@ var providersFS embed.FS
 //go:embed providers/*.triggers.json
 var triggersFS embed.FS
 
+//go:embed providers/*.resources.json
+var resourcesFS embed.FS
+
 // RequestConfig defines custom request configuration for resource discovery.
 type RequestConfig struct {
 	Method       string            `json:"method,omitempty"`        // HTTP method (GET, POST, etc.)
@@ -127,12 +130,13 @@ type SchemaRef struct {
 
 // TriggerDef describes a single webhook event trigger a provider supports.
 type TriggerDef struct {
-	DisplayName   string              `json:"display_name"`
-	Description   string              `json:"description"`
-	ResourceType  string              `json:"resource_type"`            // which resource this trigger relates to
-	PayloadSchema string              `json:"payload_schema,omitempty"` // ref into ProviderTriggers.Schemas
-	Refs          map[string]string   `json:"refs,omitempty"`           // ref_name → dot-path into webhook payload for entity extraction
-	Enrichment    []EnrichmentAction  `json:"enrichment,omitempty"`     // actions to run for pre-fetching context before dispatching to agent
+	DisplayName         string             `json:"display_name"`
+	Description         string             `json:"description"`
+	ResourceType        string             `json:"resource_type"`                   // which resource this trigger relates to
+	PayloadSchema       string             `json:"payload_schema,omitempty"`        // ref into ProviderTriggers.Schemas
+	Refs                map[string]string  `json:"refs,omitempty"`                  // ref_name → dot-path into webhook payload for entity extraction
+	Enrichment          []EnrichmentAction `json:"enrichment,omitempty"`            // actions to run for pre-fetching context before dispatching to agent
+	ResourceKeyTemplate string             `json:"resource_key_template,omitempty"` // canonical resource_key template with {ref_name} placeholders for subscription routing
 }
 
 // EnrichmentAction defines a provider action to run during trigger enrichment.
@@ -164,10 +168,52 @@ type ProviderTriggers struct {
 	Schemas       map[string]SchemaDefinition `json:"schemas,omitempty"`
 }
 
+// SubscribableResource describes a class of external resource that an agent
+// can subscribe to via the subscribe_to_events MCP tool. The agent supplies
+// a resource_id in the format captured by IDPattern; the server parses it,
+// substitutes the named groups into CanonicalTemplate, and writes that
+// canonical key into conversation_subscriptions. Future webhook events whose
+// dispatcher-computed resource key matches this canonical form will route
+// into the subscribed conversation.
+//
+// Example (github_pull_request):
+//   id_pattern:         "^(?P<owner>[\\w.-]+)/(?P<repo>[\\w.-]+)#(?P<number>\\d+)$"
+//   id_example:         "ziraloop/ziraloop#99"
+//   canonical_template: "github/{owner}/{repo}/pull/{number}"
+//   → agent input "ziraloop/ziraloop#99" becomes canonical key "github/ziraloop/ziraloop/pull/99"
+type SubscribableResource struct {
+	DisplayName       string   `json:"display_name"`
+	Description       string   `json:"description,omitempty"`
+	IDPattern         string   `json:"id_pattern"`         // Named-group regex for validating resource_id.
+	IDExample         string   `json:"id_example"`         // Shown to the agent in errors + documentation.
+	CanonicalTemplate string   `json:"canonical_template"` // {name} placeholders substituted from IDPattern groups.
+	Events            []string `json:"events,omitempty"`   // Trigger keys that emit events for this resource.
+}
+
+// ProviderSubscribableResources is the top-level shape of a *.resources.json
+// file. Provider identifies which integration this catalog file describes —
+// it must match the provider value stored on in_integrations.
+type ProviderSubscribableResources struct {
+	Provider    string                          `json:"provider"`
+	DisplayName string                          `json:"display_name"`
+	Description string                          `json:"description,omitempty"`
+	Resources   map[string]SubscribableResource `json:"resources"`
+}
+
 // Catalog holds all providers and their actions/triggers, indexed for fast lookup.
 type Catalog struct {
-	providers map[string]*ProviderActions
-	triggers  map[string]*ProviderTriggers
+	providers            map[string]*ProviderActions
+	triggers             map[string]*ProviderTriggers
+	subscribableByType   map[string]subscribableEntry             // resource_type → provider + def
+	subscribableByProv   map[string]map[string]SubscribableResource
+}
+
+// subscribableEntry holds a subscribable resource definition together with
+// its owning provider so lookups by resource_type return everything the
+// service layer needs without a second map traversal.
+type subscribableEntry struct {
+	Provider string
+	Def      SubscribableResource
 }
 
 var (
@@ -185,8 +231,10 @@ func Global() *Catalog {
 
 func mustParse() *Catalog {
 	c := &Catalog{
-		providers: make(map[string]*ProviderActions),
-		triggers:  make(map[string]*ProviderTriggers),
+		providers:          make(map[string]*ProviderActions),
+		triggers:           make(map[string]*ProviderTriggers),
+		subscribableByType: make(map[string]subscribableEntry),
+		subscribableByProv: make(map[string]map[string]SubscribableResource),
 	}
 
 	// Parse *.actions.json files.
@@ -247,6 +295,55 @@ func mustParse() *Catalog {
 		}
 
 		c.triggers[providerKey] = &pt
+	}
+
+	// Parse *.resources.json files — subscribable-event catalog per provider.
+	resourceEntries, err := fs.ReadDir(resourcesFS, "providers")
+	if err != nil {
+		panic("catalog: failed to read embedded resources directory: " + err.Error())
+	}
+
+	for _, entry := range resourceEntries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".resources.json") {
+			continue
+		}
+
+		data, err := fs.ReadFile(resourcesFS, "providers/"+name)
+		if err != nil {
+			panic("catalog: failed to read " + name + ": " + err.Error())
+		}
+
+		var psr ProviderSubscribableResources
+		if err := json.Unmarshal(data, &psr); err != nil {
+			panic("catalog: failed to parse " + name + ": " + err.Error())
+		}
+
+		if psr.Provider == "" {
+			panic("catalog: " + name + " is missing the top-level \"provider\" field")
+		}
+
+		// Per-provider map for fast listing.
+		if _, exists := c.subscribableByProv[psr.Provider]; !exists {
+			c.subscribableByProv[psr.Provider] = make(map[string]SubscribableResource)
+		}
+
+		for resourceType, def := range psr.Resources {
+			if existing, clash := c.subscribableByType[resourceType]; clash {
+				panic(fmt.Sprintf(
+					"catalog: subscribable resource_type %q declared by both %q and %q — keys must be globally unique across providers",
+					resourceType, existing.Provider, psr.Provider,
+				))
+			}
+			c.subscribableByType[resourceType] = subscribableEntry{
+				Provider: psr.Provider,
+				Def:      def,
+			}
+			c.subscribableByProv[psr.Provider][resourceType] = def
+		}
 	}
 
 	return c
@@ -525,6 +622,39 @@ func (c *Catalog) ListProvidersWithTriggers() []string {
 		if len(pt.Triggers) > 0 {
 			names = append(names, name)
 		}
+	}
+	sort.Strings(names)
+	return names
+}
+
+// --- Subscribable resource lookup methods ---
+
+// GetSubscribableResource returns the subscribable-resource definition for a
+// given resource_type (e.g. "github_pull_request") together with the
+// provider that owns it. resource_type is globally unique across providers;
+// the panic in mustParse enforces this invariant at load time.
+func (c *Catalog) GetSubscribableResource(resourceType string) (provider string, def SubscribableResource, ok bool) {
+	entry, ok := c.subscribableByType[resourceType]
+	if !ok {
+		return "", SubscribableResource{}, false
+	}
+	return entry.Provider, entry.Def, true
+}
+
+// ListSubscribableResourcesForProvider returns every subscribable resource
+// declared for the given provider, keyed by resource_type. Returns nil if
+// the provider has no resources file.
+func (c *Catalog) ListSubscribableResourcesForProvider(provider string) map[string]SubscribableResource {
+	return c.subscribableByProv[provider]
+}
+
+// ListSubscribableResourceTypes returns every known resource_type across all
+// providers, sorted alphabetically. Useful for building system reminders that
+// show the agent its available types.
+func (c *Catalog) ListSubscribableResourceTypes() []string {
+	names := make([]string, 0, len(c.subscribableByType))
+	for name := range c.subscribableByType {
+		names = append(names, name)
 	}
 	sort.Strings(names)
 	return names

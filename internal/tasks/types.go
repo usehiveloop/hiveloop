@@ -18,6 +18,7 @@ const (
 	TypeRouterDispatch            = "router:dispatch"
 	TypeAgentConversationCreate   = "agent:conversation_create"
 	TypeConversationName          = "conversation:name"
+	TypeSubscriptionDispatch      = "subscription:dispatch"
 
 	// Periodic tasks (scheduled by the worker)
 	TypeTokenCleanup         = "periodic:token_cleanup"

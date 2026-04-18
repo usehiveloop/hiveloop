@@ -382,3 +382,75 @@ func TestExtractRefs_BooleanStringification(t *testing.T) {
 		t.Errorf("merged = %q, want false", refs["merged"])
 	}
 }
+
+func TestExtractRefs_ArrayIndex_FirstPullRequest(t *testing.T) {
+	// check_run / check_suite / workflow_run payloads expose pull_requests as
+	// an array. The canonical ref for the first PR's number uses a numeric
+	// segment to reach into slot 0.
+	payload := map[string]any{
+		"pull_requests": []any{
+			map[string]any{"number": float64(42), "head": map[string]any{"ref": "feat/x"}},
+			map[string]any{"number": float64(99)},
+		},
+	}
+	defs := map[string]string{
+		"pr_number":   "pull_requests.0.number",
+		"pr_head_ref": "pull_requests.0.head.ref",
+		"second_pr":   "pull_requests.1.number",
+	}
+
+	refs, missing := extractRefs(payload, defs)
+
+	if refs["pr_number"] != "42" {
+		t.Errorf("pr_number = %q, want 42", refs["pr_number"])
+	}
+	if refs["pr_head_ref"] != "feat/x" {
+		t.Errorf("pr_head_ref = %q, want feat/x", refs["pr_head_ref"])
+	}
+	if refs["second_pr"] != "99" {
+		t.Errorf("second_pr = %q, want 99", refs["second_pr"])
+	}
+	if len(missing) != 0 {
+		t.Errorf("missing = %v, want none", missing)
+	}
+}
+
+func TestExtractRefs_ArrayIndex_OutOfRangeIsMissing(t *testing.T) {
+	// Events without a linked PR have pull_requests = []. Out-of-range access
+	// must be treated as missing (not an error), so the ref silently drops out
+	// and the dispatcher can fall back to commit-SHA-based affinity.
+	payload := map[string]any{
+		"pull_requests": []any{},
+	}
+	defs := map[string]string{
+		"pr_number": "pull_requests.0.number",
+	}
+
+	refs, missing := extractRefs(payload, defs)
+
+	if _, exists := refs["pr_number"]; exists {
+		t.Errorf("pr_number should be absent when pull_requests is empty, got %q", refs["pr_number"])
+	}
+	if len(missing) == 0 {
+		t.Error("expected pr_number in missing list")
+	}
+}
+
+func TestExtractRefs_ArrayIndex_EmptyArrayCoalesces(t *testing.T) {
+	// When the primary path falls into an empty array, the fallback path
+	// should resolve. This is the core of the check_run affinity strategy:
+	// try pull_requests[0].number first, fall back to head_sha.
+	payload := map[string]any{
+		"pull_requests": []any{},
+		"check_run":     map[string]any{"head_sha": "abc123"},
+	}
+	defs := map[string]string{
+		"resource": "pull_requests.0.number || check_run.head_sha",
+	}
+
+	refs, _ := extractRefs(payload, defs)
+
+	if refs["resource"] != "abc123" {
+		t.Errorf("resource = %q, want abc123 (fallback)", refs["resource"])
+	}
+}

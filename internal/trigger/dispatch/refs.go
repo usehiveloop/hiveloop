@@ -2,6 +2,7 @@ package dispatch
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -90,15 +91,17 @@ func splitFallbackPaths(rawPath string) []string {
 }
 
 // lookupPath walks a dot-separated path through nested maps. Returns (value, true)
-// on success or (nil, false) if any segment is missing or traverses a non-map.
+// on success or (nil, false) if any segment is missing, out of range, or
+// traverses a non-container.
 //
 // Edge cases handled explicitly because real GitHub payloads have them:
 //   - "issue.number" — number lives in a nested object → recurse
 //   - "ref" — top-level scalar → single segment
 //   - "issue.pull_request" — may be missing entirely (issue events vs PR events)
-//
-// Array indexing (foo.0.bar) is intentionally NOT supported. Trigger refs in
-// the catalog only ever point at scalar fields on top-level objects.
+//   - "pull_requests.0.number" — numeric segments index into arrays. GitHub
+//     check_run/check_suite/workflow_run payloads expose `pull_requests[]` as
+//     the canonical commit→PR link, so refs need to reach into slot 0 to pull
+//     the PR number out for resource-key resolution.
 func lookupPath(payload map[string]any, path string) (any, bool) {
 	if path == "" {
 		return nil, false
@@ -106,17 +109,31 @@ func lookupPath(payload map[string]any, path string) (any, bool) {
 	segments := strings.Split(path, ".")
 	var current any = payload
 	for _, segment := range segments {
-		obj, ok := current.(map[string]any)
-		if !ok {
+		switch container := current.(type) {
+		case map[string]any:
+			next, exists := container[segment]
+			if !exists {
+				return nil, false
+			}
+			current = next
+		case []any:
+			index, err := strconv.Atoi(segment)
+			if err != nil || index < 0 || index >= len(container) {
+				return nil, false
+			}
+			current = container[index]
+		default:
 			return nil, false
 		}
-		next, exists := obj[segment]
-		if !exists {
-			return nil, false
-		}
-		current = next
 	}
 	return current, true
+}
+
+// ExtractRefs is the exported alias for extractRefs — callers outside this
+// package (subscription dispatch, future webhook routers) need the same
+// catalog-ref extraction logic and there's no reason to duplicate it.
+func ExtractRefs(payload map[string]any, defs map[string]string) (refs map[string]string, missing []string) {
+	return extractRefs(payload, defs)
 }
 
 // stringifyScalar converts a JSON-decoded value to its string form for templates
