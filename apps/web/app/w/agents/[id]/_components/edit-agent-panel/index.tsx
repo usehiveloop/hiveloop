@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ProviderPromptEditor } from "@/app/w/agents/_components/create-agent/provider-prompt-editor"
-import { AddTriggerDialog } from "@/app/w/agents/_components/add-trigger-dialog"
+import { EditTriggersDialog } from "@/app/w/agents/_components/edit-triggers-dialog"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -24,7 +24,6 @@ import {
   CloudServerIcon,
   LaptopProgrammingIcon,
   Tick02Icon,
-  Cancel01Icon,
   FlashIcon,
 } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
@@ -113,9 +112,9 @@ function SandboxOption({
 // ---------------------------------------------------------------------------
 
 function EditAgentForm() {
-  const { form, integrations, triggers, skillIds, isSubmitting, setIntegrations, removeIntegration, addTrigger, removeTrigger, toggleSkill, handleSave } = useEditAgent()
+  const { form, integrations, triggers, skillIds, isSubmitting, setIntegrations, removeIntegration, addTrigger, removeTrigger, updateTrigger, toggleSkill, handleSave } = useEditAgent()
   const [integrationsOpen, setIntegrationsOpen] = useState(false)
-  const [addTriggerOpen, setAddTriggerOpen] = useState(false)
+  const [editTriggersOpen, setEditTriggersOpen] = useState(false)
 
   const credentialId = form.watch("credentialId")
   const sandboxType = form.watch("sandboxType")
@@ -353,13 +352,6 @@ function EditAgentForm() {
                       </p>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeTrigger(index)}
-                    className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-destructive/10 transition-colors shrink-0"
-                  >
-                    <HugeiconsIcon icon={Cancel01Icon} size={14} className="text-destructive" />
-                  </button>
                 </div>
               ))
             )}
@@ -368,18 +360,21 @@ function EditAgentForm() {
               variant="outline"
               size="sm"
               className="w-fit mt-1"
-              onClick={() => setAddTriggerOpen(true)}
+              onClick={() => setEditTriggersOpen(true)}
             >
               <HugeiconsIcon icon={FlashIcon} size={14} data-icon="inline-start" />
-              Add trigger
+              Edit triggers
             </Button>
           </div>
 
-          <AddTriggerDialog
-            open={addTriggerOpen}
-            onOpenChange={setAddTriggerOpen}
-            onAdd={addTrigger}
+          <EditTriggersDialog
+            open={editTriggersOpen}
+            onOpenChange={setEditTriggersOpen}
+            triggers={triggers}
             connectionIds={new Set(Object.keys(integrations))}
+            onAdd={addTrigger}
+            onRemove={removeTrigger}
+            onUpdate={updateTrigger}
           />
         </section>
 

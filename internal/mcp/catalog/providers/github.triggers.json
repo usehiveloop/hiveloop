@@ -1,67 +1,180 @@
 {
   "display_name": "GitHub",
+  "description": "Webhook events emitted by a GitHub App or GitHub-webhook-producing integration. Refs are dot-paths evaluated against the payload; numeric segments index arrays (pull_requests.0.number) and `||` expresses first-non-empty fallback chains. resource_key_template is substituted from refs after extraction — keep the shape consistent across events that should thread to the same conversation.",
   "triggers": {
     "issues.opened": {
       "display_name": "Issue Opened",
-      "description": "Triggered when a new issue is created in a repository",
+      "description": "A new issue is created in a repository. Fires once per issue open, never for issues converted from PRs or from other tools.",
       "resource_type": "issue",
       "payload_schema": "issues_event",
+      "resource_key_template": "github/{owner}/{repo}/issue/{issue_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
+        "repository_id": "repository.id",
+        "default_branch": "repository.default_branch",
+        "organization": "organization.login",
         "sender": "sender.login",
+        "sender_id": "sender.id",
+        "sender_type": "sender.type",
         "issue_number": "issue.number",
-        "issue_title": "issue.title"
+        "issue_id": "issue.id",
+        "issue_title": "issue.title",
+        "issue_body": "issue.body",
+        "issue_state": "issue.state",
+        "issue_author": "issue.user.login",
+        "issue_author_association": "issue.author_association",
+        "issue_first_label": "issue.labels.0.name",
+        "issue_first_assignee": "issue.assignees.0.login",
+        "issue_milestone_title": "issue.milestone.title",
+        "issue_milestone_number": "issue.milestone.number",
+        "issue_html_url": "issue.html_url",
+        "issue_created_at": "issue.created_at",
+        "issue_locked": "issue.locked"
       }
     },
     "issues.closed": {
       "display_name": "Issue Closed",
-      "description": "Triggered when an issue is closed",
+      "description": "An issue is closed. issue_state_reason tells you why: completed (default), not_planned, reopened, duplicate, or null.",
       "resource_type": "issue",
       "payload_schema": "issues_event",
+      "resource_key_template": "github/{owner}/{repo}/issue/{issue_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
+        "repository_id": "repository.id",
+        "organization": "organization.login",
         "sender": "sender.login",
+        "sender_type": "sender.type",
         "issue_number": "issue.number",
-        "issue_title": "issue.title"
+        "issue_title": "issue.title",
+        "issue_state": "issue.state",
+        "issue_state_reason": "issue.state_reason",
+        "issue_author": "issue.user.login",
+        "issue_author_association": "issue.author_association",
+        "issue_closed_at": "issue.closed_at",
+        "issue_html_url": "issue.html_url",
+        "issue_first_label": "issue.labels.0.name"
       }
     },
     "issues.reopened": {
       "display_name": "Issue Reopened",
-      "description": "Triggered when a previously closed issue is reopened",
+      "description": "A closed issue is reopened.",
       "resource_type": "issue",
       "payload_schema": "issues_event",
+      "resource_key_template": "github/{owner}/{repo}/issue/{issue_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
+        "organization": "organization.login",
         "sender": "sender.login",
+        "sender_type": "sender.type",
         "issue_number": "issue.number",
-        "issue_title": "issue.title"
+        "issue_title": "issue.title",
+        "issue_state": "issue.state",
+        "issue_author": "issue.user.login",
+        "issue_html_url": "issue.html_url"
       }
     },
     "issues.edited": {
       "display_name": "Issue Edited",
-      "description": "Triggered when the title or body of an issue is edited",
+      "description": "Title or body of an issue was changed. The `changes` object in the payload holds the prior values.",
       "resource_type": "issue",
       "payload_schema": "issues_event",
+      "resource_key_template": "github/{owner}/{repo}/issue/{issue_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "issue_number": "issue.number",
+        "issue_title": "issue.title",
+        "issue_html_url": "issue.html_url",
+        "changes_title_from": "changes.title.from",
+        "changes_body_from": "changes.body.from"
+      }
+    },
+    "issues.labeled": {
+      "display_name": "Issue Labeled",
+      "description": "A label was added to an issue. The specific label is at payload.label (use label_name to filter to a specific label via conditions).",
+      "resource_type": "issue",
+      "payload_schema": "issues_event",
+      "resource_key_template": "github/{owner}/{repo}/issue/{issue_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "issue_number": "issue.number",
+        "issue_title": "issue.title",
+        "issue_html_url": "issue.html_url",
+        "label_name": "label.name",
+        "label_color": "label.color",
+        "label_description": "label.description"
+      }
+    },
+    "issues.unlabeled": {
+      "display_name": "Issue Unlabeled",
+      "description": "A label was removed from an issue.",
+      "resource_type": "issue",
+      "payload_schema": "issues_event",
+      "resource_key_template": "github/{owner}/{repo}/issue/{issue_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "issue_number": "issue.number",
+        "issue_title": "issue.title",
+        "label_name": "label.name"
+      }
+    },
+    "issues.assigned": {
+      "display_name": "Issue Assigned",
+      "description": "An assignee was added to an issue. `assignee.login` is the single new assignee for this event; `issue.assignees` holds the cumulative list.",
+      "resource_type": "issue",
+      "payload_schema": "issues_event",
+      "resource_key_template": "github/{owner}/{repo}/issue/{issue_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "issue_number": "issue.number",
+        "issue_title": "issue.title",
+        "assignee_login": "assignee.login",
+        "assignee_id": "assignee.id",
+        "assignee_type": "assignee.type"
+      }
+    },
+    "issues.unassigned": {
+      "display_name": "Issue Unassigned",
+      "description": "An assignee was removed from an issue.",
+      "resource_type": "issue",
+      "payload_schema": "issues_event",
+      "resource_key_template": "github/{owner}/{repo}/issue/{issue_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
         "issue_number": "issue.number",
-        "issue_title": "issue.title"
+        "assignee_login": "assignee.login"
       }
     },
-    "issues.labeled": {
-      "display_name": "Issue Labeled",
-      "description": "Triggered when a label is added to an issue",
+    "issues.milestoned": {
+      "display_name": "Issue Milestoned",
+      "description": "An issue was added to a milestone.",
       "resource_type": "issue",
       "payload_schema": "issues_event",
+      "resource_key_template": "github/{owner}/{repo}/issue/{issue_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
@@ -69,13 +182,44 @@
         "sender": "sender.login",
         "issue_number": "issue.number",
         "issue_title": "issue.title",
-        "label_name": "label.name"
+        "milestone_number": "milestone.number",
+        "milestone_title": "milestone.title",
+        "milestone_state": "milestone.state",
+        "milestone_due_on": "milestone.due_on"
       }
     },
     "issue_comment.created": {
-      "display_name": "Issue Comment Created",
-      "description": "Triggered when a comment is created on an issue or pull request",
-      "resource_type": "issue",
+      "display_name": "Issue or PR Comment Created",
+      "description": "A comment was added to an issue or pull request conversation. GitHub does NOT emit a separate pull_request_comment event for PR conversation comments — they arrive as issue_comment.created with issue.pull_request populated. pr_url is set only for PR comments and empty for pure issue comments; use it to scope a trigger to one side (path=pr_url operator=exists or not_exists).",
+      "resource_type": "issue_or_pr",
+      "payload_schema": "issue_comment_event",
+      "resource_key_template": "github/{owner}/{repo}/{issue_or_pr_slug}/{issue_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "sender_type": "sender.type",
+        "issue_number": "issue.number",
+        "issue_title": "issue.title",
+        "issue_state": "issue.state",
+        "issue_or_pr_slug": "issue.pull_request.url || _",
+        "pr_url": "issue.pull_request.url",
+        "pr_html_url": "issue.pull_request.html_url",
+        "comment_id": "comment.id",
+        "comment_body": "comment.body",
+        "comment_author": "comment.user.login",
+        "comment_author_type": "comment.user.type",
+        "comment_author_association": "comment.author_association",
+        "comment_html_url": "comment.html_url",
+        "comment_created_at": "comment.created_at"
+      }
+    },
+    "issue_comment.edited": {
+      "display_name": "Issue or PR Comment Edited",
+      "description": "A comment on an issue or PR conversation was edited.",
+      "resource_type": "issue_or_pr",
       "payload_schema": "issue_comment_event",
       "refs": {
         "owner": "repository.owner.login",
@@ -84,260 +228,1212 @@
         "sender": "sender.login",
         "issue_number": "issue.number",
         "issue_title": "issue.title",
-        "comment_id": "comment.id"
+        "pr_url": "issue.pull_request.url",
+        "comment_id": "comment.id",
+        "comment_body": "comment.body",
+        "comment_author": "comment.user.login",
+        "comment_author_association": "comment.author_association",
+        "changes_body_from": "changes.body.from"
+      }
+    },
+    "issue_comment.deleted": {
+      "display_name": "Issue or PR Comment Deleted",
+      "description": "A comment on an issue or PR conversation was deleted.",
+      "resource_type": "issue_or_pr",
+      "payload_schema": "issue_comment_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "issue_number": "issue.number",
+        "pr_url": "issue.pull_request.url",
+        "comment_id": "comment.id",
+        "comment_author": "comment.user.login"
       }
     },
     "pull_request.opened": {
       "display_name": "Pull Request Opened",
-      "description": "Triggered when a pull request is created",
+      "description": "A new PR is opened. Fires for both drafts and non-drafts — check pr_draft to distinguish. Does NOT fire when a draft is promoted (that's ready_for_review).",
       "resource_type": "pull_request",
       "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
+        "repository_id": "repository.id",
+        "default_branch": "repository.default_branch",
+        "organization": "organization.login",
         "sender": "sender.login",
-        "pull_number": "pull_request.number",
-        "pull_request_title": "pull_request.title"
+        "sender_id": "sender.id",
+        "sender_type": "sender.type",
+        "pr_number": "pull_request.number",
+        "pr_id": "pull_request.id",
+        "pr_title": "pull_request.title",
+        "pr_body": "pull_request.body",
+        "pr_state": "pull_request.state",
+        "pr_draft": "pull_request.draft",
+        "pr_merged": "pull_request.merged",
+        "pr_author": "pull_request.user.login",
+        "pr_author_association": "pull_request.author_association",
+        "pr_head_ref": "pull_request.head.ref",
+        "pr_head_sha": "pull_request.head.sha",
+        "pr_head_repo": "pull_request.head.repo.full_name",
+        "pr_head_user": "pull_request.head.user.login",
+        "pr_base_ref": "pull_request.base.ref",
+        "pr_base_sha": "pull_request.base.sha",
+        "pr_base_repo": "pull_request.base.repo.full_name",
+        "pr_html_url": "pull_request.html_url",
+        "pr_diff_url": "pull_request.diff_url",
+        "pr_additions": "pull_request.additions",
+        "pr_deletions": "pull_request.deletions",
+        "pr_changed_files": "pull_request.changed_files",
+        "pr_commits": "pull_request.commits",
+        "pr_first_label": "pull_request.labels.0.name",
+        "pr_first_assignee": "pull_request.assignees.0.login",
+        "pr_first_requested_reviewer": "pull_request.requested_reviewers.0.login",
+        "pr_milestone_title": "pull_request.milestone.title",
+        "pr_created_at": "pull_request.created_at"
       }
     },
     "pull_request.closed": {
       "display_name": "Pull Request Closed",
-      "description": "Triggered when a pull request is closed (check merged field to distinguish merge vs close)",
+      "description": "A PR is closed or merged. pr_merged distinguishes the two: true = someone clicked Merge, false = closed without merging. merge_commit_sha is populated in both cases (GitHub computes it even on close), but merged_at / merged_by are only set when actually merged.",
       "resource_type": "pull_request",
       "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "sender_type": "sender.type",
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "pr_state": "pull_request.state",
+        "pr_draft": "pull_request.draft",
+        "pr_merged": "pull_request.merged",
+        "pr_merged_at": "pull_request.merged_at",
+        "pr_merged_by": "pull_request.merged_by.login",
+        "pr_merge_commit_sha": "pull_request.merge_commit_sha",
+        "pr_closed_at": "pull_request.closed_at",
+        "pr_author": "pull_request.user.login",
+        "pr_author_association": "pull_request.author_association",
+        "pr_head_ref": "pull_request.head.ref",
+        "pr_head_sha": "pull_request.head.sha",
+        "pr_head_repo": "pull_request.head.repo.full_name",
+        "pr_base_ref": "pull_request.base.ref",
+        "pr_html_url": "pull_request.html_url",
+        "pr_additions": "pull_request.additions",
+        "pr_deletions": "pull_request.deletions",
+        "pr_changed_files": "pull_request.changed_files"
+      }
+    },
+    "pull_request.reopened": {
+      "display_name": "Pull Request Reopened",
+      "description": "A closed PR is reopened.",
+      "resource_type": "pull_request",
+      "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "pr_state": "pull_request.state",
+        "pr_draft": "pull_request.draft",
+        "pr_author": "pull_request.user.login",
+        "pr_head_ref": "pull_request.head.ref",
+        "pr_html_url": "pull_request.html_url"
+      }
+    },
+    "pull_request.edited": {
+      "display_name": "Pull Request Edited",
+      "description": "PR title or body was changed. Noisy — most bots fire on every save. Filter via conditions on changes.title.from / changes.body.from if you only care about specific edits.",
+      "resource_type": "pull_request",
+      "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
-        "pull_number": "pull_request.number",
-        "pull_request_title": "pull_request.title"
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "pr_html_url": "pull_request.html_url",
+        "changes_title_from": "changes.title.from",
+        "changes_body_from": "changes.body.from",
+        "changes_base_ref_from": "changes.base.ref.from",
+        "changes_base_sha_from": "changes.base.sha.from"
       }
     },
     "pull_request.ready_for_review": {
       "display_name": "Pull Request Ready for Review",
-      "description": "Triggered when a draft pull request is marked as ready for review",
+      "description": "A draft PR is promoted to ready-for-review. Fires exactly once per PR lifetime unless converted back to draft and re-promoted.",
       "resource_type": "pull_request",
       "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
+        "organization": "organization.login",
         "sender": "sender.login",
-        "pull_number": "pull_request.number",
-        "pull_request_title": "pull_request.title"
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "pr_state": "pull_request.state",
+        "pr_draft": "pull_request.draft",
+        "pr_author": "pull_request.user.login",
+        "pr_author_association": "pull_request.author_association",
+        "pr_head_ref": "pull_request.head.ref",
+        "pr_head_sha": "pull_request.head.sha",
+        "pr_base_ref": "pull_request.base.ref",
+        "pr_html_url": "pull_request.html_url",
+        "pr_additions": "pull_request.additions",
+        "pr_deletions": "pull_request.deletions",
+        "pr_changed_files": "pull_request.changed_files"
       }
     },
-    "pull_request.review_requested": {
-      "display_name": "Pull Request Review Requested",
-      "description": "Triggered when a review is requested on a pull request",
+    "pull_request.converted_to_draft": {
+      "display_name": "Pull Request Converted to Draft",
+      "description": "A non-draft PR is demoted back to draft. Useful signal to pause agent work on a PR.",
       "resource_type": "pull_request",
       "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
-        "pull_number": "pull_request.number",
-        "pull_request_title": "pull_request.title"
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "pr_draft": "pull_request.draft",
+        "pr_html_url": "pull_request.html_url"
       }
     },
     "pull_request.synchronize": {
       "display_name": "Pull Request Synchronized",
-      "description": "Triggered when new commits are pushed to a pull request branch",
+      "description": "New commits were pushed to the PR's head branch. payload.before and payload.after hold the SHAs. Fires on every push, so can be noisy — consider conditions on sender.type != 'Bot' if your bots push to their own PRs.",
       "resource_type": "pull_request",
       "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "sender_type": "sender.type",
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "pr_draft": "pull_request.draft",
+        "pr_author": "pull_request.user.login",
+        "pr_head_ref": "pull_request.head.ref",
+        "pr_head_sha": "pull_request.head.sha",
+        "pr_base_ref": "pull_request.base.ref",
+        "pr_html_url": "pull_request.html_url",
+        "before_sha": "before",
+        "after_sha": "after"
+      }
+    },
+    "pull_request.review_requested": {
+      "display_name": "Pull Request Review Requested",
+      "description": "A reviewer (user or team) was requested on a PR. Exactly one of requested_reviewer_login / requested_team_slug is populated per event.",
+      "resource_type": "pull_request",
+      "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
-        "pull_number": "pull_request.number",
-        "pull_request_title": "pull_request.title"
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "pr_author": "pull_request.user.login",
+        "pr_head_ref": "pull_request.head.ref",
+        "pr_html_url": "pull_request.html_url",
+        "requested_reviewer_login": "requested_reviewer.login",
+        "requested_reviewer_type": "requested_reviewer.type",
+        "requested_team_slug": "requested_team.slug",
+        "requested_team_name": "requested_team.name"
+      }
+    },
+    "pull_request.review_request_removed": {
+      "display_name": "Pull Request Review Request Removed",
+      "description": "A previously-requested reviewer was removed from a PR.",
+      "resource_type": "pull_request",
+      "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "requested_reviewer_login": "requested_reviewer.login",
+        "requested_team_slug": "requested_team.slug"
+      }
+    },
+    "pull_request.labeled": {
+      "display_name": "Pull Request Labeled",
+      "description": "A label was added to a PR. Typical uses: 'needs-revision', 'ready-to-merge', 'wip' as workflow signals.",
+      "resource_type": "pull_request",
+      "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "pr_html_url": "pull_request.html_url",
+        "pr_draft": "pull_request.draft",
+        "label_name": "label.name",
+        "label_color": "label.color",
+        "label_description": "label.description"
+      }
+    },
+    "pull_request.unlabeled": {
+      "display_name": "Pull Request Unlabeled",
+      "description": "A label was removed from a PR.",
+      "resource_type": "pull_request",
+      "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "label_name": "label.name"
+      }
+    },
+    "pull_request.assigned": {
+      "display_name": "Pull Request Assigned",
+      "description": "A PR was assigned to someone.",
+      "resource_type": "pull_request",
+      "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "assignee_login": "assignee.login",
+        "assignee_id": "assignee.id"
+      }
+    },
+    "pull_request.auto_merge_enabled": {
+      "display_name": "Pull Request Auto Merge Enabled",
+      "description": "Auto-merge was turned on for a PR.",
+      "resource_type": "pull_request",
+      "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "auto_merge_method": "pull_request.auto_merge.merge_method",
+        "auto_merge_enabled_by": "pull_request.auto_merge.enabled_by.login"
+      }
+    },
+    "pull_request.auto_merge_disabled": {
+      "display_name": "Pull Request Auto Merge Disabled",
+      "description": "Auto-merge was turned off for a PR.",
+      "resource_type": "pull_request",
+      "payload_schema": "pull_request_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pr_number": "pull_request.number",
+        "reason": "reason"
       }
     },
     "pull_request_review.submitted": {
       "display_name": "Pull Request Review Submitted",
-      "description": "Triggered when a pull request review is submitted (approved, changes requested, or commented)",
+      "description": "A reviewer submitted a review on a PR. review_state is one of: approved, changes_requested, commented. Fires ONCE per review even if the review contained many inline comments.",
       "resource_type": "pull_request",
       "payload_schema": "pull_request_review_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "sender_type": "sender.type",
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "pr_state": "pull_request.state",
+        "pr_draft": "pull_request.draft",
+        "pr_merged": "pull_request.merged",
+        "pr_author": "pull_request.user.login",
+        "pr_head_ref": "pull_request.head.ref",
+        "pr_head_sha": "pull_request.head.sha",
+        "pr_base_ref": "pull_request.base.ref",
+        "pr_html_url": "pull_request.html_url",
+        "review_id": "review.id",
+        "review_state": "review.state",
+        "review_body": "review.body",
+        "review_author": "review.user.login",
+        "review_author_association": "review.author_association",
+        "review_commit_id": "review.commit_id",
+        "review_submitted_at": "review.submitted_at",
+        "review_html_url": "review.html_url"
+      }
+    },
+    "pull_request_review.dismissed": {
+      "display_name": "Pull Request Review Dismissed",
+      "description": "A review was dismissed (typically because new commits invalidated it).",
+      "resource_type": "pull_request",
+      "payload_schema": "pull_request_review_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
-        "pull_number": "pull_request.number",
-        "pull_request_title": "pull_request.title",
-        "review_id": "review.id"
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "review_id": "review.id",
+        "review_state": "review.state",
+        "review_author": "review.user.login"
+      }
+    },
+    "pull_request_review.edited": {
+      "display_name": "Pull Request Review Edited",
+      "description": "A submitted review's body was edited.",
+      "resource_type": "pull_request",
+      "payload_schema": "pull_request_review_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "review_id": "review.id",
+        "review_state": "review.state",
+        "review_author": "review.user.login",
+        "review_body": "review.body",
+        "changes_body_from": "changes.body.from"
       }
     },
     "pull_request_review_comment.created": {
       "display_name": "Pull Request Review Comment Created",
-      "description": "Triggered when a review comment is created on a pull request diff",
+      "description": "A reviewer left an inline comment on a specific diff line. Each line comment of a submitted review fires this AND is included in the subsequent review payload — if you subscribe to both, you'll see duplicates. Standalone 'single comments' (submitted without a review) fire this event without an accompanying pull_request_review event.",
       "resource_type": "pull_request",
       "payload_schema": "pull_request_review_comment_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
-        "pull_number": "pull_request.number",
-        "pull_request_title": "pull_request.title",
-        "comment_id": "comment.id"
+        "sender_type": "sender.type",
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "pr_state": "pull_request.state",
+        "pr_draft": "pull_request.draft",
+        "pr_head_ref": "pull_request.head.ref",
+        "pr_html_url": "pull_request.html_url",
+        "comment_id": "comment.id",
+        "comment_body": "comment.body",
+        "comment_author": "comment.user.login",
+        "comment_author_association": "comment.author_association",
+        "comment_path": "comment.path",
+        "comment_line": "comment.line",
+        "comment_start_line": "comment.start_line",
+        "comment_side": "comment.side",
+        "comment_start_side": "comment.start_side",
+        "comment_position": "comment.position",
+        "comment_original_position": "comment.original_position",
+        "comment_commit_id": "comment.commit_id",
+        "comment_original_commit_id": "comment.original_commit_id",
+        "comment_in_reply_to_id": "comment.in_reply_to_id",
+        "comment_pull_request_review_id": "comment.pull_request_review_id",
+        "comment_diff_hunk": "comment.diff_hunk",
+        "comment_html_url": "comment.html_url",
+        "comment_created_at": "comment.created_at"
       }
     },
-    "workflow_run.completed": {
-      "display_name": "Workflow Run Completed",
-      "description": "Triggered when a GitHub Actions workflow run completes (check conclusion for success/failure)",
-      "resource_type": "workflow",
-      "payload_schema": "workflow_run_event",
+    "pull_request_review_comment.edited": {
+      "display_name": "Pull Request Review Comment Edited",
+      "description": "A review comment on a diff line was edited.",
+      "resource_type": "pull_request",
+      "payload_schema": "pull_request_review_comment_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
-        "run_id": "workflow_run.id",
-        "workflow_name": "workflow_run.name"
+        "pr_number": "pull_request.number",
+        "pr_title": "pull_request.title",
+        "comment_id": "comment.id",
+        "comment_path": "comment.path",
+        "comment_line": "comment.line",
+        "comment_body": "comment.body",
+        "comment_author": "comment.user.login",
+        "changes_body_from": "changes.body.from"
       }
     },
-    "workflow_run.requested": {
-      "display_name": "Workflow Run Requested",
-      "description": "Triggered when a GitHub Actions workflow run is requested",
-      "resource_type": "workflow",
-      "payload_schema": "workflow_run_event",
+    "pull_request_review_comment.deleted": {
+      "display_name": "Pull Request Review Comment Deleted",
+      "description": "A review comment was deleted.",
+      "resource_type": "pull_request",
+      "payload_schema": "pull_request_review_comment_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
-        "run_id": "workflow_run.id",
-        "workflow_name": "workflow_run.name"
+        "pr_number": "pull_request.number",
+        "comment_id": "comment.id",
+        "comment_path": "comment.path",
+        "comment_author": "comment.user.login"
       }
     },
-    "workflow_job.completed": {
-      "display_name": "Workflow Job Completed",
-      "description": "Triggered when a GitHub Actions workflow job completes",
-      "resource_type": "workflow",
-      "payload_schema": "workflow_job_event",
+    "check_suite.completed": {
+      "display_name": "Check Suite Completed",
+      "description": "The best CI-done signal. Fires ONCE per commit when every check_run in the suite has finished (Actions, third-party apps, everything). Prefer this over check_run.completed for PR-level CI reactions — drops per-push event volume from ~N to 1. pull_requests[] is empty for PRs from forks and for commits not in any PR (direct push to main, etc.); use head_sha + head_branch as fallback keys.",
+      "resource_type": "pull_request",
+      "payload_schema": "check_suite_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "sender_type": "sender.type",
+        "check_suite_id": "check_suite.id",
+        "check_suite_status": "check_suite.status",
+        "check_suite_conclusion": "check_suite.conclusion",
+        "head_branch": "check_suite.head_branch",
+        "head_sha": "check_suite.head_sha",
+        "before_sha": "check_suite.before",
+        "after_sha": "check_suite.after",
+        "check_suite_url": "check_suite.url",
+        "check_suite_app_name": "check_suite.app.name",
+        "check_suite_app_slug": "check_suite.app.slug",
+        "check_suite_app_id": "check_suite.app.id",
+        "check_runs_count": "check_suite.latest_check_runs_count",
+        "check_runs_url": "check_suite.check_runs_url",
+        "pr_number": "check_suite.pull_requests.0.number",
+        "pr_head_ref": "check_suite.pull_requests.0.head.ref",
+        "pr_head_sha": "check_suite.pull_requests.0.head.sha",
+        "pr_base_ref": "check_suite.pull_requests.0.base.ref",
+        "pr_base_sha": "check_suite.pull_requests.0.base.sha",
+        "head_commit_message": "check_suite.head_commit.message",
+        "head_commit_author_name": "check_suite.head_commit.author.name",
+        "head_commit_timestamp": "check_suite.head_commit.timestamp"
+      }
+    },
+    "check_suite.requested": {
+      "display_name": "Check Suite Requested",
+      "description": "A check suite was created on a commit, typically right after a push. Fires before any check_run inside it has started. Useful for a 'CI starting' signal.",
+      "resource_type": "pull_request",
+      "payload_schema": "check_suite_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
-        "run_id": "workflow_job.run_id",
-        "workflow_name": "workflow_job.workflow_name"
+        "check_suite_id": "check_suite.id",
+        "check_suite_status": "check_suite.status",
+        "head_branch": "check_suite.head_branch",
+        "head_sha": "check_suite.head_sha",
+        "pr_number": "check_suite.pull_requests.0.number",
+        "pr_head_ref": "check_suite.pull_requests.0.head.ref"
+      }
+    },
+    "check_suite.rerequested": {
+      "display_name": "Check Suite Re-requested",
+      "description": "A user clicked 'Re-run all checks' on a check suite.",
+      "resource_type": "pull_request",
+      "payload_schema": "check_suite_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "check_suite_id": "check_suite.id",
+        "head_branch": "check_suite.head_branch",
+        "head_sha": "check_suite.head_sha",
+        "pr_number": "check_suite.pull_requests.0.number"
       }
     },
     "check_run.completed": {
       "display_name": "Check Run Completed",
-      "description": "Triggered when a check run completes (any GitHub App-reported check, including CI)",
-      "resource_type": "workflow",
+      "description": "One individual check (Actions job, third-party-app check, etc.) finished. High-volume — for PR-level reactions prefer check_suite.completed. check_run.conclusion is one of: success, failure, neutral, cancelled, timed_out, action_required, stale, skipped. pull_requests[] has the same fork/cross-repo gaps as check_suite.",
+      "resource_type": "pull_request",
       "payload_schema": "check_run_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "check_run_id": "check_run.id",
+        "check_run_name": "check_run.name",
+        "check_run_status": "check_run.status",
+        "check_run_conclusion": "check_run.conclusion",
+        "check_run_started_at": "check_run.started_at",
+        "check_run_completed_at": "check_run.completed_at",
+        "check_run_html_url": "check_run.html_url",
+        "check_run_details_url": "check_run.details_url",
+        "check_run_external_id": "check_run.external_id",
+        "check_run_output_title": "check_run.output.title",
+        "check_run_output_summary": "check_run.output.summary",
+        "head_sha": "check_run.head_sha",
+        "check_run_app_name": "check_run.app.name",
+        "check_run_app_slug": "check_run.app.slug",
+        "check_run_app_id": "check_run.app.id",
+        "check_suite_id": "check_run.check_suite.id",
+        "check_suite_conclusion": "check_run.check_suite.conclusion",
+        "check_suite_head_branch": "check_run.check_suite.head_branch",
+        "pr_number": "check_run.pull_requests.0.number",
+        "pr_head_ref": "check_run.pull_requests.0.head.ref",
+        "pr_base_ref": "check_run.pull_requests.0.base.ref"
+      }
+    },
+    "check_run.created": {
+      "display_name": "Check Run Created",
+      "description": "A check run started on a commit.",
+      "resource_type": "pull_request",
+      "payload_schema": "check_run_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
         "check_run_id": "check_run.id",
-        "check_run_name": "check_run.name"
+        "check_run_name": "check_run.name",
+        "check_run_status": "check_run.status",
+        "head_sha": "check_run.head_sha",
+        "check_run_app_name": "check_run.app.name",
+        "pr_number": "check_run.pull_requests.0.number",
+        "pr_head_ref": "check_run.pull_requests.0.head.ref"
+      }
+    },
+    "check_run.rerequested": {
+      "display_name": "Check Run Re-requested",
+      "description": "A user clicked 'Re-run' on a single check.",
+      "resource_type": "pull_request",
+      "payload_schema": "check_run_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "check_run_id": "check_run.id",
+        "check_run_name": "check_run.name",
+        "head_sha": "check_run.head_sha",
+        "pr_number": "check_run.pull_requests.0.number"
+      }
+    },
+    "check_run.requested_action": {
+      "display_name": "Check Run Requested Action",
+      "description": "A user clicked an action button inside a check run's output (e.g. 'fix this lint'). `requested_action.identifier` is the action key the button declared.",
+      "resource_type": "pull_request",
+      "payload_schema": "check_run_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "check_run_id": "check_run.id",
+        "check_run_name": "check_run.name",
+        "head_sha": "check_run.head_sha",
+        "requested_action_identifier": "requested_action.identifier",
+        "pr_number": "check_run.pull_requests.0.number"
+      }
+    },
+    "workflow_run.completed": {
+      "display_name": "Workflow Run Completed",
+      "description": "A GitHub Actions workflow finished. Subset of check_suite.completed (Actions only, not third-party apps). workflow_run.event tells you what triggered the workflow (push, pull_request, workflow_dispatch, etc.). Check workflow_run.conclusion: success, failure, cancelled, timed_out, action_required, stale, neutral, skipped.",
+      "resource_type": "pull_request",
+      "payload_schema": "workflow_run_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "run_id": "workflow_run.id",
+        "run_number": "workflow_run.run_number",
+        "run_attempt": "workflow_run.run_attempt",
+        "run_event": "workflow_run.event",
+        "run_status": "workflow_run.status",
+        "run_conclusion": "workflow_run.conclusion",
+        "run_display_title": "workflow_run.display_title",
+        "run_url": "workflow_run.html_url",
+        "run_started_at": "workflow_run.run_started_at",
+        "run_created_at": "workflow_run.created_at",
+        "run_updated_at": "workflow_run.updated_at",
+        "workflow_id": "workflow_run.workflow_id",
+        "workflow_name": "workflow_run.name",
+        "workflow_path": "workflow_run.path",
+        "head_branch": "workflow_run.head_branch",
+        "head_sha": "workflow_run.head_sha",
+        "head_repository": "workflow_run.head_repository.full_name",
+        "check_suite_id": "workflow_run.check_suite_id",
+        "run_actor": "workflow_run.actor.login",
+        "run_triggering_actor": "workflow_run.triggering_actor.login",
+        "head_commit_id": "workflow_run.head_commit.id",
+        "head_commit_message": "workflow_run.head_commit.message",
+        "head_commit_author_name": "workflow_run.head_commit.author.name",
+        "head_commit_author_email": "workflow_run.head_commit.author.email",
+        "pr_number": "workflow_run.pull_requests.0.number",
+        "pr_head_ref": "workflow_run.pull_requests.0.head.ref",
+        "pr_base_ref": "workflow_run.pull_requests.0.base.ref"
+      }
+    },
+    "workflow_run.requested": {
+      "display_name": "Workflow Run Requested",
+      "description": "A workflow run was queued to start.",
+      "resource_type": "pull_request",
+      "payload_schema": "workflow_run_event",
+      "resource_key_template": "github/{owner}/{repo}/pull/{pr_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "run_id": "workflow_run.id",
+        "run_event": "workflow_run.event",
+        "run_status": "workflow_run.status",
+        "workflow_name": "workflow_run.name",
+        "head_branch": "workflow_run.head_branch",
+        "head_sha": "workflow_run.head_sha",
+        "pr_number": "workflow_run.pull_requests.0.number"
+      }
+    },
+    "workflow_job.completed": {
+      "display_name": "Workflow Job Completed",
+      "description": "A single job inside a workflow run finished. One per job — fires multiple times per workflow_run. Use workflow_job.conclusion (same enum as workflow_run.conclusion).",
+      "resource_type": "pull_request",
+      "payload_schema": "workflow_job_event",
+      "resource_key_template": "github/{owner}/{repo}/branch/{head_branch}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "job_id": "workflow_job.id",
+        "job_name": "workflow_job.name",
+        "job_status": "workflow_job.status",
+        "job_conclusion": "workflow_job.conclusion",
+        "job_started_at": "workflow_job.started_at",
+        "job_completed_at": "workflow_job.completed_at",
+        "job_html_url": "workflow_job.html_url",
+        "job_url": "workflow_job.run_url",
+        "job_run_attempt": "workflow_job.run_attempt",
+        "run_id": "workflow_job.run_id",
+        "workflow_name": "workflow_job.workflow_name",
+        "head_branch": "workflow_job.head_branch",
+        "head_sha": "workflow_job.head_sha",
+        "job_runner_name": "workflow_job.runner_name",
+        "job_runner_group_name": "workflow_job.runner_group_name",
+        "job_first_label": "workflow_job.labels.0"
+      }
+    },
+    "workflow_job.in_progress": {
+      "display_name": "Workflow Job In Progress",
+      "description": "A workflow job started running.",
+      "resource_type": "pull_request",
+      "payload_schema": "workflow_job_event",
+      "resource_key_template": "github/{owner}/{repo}/branch/{head_branch}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "job_id": "workflow_job.id",
+        "job_name": "workflow_job.name",
+        "job_status": "workflow_job.status",
+        "run_id": "workflow_job.run_id",
+        "workflow_name": "workflow_job.workflow_name",
+        "head_branch": "workflow_job.head_branch",
+        "head_sha": "workflow_job.head_sha"
+      }
+    },
+    "workflow_job.queued": {
+      "display_name": "Workflow Job Queued",
+      "description": "A workflow job was queued and is waiting for a runner.",
+      "resource_type": "pull_request",
+      "payload_schema": "workflow_job_event",
+      "resource_key_template": "github/{owner}/{repo}/branch/{head_branch}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "job_id": "workflow_job.id",
+        "job_name": "workflow_job.name",
+        "workflow_name": "workflow_job.workflow_name",
+        "head_branch": "workflow_job.head_branch",
+        "head_sha": "workflow_job.head_sha"
+      }
+    },
+    "workflow_job.waiting": {
+      "display_name": "Workflow Job Waiting",
+      "description": "A workflow job is waiting for approval (manual approval for environments, required reviewers, etc.).",
+      "resource_type": "pull_request",
+      "payload_schema": "workflow_job_event",
+      "resource_key_template": "github/{owner}/{repo}/branch/{head_branch}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "job_id": "workflow_job.id",
+        "job_name": "workflow_job.name",
+        "workflow_name": "workflow_job.workflow_name",
+        "head_branch": "workflow_job.head_branch",
+        "head_sha": "workflow_job.head_sha"
       }
     },
     "deployment_status.created": {
       "display_name": "Deployment Status Created",
-      "description": "Triggered when a deployment status is created (success, failure, pending, etc.)",
-      "resource_type": "repository",
+      "description": "A deployment's status changed. deployment_status.state: error, failure, inactive, in_progress, queued, pending, success. workflow_run/workflow fields are populated when the deployment originated from an Actions workflow.",
+      "resource_type": "deployment",
       "payload_schema": "deployment_status_event",
+      "resource_key_template": "github/{owner}/{repo}/deployment/{deployment_id}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
+        "organization": "organization.login",
         "sender": "sender.login",
-        "deployment_id": "deployment.id"
+        "deployment_id": "deployment.id",
+        "deployment_sha": "deployment.sha",
+        "deployment_ref": "deployment.ref",
+        "deployment_task": "deployment.task",
+        "deployment_environment": "deployment.environment",
+        "deployment_production_environment": "deployment.production_environment",
+        "deployment_transient_environment": "deployment.transient_environment",
+        "deployment_creator": "deployment.creator.login",
+        "deployment_status_id": "deployment_status.id",
+        "deployment_status_state": "deployment_status.state",
+        "deployment_status_description": "deployment_status.description",
+        "deployment_status_environment": "deployment_status.environment",
+        "deployment_status_target_url": "deployment_status.target_url",
+        "deployment_status_log_url": "deployment_status.log_url",
+        "deployment_status_environment_url": "deployment_status.environment_url",
+        "deployment_status_creator": "deployment_status.creator.login",
+        "deployment_status_created_at": "deployment_status.created_at",
+        "workflow_id": "workflow.id",
+        "workflow_name": "workflow.name",
+        "workflow_path": "workflow.path",
+        "workflow_run_id": "workflow_run.id",
+        "workflow_run_conclusion": "workflow_run.conclusion",
+        "workflow_run_head_branch": "workflow_run.head_branch",
+        "workflow_run_head_sha": "workflow_run.head_sha"
       }
     },
     "push": {
       "display_name": "Push",
-      "description": "Triggered when commits are pushed to a repository branch or tag",
+      "description": "Commits (or tags) were pushed to a ref. payload.ref is the full ref (refs/heads/main, refs/tags/v1.0). Use `created`/`deleted`/`forced` to distinguish branch/tag lifecycle actions. Push events where the ref is a tag typically have commits=[] and head_commit=null.",
       "resource_type": "repository",
       "payload_schema": "push_event",
+      "resource_key_template": "github/{owner}/{repo}/branch/{ref}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
+        "repository_id": "repository.id",
+        "default_branch": "repository.default_branch",
+        "organization": "organization.login",
         "sender": "sender.login",
+        "sender_type": "sender.type",
         "ref": "ref",
         "before": "before",
-        "after": "after"
+        "after": "after",
+        "created": "created",
+        "deleted": "deleted",
+        "forced": "forced",
+        "base_ref": "base_ref",
+        "compare_url": "compare",
+        "head_commit_id": "head_commit.id",
+        "head_commit_message": "head_commit.message",
+        "head_commit_timestamp": "head_commit.timestamp",
+        "head_commit_url": "head_commit.url",
+        "head_commit_author_name": "head_commit.author.name",
+        "head_commit_author_email": "head_commit.author.email",
+        "head_commit_author_username": "head_commit.author.username",
+        "head_commit_committer_name": "head_commit.committer.name",
+        "head_commit_committer_email": "head_commit.committer.email",
+        "pusher_name": "pusher.name",
+        "pusher_email": "pusher.email"
       }
     },
     "create": {
       "display_name": "Branch or Tag Created",
-      "description": "Triggered when a branch or tag is created (payload.ref is the short name, e.g. 'main' or 'v1.0', not a full refs/heads/ path)",
+      "description": "A branch or tag was created. payload.ref holds the short name (e.g. `main` or `v1.0`), NOT a `refs/heads/…` path — this differs from push. Use ref_type to distinguish branch vs tag. Not fired for fork creation; GitHub's docs list legacy exclusions (creation of repositories and changes to files).",
       "resource_type": "repository",
       "payload_schema": "create_event",
+      "resource_key_template": "github/{owner}/{repo}/{ref_type}/{ref}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
+        "organization": "organization.login",
         "sender": "sender.login",
-        "branch_name": "ref",
-        "ref_type": "ref_type"
+        "sender_type": "sender.type",
+        "ref": "ref",
+        "ref_type": "ref_type",
+        "master_branch": "master_branch",
+        "description": "description",
+        "pusher_type": "pusher_type"
       }
     },
     "delete": {
       "display_name": "Branch or Tag Deleted",
-      "description": "Triggered when a branch or tag is deleted (payload.ref is the short name, e.g. 'main' or 'v1.0', not a full refs/heads/ path)",
+      "description": "A branch or tag was deleted. payload.ref holds the short name (same convention as create).",
       "resource_type": "repository",
       "payload_schema": "delete_event",
+      "resource_key_template": "github/{owner}/{repo}/{ref_type}/{ref}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
+        "organization": "organization.login",
         "sender": "sender.login",
-        "branch_name": "ref",
-        "ref_type": "ref_type"
+        "ref": "ref",
+        "ref_type": "ref_type",
+        "pusher_type": "pusher_type"
       }
     },
     "release.published": {
       "display_name": "Release Published",
-      "description": "Triggered when a release is published and available to users",
+      "description": "A release became publicly visible (non-draft). Use release.prerelease to distinguish stable from pre-release.",
       "resource_type": "release",
       "payload_schema": "release_event",
+      "resource_key_template": "github/{owner}/{repo}/release/{release_tag}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "release_id": "release.id",
+        "release_tag": "release.tag_name",
+        "release_name": "release.name",
+        "release_body": "release.body",
+        "release_target_commitish": "release.target_commitish",
+        "release_draft": "release.draft",
+        "release_prerelease": "release.prerelease",
+        "release_created_at": "release.created_at",
+        "release_published_at": "release.published_at",
+        "release_author": "release.author.login",
+        "release_html_url": "release.html_url",
+        "release_discussion_url": "release.discussion_url"
+      }
+    },
+    "release.released": {
+      "display_name": "Release Released",
+      "description": "A release marked as latest was published. Fires in addition to release.published when the release is the latest non-prerelease.",
+      "resource_type": "release",
+      "payload_schema": "release_event",
+      "resource_key_template": "github/{owner}/{repo}/release/{release_tag}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
         "release_id": "release.id",
-        "release_tag": "release.tag_name"
+        "release_tag": "release.tag_name",
+        "release_name": "release.name",
+        "release_target_commitish": "release.target_commitish",
+        "release_author": "release.author.login",
+        "release_html_url": "release.html_url"
       }
     },
-    "discussion.created": {
-      "display_name": "Discussion Created",
-      "description": "Triggered when a new discussion is created in a repository",
-      "resource_type": "repository",
-      "payload_schema": "discussion_event",
+    "release.prereleased": {
+      "display_name": "Pre-release Published",
+      "description": "A pre-release became publicly visible.",
+      "resource_type": "release",
+      "payload_schema": "release_event",
+      "resource_key_template": "github/{owner}/{repo}/release/{release_tag}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
-        "discussion_number": "discussion.number"
+        "release_id": "release.id",
+        "release_tag": "release.tag_name",
+        "release_name": "release.name",
+        "release_prerelease": "release.prerelease",
+        "release_author": "release.author.login",
+        "release_html_url": "release.html_url"
       }
     },
-    "discussion_comment.created": {
-      "display_name": "Discussion Comment Created",
-      "description": "Triggered when a comment is created on a discussion",
-      "resource_type": "repository",
-      "payload_schema": "discussion_comment_event",
+    "release.created": {
+      "display_name": "Release Created (Draft)",
+      "description": "A draft release was created. Fires before it becomes public. release.draft is true.",
+      "resource_type": "release",
+      "payload_schema": "release_event",
+      "resource_key_template": "github/{owner}/{repo}/release/{release_tag}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "release_id": "release.id",
+        "release_tag": "release.tag_name",
+        "release_name": "release.name",
+        "release_draft": "release.draft",
+        "release_html_url": "release.html_url"
+      }
+    },
+    "release.edited": {
+      "display_name": "Release Edited",
+      "description": "An existing release's metadata (name, body, tag, etc.) was edited.",
+      "resource_type": "release",
+      "payload_schema": "release_event",
+      "resource_key_template": "github/{owner}/{repo}/release/{release_tag}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "release_id": "release.id",
+        "release_tag": "release.tag_name",
+        "release_name": "release.name",
+        "changes_body_from": "changes.body.from",
+        "changes_name_from": "changes.name.from"
+      }
+    },
+    "discussion.created": {
+      "display_name": "Discussion Created",
+      "description": "A new discussion thread was opened.",
+      "resource_type": "discussion",
+      "payload_schema": "discussion_event",
+      "resource_key_template": "github/{owner}/{repo}/discussion/{discussion_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "organization": "organization.login",
+        "sender": "sender.login",
+        "discussion_id": "discussion.id",
+        "discussion_number": "discussion.number",
+        "discussion_title": "discussion.title",
+        "discussion_body": "discussion.body",
+        "discussion_state": "discussion.state",
+        "discussion_author": "discussion.user.login",
+        "discussion_author_association": "discussion.author_association",
+        "discussion_category_id": "discussion.category.id",
+        "discussion_category_name": "discussion.category.name",
+        "discussion_category_slug": "discussion.category.slug",
+        "discussion_html_url": "discussion.html_url",
+        "discussion_created_at": "discussion.created_at",
+        "discussion_locked": "discussion.locked"
+      }
+    },
+    "discussion.answered": {
+      "display_name": "Discussion Answered",
+      "description": "A comment on a Q&A-category discussion was marked as the answer. `answer` holds the comment chosen.",
+      "resource_type": "discussion",
+      "payload_schema": "discussion_event",
+      "resource_key_template": "github/{owner}/{repo}/discussion/{discussion_number}",
       "refs": {
         "owner": "repository.owner.login",
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
         "discussion_number": "discussion.number",
-        "comment_id": "comment.id"
+        "discussion_title": "discussion.title",
+        "answer_id": "answer.id",
+        "answer_body": "answer.body",
+        "answer_author": "answer.user.login",
+        "answer_html_url": "answer.html_url"
+      }
+    },
+    "discussion.edited": {
+      "display_name": "Discussion Edited",
+      "description": "A discussion's title or body was edited.",
+      "resource_type": "discussion",
+      "payload_schema": "discussion_event",
+      "resource_key_template": "github/{owner}/{repo}/discussion/{discussion_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "discussion_number": "discussion.number",
+        "discussion_title": "discussion.title",
+        "changes_title_from": "changes.title.from",
+        "changes_body_from": "changes.body.from"
+      }
+    },
+    "discussion.labeled": {
+      "display_name": "Discussion Labeled",
+      "description": "A label was added to a discussion.",
+      "resource_type": "discussion",
+      "payload_schema": "discussion_event",
+      "resource_key_template": "github/{owner}/{repo}/discussion/{discussion_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "discussion_number": "discussion.number",
+        "discussion_title": "discussion.title",
+        "label_name": "label.name"
+      }
+    },
+    "discussion_comment.created": {
+      "display_name": "Discussion Comment Created",
+      "description": "A new comment (or reply) was posted on a discussion thread. comment_parent_id is set on replies.",
+      "resource_type": "discussion",
+      "payload_schema": "discussion_comment_event",
+      "resource_key_template": "github/{owner}/{repo}/discussion/{discussion_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "discussion_number": "discussion.number",
+        "discussion_title": "discussion.title",
+        "discussion_category_name": "discussion.category.name",
+        "comment_id": "comment.id",
+        "comment_body": "comment.body",
+        "comment_author": "comment.user.login",
+        "comment_author_association": "comment.author_association",
+        "comment_html_url": "comment.html_url",
+        "comment_parent_id": "comment.parent_id",
+        "comment_created_at": "comment.created_at"
+      }
+    },
+    "discussion_comment.edited": {
+      "display_name": "Discussion Comment Edited",
+      "description": "A discussion comment was edited.",
+      "resource_type": "discussion",
+      "payload_schema": "discussion_comment_event",
+      "resource_key_template": "github/{owner}/{repo}/discussion/{discussion_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "discussion_number": "discussion.number",
+        "comment_id": "comment.id",
+        "comment_body": "comment.body",
+        "comment_author": "comment.user.login",
+        "changes_body_from": "changes.body.from"
+      }
+    },
+    "discussion_comment.deleted": {
+      "display_name": "Discussion Comment Deleted",
+      "description": "A discussion comment was deleted.",
+      "resource_type": "discussion",
+      "payload_schema": "discussion_comment_event",
+      "resource_key_template": "github/{owner}/{repo}/discussion/{discussion_number}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "discussion_number": "discussion.number",
+        "comment_id": "comment.id",
+        "comment_author": "comment.user.login"
+      }
+    },
+    "commit_comment.created": {
+      "display_name": "Commit Comment Created",
+      "description": "A comment was posted on a commit (outside any PR context). Rare — most commit-level discussion happens via PR review comments.",
+      "resource_type": "repository",
+      "payload_schema": "commit_comment_event",
+      "resource_key_template": "github/{owner}/{repo}/commit/{comment_commit_id}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "comment_id": "comment.id",
+        "comment_body": "comment.body",
+        "comment_author": "comment.user.login",
+        "comment_author_association": "comment.author_association",
+        "comment_commit_id": "comment.commit_id",
+        "comment_path": "comment.path",
+        "comment_line": "comment.line",
+        "comment_position": "comment.position",
+        "comment_html_url": "comment.html_url",
+        "comment_created_at": "comment.created_at"
+      }
+    },
+    "fork": {
+      "display_name": "Repository Forked",
+      "description": "Someone created a fork of the repository.",
+      "resource_type": "repository",
+      "payload_schema": "fork_event",
+      "resource_key_template": "github/{owner}/{repo}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "forkee_id": "forkee.id",
+        "forkee_full_name": "forkee.full_name",
+        "forkee_owner": "forkee.owner.login",
+        "forkee_url": "forkee.html_url",
+        "forkee_default_branch": "forkee.default_branch"
+      }
+    },
+    "star.created": {
+      "display_name": "Repository Starred",
+      "description": "Someone starred the repository. Pair with star.deleted if tracking churn.",
+      "resource_type": "repository",
+      "payload_schema": "star_event",
+      "resource_key_template": "github/{owner}/{repo}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "starred_at": "starred_at"
+      }
+    },
+    "watch.started": {
+      "display_name": "Repository Watched (Starred)",
+      "description": "Legacy event; GitHub fires this for 'star' actions. Roughly equivalent to star.created. Prefer star.created for new triggers.",
+      "resource_type": "repository",
+      "payload_schema": "watch_event",
+      "resource_key_template": "github/{owner}/{repo}",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login"
       }
     }
   },
@@ -345,689 +1441,265 @@
     "issues_event": {
       "type": "object",
       "properties": {
-        "action": {
-          "type": "string",
-          "description": "The action that was performed: opened, edited, deleted, pinned, unpinned, closed, reopened, assigned, unassigned, labeled, unlabeled, locked, unlocked, transferred, milestoned, or demilestoned"
-        },
-        "issue": {
-          "type": "object",
-          "description": "The issue object including id, number, title, body, state, user, labels, assignees, milestone, created_at, updated_at, closed_at, html_url",
-          "schema_ref": "issue"
-        },
-        "changes": {
-          "type": "object",
-          "description": "The changes to the issue if the action was 'edited'. Includes previous title and/or body values"
-        },
-        "assignee": {
-          "type": "object",
-          "description": "The user that was assigned or unassigned from the issue (present for assigned/unassigned actions)",
-          "schema_ref": "simple-user"
-        },
-        "label": {
-          "type": "object",
-          "description": "The label that was added or removed (present for labeled/unlabeled actions)"
-        },
-        "milestone": {
-          "type": "object",
-          "description": "The milestone associated with the event (present for milestoned/demilestoned actions)",
-          "schema_ref": "nullable-milestone"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the issue belongs",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
+        "action": {"type": "string", "description": "opened, edited, deleted, pinned, unpinned, closed, reopened, assigned, unassigned, labeled, unlabeled, locked, unlocked, transferred, milestoned, or demilestoned"},
+        "issue": {"type": "object", "description": "The issue: id, number, title, body, state, state_reason, user, labels[], assignees[], milestone, created_at, updated_at, closed_at, html_url, author_association, reactions, locked, active_lock_reason", "schema_ref": "issue"},
+        "changes": {"type": "object", "description": "Prior values for edited actions: changes.title.from, changes.body.from"},
+        "assignee": {"type": "object", "description": "The user added/removed for assigned/unassigned actions", "schema_ref": "simple-user"},
+        "label": {"type": "object", "description": "The label added/removed for labeled/unlabeled: id, name, color, description, default"},
+        "milestone": {"type": "object", "description": "The milestone for milestoned/demilestoned: id, number, title, state, due_on", "schema_ref": "nullable-milestone"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object", "description": "Present when delivered via a GitHub App installation"}
       }
     },
     "issue_comment_event": {
       "type": "object",
       "properties": {
-        "action": {
-          "type": "string",
-          "description": "The action that was performed: created, edited, or deleted"
-        },
-        "issue": {
-          "type": "object",
-          "description": "The issue or pull request the comment belongs to. Includes id, number, title, state, user, labels, html_url. Contains a pull_request key if the comment is on a PR",
-          "schema_ref": "issue"
-        },
-        "comment": {
-          "type": "object",
-          "description": "The comment object including id, body, user, created_at, updated_at, html_url, author_association",
-          "schema_ref": "issue-comment"
-        },
-        "changes": {
-          "type": "object",
-          "description": "The changes to the comment body if the action was 'edited'"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the comment was made",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
+        "action": {"type": "string", "description": "created, edited, or deleted"},
+        "issue": {"type": "object", "description": "The issue OR pull request. issue.pull_request.url is populated when the comment is on a PR — use it as the issue-vs-PR discriminator.", "schema_ref": "issue"},
+        "comment": {"type": "object", "description": "id, body, user, created_at, updated_at, html_url, author_association, reactions, performed_via_github_app", "schema_ref": "issue-comment"},
+        "changes": {"type": "object", "description": "changes.body.from for edited action"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
       }
     },
     "pull_request_event": {
       "type": "object",
       "properties": {
-        "action": {
-          "type": "string",
-          "description": "The action performed: opened, edited, closed, reopened, assigned, unassigned, review_requested, review_request_removed, labeled, unlabeled, synchronize, converted_to_draft, ready_for_review, locked, unlocked, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued, milestoned, or demilestoned"
-        },
-        "number": {
-          "type": "integer",
-          "description": "The pull request number"
-        },
-        "pull_request": {
-          "type": "object",
-          "description": "The pull request object including id, number, title, body, state, draft, merged, user, head, base, labels, assignees, requested_reviewers, milestone, created_at, updated_at, merged_at, html_url, diff_url, additions, deletions, changed_files",
-          "schema_ref": "pull-request"
-        },
-        "changes": {
-          "type": "object",
-          "description": "Changes to the PR if action was 'edited'. Contains previous title and/or body"
-        },
-        "requested_reviewer": {
-          "type": "object",
-          "description": "The user whose review was requested or removed (present for review_requested/review_request_removed)",
-          "schema_ref": "simple-user"
-        },
-        "requested_team": {
-          "type": "object",
-          "description": "The team whose review was requested (present for review_requested when a team is requested)",
-          "schema_ref": "team-full"
-        },
-        "assignee": {
-          "type": "object",
-          "description": "The user assigned or unassigned (present for assigned/unassigned actions)",
-          "schema_ref": "simple-user"
-        },
-        "label": {
-          "type": "object",
-          "description": "The label added or removed (present for labeled/unlabeled actions)"
-        },
-        "before": {
-          "type": "string",
-          "description": "The previous head SHA before the synchronize event (present for synchronize action)"
-        },
-        "after": {
-          "type": "string",
-          "description": "The new head SHA after the synchronize event (present for synchronize action)"
-        },
-        "reason": {
-          "type": "string",
-          "description": "The reason for the event (present for auto_merge_disabled, auto_merge_enabled, and dequeued actions)"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the pull request belongs",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
+        "action": {"type": "string", "description": "opened, edited, closed, reopened, assigned, unassigned, review_requested, review_request_removed, labeled, unlabeled, synchronize, converted_to_draft, ready_for_review, locked, unlocked, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued, milestoned, demilestoned"},
+        "number": {"type": "integer", "description": "PR number"},
+        "pull_request": {"type": "object", "description": "id, number, title, body, state, draft, merged, merged_at, merged_by, merge_commit_sha, user, head (ref/sha/repo), base (ref/sha/repo), labels[], assignees[], requested_reviewers[], requested_teams[], milestone, created_at, updated_at, closed_at, html_url, diff_url, patch_url, additions, deletions, changed_files, commits, comments, review_comments, mergeable, mergeable_state, auto_merge, author_association", "schema_ref": "pull-request"},
+        "changes": {"type": "object", "description": "Prior values for edited action: changes.title.from, changes.body.from, changes.base.ref.from, changes.base.sha.from"},
+        "requested_reviewer": {"type": "object", "description": "Single user requested (review_requested/review_request_removed)", "schema_ref": "simple-user"},
+        "requested_team": {"type": "object", "description": "Single team requested (review_requested/review_request_removed with team)", "schema_ref": "team-full"},
+        "assignee": {"type": "object", "description": "User for assigned/unassigned actions", "schema_ref": "simple-user"},
+        "label": {"type": "object", "description": "Label for labeled/unlabeled actions"},
+        "before": {"type": "string", "description": "Previous head SHA (synchronize action only)"},
+        "after": {"type": "string", "description": "New head SHA (synchronize action only)"},
+        "reason": {"type": "string", "description": "Reason field on auto_merge_enabled/disabled and dequeued"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
       }
     },
     "pull_request_review_event": {
       "type": "object",
       "properties": {
-        "action": {
-          "type": "string",
-          "description": "The action performed: submitted, edited, or dismissed"
-        },
-        "review": {
-          "type": "object",
-          "description": "The review object including id, user, body, commit_id, submitted_at, state (approved, changes_requested, commented, dismissed), html_url, author_association"
-        },
-        "pull_request": {
-          "type": "object",
-          "description": "The pull request that was reviewed",
-          "schema_ref": "pull-request"
-        },
-        "changes": {
-          "type": "object",
-          "description": "Changes to the review body if action was 'edited'"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the pull request belongs",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
+        "action": {"type": "string", "description": "submitted, edited, or dismissed"},
+        "review": {"type": "object", "description": "id, user, body, commit_id, submitted_at, state (approved, changes_requested, commented, dismissed), html_url, author_association, pull_request_url"},
+        "pull_request": {"type": "object", "schema_ref": "pull-request"},
+        "changes": {"type": "object", "description": "changes.body.from for edited action"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
       }
     },
     "pull_request_review_comment_event": {
       "type": "object",
       "properties": {
-        "action": {
-          "type": "string",
-          "description": "The action performed: created, edited, or deleted"
-        },
-        "comment": {
-          "type": "object",
-          "description": "The review comment object including id, diff_hunk, path, position, original_position, commit_id, body, user, created_at, updated_at, html_url, in_reply_to_id",
-          "schema_ref": "pull-request-review-comment"
-        },
-        "pull_request": {
-          "type": "object",
-          "description": "The pull request the comment belongs to",
-          "schema_ref": "pull-request"
-        },
-        "changes": {
-          "type": "object",
-          "description": "Changes to the comment body if action was 'edited'"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the pull request belongs",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
+        "action": {"type": "string", "description": "created, edited, or deleted"},
+        "comment": {"type": "object", "description": "id, pull_request_review_id, diff_hunk, path, position, original_position, commit_id, original_commit_id, line, original_line, start_line, start_side, side, body, user, in_reply_to_id, created_at, updated_at, html_url, author_association, reactions", "schema_ref": "pull-request-review-comment"},
+        "pull_request": {"type": "object", "schema_ref": "pull-request"},
+        "changes": {"type": "object", "description": "changes.body.from for edited action"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
       }
     },
-    "workflow_run_event": {
+    "check_suite_event": {
       "type": "object",
       "properties": {
-        "action": {
-          "type": "string",
-          "description": "The action performed: completed, requested, or in_progress"
-        },
-        "workflow_run": {
-          "type": "object",
-          "description": "The workflow run object including id, name, node_id, head_branch, head_sha, path, run_number, event, status, conclusion (success, failure, cancelled, timed_out, action_required, stale, neutral, skipped), workflow_id, html_url, created_at, updated_at, run_attempt, run_started_at, actor, triggering_actor, head_commit, head_repository",
-          "schema_ref": "workflow-run"
-        },
-        "workflow": {
-          "type": "object",
-          "description": "The workflow definition including id, node_id, name, path, state, created_at, updated_at",
-          "schema_ref": "workflow"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the workflow run belongs",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
-      }
-    },
-    "workflow_job_event": {
-      "type": "object",
-      "properties": {
-        "action": {
-          "type": "string",
-          "description": "The action performed: completed, in_progress, queued, or waiting"
-        },
-        "workflow_job": {
-          "type": "object",
-          "description": "The workflow job object including id, run_id, run_url, run_attempt, node_id, head_sha, name, status, conclusion, started_at, completed_at, steps, labels, runner_id, runner_name, runner_group_id, runner_group_name, workflow_name, head_branch"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the workflow job belongs",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        },
-        "deployment": {
-          "type": "object",
-          "description": "The deployment requested, if applicable (present when the workflow job is associated with a deployment)"
-        }
+        "action": {"type": "string", "description": "completed, requested, or rerequested"},
+        "check_suite": {"type": "object", "description": "id, node_id, head_branch, head_sha, status (queued, in_progress, completed), conclusion (success, failure, neutral, cancelled, timed_out, action_required, stale, skipped, startup_failure), url, before, after, pull_requests[] (may be empty for fork PRs or non-PR commits), app (the GitHub App that created the suite — often null for Actions suites), created_at, updated_at, latest_check_runs_count, check_runs_url, head_commit"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
       }
     },
     "check_run_event": {
       "type": "object",
       "properties": {
-        "action": {
-          "type": "string",
-          "description": "The action performed: created, completed, rerequested, or requested_action"
-        },
-        "check_run": {
-          "type": "object",
-          "description": "The check run object including id, head_sha, node_id, external_id, name, status (queued, in_progress, completed), conclusion (success, failure, neutral, cancelled, timed_out, action_required, stale, skipped), started_at, completed_at, output, check_suite, app, pull_requests"
-        },
-        "requested_action": {
-          "type": "object",
-          "description": "The action requested by the user (present for requested_action events). Contains identifier"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the check run belongs",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
+        "action": {"type": "string", "description": "created, completed, rerequested, or requested_action"},
+        "check_run": {"type": "object", "description": "id, head_sha, node_id, external_id, name, status, conclusion, started_at, completed_at, output (title, summary, text, annotations_count, annotations_url), check_suite (nested), app, pull_requests[], html_url, details_url"},
+        "requested_action": {"type": "object", "description": "Present only on requested_action: { identifier }"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
+      }
+    },
+    "workflow_run_event": {
+      "type": "object",
+      "properties": {
+        "action": {"type": "string", "description": "completed, requested, or in_progress"},
+        "workflow_run": {"type": "object", "description": "id, name, display_title, node_id, head_branch, head_sha, path, run_number, event (trigger type: push, pull_request, workflow_dispatch, …), status, conclusion, workflow_id, check_suite_id, check_suite_node_id, html_url, created_at, updated_at, run_attempt, run_started_at, actor, triggering_actor, head_commit (id, message, author, committer, timestamp), head_repository, pull_requests[] (same fork/cross-repo limitations as check_suite)", "schema_ref": "workflow-run"},
+        "workflow": {"type": "object", "description": "id, node_id, name, path, state, created_at, updated_at", "schema_ref": "workflow"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
+      }
+    },
+    "workflow_job_event": {
+      "type": "object",
+      "properties": {
+        "action": {"type": "string", "description": "completed, in_progress, queued, or waiting"},
+        "workflow_job": {"type": "object", "description": "id, run_id, run_url, run_attempt, node_id, head_sha, head_branch, name, status, conclusion, started_at, completed_at, steps[] (each with name, status, conclusion, number, started_at, completed_at), labels[] (runner labels), runner_id, runner_name, runner_group_id, runner_group_name, workflow_name, html_url"},
+        "deployment": {"type": "object", "description": "Set when the job is tied to a Deployments-gated environment"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
       }
     },
     "deployment_status_event": {
       "type": "object",
       "properties": {
-        "action": {
-          "type": "string",
-          "description": "The action performed: created"
-        },
-        "deployment_status": {
-          "type": "object",
-          "description": "The deployment status object including id, state (error, failure, inactive, in_progress, queued, pending, success), description, environment, target_url, created_at, updated_at, log_url, environment_url"
-        },
-        "deployment": {
-          "type": "object",
-          "description": "The deployment object including id, sha, ref, task, environment, description, creator, created_at, updated_at, payload"
-        },
-        "check_run": {
-          "type": "object",
-          "description": "The check run associated with the deployment status, if applicable",
-          "nullable": true
-        },
-        "workflow_run": {
-          "type": "object",
-          "description": "The workflow run associated with this deployment status, if any",
-          "nullable": true,
-          "schema_ref": "workflow-run"
-        },
-        "workflow": {
-          "type": "object",
-          "description": "The workflow associated with this deployment status, if any",
-          "nullable": true,
-          "schema_ref": "workflow"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the deployment belongs",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
+        "action": {"type": "string", "description": "created"},
+        "deployment_status": {"type": "object", "description": "id, state (error, failure, inactive, in_progress, queued, pending, success), description, environment, target_url, log_url, environment_url, created_at, updated_at, creator"},
+        "deployment": {"type": "object", "description": "id, sha, ref, task, environment, description, creator, created_at, updated_at, payload, original_environment, production_environment, transient_environment"},
+        "check_run": {"type": "object", "description": "Linked check run, if any", "nullable": true},
+        "workflow_run": {"type": "object", "description": "Linked workflow run, if this deployment originated from Actions", "nullable": true, "schema_ref": "workflow-run"},
+        "workflow": {"type": "object", "description": "Workflow definition matching the workflow_run", "nullable": true, "schema_ref": "workflow"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
       }
     },
     "push_event": {
       "type": "object",
       "properties": {
-        "ref": {
-          "type": "string",
-          "description": "The full git ref that was pushed to, e.g. refs/heads/main or refs/tags/v1.0"
-        },
-        "before": {
-          "type": "string",
-          "description": "The SHA of the most recent commit on ref before the push"
-        },
-        "after": {
-          "type": "string",
-          "description": "The SHA of the most recent commit on ref after the push"
-        },
-        "created": {
-          "type": "boolean",
-          "description": "Whether the push created the ref (new branch/tag)"
-        },
-        "deleted": {
-          "type": "boolean",
-          "description": "Whether the push deleted the ref"
-        },
-        "forced": {
-          "type": "boolean",
-          "description": "Whether the push was a force push"
-        },
-        "base_ref": {
-          "type": "string",
-          "description": "The base ref, if applicable",
-          "nullable": true
-        },
-        "compare": {
-          "type": "string",
-          "description": "URL comparing the before and after commits"
-        },
-        "commits": {
-          "type": "array",
-          "description": "Array of commit objects pushed. Each commit has id, tree_id, distinct, message, timestamp, url, author, committer, added, removed, modified"
-        },
-        "head_commit": {
-          "type": "object",
-          "description": "The most recent commit on ref after the push (same structure as commits array items)",
-          "nullable": true
-        },
-        "pusher": {
-          "type": "object",
-          "description": "The user who pushed. Contains name and email"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the push occurred",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
+        "ref": {"type": "string", "description": "Full git ref (refs/heads/main or refs/tags/v1.0)"},
+        "before": {"type": "string", "description": "SHA before the push"},
+        "after": {"type": "string", "description": "SHA after the push (all zeros if deleted=true)"},
+        "created": {"type": "boolean", "description": "Whether this push created the ref"},
+        "deleted": {"type": "boolean", "description": "Whether this push deleted the ref"},
+        "forced": {"type": "boolean", "description": "Whether the push was a force push"},
+        "base_ref": {"type": "string", "description": "Base ref when the push merged another branch", "nullable": true},
+        "compare": {"type": "string", "description": "URL comparing before and after"},
+        "commits": {"type": "array", "description": "Commit objects pushed. Each: id, tree_id, distinct, message, timestamp, url, author, committer, added[], removed[], modified[]"},
+        "head_commit": {"type": "object", "description": "Most recent commit (same shape as commits[] items)", "nullable": true},
+        "pusher": {"type": "object", "description": "name, email"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
       }
     },
     "create_event": {
       "type": "object",
       "properties": {
-        "ref": {
-          "type": "string",
-          "description": "The git ref that was created (branch name or tag name)"
-        },
-        "ref_type": {
-          "type": "string",
-          "description": "The type of ref: branch or tag"
-        },
-        "master_branch": {
-          "type": "string",
-          "description": "The name of the repository's default branch"
-        },
-        "description": {
-          "type": "string",
-          "description": "The repository's description",
-          "nullable": true
-        },
-        "pusher_type": {
-          "type": "string",
-          "description": "The type of pusher: user or deploy_key"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the ref was created",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
+        "ref": {"type": "string", "description": "Short name of the created ref (e.g. main, v1.0) — NOT a refs/heads/… path"},
+        "ref_type": {"type": "string", "description": "branch or tag"},
+        "master_branch": {"type": "string", "description": "Repo's default branch name"},
+        "description": {"type": "string", "nullable": true},
+        "pusher_type": {"type": "string", "description": "user or deploy_key"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
       }
     },
     "delete_event": {
       "type": "object",
       "properties": {
-        "ref": {
-          "type": "string",
-          "description": "The git ref that was deleted (branch name or tag name)"
-        },
-        "ref_type": {
-          "type": "string",
-          "description": "The type of ref: branch or tag"
-        },
-        "pusher_type": {
-          "type": "string",
-          "description": "The type of pusher: user or deploy_key"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the ref was deleted",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
+        "ref": {"type": "string", "description": "Short name of the deleted ref"},
+        "ref_type": {"type": "string", "description": "branch or tag"},
+        "pusher_type": {"type": "string"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
       }
     },
     "release_event": {
       "type": "object",
       "properties": {
-        "action": {
-          "type": "string",
-          "description": "The action performed: published, unpublished, created, edited, deleted, prereleased, or released"
-        },
-        "release": {
-          "type": "object",
-          "description": "The release object including id, tag_name, target_commitish, name, body, draft, prerelease, created_at, published_at, author, html_url, assets, tarball_url, zipball_url",
-          "schema_ref": "release"
-        },
-        "changes": {
-          "type": "object",
-          "description": "Changes to the release if action was 'edited'. Contains previous name and/or body"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the release belongs",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
+        "action": {"type": "string", "description": "published, unpublished, created, edited, deleted, prereleased, released"},
+        "release": {"type": "object", "description": "id, tag_name, target_commitish, name, body, draft, prerelease, created_at, published_at, author, html_url, assets[], tarball_url, zipball_url, discussion_url", "schema_ref": "release"},
+        "changes": {"type": "object", "description": "Prior values for edited action"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
       }
     },
     "discussion_event": {
       "type": "object",
       "properties": {
-        "action": {
-          "type": "string",
-          "description": "The action performed: created, edited, deleted, pinned, unpinned, locked, unlocked, transferred, category_changed, answered, unanswered, labeled, or unlabeled"
-        },
-        "discussion": {
-          "type": "object",
-          "description": "The discussion object including id, number, title, body, state, category, answer_html_url, answer_chosen_at, answer_chosen_by, user, html_url, created_at, updated_at, locked, comments"
-        },
-        "answer": {
-          "type": "object",
-          "description": "The answer comment (present for answered events)"
-        },
-        "old_answer": {
-          "type": "object",
-          "description": "The previous answer (present for unanswered events)"
-        },
-        "changes": {
-          "type": "object",
-          "description": "Changes if action was 'edited' or 'category_changed'"
-        },
-        "label": {
-          "type": "object",
-          "description": "The label added or removed (present for labeled/unlabeled actions)"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the discussion belongs",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
+        "action": {"type": "string", "description": "created, edited, deleted, pinned, unpinned, locked, unlocked, transferred, category_changed, answered, unanswered, labeled, unlabeled"},
+        "discussion": {"type": "object", "description": "id, number, title, body, state, category (id, name, slug, description, emoji), user, html_url, created_at, updated_at, locked, comments, answer_html_url, answer_chosen_at, answer_chosen_by, author_association"},
+        "answer": {"type": "object", "description": "Chosen answer comment (answered action)"},
+        "old_answer": {"type": "object", "description": "Previously chosen answer (unanswered action)"},
+        "changes": {"type": "object", "description": "changes.title.from / changes.body.from for edited, changes.category.from for category_changed"},
+        "label": {"type": "object", "description": "Label added/removed for labeled/unlabeled"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
       }
     },
     "discussion_comment_event": {
       "type": "object",
       "properties": {
-        "action": {
-          "type": "string",
-          "description": "The action performed: created, edited, or deleted"
-        },
-        "comment": {
-          "type": "object",
-          "description": "The comment object including id, body, user, created_at, updated_at, html_url, author_association",
-          "schema_ref": "issue-comment"
-        },
-        "discussion": {
-          "type": "object",
-          "description": "The discussion the comment belongs to"
-        },
-        "changes": {
-          "type": "object",
-          "description": "Changes to the comment body if action was 'edited'"
-        },
-        "repository": {
-          "type": "object",
-          "description": "The repository where the discussion belongs",
-          "schema_ref": "repository"
-        },
-        "organization": {
-          "type": "object",
-          "description": "The organization that owns the repository, if applicable",
-          "schema_ref": "organization-full"
-        },
-        "sender": {
-          "type": "object",
-          "description": "The user that triggered the event",
-          "schema_ref": "simple-user"
-        },
-        "installation": {
-          "type": "object",
-          "description": "The GitHub App installation, if the event was triggered via an app"
-        }
+        "action": {"type": "string", "description": "created, edited, or deleted"},
+        "comment": {"type": "object", "description": "id, body, user, created_at, updated_at, html_url, author_association, parent_id (for replies), reactions", "schema_ref": "issue-comment"},
+        "discussion": {"type": "object", "description": "number, title, category, state, user"},
+        "changes": {"type": "object", "description": "changes.body.from for edited action"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
+      }
+    },
+    "commit_comment_event": {
+      "type": "object",
+      "properties": {
+        "action": {"type": "string", "description": "created"},
+        "comment": {"type": "object", "description": "id, commit_id, path, position, line, body, user, created_at, updated_at, html_url, author_association, reactions"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
+      }
+    },
+    "fork_event": {
+      "type": "object",
+      "properties": {
+        "forkee": {"type": "object", "description": "The newly-created fork repo", "schema_ref": "repository"},
+        "repository": {"type": "object", "description": "The source repository that was forked", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
+      }
+    },
+    "star_event": {
+      "type": "object",
+      "properties": {
+        "action": {"type": "string", "description": "created or deleted"},
+        "starred_at": {"type": "string", "description": "Timestamp when starred (null for deleted action)", "nullable": true},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
+      }
+    },
+    "watch_event": {
+      "type": "object",
+      "properties": {
+        "action": {"type": "string", "description": "Always 'started' (legacy naming; GitHub fires this for star events)"},
+        "repository": {"type": "object", "schema_ref": "repository"},
+        "organization": {"type": "object", "schema_ref": "organization-full"},
+        "sender": {"type": "object", "schema_ref": "simple-user"},
+        "installation": {"type": "object"}
       }
     }
   }
