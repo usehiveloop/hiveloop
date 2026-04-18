@@ -792,10 +792,12 @@ func (o *Orchestrator) RunHealthCheck(ctx context.Context) {
 }
 
 func (o *Orchestrator) checkSandboxHealth(ctx context.Context, sb *model.Sandbox) {
-	// Sync status from provider
+	// Sync status from provider. Failures here are almost entirely provider-side
+	// 404s for sandboxes that were deleted out-of-band — logging them on every
+	// tick floods the asynq worker logs and drowns out real activity. Skip
+	// silently; downstream lifecycle tasks will reconcile the DB state.
 	status, err := o.provider.GetStatus(ctx, sb.ExternalID)
 	if err != nil {
-		slog.Warn("health check: failed to get status", "sandbox_id", sb.ID, "error", err)
 		return
 	}
 
