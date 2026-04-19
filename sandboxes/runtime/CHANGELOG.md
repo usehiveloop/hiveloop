@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.21.0] - 2026-04-19
+
+### Added
+
+- **Declarative tool-call requirements (`config.tool_requirements`).** Declare tools the agent MUST call per turn with cadence (`every_turn`, `first_turn_only`, `every_n_turns {n}` — "reset on call"), position (`anywhere`, `turn_start`, `turn_end` — lenient about read-only tools like `todoread` / `journal_read`), minimum call count, and enforcement variant (`next_turn_reminder` default, `warn`, `reprompt`). Tool-name matching is flexible: patterns without `__` also match MCP tools registered as `{server}__{name}`, so `"post_message"` matches `slack__post_message`. Bridge rejects pushes where a required tool also appears in `disabled_tools` (400 InvalidRequest). Violations fire a `tool_requirement_violated` event and — for non-`warn` enforcement — attach a `<system-reminder>` block to the next user message naming the missing tool(s).
+- **`full_message` field on `POST /conversations/{id}/messages`.** Offload large payloads (stack traces, log dumps, file contents) to disk instead of inflating context on every turn. Bridge writes `full_message` to `{BRIDGE_ATTACHMENTS_DIR | ./.bridge-attachments}/{conversation_id}/{uuid}.txt`, appends a `<system-reminder>` to `content` pointing the agent at the absolute path, and tailors the tool hint to the agent's registered tools (`RipGrep` + `Read`, just one of them, `AstGrep`, or `bash` with a "don't `cat`" warning, or an explicit "no search tool registered" note). Missing `content` is auto-summarized from the first ~500 bytes of `full_message` rather than rejected. Attachments are cleaned up when the conversation ends. Disk failures are logged and the message is delivered without the attachment — `full_message` can never cause a send-message rejection. The `message_received` event now carries an `attachment_path` field (null when no attachment).
+- **`BRIDGE_ATTACHMENTS_DIR` env var** — overrides the attachments root directory (default `./.bridge-attachments`).
+- **`ChainFailed` and `ContextPressureWarning` SSE/webhook events.** `ChainFailed` fires when a chain handoff attempt errors out (the conversation continues with oversized history). `ContextPressureWarning` fires once per turn when cumulative tool-output bytes exceed ~1.5× the immortal token budget.
+- **Provider-aware checkpoint prompt.** The default checkpoint extraction prompt is now provider-aware. Gemini models (detected by `ProviderType::Google` or model-name substring) automatically receive a stricter XML-delimited template with explicit per-section length caps and active-verb pruning directives. In testing this arrested Gemini 2.5 Flash's monotonic checkpoint-size growth (4k → 7k → 15k bytes over 3 chains with the old prompt) to a flat ~9k across 4 chains. Other providers fall through to the existing default. Override per-agent via `config.immortal.checkpoint_prompt`.
+- **Rich `turn_completed` event payload.** Now includes `turn_latency_ms`, `cumulative_tool_calls`, `history_tokens_estimate` (tiktoken count of current history — the same signal chain checks use), `history_message_count`, and `journal_entries_committed`.
+- **`ImmortalConfig` new fields.** `carry_forward_budget_fraction` (default `0.3`) caps the carry-forward tail at a fraction of `token_budget`. `verify_checkpoint` (default `false`) controls the optional phase-2 verification pass. `checkpoint_max_tokens` (default `1500`) caps checkpoint LLM output. `checkpoint_timeout_secs` (default `45`) bounds the extraction call. `max_previous_checkpoints` (default `2`) limits how many prior chain checkpoints feed the next extraction — prevents unbounded chain-over-chain growth.
+
+### Changed
+
+- **Immortal chain-event ordering.** `ChainStarted` now fires BEFORE the checkpoint extraction LLM call (previously fired after). SSE consumers can now render progress UI during the 7-75s extraction window. `ChainCompleted` payload adds `duration_ms`, `carry_forward_tokens`, `checkpoint_bytes`, `verified`.
+- **Token-bounded carry-forward.** Replaces turn-count-only. `carry_forward_budget_fraction` (default 30% of budget) caps the tail, preventing a single tool-heavy turn from stuffing the new chain's context.
+- **Single-phase checkpoint by default.** `verify_checkpoint` now defaults to `false` — the phase-2 verification pass rarely improves output for strong summarizer models and ~doubles cost.
+- **Journal writes stage per turn.** `journal_write` tool calls now stage in-memory and commit only on turn success (or discard on failure). Prevents duplicate/orphan entries from rolled-back turns. Chain-checkpoint entries (system-generated) still persist immediately.
+
+### Fixed
+
+- **History restoration on mid-turn LLM errors.** When the agent's LLM call errored mid-turn (429, provider error), bridge truncated the persisted-messages side but left the in-memory rig history as the `mem::take`'d empty `Vec`. Subsequent turns silently started from empty history, defeating chain-token checks. Now restored from the pre-turn backup on the same error path the timeout/cancel paths already used.
+- **Pre-stream LLM retry.** Retryable upstream errors (429/5xx/timeouts) that occur BEFORE any delta is emitted are now retried with exponential backoff (up to 3 attempts). Safe because we bail on any streaming progress.
+- **`send_message` 4xx on empty body restored.** `content` is now `#[serde(default)]` so callers can supply only `full_message`, but an empty request with neither field still returns 400 InvalidRequest — preserving the pre-attachments behavior that malformed bodies like `{"invalid": true}` return 4xx.
+
+### Infrastructure
+
+- `openapi.json` regenerated — publishes the new `ToolRequirement`, `RequirementCadence`, `RequirementPosition`, `RequirementEnforcement` schemas and the `full_message` field on `SendMessageRequest`.
+- New `scripts/immortal-real-test.mjs` standalone driver — exercises the full immortal flow with a real LLM against a live bridge, streams SSE events, and prints a deep post-run report.
+
 ## [0.20.1] - 2026-04-17
 
 ### Changed
