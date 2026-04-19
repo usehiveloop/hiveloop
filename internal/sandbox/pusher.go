@@ -15,6 +15,7 @@ import (
 	bridgepkg "github.com/ziraloop/ziraloop/internal/bridge"
 	"github.com/ziraloop/ziraloop/internal/config"
 	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/registry"
 	subagents "github.com/ziraloop/ziraloop/internal/sub-agents"
 	"github.com/ziraloop/ziraloop/internal/token"
 )
@@ -344,6 +345,8 @@ func (p *Pusher) BuildSystemAgentDef(agent *model.Agent) bridgepkg.AgentDefiniti
 	}
 
 	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), agent.ProviderGroup, agent.Model)
+	applyImmortalDefault(def.Config, def.Provider, agent.ProviderGroup, agent.Model)
+	applyToolRequirementsDefault(def.Config)
 
 	tools := decodeJSONAs[[]bridgepkg.ToolDefinition](agent.Tools)
 	if tools != nil && len(*tools) > 0 {
@@ -499,6 +502,8 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 
 	// Set config with defaults for any unspecified fields
 	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), cred.ProviderID, agent.Model)
+	applyImmortalDefault(def.Config, def.Provider, cred.ProviderID, agent.Model)
+	applyToolRequirementsDefault(def.Config)
 
 	// Set permissions if present. Tools with "deny" are removed from
 	// permissions and added to DisabledTools so Bridge never presents
@@ -766,6 +771,145 @@ func applyAgentConfigDefaults(cfg *bridgepkg.AgentConfig, providerID, modelName 
 	}
 
 	return cfg
+}
+
+// providerCheckpointModel maps a credential provider ID to the model we use
+// for ImmortalConfig checkpoint extraction. The choice prioritizes speed
+// and cost, since the checkpoint call runs every time the primary chain
+// hits the token budget — a pure summarization job that a small fast model
+// handles well. Providers missing from this map get no auto-generated
+// immortal config; authors can still opt in by setting AgentConfig.Immortal
+// explicitly in the agent definition.
+var providerCheckpointModel = map[string]string{
+	"anthropic":    "claude-3-5-haiku-latest",
+	"google":       "gemini-2.5-flash",
+	"openrouter":   "google/gemini-2.5-flash",
+	"openai":       "gpt-5.1-codex-mini",
+	"groq":         "openai/gpt-oss-20b",
+	"fireworks":    "accounts/fireworks/models/minimax-m2p1",
+	"fireworks-ai": "accounts/fireworks/models/minimax-m2p1",
+	"moonshotai":   "kimi-k2-thinking",
+	"zai":          "glm-4.7-flash",
+	"zhipuai":      "glm-4.7-flash",
+}
+
+// immortalTokenBudgetFraction is the fraction of the parent model's context
+// window at which Bridge should cut a new chain. Set at 70% so the primary
+// model has headroom for the checkpoint output + the carry-forward tail
+// before it actually runs out of context.
+const immortalTokenBudgetFraction = 0.70
+
+// fallbackParentContextWindow is used when the parent model is missing from
+// the curated registry (e.g. a freshly-added provider model the agent picked
+// before we curated it). 128k covers the vast majority of modern models
+// without overshooting smaller ones too aggressively.
+const fallbackParentContextWindow = 128_000
+
+// applyImmortalDefault populates cfg.Immortal with a checkpoint provider and
+// token budget when the agent author hasn't set one explicitly. Call this
+// AFTER applyAgentConfigDefaults. No-op when:
+//
+//   - cfg.Immortal is already set (author override wins)
+//   - the credential provider has no entry in providerCheckpointModel
+//     (we refuse to guess a checkpoint model for unsupported providers)
+//
+// The checkpoint ProviderConfig mirrors the primary: same ProviderType,
+// ApiKey (proxy token), and BaseUrl. Only Model is swapped for the cheap
+// fast variant. This lets our proxy route checkpoint calls through the
+// same credential-backed tunnel as the primary conversation.
+func applyImmortalDefault(
+	cfg *bridgepkg.AgentConfig,
+	primary bridgepkg.ProviderConfig,
+	providerID, primaryModel string,
+) {
+	if cfg == nil || cfg.Immortal != nil {
+		return
+	}
+	checkpointModel, ok := providerCheckpointModel[providerID]
+	if !ok {
+		return
+	}
+
+	tokenBudget := int32(float64(parentContextWindow(providerID, primaryModel)) * immortalTokenBudgetFraction)
+
+	cfg.Immortal = &bridgepkg.ImmortalConfig{
+		CheckpointProvider: bridgepkg.ProviderConfig{
+			ProviderType: primary.ProviderType,
+			Model:        checkpointModel,
+			ApiKey:       primary.ApiKey,
+			BaseUrl:      primary.BaseUrl,
+		},
+		TokenBudget: &tokenBudget,
+	}
+}
+
+// parentContextWindow returns the context window (in tokens) for the
+// primary model from the curated registry, falling back to a safe default
+// when the model isn't curated yet.
+func parentContextWindow(providerID, modelID string) int64 {
+	if prov, ok := registry.Global().GetProvider(providerID); ok {
+		if m, ok := prov.Models[modelID]; ok && m.Limit != nil && m.Limit.Context > 0 {
+			return m.Limit.Context
+		}
+	}
+	return fallbackParentContextWindow
+}
+
+// defaultRequirementCadenceTurns is how often the memory + journal loop
+// runs. Every 5 turns strikes a balance between keeping the agent's
+// recall sharp and not burning an LLM call on bookkeeping every turn.
+const defaultRequirementCadenceTurns = 5
+
+// applyToolRequirementsDefault populates cfg.ToolRequirements with the
+// memory + journal loop every agent is expected to run: recall at the
+// start of the window, retain + journal anywhere in it. The cadence
+// enforces the loop even if the system prompt doesn't explicitly ask.
+//
+// Semantics (all three share cadence=every_n_turns, n=5):
+//   - memory_recall — pulled to turn_start so the agent reads memory
+//     BEFORE it does work that would benefit from it.
+//   - memory_retain — anywhere in the turn; the agent writes out what
+//     it learned at a natural point in its reasoning.
+//   - journal_write — anywhere; separate from memory_retain because
+//     journal captures narrative/observations, memory captures durable
+//     facts. Both matter but fill different roles.
+//
+// Authors can override this entire list by setting ToolRequirements on
+// the agent config explicitly — an empty slice or a custom list wins.
+// Only a nil list triggers auto-injection.
+func applyToolRequirementsDefault(cfg *bridgepkg.AgentConfig) {
+	if cfg == nil || cfg.ToolRequirements != nil {
+		return
+	}
+	turnStart := bridgepkg.TurnStart
+	reqs := []bridgepkg.ToolRequirement{
+		{
+			Tool:     "memory_recall",
+			Cadence:  newEveryNTurnsCadence(defaultRequirementCadenceTurns),
+			Position: &turnStart,
+		},
+		{
+			Tool:    "memory_retain",
+			Cadence: newEveryNTurnsCadence(defaultRequirementCadenceTurns),
+		},
+		{
+			Tool:    "journal_write",
+			Cadence: newEveryNTurnsCadence(defaultRequirementCadenceTurns),
+		},
+	}
+	cfg.ToolRequirements = &reqs
+}
+
+// newEveryNTurnsCadence builds a RequirementCadence union value for the
+// "every N turns" variant. Each call returns a fresh pointer so callers
+// don't accidentally share union state between requirements.
+func newEveryNTurnsCadence(n int32) *bridgepkg.RequirementCadence {
+	var cadence bridgepkg.RequirementCadence
+	_ = cadence.FromRequirementCadence2(bridgepkg.RequirementCadence2{
+		Type: bridgepkg.EveryNTurns,
+		N:    n,
+	})
+	return &cadence
 }
 
 // defaultMaxTokens returns a sensible max_tokens default at ~80% of the model's
