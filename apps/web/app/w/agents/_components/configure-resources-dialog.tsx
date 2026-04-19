@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -19,7 +19,8 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ChoiceCard } from "./create-agent/choice-card"
 import { $api } from "@/lib/api/hooks"
-import { useQueryClient } from "@tanstack/react-query"
+import { api } from "@/lib/api/client"
+import { useQueryClient, useQueries } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { extractErrorMessage } from "@/lib/api/error"
 import type { components } from "@/lib/api/schema"
@@ -102,12 +103,13 @@ function BackButton({ onClick }: { onClick: () => void }) {
 interface ConnectionListViewProps {
   connections: InConnection[]
   getSelectedCount: (connectionId: string) => number
+  getOrphanCount: (connectionId: string) => number
   onSelect: (connectionId: string) => void
   onSave: () => void
   saving: boolean
 }
 
-function ConnectionListView({ connections, getSelectedCount, onSelect, onSave, saving }: ConnectionListViewProps) {
+function ConnectionListView({ connections, getSelectedCount, getOrphanCount, onSelect, onSave, saving }: ConnectionListViewProps) {
   return (
     <>
       <DialogHeader>
@@ -129,15 +131,26 @@ function ConnectionListView({ connections, getSelectedCount, onSelect, onSave, s
           connections.map((connection) => {
             const connectionId = connection.id!
             const count = getSelectedCount(connectionId)
+            const orphans = getOrphanCount(connectionId)
+            const baseDescription = count > 0
+              ? `${count} resource${count !== 1 ? "s" : ""} selected`
+              : "No resources configured"
+            const description = orphans > 0
+              ? `${baseDescription} · ${orphans} no longer accessible`
+              : baseDescription
             return (
               <ChoiceCard
                 key={connectionId}
                 logoUrl={`https://connections.ziraloop.com/images/template-logos/${connection.provider ?? ""}.svg`}
                 title={connection.display_name ?? connection.provider ?? ""}
-                description={count > 0 ? `${count} resource${count !== 1 ? "s" : ""} selected` : "No resources configured"}
+                description={description}
                 onClick={() => onSelect(connectionId)}
                 trailing={
-                  count > 0 ? (
+                  orphans > 0 ? (
+                    <span className="text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full shrink-0">
+                      !{orphans}
+                    </span>
+                  ) : count > 0 ? (
                     <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full shrink-0">
                       {count}
                     </span>
@@ -210,18 +223,28 @@ function ResourceTypeListView({ connection, resourceTypes, getTypeSelectedCount,
 interface ResourceInstanceListViewProps {
   connectionId: string
   resourceType: string
+  selectedItems: ResourceItem[]
   isSelected: (resourceId: string) => boolean
   onToggle: (item: ResourceItem) => void
   onBack: () => void
 }
 
-function ResourceInstanceListView({ connectionId, resourceType, isSelected, onToggle, onBack }: ResourceInstanceListViewProps) {
+function ResourceInstanceListView({ connectionId, resourceType, selectedItems, isSelected, onToggle, onBack }: ResourceInstanceListViewProps) {
   const { data, isLoading } = $api.useQuery("get", "/v1/in/connections/{id}/resources/{type}", {
     params: { path: { id: connectionId, type: resourceType } },
   })
 
   const items: ResourceItem[] = ((data as Record<string, unknown> | undefined)?.resources as ResourceItem[] | undefined) ?? []
   const label = resourceType.replace(/_/g, " ")
+
+  // Orphans: items selected in the agent's state but not returned by the live
+  // item list. Only computed once the live list has resolved to avoid a false
+  // warning during load.
+  const reachableIds = useMemo(() => new Set(items.map((item) => item.id)), [items])
+  const orphans = useMemo(
+    () => (isLoading ? [] : selectedItems.filter((item) => !reachableIds.has(item.id))),
+    [isLoading, selectedItems, reachableIds],
+  )
 
   return (
     <>
@@ -232,6 +255,23 @@ function ResourceInstanceListView({ connectionId, resourceType, isSelected, onTo
       </DialogHeader>
 
       <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
+        {orphans.length > 0 && (
+          <div className="rounded-xl border border-amber-300/60 bg-amber-500/10 px-3 py-2.5">
+            <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
+              {orphans.length} {label}{orphans.length !== 1 ? "s" : ""} no longer accessible
+            </p>
+            <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80 mt-0.5">
+              These will be removed from this agent when you save.
+            </p>
+            <ul className="mt-2 space-y-0.5">
+              {orphans.map((item) => (
+                <li key={item.id} className="font-mono text-[11px] text-amber-900 dark:text-amber-100">
+                  {item.id}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {isLoading ? (
           Array.from({ length: 5 }).map((_, index) => (
             <Skeleton key={index} className="h-[52px] w-full rounded-xl" />
@@ -303,6 +343,52 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
   const allConnections = (connectionsData?.data ?? []) as InConnection[]
   const connectionsById = new Map(allConnections.filter((c) => c.id).map((c) => [c.id!, c]))
 
+  // Eagerly fetch the live item list for every (connection, resource_type) pair the
+  // agent currently has in state. We use this for two things:
+  //   1. Render an orphan banner in the per-type view (items selected in state
+  //      but no longer returned by the connection's live list).
+  //   2. Strip orphans from the payload at save time so they disappear from the
+  //      agent config — guaranteeing the warning only ever shows once.
+  //
+  // If a fetch hasn't resolved yet, we leave that type untouched on save (better
+  // than nuking legitimate selections on a transient network error).
+  const statePairs = useMemo(() => {
+    const pairs: Array<{ connId: string; resourceType: string }> = []
+    for (const [connId, types] of Object.entries(resources)) {
+      for (const resourceType of Object.keys(types)) {
+        pairs.push({ connId, resourceType })
+      }
+    }
+    return pairs
+  }, [resources])
+
+  const reachabilityQueries = useQueries({
+    queries: statePairs.map(({ connId, resourceType }) => ({
+      queryKey: ["resources-reachability", connId, resourceType],
+      queryFn: async () => {
+        const res = await api.GET("/v1/in/connections/{id}/resources/{type}", {
+          params: { path: { id: connId, type: resourceType } },
+        })
+        if (res.error) throw res.error
+        return res.data
+      },
+      enabled: open,
+      staleTime: 60_000,
+    })),
+  })
+
+  const reachableSets = useMemo(() => {
+    const sets: Record<string, Record<string, Set<string>>> = {}
+    statePairs.forEach(({ connId, resourceType }, index) => {
+      const query = reachabilityQueries[index]
+      if (!query?.data) return
+      const items = ((query.data as { resources?: ResourceItem[] }).resources ?? [])
+      sets[connId] = sets[connId] ?? {}
+      sets[connId][resourceType] = new Set(items.map((i) => i.id))
+    })
+    return sets
+  }, [statePairs, reachabilityQueries])
+
   // Only connections the agent uses AND that have configurable resources
   const agentConnectionIds = agent?.integrations && typeof agent.integrations === "object"
     ? Object.keys(agent.integrations)
@@ -366,6 +452,22 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
     return Object.values(connResources).reduce((sum, items) => sum + items.length, 0)
   }
 
+  // Counts items selected in state for this connection that are NOT returned by
+  // the live resource list. Returns 0 until reachability resolves (safer to
+  // show no warning than a false positive on a slow fetch).
+  function getOrphanCount(connectionId: string): number {
+    const connState = resources[connectionId]
+    const connReachable = reachableSets[connectionId]
+    if (!connState || !connReachable) return 0
+    let count = 0
+    for (const [resourceType, items] of Object.entries(connState)) {
+      const reachable = connReachable[resourceType]
+      if (!reachable) continue
+      for (const item of items) if (!reachable.has(item.id)) count++
+    }
+    return count
+  }
+
   function getTypeSelectedCount(connectionId: string, resourceType: string): number {
     return (resources[connectionId]?.[resourceType] ?? []).length
   }
@@ -378,11 +480,18 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
   function handleSave() {
     if (!agent?.id) return
 
+    // Strip orphans — items present in state but not in the live reachability
+    // set for (connection, type). When reachability hasn't resolved for a type,
+    // leave its items as-is (better than dropping valid data on a transient
+    // network error). This is what makes the orphan banner a one-shot: save
+    // once with orphans visible → next open has nothing to warn about.
     const cleanedResources: AgentResources = {}
     for (const [connId, types] of Object.entries(resources)) {
       const cleanedTypes: Record<string, ResourceItem[]> = {}
       for (const [typeKey, items] of Object.entries(types)) {
-        if (items.length > 0) cleanedTypes[typeKey] = items
+        const reachable = reachableSets[connId]?.[typeKey]
+        const filtered = reachable ? items.filter((item) => reachable.has(item.id)) : items
+        if (filtered.length > 0) cleanedTypes[typeKey] = filtered
       }
       if (Object.keys(cleanedTypes).length > 0) cleanedResources[connId] = cleanedTypes
     }
@@ -420,6 +529,7 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
               <ResourceInstanceListView
                 connectionId={activeConnectionId}
                 resourceType={activeResourceType}
+                selectedItems={resources[activeConnectionId]?.[activeResourceType] ?? []}
                 isSelected={(resourceId) => isResourceSelected(activeConnectionId, activeResourceType, resourceId)}
                 onToggle={(item) => toggleResource(activeConnectionId, activeResourceType, item)}
                 onBack={goBackToResourceTypes}
@@ -436,6 +546,7 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
               <ConnectionListView
                 connections={configurableConnections}
                 getSelectedCount={getSelectedCount}
+                getOrphanCount={getOrphanCount}
                 onSelect={openConnection}
                 onSave={handleSave}
                 saving={updateAgent.isPending}
