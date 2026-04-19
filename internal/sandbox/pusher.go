@@ -344,9 +344,10 @@ func (p *Pusher) BuildSystemAgentDef(agent *model.Agent) bridgepkg.AgentDefiniti
 		},
 	}
 
+	systemPermissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
 	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), agent.ProviderGroup, agent.Model)
 	applyImmortalDefault(def.Config, def.Provider, agent.ProviderGroup, agent.Model)
-	applyToolRequirementsDefault(def.Config)
+	applyToolRequirementsDefault(def.Config, systemPermissions)
 
 	tools := decodeJSONAs[[]bridgepkg.ToolDefinition](agent.Tools)
 	if tools != nil && len(*tools) > 0 {
@@ -362,9 +363,8 @@ func (p *Pusher) BuildSystemAgentDef(agent *model.Agent) bridgepkg.AgentDefiniti
 		def.Skills = &bridgeSkills
 	}
 
-	permissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
-	if permissions != nil && len(*permissions) > 0 {
-		def.Permissions = permissions
+	if systemPermissions != nil && len(*systemPermissions) > 0 {
+		def.Permissions = systemPermissions
 	}
 
 	return def
@@ -500,15 +500,19 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 		},
 	}
 
-	// Set config with defaults for any unspecified fields
+	permissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
+
+	// Set config with defaults for any unspecified fields. Permissions are
+	// passed into the tool-requirements helper so deny'd tools (e.g.
+	// journal_write disabled on Stallone) aren't auto-required — Bridge
+	// rejects a push where a requirement overlaps with disabled_tools.
 	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), cred.ProviderID, agent.Model)
 	applyImmortalDefault(def.Config, def.Provider, cred.ProviderID, agent.Model)
-	applyToolRequirementsDefault(def.Config)
+	applyToolRequirementsDefault(def.Config, permissions)
 
 	// Set permissions if present. Tools with "deny" are removed from
 	// permissions and added to DisabledTools so Bridge never presents
 	// them to the LLM — the agent won't waste turns calling denied tools.
-	permissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
 	if permissions != nil && len(*permissions) > 0 {
 		var disabledTools []string
 		allowed := make(map[string]bridgepkg.ToolPermission)
@@ -874,30 +878,60 @@ const defaultRequirementCadenceTurns = 5
 //     journal captures narrative/observations, memory captures durable
 //     facts. Both matter but fill different roles.
 //
+// Any candidate tool that is also disabled (either in cfg.DisabledTools
+// directly or via a "deny" entry in the agent's permissions map) is
+// skipped — Bridge rejects a push where tool_requirements overlaps with
+// disabled_tools, so the auto-inject must respect the author's opt-out.
+//
 // Authors can override this entire list by setting ToolRequirements on
 // the agent config explicitly — an empty slice or a custom list wins.
 // Only a nil list triggers auto-injection.
-func applyToolRequirementsDefault(cfg *bridgepkg.AgentConfig) {
+func applyToolRequirementsDefault(
+	cfg *bridgepkg.AgentConfig,
+	permissions *map[string]bridgepkg.ToolPermission,
+) {
 	if cfg == nil || cfg.ToolRequirements != nil {
 		return
 	}
-	turnStart := bridgepkg.TurnStart
-	reqs := []bridgepkg.ToolRequirement{
-		{
-			Tool:     "memory_recall",
-			Cadence:  newEveryNTurnsCadence(defaultRequirementCadenceTurns),
-			Position: &turnStart,
-		},
-		{
-			Tool:    "memory_retain",
-			Cadence: newEveryNTurnsCadence(defaultRequirementCadenceTurns),
-		},
-		{
-			Tool:    "journal_write",
-			Cadence: newEveryNTurnsCadence(defaultRequirementCadenceTurns),
-		},
+
+	disabled := make(map[string]bool)
+	if cfg.DisabledTools != nil {
+		for _, tool := range *cfg.DisabledTools {
+			disabled[tool] = true
+		}
 	}
-	cfg.ToolRequirements = &reqs
+	if permissions != nil {
+		for tool, perm := range *permissions {
+			if perm == bridgepkg.ToolPermissionDeny {
+				disabled[tool] = true
+			}
+		}
+	}
+
+	turnStart := bridgepkg.TurnStart
+	candidates := []struct {
+		tool     string
+		position *bridgepkg.RequirementPosition
+	}{
+		{"memory_recall", &turnStart},
+		{"memory_retain", nil},
+		{"journal_write", nil},
+	}
+
+	var reqs []bridgepkg.ToolRequirement
+	for _, candidate := range candidates {
+		if disabled[candidate.tool] {
+			continue
+		}
+		reqs = append(reqs, bridgepkg.ToolRequirement{
+			Tool:     candidate.tool,
+			Cadence:  newEveryNTurnsCadence(defaultRequirementCadenceTurns),
+			Position: candidate.position,
+		})
+	}
+	if len(reqs) > 0 {
+		cfg.ToolRequirements = &reqs
+	}
 }
 
 // newEveryNTurnsCadence builds a RequirementCadence union value for the

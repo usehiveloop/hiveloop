@@ -13,11 +13,13 @@ import (
 //   - which tools are in the default list,
 //   - the cadence (every 5 turns, as `every_n_turns` variant),
 //   - memory_recall's turn_start position,
-//   - the override contract (author list wins).
+//   - the override contract (author list wins),
+//   - the disable-safe contract (tools the author disabled must never be
+//     required — Bridge rejects such a push with a 400).
 
 func TestApplyToolRequirementsDefault_AutoInjectsMemoryAndJournalLoop(t *testing.T) {
 	cfg := &bridgepkg.AgentConfig{}
-	applyToolRequirementsDefault(cfg)
+	applyToolRequirementsDefault(cfg, nil)
 
 	if cfg.ToolRequirements == nil {
 		t.Fatalf("ToolRequirements should be populated")
@@ -40,7 +42,7 @@ func TestApplyToolRequirementsDefault_AutoInjectsMemoryAndJournalLoop(t *testing
 
 func TestApplyToolRequirementsDefault_MemoryRecallIsTurnStart(t *testing.T) {
 	cfg := &bridgepkg.AgentConfig{}
-	applyToolRequirementsDefault(cfg)
+	applyToolRequirementsDefault(cfg, nil)
 
 	for _, req := range *cfg.ToolRequirements {
 		if req.Tool != "memory_recall" {
@@ -59,7 +61,7 @@ func TestApplyToolRequirementsDefault_MemoryRetainAndJournalAreAnywhere(t *testi
 	// applies the default (Anywhere) — the agent can call them at any
 	// point in the 5-turn window.
 	cfg := &bridgepkg.AgentConfig{}
-	applyToolRequirementsDefault(cfg)
+	applyToolRequirementsDefault(cfg, nil)
 
 	for _, req := range *cfg.ToolRequirements {
 		if req.Tool == "memory_recall" {
@@ -76,7 +78,7 @@ func TestApplyToolRequirementsDefault_CadenceIsEvery5Turns(t *testing.T) {
 	// `every_n_turns` variant + n=5 serialization is to round-trip it
 	// through JSON, which is what actually hits Bridge.
 	cfg := &bridgepkg.AgentConfig{}
-	applyToolRequirementsDefault(cfg)
+	applyToolRequirementsDefault(cfg, nil)
 
 	for _, req := range *cfg.ToolRequirements {
 		if req.Cadence == nil {
@@ -107,7 +109,7 @@ func TestApplyToolRequirementsDefault_CadencesAreIndependentPointers(t *testing.
 	// Each requirement owns its own cadence pointer — regression guard
 	// against accidentally aliasing the union state.
 	cfg := &bridgepkg.AgentConfig{}
-	applyToolRequirementsDefault(cfg)
+	applyToolRequirementsDefault(cfg, nil)
 
 	reqs := *cfg.ToolRequirements
 	if reqs[0].Cadence == reqs[1].Cadence || reqs[1].Cadence == reqs[2].Cadence {
@@ -120,7 +122,7 @@ func TestApplyToolRequirementsDefault_RespectsAuthorOverride(t *testing.T) {
 	// please") wins. We only inject when the field was unset.
 	custom := []bridgepkg.ToolRequirement{{Tool: "write_file"}}
 	cfg := &bridgepkg.AgentConfig{ToolRequirements: &custom}
-	applyToolRequirementsDefault(cfg)
+	applyToolRequirementsDefault(cfg, nil)
 
 	if len(*cfg.ToolRequirements) != 1 || (*cfg.ToolRequirements)[0].Tool != "write_file" {
 		t.Errorf("author-supplied requirements were overwritten: %#v", *cfg.ToolRequirements)
@@ -128,12 +130,65 @@ func TestApplyToolRequirementsDefault_RespectsAuthorOverride(t *testing.T) {
 
 	empty := []bridgepkg.ToolRequirement{}
 	cfg2 := &bridgepkg.AgentConfig{ToolRequirements: &empty}
-	applyToolRequirementsDefault(cfg2)
+	applyToolRequirementsDefault(cfg2, nil)
 	if len(*cfg2.ToolRequirements) != 0 {
 		t.Errorf("explicit empty list should be preserved, got %#v", *cfg2.ToolRequirements)
 	}
 }
 
+func TestApplyToolRequirementsDefault_SkipsToolsInDisabledTools(t *testing.T) {
+	// Regression guard for production incident: Bridge rejected a push with
+	// 400 because journal_write was in disabled_tools AND auto-required.
+	// The injector must filter out any default tool that's already disabled.
+	disabled := []string{"journal_write"}
+	cfg := &bridgepkg.AgentConfig{DisabledTools: &disabled}
+	applyToolRequirementsDefault(cfg, nil)
+
+	if cfg.ToolRequirements == nil {
+		t.Fatalf("ToolRequirements should still be populated with surviving tools")
+	}
+	for _, req := range *cfg.ToolRequirements {
+		if req.Tool == "journal_write" {
+			t.Errorf("journal_write is in DisabledTools but was auto-required")
+		}
+	}
+	if len(*cfg.ToolRequirements) != 2 {
+		t.Errorf("expected 2 surviving requirements, got %d", len(*cfg.ToolRequirements))
+	}
+}
+
+func TestApplyToolRequirementsDefault_SkipsToolsDeniedViaPermissions(t *testing.T) {
+	// The permissions map is the other source of tool disablement — it's
+	// the user-facing way. A "deny" entry must also disqualify auto-require.
+	perms := map[string]bridgepkg.ToolPermission{
+		"memory_retain": bridgepkg.ToolPermissionDeny,
+		"memory_recall": bridgepkg.ToolPermissionAllow,
+	}
+	cfg := &bridgepkg.AgentConfig{}
+	applyToolRequirementsDefault(cfg, &perms)
+
+	for _, req := range *cfg.ToolRequirements {
+		if req.Tool == "memory_retain" {
+			t.Errorf("memory_retain has deny permission but was auto-required")
+		}
+	}
+	if len(*cfg.ToolRequirements) != 2 {
+		t.Errorf("expected 2 surviving requirements (recall + journal), got %d", len(*cfg.ToolRequirements))
+	}
+}
+
+func TestApplyToolRequirementsDefault_AllDefaultsDisabledLeavesFieldNil(t *testing.T) {
+	// If every default is blocked, don't inject an empty slice — leave
+	// ToolRequirements nil so Bridge treats the agent as opt-out cleanly.
+	disabled := []string{"memory_recall", "memory_retain", "journal_write"}
+	cfg := &bridgepkg.AgentConfig{DisabledTools: &disabled}
+	applyToolRequirementsDefault(cfg, nil)
+
+	if cfg.ToolRequirements != nil {
+		t.Errorf("expected nil ToolRequirements when all defaults are disabled, got %#v", *cfg.ToolRequirements)
+	}
+}
+
 func TestApplyToolRequirementsDefault_NilConfigIsNoOp(t *testing.T) {
-	applyToolRequirementsDefault(nil) // must not panic
+	applyToolRequirementsDefault(nil, nil) // must not panic
 }
