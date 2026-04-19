@@ -135,6 +135,10 @@ var ValidBuiltInTools = []BuiltInToolDefinition{
 	{ID: "journal_write", Name: "Write journal", Description: "Write an entry to the persistent conversation journal.", Category: "journal"},
 	{ID: "journal_read", Name: "Read journal", Description: "Read all journal entries including checkpoint summaries.", Category: "journal"},
 
+	// ── Scheduling ──
+	{ID: "ping_me_back_in", Name: "Ping me back", Description: "Schedule a delayed self-reminder. After the specified seconds, the agent receives a notification with a custom message. Returns a ping ID for cancellation.", Category: "scheduling"},
+	{ID: "cancel_ping_me_back", Name: "Cancel ping", Description: "Cancel a pending ping by its ID (returned by ping_me_back_in).", Category: "scheduling"},
+
 	// ── Code intelligence ──
 	{ID: "lsp", Name: "LSP", Description: "Language Server Protocol operations for code navigation and diagnostics.", Category: "code_intelligence"},
 	{ID: "skill", Name: "Skill", Description: "Execute a skill within the conversation.", Category: "code_intelligence"},
