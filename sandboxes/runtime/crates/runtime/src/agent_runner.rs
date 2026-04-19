@@ -16,9 +16,7 @@ use webhooks::EventBus;
 
 /// Resolve (foreground, background) subagent timeouts from an `AgentConfig`,
 /// falling back to [`bridge_core::agent::DEFAULT_SUBAGENT_TIMEOUT_SECS`].
-pub fn resolve_subagent_timeouts(
-    config: &bridge_core::agent::AgentConfig,
-) -> (Duration, Duration) {
+pub fn resolve_subagent_timeouts(config: &bridge_core::agent::AgentConfig) -> (Duration, Duration) {
     let default_secs = bridge_core::agent::DEFAULT_SUBAGENT_TIMEOUT_SECS;
     let fg = config
         .subagent_timeout_foreground_secs
