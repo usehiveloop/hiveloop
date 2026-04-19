@@ -56,6 +56,7 @@ export default function CredentialsPage() {
     id: string
     label: string
   } | null>(null)
+  const [editForm, setEditForm] = useState<{ label: string }>({ label: "" })
   const [editError, setEditError] = useState<string | null>(null)
   const [editSaving, setEditSaving] = useState(false)
 
@@ -84,6 +85,7 @@ export default function CredentialsPage() {
     }
   }
 
+  function openEditDialog(cred: { id?: string; label?: string }) {
     setEditForm({
       label: cred.label || "",
     })
@@ -199,8 +201,6 @@ export default function CredentialsPage() {
                   <TableCell className="font-mono text-xs text-muted-foreground">
                     {cred.org_id ? cred.org_id.slice(0, 8) + "..." : "--"}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                  </TableCell>
                   <TableCell>
                     <StatusBadge status={cred.revoked_at ? "revoked" : "active"} />
                   </TableCell>
@@ -277,13 +277,6 @@ export default function CredentialsPage() {
                   setEditForm((f) => ({ ...f, label: e.target.value }))
                 }
                 placeholder="Credential label"
-              />
-            </div>
-            <div className="space-y-2">
-              <Input
-                onChange={(e) =>
-                }
-                placeholder="Leave empty to unassign"
               />
             </div>
             {editError && (
