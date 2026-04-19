@@ -8,11 +8,13 @@ import (
 )
 
 // applyToolRequirementsDefault is the single point where the memory/journal
-// loop becomes an enforced server-side check. A regression here would mean
-// agents silently stop running their bookkeeping tools — so we pin:
+// loop becomes a server-side check on every pushed agent. A regression here
+// would mean agents silently stop running their bookkeeping tools — so we
+// pin:
 //   - which tools are in the default list,
-//   - the cadence (every 5 turns, as `every_n_turns` variant),
+//   - the cadence (every 10 turns, as `every_n_turns` variant),
 //   - memory_recall's turn_start position,
+//   - enforcement = Warn (log-only, no prompt fragmentation),
 //   - the override contract (author list wins),
 //   - the disable-safe contract (tools the author disabled must never be
 //     required — Bridge rejects such a push with a 400).
@@ -73,10 +75,10 @@ func TestApplyToolRequirementsDefault_MemoryRetainAndJournalAreAnywhere(t *testi
 	}
 }
 
-func TestApplyToolRequirementsDefault_CadenceIsEvery5Turns(t *testing.T) {
+func TestApplyToolRequirementsDefault_CadenceIsEveryNTurnsWithDefault(t *testing.T) {
 	// The cadence field is a tagged union — the only way to verify the
-	// `every_n_turns` variant + n=5 serialization is to round-trip it
-	// through JSON, which is what actually hits Bridge.
+	// `every_n_turns` variant + the N value serialization is to round-trip
+	// it through JSON, which is what actually hits Bridge.
 	cfg := &bridgepkg.AgentConfig{}
 	applyToolRequirementsDefault(cfg, nil)
 
@@ -186,6 +188,38 @@ func TestApplyToolRequirementsDefault_AllDefaultsDisabledLeavesFieldNil(t *testi
 
 	if cfg.ToolRequirements != nil {
 		t.Errorf("expected nil ToolRequirements when all defaults are disabled, got %#v", *cfg.ToolRequirements)
+	}
+}
+
+func TestApplyToolRequirementsDefault_EnforcementIsWarn(t *testing.T) {
+	// Enforcement must be Warn (not the Bridge default of NextTurnReminder).
+	// NextTurnReminder prepends a <system-reminder> block to the next user
+	// message on every violation, which then lives in history forever and
+	// fragments the cacheable prefix at that point. Warn fires the
+	// tool_requirement_violated event for observability without touching
+	// the prompt. This is the main lever for keeping prompt caching intact
+	// on long agent conversations — if this regresses we immediately start
+	// bleeding cache hit rate.
+	cfg := &bridgepkg.AgentConfig{}
+	applyToolRequirementsDefault(cfg, nil)
+
+	for _, req := range *cfg.ToolRequirements {
+		if req.Enforcement == nil {
+			t.Errorf("%s: Enforcement should be set (not default)", req.Tool)
+			continue
+		}
+		if *req.Enforcement != bridgepkg.Warn {
+			t.Errorf("%s: Enforcement = %v, want Warn", req.Tool, *req.Enforcement)
+		}
+	}
+}
+
+func TestApplyToolRequirementsDefault_DefaultCadenceIs10(t *testing.T) {
+	// Pin the 5 → 10 change so a well-meaning tweak back to a tighter
+	// cadence has to update this test. 10 was chosen to cut the violation
+	// rate on exploration-heavy turns that naturally skip a memory call.
+	if defaultRequirementCadenceTurns != 10 {
+		t.Errorf("defaultRequirementCadenceTurns = %d, want 10", defaultRequirementCadenceTurns)
 	}
 }
 

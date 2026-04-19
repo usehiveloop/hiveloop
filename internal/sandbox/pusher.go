@@ -868,14 +868,26 @@ func parentContextWindow(providerID, modelID string) int64 {
 // defaultRequirementCadenceTurns is how often the memory + journal loop
 // runs. Every 5 turns strikes a balance between keeping the agent's
 // recall sharp and not burning an LLM call on bookkeeping every turn.
-const defaultRequirementCadenceTurns = 5
+// defaultRequirementCadenceTurns is how often Bridge checks whether a
+// required tool has been called. 10 is a compromise: strict enough to
+// still nudge agents into the memory/journal loop, loose enough that
+// naturally exploration-heavy turns (sub-agent calls, long tool chains)
+// don't trip the check on every pass.
+//
+// Was 5; relaxed after observing that every violation fires a
+// `tool_requirement_violated` event and (under NextTurnReminder
+// enforcement) writes a `<system-reminder>` into the next user message
+// — which then lives forever in history and breaks the provider prompt
+// cache at that point. Each fragmentation pushes subsequent-turn cache
+// match back. Cutting the violation rate cuts the fragmentation.
+const defaultRequirementCadenceTurns = 10
 
 // applyToolRequirementsDefault populates cfg.ToolRequirements with the
 // memory + journal loop every agent is expected to run: recall at the
 // start of the window, retain + journal anywhere in it. The cadence
-// enforces the loop even if the system prompt doesn't explicitly ask.
+// nudges the loop even if the system prompt doesn't explicitly ask.
 //
-// Semantics (all three share cadence=every_n_turns, n=5):
+// Semantics (all three share cadence=every_n_turns, n=10):
 //   - memory_recall — pulled to turn_start so the agent reads memory
 //     BEFORE it does work that would benefit from it.
 //   - memory_retain — anywhere in the turn; the agent writes out what
@@ -884,14 +896,25 @@ const defaultRequirementCadenceTurns = 5
 //     journal captures narrative/observations, memory captures durable
 //     facts. Both matter but fill different roles.
 //
+// Enforcement is set to Warn (not the Bridge default of
+// NextTurnReminder). Reasoning: NextTurnReminder prepends a
+// `<system-reminder>` block to the next user message, which gets
+// committed to history and fragments the cacheable prefix on every
+// subsequent turn. Warn logs the miss and fires the
+// `tool_requirement_violated` event for observability without touching
+// the prompt. If a specific agent needs the harder guarantee, override
+// `ToolRequirements` explicitly on its agent_config with
+// `enforcement: next_turn_reminder` per requirement.
+//
 // Any candidate tool that is also disabled (either in cfg.DisabledTools
 // directly or via a "deny" entry in the agent's permissions map) is
 // skipped — Bridge rejects a push where tool_requirements overlaps with
-// disabled_tools, so the auto-inject must respect the author's opt-out.
+// disabled_tools.
 //
-// Authors can override this entire list by setting ToolRequirements on
-// the agent config explicitly — an empty slice or a custom list wins.
-// Only a nil list triggers auto-injection.
+// Opt-out: authors can disable the entire default list by setting
+// `ToolRequirements` to an empty slice `[]` on the agent's AgentConfig.
+// Only a nil (unset) list triggers auto-injection; a non-nil slice of
+// any length — including empty — wins.
 func applyToolRequirementsDefault(
 	cfg *bridgepkg.AgentConfig,
 	permissions *map[string]bridgepkg.ToolPermission,
@@ -915,6 +938,7 @@ func applyToolRequirementsDefault(
 	}
 
 	turnStart := bridgepkg.TurnStart
+	warn := bridgepkg.Warn
 	candidates := []struct {
 		tool     string
 		position *bridgepkg.RequirementPosition
@@ -930,9 +954,10 @@ func applyToolRequirementsDefault(
 			continue
 		}
 		reqs = append(reqs, bridgepkg.ToolRequirement{
-			Tool:     candidate.tool,
-			Cadence:  newEveryNTurnsCadence(defaultRequirementCadenceTurns),
-			Position: candidate.position,
+			Tool:        candidate.tool,
+			Cadence:     newEveryNTurnsCadence(defaultRequirementCadenceTurns),
+			Position:    candidate.position,
+			Enforcement: &warn,
 		})
 	}
 	if len(reqs) > 0 {
