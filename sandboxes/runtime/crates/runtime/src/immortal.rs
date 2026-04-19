@@ -3,8 +3,8 @@ use std::time::Duration;
 use bridge_core::agent::ImmortalConfig;
 use bridge_core::BridgeError;
 use rig::message::{Message, UserContent};
-use tools::journal::{JournalEntry, JournalState};
 use tokio::time::timeout;
+use tools::journal::{JournalEntry, JournalState};
 use tracing::{debug, warn};
 
 use crate::compaction;
@@ -218,7 +218,9 @@ pub fn chain_needed(history: &[Message], config: &ImmortalConfig) -> Option<Chai
         }
     };
 
-    Some(ChainTrigger { pre_chain_tokens: pre_tokens })
+    Some(ChainTrigger {
+        pre_chain_tokens: pre_tokens,
+    })
 }
 
 /// Execute a chain handoff. Caller is expected to have already emitted
@@ -246,15 +248,11 @@ pub async fn execute_chain_handoff(
     // Token-budget-based carry-forward: start from the latest turn-boundary
     // and accept whole user-text turns so long as they fit the budget cap.
     let budget = config.token_budget as usize;
-    let carry_cap =
-        ((budget as f32) * config.carry_forward_budget_fraction).max(0.0) as usize;
+    let carry_cap = ((budget as f32) * config.carry_forward_budget_fraction).max(0.0) as usize;
     let carry_cap = carry_cap.max(256); // never less than ~1 user message
 
-    let (carry_start, carry_tokens) = find_token_bounded_carry_forward(
-        history,
-        config.carry_forward_turns as usize,
-        carry_cap,
-    );
+    let (carry_start, carry_tokens) =
+        find_token_bounded_carry_forward(history, config.carry_forward_turns as usize, carry_cap);
 
     if carry_start == history.len() {
         // Nothing to carry forward — unusual but possible with 0 turns configured.
@@ -577,16 +575,14 @@ mod tests {
 
     #[test]
     fn test_format_journal_entries() {
-        let entries = vec![
-            JournalEntry {
-                id: "1".to_string(),
-                chain_index: 0,
-                entry_type: "agent_note".to_string(),
-                content: "decision".to_string(),
-                category: Some("decision".to_string()),
-                timestamp: chrono::Utc::now(),
-            },
-        ];
+        let entries = vec![JournalEntry {
+            id: "1".to_string(),
+            chain_index: 0,
+            entry_type: "agent_note".to_string(),
+            content: "decision".to_string(),
+            category: Some("decision".to_string()),
+            timestamp: chrono::Utc::now(),
+        }];
         let formatted = format_journal(&entries);
         assert!(formatted.contains("[decision] [chain 0]"));
     }

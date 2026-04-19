@@ -119,16 +119,11 @@ pub fn suspected_volatile_markers(preamble: &str) -> Vec<&'static str> {
         hits.push("iso-date");
     }
     // UUIDs: 8-4-4-4-12 hex
-    if preamble
-        .as_bytes()
-        .windows(36)
-        .any(|w| is_uuid_shape(w))
-    {
+    if preamble.as_bytes().windows(36).any(is_uuid_shape) {
         hits.push("uuid");
     }
     // "Current date" / "Today is" — explicit date narration
-    let lower_count = preamble
-        .to_ascii_lowercase();
+    let lower_count = preamble.to_ascii_lowercase();
     if lower_count.contains("today is ") || lower_count.contains("current date") {
         hits.push("current-date-phrase");
     }
@@ -145,13 +140,7 @@ pub fn suspected_volatile_markers(preamble: &str) -> Vec<&'static str> {
 
 fn is_uuid_shape(w: &[u8]) -> bool {
     // 8 hex - 4 hex - 4 hex - 4 hex - 12 hex
-    let groups = [
-        (0usize, 8usize),
-        (9, 13),
-        (14, 18),
-        (19, 23),
-        (24, 36),
-    ];
+    let groups = [(0usize, 8usize), (9, 13), (14, 18), (19, 23), (24, 36)];
     let dashes = [8, 13, 18, 23];
     for (a, b) in groups {
         if !w[a..b].iter().all(|c| c.is_ascii_hexdigit()) {
@@ -171,11 +160,7 @@ fn regex_lite_find<F: Fn(char) -> bool>(s: &str, f: F, run: usize, sep: u8) -> b
     let mut i = 0;
     while i + run < bytes.len() {
         let window = &bytes[i..i + run];
-        if window
-            .iter()
-            .all(|b| f(*b as char))
-            && bytes.get(i + run) == Some(&sep)
-        {
+        if window.iter().all(|b| f(*b as char)) && bytes.get(i + run) == Some(&sep) {
             return true;
         }
         i += 1;
@@ -212,7 +197,11 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    fn make_tool<'a>(name: &'a str, desc: &'a str, schema: &'a serde_json::Value) -> ToolPrefix<'a> {
+    fn make_tool<'a>(
+        name: &'a str,
+        desc: &'a str,
+        schema: &'a serde_json::Value,
+    ) -> ToolPrefix<'a> {
         ToolPrefix {
             name,
             description: desc,
@@ -231,8 +220,14 @@ mod tests {
     #[test]
     fn same_inputs_produce_same_hash() {
         let schema = json!({"type":"object","properties":{"x":{"type":"string"}}});
-        let a = compute_prefix_hash("you are helpful", &[make_tool("bash", "run shell", &schema)]);
-        let b = compute_prefix_hash("you are helpful", &[make_tool("bash", "run shell", &schema)]);
+        let a = compute_prefix_hash(
+            "you are helpful",
+            &[make_tool("bash", "run shell", &schema)],
+        );
+        let b = compute_prefix_hash(
+            "you are helpful",
+            &[make_tool("bash", "run shell", &schema)],
+        );
         assert_eq!(a, b);
     }
 
@@ -277,17 +272,11 @@ mod tests {
         let schema = json!({});
         let a = compute_prefix_hash(
             "p",
-            &[
-                make_tool("a", "d1", &schema),
-                make_tool("b", "d2", &schema),
-            ],
+            &[make_tool("a", "d1", &schema), make_tool("b", "d2", &schema)],
         );
         let b = compute_prefix_hash(
             "p",
-            &[
-                make_tool("b", "d2", &schema),
-                make_tool("a", "d1", &schema),
-            ],
+            &[make_tool("b", "d2", &schema), make_tool("a", "d1", &schema)],
         );
         assert_ne!(a, b);
     }
@@ -309,7 +298,10 @@ mod tests {
         assert_eq!(b1, b2);
         assert_eq!(a1.len(), 64);
         assert_eq!(b1.len(), 64);
-        assert_ne!(a1, b1, "hashes of preamble vs tools must be distinguishable");
+        assert_ne!(
+            a1, b1,
+            "hashes of preamble vs tools must be distinguishable"
+        );
     }
 
     #[test]
@@ -325,17 +317,13 @@ mod tests {
 
     #[test]
     fn suspected_volatile_markers_catches_today_phrase() {
-        assert!(
-            suspected_volatile_markers("Today is Friday.").contains(&"current-date-phrase")
-        );
+        assert!(suspected_volatile_markers("Today is Friday.").contains(&"current-date-phrase"));
     }
 
     #[test]
     fn suspected_volatile_markers_catches_digit_run() {
         // unix timestamp shape
-        assert!(
-            suspected_volatile_markers("Timestamp: 1745000000").contains(&"long-digit-run")
-        );
+        assert!(suspected_volatile_markers("Timestamp: 1745000000").contains(&"long-digit-run"));
     }
 
     #[test]

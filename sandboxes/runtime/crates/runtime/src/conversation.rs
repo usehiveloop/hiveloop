@@ -545,18 +545,17 @@ pub async fn run_conversation(params: ConversationParams) {
         // is deterministic so the tail itself is deterministic when the
         // inputs are (matters for the *next* turn's cache-write stability).
         let mut volatile_reminder = String::new();
-        let append_volatile =
-            |acc: &mut String, block: String| {
-                if block.is_empty() {
-                    return;
-                }
-                if acc.is_empty() {
-                    *acc = block;
-                } else {
-                    acc.push_str("\n\n");
-                    acc.push_str(&block);
-                }
-            };
+        let append_volatile = |acc: &mut String, block: String| {
+            if block.is_empty() {
+                return;
+            }
+            if acc.is_empty() {
+                *acc = block;
+            } else {
+                acc.push_str("\n\n");
+                acc.push_str(&block);
+            }
+        };
 
         if let (Some(ref imm_state), Some(ref js)) = (&immortal_state, &journal_state) {
             let journal_count = js.entries().await.len();
@@ -1128,7 +1127,9 @@ pub async fn run_conversation(params: ConversationParams) {
                                 // warning from the main turn doesn't carry over.
                                 pressure_threshold_bytes: None,
                                 pressure_counter: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-                                pressure_warned: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+                                pressure_warned: Arc::new(std::sync::atomic::AtomicBool::new(
+                                    false,
+                                )),
                             };
                             let fut = async {
                                 agent_clone

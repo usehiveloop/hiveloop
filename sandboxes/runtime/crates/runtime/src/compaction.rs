@@ -351,7 +351,7 @@ mod tests {
     #[test]
     fn test_tail_boundary_alignment() {
         // Build a history: User, Assistant, User, Assistant, User, Assistant
-        let history = vec![
+        let history = [
             Message::user("first question"),
             Message::assistant("first answer"),
             Message::user("second question"),
@@ -427,7 +427,7 @@ mod tests {
         let handles: Vec<_> = (0..8)
             .map(|i| {
                 std::thread::spawn(move || {
-                    let history = vec![Message::user(&format!("Thread {} says hello", i))];
+                    let history = [Message::user(format!("Thread {} says hello", i))];
                     estimate_tokens(&history)
                 })
             })

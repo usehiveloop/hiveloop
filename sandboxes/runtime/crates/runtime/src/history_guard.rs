@@ -35,10 +35,7 @@ impl HistoryFingerprint {
     /// to zero; a subsequent verify will treat those as drift, which is
     /// the conservative behavior.
     pub fn take(messages: &[rig::message::Message]) -> Self {
-        let hashes = messages
-            .iter()
-            .map(hash_message)
-            .collect();
+        let hashes = messages.iter().map(hash_message).collect();
         Self { hashes }
     }
 
@@ -58,10 +55,7 @@ impl HistoryFingerprint {
     ///
     /// If `messages` is shorter than `self.len()` — i.e. history was
     /// truncated — this counts as drift at the truncation point.
-    pub fn verify_prefix(
-        &self,
-        messages: &[rig::message::Message],
-    ) -> Result<(), DriftReport> {
+    pub fn verify_prefix(&self, messages: &[rig::message::Message]) -> Result<(), DriftReport> {
         if messages.len() < self.hashes.len() {
             return Err(DriftReport {
                 first_drift_index: messages.len(),
@@ -191,12 +185,7 @@ mod tests {
 
     #[test]
     fn mutating_middle_message_flags_correct_index() {
-        let h1 = vec![
-            msg_user("a"),
-            msg_user("b"),
-            msg_user("c"),
-            msg_user("d"),
-        ];
+        let h1 = vec![msg_user("a"), msg_user("b"), msg_user("c"), msg_user("d")];
         let fp = HistoryFingerprint::take(&h1);
 
         let h2 = vec![

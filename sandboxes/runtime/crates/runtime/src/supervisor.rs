@@ -1802,7 +1802,7 @@ mod tests {
     }
 
     impl MockTool {
-        fn new(name: &str) -> Arc<dyn ToolExecutor> {
+        fn new_arc(name: &str) -> Arc<dyn ToolExecutor> {
             Arc::new(Self {
                 name: name.to_string(),
             })
@@ -1833,7 +1833,7 @@ mod tests {
         let tool_names: HashSet<String> = names.iter().map(|n| n.to_string()).collect();
         let tool_executors: HashMap<String, Arc<dyn ToolExecutor>> = names
             .iter()
-            .map(|n| (n.to_string(), MockTool::new(n)))
+            .map(|n| (n.to_string(), MockTool::new_arc(n)))
             .collect();
         (tool_names, tool_executors)
     }

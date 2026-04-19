@@ -436,7 +436,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn test_filtered_unknown_names_ignored() {
         let mut registry = ToolRegistry::new();
         let allowed = vec!["bash".to_string(), "nonexistent_tool".to_string()];

@@ -225,8 +225,7 @@ impl CacheResourcePool {
             if entry.expires_at > Utc::now() {
                 entry.hit_count = entry.hit_count.saturating_add(1);
                 entry.last_hit_at = Utc::now();
-                entry.expires_at =
-                    Utc::now() + ChronoDuration::seconds(payload.ttl_secs as i64);
+                entry.expires_at = Utc::now() + ChronoDuration::seconds(payload.ttl_secs as i64);
                 let cache_id = entry.provider_cache_id.clone();
                 let exp = entry.expires_at;
                 drop(entry);
@@ -564,7 +563,10 @@ impl CacheResourceBackend for GeminiExplicitBackend {
             return Err(BackendError::NotFound);
         }
         if !resp.status().is_success() {
-            return Err(BackendError::BadRequest(format!("status={}", resp.status())));
+            return Err(BackendError::BadRequest(format!(
+                "status={}",
+                resp.status()
+            )));
         }
         Ok(())
     }
@@ -585,7 +587,10 @@ impl CacheResourceBackend for GeminiExplicitBackend {
             .await
             .map_err(|e| BackendError::Http(e.to_string()))?;
         if !resp.status().is_success() {
-            return Err(BackendError::BadRequest(format!("status={}", resp.status())));
+            return Err(BackendError::BadRequest(format!(
+                "status={}",
+                resp.status()
+            )));
         }
         Ok(())
     }
@@ -636,7 +641,10 @@ impl CacheResourceBackend for KimiV1Backend {
             .await
             .map_err(|e| BackendError::Http(e.to_string()))?;
         if !resp.status().is_success() {
-            return Err(BackendError::BadRequest(format!("status={}", resp.status())));
+            return Err(BackendError::BadRequest(format!(
+                "status={}",
+                resp.status()
+            )));
         }
         let body: serde_json::Value = resp
             .json()
@@ -674,7 +682,10 @@ impl CacheResourceBackend for KimiV1Backend {
             return Err(BackendError::NotFound);
         }
         if !resp.status().is_success() {
-            return Err(BackendError::BadRequest(format!("status={}", resp.status())));
+            return Err(BackendError::BadRequest(format!(
+                "status={}",
+                resp.status()
+            )));
         }
         Ok(())
     }
@@ -695,7 +706,10 @@ impl CacheResourceBackend for KimiV1Backend {
             .await
             .map_err(|e| BackendError::Http(e.to_string()))?;
         if !resp.status().is_success() {
-            return Err(BackendError::BadRequest(format!("status={}", resp.status())));
+            return Err(BackendError::BadRequest(format!(
+                "status={}",
+                resp.status()
+            )));
         }
         Ok(())
     }
@@ -735,10 +749,7 @@ mod tests {
                 ..Default::default()
             },
         );
-        let r = p
-            .get_or_create(payload("h", "a", 1_000))
-            .await
-            .unwrap();
+        let r = p.get_or_create(payload("h", "a", 1_000)).await.unwrap();
         assert!(matches!(r, CacheLookup::Skipped));
         assert_eq!(backend.create_calls.load(Ordering::Relaxed), 0);
     }
@@ -853,9 +864,15 @@ mod tests {
                 ..Default::default()
             },
         );
-        p.get_or_create(payload("h1", "agent-a", 5_000)).await.unwrap();
-        p.get_or_create(payload("h2", "agent-b", 5_000)).await.unwrap();
-        p.get_or_create(payload("h3", "agent-a", 5_000)).await.unwrap();
+        p.get_or_create(payload("h1", "agent-a", 5_000))
+            .await
+            .unwrap();
+        p.get_or_create(payload("h2", "agent-b", 5_000))
+            .await
+            .unwrap();
+        p.get_or_create(payload("h3", "agent-a", 5_000))
+            .await
+            .unwrap();
 
         let deleted = p.evict_by_owner("agent-a").await;
         assert_eq!(deleted.len(), 2);

@@ -66,20 +66,15 @@ pub enum ProviderType {
 /// add `"ttl": "1h"` to the cache_control block — upgrade rig to get
 /// true 1-hour writes. The field is wired now so the choice survives
 /// the upgrade.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum CacheTtl {
     /// Default 5-minute ephemeral cache.
+    #[default]
     FiveMinutes,
     /// Extended 1-hour cache — sends beta header when supported.
     OneHour,
-}
-
-impl Default for CacheTtl {
-    fn default() -> Self {
-        CacheTtl::FiveMinutes
-    }
 }
 
 /// Configuration for an LLM provider.

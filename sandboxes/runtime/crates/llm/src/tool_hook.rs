@@ -141,14 +141,15 @@ impl ToolCallEmitter {
         use std::sync::atomic::Ordering;
         if self.pressure_warned.load(Ordering::Relaxed) {
             // Still count bytes, but don't re-warn.
-            self.pressure_counter.fetch_add(bytes_added, Ordering::Relaxed);
+            self.pressure_counter
+                .fetch_add(bytes_added, Ordering::Relaxed);
             return;
         }
-        let new_total = self.pressure_counter.fetch_add(bytes_added, Ordering::Relaxed)
+        let new_total = self
+            .pressure_counter
+            .fetch_add(bytes_added, Ordering::Relaxed)
             + bytes_added;
-        if new_total >= threshold
-            && !self.pressure_warned.swap(true, Ordering::Relaxed)
-        {
+        if new_total >= threshold && !self.pressure_warned.swap(true, Ordering::Relaxed) {
             self.event_bus.emit(BridgeEvent::new(
                 BridgeEventType::ContextPressureWarning,
                 &self.agent_id,
