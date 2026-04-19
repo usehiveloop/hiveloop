@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -33,6 +34,16 @@ func (ct *CaptureTransport) RoundTrip(req *http.Request) (*http.Response, error)
 			captured.ErrorType = classifyTransportError(err)
 			captured.ErrorMessage = err.Error()
 		}
+		// Log via slog — the wrapped handler mirrors this to PostHog. Upstream
+		// failures are operationally important; currently they were only
+		// recorded in the captured-data struct and never surfaced to alerts.
+		slog.Error("proxy upstream transport error",
+			"method", req.Method,
+			"host", req.URL.Host,
+			"path", req.URL.Path,
+			"duration_ms", totalMs,
+			"error", err,
+		)
 		return nil, err
 	}
 
@@ -59,6 +70,19 @@ func (ct *CaptureTransport) RoundTrip(req *http.Request) (*http.Response, error)
 				captured.ErrorMessage = string(snippet[:n])
 				resp.Body = io.NopCloser(io.MultiReader(bytes.NewReader(snippet[:n]), resp.Body))
 			}
+		}
+		// Surface 5xx upstream errors via slog (mirrored to PostHog). 4xx are
+		// normal user-facing errors and don't warrant a capture — they already
+		// show up in the usage/audit tables.
+		if resp.StatusCode >= 500 {
+			slog.Error("proxy upstream 5xx response",
+				"method", req.Method,
+				"host", req.URL.Host,
+				"path", req.URL.Path,
+				"status", resp.StatusCode,
+				"duration_ms", captured.TotalMs,
+				"snippet", captured.ErrorMessage,
+			)
 		}
 		return resp, nil
 	}

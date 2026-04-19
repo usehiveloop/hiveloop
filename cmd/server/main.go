@@ -14,7 +14,16 @@ import (
 	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/goroutine"
 	"github.com/ziraloop/ziraloop/internal/logging"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	posthogobs "github.com/ziraloop/ziraloop/internal/observability/posthog"
 )
+
+func init() {
+	// Wire the middleware-based distinct ID extractor into the posthog
+	// package. Done at init so background goroutines that start before
+	// run() (e.g. memguard) still have a valid extractor installed.
+	posthogobs.SetDistinctIDExtractor(middleware.DistinctID)
+}
 
 // @title ZiraLoop API
 // @version 1.0
@@ -50,7 +59,9 @@ func main() {
 	}
 
 	if err := run(cmd); err != nil {
-		slog.Error("fatal", "error", err)
+		// run() already logs the fatal via slog.Error BEFORE deps.Close
+		// runs, so any wrapped PostHog client will have captured it. Here
+		// we only need to flag the exit code — no log needed.
 		os.Exit(1)
 	}
 }
@@ -60,6 +71,7 @@ func run(cmd string) error {
 	// Logging must be initialized first.
 	cfg, err := loadConfigForLogging()
 	if err != nil {
+		slog.Error("fatal", "error", err)
 		return err
 	}
 	logging.Init(cfg.LogLevel, cfg.LogFormat)
@@ -70,10 +82,43 @@ func run(cmd string) error {
 
 	deps, err := bootstrap.New(ctx)
 	if err != nil {
+		// No PostHog client yet — log to stdout only.
+		slog.Error("bootstrap failed", "error", err)
 		return err
 	}
 	defer deps.Close()
 
+	// Wrap the global slog handler so every Error-level log mirrors to
+	// PostHog error tracking. This is a no-op when PostHog is disabled.
+	// Must happen AFTER bootstrap.New so the PostHog client exists, but
+	// BEFORE runServe/runWork so all subsequent errors are captured.
+	if deps.PostHog != nil {
+		wrapped := posthogobs.WrapSlogHandler(slog.Default().Handler(), deps.PostHog)
+		slog.SetDefault(slog.New(wrapped))
+	}
+
+	posthogobs.CaptureEvent(deps.PostHog, ctx, "service_started", map[string]any{
+		"mode":    cmd,
+		"version": version,
+		"commit":  commit,
+	})
+
+	runErr := dispatch(ctx, cmd, deps)
+	if runErr != nil {
+		// Log the fatal through the wrapped slog handler BEFORE deps.Close
+		// flushes the PostHog client, so the exception is captured.
+		slog.Error("service exited with error", "mode", cmd, "error", runErr)
+	}
+
+	posthogobs.CaptureEvent(deps.PostHog, ctx, "service_stopped", map[string]any{
+		"mode":   cmd,
+		"errored": runErr != nil,
+	})
+
+	return runErr
+}
+
+func dispatch(ctx context.Context, cmd string, deps *bootstrap.Deps) error {
 	switch cmd {
 	case "serve":
 		enqueuer := enqueue.NewClient(deps.Config.AsynqRedisOpt())

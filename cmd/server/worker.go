@@ -13,6 +13,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/email"
 	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/goroutine"
+	posthogobs "github.com/ziraloop/ziraloop/internal/observability/posthog"
 	"github.com/ziraloop/ziraloop/internal/skills"
 	subagents "github.com/ziraloop/ziraloop/internal/sub-agents"
 	"github.com/ziraloop/ziraloop/internal/tasks"
@@ -74,6 +75,10 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		},
 		Logger:          newAsynqLogger(),
 		ShutdownTimeout: cfg.AsynqShutdownTimeout,
+		// ErrorHandler fires on EVERY task failure (before retry is scheduled).
+		// This is how we capture task-handler panics and errors to PostHog —
+		// asynq recovers panics internally and surfaces them as errors here.
+		ErrorHandler: posthogobs.AsynqErrorHandler(deps.PostHog),
 	})
 
 	// Start Asynq server in background
@@ -144,8 +149,9 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	slog.Info("asynq dashboard enabled at /asynq")
 
 	healthSrv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.WorkerHealthPort),
-		Handler: healthMux,
+		Addr:     fmt.Sprintf(":%d", cfg.WorkerHealthPort),
+		Handler:  healthMux,
+		ErrorLog: posthogobs.NewStdlogBridge("worker_health_server"),
 	}
 	goroutine.Go(func() {
 		slog.Info("worker health server starting", "port", cfg.WorkerHealthPort)
