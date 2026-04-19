@@ -165,6 +165,19 @@ impl ToolExecutor for LsTool {
         .await
         .map_err(|e| format!("Task join error: {e}"))??;
 
+        let output = if truncated {
+            format!(
+                "{output}\n\
+                [Listing truncated at {} entries. Choose one:\n\
+                - Narrow: call LS on a deeper path, or use Glob with pattern=\"...\" path=\"{}\" to match only what you need\n\
+                - Search: call RipGrep with path=\"{}\" and a regex pattern to locate specific files\n\
+                - Summarize: spawn self_agent with a focused question so the full listing stays out of this context]",
+                MAX_ENTRIES, dir_path, dir_path,
+            )
+        } else {
+            output
+        };
+
         let result = LsResult {
             output,
             total_entries,
@@ -354,5 +367,50 @@ mod tests {
 
         assert!(parsed.truncated, "should be truncated at 100");
         assert!(parsed.total_entries <= MAX_ENTRIES);
+    }
+
+    #[tokio::test]
+    async fn test_ls_truncation_appends_steer() {
+        let dir = tempdir().expect("create temp dir");
+        let dir_path = dir.path();
+        for i in 0..(MAX_ENTRIES + 5) {
+            fs::write(dir_path.join(format!("f{i:04}.txt")), "x").expect("write");
+        }
+
+        let tool = LsTool::new();
+        let args = serde_json::json!({ "path": dir_path.to_str().unwrap() });
+
+        let result = tool.execute(args).await.expect("execute");
+        let parsed: LsResult = serde_json::from_str(&result).expect("parse");
+
+        assert!(parsed.truncated);
+        assert!(
+            parsed.output.contains("Listing truncated"),
+            "should include steer marker"
+        );
+        assert!(parsed.output.contains("Glob"), "should point at Glob");
+        assert!(parsed.output.contains("RipGrep"), "should point at RipGrep");
+        assert!(
+            parsed.output.contains("self_agent"),
+            "should point at self_agent"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_ls_no_steer_when_not_truncated() {
+        let dir = tempdir().expect("create temp dir");
+        fs::write(dir.path().join("one.txt"), "x").expect("write");
+
+        let tool = LsTool::new();
+        let args = serde_json::json!({ "path": dir.path().to_str().unwrap() });
+
+        let result = tool.execute(args).await.expect("execute");
+        let parsed: LsResult = serde_json::from_str(&result).expect("parse");
+
+        assert!(!parsed.truncated);
+        assert!(
+            !parsed.output.contains("Listing truncated"),
+            "steer should not be present for small dirs"
+        );
     }
 }

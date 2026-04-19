@@ -2,8 +2,10 @@ use std::path::PathBuf;
 
 /// Maximum number of lines before truncation.
 pub const MAX_LINES: usize = 2000;
-/// Maximum number of bytes before truncation.
-pub const MAX_BYTES: usize = 50 * 1024; // 50KB
+/// Maximum number of bytes before truncation (~2KB).
+/// Aggressive cap to minimize input tokens; full output is persisted to disk
+/// and reachable via the `RipGrep` tool.
+pub const MAX_BYTES: usize = 2048;
 
 /// Direction of truncation.
 #[derive(Default, Clone, Copy)]
@@ -13,6 +15,8 @@ pub enum TruncationDirection {
     Head,
     /// Keep the last N lines.
     Tail,
+    /// Keep roughly half head and half tail with a truncation marker in the middle.
+    HeadTail,
 }
 
 pub struct TruncationResult {
@@ -81,11 +85,11 @@ pub fn truncate_output_directed(
     // Persist full output to disk
     let hint = if let Some(path) = persist_full_output(text) {
         format!(
-            "Full output saved to: {}\nUse Grep to search or Read with offset/limit to view specific sections.",
-            path
+            "Full output saved to: {}\nTo find specific content, call the RipGrep tool with path=\"{}\" and a regex pattern.",
+            path, path
         )
     } else {
-        "Use grep/read with offset to see full content".to_string()
+        "Full output was too large and could not be persisted to disk.".to_string()
     };
 
     match direction {
@@ -144,6 +148,65 @@ pub fn truncate_output_directed(
                 original_bytes: total_bytes,
             }
         }
+        TruncationDirection::HeadTail => {
+            // Reserve budget for the marker; split remainder ~50/50 between head and tail.
+            let marker_overhead = 120usize.saturating_add(hint.len());
+            let body_budget = max_bytes.saturating_sub(marker_overhead);
+            let head_budget = body_budget / 2;
+            let tail_budget = body_budget - head_budget;
+            let head_lines_budget = max_lines.saturating_sub(1) / 2;
+            let tail_lines_budget = max_lines.saturating_sub(1) - head_lines_budget;
+
+            let mut head_out: Vec<&str> = Vec::new();
+            let mut head_bytes = 0usize;
+            for line in &lines {
+                let line_bytes = line.len() + 1;
+                if head_out.len() >= head_lines_budget || head_bytes + line_bytes > head_budget {
+                    break;
+                }
+                head_out.push(*line);
+                head_bytes += line_bytes;
+            }
+
+            let mut tail_out: Vec<&str> = Vec::new();
+            let mut tail_bytes = 0usize;
+            // Walk from the end, but never overlap the lines we already took for head.
+            let tail_limit_idx = head_out.len();
+            for (idx, line) in lines.iter().enumerate().rev() {
+                if idx < tail_limit_idx {
+                    break;
+                }
+                let line_bytes = line.len() + 1;
+                if tail_out.len() >= tail_lines_budget || tail_bytes + line_bytes > tail_budget {
+                    break;
+                }
+                tail_out.push(*line);
+                tail_bytes += line_bytes;
+            }
+            tail_out.reverse();
+
+            let kept_lines = head_out.len() + tail_out.len();
+            let kept_bytes = head_bytes + tail_bytes;
+            let removed_lines = total_lines.saturating_sub(kept_lines);
+            let removed_bytes = total_bytes.saturating_sub(kept_bytes);
+
+            let mut result = head_out.join("\n");
+            if !result.is_empty() {
+                result.push('\n');
+            }
+            result.push_str(&format!(
+                "\n... [{} lines, {} bytes truncated. {}] ...\n\n",
+                removed_lines, removed_bytes, hint
+            ));
+            result.push_str(&tail_out.join("\n"));
+
+            TruncationResult {
+                content: result,
+                truncated: true,
+                original_lines: total_lines,
+                original_bytes: total_bytes,
+            }
+        }
     }
 }
 
@@ -175,7 +238,7 @@ mod tests {
 
     #[test]
     fn test_truncate_exceeds_byte_limit() {
-        // Create content that exceeds 50KB
+        // Create content well above MAX_BYTES so the byte cap kicks in.
         let big_line = "x".repeat(1000);
         let lines: Vec<&str> = std::iter::repeat_n(big_line.as_str(), 100).collect();
         let text = lines.join("\n"); // ~100KB
@@ -244,9 +307,47 @@ mod tests {
             "hint should include file path"
         );
         assert!(
-            result.content.contains("Use Grep to search or Read"),
-            "hint should suggest tools"
+            result.content.contains("call the RipGrep tool"),
+            "hint should point the agent at the RipGrep tool"
         );
+    }
+
+    #[test]
+    fn test_truncate_headtail_keeps_both_ends() {
+        // Need input well above MAX_BYTES (2KB) for truncation to trigger.
+        let lines: Vec<String> = (0..500)
+            .map(|i| format!("line {i:04} padding_padding_padding"))
+            .collect();
+        let text = lines.join("\n");
+        assert!(text.len() > MAX_BYTES, "test input must exceed cap");
+        let result =
+            truncate_output_directed(&text, MAX_LINES, MAX_BYTES, TruncationDirection::HeadTail);
+        assert!(result.truncated, "expected truncation");
+        // Output stays under the cap.
+        assert!(
+            result.content.len() <= MAX_BYTES + 512,
+            "head+tail output ({} bytes) should be near the byte cap",
+            result.content.len()
+        );
+        // Keeps an early line AND a late line with the marker in the middle.
+        assert!(
+            result.content.contains("line 0000"),
+            "head section should survive"
+        );
+        assert!(
+            result.content.contains("line 0499"),
+            "tail section should survive"
+        );
+        let marker_pos = result
+            .content
+            .find("truncated.")
+            .expect("marker should be present");
+        let head_pos = result.content.find("line 0000").unwrap();
+        let tail_pos = result.content.find("line 0499").unwrap();
+        assert!(head_pos < marker_pos && marker_pos < tail_pos);
+        // Spill pointer survives so the agent can recover the full content.
+        assert!(result.content.contains("Full output saved to:"));
+        assert!(result.content.contains("call the RipGrep tool"));
     }
 
     #[test]

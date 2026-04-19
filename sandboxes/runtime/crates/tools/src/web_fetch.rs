@@ -18,8 +18,10 @@ pub enum FetchFormat {
     Html,
 }
 
-/// Default maximum content length in characters.
-const DEFAULT_MAX_LENGTH: usize = 50_000;
+/// Default maximum content length in bytes. Matches the shared tool-result
+/// cap (~2KB); anything larger is spilled to disk and the agent is told to
+/// use the RipGrep tool to locate specific content.
+const DEFAULT_MAX_LENGTH: usize = crate::truncation::MAX_BYTES;
 
 /// Maximum response body size (5MB).
 const MAX_RESPONSE_SIZE: usize = 5 * 1024 * 1024;
@@ -43,8 +45,11 @@ pub struct WebFetchArgs {
         description = "The URL to fetch content from. Must be a fully-formed valid URL. HTTP is upgraded to HTTPS"
     )]
     pub url: String,
-    /// Maximum content length in characters. Defaults to 50000.
-    #[schemars(description = "Maximum content length in characters. Default: 50000")]
+    /// Maximum content length in bytes. Capped at the shared tool-result
+    /// limit (~2KB); larger results are spilled to disk. Default matches the cap.
+    #[schemars(
+        description = "Maximum content length in bytes. Capped at ~2KB; larger results are spilled to a temp file and the agent should call RipGrep on that path to find specific content."
+    )]
     pub max_length: Option<usize>,
     /// Output format: 'markdown' (default, HTML→Markdown), 'text' (plain text), or 'html' (raw HTML).
     #[schemars(
@@ -173,7 +178,7 @@ impl WebFetchTool {
 
         Ok(Some(FetchResult {
             title,
-            content: truncate_to_char_limit(&content, max_length),
+            content: truncate_content(&content, max_length),
             url: url.to_string(),
         }))
     }
@@ -340,7 +345,7 @@ impl WebFetchTool {
         // Handle different output formats
         match format {
             FetchFormat::Html => {
-                let content = truncate_to_char_limit(&html, max_length);
+                let content = truncate_content(&html, max_length);
                 Ok(FetchResult {
                     title: None,
                     content,
@@ -349,7 +354,7 @@ impl WebFetchTool {
             }
             FetchFormat::Text => {
                 let text = strip_html_tags(&html);
-                let content = truncate_to_char_limit(&text, max_length);
+                let content = truncate_content(&text, max_length);
                 Ok(FetchResult {
                     title: None,
                     content,
@@ -364,7 +369,7 @@ impl WebFetchTool {
                     } else {
                         Some(article.title)
                     };
-                    let content = truncate_to_char_limit(&article.text_content, max_length);
+                    let content = truncate_content(&article.text_content, max_length);
                     return Ok(FetchResult {
                         title,
                         content,
@@ -374,7 +379,7 @@ impl WebFetchTool {
 
                 // 3. Fallback: convert full HTML to markdown with htmd
                 let markdown = fallback_convert(&html);
-                let content = truncate_to_char_limit(&markdown, max_length);
+                let content = truncate_content(&markdown, max_length);
 
                 Ok(FetchResult {
                     title: None,
@@ -439,15 +444,14 @@ fn fallback_convert(html: &str) -> String {
     htmd::convert(html).unwrap_or_default()
 }
 
-/// Truncate a string to the given character limit, breaking at a character boundary.
-fn truncate_to_char_limit(s: &str, max_chars: usize) -> String {
-    if s.chars().count() <= max_chars {
-        return s.to_string();
-    }
-
-    let mut result: String = s.chars().take(max_chars).collect();
-    result.push_str("\n\n[Content truncated...]");
-    result
+/// Truncate fetched web content via the shared `truncate_output` pipeline so
+/// oversized pages spill to disk with a RipGrep pointer instead of a silent
+/// char-based cut. `max_length` is the caller's requested ceiling; it's
+/// clamped down to the shared `MAX_BYTES` so a single tool can never exceed
+/// the uniform 2KB conversation-history budget.
+fn truncate_content(s: &str, max_length: usize) -> String {
+    let cap = max_length.min(crate::truncation::MAX_BYTES);
+    crate::truncation::truncate_output(s, crate::truncation::MAX_LINES, cap).content
 }
 
 #[async_trait]
@@ -550,35 +554,37 @@ mod tests {
 
     #[test]
     fn test_truncation_at_max_length() {
-        let long_text = "a".repeat(100);
-        let truncated = truncate_to_char_limit(&long_text, 50);
-        // Should be 50 chars + "\n\n[Content truncated...]"
-        assert!(truncated.starts_with(&"a".repeat(50)));
-        assert!(truncated.ends_with("[Content truncated...]"));
-        assert!(truncated.len() < long_text.len() + 30);
+        // Multi-line input well above the cap should keep the first lines
+        // and append the shared truncation marker pointing at the spill file.
+        let lines: Vec<String> = (0..500).map(|i| format!("para {i:04}")).collect();
+        let long_text = lines.join("\n");
+        let truncated = truncate_content(&long_text, 500);
+        assert!(
+            truncated.contains("para 0000"),
+            "head of the content should survive"
+        );
+        assert!(
+            truncated.contains("truncated."),
+            "should include shared truncation marker"
+        );
+        assert!(
+            truncated.contains("RipGrep"),
+            "should point the agent at the RipGrep tool"
+        );
     }
 
     #[test]
     fn test_truncation_not_applied_when_under_limit() {
         let text = "Hello, world!";
-        let result = truncate_to_char_limit(text, 1000);
+        let result = truncate_content(text, 1000);
         assert_eq!(result, text);
     }
 
     #[test]
     fn test_truncation_exact_boundary() {
         let text = "abcde";
-        let result = truncate_to_char_limit(text, 5);
+        let result = truncate_content(text, 5);
         assert_eq!(result, "abcde");
-    }
-
-    #[test]
-    fn test_truncation_with_multibyte_chars() {
-        // Each emoji is multiple bytes but 1 char
-        let text = "\u{1F600}\u{1F601}\u{1F602}\u{1F603}\u{1F604}";
-        let result = truncate_to_char_limit(text, 3);
-        assert_eq!(result.chars().take(3).count(), 3);
-        assert!(result.ends_with("[Content truncated...]"));
     }
 
     // -----------------------------------------------------------------------
@@ -742,9 +748,12 @@ mod tests {
             .await
             .expect("fetch should succeed");
 
-        // The content should be truncated to approximately max_length
-        // The first 100 chars + truncation marker
-        assert!(result.content.contains("[Content truncated...]"));
+        // The content should be truncated by the shared truncator, which
+        // appends a "truncated." marker pointing at the spill file.
+        assert!(
+            result.content.contains("truncated."),
+            "content should include shared truncation marker"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -1436,7 +1445,7 @@ mod tests {
             serde_json::from_str(&output).expect("output should be valid FetchResult JSON");
 
         assert!(
-            parsed.content.contains("[Content truncated...]"),
+            parsed.content.contains("truncated."),
             "content should be truncated with max_length=50"
         );
     }
@@ -1466,8 +1475,8 @@ mod tests {
 
         assert!(!parsed.content.is_empty(), "content should not be empty");
         assert!(
-            !parsed.content.contains("[Content truncated...]"),
-            "short content should not be truncated with default max_length"
+            !parsed.content.contains("truncated."),
+            "short content should not be truncated under the default cap"
         );
     }
 

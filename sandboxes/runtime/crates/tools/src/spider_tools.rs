@@ -7,9 +7,6 @@ use std::time::Duration;
 use crate::registry::ToolExecutor;
 use crate::truncation;
 
-/// Maximum output characters for crawl results.
-const MAX_OUTPUT_CHARS: usize = 50_000;
-
 // ─── Shared Spider API Client ──────────────────────────────────────────
 
 /// HTTP client for Spider's hosted API. Shared across all Spider-backed tools.
@@ -195,7 +192,7 @@ impl ToolExecutor for WebCrawlTool {
         }
 
         let truncated =
-            truncation::truncate_output(&output, truncation::MAX_LINES, MAX_OUTPUT_CHARS);
+            truncation::truncate_output(&output, truncation::MAX_LINES, truncation::MAX_BYTES);
         Ok(truncated.content)
     }
 
@@ -296,7 +293,7 @@ impl ToolExecutor for WebSearchTool {
         }
 
         let truncated =
-            truncation::truncate_output(&output, truncation::MAX_LINES, MAX_OUTPUT_CHARS);
+            truncation::truncate_output(&output, truncation::MAX_LINES, truncation::MAX_BYTES);
         Ok(truncated.content)
     }
 
@@ -558,7 +555,7 @@ impl ToolExecutor for WebTransformTool {
 
         let output = response.content.join("\n\n---\n\n");
         let truncated =
-            truncation::truncate_output(&output, truncation::MAX_LINES, MAX_OUTPUT_CHARS);
+            truncation::truncate_output(&output, truncation::MAX_LINES, truncation::MAX_BYTES);
         Ok(truncated.content)
     }
 

@@ -4,6 +4,15 @@ Changes to Bridge.
 
 ---
 
+## Unreleased
+
+### Added
+
+- **Declarative tool-call requirements (`tool_requirements`)** in agent config. Declare tools the agent must call, with cadence (every turn, first turn only, every N turns since last call), position (anywhere / turn_start / turn_end — lenient about read-only tools like `todoread` and `journal_read`), minimum call count, and enforcement variant (`next_turn_reminder` default, `warn`, `reprompt`). Tool-name matching is flexible: patterns without `__` also match MCP tools registered as `{server}__{name}`. Bridge rejects pushes where a required tool is also in `disabled_tools`. Violations fire a `tool_requirement_violated` event and, for non-warn enforcement, attach a `<system-reminder>` block to the next user message. See [Tool Requirements](../core-concepts/agents.md#tool-requirements).
+- **`full_message` field on `POST /conversations/{id}/messages`.** Callers can now offload large payloads (stack traces, log dumps, file contents) by sending a short `content` summary alongside the full payload in `full_message`. Bridge writes the full payload to `{BRIDGE_ATTACHMENTS_DIR}/{conversation_id}/{uuid}.txt` (default root: `./.bridge-attachments`), appends a `<system-reminder>` to the content pointing the agent at the absolute path, and tailors the tool hint to the agent's registered tools (`RipGrep` + `Read`, just one of them, `AstGrep`, or `bash` with a "don't `cat`" warning). Missing `content` is auto-summarized from the first ~500 bytes of `full_message` rather than rejected. Attachments are cleaned up when the conversation ends. Disk failures are logged and the message is delivered without the attachment — `full_message` can never cause a send-message rejection. The `message_received` event now carries an `attachment_path` field (null when no attachment). See [Large payloads via `full_message`](../core-concepts/conversations.md#large-payloads-via-full_message) and [`BRIDGE_ATTACHMENTS_DIR`](./environment-variables.md#bridge_attachments_dir).
+
+---
+
 ## v0.18.2 (2026-04-13)
 
 ### Removed

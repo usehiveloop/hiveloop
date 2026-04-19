@@ -90,12 +90,26 @@ pub struct CreateConversationRequest {
 #[derive(Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SendMessageRequest {
-    /// The text content to send.
+    /// The text content to send. When [`full_message`](Self::full_message) is
+    /// also supplied, `content` is the LLM-visible summary; omit it to let
+    /// bridge auto-generate one from the first bytes of `full_message`.
+    #[serde(default)]
     pub content: String,
     /// Optional system reminder to inject with this message.
     /// Will be wrapped in `<system-reminder>` tags and prepended to the user message.
     #[serde(default)]
     pub system_reminder: Option<String>,
+    /// Optional full payload written to a per-conversation attachment file.
+    /// When present, bridge writes it to disk, appends a `<system-reminder>`
+    /// with the file path and tool-usage hint to `content`, and sends the
+    /// composed text to the LLM. Callers use this to offload large inputs
+    /// (stack traces, log dumps, file contents) without bloating the
+    /// agent's context on every turn.
+    ///
+    /// Failures (disk full, permission denied) do NOT reject the message —
+    /// bridge logs a warning and delivers `content` alone.
+    #[serde(default)]
+    pub full_message: Option<String>,
 }
 
 /// POST /agents/:agent_id/conversations — create a new conversation.
@@ -167,16 +181,40 @@ pub async fn send_message(
     // Find which agent owns this conversation
     let agent_id = find_agent_for_conversation(&state, &conv_id).await?;
 
+    // If `full_message` was supplied, write it to disk and compose a
+    // reminder pointing the agent at the attachment. Failure here is
+    // intentionally non-fatal — we fall back to the caller's `content`
+    // alone rather than rejecting the message.
+    let (final_content, attachment_path_str) = if let Some(full) = &body.full_message {
+        match crate::attachments::write_full_message(&conv_id, full).await {
+            Some(path) => {
+                let tools = state
+                    .supervisor
+                    .agent_tool_names(&agent_id)
+                    .unwrap_or_default();
+                let composed =
+                    crate::attachments::compose_with_attachment(&body.content, full, &path, &tools);
+                (composed, Some(path.display().to_string()))
+            }
+            None => (body.content.clone(), None),
+        }
+    } else {
+        (body.content.clone(), None)
+    };
+
     state.event_bus.emit(BridgeEvent::new(
         BridgeEventType::MessageReceived,
         &*agent_id,
         &*conv_id,
-        json!({"content": &body.content}),
+        json!({
+            "content": &final_content,
+            "attachment_path": attachment_path_str,
+        }),
     ));
 
     state
         .supervisor
-        .send_message(&agent_id, &conv_id, body.content, body.system_reminder)
+        .send_message(&agent_id, &conv_id, final_content, body.system_reminder)
         .await?;
 
     Ok((
@@ -208,6 +246,11 @@ pub async fn end_conversation(
     // Clean up SSE stream
     state.sse_streams.remove(&conv_id);
     state.event_bus.remove_sse_stream(&conv_id);
+
+    // Remove any attachment files this conversation accumulated via
+    // `full_message` payloads. Best-effort — failures are logged and
+    // swallowed in the helper.
+    crate::attachments::cleanup_conversation_attachments(&conv_id).await;
 
     state.event_bus.emit(BridgeEvent::new(
         BridgeEventType::ConversationEnded,

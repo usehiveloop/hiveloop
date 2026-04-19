@@ -33,6 +33,11 @@ pub struct GlobResult {
     pub files: Vec<GlobFileEntry>,
     pub total_matches: usize,
     pub truncated: bool,
+    /// Steer for the agent when `truncated == true`: narrow the pattern,
+    /// switch to RipGrep, or spawn self_agent instead of paginating blindly.
+    /// Absent when the full result set fits.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hint: Option<String>,
 }
 
 /// Maximum number of results to return.
@@ -192,10 +197,19 @@ fn execute_glob(pattern: &str, search_path: &str) -> Result<GlobResult, String> 
         })
         .collect();
 
+    let hint = if truncated {
+        Some(format!(
+            "Result capped at {MAX_RESULTS} matches. Choose one: narrow the pattern to match fewer files, call RipGrep with a regex to find specific content instead of listing files, or spawn self_agent with a focused question."
+        ))
+    } else {
+        None
+    };
+
     Ok(GlobResult {
         files,
         total_matches,
         truncated,
+        hint,
     })
 }
 
@@ -331,5 +345,36 @@ mod tests {
 
         assert_eq!(parsed.total_matches, 1);
         assert!(parsed.files[0].modified.is_some());
+        assert!(
+            parsed.hint.is_none(),
+            "hint should only appear when truncated"
+        );
+    }
+
+    #[test]
+    fn test_glob_execute_populates_hint_when_truncated() {
+        let dir = tempdir().expect("create temp dir");
+        let dir_path = dir.path();
+        for i in 0..(MAX_RESULTS + 5) {
+            fs::write(dir_path.join(format!("f{i:05}.rs")), "x").expect("write");
+        }
+
+        let result =
+            execute_glob("**/*.rs", dir_path.to_str().unwrap()).expect("glob should succeed");
+
+        assert!(result.truncated, "should be truncated at MAX_RESULTS");
+        let hint = result.hint.expect("hint should be present when truncated");
+        assert!(
+            hint.contains("narrow the pattern"),
+            "hint should offer narrowing: {hint}"
+        );
+        assert!(
+            hint.contains("RipGrep"),
+            "hint should steer toward RipGrep: {hint}"
+        );
+        assert!(
+            hint.contains("self_agent"),
+            "hint should steer toward self_agent: {hint}"
+        );
     }
 }

@@ -1,8 +1,14 @@
 Write an entry to the conversation journal. The journal is a persistent log that survives context resets (chain handoffs). When the conversation's context window fills up, the history is reset but the journal carries forward into the new context.
 
+## Why journaling matters
+
+Tool-result bodies in older messages are automatically STRIPPED from context once a protection window's worth of newer tool output accumulates (default roughly the last 10 tool calls). The stripped message is replaced with a pointer to the on-disk spill file. This keeps input tokens low but means values you merely *saw* in an old tool result will not be in your context on future turns.
+
+Restating those values in your own assistant text is NOT enough — assistant text from old turns can also be evicted during chain handoffs. The journal is the only place that durably survives across stripping, compaction, and chain resets. If you expect to need a specific value (a file path, a key finding, a decision) on a later turn, write it to the journal now.
+
 ## When to Use This Tool
 
-Use this tool to record high-signal information that should survive a context reset:
+Use this tool to record high-signal information that should survive stripping and context resets:
 
 1. **Key decisions** — "We decided to use PostgreSQL because of its JSON support"
 2. **Important discoveries** — "The auth module has a race condition in session refresh"
@@ -10,15 +16,15 @@ Use this tool to record high-signal information that should survive a context re
 4. **Architectural choices** — "Chose event sourcing over CRUD for the order service"
 5. **Blockers or constraints** — "Cannot use Redis in this environment due to firewall rules"
 6. **Milestones** — "Completed migration of all API endpoints to v2"
+7. **Specific values from tool output you'll need later** — exact file paths, test counts, error messages, numeric thresholds. These live in tool-result bodies that will be stripped from context; journal them now.
 
 ## When NOT to Use This Tool
 
 Do NOT journal routine information:
 
-- Tool call results (these are already in the conversation history)
 - Intermediate steps or progress updates
 - Information the user just told you (they'll repeat it if needed)
-- Code snippets or file contents (reference file paths instead)
+- Large code snippets or file contents (reference file paths instead — the file itself is durable)
 - Anything that's only relevant to the current turn
 
 ## Guidelines

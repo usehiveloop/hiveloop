@@ -66,6 +66,35 @@ pub struct AgentDefinition {
     pub updated_at: Option<String>,
 }
 
+impl AgentDefinition {
+    /// Static semantic validation of an agent definition — intended to run
+    /// at push time before the agent is loaded into the supervisor. Returns
+    /// the first problem it finds.
+    ///
+    /// Callers should translate the returned message into an
+    /// `InvalidRequest` error (400).
+    pub fn validate(&self) -> Result<(), String> {
+        // `tool_requirements.tool` cannot overlap `disabled_tools` — the
+        // agent would never be able to call a tool it's configured to
+        // require. Reject explicitly rather than silently deadlock.
+        for req in &self.config.tool_requirements {
+            if self.config.disabled_tools.iter().any(|d| d == &req.tool) {
+                return Err(format!(
+                    "tool_requirements[{}] conflicts with disabled_tools: \
+                     tool '{}' is both required per turn and disabled",
+                    self.config
+                        .tool_requirements
+                        .iter()
+                        .position(|r| r.tool == req.tool)
+                        .unwrap_or(0),
+                    req.tool
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
 /// Configuration options for an agent.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -111,12 +140,136 @@ pub struct AgentConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub immortal: Option<ImmortalConfig>,
 
+    /// Strip tool-result bodies from old messages before sending history to the
+    /// LLM. Full output already lives on disk via the spill pipeline; the
+    /// stripped message keeps a pointer so the agent can read it via RipGrep
+    /// if needed. Omit to use defaults (stripping enabled). Set `enabled:
+    /// false` to turn off entirely.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub history_strip: Option<HistoryStripConfig>,
+
     /// Tools to disable for this agent. Takes priority over everything else —
     /// disabled tools are removed from the registry before the agent is built,
     /// so the LLM never sees them. Works for built-in tools, MCP tools,
     /// integration tools, and spider tools.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub disabled_tools: Vec<String>,
+
+    /// Declarative tool-call requirements evaluated at the end of every agent
+    /// turn. Each entry describes a tool that must be called (with optional
+    /// cadence, position, and min-call constraints) and what bridge should do
+    /// if the requirement is violated. See [`ToolRequirement`] for the shape
+    /// and [`RequirementEnforcement`] for the dispatch options.
+    ///
+    /// Default: empty (no enforcement).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tool_requirements: Vec<ToolRequirement>,
+}
+
+/// A single tool-call requirement that bridge enforces at turn boundaries.
+///
+/// Typical configurations:
+/// - `journal_write` every turn: `{ tool: "journal_write" }` (all defaults).
+/// - `memory_recall` at the start of every turn:
+///   `{ tool: "memory_recall", position: "turn_start" }`.
+/// - `memory_retain` at most every 3 turns:
+///   `{ tool: "memory_retain", cadence: { type: "every_n_turns", n: 3 }, position: "turn_end" }`.
+///
+/// Tool-name matching is flexible to reduce MCP verbosity: if `tool` contains
+/// `__`, match it verbatim; otherwise match any registered tool whose full
+/// name equals `tool` OR ends with `__<tool>`. So `"post_message"` matches
+/// an MCP tool exposed as `slack__post_message` without the user having to
+/// write the server prefix.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ToolRequirement {
+    /// Tool name to require (built-in, MCP, integration, or custom).
+    pub tool: String,
+
+    /// When this requirement applies (which turns must satisfy it).
+    /// Default: `EveryTurn`.
+    #[serde(default)]
+    pub cadence: RequirementCadence,
+
+    /// Where in the turn the call must appear.
+    /// Default: `Anywhere`. Evaluation is LENIENT: read-only/metadata tools
+    /// (`todoread`, `journal_read`, `ls`, `read`, etc.) are exempt and do
+    /// not disqualify a `TurnStart` position requirement.
+    #[serde(default)]
+    pub position: RequirementPosition,
+
+    /// Minimum number of calls required in a qualifying turn. Default: 1.
+    #[serde(default = "default_min_calls")]
+    pub min_calls: u32,
+
+    /// What bridge does when this requirement is violated.
+    /// Default: `NextTurnReminder` — attach a system reminder to the next
+    /// user message. Zero extra LLM cost this turn.
+    #[serde(default)]
+    pub enforcement: RequirementEnforcement,
+
+    /// Custom reminder text injected when the requirement is violated.
+    /// Falls back to a generated default when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reminder_message: Option<String>,
+}
+
+fn default_min_calls() -> u32 {
+    1
+}
+
+/// Describes which turns a tool requirement applies to.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum RequirementCadence {
+    /// Required on every turn.
+    #[default]
+    EveryTurn,
+    /// Required only on the very first turn of the conversation.
+    FirstTurnOnly,
+    /// Required whenever `n` turns have passed without the tool being called.
+    /// The counter resets any time the tool is called (on- or off-cycle).
+    /// So `n=3` means "never go more than 3 consecutive turns without
+    /// calling this tool" — useful for periodic memory-retain / checkpoint
+    /// patterns.
+    EveryNTurns { n: u32 },
+}
+
+/// Where in the turn's tool-call sequence the required call must appear.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum RequirementPosition {
+    /// The call may appear anywhere among the turn's tool calls.
+    #[default]
+    Anywhere,
+    /// The call must come before any other non-exempt tool call this turn.
+    /// Exempt tools (metadata/read-only) may precede it without violating.
+    TurnStart,
+    /// The call must come after any other non-exempt tool call this turn
+    /// — i.e. be the "last" substantive action.
+    TurnEnd,
+}
+
+/// How bridge reacts when a tool requirement is violated.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum RequirementEnforcement {
+    /// Emit a `ToolRequirementViolated` event and attach a system reminder
+    /// that will be prepended to the next user message. No extra LLM call
+    /// this turn. Default — cheapest and typically sufficient.
+    #[default]
+    NextTurnReminder,
+    /// Emit the event AND immediately re-prompt the agent with a synthetic
+    /// user message naming the missing requirement. Costs one extra LLM
+    /// call per violation per turn. Bounded to 1 retry per turn.
+    Reprompt,
+    /// Emit the event and log a warning; do not otherwise alter the turn.
+    /// Useful for observability-only mode while still surfacing the signal
+    /// to clients.
+    Warn,
 }
 
 /// Configuration for immortal conversations (chain-based context management).
@@ -192,6 +345,63 @@ fn default_checkpoint_timeout_secs() -> u32 {
 
 fn default_max_previous_checkpoints() -> u32 {
     2
+}
+
+/// Configuration for stripping tool-result bodies from old messages before
+/// they are sent to the LLM. Reduces input tokens while preserving the ability
+/// to recover the full content via the on-disk spill file (`RipGrep` on the
+/// spill path). Strip is applied at send-time only; persistence is untouched,
+/// so the decision is deterministic across turns and the provider prompt
+/// cache remains stable after a result is first stripped.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct HistoryStripConfig {
+    /// Master switch. When false, strip is a no-op.
+    #[serde(default = "default_history_strip_enabled")]
+    pub enabled: bool,
+
+    /// Number of assistant messages that must follow a tool result before it
+    /// becomes eligible for stripping. Mirrors the "old tool output may be
+    /// cleared later" contract in Claude Code's system prompt.
+    #[serde(default = "default_history_strip_age_threshold")]
+    pub age_threshold: usize,
+
+    /// Always keep the most recent N tool results regardless of age. Protects
+    /// results the agent is actively reasoning over on the current turn.
+    #[serde(default = "default_history_strip_pin_recent")]
+    pub pin_recent_count: usize,
+
+    /// When true, tool results with `is_error: true` are never stripped.
+    /// Error context is small and high-signal for future turns.
+    #[serde(default = "default_history_strip_pin_errors")]
+    pub pin_errors: bool,
+}
+
+impl Default for HistoryStripConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_history_strip_enabled(),
+            age_threshold: default_history_strip_age_threshold(),
+            pin_recent_count: default_history_strip_pin_recent(),
+            pin_errors: default_history_strip_pin_errors(),
+        }
+    }
+}
+
+fn default_history_strip_enabled() -> bool {
+    true
+}
+
+fn default_history_strip_age_threshold() -> usize {
+    10
+}
+
+fn default_history_strip_pin_recent() -> usize {
+    3
+}
+
+fn default_history_strip_pin_errors() -> bool {
+    true
 }
 
 /// Configuration for conversation compaction (history summarization).

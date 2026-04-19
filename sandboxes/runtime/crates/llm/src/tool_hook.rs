@@ -22,11 +22,12 @@ use tools::ToolExecutor;
 use tracing::{info, warn};
 use webhooks::EventBus;
 
-/// Maximum bytes for a single tool result entering conversation history.
-/// Individual tools may use lower limits. This is a centralized safety net
-/// that catches MCP tools, integration tools, and skill tools that don't
-/// implement their own truncation.
-const TOOL_RESULT_MAX_BYTES: usize = 50 * 1024; // 50KB
+/// Maximum bytes for a single tool result entering conversation history (~2KB).
+/// Any tool result exceeding this cap is truncated to a head+tail window with
+/// the full output persisted to disk; the agent is pointed at the spill file
+/// via the `RipGrep` tool for any deeper inspection. Applies uniformly to every
+/// tool: builtin, MCP, integration, skill, and subagent results.
+const TOOL_RESULT_MAX_BYTES: usize = 2048;
 
 /// Validate tool arguments against a JSON schema.
 /// Returns Ok(()) if valid, Err(message) with human-readable validation errors if not.
@@ -61,15 +62,18 @@ fn validate_tool_args(args: &serde_json::Value, schema: &serde_json::Value) -> R
 }
 
 /// Truncate a tool result string if it exceeds the safety net threshold.
-/// Returns the original string if within limits.
+/// Returns the original string if within limits. When over the threshold, the
+/// full output is spilled to disk and the in-context payload keeps a head+tail
+/// window plus a pointer to the spill file.
 fn truncate_if_needed(result: String) -> String {
     if result.len() <= TOOL_RESULT_MAX_BYTES {
         return result;
     }
-    let truncated = tools::truncation::truncate_output(
+    let truncated = tools::truncation::truncate_output_directed(
         &result,
         tools::truncation::MAX_LINES,
         TOOL_RESULT_MAX_BYTES,
+        tools::truncation::TruncationDirection::HeadTail,
     );
     truncated.content
 }

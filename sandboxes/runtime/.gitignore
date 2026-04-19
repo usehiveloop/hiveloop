@@ -28,3 +28,10 @@ portal-mcp-logs/
 
 # Materialized skill files
 .skills/
+
+# Local dev artifacts from codebase-memory-mcp / claude-code
+codedb.snapshot
+.claude/scheduled_tasks.lock
+
+# Message attachments (written at runtime via full_message API)
+.bridge-attachments/

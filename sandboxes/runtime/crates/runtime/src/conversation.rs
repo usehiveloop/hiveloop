@@ -83,6 +83,9 @@ pub struct ConversationParams {
     pub agent_permissions: HashMap<String, ToolPermission>,
     /// Optional compaction configuration for history summarization.
     pub compaction_config: Option<bridge_core::agent::CompactionConfig>,
+    /// Optional tool-result stripping configuration. When `None`, defaults
+    /// are applied (stripping enabled, standard thresholds).
+    pub history_strip_config: Option<bridge_core::agent::HistoryStripConfig>,
     /// System reminder markdown to inject before every user message.
     pub system_reminder: String,
     /// Initial conversation date for date tracking.
@@ -112,6 +115,10 @@ pub struct ConversationParams {
     pub standalone_agent: bool,
     /// Shared state for ping-me-back timers (non-blocking delayed reminders).
     pub ping_state: Option<tools::ping_me_back::PingState>,
+    /// Declarative tool-call requirements evaluated at the end of every
+    /// successful turn (see [`bridge_core::agent::ToolRequirement`]).
+    /// Empty vec disables enforcement.
+    pub tool_requirements: Vec<bridge_core::agent::ToolRequirement>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -144,6 +151,7 @@ pub async fn run_conversation(params: ConversationParams) {
         permission_manager,
         agent_permissions,
         compaction_config,
+        history_strip_config,
         system_reminder,
         conversation_date,
         llm_semaphore,
@@ -157,6 +165,7 @@ pub async fn run_conversation(params: ConversationParams) {
         mcp_manager,
         standalone_agent,
         ping_state,
+        tool_requirements,
     } = params;
 
     info!(
@@ -168,6 +177,7 @@ pub async fn run_conversation(params: ConversationParams) {
     token_tracker::increment_active_conversations(&metrics);
     token_tracker::increment_total_conversations(&metrics);
 
+    let history_strip_config = history_strip_config.unwrap_or_default();
     let mut history: Vec<rig::message::Message> = initial_history.unwrap_or_default();
     let persisted_messages: Arc<std::sync::Mutex<Vec<Message>>> = Arc::new(std::sync::Mutex::new(
         initial_persisted_messages.unwrap_or_default(),
@@ -195,6 +205,20 @@ pub async fn run_conversation(params: ConversationParams) {
             current_chain_index: chain_index,
         }
     });
+
+    // Initialize tool-requirement enforcement state if any requirements exist.
+    // State persists across turns so cadence (EveryNTurns / FirstTurnOnly)
+    // has somewhere to track "last satisfied turn" per requirement.
+    let mut enforcement_state = if tool_requirements.is_empty() {
+        None
+    } else {
+        Some(crate::tool_enforcement::ToolEnforcementState::new())
+    };
+
+    // Pending system reminder, prepended to the next user message when a
+    // `NextTurnReminder` (or `Reprompt` — currently aliased) tool-requirement
+    // violation fires. Cleared after being injected once.
+    let mut pending_tool_reminder: Option<String> = None;
 
     loop {
         // Wait for either a user message, a background task notification,
@@ -258,7 +282,11 @@ pub async fn run_conversation(params: ConversationParams) {
             }
         }
 
-        // Build the user text from the incoming message
+        // Build the user text from the incoming message. If a tool-requirement
+        // violation from the previous turn stashed a system reminder, prepend
+        // it (wrapped in <system-reminder> tags) and clear the slot so it's
+        // shown exactly once.
+        let pending_reminder = pending_tool_reminder.take();
         let user_text: String = match &incoming {
             IncomingMessage::User(msg) => extract_text_content(msg),
             IncomingMessage::BackgroundComplete(notif) => {
@@ -302,6 +330,15 @@ pub async fn run_conversation(params: ConversationParams) {
             }
         };
 
+        // Prepend the pending tool-requirement reminder, if any. Wrapped in
+        // <system-reminder> tags so the model treats it as system-level
+        // guidance rather than user intent.
+        let user_text: String = if let Some(reminder) = pending_reminder {
+            format!("<system-reminder>\n{reminder}\n</system-reminder>\n\n{user_text}")
+        } else {
+            user_text
+        };
+
         let persisted_user_message = match &incoming {
             IncomingMessage::User(msg) => {
                 normalize_messages_for_persistence(std::slice::from_ref(msg))
@@ -321,12 +358,15 @@ pub async fn run_conversation(params: ConversationParams) {
         // genuine bug that's actively busting prompt cache hits.
         history_fp.verify_and_log(&history, &agent_id, &conversation_id);
 
-        // Mask old tool outputs to reduce context pressure before budget checks.
-        crate::masking::mask_old_tool_outputs_default(&mut history);
-        // Masking rewrites tool_result payloads in place — it is a deliberate
-        // cache-bust for the portion of history it touches. Refresh the
-        // fingerprint so the next turn checks against the post-masking
-        // baseline, not the pre-masking one.
+        // Strip old tool-result bodies to reduce context pressure before
+        // budget checks. Deterministic + idempotent: once a result is
+        // stripped, the marker is byte-stable across turns so the provider
+        // prompt cache only breaks once per result (at first-strip).
+        crate::masking::strip_old_tool_outputs(&mut history, &history_strip_config);
+        // Stripping rewrites tool_result payloads in place — a one-time
+        // cache-bust for each transitioning result. Refresh the fingerprint
+        // so the next turn's append-only check runs against the post-strip
+        // baseline, not the pre-strip one.
         history_fp = crate::history_guard::HistoryFingerprint::take(&history);
 
         // Check if context management is needed before adding the new message.
@@ -1264,6 +1304,79 @@ pub async fn run_conversation(params: ConversationParams) {
                     ));
                 }
 
+                // Tool-requirement enforcement. Runs once per successful turn
+                // and either (a) emits a warning event, (b) stashes a reminder
+                // to be prepended to the next user message, or (c) — for the
+                // Reprompt variant — does the same as (b) for now (a true
+                // in-turn reprompt needs a second agent spawn; currently
+                // aliased to NextTurnReminder semantics with a log note).
+                if let Some(ref mut ef_state) = enforcement_state {
+                    ef_state.advance_turn();
+                    let turn_calls =
+                        extract_tool_names_from_turn(&enriched_history, history_backup.len());
+                    let violations = crate::tool_enforcement::evaluate_requirements(
+                        ef_state,
+                        &tool_requirements,
+                        &turn_calls,
+                    );
+                    if !violations.is_empty() {
+                        for v in &violations {
+                            event_bus.emit(BridgeEvent::new(
+                                BridgeEventType::AgentError,
+                                &agent_id,
+                                &conversation_id,
+                                json!({
+                                    "code": "tool_requirement_violated",
+                                    "tool": v.requirement.tool,
+                                    "reason": format!("{:?}", v.reason),
+                                    "enforcement": format!("{:?}", v.enforcement()),
+                                    "turn": ef_state.turn_count,
+                                }),
+                            ));
+                            warn!(
+                                agent_id = %agent_id,
+                                conversation_id = %conversation_id,
+                                tool = %v.requirement.tool,
+                                reason = ?v.reason,
+                                enforcement = ?v.enforcement(),
+                                turn = ef_state.turn_count,
+                                "tool_requirement_violated"
+                            );
+                        }
+                        // Aggregate violations into a single reminder block
+                        // unless every violation is Warn-only.
+                        use bridge_core::agent::RequirementEnforcement;
+                        let has_any_nudge = violations
+                            .iter()
+                            .any(|v| v.enforcement() != RequirementEnforcement::Warn);
+                        if has_any_nudge {
+                            let nudges: Vec<crate::tool_enforcement::Violation> = violations
+                                .iter()
+                                .filter(|v| v.enforcement() != RequirementEnforcement::Warn)
+                                .cloned()
+                                .collect();
+                            let block = crate::tool_enforcement::render_reminder_block(&nudges);
+                            if !block.is_empty() {
+                                pending_tool_reminder = Some(block);
+                            }
+                            if violations
+                                .iter()
+                                .any(|v| v.enforcement() == RequirementEnforcement::Reprompt)
+                            {
+                                // Reprompt currently aliased to NextTurnReminder.
+                                // A true synchronous reprompt requires re-running
+                                // the agent inline, which is a follow-up PR; this
+                                // variant lands the reminder on the next turn.
+                                warn!(
+                                    agent_id = %agent_id,
+                                    conversation_id = %conversation_id,
+                                    "Reprompt enforcement currently behaves like NextTurnReminder; synchronous reprompt is a follow-up"
+                                );
+                            }
+                        }
+                    }
+                }
+
                 // Authoritative rebuild: discard incremental tool messages added
                 // during the turn and replace with the canonical rig history.
                 let new_persisted_messages =
@@ -1413,6 +1526,29 @@ fn is_retryable_stream_err(err_msg: &str) -> bool {
         || m.contains("connection reset")
         || m.contains("connection closed")
         || m.contains("temporarily")
+}
+
+/// Extract tool names (in call order) from the assistant messages added to
+/// `enriched` during the current turn (i.e. the tail starting at
+/// `baseline_len`). Used by the tool-requirement enforcement pass to check
+/// whether the turn called all required tools — and in what order for
+/// `TurnStart`/`TurnEnd` position constraints.
+fn extract_tool_names_from_turn(
+    enriched: &[rig::message::Message],
+    baseline_len: usize,
+) -> Vec<String> {
+    use rig::completion::message::AssistantContent;
+    let mut names = Vec::new();
+    for msg in enriched[baseline_len..].iter() {
+        if let rig::message::Message::Assistant { content, .. } = msg {
+            for c in content.iter() {
+                if let AssistantContent::ToolCall(tc) = c {
+                    names.push(tc.function.name.clone());
+                }
+            }
+        }
+    }
+    names
 }
 
 /// Check if any assistant messages in `enriched[baseline_len..]` contain tool calls.

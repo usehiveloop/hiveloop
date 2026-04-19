@@ -45,8 +45,16 @@ fn is_non_printable(b: u8) -> bool {
     b < 9 || (b > 13 && b < 32)
 }
 
-/// Maximum bytes to read from a text file.
-const MAX_READ_BYTES: usize = 50 * 1024; // 50KB
+/// Default line limit when the caller does not provide one explicitly.
+/// If a file has more lines than this and the caller omitted `limit`, the
+/// tool fails with a hard gate and tells the agent to either pass `offset`
+/// + `limit`, use `RipGrep`, or spawn a `self_agent`.
+pub const DEFAULT_LINE_LIMIT: usize = 2000;
+
+/// Absolute upper bound on file size, regardless of `limit`. Anything larger
+/// is refused outright: the agent must search (`RipGrep`) or summarize
+/// (`self_agent`) instead of ingesting. Prevents OOM on pathological files.
+const HARD_MAX_BYTES: u64 = 10 * 1024 * 1024; // 10MB
 
 /// Suggest similar filenames when a file is not found.
 /// Scans the parent directory and returns up to 3 similar names.
@@ -111,9 +119,12 @@ pub struct ReadArgs {
         description = "Line number to start reading from (1-based). Use with limit for large files"
     )]
     pub offset: Option<usize>,
-    /// Maximum number of lines to read. Default: 2000. Use with offset for pagination.
+    /// Maximum number of lines to read. If the file has more than 2000 lines
+    /// you MUST pass `limit` explicitly; otherwise the call fails with a
+    /// steer toward ranged reads, RipGrep, or self_agent. Use with offset
+    /// for pagination.
     #[schemars(
-        description = "Maximum number of lines to read. Default: 2000. Use with offset for pagination"
+        description = "Maximum number of lines to read. If the file has more than 2000 lines you MUST pass `limit` explicitly — otherwise the call fails and steers you toward RipGrep or self_agent. Use with offset for pagination."
     )]
     pub limit: Option<usize>,
 }
@@ -181,7 +192,8 @@ impl ToolExecutor for ReadTool {
 
         let file_path = &args.file_path;
         let offset = args.offset.unwrap_or(1);
-        let limit = args.limit.unwrap_or(2000);
+        let limit_explicit = args.limit.is_some();
+        let limit = args.limit.unwrap_or(DEFAULT_LINE_LIMIT);
 
         // Validate absolute path
         if !Path::new(file_path).is_absolute() {
@@ -216,6 +228,18 @@ impl ToolExecutor for ReadTool {
                 }
                 _ => format!("Failed to read file metadata: {e}"),
             })?;
+
+        // Hard byte cap: refuse to ingest enormous files regardless of limit.
+        // Applies to regular files only (directories have their own gate below).
+        if metadata.is_file() && metadata.len() > HARD_MAX_BYTES {
+            return Err(format!(
+                "File {} is too large to read in-context ({} bytes, max: {}). Use RipGrep with path=\"{}\" and a regex pattern to search, or spawn self_agent with a focused question to summarize.",
+                file_path,
+                metadata.len(),
+                HARD_MAX_BYTES,
+                file_path
+            ));
+        }
 
         if metadata.is_dir() {
             // List directory entries
@@ -254,9 +278,21 @@ impl ToolExecutor for ReadTool {
 
             entries.sort_by_key(|a| a.to_lowercase());
 
+            // Hard gate: require explicit limit when the directory has more
+            // entries than the default cap. Same three-option steer as files.
+            let total = entries.len();
+            if !limit_explicit && total > DEFAULT_LINE_LIMIT {
+                return Err(format!(
+                    "Directory {} has {} entries (default limit: {}). Choose one:\n\
+                    - Ranged read: call Read again with explicit offset and limit (e.g., offset=1, limit=500)\n\
+                    - Narrow: call Glob with pattern=\"...\" and path=\"{}\" to match only what you need\n\
+                    - Summarize: spawn self_agent with a focused question so the listing stays out of this context",
+                    file_path, total, DEFAULT_LINE_LIMIT, file_path
+                ));
+            }
+
             // Apply offset/limit pagination
             let start = if offset > 0 { offset - 1 } else { 0 };
-            let total = entries.len();
             let end = total.min(start + limit);
             let selected = if start < total {
                 &entries[start..end]
@@ -379,7 +415,8 @@ impl ToolExecutor for ReadTool {
             }
         }
 
-        // Read lines using async BufReader with 50KB byte cap
+        // Walk the entire file into memory. Bounded by HARD_MAX_BYTES (10MB)
+        // check above, so OOM is not a concern.
         let file = tokio::fs::File::open(file_path)
             .await
             .map_err(|e| format!("Failed to open file: {e}"))?;
@@ -387,22 +424,29 @@ impl ToolExecutor for ReadTool {
         let mut lines_stream = reader.lines();
 
         let mut all_lines: Vec<String> = Vec::new();
-        let mut byte_count: usize = 0;
-        let mut truncated_by_bytes = false;
         while let Some(line) = lines_stream
             .next_line()
             .await
             .map_err(|e| format!("Failed to read line: {e}"))?
         {
-            byte_count += line.len() + 1; // +1 for newline
-            if byte_count > MAX_READ_BYTES {
-                truncated_by_bytes = true;
-                break;
-            }
             all_lines.push(line);
         }
 
         let total_lines = all_lines.len();
+
+        // Hard gate: when the caller did not supply `limit`, refuse to
+        // ingest files above the default line cap. Steers the agent toward
+        // the three intents — ranged read, search, or summarize — rather
+        // than silently truncating and hoping the first N lines suffice.
+        if !limit_explicit && total_lines > DEFAULT_LINE_LIMIT {
+            return Err(format!(
+                "File {} has {} lines (default limit: {}). Choose one:\n\
+                - Ranged read: call Read again with explicit offset and limit (e.g., offset=1, limit=500)\n\
+                - Search: call RipGrep with path=\"{}\" and a regex pattern to find specific content\n\
+                - Summarize: spawn self_agent with a focused question so the file stays out of this context",
+                file_path, total_lines, DEFAULT_LINE_LIMIT, file_path
+            ));
+        }
 
         // Check for out-of-range offset (special case: offset=1 on empty file is OK)
         if offset > total_lines && !(total_lines == 0 && offset == 1) {
@@ -421,7 +465,7 @@ impl ToolExecutor for ReadTool {
         };
 
         let lines_read = selected_lines.len();
-        let truncated = end < total_lines || truncated_by_bytes;
+        let truncated = end < total_lines;
 
         // Format lines as "{line_number}: {content}" (e.g., "1: foo")
         let mut content = String::new();
@@ -472,7 +516,14 @@ mod tests {
         );
         assert!(desc.contains("2000"), "should mention default line limit");
         assert!(desc.contains("image"), "should mention image support");
-        assert!(desc.contains("grep"), "should mention cross-tool guidance");
+        assert!(
+            desc.contains("RipGrep"),
+            "should mention cross-tool guidance"
+        );
+        assert!(
+            desc.contains("self_agent"),
+            "should mention self_agent steer for large files"
+        );
     }
 
     #[tokio::test]
@@ -723,25 +774,122 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_read_byte_cap_truncation() {
+    async fn test_read_hard_gate_large_file_without_limit() {
         let dir = tempfile::tempdir().expect("create temp dir");
         let file_path = dir.path().join("large.txt");
-        // Create a file larger than 50KB
-        let big_content = "x".repeat(100) + "\n";
-        let repeated = big_content.repeat(600); // ~60KB
-        std::fs::write(&file_path, &repeated).expect("write");
+        let content: String = (0..DEFAULT_LINE_LIMIT + 500)
+            .map(|i| format!("line {i}\n"))
+            .collect();
+        std::fs::write(&file_path, &content).expect("write");
 
         let tool = ReadTool::new();
         let args = serde_json::json!({
             "file_path": file_path.to_str().unwrap()
         });
 
-        let result = tool.execute(args).await.expect("execute");
-        let parsed: ReadResult = serde_json::from_str(&result).expect("parse");
+        let err = tool.execute(args).await.unwrap_err();
+        assert!(
+            err.contains("has ") && err.contains("lines"),
+            "error should name the actual line count: {err}"
+        );
+        assert!(
+            err.contains("Ranged read"),
+            "error should offer ranged read option: {err}"
+        );
+        assert!(
+            err.contains("RipGrep"),
+            "error should offer RipGrep option: {err}"
+        );
+        assert!(
+            err.contains("self_agent"),
+            "error should offer self_agent option: {err}"
+        );
+    }
 
-        assert!(parsed.truncated, "should be truncated by byte cap");
-        // Should have read fewer than total lines
-        assert!(parsed.lines_read < 600);
+    #[tokio::test]
+    async fn test_read_hard_gate_passes_when_limit_explicit() {
+        let dir = tempfile::tempdir().expect("create temp dir");
+        let file_path = dir.path().join("large.txt");
+        let content: String = (0..DEFAULT_LINE_LIMIT + 500)
+            .map(|i| format!("line {i}\n"))
+            .collect();
+        std::fs::write(&file_path, &content).expect("write");
+
+        let tool = ReadTool::new();
+        let args = serde_json::json!({
+            "file_path": file_path.to_str().unwrap(),
+            "limit": 100,
+        });
+
+        let result = tool.execute(args).await.expect("execute should succeed");
+        let parsed: ReadResult = serde_json::from_str(&result).expect("parse");
+        assert_eq!(parsed.lines_read, 100);
+        assert!(parsed.truncated, "should report truncation vs full file");
+    }
+
+    #[tokio::test]
+    async fn test_read_hard_max_bytes_rejects_huge_file() {
+        // Build a file that exceeds HARD_MAX_BYTES (10MB) without allocating
+        // 10MB of distinct content: write a repeated pattern.
+        let dir = tempfile::tempdir().expect("create temp dir");
+        let file_path = dir.path().join("huge.txt");
+        let chunk = "x".repeat(1024); // 1KB
+        let mut f = std::fs::File::create(&file_path).expect("create");
+        // 11MB = 11_264 chunks — above HARD_MAX_BYTES.
+        for _ in 0..11_264 {
+            std::io::Write::write_all(&mut f, chunk.as_bytes()).expect("write");
+            std::io::Write::write_all(&mut f, b"\n").expect("write");
+        }
+        drop(f);
+
+        let tool = ReadTool::new();
+        let args = serde_json::json!({
+            "file_path": file_path.to_str().unwrap(),
+            "limit": 10,  // even with limit, huge files are refused.
+        });
+
+        let err = tool.execute(args).await.unwrap_err();
+        assert!(
+            err.contains("too large"),
+            "error should flag the size: {err}"
+        );
+        assert!(
+            err.contains("RipGrep"),
+            "error should steer toward RipGrep: {err}"
+        );
+        assert!(
+            err.contains("self_agent"),
+            "error should steer toward self_agent: {err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_read_directory_hard_gate_without_limit() {
+        let dir = tempfile::tempdir().expect("create temp dir");
+        let dir_path = dir.path();
+        // Create >DEFAULT_LINE_LIMIT entries.
+        for i in 0..(DEFAULT_LINE_LIMIT + 10) {
+            std::fs::write(dir_path.join(format!("file_{i:05}.txt")), "x").expect("write");
+        }
+
+        let tool = ReadTool::new();
+        let args = serde_json::json!({
+            "file_path": dir_path.to_str().unwrap()
+        });
+
+        let err = tool.execute(args).await.unwrap_err();
+        assert!(
+            err.contains("entries"),
+            "error should mention entries: {err}"
+        );
+        assert!(
+            err.contains("Glob"),
+            "error should steer toward Glob: {err}"
+        );
+        assert!(
+            err.contains("self_agent"),
+            "error should steer toward self_agent: {err}"
+        );
     }
 
     #[tokio::test]

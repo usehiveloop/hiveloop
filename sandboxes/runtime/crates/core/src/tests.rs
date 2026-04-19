@@ -71,7 +71,9 @@ mod serde_roundtrip_tests {
                 max_concurrent_conversations: None,
                 tool_calls_only: None,
                 immortal: None,
+                history_strip: None,
                 disabled_tools: vec![],
+                tool_requirements: vec![],
             },
             subagents: vec![AgentDefinition {
                 id: "sub-agent-001".to_string(),
@@ -208,7 +210,9 @@ mod serde_roundtrip_tests {
             max_concurrent_conversations: Some(50),
             tool_calls_only: None,
             immortal: None,
+            history_strip: None,
             disabled_tools: vec!["bash".to_string(), "write".to_string()],
+            tool_requirements: vec![],
         };
 
         let json = serde_json::to_string_pretty(&config).expect("serialize AgentConfig");

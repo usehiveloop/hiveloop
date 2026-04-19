@@ -51,6 +51,27 @@ Works for any tool type: built-in, MCP, spider, integration, and skills.
 | Wastes a tool call turn | No | Yes |
 | Use when | Tool should not exist for this agent | Tool exists but needs to be gated |
 
+### Requiring Tools Per Turn
+
+The opposite of `disabled_tools`: declare tools the agent **must** call. Use `config.tool_requirements` to enforce patterns like "journal every turn", "memory_recall at the start of every turn", or "memory_retain at the end of every 3 turns". Violations fire a `tool_requirement_violated` event and (by default) attach a system reminder to the next user message.
+
+```json
+{
+  "config": {
+    "tool_requirements": [
+      { "tool": "journal_write" },
+      {
+        "tool": "memory_recall",
+        "position": "turn_start",
+        "reminder_message": "Always call memory_recall before other work."
+      }
+    ]
+  }
+}
+```
+
+Tool-name matching is flexible for MCP: `"post_message"` matches both `slack__post_message` and `discord__post_message`. If you want exact matching, use the full `{server}__{name}` form. Bridge rejects agent pushes where a required tool is also in `disabled_tools`. See [Tool Requirements](../core-concepts/agents.md#tool-requirements) for the full reference.
+
 ---
 
 ## All Built-in Tools

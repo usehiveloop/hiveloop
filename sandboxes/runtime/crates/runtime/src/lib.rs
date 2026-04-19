@@ -13,6 +13,7 @@ pub mod skill_discovery;
 pub mod supervisor;
 pub mod system_reminder;
 pub mod token_tracker;
+pub mod tool_enforcement;
 
 pub use agent_map::AgentMap;
 pub use agent_runner::{AgentSessionStore, ConversationSubAgentRunner, SubAgentEntry};

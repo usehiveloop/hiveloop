@@ -165,6 +165,7 @@ The `config` object supports the following optional fields:
 | `max_tasks_per_conversation` | integer | Max subagent tasks per conversation | Default: `50` |
 | `max_concurrent_conversations` | integer | Per-agent concurrent conversation limit | Overrides global setting |
 | `disabled_tools` | string[] | Tools to completely remove from the agent | Default: `[]` |
+| `tool_requirements` | object[] | Declarative per-turn tool-call requirements | See [Tool Requirements](#tool-requirements) |
 
 #### `tool_calls_only`
 
@@ -209,6 +210,181 @@ Per-agent limit on the number of concurrent conversations. Overrides the global 
 ```
 
 **When to use:** Protect expensive agents (e.g., using costly models) from being overwhelmed. Leave unset to use the global default.
+
+#### Tool Requirements
+
+`tool_requirements` declares tools that the agent **must** call under a given cadence, position, and minimum-call policy. Bridge evaluates every successful turn against each requirement and, on violation, either surfaces a warning or nudges the model on the next turn.
+
+Typical uses:
+
+- Force a journal/audit-log write every turn.
+- Recall memory at the *start* of every turn (before any other work).
+- Retain memory at the *end* of every few turns.
+- Require a first-turn workspace-scan before anything else runs.
+
+##### `ToolRequirement` fields
+
+| Field | Required | Type | Description | Default |
+|-------|----------|------|-------------|---------|
+| `tool` | **Yes** | string | Tool name to require (built-in, MCP, integration, or custom). See [Tool-name matching](#tool-name-matching). | — |
+| `cadence` | No | object | Which turns must satisfy this requirement. See [Cadence](#cadence). | `{ "type": "every_turn" }` |
+| `position` | No | string | Where in the turn's tool-call sequence the call must appear: `"anywhere"`, `"turn_start"`, `"turn_end"`. | `"anywhere"` |
+| `min_calls` | No | integer (≥1) | Minimum number of calls required in a qualifying turn. | `1` |
+| `enforcement` | No | string | What bridge does on violation: `"next_turn_reminder"`, `"reprompt"`, `"warn"`. | `"next_turn_reminder"` |
+| `reminder_message` | No | string | Custom reminder text injected on violation. Falls back to a generated default naming the tool and reason. | — |
+
+##### Cadence
+
+Cadence describes which turns must satisfy the requirement. It's a tagged object: `{ "type": "…" }` with optional inline fields.
+
+| Type | Fields | Meaning |
+|------|--------|---------|
+| `every_turn` | — | Required on every single turn. |
+| `first_turn_only` | — | Required only on the very first turn of the conversation. |
+| `every_n_turns` | `n: integer` | Required whenever `n` turns have passed without the tool being called. "Reset on call" semantics — any successful call (on- or off-cycle) resets the counter. So `n=3` means "don't go more than 3 consecutive turns without calling this tool." |
+
+##### Position
+
+Position controls *where* the required call must sit among the turn's tool calls. Evaluation is **lenient**: read-only/metadata tools (`todoread`, `journal_read`) are exempt and don't disqualify a `turn_start` constraint.
+
+| Value | Meaning |
+|-------|---------|
+| `anywhere` | The call may appear anywhere in the turn. |
+| `turn_start` | Must come before any *substantive* (non-exempt) tool call this turn. |
+| `turn_end` | Must come after any substantive tool call — i.e. be the final action. |
+
+##### Enforcement
+
+What bridge does when a requirement is violated.
+
+| Value | Behavior | Cost |
+|-------|----------|------|
+| `next_turn_reminder` (default) | Emits a `tool_requirement_violated` event and attaches a `<system-reminder>` block to the **next** user message naming the missing tool(s). | No extra LLM call. |
+| `reprompt` | Currently behaves like `next_turn_reminder` and logs a note. A future bridge release will make this re-run the agent synchronously in the same turn. | (future: +1 LLM call per violation) |
+| `warn` | Emits the violation event and logs a warning but does not nudge the agent. | Observability only. |
+
+##### Tool-name matching
+
+To reduce MCP verbosity, `tool` matching is flexible:
+
+- If `tool` contains `__` → **exact match** only (you opted into the full MCP tool name).
+- Otherwise → matches the tool verbatim OR any registered tool whose full name ends with `__{tool}`.
+
+So `"tool": "post_message"` matches `slack__post_message`, `discord__post_message`, *or* a plain `post_message` tool. If you need strict single-server binding, write the full name: `"slack__post_message"`.
+
+Matching is case-sensitive.
+
+##### Enforcement state
+
+State is per-conversation:
+
+- A turn counter bumps on every successful agent turn.
+- Per-requirement "last satisfied turn" is recorded whenever the tool is actually called, regardless of whether other constraints were met. That lets `every_n_turns` cadence reset correctly on off-cycle calls.
+
+Failed/rolled-back turns do not bump the counter.
+
+##### Validation
+
+Bridge rejects agent pushes where a `tool_requirements[i].tool` also appears in `disabled_tools` — that configuration would be unsatisfiable. Response: **400 Invalid Request** with a message identifying the conflicting tool.
+
+##### Examples
+
+**Journal every turn (what most agents want):**
+
+```json
+{
+  "config": {
+    "tool_requirements": [
+      { "tool": "journal_write" }
+    ]
+  }
+}
+```
+
+**Memory pattern (recall at turn start, retain every 3 turns):**
+
+```json
+{
+  "config": {
+    "tool_requirements": [
+      {
+        "tool": "memory_recall",
+        "position": "turn_start",
+        "reminder_message": "You must call memory_recall at the start of every turn before any other work."
+      },
+      {
+        "tool": "memory_retain",
+        "cadence": { "type": "every_n_turns", "n": 3 },
+        "position": "turn_end",
+        "reminder_message": "Retain new memory before finishing this turn."
+      }
+    ]
+  }
+}
+```
+
+**First-turn-only setup:**
+
+```json
+{
+  "config": {
+    "tool_requirements": [
+      {
+        "tool": "workspace_scan",
+        "cadence": { "type": "first_turn_only" },
+        "position": "turn_start"
+      }
+    ]
+  }
+}
+```
+
+**MCP tool without the server prefix (matches any `*__post_message` registration):**
+
+```json
+{
+  "config": {
+    "tool_requirements": [
+      { "tool": "post_message", "enforcement": "warn" }
+    ]
+  }
+}
+```
+
+**Minimum N calls per qualifying turn:**
+
+```json
+{
+  "config": {
+    "tool_requirements": [
+      {
+        "tool": "audit_log",
+        "cadence": { "type": "every_turn" },
+        "min_calls": 2
+      }
+    ]
+  }
+}
+```
+
+##### Event emitted on violation
+
+Every violation fires an event (SSE + webhook + WebSocket, via the unified event bus). The payload includes the tool name, the reason (`InsufficientCalls` / `NotAtTurnStart` / `NotAtTurnEnd`), the enforcement variant, and the turn number:
+
+```json
+{
+  "event_type": "agent_error",
+  "data": {
+    "code": "tool_requirement_violated",
+    "tool": "memory_recall",
+    "reason": "NotAtTurnStart",
+    "enforcement": "NextTurnReminder",
+    "turn": 4
+  }
+}
+```
+
+Clients that want to display a UI indicator or short-circuit a workflow should listen for this event. If you set `enforcement: "warn"`, this event is the only signal you get — no reminder attaches to the next turn.
 
 #### Compaction Configuration
 

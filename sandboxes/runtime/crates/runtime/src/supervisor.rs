@@ -657,7 +657,9 @@ impl AgentSupervisor {
         } else {
             def.config.compaction.clone()
         };
+        let history_strip_config = def.config.history_strip.clone();
         let tool_calls_only = def.config.tool_calls_only.unwrap_or(false);
+        let tool_requirements = def.config.tool_requirements.clone();
         // Get skills from the registered SkillTool (includes local discoveries)
         let skills = state
             .tool_registry
@@ -869,6 +871,7 @@ impl AgentSupervisor {
                 permission_manager,
                 agent_permissions,
                 compaction_config,
+                history_strip_config,
                 system_reminder,
                 conversation_date: chrono::Utc::now(),
                 llm_semaphore,
@@ -882,6 +885,7 @@ impl AgentSupervisor {
                 mcp_manager: Some(cleanup_mcp_manager),
                 standalone_agent,
                 ping_state,
+                tool_requirements,
             })
             .await;
         });
@@ -927,6 +931,17 @@ impl AgentSupervisor {
             .map_err(|_| BridgeError::ConversationEnded(conversation_id.to_string()))?;
 
         Ok(())
+    }
+
+    /// Return the set of tool names currently registered for an agent.
+    /// Includes built-in, MCP, integration, and custom tools — matches what
+    /// the LLM sees on prompts. Returns `None` if the agent is unknown.
+    ///
+    /// Used by the API layer (e.g. message-attachment reminder generation)
+    /// to tailor system hints to tools the agent actually has.
+    pub fn agent_tool_names(&self, agent_id: &str) -> Option<std::collections::HashSet<String>> {
+        let state = self.agent_map.get(agent_id)?;
+        Some(state.tool_registry.tool_names().into_iter().collect())
     }
 
     /// End an active conversation.
@@ -1336,7 +1351,9 @@ impl AgentSupervisor {
         } else {
             def.config.compaction.clone()
         };
+        let history_strip_config = def.config.history_strip.clone();
         let tool_calls_only = def.config.tool_calls_only.unwrap_or(false);
+        let tool_requirements = def.config.tool_requirements.clone();
         // Get skills from the registered SkillTool (includes local discoveries)
         let skills = state
             .tool_registry
@@ -1435,6 +1452,7 @@ impl AgentSupervisor {
                 permission_manager,
                 agent_permissions,
                 compaction_config,
+                history_strip_config,
                 system_reminder,
                 conversation_date: chrono::Utc::now(),
                 llm_semaphore,
@@ -1448,6 +1466,7 @@ impl AgentSupervisor {
                 mcp_manager: None,
                 standalone_agent,
                 ping_state,
+                tool_requirements,
             })
             .await;
         });

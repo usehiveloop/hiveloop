@@ -150,6 +150,20 @@ When unset, all of the above are ephemeral and lost on restart.
 export BRIDGE_STORAGE_PATH="/var/lib/bridge/bridge.db"
 ```
 
+### `BRIDGE_ATTACHMENTS_DIR`
+
+Root directory for conversation message attachments written via the `full_message` field on `POST /conversations/{id}/messages`. See [Large payloads via `full_message`](../core-concepts/conversations.md#large-payloads-via-full_message).
+
+- **Default:** `.bridge-attachments` (relative to the bridge process's working directory)
+- **Format:** Directory path (string)
+- **Example:** `/var/run/bridge/attachments`
+
+Each conversation gets its own subdirectory `{root}/{conversation_id}/`. Files are named with UUIDs. Whole subdirectory is deleted when the conversation ends.
+
+```bash
+export BRIDGE_ATTACHMENTS_DIR="/var/run/bridge/attachments"
+```
+
 ### `BRIDGE_ALLOW_STDIO_MCP_FROM_API`
 
 Allow API clients to attach `stdio`-transport MCP servers to a conversation via the `mcp_servers` field in `POST /agents/{id}/conversations`. See [Per-Conversation MCP Servers](../core-concepts/mcp.md#per-conversation-mcp-servers).

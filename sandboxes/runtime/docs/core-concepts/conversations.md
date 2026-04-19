@@ -93,6 +93,72 @@ curl -X POST http://localhost:8080/conversations/conv-abc123/messages \
 
 The message is queued for the agent. To see the response, connect to the stream.
 
+### Request fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | string | The LLM-visible text. Optional when [`full_message`](#large-payloads-via-full_message) is also supplied. |
+| `system_reminder` | string \| null | Optional — prepended to the user message wrapped in `<system-reminder>` tags. |
+| `full_message` | string \| null | Optional — full payload spilled to disk so the agent can query it only when needed. See below. |
+
+---
+
+### Large payloads via `full_message`
+
+When the full input to the agent is too big to send on every turn (stack traces, log dumps, file contents, transcripts, structured error reports), set `full_message` to the complete payload and put a shorter summary in `content`. Bridge will:
+
+1. Write `full_message` to `{attachments_root}/{conversation_id}/{uuid}.txt` — typical `attachments_root` is `./.bridge-attachments` relative to the bridge process's working directory. Override with `BRIDGE_ATTACHMENTS_DIR`.
+2. Append a `<system-reminder>` block to the content you sent, pointing the agent at the absolute path of the attachment and hinting which tools to use to inspect it. The tool hint adapts to the agent's registered tools:
+   - `RipGrep` + `Read` present → recommends both
+   - only `RipGrep` or only `Read` → recommends that one
+   - `AstGrep` or `bash` fallback → uses those (avoiding `cat` to prevent re-inflating context)
+   - no filesystem/search tool → explicitly tells the agent it cannot read the file and should treat the summary as authoritative
+3. If `content` is empty or missing, bridge auto-generates a summary from the first ~500 bytes of `full_message` so the agent still sees something useful.
+
+Failures (disk full, permission denied) are **never** surfaced as API errors — bridge logs a warning and delivers the message with just `content`. This makes `full_message` safe to add to any send-message call without worrying about availability of the attachment layer.
+
+#### Example
+
+```bash
+curl -X POST http://localhost:8080/conversations/conv-abc123/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Please investigate the crash. Summary: null pointer in handler::auth::verify.",
+    "full_message": "<... 300KB of stack trace, request headers, env dump ...>"
+  }'
+```
+
+The agent's LLM input becomes:
+
+```
+Please investigate the crash. Summary: null pointer in handler::auth::verify.
+
+<system-reminder>
+The user's message was truncated because it was too long. The complete
+original payload is saved to `/var/run/bridge/.bridge-attachments/conv-abc123/8f6…e2.txt`.
+Use the `RipGrep` tool to search the file for specifics, or the `Read`
+tool to open a specific byte/line range.
+</system-reminder>
+```
+
+#### Cleanup
+
+Attachment files are scoped to their conversation. When the conversation is deleted via `DELETE /conversations/{id}` (or ends through the normal lifecycle), bridge removes the `{conversation_id}/` directory beneath the attachments root. Failures during cleanup are logged and swallowed — the API response is not affected.
+
+#### Observability
+
+The `message_received` event now includes an `attachment_path` field. When `full_message` was not used, it's `null`; when an attachment was written, it carries the absolute path for clients that want to display a link or side-load the file.
+
+```json
+{
+  "event_type": "message_received",
+  "data": {
+    "content": "… (the composed text including the system-reminder)",
+    "attachment_path": "/var/run/bridge/.bridge-attachments/conv-abc123/8f6…e2.txt"
+  }
+}
+```
+
 ---
 
 ## Streaming Responses
