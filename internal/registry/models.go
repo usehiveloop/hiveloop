@@ -39,6 +39,67 @@ var curatedProviders = []Provider{
 					Output:  64000,
 				},
 			},
+			"claude-sonnet-4-5": {
+				ID:          "claude-sonnet-4-5",
+				Name:        "Claude Sonnet 4.5 (latest)",
+				Family:      "claude-sonnet",
+				Reasoning:   true,
+				ToolCall:    true,
+				Knowledge:   "2025-07-31",
+				ReleaseDate: "2025-09-29",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "pdf"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  3,
+					Output: 15,
+				},
+				Limit: &Limit{
+					Context: 200000,
+					Output:  64000,
+				},
+			},
+			"claude-3-5-haiku-latest": {
+				ID:          "claude-3-5-haiku-latest",
+				Name:        "Claude Haiku 3.5 (latest)",
+				Family:      "claude-haiku",
+				ToolCall:    true,
+				Knowledge:   "2024-07-31",
+				ReleaseDate: "2024-10-22",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "pdf"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.8,
+					Output: 4,
+				},
+				Limit: &Limit{
+					Context: 200000,
+					Output:  8192,
+				},
+			},
+			"claude-3-5-haiku-20241022": {
+				ID:          "claude-3-5-haiku-20241022",
+				Name:        "Claude Haiku 3.5",
+				Family:      "claude-haiku",
+				ToolCall:    true,
+				Knowledge:   "2024-07-31",
+				ReleaseDate: "2024-10-22",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "pdf"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.8,
+					Output: 4,
+				},
+				Limit: &Limit{
+					Context: 200000,
+					Output:  8192,
+				},
+			},
 			"claude-opus-4-6": {
 				ID:          "claude-opus-4-6",
 				Name:        "Claude Opus 4.6",
@@ -369,6 +430,28 @@ var curatedProviders = []Provider{
 				Limit: &Limit{
 					Context: 1000000,
 					Output:  64000,
+				},
+			},
+			"gemini-2.5-flash": {
+				ID:               "gemini-2.5-flash",
+				Name:             "Gemini 2.5 Flash",
+				Family:           "gemini-flash",
+				Reasoning:        true,
+				ToolCall:         true,
+				StructuredOutput: true,
+				Knowledge:        "2025-01",
+				ReleaseDate:      "2025-03-20",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "audio", "video", "pdf"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.3,
+					Output: 2.5,
+				},
+				Limit: &Limit{
+					Context: 1048576,
+					Output:  65536,
 				},
 			},
 		},
@@ -1266,6 +1349,28 @@ var curatedProviders = []Provider{
 				Limit: &Limit{
 					Context: 1050000,
 					Output:  66000,
+				},
+			},
+			"google/gemini-2.5-flash": {
+				ID:               "google/gemini-2.5-flash",
+				Name:             "Gemini 2.5 Flash",
+				Family:           "gemini-flash",
+				Reasoning:        true,
+				ToolCall:         true,
+				StructuredOutput: true,
+				Knowledge:        "2025-01",
+				ReleaseDate:      "2025-07-17",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "audio", "video", "pdf"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.3,
+					Output: 2.5,
+				},
+				Limit: &Limit{
+					Context: 1048576,
+					Output:  65536,
 				},
 			},
 			"openai/gpt-5.1-codex-mini": {
