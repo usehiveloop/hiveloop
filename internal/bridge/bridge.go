@@ -149,7 +149,18 @@ func (c *BridgeClient) CreateConversationWithOptions(ctx context.Context, agentI
 
 // SendMessage sends a message to a conversation (async, returns 202).
 func (c *BridgeClient) SendMessage(ctx context.Context, convID string, content string) error {
-	payload := SendMessageRequest{Content: content}
+	payload := SendMessageRequest{Content: &content}
+	return doVoid(c, ctx, http.MethodPost, "/conversations/"+convID+"/messages", payload)
+}
+
+// SendMessageWithFullPayload sends a message whose `content` is the
+// LLM-visible summary and whose `full_message` is a raw payload that bridge
+// writes to a per-conversation attachment file on disk. Bridge appends a
+// <system-reminder> pointing at the attachment so the agent can open it on
+// demand — used to offload large webhook bodies out of the agent's context
+// window on every turn.
+func (c *BridgeClient) SendMessageWithFullPayload(ctx context.Context, convID, content, fullMessage string) error {
+	payload := SendMessageRequest{Content: &content, FullMessage: &fullMessage}
 	return doVoid(c, ctx, http.MethodPost, "/conversations/"+convID+"/messages", payload)
 }
 

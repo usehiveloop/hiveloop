@@ -203,7 +203,9 @@ func TestSendMessage(t *testing.T) {
 		}
 		var req SendMessageRequest
 		json.NewDecoder(r.Body).Decode(&req)
-		receivedContent = req.Content
+		if req.Content != nil {
+			receivedContent = *req.Content
+		}
 		w.WriteHeader(http.StatusAccepted)
 		json.NewEncoder(w).Encode(map[string]string{"status": "accepted"})
 	}))

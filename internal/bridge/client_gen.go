@@ -53,6 +53,24 @@ func (e ApprovalStatus) Valid() bool {
 	}
 }
 
+// Defines values for CacheTtl.
+const (
+	FiveMinutes CacheTtl = "five_minutes"
+	OneHour     CacheTtl = "one_hour"
+)
+
+// Valid indicates whether the value is a known member of the CacheTtl enum.
+func (e CacheTtl) Valid() bool {
+	switch e {
+	case FiveMinutes:
+		return true
+	case OneHour:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ContentBlock0Type.
 const (
 	Text ContentBlock0Type = "text"
@@ -191,6 +209,93 @@ func (e ProviderType) Valid() bool {
 	}
 }
 
+// Defines values for RequirementCadence0Type.
+const (
+	EveryTurn RequirementCadence0Type = "every_turn"
+)
+
+// Valid indicates whether the value is a known member of the RequirementCadence0Type enum.
+func (e RequirementCadence0Type) Valid() bool {
+	switch e {
+	case EveryTurn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RequirementCadence1Type.
+const (
+	FirstTurnOnly RequirementCadence1Type = "first_turn_only"
+)
+
+// Valid indicates whether the value is a known member of the RequirementCadence1Type enum.
+func (e RequirementCadence1Type) Valid() bool {
+	switch e {
+	case FirstTurnOnly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RequirementCadence2Type.
+const (
+	EveryNTurns RequirementCadence2Type = "every_n_turns"
+)
+
+// Valid indicates whether the value is a known member of the RequirementCadence2Type enum.
+func (e RequirementCadence2Type) Valid() bool {
+	switch e {
+	case EveryNTurns:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RequirementEnforcement.
+const (
+	NextTurnReminder RequirementEnforcement = "next_turn_reminder"
+	Reprompt         RequirementEnforcement = "reprompt"
+	Warn             RequirementEnforcement = "warn"
+)
+
+// Valid indicates whether the value is a known member of the RequirementEnforcement enum.
+func (e RequirementEnforcement) Valid() bool {
+	switch e {
+	case NextTurnReminder:
+		return true
+	case Reprompt:
+		return true
+	case Warn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RequirementPosition.
+const (
+	Anywhere  RequirementPosition = "anywhere"
+	TurnEnd   RequirementPosition = "turn_end"
+	TurnStart RequirementPosition = "turn_start"
+)
+
+// Valid indicates whether the value is a known member of the RequirementPosition enum.
+func (e RequirementPosition) Valid() bool {
+	switch e {
+	case Anywhere:
+		return true
+	case TurnEnd:
+		return true
+	case TurnStart:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Role.
 const (
 	Assistant Role = "assistant"
@@ -283,6 +388,14 @@ type AgentConfig struct {
 	// integration tools, and spider tools.
 	DisabledTools *[]string `json:"disabled_tools,omitempty"`
 
+	// HistoryStrip Configuration for stripping tool-result bodies from old messages before
+	// they are sent to the LLM. Reduces input tokens while preserving the ability
+	// to recover the full content via the on-disk spill file (`RipGrep` on the
+	// spill path). Strip is applied at send-time only; persistence is untouched,
+	// so the decision is deterministic across turns and the provider prompt
+	// cache remains stable after a result is first stripped.
+	HistoryStrip *HistoryStripConfig `json:"history_strip,omitempty"`
+
 	// Immortal Configuration for immortal conversations (chain-based context management).
 	//
 	// When the token budget is exceeded, instead of compacting (summarizing in-place),
@@ -318,6 +431,15 @@ type AgentConfig struct {
 	// Empty text responses are treated as success if tool calls were executed.
 	// Default: false.
 	ToolCallsOnly *bool `json:"tool_calls_only,omitempty"`
+
+	// ToolRequirements Declarative tool-call requirements evaluated at the end of every agent
+	// turn. Each entry describes a tool that must be called (with optional
+	// cadence, position, and min-call constraints) and what bridge should do
+	// if the requirement is violated. See [`ToolRequirement`] for the shape
+	// and [`RequirementEnforcement`] for the dispatch options.
+	//
+	// Default: empty (no enforcement).
+	ToolRequirements *[]ToolRequirement `json:"tool_requirements,omitempty"`
 }
 
 // AgentDefinition Complete definition of an AI agent fetched from the control plane.
@@ -464,6 +586,21 @@ type BulkResolveApprovalsResponse struct {
 	// Resolved List of request IDs that were successfully resolved.
 	Resolved []string `json:"resolved"`
 }
+
+// CacheTtl Prompt-cache TTL hint.
+//
+// Anthropic supports two TTLs today: 5-minute ephemeral (default,
+// 1.25× cache-write multiplier) and 1-hour extended (2.0× write, needs
+// `extended-cache-ttl-2025-04-11` beta header). Other providers ignore
+// this field — their caches are automatic and provider-managed.
+//
+// **Note (rig 0.31)**: `with_prompt_caching()` only emits the
+// `{"type": "ephemeral"}` breakpoint, which corresponds to the 5-minute
+// TTL. Setting `OneHour` here sends the beta header but does not yet
+// add `"ttl": "1h"` to the cache_control block — upgrade rig to get
+// true 1-hour writes. The field is wired now so the choice survives
+// the upgrade.
+type CacheTtl string
 
 // CompactionConfig Configuration for conversation compaction (history summarization).
 type CompactionConfig struct {
@@ -627,6 +764,30 @@ type HealthResponse struct {
 	UptimeSecs int64 `json:"uptime_secs"`
 }
 
+// HistoryStripConfig Configuration for stripping tool-result bodies from old messages before
+// they are sent to the LLM. Reduces input tokens while preserving the ability
+// to recover the full content via the on-disk spill file (`RipGrep` on the
+// spill path). Strip is applied at send-time only; persistence is untouched,
+// so the decision is deterministic across turns and the provider prompt
+// cache remains stable after a result is first stripped.
+type HistoryStripConfig struct {
+	// AgeThreshold Number of assistant messages that must follow a tool result before it
+	// becomes eligible for stripping. Mirrors the "old tool output may be
+	// cleared later" contract in Claude Code's system prompt.
+	AgeThreshold *int `json:"age_threshold,omitempty"`
+
+	// Enabled Master switch. When false, strip is a no-op.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// PinErrors When true, tool results with `is_error: true` are never stripped.
+	// Error context is small and high-signal for future turns.
+	PinErrors *bool `json:"pin_errors,omitempty"`
+
+	// PinRecentCount Always keep the most recent N tool results regardless of age. Protects
+	// results the agent is actively reasoning over on the current turn.
+	PinRecentCount *int `json:"pin_recent_count,omitempty"`
+}
+
 // HydrateConversationsRequest defines model for HydrateConversationsRequest.
 type HydrateConversationsRequest struct {
 	Conversations []ConversationRecord `json:"conversations"`
@@ -645,10 +806,18 @@ type HydrateConversationsResponse struct {
 // journal + recent turns, and continues seamlessly. The external conversation_id
 // never changes.
 type ImmortalConfig struct {
-	// CarryForwardTurns Number of complete user turns to carry forward verbatim into the new chain.
-	// A "complete user turn" includes the user message and all subsequent assistant
-	// responses and tool calls until the next user message.
+	// CarryForwardBudgetFraction Fraction of `token_budget` allowed for the carry-forward tail.
+	// Prevents a single tool-heavy turn from stuffing the new chain's context.
+	// Default 0.3 (30%).
+	CarryForwardBudgetFraction *float32 `json:"carry_forward_budget_fraction,omitempty"`
+
+	// CarryForwardTurns Upper bound on the number of recent user turns to carry forward verbatim
+	// into the new chain. The carry-forward is further capped by
+	// `carry_forward_budget_fraction` — whichever binds first wins.
 	CarryForwardTurns *int32 `json:"carry_forward_turns,omitempty"`
+
+	// CheckpointMaxTokens Max tokens for each checkpoint LLM call's output. Default 1500.
+	CheckpointMaxTokens *int32 `json:"checkpoint_max_tokens,omitempty"`
 
 	// CheckpointPrompt Custom prompt for checkpoint extraction. Uses a built-in default if None.
 	CheckpointPrompt *string `json:"checkpoint_prompt,omitempty"`
@@ -656,8 +825,19 @@ type ImmortalConfig struct {
 	// CheckpointProvider Configuration for an LLM provider.
 	CheckpointProvider ProviderConfig `json:"checkpoint_provider"`
 
+	// CheckpointTimeoutSecs Per-call timeout for checkpoint LLM calls, in seconds. Default 45.
+	CheckpointTimeoutSecs *int32 `json:"checkpoint_timeout_secs,omitempty"`
+
+	// MaxPreviousCheckpoints Max number of prior chain checkpoints to include as context during
+	// checkpoint extraction. Older ones are considered subsumed. Default 2.
+	MaxPreviousCheckpoints *int32 `json:"max_previous_checkpoints,omitempty"`
+
 	// TokenBudget Token budget. Chain triggers when estimated tokens exceed this.
 	TokenBudget *int32 `json:"token_budget,omitempty"`
+
+	// VerifyCheckpoint When true, run a second verification pass after the phase-1 extraction.
+	// Default false — for strong summarizer models phase 2 rarely improves output.
+	VerifyCheckpoint *bool `json:"verify_checkpoint,omitempty"`
 }
 
 // IntegrationAction A single action within an integration that an agent can invoke.
@@ -777,10 +957,16 @@ type MetricsSnapshot struct {
 	// AvgLatencyMs Average latency in milliseconds
 	AvgLatencyMs float64 `json:"avg_latency_ms"`
 
+	// CacheHitRatio cached_input_tokens / (input_tokens + cached_input_tokens).
+	CacheHitRatio *float64 `json:"cache_hit_ratio,omitempty"`
+
+	// CachedInputTokens Total input tokens served from the provider prompt cache (discounted).
+	CachedInputTokens *int64 `json:"cached_input_tokens,omitempty"`
+
 	// FailedRequests Failed requests
 	FailedRequests int64 `json:"failed_requests"`
 
-	// InputTokens Total input tokens consumed
+	// InputTokens Total non-cached input tokens consumed (full price).
 	InputTokens int64 `json:"input_tokens"`
 
 	// OutputTokens Total output tokens generated
@@ -798,7 +984,7 @@ type MetricsSnapshot struct {
 	// TotalRequests Total LLM requests
 	TotalRequests int64 `json:"total_requests"`
 
-	// TotalTokens Total tokens (input + output)
+	// TotalTokens Total tokens (fresh input + cached input + output)
 	TotalTokens int64 `json:"total_tokens"`
 }
 
@@ -810,8 +996,29 @@ type ProviderConfig struct {
 	// BaseUrl Optional custom endpoint URL
 	BaseUrl *string `json:"base_url,omitempty"`
 
+	// CacheTtl Prompt-cache TTL hint.
+	//
+	// Anthropic supports two TTLs today: 5-minute ephemeral (default,
+	// 1.25× cache-write multiplier) and 1-hour extended (2.0× write, needs
+	// `extended-cache-ttl-2025-04-11` beta header). Other providers ignore
+	// this field — their caches are automatic and provider-managed.
+	//
+	// **Note (rig 0.31)**: `with_prompt_caching()` only emits the
+	// `{"type": "ephemeral"}` breakpoint, which corresponds to the 5-minute
+	// TTL. Setting `OneHour` here sends the beta header but does not yet
+	// add `"ttl": "1h"` to the cache_control block — upgrade rig to get
+	// true 1-hour writes. The field is wired now so the choice survives
+	// the upgrade.
+	CacheTtl *CacheTtl `json:"cache_ttl,omitempty"`
+
 	// Model Model identifier (e.g., "gpt-4o", "claude-sonnet-4-20250514")
 	Model string `json:"model"`
+
+	// PromptCachingEnabled Whether to enable explicit prompt-cache breakpoints for providers
+	// that require them (Anthropic today; MiniMax's Anthropic-shape
+	// endpoint tomorrow). Implicit-cache providers (OpenAI, GLM, Gemini
+	// 2.5 implicit, Kimi K2) ignore this — they cache unconditionally.
+	PromptCachingEnabled *bool `json:"prompt_caching_enabled,omitempty"`
 
 	// ProviderType Supported LLM provider types.
 	ProviderType ProviderType `json:"provider_type"`
@@ -871,6 +1078,46 @@ type RemoveAgentResponse struct {
 	Status string `json:"status"`
 }
 
+// RequirementCadence Describes which turns a tool requirement applies to.
+type RequirementCadence struct {
+	union json.RawMessage
+}
+
+// RequirementCadence0 Required on every turn.
+type RequirementCadence0 struct {
+	Type RequirementCadence0Type `json:"type"`
+}
+
+// RequirementCadence0Type defines model for RequirementCadence.0.Type.
+type RequirementCadence0Type string
+
+// RequirementCadence1 Required only on the very first turn of the conversation.
+type RequirementCadence1 struct {
+	Type RequirementCadence1Type `json:"type"`
+}
+
+// RequirementCadence1Type defines model for RequirementCadence.1.Type.
+type RequirementCadence1Type string
+
+// RequirementCadence2 Required whenever `n` turns have passed without the tool being called.
+// The counter resets any time the tool is called (on- or off-cycle).
+// So `n=3` means "never go more than 3 consecutive turns without
+// calling this tool" — useful for periodic memory-retain / checkpoint
+// patterns.
+type RequirementCadence2 struct {
+	N    int32                   `json:"n"`
+	Type RequirementCadence2Type `json:"type"`
+}
+
+// RequirementCadence2Type defines model for RequirementCadence.2.Type.
+type RequirementCadence2Type string
+
+// RequirementEnforcement How bridge reacts when a tool requirement is violated.
+type RequirementEnforcement string
+
+// RequirementPosition Where in the turn's tool-call sequence the required call must appear.
+type RequirementPosition string
+
 // ResolveApprovalResponse Response for resolving an approval.
 type ResolveApprovalResponse struct {
 	// RequestId The ID of the resolved request.
@@ -885,8 +1132,21 @@ type Role string
 
 // SendMessageRequest Request body for creating a message.
 type SendMessageRequest struct {
-	// Content The text content to send.
-	Content string `json:"content"`
+	// Content The text content to send. When [`full_message`](Self::full_message) is
+	// also supplied, `content` is the LLM-visible summary; omit it to let
+	// bridge auto-generate one from the first bytes of `full_message`.
+	Content *string `json:"content,omitempty"`
+
+	// FullMessage Optional full payload written to a per-conversation attachment file.
+	// When present, bridge writes it to disk, appends a `<system-reminder>`
+	// with the file path and tool-usage hint to `content`, and sends the
+	// composed text to the LLM. Callers use this to offload large inputs
+	// (stack traces, log dumps, file contents) without bloating the
+	// agent's context on every turn.
+	//
+	// Failures (disk full, permission denied) do NOT reject the message —
+	// bridge logs a warning and delivers `content` alone.
+	FullMessage *string `json:"full_message,omitempty"`
 
 	// SystemReminder Optional system reminder to inject with this message.
 	// Will be wrapped in `<system-reminder>` tags and prepended to the user message.
@@ -1030,6 +1290,41 @@ type ToolDefinition struct {
 
 // ToolPermission Permission level for a tool within an agent.
 type ToolPermission string
+
+// ToolRequirement A single tool-call requirement that bridge enforces at turn boundaries.
+//
+// Typical configurations:
+//   - `journal_write` every turn: `{ tool: "journal_write" }` (all defaults).
+//   - `memory_recall` at the start of every turn:
+//     `{ tool: "memory_recall", position: "turn_start" }`.
+//   - `memory_retain` at most every 3 turns:
+//     `{ tool: "memory_retain", cadence: { type: "every_n_turns", n: 3 }, position: "turn_end" }`.
+//
+// Tool-name matching is flexible to reduce MCP verbosity: if `tool` contains
+// `__`, match it verbatim; otherwise match any registered tool whose full
+// name equals `tool` OR ends with `__<tool>`. So `"post_message"` matches
+// an MCP tool exposed as `slack__post_message` without the user having to
+// write the server prefix.
+type ToolRequirement struct {
+	// Cadence Describes which turns a tool requirement applies to.
+	Cadence *RequirementCadence `json:"cadence,omitempty"`
+
+	// Enforcement How bridge reacts when a tool requirement is violated.
+	Enforcement *RequirementEnforcement `json:"enforcement,omitempty"`
+
+	// MinCalls Minimum number of calls required in a qualifying turn. Default: 1.
+	MinCalls *int32 `json:"min_calls,omitempty"`
+
+	// Position Where in the turn's tool-call sequence the required call must appear.
+	Position *RequirementPosition `json:"position,omitempty"`
+
+	// ReminderMessage Custom reminder text injected when the requirement is violated.
+	// Falls back to a generated default when unset.
+	ReminderMessage *string `json:"reminder_message,omitempty"`
+
+	// Tool Tool name to require (built-in, MCP, integration, or custom).
+	Tool string `json:"tool"`
+}
 
 // ToolResult The result of a tool execution.
 type ToolResult struct {
@@ -1245,6 +1540,94 @@ func (t McpTransport) MarshalJSON() ([]byte, error) {
 }
 
 func (t *McpTransport) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsRequirementCadence0 returns the union data inside the RequirementCadence as a RequirementCadence0
+func (t RequirementCadence) AsRequirementCadence0() (RequirementCadence0, error) {
+	var body RequirementCadence0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRequirementCadence0 overwrites any union data inside the RequirementCadence as the provided RequirementCadence0
+func (t *RequirementCadence) FromRequirementCadence0(v RequirementCadence0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRequirementCadence0 performs a merge with any union data inside the RequirementCadence, using the provided RequirementCadence0
+func (t *RequirementCadence) MergeRequirementCadence0(v RequirementCadence0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRequirementCadence1 returns the union data inside the RequirementCadence as a RequirementCadence1
+func (t RequirementCadence) AsRequirementCadence1() (RequirementCadence1, error) {
+	var body RequirementCadence1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRequirementCadence1 overwrites any union data inside the RequirementCadence as the provided RequirementCadence1
+func (t *RequirementCadence) FromRequirementCadence1(v RequirementCadence1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRequirementCadence1 performs a merge with any union data inside the RequirementCadence, using the provided RequirementCadence1
+func (t *RequirementCadence) MergeRequirementCadence1(v RequirementCadence1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRequirementCadence2 returns the union data inside the RequirementCadence as a RequirementCadence2
+func (t RequirementCadence) AsRequirementCadence2() (RequirementCadence2, error) {
+	var body RequirementCadence2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRequirementCadence2 overwrites any union data inside the RequirementCadence as the provided RequirementCadence2
+func (t *RequirementCadence) FromRequirementCadence2(v RequirementCadence2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRequirementCadence2 performs a merge with any union data inside the RequirementCadence, using the provided RequirementCadence2
+func (t *RequirementCadence) MergeRequirementCadence2(v RequirementCadence2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RequirementCadence) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *RequirementCadence) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
