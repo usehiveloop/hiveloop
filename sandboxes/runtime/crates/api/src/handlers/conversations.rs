@@ -178,6 +178,17 @@ pub async fn send_message(
     Path(conv_id): Path<String>,
     Json(body): Json<SendMessageRequest>,
 ) -> Result<(StatusCode, Json<SendMessageResponse>), BridgeError> {
+    // `content` is `#[serde(default)]` so that callers who only supply
+    // `full_message` can omit it (bridge auto-summarizes). Callers must
+    // provide at least ONE of the two — an empty payload with neither is
+    // an invalid request (preserves the pre-attachments 400 behavior for
+    // malformed bodies like `{"invalid": true}`).
+    if body.content.is_empty() && body.full_message.is_none() {
+        return Err(BridgeError::InvalidRequest(
+            "send_message requires either 'content' or 'full_message' to be set".into(),
+        ));
+    }
+
     // Find which agent owns this conversation
     let agent_id = find_agent_for_conversation(&state, &conv_id).await?;
 
