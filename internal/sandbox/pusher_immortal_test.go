@@ -71,21 +71,25 @@ func TestApplyImmortalDefault_MirrorsPrimaryProviderTransport(t *testing.T) {
 	}
 }
 
-func TestApplyImmortalDefault_TokenBudgetIs70PctOfParentContextWindow(t *testing.T) {
+func TestApplyImmortalDefault_TokenBudgetIs50PctOfParentContextWindow(t *testing.T) {
+	// The chain-reset threshold was tuned down from 70% to 50% after observing
+	// that history growth is the dominant cost driver on long conversations;
+	// resetting earlier (and paying the checkpoint-extraction cost sooner)
+	// is cheaper than running many turns against a 140k-token history.
 	cases := []struct {
-		name        string
-		providerID  string
-		model       string
-		wantBudget  int32 // 70% of the registry's context window
+		name       string
+		providerID string
+		model      string
+		wantBudget int32 // 50% of the registry's context window
 	}{
 		// gemini-3-pro-preview has context=1_000_000 in the registry.
-		{"gemini-3-pro", "google", "gemini-3-pro-preview", 700000},
+		{"gemini-3-pro", "google", "gemini-3-pro-preview", 500000},
 		// claude-sonnet-4-5 has context=200_000.
-		{"claude-sonnet-4-5", "anthropic", "claude-sonnet-4-5", 140000},
+		{"claude-sonnet-4-5", "anthropic", "claude-sonnet-4-5", 100000},
 		// gpt-5.1 has context=400_000.
-		{"gpt-5.1", "openai", "gpt-5.1", 280000},
-		// Unknown model hits the 128k fallback → 89,600.
-		{"unknown-model", "openai", "something-we-havent-curated", 89600},
+		{"gpt-5.1", "openai", "gpt-5.1", 200000},
+		// Unknown model hits the 128k fallback → 64,000.
+		{"unknown-model", "openai", "something-we-havent-curated", 64000},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

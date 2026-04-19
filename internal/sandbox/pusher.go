@@ -347,6 +347,7 @@ func (p *Pusher) BuildSystemAgentDef(agent *model.Agent) bridgepkg.AgentDefiniti
 	systemPermissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
 	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), agent.ProviderGroup, agent.Model)
 	applyImmortalDefault(def.Config, def.Provider, agent.ProviderGroup, agent.Model)
+	applyHistoryStripDefault(def.Config)
 	applyToolRequirementsDefault(def.Config, systemPermissions)
 
 	tools := decodeJSONAs[[]bridgepkg.ToolDefinition](agent.Tools)
@@ -508,6 +509,7 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 	// rejects a push where a requirement overlaps with disabled_tools.
 	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), cred.ProviderID, agent.Model)
 	applyImmortalDefault(def.Config, def.Provider, cred.ProviderID, agent.Model)
+	applyHistoryStripDefault(def.Config)
 	applyToolRequirementsDefault(def.Config, permissions)
 
 	// Set permissions if present. Tools with "deny" are removed from
@@ -798,10 +800,14 @@ var providerCheckpointModel = map[string]string{
 }
 
 // immortalTokenBudgetFraction is the fraction of the parent model's context
-// window at which Bridge should cut a new chain. Set at 70% so the primary
-// model has headroom for the checkpoint output + the carry-forward tail
-// before it actually runs out of context.
-const immortalTokenBudgetFraction = 0.70
+// window at which Bridge should cut a new chain. Set at 50%: earlier resets
+// cap history growth (the dominant cost driver in long conversations) even
+// though each reset pays a checkpoint-extraction LLM call. In practice the
+// checkpoint cost is dwarfed by the savings from running subsequent turns
+// against a small carry-forward instead of a 100k+ token history. Raise if
+// you see conversations bouncing off the budget (frequent chain handoffs
+// with low token pressure between them).
+const immortalTokenBudgetFraction = 0.50
 
 // fallbackParentContextWindow is used when the parent model is missing from
 // the curated registry (e.g. a freshly-added provider model the agent picked
@@ -944,6 +950,49 @@ func newEveryNTurnsCadence(n int32) *bridgepkg.RequirementCadence {
 		N:    n,
 	})
 	return &cadence
+}
+
+// historyStripPinRecent is the number of most-recent tool results bridge keeps
+// verbatim regardless of age. The agent is actively reasoning over these; we
+// don't want to strip what it just looked at.
+const historyStripPinRecent = 5
+
+// historyStripAgeThreshold is the number of assistant messages that must
+// follow a tool result before it becomes strippable. 3 means "a result stays
+// verbatim for 3 more turns after it lands, then gets compressed to a
+// spill-file pointer". Conservative enough that the agent almost always has
+// the recent tool output it's actively citing, while aggressive enough to cap
+// history growth.
+const historyStripAgeThreshold = 3
+
+// applyHistoryStripDefault populates cfg.HistoryStrip with bridge's
+// tool-result-stripping contract when the author hasn't set one. Stripping
+// rewrites old tool-result bodies in the LLM-visible prompt to tiny "use
+// RipGrep on the spill file if you need this" markers. The replacement text
+// is byte-stable across turns, so once a result transitions to stripped the
+// provider's prompt cache only breaks once (at first-strip) rather than
+// continuously paying the full body on every turn. Persistence is untouched
+// — the agent's full conversation record stays intact on disk.
+//
+// Without this, a long conversation accumulates every tool result verbatim
+// forever. On Kira's incident-handling runs this added ~100k+ tokens of
+// stale tool output to each LLM call by turn 20, dominating input cost.
+//
+// Respects author override: a non-nil HistoryStrip stays as-is.
+func applyHistoryStripDefault(cfg *bridgepkg.AgentConfig) {
+	if cfg == nil || cfg.HistoryStrip != nil {
+		return
+	}
+	enabled := true
+	pinErrors := true
+	pinRecent := historyStripPinRecent
+	ageThreshold := historyStripAgeThreshold
+	cfg.HistoryStrip = &bridgepkg.HistoryStripConfig{
+		Enabled:        &enabled,
+		PinErrors:      &pinErrors,
+		PinRecentCount: &pinRecent,
+		AgeThreshold:   &ageThreshold,
+	}
 }
 
 // defaultMaxTokens returns a sensible max_tokens default at ~80% of the model's
