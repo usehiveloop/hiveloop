@@ -743,6 +743,17 @@
             },
             "description": "Tools to disable for this agent. Takes priority over everything else —\ndisabled tools are removed from the registry before the agent is built,\nso the LLM never sees them. Works for built-in tools, MCP tools,\nintegration tools, and spider tools."
           },
+          "history_strip": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HistoryStripConfig",
+                "description": "Strip tool-result bodies from old messages before sending history to the\nLLM. Full output already lives on disk via the spill pipeline; the\nstripped message keeps a pointer so the agent can read it via RipGrep\nif needed. Omit to use defaults (stripping enabled). Set `enabled:\nfalse` to turn off entirely."
+              }
+            ]
+          },
           "immortal": {
             "oneOf": [
               {
@@ -816,6 +827,13 @@
               "null"
             ],
             "description": "When true, the agent can complete a turn with only tool calls and no text.\nEmpty text responses are treated as success if tool calls were executed.\nDefault: false."
+          },
+          "tool_requirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToolRequirement"
+            },
+            "description": "Declarative tool-call requirements evaluated at the end of every agent\nturn. Each entry describes a tool that must be called (with optional\ncadence, position, and min-call constraints) and what bridge should do\nif the requirement is violated. See [`ToolRequirement`] for the shape\nand [`RequirementEnforcement`] for the dispatch options.\n\nDefault: empty (no enforcement)."
           }
         }
       },
@@ -1204,6 +1222,14 @@
           }
         }
       },
+      "CacheTtl": {
+        "type": "string",
+        "description": "Prompt-cache TTL hint.\n\nAnthropic supports two TTLs today: 5-minute ephemeral (default,\n1.25× cache-write multiplier) and 1-hour extended (2.0× write, needs\n`extended-cache-ttl-2025-04-11` beta header). Other providers ignore\nthis field — their caches are automatic and provider-managed.\n\n**Note (rig 0.31)**: `with_prompt_caching()` only emits the\n`{\"type\": \"ephemeral\"}` breakpoint, which corresponds to the 5-minute\nTTL. Setting `OneHour` here sends the beta header but does not yet\nadd `\"ttl\": \"1h\"` to the cache_control block — upgrade rig to get\ntrue 1-hour writes. The field is wired now so the choice survives\nthe upgrade.",
+        "enum": [
+          "five_minutes",
+          "one_hour"
+        ]
+      },
       "CompactionConfig": {
         "type": "object",
         "description": "Configuration for conversation compaction (history summarization).",
@@ -1523,6 +1549,30 @@
           }
         }
       },
+      "HistoryStripConfig": {
+        "type": "object",
+        "description": "Configuration for stripping tool-result bodies from old messages before\nthey are sent to the LLM. Reduces input tokens while preserving the ability\nto recover the full content via the on-disk spill file (`RipGrep` on the\nspill path). Strip is applied at send-time only; persistence is untouched,\nso the decision is deterministic across turns and the provider prompt\ncache remains stable after a result is first stripped.",
+        "properties": {
+          "age_threshold": {
+            "type": "integer",
+            "description": "Number of assistant messages that must follow a tool result before it\nbecomes eligible for stripping. Mirrors the \"old tool output may be\ncleared later\" contract in Claude Code's system prompt.",
+            "minimum": 0
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Master switch. When false, strip is a no-op."
+          },
+          "pin_errors": {
+            "type": "boolean",
+            "description": "When true, tool results with `is_error: true` are never stripped.\nError context is small and high-signal for future turns."
+          },
+          "pin_recent_count": {
+            "type": "integer",
+            "description": "Always keep the most recent N tool results regardless of age. Protects\nresults the agent is actively reasoning over on the current turn.",
+            "minimum": 0
+          }
+        }
+      },
       "HydrateConversationsRequest": {
         "type": "object",
         "required": [
@@ -1558,10 +1608,21 @@
           "checkpoint_provider"
         ],
         "properties": {
+          "carry_forward_budget_fraction": {
+            "type": "number",
+            "format": "float",
+            "description": "Fraction of `token_budget` allowed for the carry-forward tail.\nPrevents a single tool-heavy turn from stuffing the new chain's context.\nDefault 0.3 (30%)."
+          },
           "carry_forward_turns": {
             "type": "integer",
             "format": "int32",
-            "description": "Number of complete user turns to carry forward verbatim into the new chain.\nA \"complete user turn\" includes the user message and all subsequent assistant\nresponses and tool calls until the next user message.",
+            "description": "Upper bound on the number of recent user turns to carry forward verbatim\ninto the new chain. The carry-forward is further capped by\n`carry_forward_budget_fraction` — whichever binds first wins.",
+            "minimum": 0
+          },
+          "checkpoint_max_tokens": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Max tokens for each checkpoint LLM call's output. Default 1500.",
             "minimum": 0
           },
           "checkpoint_prompt": {
@@ -1575,11 +1636,27 @@
             "$ref": "#/components/schemas/ProviderConfig",
             "description": "Provider config for the checkpoint extraction LLM call."
           },
+          "checkpoint_timeout_secs": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Per-call timeout for checkpoint LLM calls, in seconds. Default 45.",
+            "minimum": 0
+          },
+          "max_previous_checkpoints": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Max number of prior chain checkpoints to include as context during\ncheckpoint extraction. Older ones are considered subsumed. Default 2.",
+            "minimum": 0
+          },
           "token_budget": {
             "type": "integer",
             "format": "int32",
             "description": "Token budget. Chain triggers when estimated tokens exceed this.",
             "minimum": 0
+          },
+          "verify_checkpoint": {
+            "type": "boolean",
+            "description": "When true, run a second verification pass after the phase-1 extraction.\nDefault false — for strong summarizer models phase 2 rarely improves output."
           }
         }
       },
@@ -1824,6 +1901,17 @@
             "format": "double",
             "description": "Average latency in milliseconds"
           },
+          "cache_hit_ratio": {
+            "type": "number",
+            "format": "double",
+            "description": "cached_input_tokens / (input_tokens + cached_input_tokens)."
+          },
+          "cached_input_tokens": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total input tokens served from the provider prompt cache (discounted).",
+            "minimum": 0
+          },
           "failed_requests": {
             "type": "integer",
             "format": "int64",
@@ -1833,7 +1921,7 @@
           "input_tokens": {
             "type": "integer",
             "format": "int64",
-            "description": "Total input tokens consumed",
+            "description": "Total non-cached input tokens consumed (full price).",
             "minimum": 0
           },
           "output_tokens": {
@@ -1870,7 +1958,7 @@
           "total_tokens": {
             "type": "integer",
             "format": "int64",
-            "description": "Total tokens (input + output)",
+            "description": "Total tokens (fresh input + cached input + output)",
             "minimum": 0
           }
         }
@@ -1895,9 +1983,17 @@
             ],
             "description": "Optional custom endpoint URL"
           },
+          "cache_ttl": {
+            "$ref": "#/components/schemas/CacheTtl",
+            "description": "TTL for explicit cache breakpoints. See [`CacheTtl`]."
+          },
           "model": {
             "type": "string",
             "description": "Model identifier (e.g., \"gpt-4o\", \"claude-sonnet-4-20250514\")"
+          },
+          "prompt_caching_enabled": {
+            "type": "boolean",
+            "description": "Whether to enable explicit prompt-cache breakpoints for providers\nthat require them (Anthropic today; MiniMax's Anthropic-shape\nendpoint tomorrow). Implicit-cache providers (OpenAI, GLM, Gemini\n2.5 implicit, Kimi K2) ignore this — they cache unconditionally."
           },
           "provider_type": {
             "$ref": "#/components/schemas/ProviderType",
@@ -2056,6 +2152,80 @@
           }
         }
       },
+      "RequirementCadence": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Required on every turn.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "every_turn"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Required only on the very first turn of the conversation.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "first_turn_only"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Required whenever `n` turns have passed without the tool being called.\nThe counter resets any time the tool is called (on- or off-cycle).\nSo `n=3` means \"never go more than 3 consecutive turns without\ncalling this tool\" — useful for periodic memory-retain / checkpoint\npatterns.",
+            "required": [
+              "n",
+              "type"
+            ],
+            "properties": {
+              "n": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "every_n_turns"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "Describes which turns a tool requirement applies to."
+      },
+      "RequirementEnforcement": {
+        "type": "string",
+        "description": "How bridge reacts when a tool requirement is violated.",
+        "enum": [
+          "next_turn_reminder",
+          "reprompt",
+          "warn"
+        ]
+      },
+      "RequirementPosition": {
+        "type": "string",
+        "description": "Where in the turn's tool-call sequence the required call must appear.",
+        "enum": [
+          "anywhere",
+          "turn_start",
+          "turn_end"
+        ]
+      },
       "ResolveApprovalResponse": {
         "type": "object",
         "description": "Response for resolving an approval.",
@@ -2087,13 +2257,17 @@
       "SendMessageRequest": {
         "type": "object",
         "description": "Request body for creating a message.",
-        "required": [
-          "content"
-        ],
         "properties": {
           "content": {
             "type": "string",
-            "description": "The text content to send."
+            "description": "The text content to send. When [`full_message`](Self::full_message) is\nalso supplied, `content` is the LLM-visible summary; omit it to let\nbridge auto-generate one from the first bytes of `full_message`."
+          },
+          "full_message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional full payload written to a per-conversation attachment file.\nWhen present, bridge writes it to disk, appends a `<system-reminder>`\nwith the file path and tool-usage hint to `content`, and sends the\ncomposed text to the LLM. Callers use this to offload large inputs\n(stack traces, log dumps, file contents) without bloating the\nagent's context on every turn.\n\nFailures (disk full, permission denied) do NOT reject the message —\nbridge logs a warning and delivers `content` alone."
           },
           "system_reminder": {
             "type": [
@@ -2413,6 +2587,44 @@
           "deny",
           "require_approval"
         ]
+      },
+      "ToolRequirement": {
+        "type": "object",
+        "description": "A single tool-call requirement that bridge enforces at turn boundaries.\n\nTypical configurations:\n- `journal_write` every turn: `{ tool: \"journal_write\" }` (all defaults).\n- `memory_recall` at the start of every turn:\n  `{ tool: \"memory_recall\", position: \"turn_start\" }`.\n- `memory_retain` at most every 3 turns:\n  `{ tool: \"memory_retain\", cadence: { type: \"every_n_turns\", n: 3 }, position: \"turn_end\" }`.\n\nTool-name matching is flexible to reduce MCP verbosity: if `tool` contains\n`__`, match it verbatim; otherwise match any registered tool whose full\nname equals `tool` OR ends with `__<tool>`. So `\"post_message\"` matches\nan MCP tool exposed as `slack__post_message` without the user having to\nwrite the server prefix.",
+        "required": [
+          "tool"
+        ],
+        "properties": {
+          "cadence": {
+            "$ref": "#/components/schemas/RequirementCadence",
+            "description": "When this requirement applies (which turns must satisfy it).\nDefault: `EveryTurn`."
+          },
+          "enforcement": {
+            "$ref": "#/components/schemas/RequirementEnforcement",
+            "description": "What bridge does when this requirement is violated.\nDefault: `NextTurnReminder` — attach a system reminder to the next\nuser message. Zero extra LLM cost this turn."
+          },
+          "min_calls": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Minimum number of calls required in a qualifying turn. Default: 1.",
+            "minimum": 0
+          },
+          "position": {
+            "$ref": "#/components/schemas/RequirementPosition",
+            "description": "Where in the turn the call must appear.\nDefault: `Anywhere`. Evaluation is LENIENT: read-only/metadata tools\n(`todoread`, `journal_read`, `ls`, `read`, etc.) are exempt and do\nnot disqualify a `TurnStart` position requirement."
+          },
+          "reminder_message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Custom reminder text injected when the requirement is violated.\nFalls back to a generated default when unset."
+          },
+          "tool": {
+            "type": "string",
+            "description": "Tool name to require (built-in, MCP, integration, or custom)."
+          }
+        }
       },
       "ToolResult": {
         "type": "object",
