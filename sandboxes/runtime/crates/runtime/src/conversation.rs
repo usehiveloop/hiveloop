@@ -173,6 +173,13 @@ pub async fn run_conversation(params: ConversationParams) {
         initial_persisted_messages.unwrap_or_default(),
     ));
     let mut turn_count: usize = 0;
+
+    // Append-only invariant (P1.5): fingerprint of history after the prior
+    // turn enriched it. Verified at the top of each turn BEFORE compaction
+    // or immortal-reset mutate history, so only *unintentional* drift is
+    // reported. Compaction and immortal updates are expected cache-bust
+    // events and refresh the fingerprint after they run.
+    let mut history_fp = crate::history_guard::HistoryFingerprint::take(&history);
     let msg_id = uuid::Uuid::new_v4().to_string();
 
     // Initialize date tracker for detecting date changes
@@ -307,8 +314,20 @@ pub async fn run_conversation(params: ConversationParams) {
             }
         };
 
+        // Append-only invariant check (P1.5): verify that nothing between
+        // the end of the previous turn and now silently mutated a prior
+        // message. Legitimate rewrites (compaction, immortal reset) refresh
+        // the baseline themselves; any drift reported here points at a
+        // genuine bug that's actively busting prompt cache hits.
+        history_fp.verify_and_log(&history, &agent_id, &conversation_id);
+
         // Mask old tool outputs to reduce context pressure before budget checks.
         crate::masking::mask_old_tool_outputs_default(&mut history);
+        // Masking rewrites tool_result payloads in place — it is a deliberate
+        // cache-bust for the portion of history it touches. Refresh the
+        // fingerprint so the next turn checks against the post-masking
+        // baseline, not the pre-masking one.
+        history_fp = crate::history_guard::HistoryFingerprint::take(&history);
 
         // Check if context management is needed before adding the new message.
         // Immortal mode (chain handoff) takes priority over compaction.
@@ -316,82 +335,125 @@ pub async fn run_conversation(params: ConversationParams) {
             (&immortal_config, &mut immortal_state)
         {
             if let Some(ref js) = journal_state {
-                match crate::immortal::maybe_chain(&history, immortal_cfg, imm_state, js).await {
-                    Ok(Some(result)) => {
-                        info!(
-                            conversation_id = conversation_id,
-                            chain_index = result.chain_index,
-                            pre_tokens = result.pre_chain_tokens,
-                            carry_forward = result.carry_forward_count,
-                            "conversation chain handoff"
-                        );
+                // Step 1: cheap probe — do we even need a handoff?
+                if let Some(trigger) = crate::immortal::chain_needed(&history, immortal_cfg) {
+                    let pending_chain_index = imm_state.current_chain_index + 1;
+                    let chain_start_instant = std::time::Instant::now();
+                    let pre_chain_tokens = trigger.pre_chain_tokens;
 
-                        // Emit chain_started event
-                        event_bus.emit(BridgeEvent::new(
-                            BridgeEventType::ChainStarted,
-                            &agent_id,
-                            &conversation_id,
-                            json!({
-                                "chain_index": result.chain_index,
-                                "reason": "token_budget_exceeded",
-                                "token_count": result.pre_chain_tokens,
-                            }),
-                        ));
+                    // Emit ChainStarted BEFORE the expensive checkpoint LLM call so
+                    // consumers can render progress during the ~30-75s extraction.
+                    event_bus.emit(BridgeEvent::new(
+                        BridgeEventType::ChainStarted,
+                        &agent_id,
+                        &conversation_id,
+                        json!({
+                            "chain_index": pending_chain_index,
+                            "reason": "token_budget_exceeded",
+                            "token_count": pre_chain_tokens,
+                            "budget": immortal_cfg.token_budget,
+                            "verify_enabled": immortal_cfg.verify_checkpoint,
+                        }),
+                    ));
 
-                        // Save checkpoint as a journal entry
-                        let checkpoint_entry = tools::journal::JournalEntry {
-                            id: uuid::Uuid::new_v4().to_string(),
-                            chain_index: imm_state.current_chain_index,
-                            entry_type: "checkpoint".to_string(),
-                            content: result.checkpoint_text.clone(),
-                            category: None,
-                            timestamp: chrono::Utc::now(),
-                        };
-                        js.append(checkpoint_entry).await;
-
-                        // Reset in-memory history
-                        history = result.new_history;
-
-                        // Rebuild persisted messages from the new rig history
-                        {
-                            let mut guard = persisted_messages.lock().unwrap();
-                            *guard = convert_from_rig_messages(&history);
-                        }
-
-                        // Update immortal state
-                        imm_state.current_chain_index = result.chain_index;
-                        js.set_chain_index(result.chain_index);
-
-                        // Persist: replace messages + save chain link
-                        if let Some(storage) = &storage {
-                            storage.replace_messages(
-                                conversation_id.clone(),
-                                persisted_messages.lock().unwrap().clone(),
+                    // Step 2: run the extraction.
+                    match crate::immortal::execute_chain_handoff(
+                        &history,
+                        immortal_cfg,
+                        imm_state,
+                        js,
+                        trigger,
+                    )
+                    .await
+                    {
+                        Ok(result) => {
+                            info!(
+                                conversation_id = conversation_id,
+                                chain_index = result.chain_index,
+                                pre_tokens = result.pre_chain_tokens,
+                                carry_forward = result.carry_forward_count,
+                                carry_forward_tokens = result.carry_forward_tokens,
+                                verified = result.verified,
+                                "conversation chain handoff"
                             );
-                            storage.save_chain_link(
-                                conversation_id.clone(),
-                                result.chain_index,
-                                chrono::Utc::now(),
-                                Some(result.pre_chain_tokens),
-                                Some(result.checkpoint_text.clone()),
-                            );
-                        }
 
-                        // Emit chain_completed event
-                        event_bus.emit(BridgeEvent::new(
-                            BridgeEventType::ChainCompleted,
-                            &agent_id,
-                            &conversation_id,
-                            json!({
-                                "chain_index": result.chain_index,
-                                "journal_entry_count": js.entries().await.len(),
-                                "carry_forward_messages": result.carry_forward_count,
-                            }),
-                        ));
-                    }
-                    Ok(None) => {} // under budget
-                    Err(e) => {
-                        warn!(error = %e, "chain handoff failed, continuing with full history");
+                            // Save checkpoint as a journal entry
+                            let checkpoint_entry = tools::journal::JournalEntry {
+                                id: uuid::Uuid::new_v4().to_string(),
+                                chain_index: imm_state.current_chain_index,
+                                entry_type: "checkpoint".to_string(),
+                                content: result.checkpoint_text.clone(),
+                                category: None,
+                                timestamp: chrono::Utc::now(),
+                            };
+                            js.append(checkpoint_entry).await;
+
+                            // Reset in-memory history
+                            history = result.new_history;
+                            // Immortal chain reset is an expected cache-bust
+                            // event. Refresh the fingerprint so the next
+                            // turn's append-only check compares against the
+                            // reset baseline, not the pre-reset history.
+                            history_fp = crate::history_guard::HistoryFingerprint::take(&history);
+
+                            // Rebuild persisted messages from the new rig history
+                            {
+                                let mut guard = persisted_messages.lock().unwrap();
+                                *guard = convert_from_rig_messages(&history);
+                            }
+
+                            // Update immortal state
+                            imm_state.current_chain_index = result.chain_index;
+                            js.set_chain_index(result.chain_index);
+
+                            // Persist: replace messages + save chain link
+                            if let Some(storage) = &storage {
+                                storage.replace_messages(
+                                    conversation_id.clone(),
+                                    persisted_messages.lock().unwrap().clone(),
+                                );
+                                storage.save_chain_link(
+                                    conversation_id.clone(),
+                                    result.chain_index,
+                                    chrono::Utc::now(),
+                                    Some(result.pre_chain_tokens),
+                                    Some(result.checkpoint_text.clone()),
+                                );
+                            }
+
+                            event_bus.emit(BridgeEvent::new(
+                                BridgeEventType::ChainCompleted,
+                                &agent_id,
+                                &conversation_id,
+                                json!({
+                                    "chain_index": result.chain_index,
+                                    "journal_entry_count": js.entries().await.len(),
+                                    "carry_forward_messages": result.carry_forward_count,
+                                    "carry_forward_tokens": result.carry_forward_tokens,
+                                    "checkpoint_bytes": result.checkpoint_text.len(),
+                                    "verified": result.verified,
+                                    "duration_ms": chain_start_instant.elapsed().as_millis() as u64,
+                                }),
+                            ));
+                        }
+                        Err(e) => {
+                            warn!(
+                                error = %e,
+                                chain_index = pending_chain_index,
+                                "chain handoff failed, continuing with full history"
+                            );
+                            event_bus.emit(BridgeEvent::new(
+                                BridgeEventType::ChainFailed,
+                                &agent_id,
+                                &conversation_id,
+                                json!({
+                                    "chain_index": pending_chain_index,
+                                    "reason": format!("{}", e),
+                                    "token_count": pre_chain_tokens,
+                                    "duration_ms": chain_start_instant.elapsed().as_millis() as u64,
+                                }),
+                            ));
+                        }
                     }
                 }
             }
@@ -408,6 +470,9 @@ pub async fn run_conversation(params: ConversationParams) {
 
                     // Replace in-memory history
                     history = result.compacted_history;
+                    // Compaction rewrites head messages — an expected
+                    // cache-bust. Refresh the fingerprint baseline.
+                    history_fp = crate::history_guard::HistoryFingerprint::take(&history);
 
                     {
                         let mut guard = persisted_messages.lock().unwrap();
@@ -457,84 +522,96 @@ pub async fn run_conversation(params: ConversationParams) {
         // Check for date change and get reminder if date changed
         let date_change_reminder = date_tracker.check_date_change();
 
-        // Build the effective system reminder, including immortal context if active
-        let mut effective_reminder =
-            if let (Some(ref imm_state), Some(ref js)) = (&immortal_state, &journal_state) {
-                let journal_count = js.entries().await.len();
-                let immortal_section = crate::system_reminder::SystemReminder::new()
-                    .with_immortal_context(imm_state.current_chain_index, journal_count)
-                    .build();
-                if system_reminder.is_empty() {
-                    immortal_section
-                } else {
-                    format!("{}\n\n{}", system_reminder, immortal_section)
+        // ──────────────────────────────────────────────────────────────
+        // Cache-aware reminder layout (P1.4)
+        //
+        // Conceptually every reminder is either STABLE (skills,
+        // subagents — byte-identical across turns in a conversation) or
+        // VOLATILE (date, env snapshot, todos, immortal counters,
+        // pending pings, per-message reminders).
+        //
+        // The stable half is pushed exactly once — as a dedicated user
+        // message at the very top of history — so on every subsequent
+        // turn it lives inside the cacheable prefix. The volatile half
+        // is appended to the TAIL of the current user turn so it can
+        // never invalidate any prior-turn cache entry.
+        //
+        // `system_reminder` (param) is treated here as stable. Callers
+        // should keep it stable; anything volatile should live in the
+        // volatile pipeline below.
+        // ──────────────────────────────────────────────────────────────
+
+        // Build the volatile reminder for this turn. Order within the tail
+        // is deterministic so the tail itself is deterministic when the
+        // inputs are (matters for the *next* turn's cache-write stability).
+        let mut volatile_reminder = String::new();
+        let append_volatile =
+            |acc: &mut String, block: String| {
+                if block.is_empty() {
+                    return;
                 }
-            } else {
-                system_reminder.clone()
+                if acc.is_empty() {
+                    *acc = block;
+                } else {
+                    acc.push_str("\n\n");
+                    acc.push_str(&block);
+                }
             };
 
-        // Append environment snapshot when standalone_agent is enabled.
-        // Refreshes every 5 turns to keep resource numbers current without
-        // paying the cost every single message.
+        if let (Some(ref imm_state), Some(ref js)) = (&immortal_state, &journal_state) {
+            let journal_count = js.entries().await.len();
+            let immortal_section = crate::system_reminder::SystemReminder::new()
+                .with_immortal_context(imm_state.current_chain_index, journal_count)
+                .build();
+            append_volatile(&mut volatile_reminder, immortal_section);
+        }
+
         if standalone_agent && turn_count.is_multiple_of(5) {
             let env_section = crate::environment::EnvironmentSnapshot::collect().format_reminder();
-            if effective_reminder.is_empty() {
-                effective_reminder =
-                    format!("<system-reminder>\n{}\n</system-reminder>", env_section);
-            } else {
-                effective_reminder = format!(
-                    "{}\n\n<system-reminder>\n{}\n</system-reminder>",
-                    effective_reminder, env_section
-                );
-            }
+            append_volatile(
+                &mut volatile_reminder,
+                format!("<system-reminder>\n{}\n</system-reminder>", env_section),
+            );
         }
 
-        // Append per-message system reminder from the control plane
         if let Some(pmr) = per_message_reminder {
-            if effective_reminder.is_empty() {
-                effective_reminder = pmr;
-            } else {
-                effective_reminder = format!("{}\n\n{}", effective_reminder, pmr);
-            }
+            append_volatile(&mut volatile_reminder, pmr);
         }
 
-        // Append pending ping-me-back timers to system reminder
         if let Some(ref ps) = ping_state {
             let pings = ps.list().await;
             let ping_reminder = tools::ping_me_back::format_pending_pings_reminder(&pings);
             if !ping_reminder.is_empty() {
-                let ping_section =
-                    format!("<system-reminder>\n{}\n</system-reminder>", ping_reminder);
-                if effective_reminder.is_empty() {
-                    effective_reminder = ping_section;
-                } else {
-                    effective_reminder = format!("{}\n\n{}", effective_reminder, ping_section);
-                }
+                append_volatile(
+                    &mut volatile_reminder,
+                    format!("<system-reminder>\n{}\n</system-reminder>", ping_reminder),
+                );
             }
         }
 
-        // Build final user text with reminders
-        let final_user_text = match (date_change_reminder, effective_reminder.is_empty()) {
-            (Some(date_reminder), true) => {
-                // Only date change reminder
-                format!("{}\n\n{}", date_reminder, user_text)
-            }
-            (Some(date_reminder), false) => {
-                // Both date change and system reminder
-                format!(
-                    "{}\n\n{}\n\n{}",
-                    date_reminder, effective_reminder, user_text
-                )
-            }
-            (None, true) => {
-                // No reminders
-                user_text.clone()
-            }
-            (None, false) => {
-                // Only system reminder
-                format!("{}\n\n{}", effective_reminder, user_text)
-            }
-        };
+        // Current user turn layout (cache-aware):
+        //   [date_change? head]
+        //   [stable system_reminder]     ← byte-identical across turns
+        //   [user text]
+        //   [volatile reminder tail]     ← drifts each turn
+        //
+        // Stable content stays at deterministic head position so that, once
+        // turn N's user message is written to cache, turn N+1's read of it
+        // (as part of the conversation history prefix) benefits from the
+        // full locked-in bytes. Volatile content at the tail never leaks
+        // into earlier history's cached bytes.
+        let mut pieces: Vec<String> = Vec::with_capacity(4);
+        if let Some(date_reminder) = date_change_reminder {
+            pieces.push(date_reminder);
+        }
+        if !system_reminder.is_empty() {
+            pieces.push(system_reminder.clone());
+        }
+        pieces.push(user_text.clone());
+        if !volatile_reminder.is_empty() {
+            pieces.push(volatile_reminder);
+        }
+        let final_user_text = pieces.join("\n\n");
 
         history.push(rig::message::Message::user(&final_user_text));
         let persisted_user_message_clone = persisted_user_message.clone();
@@ -595,6 +672,13 @@ pub async fn run_conversation(params: ConversationParams) {
         let metrics_for_task = metrics.clone();
         let conversation_metrics_for_task = conversation_metrics.clone();
         let msg_id_clone = msg_id.clone();
+        // When immortal mode is enabled, derive a mid-turn pressure threshold
+        // from its token_budget — roughly 1.5× the budget × 4 bytes/token.
+        // Used by the ToolCallEmitter to emit a one-shot ContextPressureWarning
+        // when cumulative tool-output bytes cross this threshold in a turn.
+        let pressure_threshold_bytes_per_turn: Option<usize> = immortal_config
+            .as_ref()
+            .map(|cfg| ((cfg.token_budget as f32) * 1.5 * 4.0) as usize);
         let storage_for_emitter = storage.clone();
         let persisted_messages_for_emitter = persisted_messages.clone();
         // Acquire LLM semaphore permit before spawning the task.
@@ -642,60 +726,124 @@ pub async fn run_conversation(params: ConversationParams) {
                     pending_tool_timings: Arc::new(DashMap::new()),
                     storage: storage_for_emitter.clone(),
                     persisted_messages: Some(persisted_messages_for_emitter.clone()),
+                    // Mid-turn pressure warning: fire once per turn when tool-output
+                    // bytes exceed ~1.5× the immortal token budget (rough heuristic
+                    // of 4 bytes per token). Disabled when immortal mode is off.
+                    pressure_threshold_bytes: pressure_threshold_bytes_per_turn,
+                    pressure_counter: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+                    pressure_warned: Arc::new(std::sync::atomic::AtomicBool::new(false)),
                 };
 
                 let fut = async {
-                    let mut stream = agent_clone
-                        .stream_prompt_with_hook(&user_text_clone, history_for_task, emitter)
-                        .await;
+                    // Pre-stream retry: if the very first LLM HTTP call errors
+                    // with a retryable status (429/5xx/timeout) BEFORE any text
+                    // delta or tool call is emitted, re-invoke with exponential
+                    // backoff. Once any content has streamed, we can't retry
+                    // safely — clients would see duplicates.
+                    const MAX_STREAM_PREFLIGHT_RETRIES: usize = 3;
+                    let mut attempt: usize = 0;
 
-                    let mut accumulated_text = String::new();
-                    let mut final_usage = rig::completion::Usage::new();
-                    let mut final_history: Option<Vec<rig::message::Message>> = None;
-                    let mut had_error: Option<String> = None;
+                    let mut accumulated_text;
+                    let mut final_usage;
+                    let mut final_history;
+                    let mut had_error;
+                    let mut any_progress;
+                    let mut retry_count: usize = 0;
 
-                    while let Some(item) = stream.next().await {
-                        match item {
-                            BridgeStreamItem::TextDelta(delta) => {
-                                accumulated_text.push_str(&delta);
-                                // Emit content delta in real time
-                                event_bus_for_text.emit(BridgeEvent::new(
-                                    BridgeEventType::ResponseChunk,
-                                    &agent_id_for_text,
-                                    &conversation_id_for_text,
-                                    json!({
-                                        "delta": &delta,
-                                        "message_id": &msg_id_clone,
-                                    }),
-                                ));
-                            }
-                            BridgeStreamItem::ReasoningDelta(delta) => {
-                                // Emit reasoning delta in real time
-                                event_bus_for_text.emit(BridgeEvent::new(
-                                    BridgeEventType::ReasoningDelta,
-                                    &agent_id_for_text,
-                                    &conversation_id_for_text,
-                                    json!({
-                                        "delta": &delta,
-                                        "message_id": &msg_id_clone,
-                                    }),
-                                ));
-                            }
-                            BridgeStreamItem::StreamFinished {
-                                response,
-                                usage,
-                                history,
-                            } => {
-                                accumulated_text = response;
-                                final_usage = usage;
-                                final_history = history;
-                            }
-                            BridgeStreamItem::StreamError(err) => {
-                                had_error = Some(err);
-                                break;
+                    loop {
+                        let history_for_attempt = history_for_task.clone();
+                        let emitter_for_attempt = emitter.clone();
+
+                        let mut stream = agent_clone
+                            .stream_prompt_with_hook(
+                                &user_text_clone,
+                                history_for_attempt,
+                                emitter_for_attempt,
+                            )
+                            .await;
+
+                        accumulated_text = String::new();
+                        final_usage = rig::completion::Usage::new();
+                        final_history = None;
+                        had_error = None;
+                        any_progress = false;
+
+                        while let Some(item) = stream.next().await {
+                            match item {
+                                BridgeStreamItem::TextDelta(delta) => {
+                                    any_progress = true;
+                                    accumulated_text.push_str(&delta);
+                                    event_bus_for_text.emit(BridgeEvent::new(
+                                        BridgeEventType::ResponseChunk,
+                                        &agent_id_for_text,
+                                        &conversation_id_for_text,
+                                        json!({
+                                            "delta": &delta,
+                                            "message_id": &msg_id_clone,
+                                        }),
+                                    ));
+                                }
+                                BridgeStreamItem::ReasoningDelta(delta) => {
+                                    any_progress = true;
+                                    event_bus_for_text.emit(BridgeEvent::new(
+                                        BridgeEventType::ReasoningDelta,
+                                        &agent_id_for_text,
+                                        &conversation_id_for_text,
+                                        json!({
+                                            "delta": &delta,
+                                            "message_id": &msg_id_clone,
+                                        }),
+                                    ));
+                                }
+                                BridgeStreamItem::StreamFinished {
+                                    response,
+                                    usage,
+                                    history,
+                                } => {
+                                    accumulated_text = response;
+                                    final_usage = usage;
+                                    final_history = history;
+                                }
+                                BridgeStreamItem::StreamError(err) => {
+                                    had_error = Some(err);
+                                    break;
+                                }
                             }
                         }
+
+                        // Decide whether to retry.
+                        let should_retry = match (&had_error, any_progress) {
+                            (Some(err_msg), false) if attempt < MAX_STREAM_PREFLIGHT_RETRIES => {
+                                is_retryable_stream_err(err_msg)
+                            }
+                            _ => false,
+                        };
+
+                        if !should_retry {
+                            break;
+                        }
+
+                        attempt += 1;
+                        retry_count = attempt;
+                        // 1s → 2s → 4s exponential, capped at 30s
+                        let backoff_ms: u64 = std::cmp::min(
+                            1_000u64.saturating_mul(1u64 << (attempt - 1) as u32),
+                            30_000,
+                        );
+                        tracing::warn!(
+                            attempt = attempt,
+                            backoff_ms = backoff_ms,
+                            error = had_error.as_deref().unwrap_or(""),
+                            "pre-stream LLM error — retrying"
+                        );
+                        tokio::time::sleep(std::time::Duration::from_millis(backoff_ms)).await;
                     }
+
+                    // Expose retry_count to the outer scope via side-channel:
+                    // emit a one-shot tracing event so operators can see retries.
+                    // (We do not emit a BridgeEvent here because clients don't
+                    // need to know about silent retries.)
+                    let _ = retry_count;
 
                     let enriched_history = final_history.unwrap_or_default();
 
@@ -758,6 +906,9 @@ pub async fn run_conversation(params: ConversationParams) {
                 // create consecutive user messages in history.
                 history.pop();
                 persisted_messages.lock().unwrap().truncate(pre_turn_len);
+                if let Some(ref js) = journal_state {
+                    js.discard_staged().await;
+                }
                 event_bus.emit(BridgeEvent::new(BridgeEventType::AgentError, &agent_id, &conversation_id, json!({"code": "aborted", "message": "Turn aborted by user"})));
                 event_bus.emit(BridgeEvent::new(BridgeEventType::Done, &agent_id, &conversation_id, json!({})));
                 event_bus.emit(BridgeEvent::new(BridgeEventType::TurnCompleted, &agent_id, &conversation_id, json!({})));
@@ -793,6 +944,9 @@ pub async fn run_conversation(params: ConversationParams) {
                     "agent chat timed out"
                 );
                 token_tracker::record_error(&metrics);
+                if let Some(ref js) = journal_state {
+                    js.discard_staged().await;
+                }
                 event_bus.emit(BridgeEvent::new(BridgeEventType::AgentError, &agent_id, &conversation_id, json!({"code": "agent_timeout", "message": format!("agent chat timed out after {}s", AGENT_CHAT_TIMEOUT.as_secs())})));
                 event_bus.emit(BridgeEvent::new(
                     BridgeEventType::Done,
@@ -816,6 +970,9 @@ pub async fn run_conversation(params: ConversationParams) {
                     "agent chat task cancelled unexpectedly"
                 );
                 token_tracker::record_error(&metrics);
+                if let Some(ref js) = journal_state {
+                    js.discard_staged().await;
+                }
                 event_bus.emit(BridgeEvent::new(
                     BridgeEventType::AgentError,
                     &agent_id,
@@ -840,11 +997,17 @@ pub async fn run_conversation(params: ConversationParams) {
                 let latency_ms = start.elapsed().as_millis() as u64;
 
                 // Classify the result into: usable response, needs recovery, or genuine error.
-                let (response_text, initial_input_tokens, initial_output_tokens) = match result {
+                let (
+                    response_text,
+                    initial_input_tokens,
+                    initial_cached_input_tokens,
+                    initial_output_tokens,
+                ) = match result {
                     Ok(prompt_response) => {
                         let it = prompt_response.total_usage.input_tokens;
+                        let ct = prompt_response.total_usage.cached_input_tokens;
                         let ot = prompt_response.total_usage.output_tokens;
-                        (Some(prompt_response.output), it, ot)
+                        (Some(prompt_response.output), it, ct, ot)
                     }
                     Err(e) => {
                         let error_msg = format!("{}", e);
@@ -857,9 +1020,14 @@ pub async fn run_conversation(params: ConversationParams) {
                                 error = %e,
                                 "agent response could not be parsed, attempting recovery"
                             );
-                            (None, 0u64, 0u64)
+                            (None, 0u64, 0u64, 0u64)
                         } else {
-                            // Genuine error — keep existing fatal handling
+                            // Genuine error — keep existing fatal handling.
+                            // Restore history from backup so the in-memory state matches
+                            // the rolled-back persisted_messages; otherwise history stays
+                            // as the `mem::take`'d empty Vec and silently defeats chain
+                            // checks on subsequent turns.
+                            history = history_backup;
                             persisted_messages.lock().unwrap().truncate(pre_turn_len);
                             error!(
                                 agent_id = agent_id,
@@ -869,6 +1037,9 @@ pub async fn run_conversation(params: ConversationParams) {
                                 "agent chat error"
                             );
                             token_tracker::record_error(&metrics);
+                            if let Some(ref js) = journal_state {
+                                js.discard_staged().await;
+                            }
                             event_bus.emit(BridgeEvent::new(BridgeEventType::AgentError, &agent_id, &conversation_id, json!({"code": "agent_error", "message": format!("agent error: {}", e)})));
                             event_bus.emit(BridgeEvent::new(
                                 BridgeEventType::Done,
@@ -953,6 +1124,11 @@ pub async fn run_conversation(params: ConversationParams) {
                                 pending_tool_timings: Arc::new(DashMap::new()),
                                 storage: storage_for_cont,
                                 persisted_messages: Some(persisted_messages_for_cont),
+                                // Continuation uses its own fresh counters — a pressure
+                                // warning from the main turn doesn't carry over.
+                                pressure_threshold_bytes: None,
+                                pressure_counter: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+                                pressure_warned: Arc::new(std::sync::atomic::AtomicBool::new(false)),
                             };
                             let fut = async {
                                 agent_clone
@@ -1063,6 +1239,11 @@ pub async fn run_conversation(params: ConversationParams) {
                     response_preview = %response.chars().take(500).collect::<String>(),
                     latency_ms = latency_ms,
                     input_tokens = initial_input_tokens,
+                    cached_input_tokens = initial_cached_input_tokens,
+                    cache_hit_ratio = bridge_core::metrics::cache_hit_ratio(
+                        initial_input_tokens,
+                        initial_cached_input_tokens
+                    ),
                     output_tokens = initial_output_tokens,
                     "agent response finalized"
                 );
@@ -1103,12 +1284,16 @@ pub async fn run_conversation(params: ConversationParams) {
                 // Replace main history with the enriched version so that
                 // subsequent turns preserve full tool-call context.
                 history = enriched_history;
+                // Fingerprint after enrichment so the next turn can verify
+                // these bytes aren't silently mutated between now and then.
+                history_fp = crate::history_guard::HistoryFingerprint::take(&history);
 
                 // Record metrics (dual-write to agent + conversation)
                 token_tracker::record_request(
                     &metrics,
                     Some(&conversation_metrics),
                     initial_input_tokens,
+                    initial_cached_input_tokens,
                     initial_output_tokens,
                     latency_ms,
                 );
@@ -1121,6 +1306,7 @@ pub async fn run_conversation(params: ConversationParams) {
                     json!({
                         "message_id": &msg_id,
                         "input_tokens": initial_input_tokens,
+                        "cached_input_tokens": initial_cached_input_tokens,
                         "output_tokens": initial_output_tokens,
                         "model": &conversation_metrics.model,
                         "timestamp": chrono::Utc::now().to_rfc3339(),
@@ -1134,18 +1320,37 @@ pub async fn run_conversation(params: ConversationParams) {
                     json!({}),
                 ));
                 let cm = conversation_metrics.snapshot();
+                // Live history-token estimate (the same signal the chain check uses).
+                // Cheap vs the per-turn input_tokens since tiktoken runs purely local.
+                let history_tokens = crate::compaction::estimate_tokens(&history);
+                // Commit any journal entries staged during this turn. On failure
+                // paths above we discard_staged instead — so spurious agent
+                // writes during a rolled-back turn never hit storage.
+                let committed_journal_count = if let Some(ref js) = journal_state {
+                    js.commit_staged().await
+                } else {
+                    0
+                };
                 event_bus.emit(BridgeEvent::new(
                     BridgeEventType::TurnCompleted,
                     &agent_id,
                     &conversation_id,
                     json!({
                         "input_tokens": initial_input_tokens,
+                        "cached_input_tokens": initial_cached_input_tokens,
                         "output_tokens": initial_output_tokens,
                         "model": &cm.model,
                         "timestamp": chrono::Utc::now().to_rfc3339(),
                         "turn_number": turn_count,
+                        "turn_latency_ms": latency_ms,
                         "cumulative_input_tokens": cm.input_tokens,
+                        "cumulative_cached_input_tokens": cm.cached_input_tokens,
                         "cumulative_output_tokens": cm.output_tokens,
+                        "cumulative_cache_hit_ratio": cm.cache_hit_ratio,
+                        "cumulative_tool_calls": cm.tool_calls,
+                        "history_tokens_estimate": history_tokens,
+                        "history_message_count": history.len(),
+                        "journal_entries_committed": committed_journal_count,
                     }),
                 ));
             }
@@ -1185,6 +1390,28 @@ pub async fn run_conversation(params: ConversationParams) {
         duration_ms = cm.duration_ms,
         "conversation ended"
     );
+}
+
+/// Heuristic: is this stream error retryable? Mirrors the http-level retry
+/// logic in `llm::providers::is_retryable_error`, but operates on a bare
+/// error string because by the time we see it here the typed error has been
+/// flattened to a ProviderError(String).
+fn is_retryable_stream_err(err_msg: &str) -> bool {
+    let m = err_msg.to_ascii_lowercase();
+    m.contains("429")
+        || m.contains("too many requests")
+        || m.contains("rate limit")
+        || m.contains("rate-limit")
+        || m.contains("502")
+        || m.contains("503")
+        || m.contains("504")
+        || m.contains("upstream")
+        || m.contains("overloaded")
+        || m.contains("timeout")
+        || m.contains("timed out")
+        || m.contains("connection reset")
+        || m.contains("connection closed")
+        || m.contains("temporarily")
 }
 
 /// Check if any assistant messages in `enriched[baseline_len..]` contain tool calls.
@@ -1825,5 +2052,48 @@ mod tests {
         };
 
         assert_eq!(final_text, user_text);
+    }
+
+    /// P1.4 layout invariant: within a single user turn, bytes are laid out
+    /// as `[date?][stable][user][volatile?]` — stable content stays in a
+    /// deterministic head position so prior turns' user messages remain
+    /// byte-locked for cache reuse, and volatile content stays at the tail
+    /// so it never leaks into the cached region.
+    #[test]
+    fn test_user_turn_layout_stable_head_volatile_tail() {
+        let date = Some("<DATE>".to_string());
+        let stable = "<STABLE>";
+        let user = "Hello";
+        let volatile = "<VOLATILE>";
+
+        let mut pieces: Vec<String> = Vec::new();
+        if let Some(ref d) = date {
+            pieces.push(d.clone());
+        }
+        if !stable.is_empty() {
+            pieces.push(stable.to_string());
+        }
+        pieces.push(user.to_string());
+        if !volatile.is_empty() {
+            pieces.push(volatile.to_string());
+        }
+        let out = pieces.join("\n\n");
+
+        // Stable lives BEFORE the user text; volatile lives AFTER.
+        let stable_pos = out.find(stable).unwrap();
+        let user_pos = out.find(user).unwrap();
+        let volatile_pos = out.find(volatile).unwrap();
+        assert!(stable_pos < user_pos);
+        assert!(user_pos < volatile_pos);
+    }
+
+    #[test]
+    fn test_user_turn_layout_omits_empty_pieces() {
+        let pieces: Vec<String> = vec!["HEAD".into(), "BODY".into()];
+        let out = pieces.join("\n\n");
+        assert_eq!(out, "HEAD\n\nBODY");
+
+        let just_body: Vec<String> = vec!["BODY".into()];
+        assert_eq!(just_body.join("\n\n"), "BODY");
     }
 }

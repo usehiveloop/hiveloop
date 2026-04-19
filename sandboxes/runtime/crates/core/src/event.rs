@@ -51,10 +51,17 @@ pub enum BridgeEventType {
     Done,
     /// A conversation chain handoff has started (immortal conversations).
     /// The agent is extracting a checkpoint and will continue in a fresh context.
+    /// Emitted BEFORE the checkpoint LLM call so consumers can show progress.
     ChainStarted,
     /// A conversation chain handoff completed (immortal conversations).
     /// The agent is ready in the new context.
     ChainCompleted,
+    /// A conversation chain handoff attempt failed (immortal conversations).
+    /// The conversation continues with the oversized history — no state is lost.
+    ChainFailed,
+    /// Context pressure warning emitted mid-turn when tool-output bytes
+    /// accumulate past a threshold. Clients can surface this as a warning.
+    ContextPressureWarning,
 }
 
 /// The single canonical event payload used across all delivery channels.

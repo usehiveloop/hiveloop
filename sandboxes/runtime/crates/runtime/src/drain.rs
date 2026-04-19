@@ -76,6 +76,8 @@ mod tests {
                 model: "gpt-4o".to_string(),
                 api_key: "test-key".to_string(),
                 base_url: Some("https://api.openai.com/v1".to_string()),
+                prompt_caching_enabled: true,
+                cache_ttl: Default::default(),
             },
             tools: vec![],
             mcp_servers: vec![],

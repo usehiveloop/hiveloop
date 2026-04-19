@@ -39,8 +39,10 @@ impl Default for ToolCallStats {
 
 /// Atomic counters for tracking per-agent metrics.
 pub struct AgentMetrics {
-    /// Total input tokens consumed
+    /// Total non-cached input tokens consumed (freshly computed, full price).
     pub input_tokens: AtomicU64,
+    /// Total input tokens served from the provider prompt cache (discounted).
+    pub cached_input_tokens: AtomicU64,
     /// Total output tokens generated
     pub output_tokens: AtomicU64,
     /// Total number of LLM requests made
@@ -66,6 +68,7 @@ impl AgentMetrics {
     pub fn new() -> Self {
         Self {
             input_tokens: AtomicU64::new(0),
+            cached_input_tokens: AtomicU64::new(0),
             output_tokens: AtomicU64::new(0),
             total_requests: AtomicU64::new(0),
             failed_requests: AtomicU64::new(0),
@@ -113,6 +116,7 @@ impl AgentMetrics {
     /// Create a serializable snapshot of the current metrics.
     pub fn snapshot(&self, agent_id: &str, agent_name: &str) -> MetricsSnapshot {
         let input_tokens = self.input_tokens.load(Ordering::Relaxed);
+        let cached_input_tokens = self.cached_input_tokens.load(Ordering::Relaxed);
         let output_tokens = self.output_tokens.load(Ordering::Relaxed);
         let latency_sum = self.latency_sum_ms.load(Ordering::Relaxed);
         let latency_count = self.latency_count.load(Ordering::Relaxed);
@@ -157,12 +161,16 @@ impl AgentMetrics {
         // Sort by tool name for deterministic output
         tool_call_details.sort_by(|a, b| a.tool_name.cmp(&b.tool_name));
 
+        let cache_hit_ratio = cache_hit_ratio(input_tokens, cached_input_tokens);
+
         MetricsSnapshot {
             agent_id: agent_id.to_string(),
             agent_name: agent_name.to_string(),
             input_tokens,
+            cached_input_tokens,
             output_tokens,
-            total_tokens: input_tokens + output_tokens,
+            total_tokens: input_tokens + cached_input_tokens + output_tokens,
+            cache_hit_ratio,
             total_requests: self.total_requests.load(Ordering::Relaxed),
             failed_requests: self.failed_requests.load(Ordering::Relaxed),
             active_conversations: self.active_conversations.load(Ordering::Relaxed),
@@ -171,6 +179,19 @@ impl AgentMetrics {
             avg_latency_ms,
             tool_call_details,
         }
+    }
+}
+
+/// Compute cache hit ratio as `cached / (cached + fresh)`.
+///
+/// Returns 0.0 when no input tokens have been observed. This ignores output
+/// tokens entirely — hit rate is an input-side metric.
+pub fn cache_hit_ratio(input_tokens: u64, cached_input_tokens: u64) -> f64 {
+    let total = input_tokens + cached_input_tokens;
+    if total == 0 {
+        0.0
+    } else {
+        cached_input_tokens as f64 / total as f64
     }
 }
 
@@ -206,12 +227,18 @@ pub struct MetricsSnapshot {
     pub agent_id: AgentId,
     /// Agent name
     pub agent_name: String,
-    /// Total input tokens consumed
+    /// Total non-cached input tokens consumed (full price).
     pub input_tokens: u64,
+    /// Total input tokens served from the provider prompt cache (discounted).
+    #[serde(default)]
+    pub cached_input_tokens: u64,
     /// Total output tokens generated
     pub output_tokens: u64,
-    /// Total tokens (input + output)
+    /// Total tokens (fresh input + cached input + output)
     pub total_tokens: u64,
+    /// cached_input_tokens / (input_tokens + cached_input_tokens).
+    #[serde(default)]
+    pub cache_hit_ratio: f64,
     /// Total LLM requests
     pub total_requests: u64,
     /// Failed requests
@@ -239,8 +266,10 @@ pub struct ConversationMetrics {
     pub agent_id: String,
     /// LLM model name (for cost attribution by consumers).
     pub model: String,
-    /// Total input tokens consumed across all turns.
+    /// Total non-cached input tokens consumed across all turns.
     pub input_tokens: AtomicU64,
+    /// Total input tokens served from the provider prompt cache (discounted).
+    pub cached_input_tokens: AtomicU64,
     /// Total output tokens generated across all turns.
     pub output_tokens: AtomicU64,
     /// Number of LLM turns completed.
@@ -262,6 +291,7 @@ impl ConversationMetrics {
             agent_id,
             model,
             input_tokens: AtomicU64::new(0),
+            cached_input_tokens: AtomicU64::new(0),
             output_tokens: AtomicU64::new(0),
             total_turns: AtomicU64::new(0),
             tool_calls: AtomicU64::new(0),
@@ -272,8 +302,19 @@ impl ConversationMetrics {
     }
 
     /// Record a completed LLM turn's token usage and latency.
-    pub fn record_turn(&self, input_tokens: u64, output_tokens: u64, latency_ms: u64) {
+    ///
+    /// `input_tokens` is the non-cached (full-price) token count; `cached_input_tokens`
+    /// is the count served from the provider prompt cache at a discount.
+    pub fn record_turn(
+        &self,
+        input_tokens: u64,
+        cached_input_tokens: u64,
+        output_tokens: u64,
+        latency_ms: u64,
+    ) {
         self.input_tokens.fetch_add(input_tokens, Ordering::Relaxed);
+        self.cached_input_tokens
+            .fetch_add(cached_input_tokens, Ordering::Relaxed);
         self.output_tokens
             .fetch_add(output_tokens, Ordering::Relaxed);
         self.total_turns.fetch_add(1, Ordering::Relaxed);
@@ -290,14 +331,18 @@ impl ConversationMetrics {
 
     /// Create a serializable snapshot of the current conversation metrics.
     pub fn snapshot(&self) -> ConversationMetricsSnapshot {
+        let input_tokens = self.input_tokens.load(Ordering::Relaxed);
+        let cached_input_tokens = self.cached_input_tokens.load(Ordering::Relaxed);
+        let output_tokens = self.output_tokens.load(Ordering::Relaxed);
         ConversationMetricsSnapshot {
             conversation_id: self.conversation_id.clone(),
             agent_id: self.agent_id.clone(),
             model: self.model.clone(),
-            input_tokens: self.input_tokens.load(Ordering::Relaxed),
-            output_tokens: self.output_tokens.load(Ordering::Relaxed),
-            total_tokens: self.input_tokens.load(Ordering::Relaxed)
-                + self.output_tokens.load(Ordering::Relaxed),
+            input_tokens,
+            cached_input_tokens,
+            output_tokens,
+            total_tokens: input_tokens + cached_input_tokens + output_tokens,
+            cache_hit_ratio: cache_hit_ratio(input_tokens, cached_input_tokens),
             total_turns: self.total_turns.load(Ordering::Relaxed),
             tool_calls: self.tool_calls.load(Ordering::Relaxed),
             started_at: self.started_at,
@@ -314,8 +359,12 @@ pub struct ConversationMetricsSnapshot {
     pub agent_id: String,
     pub model: String,
     pub input_tokens: u64,
+    #[serde(default)]
+    pub cached_input_tokens: u64,
     pub output_tokens: u64,
     pub total_tokens: u64,
+    #[serde(default)]
+    pub cache_hit_ratio: f64,
     pub total_turns: u64,
     pub tool_calls: u64,
     pub started_at: chrono::DateTime<chrono::Utc>,
@@ -355,6 +404,7 @@ mod tests {
     fn test_agent_metrics_new_initializes_to_zero() {
         let m = AgentMetrics::new();
         assert_eq!(m.input_tokens.load(Ordering::Relaxed), 0);
+        assert_eq!(m.cached_input_tokens.load(Ordering::Relaxed), 0);
         assert_eq!(m.output_tokens.load(Ordering::Relaxed), 0);
         assert_eq!(m.total_requests.load(Ordering::Relaxed), 0);
         assert_eq!(m.failed_requests.load(Ordering::Relaxed), 0);
@@ -364,6 +414,61 @@ mod tests {
         assert_eq!(m.latency_sum_ms.load(Ordering::Relaxed), 0);
         assert_eq!(m.latency_count.load(Ordering::Relaxed), 0);
         assert!(m.tool_metrics.is_empty());
+    }
+
+    #[test]
+    fn test_cache_hit_ratio_zero_when_no_tokens() {
+        assert!((cache_hit_ratio(0, 0) - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_cache_hit_ratio_zero_when_all_fresh() {
+        assert!((cache_hit_ratio(1000, 0) - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_cache_hit_ratio_one_when_all_cached() {
+        assert!((cache_hit_ratio(0, 1000) - 1.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_cache_hit_ratio_mixed() {
+        // 900 cached / (100 fresh + 900 cached) = 0.9
+        assert!((cache_hit_ratio(100, 900) - 0.9).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_agent_metrics_snapshot_includes_cache_fields() {
+        let m = AgentMetrics::new();
+        m.input_tokens.store(100, Ordering::Relaxed);
+        m.cached_input_tokens.store(900, Ordering::Relaxed);
+        m.output_tokens.store(50, Ordering::Relaxed);
+
+        let snap = m.snapshot("a", "A");
+        assert_eq!(snap.input_tokens, 100);
+        assert_eq!(snap.cached_input_tokens, 900);
+        assert_eq!(snap.output_tokens, 50);
+        // total_tokens now counts fresh + cached + output
+        assert_eq!(snap.total_tokens, 1050);
+        assert!((snap.cache_hit_ratio - 0.9).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_conversation_metrics_record_turn_accumulates_cache_tokens() {
+        let c = ConversationMetrics::new("c".into(), "a".into(), "m".into());
+        c.record_turn(100, 900, 50, 100);
+        c.record_turn(50, 450, 25, 80);
+
+        assert_eq!(c.input_tokens.load(Ordering::Relaxed), 150);
+        assert_eq!(c.cached_input_tokens.load(Ordering::Relaxed), 1350);
+        assert_eq!(c.output_tokens.load(Ordering::Relaxed), 75);
+        assert_eq!(c.total_turns.load(Ordering::Relaxed), 2);
+
+        let snap = c.snapshot();
+        assert_eq!(snap.input_tokens, 150);
+        assert_eq!(snap.cached_input_tokens, 1350);
+        assert_eq!(snap.total_tokens, 150 + 1350 + 75);
+        assert!((snap.cache_hit_ratio - 1350.0 / 1500.0).abs() < f64::EPSILON);
     }
 
     #[test]

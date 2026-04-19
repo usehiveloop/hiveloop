@@ -118,6 +118,49 @@ pub struct ToolCallEmitter {
     pub storage: Option<StorageHandle>,
     /// Shared persisted messages — updated incrementally after each tool interaction.
     pub persisted_messages: Option<Arc<Mutex<Vec<Message>>>>,
+    /// Optional mid-turn context-pressure threshold (bytes). When cumulative
+    /// tool-output bytes this turn exceed this value, a one-shot
+    /// `ContextPressureWarning` event is emitted. `None` disables the check.
+    pub pressure_threshold_bytes: Option<usize>,
+    /// Cumulative tool-output bytes for the current turn. Owned by each
+    /// turn's emitter clone (see `conversation.rs`) — reset implicitly when
+    /// a fresh emitter is constructed next turn.
+    pub pressure_counter: Arc<std::sync::atomic::AtomicUsize>,
+    /// Flag so ContextPressureWarning is only emitted once per turn.
+    pub pressure_warned: Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl ToolCallEmitter {
+    /// Record `bytes_added` of tool output this turn and emit a one-shot
+    /// `ContextPressureWarning` if cumulative bytes cross the configured
+    /// threshold. No-op if no threshold was configured.
+    fn note_tool_output_bytes(&self, bytes_added: usize) {
+        let Some(threshold) = self.pressure_threshold_bytes else {
+            return;
+        };
+        use std::sync::atomic::Ordering;
+        if self.pressure_warned.load(Ordering::Relaxed) {
+            // Still count bytes, but don't re-warn.
+            self.pressure_counter.fetch_add(bytes_added, Ordering::Relaxed);
+            return;
+        }
+        let new_total = self.pressure_counter.fetch_add(bytes_added, Ordering::Relaxed)
+            + bytes_added;
+        if new_total >= threshold
+            && !self.pressure_warned.swap(true, Ordering::Relaxed)
+        {
+            self.event_bus.emit(BridgeEvent::new(
+                BridgeEventType::ContextPressureWarning,
+                &self.agent_id,
+                &self.conversation_id,
+                json!({
+                    "cumulative_tool_output_bytes": new_total,
+                    "threshold_bytes": threshold,
+                    "reason": "tool_output_accumulation",
+                }),
+            ));
+        }
+    }
 }
 
 impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
@@ -466,6 +509,10 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
             &self.conversation_id,
             json!({"id": &id, "result": result, "is_error": false, "duration_ms": duration_ms, "tool_name": &effective_name}),
         ));
+
+        // Mid-turn context-pressure tracking — counts bytes of tool output
+        // this turn, emits ContextPressureWarning once past the threshold.
+        self.note_tool_output_bytes(result.len());
 
         let args_value = serde_json::from_str(args).unwrap_or(serde_json::Value::Null);
         self.persist_tool_interaction(&effective_name, &id, &args_value, result, false);
@@ -1266,6 +1313,9 @@ mod tests {
             pending_tool_timings: Arc::new(DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         let action = PromptHook::<TestModel>::on_tool_call(
@@ -1307,6 +1357,9 @@ mod tests {
             pending_tool_timings: Arc::new(DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         let action = PromptHook::<TestModel>::on_tool_result(
@@ -1345,6 +1398,9 @@ mod tests {
             pending_tool_timings: Arc::new(DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         let tool_action =
@@ -1382,6 +1438,9 @@ mod tests {
             pending_tool_timings: Arc::new(DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         PromptHook::<TestModel>::on_tool_call(
@@ -1416,6 +1475,9 @@ mod tests {
             pending_tool_timings: Arc::new(DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         PromptHook::<TestModel>::on_tool_call(
@@ -1490,6 +1552,9 @@ mod tests {
             pending_tool_timings: Arc::new(DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         let action = AGENT_CONTEXT
@@ -1553,6 +1618,9 @@ mod tests {
             pending_tool_timings: Arc::new(DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         // bash without background: true should Continue normally
@@ -1631,6 +1699,9 @@ mod tests {
             pending_tool_timings: Arc::new(DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         let action = AGENT_CONTEXT
@@ -1698,6 +1769,9 @@ mod tests {
             pending_tool_timings: Arc::new(DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         let action = PromptHook::<TestModel>::on_tool_call(
@@ -1748,6 +1822,9 @@ mod tests {
             pending_tool_timings: Arc::new(DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         // Known tool should pass through
@@ -1780,6 +1857,9 @@ mod tests {
             pending_tool_timings: Arc::new(DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         // With empty tool_names, all tools should pass through (backward compat)
@@ -1841,6 +1921,9 @@ mod tests {
             pending_tool_timings: Arc::new(DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         // "Bash" should auto-repair to "bash" and execute directly
@@ -1918,6 +2001,9 @@ mod tests {
             pending_tool_timings: Arc::new(DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         // " bash" (leading space) should auto-repair to "bash"

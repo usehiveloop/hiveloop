@@ -5,6 +5,7 @@ pub mod compaction;
 pub mod conversation;
 pub mod drain;
 pub mod environment;
+pub mod history_guard;
 pub mod immortal;
 pub mod masking;
 pub mod permission_manager;

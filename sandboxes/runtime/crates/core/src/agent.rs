@@ -132,11 +132,17 @@ pub struct ImmortalConfig {
     #[serde(default = "default_immortal_token_budget")]
     pub token_budget: u32,
 
-    /// Number of complete user turns to carry forward verbatim into the new chain.
-    /// A "complete user turn" includes the user message and all subsequent assistant
-    /// responses and tool calls until the next user message.
+    /// Upper bound on the number of recent user turns to carry forward verbatim
+    /// into the new chain. The carry-forward is further capped by
+    /// `carry_forward_budget_fraction` — whichever binds first wins.
     #[serde(default = "default_carry_forward_turns")]
     pub carry_forward_turns: u32,
+
+    /// Fraction of `token_budget` allowed for the carry-forward tail.
+    /// Prevents a single tool-heavy turn from stuffing the new chain's context.
+    /// Default 0.3 (30%).
+    #[serde(default = "default_carry_forward_budget_fraction")]
+    pub carry_forward_budget_fraction: f32,
 
     /// Provider config for the checkpoint extraction LLM call.
     pub checkpoint_provider: ProviderConfig,
@@ -144,6 +150,24 @@ pub struct ImmortalConfig {
     /// Custom prompt for checkpoint extraction. Uses a built-in default if None.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checkpoint_prompt: Option<String>,
+
+    /// When true, run a second verification pass after the phase-1 extraction.
+    /// Default false — for strong summarizer models phase 2 rarely improves output.
+    #[serde(default)]
+    pub verify_checkpoint: bool,
+
+    /// Max tokens for each checkpoint LLM call's output. Default 1500.
+    #[serde(default = "default_checkpoint_max_tokens")]
+    pub checkpoint_max_tokens: u32,
+
+    /// Per-call timeout for checkpoint LLM calls, in seconds. Default 45.
+    #[serde(default = "default_checkpoint_timeout_secs")]
+    pub checkpoint_timeout_secs: u32,
+
+    /// Max number of prior chain checkpoints to include as context during
+    /// checkpoint extraction. Older ones are considered subsumed. Default 2.
+    #[serde(default = "default_max_previous_checkpoints")]
+    pub max_previous_checkpoints: u32,
 }
 
 fn default_immortal_token_budget() -> u32 {
@@ -151,6 +175,22 @@ fn default_immortal_token_budget() -> u32 {
 }
 
 fn default_carry_forward_turns() -> u32 {
+    2
+}
+
+fn default_carry_forward_budget_fraction() -> f32 {
+    0.3
+}
+
+fn default_checkpoint_max_tokens() -> u32 {
+    1500
+}
+
+fn default_checkpoint_timeout_secs() -> u32 {
+    45
+}
+
+fn default_max_previous_checkpoints() -> u32 {
     2
 }
 

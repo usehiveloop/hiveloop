@@ -1,4 +1,5 @@
 use std::pin::Pin;
+use std::sync::Arc;
 use std::time::Duration;
 
 use bridge_core::provider::{ProviderConfig, ProviderType};
@@ -12,6 +13,9 @@ use rig::prelude::CompletionClient;
 use rig::streaming::StreamingPrompt;
 use tracing::{error, info, warn};
 
+use crate::prefix_hash::{
+    prefix_hash_from_definitions, split_hashes_from_definitions, suspected_volatile_markers,
+};
 use crate::tool_hook::ToolCallEmitter;
 
 // ---------------------------------------------------------------------------
@@ -39,17 +43,40 @@ type CohereModel = <rig::providers::cohere::Client as CompletionClient>::Complet
 // BridgeAgent — enum over all supported provider agents
 // ---------------------------------------------------------------------------
 
-/// Unified agent type supporting multiple LLM providers.
-///
-/// Each variant wraps a rig-core `Agent<M>` for the corresponding provider's
-/// native completion model. The enum delegates prompt calls to the inner
-/// agent, producing a unified `Result<PromptResponse, PromptError>`.
+/// Provider-specific inner agent. Wrapped by [`BridgeAgent`] so that the
+/// prefix-hash metadata (see P0.3) travels alongside the dispatch.
 #[derive(Clone)]
-pub enum BridgeAgent {
+pub enum BridgeAgentInner {
     OpenAI(Agent<OpenAIModel>),
     Anthropic(Agent<AnthropicModel>),
     Gemini(Agent<GeminiModel>),
     Cohere(Agent<CohereModel>),
+}
+
+/// Unified agent type supporting multiple LLM providers.
+///
+/// Each variant of [`BridgeAgentInner`] wraps a rig-core `Agent<M>`. The
+/// outer struct adds a `prefix_hash` — SHA-256 of `(preamble || tool_defs)`
+/// — so that every request can be correlated to the cacheable prefix at
+/// the time of agent construction. If two requests from the same agent
+/// emit different hashes in the logs, something is mutating the prefix and
+/// silently breaking cache reuse.
+#[derive(Clone)]
+pub struct BridgeAgent {
+    inner: BridgeAgentInner,
+    prefix_hash: Arc<str>,
+}
+
+impl BridgeAgent {
+    /// SHA-256 hex digest of the cacheable prefix.
+    pub fn prefix_hash(&self) -> &str {
+        &self.prefix_hash
+    }
+
+    /// Access to the underlying provider-specific agent. Primarily for tests.
+    pub fn inner(&self) -> &BridgeAgentInner {
+        &self.inner
+    }
 }
 
 /// Response from a prompt with extended details (token usage).
@@ -182,11 +209,11 @@ macro_rules! dispatch_stream {
 impl BridgeAgent {
     /// Return the provider name for logging.
     fn provider_name(&self) -> &'static str {
-        match self {
-            BridgeAgent::OpenAI(_) => "openai",
-            BridgeAgent::Anthropic(_) => "anthropic",
-            BridgeAgent::Gemini(_) => "gemini",
-            BridgeAgent::Cohere(_) => "cohere",
+        match &self.inner {
+            BridgeAgentInner::OpenAI(_) => "openai",
+            BridgeAgentInner::Anthropic(_) => "anthropic",
+            BridgeAgentInner::Gemini(_) => "gemini",
+            BridgeAgentInner::Cohere(_) => "cohere",
         }
     }
 
@@ -231,17 +258,18 @@ impl BridgeAgent {
                 agent_id = %agent_id,
                 conversation_id = %conversation_id,
                 provider = provider,
+                prefix_hash = %self.prefix_hash(),
                 history_len = history.len(),
                 attempt = attempt,
                 "llm_request_start"
             );
 
             let start = std::time::Instant::now();
-            let result = match self {
-                BridgeAgent::OpenAI(a) => dispatch_prompt!(a, text, history, hook_clone),
-                BridgeAgent::Anthropic(a) => dispatch_prompt!(a, text, history, hook_clone),
-                BridgeAgent::Gemini(a) => dispatch_prompt!(a, text, history, hook_clone),
-                BridgeAgent::Cohere(a) => dispatch_prompt!(a, text, history, hook_clone),
+            let result = match &self.inner {
+                BridgeAgentInner::OpenAI(a) => dispatch_prompt!(a, text, history, hook_clone),
+                BridgeAgentInner::Anthropic(a) => dispatch_prompt!(a, text, history, hook_clone),
+                BridgeAgentInner::Gemini(a) => dispatch_prompt!(a, text, history, hook_clone),
+                BridgeAgentInner::Cohere(a) => dispatch_prompt!(a, text, history, hook_clone),
             };
             let latency_ms = start.elapsed().as_millis() as u64;
 
@@ -252,6 +280,11 @@ impl BridgeAgent {
                         conversation_id = %conversation_id,
                         provider = provider,
                         input_tokens = resp.total_usage.input_tokens,
+                        cached_input_tokens = resp.total_usage.cached_input_tokens,
+                        cache_hit_ratio = bridge_core::metrics::cache_hit_ratio(
+                            resp.total_usage.input_tokens,
+                            resp.total_usage.cached_input_tokens
+                        ),
                         output_tokens = resp.total_usage.output_tokens,
                         latency_ms = latency_ms,
                         attempt = attempt,
@@ -330,6 +363,7 @@ impl BridgeAgent {
                 agent_id = %agent_id,
                 conversation_id = %conversation_id,
                 provider = provider,
+                prefix_hash = %self.prefix_hash(),
                 attempt = attempt,
                 "llm_request_start"
             );
@@ -344,11 +378,11 @@ impl BridgeAgent {
                         .await
                 }};
             }
-            let result = match self {
-                BridgeAgent::OpenAI(a) => dispatch!(a),
-                BridgeAgent::Anthropic(a) => dispatch!(a),
-                BridgeAgent::Gemini(a) => dispatch!(a),
-                BridgeAgent::Cohere(a) => dispatch!(a),
+            let result = match &self.inner {
+                BridgeAgentInner::OpenAI(a) => dispatch!(a),
+                BridgeAgentInner::Anthropic(a) => dispatch!(a),
+                BridgeAgentInner::Gemini(a) => dispatch!(a),
+                BridgeAgentInner::Cohere(a) => dispatch!(a),
             };
             let latency_ms = start.elapsed().as_millis() as u64;
 
@@ -425,7 +459,7 @@ impl BridgeAgent {
                 );
             }
 
-            info!(provider = provider, attempt = attempt, "llm_request_start");
+            info!(provider = provider, prefix_hash = %self.prefix_hash(), attempt = attempt, "llm_request_start");
 
             let start = std::time::Instant::now();
             macro_rules! dispatch {
@@ -433,11 +467,11 @@ impl BridgeAgent {
                     $agent.prompt(text).with_history(history).await
                 }};
             }
-            let result = match self {
-                BridgeAgent::OpenAI(a) => dispatch!(a),
-                BridgeAgent::Anthropic(a) => dispatch!(a),
-                BridgeAgent::Gemini(a) => dispatch!(a),
-                BridgeAgent::Cohere(a) => dispatch!(a),
+            let result = match &self.inner {
+                BridgeAgentInner::OpenAI(a) => dispatch!(a),
+                BridgeAgentInner::Anthropic(a) => dispatch!(a),
+                BridgeAgentInner::Gemini(a) => dispatch!(a),
+                BridgeAgentInner::Cohere(a) => dispatch!(a),
             };
             let latency_ms = start.elapsed().as_millis() as u64;
 
@@ -497,11 +531,11 @@ impl BridgeAgent {
         history: Vec<Message>,
         hook: ToolCallEmitter,
     ) -> BridgeStream {
-        match self {
-            BridgeAgent::OpenAI(a) => dispatch_stream!(a, text, history, hook),
-            BridgeAgent::Anthropic(a) => dispatch_stream!(a, text, history, hook),
-            BridgeAgent::Gemini(a) => dispatch_stream!(a, text, history, hook),
-            BridgeAgent::Cohere(a) => dispatch_stream!(a, text, history, hook),
+        match &self.inner {
+            BridgeAgentInner::OpenAI(a) => dispatch_stream!(a, text, history, hook),
+            BridgeAgentInner::Anthropic(a) => dispatch_stream!(a, text, history, hook),
+            BridgeAgentInner::Gemini(a) => dispatch_stream!(a, text, history, hook),
+            BridgeAgentInner::Cohere(a) => dispatch_stream!(a, text, history, hook),
         }
     }
 
@@ -531,14 +565,14 @@ impl BridgeAgent {
                 );
             }
 
-            info!(provider = provider, attempt = attempt, "llm_request_start");
+            info!(provider = provider, prefix_hash = %self.prefix_hash(), attempt = attempt, "llm_request_start");
 
             let start = std::time::Instant::now();
-            let result = match self {
-                BridgeAgent::OpenAI(a) => dispatch_prompt_simple!(a, text),
-                BridgeAgent::Anthropic(a) => dispatch_prompt_simple!(a, text),
-                BridgeAgent::Gemini(a) => dispatch_prompt_simple!(a, text),
-                BridgeAgent::Cohere(a) => dispatch_prompt_simple!(a, text),
+            let result = match &self.inner {
+                BridgeAgentInner::OpenAI(a) => dispatch_prompt_simple!(a, text),
+                BridgeAgentInner::Anthropic(a) => dispatch_prompt_simple!(a, text),
+                BridgeAgentInner::Gemini(a) => dispatch_prompt_simple!(a, text),
+                BridgeAgentInner::Cohere(a) => dispatch_prompt_simple!(a, text),
             };
             let latency_ms = start.elapsed().as_millis() as u64;
 
@@ -654,27 +688,79 @@ pub fn create_agent(
     preamble: &str,
     definition: &bridge_core::agent::AgentDefinition,
 ) -> Result<BridgeAgent, BridgeError> {
-    match config.provider_type {
+    // Compute prefix hash BEFORE moving `tools` into the builder. The hash
+    // fingerprints the exact (preamble || tool_defs) bytes the provider
+    // will see — any drift between two calls with identical agent config
+    // means our prefix is non-deterministic and cache hits will suffer.
+    let tool_defs: Vec<rig::completion::ToolDefinition> =
+        tools.iter().map(|t| t.definition_sync()).collect();
+    let prefix_hash: Arc<str> = prefix_hash_from_definitions(preamble, &tool_defs).into();
+    let (preamble_hash, tools_hash) = split_hashes_from_definitions(preamble, &tool_defs);
+
+    // Hygiene warning: if the preamble looks like it interpolates dynamic
+    // content, cache hits will thrash. We only log — never fail — because
+    // false positives on static text that happens to mention a year are
+    // possible. Grep the logs for `preamble_volatile_markers` if hit rate
+    // suddenly drops.
+    let markers = suspected_volatile_markers(preamble);
+    if !markers.is_empty() {
+        warn!(
+            provider = %config.provider_type,
+            model = %config.model,
+            preamble_hash = %preamble_hash,
+            markers = ?markers,
+            "preamble_volatile_markers_detected"
+        );
+    }
+
+    info!(
+        provider = %config.provider_type,
+        model = %config.model,
+        prefix_hash = %prefix_hash,
+        preamble_hash = %preamble_hash,
+        tools_hash = %tools_hash,
+        tool_count = tool_defs.len(),
+        preamble_bytes = preamble.len(),
+        "bridge_agent_built"
+    );
+
+    let inner = match config.provider_type {
         // Native Anthropic client
         ProviderType::Anthropic => {
             let client = build_anthropic_client(config)?;
-            let builder = client.agent(&config.model);
+            // P2: enable explicit prompt-cache breakpoints on Anthropic when
+            // caching is permitted for this agent. `with_prompt_caching` is
+            // on the CompletionModel, not the AgentBuilder — hence the
+            // detour through `completion_model(...)`. rig 0.31 places the
+            // breakpoints on the last system block and the last message,
+            // which is the minimum viable "automatic" layout.
+            let mut model = client.completion_model(&config.model);
+            if config.prompt_caching_enabled {
+                info!(
+                    provider = "anthropic",
+                    model = %config.model,
+                    cache_ttl = ?config.cache_ttl,
+                    "anthropic_prompt_caching_enabled"
+                );
+                model = model.with_prompt_caching();
+            }
+            let builder = rig::agent::AgentBuilder::new(model);
             let agent = configure_and_build(builder, preamble, definition, tools);
-            Ok(BridgeAgent::Anthropic(agent))
+            BridgeAgentInner::Anthropic(agent)
         }
         // Native Gemini client
         ProviderType::Google => {
             let client = build_gemini_client(config)?;
             let builder = client.agent(&config.model);
             let agent = configure_and_build(builder, preamble, definition, tools);
-            Ok(BridgeAgent::Gemini(agent))
+            BridgeAgentInner::Gemini(agent)
         }
         // Native Cohere client
         ProviderType::Cohere => {
             let client = build_cohere_client(config)?;
             let builder = client.agent(&config.model);
             let agent = configure_and_build(builder, preamble, definition, tools);
-            Ok(BridgeAgent::Cohere(agent))
+            BridgeAgentInner::Cohere(agent)
         }
         // OpenAI + all OpenAI-compatible providers
         ProviderType::OpenAI
@@ -689,9 +775,11 @@ pub fn create_agent(
             let client = build_openai_client(config)?;
             let builder = client.agent(&config.model);
             let agent = configure_and_build(builder, preamble, definition, tools);
-            Ok(BridgeAgent::OpenAI(agent))
+            BridgeAgentInner::OpenAI(agent)
         }
-    }
+    };
+
+    Ok(BridgeAgent { inner, prefix_hash })
 }
 
 // ---------------------------------------------------------------------------
@@ -785,6 +873,14 @@ fn build_anthropic_client(
     if let Some(ref base_url) = config.base_url {
         builder = builder.base_url(base_url);
     }
+    // 1-hour cache TTL ships behind a beta header. We set it whenever the
+    // caller opts into OneHour so that the moment rig exposes `"ttl":"1h"`
+    // on `CacheControl`, existing agents start getting 1-hour writes
+    // without a config change. With rig 0.31 the effective TTL is still
+    // 5-minute, but the header is a no-op otherwise and safe to send.
+    if matches!(config.cache_ttl, bridge_core::provider::CacheTtl::OneHour) {
+        builder = builder.anthropic_beta("extended-cache-ttl-2025-04-11");
+    }
     builder.build().map_err(|e| {
         BridgeError::ProviderError(format!("failed to create Anthropic client: {}", e))
     })
@@ -825,6 +921,8 @@ mod tests {
             model: "gpt-4o".to_string(),
             api_key: "test-key".to_string(),
             base_url: None,
+            prompt_caching_enabled: true,
+            cache_ttl: Default::default(),
         };
         assert!(build_openai_client(&config).is_err());
     }
@@ -836,6 +934,8 @@ mod tests {
             model: "gpt-4o".to_string(),
             api_key: "test-key".to_string(),
             base_url: Some("https://api.openai.com/v1".to_string()),
+            prompt_caching_enabled: true,
+            cache_ttl: Default::default(),
         };
         assert!(build_openai_client(&config).is_ok());
     }
@@ -847,8 +947,104 @@ mod tests {
             model: "claude-sonnet-4-20250514".to_string(),
             api_key: "test-key".to_string(),
             base_url: None,
+            prompt_caching_enabled: true,
+            cache_ttl: Default::default(),
         };
         assert!(build_anthropic_client(&config).is_ok());
+    }
+
+    #[test]
+    fn test_build_anthropic_client_with_one_hour_ttl_succeeds() {
+        // Setting the 1-hour TTL is always safe — the beta header is just
+        // attached. Actual cache_control TTL wiring awaits a newer rig.
+        let config = ProviderConfig {
+            provider_type: ProviderType::Anthropic,
+            model: "claude-sonnet-4-20250514".to_string(),
+            api_key: "test-key".to_string(),
+            base_url: None,
+            prompt_caching_enabled: true,
+            cache_ttl: bridge_core::provider::CacheTtl::OneHour,
+        };
+        assert!(build_anthropic_client(&config).is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_create_agent_anthropic_computes_prefix_hash() {
+        // Build a minimal agent and confirm the prefix hash is populated
+        // (non-empty, 64 hex chars). The hash must be the same for two
+        // identical builds — the cache-bust invariant this P0.3 work
+        // protects.
+        let config = ProviderConfig {
+            provider_type: ProviderType::Anthropic,
+            model: "claude-sonnet-4-20250514".to_string(),
+            api_key: "test-key".to_string(),
+            base_url: None,
+            prompt_caching_enabled: true,
+            cache_ttl: Default::default(),
+        };
+        let definition = bridge_core::agent::AgentDefinition {
+            id: "t".into(),
+            name: "t".into(),
+            description: None,
+            system_prompt: "you are helpful".into(),
+            provider: config.clone(),
+            tools: vec![],
+            mcp_servers: vec![],
+            skills: vec![],
+            integrations: vec![],
+            config: bridge_core::agent::AgentConfig::default(),
+            subagents: vec![],
+            permissions: std::collections::HashMap::new(),
+            webhook_url: None,
+            webhook_secret: None,
+            version: None,
+            updated_at: None,
+        };
+        let a = create_agent(&config, vec![], "you are helpful", &definition).unwrap();
+        let b = create_agent(&config, vec![], "you are helpful", &definition).unwrap();
+        assert_eq!(a.prefix_hash().len(), 64);
+        assert_eq!(
+            a.prefix_hash(),
+            b.prefix_hash(),
+            "two identical builds must produce the same prefix hash"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_create_agent_prefix_hash_changes_with_preamble() {
+        let config = ProviderConfig {
+            provider_type: ProviderType::OpenAI,
+            model: "gpt-4o".to_string(),
+            api_key: "k".to_string(),
+            base_url: Some("https://api.openai.com/v1".to_string()),
+            prompt_caching_enabled: true,
+            cache_ttl: Default::default(),
+        };
+        let definition = bridge_core::agent::AgentDefinition {
+            id: "t".into(),
+            name: "t".into(),
+            description: None,
+            system_prompt: "ignored".into(),
+            provider: config.clone(),
+            tools: vec![],
+            mcp_servers: vec![],
+            skills: vec![],
+            integrations: vec![],
+            config: bridge_core::agent::AgentConfig::default(),
+            subagents: vec![],
+            permissions: std::collections::HashMap::new(),
+            webhook_url: None,
+            webhook_secret: None,
+            version: None,
+            updated_at: None,
+        };
+        let a = create_agent(&config, vec![], "preamble A", &definition).unwrap();
+        let b = create_agent(&config, vec![], "preamble B", &definition).unwrap();
+        assert_ne!(
+            a.prefix_hash(),
+            b.prefix_hash(),
+            "preamble diff must surface as a prefix-hash diff"
+        );
     }
 
     #[test]
@@ -858,6 +1054,8 @@ mod tests {
             model: "gemini-2.0-flash".to_string(),
             api_key: "test-key".to_string(),
             base_url: None,
+            prompt_caching_enabled: true,
+            cache_ttl: Default::default(),
         };
         assert!(build_gemini_client(&config).is_ok());
     }
@@ -869,6 +1067,8 @@ mod tests {
             model: "command-r-plus".to_string(),
             api_key: "test-key".to_string(),
             base_url: None,
+            prompt_caching_enabled: true,
+            cache_ttl: Default::default(),
         };
         assert!(build_cohere_client(&config).is_ok());
     }

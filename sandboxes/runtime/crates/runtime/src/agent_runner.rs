@@ -300,6 +300,9 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             pending_tool_timings: std::sync::Arc::new(dashmap::DashMap::new()),
             storage: None,
             persisted_messages: None,
+            pressure_threshold_bytes: None,
+            pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
 
         let prompt_owned = prompt.to_string();
@@ -452,6 +455,9 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                 pending_tool_timings: std::sync::Arc::new(dashmap::DashMap::new()),
                 storage: None,
                 persisted_messages: None,
+                pressure_threshold_bytes: None,
+                pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+                pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             };
 
             let result = AGENT_CONTEXT

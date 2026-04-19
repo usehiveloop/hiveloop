@@ -19,6 +19,20 @@ impl DynamicTool {
     pub fn new(executor: Arc<dyn ToolExecutor>) -> Self {
         Self { executor }
     }
+
+    /// Synchronous companion to rig's async `definition()` — produces the same
+    /// `ToolDefinition` (name, description, flattened schema) the agent builder
+    /// will send, but callable without async context. Used for prefix-hash
+    /// computation at agent build time.
+    pub fn definition_sync(&self) -> ToolDefinition {
+        let mut schema = self.executor.parameters_schema();
+        flatten_schema(&mut schema);
+        ToolDefinition {
+            name: self.executor.name().to_string(),
+            description: self.executor.description().to_string(),
+            parameters: schema,
+        }
+    }
 }
 
 /// Error type for dynamic tool execution.
@@ -326,6 +340,66 @@ mod tests {
         let executors: Vec<Arc<dyn ToolExecutor>> = vec![Arc::new(MockTool)];
         let tools = adapt_tools(executors).unwrap();
         assert_eq!(tools.len(), 1);
+    }
+
+    /// Regression test: the flattened schema for every builtin tool must be
+    /// byte-stable across two independent builds. HashMap iteration or
+    /// serde_json Map reorderings would break prompt cache hits silently —
+    /// this test catches it at compile/CI time.
+    #[test]
+    fn test_tool_definitions_are_byte_stable() {
+        fn build_all_definitions() -> Vec<rig::completion::ToolDefinition> {
+            let mut registry = tools::ToolRegistry::new();
+            tools::builtin::register_builtin_tools(&mut registry);
+            let mut defs: Vec<_> = registry
+                .list()
+                .iter()
+                .filter_map(|(name, _)| registry.get(name))
+                .map(|e| DynamicTool::new(e).definition_sync())
+                .collect();
+            defs.sort_by(|a, b| a.name.cmp(&b.name));
+            defs
+        }
+
+        let a = build_all_definitions();
+        let b = build_all_definitions();
+        assert_eq!(a.len(), b.len(), "tool count drifted");
+
+        for (x, y) in a.iter().zip(b.iter()) {
+            assert_eq!(x.name, y.name, "tool name drifted");
+            assert_eq!(x.description, y.description, "tool description drifted");
+            let x_bytes = serde_json::to_vec(&x.parameters).unwrap();
+            let y_bytes = serde_json::to_vec(&y.parameters).unwrap();
+            assert_eq!(
+                x_bytes, y_bytes,
+                "schema for tool '{}' is not byte-stable; HashMap / Map ordering leak",
+                x.name
+            );
+        }
+    }
+
+    /// Parallel regression: the `prefix_hash` helper must yield an identical
+    /// hex digest for two independent agent builds with the same preamble +
+    /// tool set. This is the same invariant that the provider cache will
+    /// check server-side — if this test flaps, our cache hit rate will too.
+    #[test]
+    fn test_prefix_hash_is_stable_across_builds() {
+        fn build() -> String {
+            let mut registry = tools::ToolRegistry::new();
+            tools::builtin::register_builtin_tools(&mut registry);
+            let defs: Vec<_> = registry
+                .list()
+                .iter()
+                .filter_map(|(name, _)| registry.get(name))
+                .map(|e| DynamicTool::new(e).definition_sync())
+                .collect();
+            crate::prefix_hash::prefix_hash_from_definitions("you are a helpful agent", &defs)
+        }
+
+        let h1 = build();
+        let h2 = build();
+        assert_eq!(h1.len(), 64);
+        assert_eq!(h1, h2, "prefix hash drifted — cache will thrash");
     }
 
     #[test]

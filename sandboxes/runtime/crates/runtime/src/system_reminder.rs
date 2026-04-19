@@ -38,10 +38,29 @@ pub struct SystemReminder {
     sections: Vec<Section>,
 }
 
+/// Classifies a reminder section for prompt-cache layout.
+///
+/// The cache prefix is byte-sensitive: any drift near the top of the
+/// prompt busts cache hits for the entire prefix. Bridge places stable
+/// sections (skills, subagents — fixed for an agent's lifetime) in the
+/// cacheable region and keeps volatile sections (date, todos, environment
+/// snapshot) at the tail of the current user turn so they never
+/// invalidate prior-turn caches.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum SectionStability {
+    /// Bytes are stable across turns within an agent lifetime. Safe to
+    /// place in the cacheable prefix.
+    Stable,
+    /// Bytes change turn-to-turn (timestamps, counters, live environment).
+    /// Must live at the tail of the current user message.
+    Volatile,
+}
+
 /// A section within the system reminder.
 struct Section {
     title: String,
     content: String,
+    stability: SectionStability,
 }
 
 impl SystemReminder {
@@ -83,6 +102,7 @@ impl SystemReminder {
         self.sections.push(Section {
             title: "Available skills".to_string(),
             content,
+            stability: SectionStability::Stable,
         });
 
         self
@@ -104,6 +124,7 @@ impl SystemReminder {
         self.sections.push(Section {
             title: "Available sub-agents".to_string(),
             content,
+            stability: SectionStability::Stable,
         });
 
         self
@@ -117,6 +138,7 @@ impl SystemReminder {
         self.sections.push(Section {
             title: "Current date".to_string(),
             content,
+            stability: SectionStability::Volatile,
         });
 
         self
@@ -124,25 +146,33 @@ impl SystemReminder {
 
     /// Build the final markdown string.
     pub fn build(&self) -> String {
-        if self.sections.is_empty() {
-            return String::new();
-        }
+        build_from_sections(self.sections.iter().collect::<Vec<_>>().as_slice())
+    }
 
-        let mut output = String::new();
-        output.push_str("<system-reminder>\n\n");
-        output.push_str("# System Reminders\n\n");
-
-        for (i, section) in self.sections.iter().enumerate() {
-            if i > 0 {
-                output.push('\n');
-            }
-            output.push_str(&format!("## {}\n\n", section.title));
-            output.push_str(&section.content);
-            output.push('\n');
-        }
-
-        output.push_str("\n</system-reminder>");
-        output
+    /// Build the reminder split by stability for cache-aware placement.
+    ///
+    /// - `stable`: markdown containing only sections whose bytes are stable
+    ///   across turns within an agent lifetime (skills, subagents). Place
+    ///   this BEFORE the user's current message so it joins the cacheable
+    ///   prefix.
+    /// - `volatile`: markdown containing sections with turn-to-turn drift
+    ///   (date, todos, immortal counters). Place this at the TAIL of the
+    ///   current user message so it never invalidates prior-turn caches.
+    ///
+    /// Either half may be empty. Both are either empty or a full
+    /// `<system-reminder>…</system-reminder>` block.
+    pub fn build_split(&self) -> (String, String) {
+        let stable: Vec<&Section> = self
+            .sections
+            .iter()
+            .filter(|s| s.stability == SectionStability::Stable)
+            .collect();
+        let volatile: Vec<&Section> = self
+            .sections
+            .iter()
+            .filter(|s| s.stability == SectionStability::Volatile)
+            .collect();
+        (build_from_sections(&stable), build_from_sections(&volatile))
     }
 
     /// Add the todo list section.
@@ -186,6 +216,7 @@ impl SystemReminder {
         self.sections.push(Section {
             title: "Todo List".to_string(),
             content,
+            stability: SectionStability::Volatile,
         });
 
         self
@@ -229,6 +260,9 @@ impl SystemReminder {
         self.sections.push(Section {
             title: "Immortal Conversation".to_string(),
             content,
+            // chain_index and journal_entry_count grow over the conversation,
+            // so the block is not byte-stable — must go in the volatile tail.
+            stability: SectionStability::Volatile,
         });
 
         self
@@ -238,6 +272,27 @@ impl SystemReminder {
     pub fn is_empty(&self) -> bool {
         self.sections.is_empty()
     }
+}
+
+/// Render a list of sections into the `<system-reminder>` envelope. Used by
+/// both `build` and `build_split`.
+fn build_from_sections(sections: &[&Section]) -> String {
+    if sections.is_empty() {
+        return String::new();
+    }
+    let mut output = String::new();
+    output.push_str("<system-reminder>\n\n");
+    output.push_str("# System Reminders\n\n");
+    for (i, section) in sections.iter().enumerate() {
+        if i > 0 {
+            output.push('\n');
+        }
+        output.push_str(&format!("## {}\n\n", section.title));
+        output.push_str(&section.content);
+        output.push('\n');
+    }
+    output.push_str("\n</system-reminder>");
+    output
 }
 
 impl Default for SystemReminder {
@@ -655,6 +710,127 @@ mod tests {
 
         assert!(output.contains("Visible"));
         assert!(!output.contains("Hidden"));
+    }
+
+    #[test]
+    fn test_build_split_places_skills_in_stable_half() {
+        let skills = make_test_skills();
+        let subagents = make_test_subagents();
+        let reminder = SystemReminder::new()
+            .with_skills(&skills)
+            .with_subagents(&subagents)
+            .with_current_date(Utc::now())
+            .with_immortal_context(3, 5);
+
+        let (stable, volatile) = reminder.build_split();
+        // Skills & subagents are stable
+        assert!(stable.contains("Available skills"));
+        assert!(stable.contains("Available sub-agents"));
+        assert!(stable.contains("Code Review"));
+        assert!(stable.contains("researcher"));
+        // Stable half does NOT contain volatile markers
+        assert!(!stable.contains("Current date"));
+        assert!(!stable.contains("Immortal Conversation"));
+        assert!(!stable.contains("Today is"));
+        // And the volatile half is self-consistent
+        assert!(volatile.contains("Current date"));
+        assert!(volatile.contains("Immortal Conversation"));
+    }
+
+    #[test]
+    fn test_build_split_places_date_in_volatile_half() {
+        let reminder = SystemReminder::new()
+            .with_skills(&make_test_skills())
+            .with_current_date(Utc::now());
+        let (_, volatile) = reminder.build_split();
+        assert!(volatile.contains("Current date"));
+        assert!(volatile.contains("Today is"));
+    }
+
+    #[test]
+    fn test_build_split_immortal_is_volatile() {
+        let reminder = SystemReminder::new()
+            .with_skills(&make_test_skills())
+            .with_immortal_context(7, 42);
+        let (stable, volatile) = reminder.build_split();
+        assert!(stable.contains("Available skills"));
+        assert!(!stable.contains("Immortal Conversation"));
+        assert!(volatile.contains("Immortal Conversation"));
+        assert!(volatile.contains("Current chain**: 7"));
+    }
+
+    #[test]
+    fn test_build_split_todos_are_volatile() {
+        let todos = vec![TodoItem {
+            content: "write docs".to_string(),
+            status: "in_progress".to_string(),
+            priority: "high".to_string(),
+        }];
+        let reminder = SystemReminder::new()
+            .with_skills(&make_test_skills())
+            .with_todos(&todos);
+        let (stable, volatile) = reminder.build_split();
+        assert!(!stable.contains("Todo List"));
+        assert!(volatile.contains("Todo List"));
+        assert!(volatile.contains("write docs"));
+    }
+
+    #[test]
+    fn test_build_split_empty_halves_when_only_one_side() {
+        // Only stable sections
+        let r1 = SystemReminder::new().with_skills(&make_test_skills());
+        let (s, v) = r1.build_split();
+        assert!(!s.is_empty());
+        assert_eq!(v, "", "no volatile half when only stable sections present");
+
+        // Only volatile sections
+        let r2 = SystemReminder::new().with_current_date(Utc::now());
+        let (s, v) = r2.build_split();
+        assert_eq!(s, "", "no stable half when only volatile sections present");
+        assert!(!v.is_empty());
+    }
+
+    #[test]
+    fn test_build_split_is_deterministic_per_call() {
+        // The stable half must be byte-identical across two builds of an
+        // equivalent SystemReminder. This is the exact invariant cache
+        // reuse depends on.
+        let skills = make_test_skills();
+        let subagents = make_test_subagents();
+        let a = SystemReminder::new()
+            .with_skills(&skills)
+            .with_subagents(&subagents)
+            .build_split()
+            .0;
+        let b = SystemReminder::new()
+            .with_skills(&skills)
+            .with_subagents(&subagents)
+            .build_split()
+            .0;
+        assert_eq!(a, b, "stable half must be byte-stable");
+    }
+
+    #[test]
+    fn test_build_equals_concatenated_split_for_stable_first_order() {
+        // When we ingest sections in (stable..., volatile...) order, the
+        // legacy `build()` joins them into one block. `build_split()`
+        // returns two blocks — each is a full `<system-reminder>` envelope.
+        let reminder = SystemReminder::new()
+            .with_skills(&make_test_skills())
+            .with_current_date(Utc::now());
+        let one = reminder.build();
+        let (s, v) = reminder.build_split();
+        // Both halves are present as valid blocks, together they carry
+        // the same information as the single-block `build()`.
+        assert!(!s.is_empty() && !v.is_empty());
+        // Each half is a self-contained envelope.
+        assert!(s.starts_with("<system-reminder>"));
+        assert!(s.ends_with("</system-reminder>"));
+        assert!(v.starts_with("<system-reminder>"));
+        assert!(v.ends_with("</system-reminder>"));
+        // Contents match.
+        assert!(one.contains("Available skills"));
+        assert!(one.contains("Current date"));
     }
 
     #[test]

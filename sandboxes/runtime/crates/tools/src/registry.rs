@@ -51,11 +51,18 @@ impl ToolRegistry {
     }
 
     /// List all registered tools as (name, description) pairs.
+    ///
+    /// **Ordering**: results are sorted by tool name. This is load-bearing for
+    /// prompt caching — any reorder of the tools array invalidates the entire
+    /// cache prefix, so the underlying HashMap iteration order must not leak.
     pub fn list(&self) -> Vec<(&str, &str)> {
-        self.builtin_tools
+        let mut out: Vec<(&str, &str)> = self
+            .builtin_tools
             .values()
             .map(|t| (t.name(), t.description()))
-            .collect()
+            .collect();
+        out.sort_by(|a, b| a.0.cmp(b.0));
+        out
     }
 
     /// Merge another registry's tools into this one without overwriting existing tools.
@@ -71,9 +78,13 @@ impl ToolRegistry {
         self.builtin_tools.clone()
     }
 
-    /// Return all registered tool names.
+    /// Return all registered tool names, sorted alphabetically.
+    ///
+    /// Sort order is load-bearing for prompt caching — see `list`.
     pub fn tool_names(&self) -> Vec<String> {
-        self.builtin_tools.keys().cloned().collect()
+        let mut names: Vec<String> = self.builtin_tools.keys().cloned().collect();
+        names.sort();
+        names
     }
 
     /// Case-insensitive lookup. If the exact name doesn't match, tries
@@ -290,6 +301,47 @@ mod tests {
         assert_eq!(names.len(), 4);
         assert!(names.contains(&"bash".to_string()));
         assert!(names.contains(&"Read".to_string()));
+    }
+
+    #[test]
+    fn test_list_is_sorted_by_name() {
+        let reg = make_registry();
+        let list = reg.list();
+        let names: Vec<&str> = list.iter().map(|(n, _)| *n).collect();
+        // Expected: uppercase sorts before lowercase in byte order
+        assert_eq!(names, vec!["Read", "RipGrep", "bash", "edit"]);
+    }
+
+    #[test]
+    fn test_list_is_deterministic_across_calls() {
+        // Build many registries with the same tools in varying insert order;
+        // list() must always yield the same sequence. This protects the
+        // prompt-cache prefix from HashMap-iteration-order drift.
+        let mut results: Vec<Vec<String>> = Vec::new();
+        for _ in 0..20 {
+            let mut reg = ToolRegistry::new();
+            // Insert in a different order each time — tool name-sort should neutralize it.
+            for name in ["zzz", "aaa", "mmm", "bbb", "ccc"] {
+                reg.register(Arc::new(StubTool {
+                    tool_name: name.to_string(),
+                }));
+            }
+            let names: Vec<String> = reg.list().iter().map(|(n, _)| n.to_string()).collect();
+            results.push(names);
+        }
+        for window in results.windows(2) {
+            assert_eq!(window[0], window[1], "tool list order drifted");
+        }
+        assert_eq!(results[0], vec!["aaa", "bbb", "ccc", "mmm", "zzz"]);
+    }
+
+    #[test]
+    fn test_tool_names_is_sorted() {
+        let reg = make_registry();
+        let names = reg.tool_names();
+        let mut sorted = names.clone();
+        sorted.sort();
+        assert_eq!(names, sorted);
     }
 
     #[test]

@@ -25,6 +25,7 @@ thiserror = { workspace = true }
 strsim = { workspace = true }
 http = { workspace = true }
 futures = { workspace = true }
+sha2 = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

@@ -337,6 +337,8 @@ mod tests {
                 model: "gpt-4o-mini".to_string(),
                 api_key: "test".to_string(),
                 base_url: Some("https://api.openai.com/v1".to_string()),
+                prompt_caching_enabled: true,
+                cache_ttl: Default::default(),
             },
         };
 
