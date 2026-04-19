@@ -10,8 +10,8 @@ function hasIntegrations(agent: Agent): boolean {
 }
 
 function hasResources(agent: Agent): boolean {
-  if (!agent.resources || typeof agent.resources !== "object") return false
-  return Object.keys(agent.resources).length > 0
+  if (!agent.resource || typeof agent.resource !== "object") return false
+  return Object.keys(agent.resource).length > 0
 }
 
 interface AgentStatusIndicatorProps {
