@@ -166,6 +166,273 @@ var curatedProviders = []Provider{
 		},
 	},
 	// cohere, deepseek removed — not in supported provider set
+	{ // crof — Crof
+		ID:   "crof",
+		Name: "Crof",
+		Models: map[string]Model{
+			"kimi-k2.5": {
+				ID:          "kimi-k2.5",
+				Name:        "Kimi K2.5",
+				Family:      "kimi",
+				ToolCall:    true,
+				OpenWeights: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.35,
+					Output: 1.7,
+				},
+				Limit: &Limit{
+					Context: 262144,
+					Output:  262144,
+				},
+			},
+			"greg": {
+				ID:   "greg",
+				Name: "Greg",
+				Family: "greg",
+				ToolCall: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.3,
+					Output: 0.3,
+				},
+				Limit: &Limit{
+					Context: 200000,
+					Output:  200000,
+				},
+			},
+			"kimi-k2.5-lightning": {
+				ID:          "kimi-k2.5-lightning",
+				Name:        "Kimi K2.5 (Lightning)",
+				Family:      "kimi",
+				Reasoning:   true,
+				ToolCall:    true,
+				OpenWeights: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  1,
+					Output: 3,
+				},
+				Limit: &Limit{
+					Context: 131072,
+					Output:  32768,
+				},
+			},
+			"glm-5.1": {
+				ID:          "glm-5.1",
+				Name:        "GLM 5.1",
+				Family:      "glm",
+				ToolCall:    true,
+				OpenWeights: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.45,
+					Output: 2.1,
+				},
+				Limit: &Limit{
+					Context: 202752,
+					Output:  202752,
+				},
+			},
+			"glm-5.1-precision": {
+				ID:          "glm-5.1-precision",
+				Name:        "GLM 5.1 (Precision)",
+				Family:      "glm",
+				ToolCall:    true,
+				OpenWeights: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.8,
+					Output: 2.9,
+				},
+				Limit: &Limit{
+					Context: 202752,
+					Output:  202752,
+				},
+			},
+			"glm-5": {
+				ID:          "glm-5",
+				Name:        "GLM 5",
+				Family:      "glm",
+				ToolCall:    true,
+				OpenWeights: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.48,
+					Output: 1.9,
+				},
+				Limit: &Limit{
+					Context: 202752,
+					Output:  202752,
+				},
+			},
+			"glm-4.7": {
+				ID:          "glm-4.7",
+				Name:        "GLM 4.7",
+				Family:      "glm",
+				ToolCall:    true,
+				OpenWeights: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.25,
+					Output: 1.1,
+				},
+				Limit: &Limit{
+					Context: 202752,
+					Output:  202752,
+				},
+			},
+			"glm-4.7-flash": {
+				ID:          "glm-4.7-flash",
+				Name:        "GLM 4.7 Flash",
+				Family:      "glm-flash",
+				ToolCall:    true,
+				OpenWeights: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Limit: &Limit{
+					Context: 202752,
+					Output:  131072,
+				},
+			},
+			"gemma-4-31b-it": {
+				ID:          "gemma-4-31b-it",
+				Name:        "Gemma 4 31B",
+				Family:      "gemma",
+				ToolCall:    true,
+				OpenWeights: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.1,
+					Output: 0.3,
+				},
+				Limit: &Limit{
+					Context: 262144,
+					Output:  262144,
+				},
+			},
+			"minimax-m2.5": {
+				ID:          "minimax-m2.5",
+				Name:        "MiniMax M2.5",
+				Family:      "minimax",
+				ToolCall:    true,
+				OpenWeights: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.11,
+					Output: 0.95,
+				},
+				Limit: &Limit{
+					Context: 204800,
+					Output:  131072,
+				},
+			},
+			"qwen3.5-397b-a17b": {
+				ID:          "qwen3.5-397b-a17b",
+				Name:        "Qwen3.5 397B A17B",
+				Family:      "qwen",
+				Reasoning:   true,
+				ToolCall:    true,
+				OpenWeights: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.35,
+					Output: 1.75,
+				},
+				Limit: &Limit{
+					Context: 262144,
+					Output:  262144,
+				},
+			},
+			"qwen3.5-9b": {
+				ID:          "qwen3.5-9b",
+				Name:        "Qwen3.5 9B",
+				Family:      "qwen",
+				Reasoning:   true,
+				ToolCall:    true,
+				OpenWeights: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Limit: &Limit{
+					Context: 262144,
+					Output:  262144,
+				},
+			},
+			"qwen3.5-9b-chat": {
+				ID:          "qwen3.5-9b-chat",
+				Name:        "Qwen3.5 9B (Chat)",
+				Family:      "qwen",
+				Reasoning:   true,
+				ToolCall:    true,
+				OpenWeights: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.04,
+					Output: 0.15,
+				},
+				Limit: &Limit{
+					Context: 262144,
+					Output:  262144,
+				},
+			},
+			"deepseek-v3.2": {
+				ID:          "deepseek-v3.2",
+				Name:        "DeepSeek V3.2",
+				Family:      "deepseek",
+				ToolCall:    true,
+				OpenWeights: true,
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.28,
+					Output: 0.38,
+				},
+				Limit: &Limit{
+					Context: 163840,
+					Output:  163840,
+				},
+			},
+		},
+	},
 	{ // fireworks-ai — Fireworks AI
 		ID:   "fireworks-ai",
 		Name: "Fireworks AI",
