@@ -14,10 +14,20 @@ use tools::agent::{
 use tracing::{debug, warn};
 use webhooks::EventBus;
 
-/// Timeout for a foreground subagent chat call.
-const FOREGROUND_TIMEOUT: Duration = Duration::from_secs(120);
-/// Timeout for a background subagent chat call.
-const BACKGROUND_TIMEOUT: Duration = Duration::from_secs(300);
+/// Resolve (foreground, background) subagent timeouts from an `AgentConfig`,
+/// falling back to [`bridge_core::agent::DEFAULT_SUBAGENT_TIMEOUT_SECS`].
+pub fn resolve_subagent_timeouts(
+    config: &bridge_core::agent::AgentConfig,
+) -> (Duration, Duration) {
+    let default_secs = bridge_core::agent::DEFAULT_SUBAGENT_TIMEOUT_SECS;
+    let fg = config
+        .subagent_timeout_foreground_secs
+        .unwrap_or(default_secs);
+    let bg = config
+        .subagent_timeout_background_secs
+        .unwrap_or(default_secs);
+    (Duration::from_secs(fg), Duration::from_secs(bg))
+}
 
 /// A pre-built subagent entry ready for invocation.
 pub struct SubAgentEntry {
@@ -26,6 +36,14 @@ pub struct SubAgentEntry {
     pub agent: Arc<BridgeAgent>,
     /// Tool names and descriptions registered for this subagent at build time.
     pub registered_tools: Vec<(String, String)>,
+    /// Wall-clock timeout for foreground invocations of this subagent,
+    /// resolved from its `AgentConfig.subagent_timeout_foreground_secs`
+    /// (falling back to [`bridge_core::agent::DEFAULT_SUBAGENT_TIMEOUT_SECS`]).
+    pub foreground_timeout: Duration,
+    /// Wall-clock timeout for background invocations of this subagent,
+    /// resolved from its `AgentConfig.subagent_timeout_background_secs`
+    /// (falling back to [`bridge_core::agent::DEFAULT_SUBAGENT_TIMEOUT_SECS`]).
+    pub background_timeout: Duration,
 }
 
 /// Session store for subagent history persistence and resumption.
@@ -271,6 +289,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             .ok_or_else(|| format!("Subagent '{}' not found", subagent))?;
 
         let agent = entry.agent.clone();
+        let foreground_timeout = entry.foreground_timeout;
         let task_id = task_id
             .map(|id| id.to_string())
             .unwrap_or_else(|| self.generate_task_id());
@@ -313,12 +332,12 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             }
             result = async {
                 tokio::time::timeout(
-                    FOREGROUND_TIMEOUT,
+                    foreground_timeout,
                     agent.prompt_standard_with_hook(&prompt_owned, &mut history, emitter),
                 ).await
             } => {
                 match result {
-                    Err(_) => Err(format!("Subagent timed out after {}s", FOREGROUND_TIMEOUT.as_secs())),
+                    Err(_) => Err(format!("Subagent timed out after {}s", foreground_timeout.as_secs())),
                     Ok(Ok(output)) => Ok(output),
                     Ok(Err(e)) => Err(format!("Subagent error: {}", e)),
                 }
@@ -384,6 +403,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             .ok_or_else(|| format!("Subagent '{}' not found", subagent))?;
 
         let agent = entry.agent.clone();
+        let background_timeout = entry.background_timeout;
         let task_id = self.generate_task_id();
         let task_id_clone = task_id.clone();
 
@@ -468,12 +488,12 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                         }
                         result = async {
                             tokio::time::timeout(
-                                BACKGROUND_TIMEOUT,
+                                background_timeout,
                                 agent.prompt_standard_with_hook(&prompt_owned, &mut history, emitter),
                             ).await
                         } => {
                             match result {
-                                Err(_) => Err(format!("Background subagent timed out after {}s", BACKGROUND_TIMEOUT.as_secs())),
+                                Err(_) => Err(format!("Background subagent timed out after {}s", background_timeout.as_secs())),
                                 Ok(Ok(output)) => Ok(output),
                                 Ok(Err(e)) => Err(format!("Background subagent error: {}", e)),
                             }

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.21.1] - 2026-04-19
+
+### Changed
+
+- **Subagent execution timeout is now per-agent configurable** via `AgentConfig.subagent_timeout_foreground_secs` and `AgentConfig.subagent_timeout_background_secs` (seconds, both `Option<u64>`). Each subagent's own config supplies its timeout; `__self__` self-delegation reads from the parent agent's config. Default raised to **300s (5 min)** for both foreground and background (previously hardcoded 120s foreground / 300s background).
+
+### Infrastructure
+
+- `openapi.json` regenerated — publishes the two new `AgentConfig` fields.
+
 ## [0.21.0] - 2026-04-19
 
 ### Added

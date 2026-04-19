@@ -164,7 +164,21 @@ pub struct AgentConfig {
     /// Default: empty (no enforcement).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tool_requirements: Vec<ToolRequirement>,
+
+    /// Wall-clock timeout (seconds) applied when this agent is invoked as a
+    /// foreground subagent. Default: 300 (5 minutes).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subagent_timeout_foreground_secs: Option<u64>,
+
+    /// Wall-clock timeout (seconds) applied when this agent is invoked as a
+    /// background subagent. Default: 300 (5 minutes).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subagent_timeout_background_secs: Option<u64>,
 }
+
+/// Default subagent execution timeout (5 minutes) used when an agent config
+/// does not specify its own `subagent_timeout_*_secs`.
+pub const DEFAULT_SUBAGENT_TIMEOUT_SECS: u64 = 300;
 
 /// A single tool-call requirement that bridge enforces at turn boundaries.
 ///

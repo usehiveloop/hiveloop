@@ -74,6 +74,8 @@ mod serde_roundtrip_tests {
                 history_strip: None,
                 disabled_tools: vec![],
                 tool_requirements: vec![],
+                subagent_timeout_foreground_secs: None,
+                subagent_timeout_background_secs: None,
             },
             subagents: vec![AgentDefinition {
                 id: "sub-agent-001".to_string(),
@@ -213,6 +215,8 @@ mod serde_roundtrip_tests {
             history_strip: None,
             disabled_tools: vec!["bash".to_string(), "write".to_string()],
             tool_requirements: vec![],
+            subagent_timeout_foreground_secs: Some(60),
+            subagent_timeout_background_secs: Some(600),
         };
 
         let json = serde_json::to_string_pretty(&config).expect("serialize AgentConfig");

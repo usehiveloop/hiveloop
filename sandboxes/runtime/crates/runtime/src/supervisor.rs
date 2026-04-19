@@ -305,6 +305,8 @@ impl AgentSupervisor {
         .await?;
 
         // Inject the parent agent as "__self__" for self-delegation
+        let (self_fg_timeout, self_bg_timeout) =
+            crate::agent_runner::resolve_subagent_timeouts(&definition.config);
         subagent_map.insert(
             tools::self_agent::SELF_AGENT_NAME.to_string(),
             SubAgentEntry {
@@ -312,6 +314,8 @@ impl AgentSupervisor {
                 description: "Self-delegation agent".to_string(),
                 agent: Arc::new(rig_agent.clone()),
                 registered_tools: vec![], // uses parent's tool registry
+                foreground_timeout: self_fg_timeout,
+                background_timeout: self_bg_timeout,
             },
         );
 
@@ -571,6 +575,8 @@ impl AgentSupervisor {
                                 description: original.description.clone(),
                                 agent: Arc::new(sub_agent),
                                 registered_tools: original.registered_tools.clone(),
+                                foreground_timeout: original.foreground_timeout,
+                                background_timeout: original.background_timeout,
                             },
                         );
                     } else {
@@ -582,6 +588,8 @@ impl AgentSupervisor {
                                 description: original.description.clone(),
                                 agent: original.agent.clone(),
                                 registered_tools: original.registered_tools.clone(),
+                                foreground_timeout: original.foreground_timeout,
+                                background_timeout: original.background_timeout,
                             },
                         );
                     }
@@ -594,6 +602,8 @@ impl AgentSupervisor {
                             description: original.description.clone(),
                             agent: original.agent.clone(),
                             registered_tools: original.registered_tools.clone(),
+                            foreground_timeout: original.foreground_timeout,
+                            background_timeout: original.background_timeout,
                         },
                     );
                 }
@@ -1191,6 +1201,8 @@ impl AgentSupervisor {
         .await?;
 
         // Inject the parent agent as "__self__" for self-delegation
+        let (self_fg_timeout, self_bg_timeout) =
+            crate::agent_runner::resolve_subagent_timeouts(&definition.config);
         subagent_map.insert(
             tools::self_agent::SELF_AGENT_NAME.to_string(),
             SubAgentEntry {
@@ -1198,6 +1210,8 @@ impl AgentSupervisor {
                 description: "Self-delegation agent".to_string(),
                 agent: Arc::new(rig_agent.clone()),
                 registered_tools: vec![], // uses parent's tool registry
+                foreground_timeout: self_fg_timeout,
+                background_timeout: self_bg_timeout,
             },
         );
 
@@ -1707,6 +1721,9 @@ async fn build_subagents(
             .clone()
             .unwrap_or_else(|| subagent_def.name.clone());
 
+        let (fg_timeout, bg_timeout) =
+            crate::agent_runner::resolve_subagent_timeouts(&subagent_def.config);
+
         subagent_map.insert(
             subagent_def.name.clone(),
             SubAgentEntry {
@@ -1714,6 +1731,8 @@ async fn build_subagents(
                 description,
                 agent: Arc::new(sub_agent),
                 registered_tools,
+                foreground_timeout: fg_timeout,
+                background_timeout: bg_timeout,
             },
         );
     }
