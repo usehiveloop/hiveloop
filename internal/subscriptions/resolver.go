@@ -94,6 +94,34 @@ func ResolveEventResourceKey(
 	return key, true
 }
 
+// ResolveEventSummaryRefs extracts the curated summary field values from the
+// payload for an incoming webhook event, driven by the trigger's
+// `summary_refs` catalog entry.
+//
+// Returns the trigger def (for display context), the resolved map of
+// display_name → string_value, and true on catalog lookup success.
+// A catalog miss returns (nil, nil, false). A hit with no summary_refs
+// defined returns (def, nil, true) — callers should fall back to a minimal
+// envelope in that case.
+//
+// Values that resolve to missing/null/empty are omitted from the returned
+// map so the agent only sees fields that are actually present in the payload.
+func ResolveEventSummaryRefs(
+	cat *catalog.Catalog,
+	provider, eventType, eventAction string,
+	payload map[string]any,
+) (*catalog.TriggerDef, map[string]string, bool) {
+	def, ok := lookupTriggerDef(cat, provider, eventType, eventAction)
+	if !ok {
+		return nil, nil, false
+	}
+	if len(def.SummaryRefs) == 0 {
+		return def, nil, true
+	}
+	refs, _ := dispatch.ExtractRefs(payload, def.SummaryRefs)
+	return def, refs, true
+}
+
 // eventKey returns the "{eventType}.{eventAction}" composite or bare eventType
 // when the action is empty. Matches the catalog's trigger-map keying.
 func eventKey(eventType, eventAction string) string {

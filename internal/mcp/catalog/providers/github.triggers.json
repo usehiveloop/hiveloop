@@ -32,6 +32,13 @@
         "issue_html_url": "issue.html_url",
         "issue_created_at": "issue.created_at",
         "issue_locked": "issue.locked"
+      },
+      "summary_refs": {
+        "title": "issue.title",
+        "body": "issue.body",
+        "author": "issue.user.login",
+        "first_label": "issue.labels.0.name",
+        "url": "issue.html_url"
       }
     },
     "issues.closed": {
@@ -57,6 +64,12 @@
         "issue_closed_at": "issue.closed_at",
         "issue_html_url": "issue.html_url",
         "issue_first_label": "issue.labels.0.name"
+      },
+      "summary_refs": {
+        "title": "issue.title",
+        "state_reason": "issue.state_reason",
+        "sender": "sender.login",
+        "url": "issue.html_url"
       }
     },
     "issues.reopened": {
@@ -77,6 +90,11 @@
         "issue_state": "issue.state",
         "issue_author": "issue.user.login",
         "issue_html_url": "issue.html_url"
+      },
+      "summary_refs": {
+        "title": "issue.title",
+        "sender": "sender.login",
+        "url": "issue.html_url"
       }
     },
     "issues.edited": {
@@ -96,6 +114,14 @@
         "issue_html_url": "issue.html_url",
         "changes_title_from": "changes.title.from",
         "changes_body_from": "changes.body.from"
+      },
+      "summary_refs": {
+        "title": "issue.title",
+        "body": "issue.body",
+        "title_changed_from": "changes.title.from",
+        "body_changed_from": "changes.body.from",
+        "sender": "sender.login",
+        "url": "issue.html_url"
       }
     },
     "issues.labeled": {
@@ -116,6 +142,13 @@
         "label_name": "label.name",
         "label_color": "label.color",
         "label_description": "label.description"
+      },
+      "summary_refs": {
+        "title": "issue.title",
+        "label": "label.name",
+        "label_description": "label.description",
+        "sender": "sender.login",
+        "url": "issue.html_url"
       }
     },
     "issues.unlabeled": {
@@ -133,6 +166,12 @@
         "issue_number": "issue.number",
         "issue_title": "issue.title",
         "label_name": "label.name"
+      },
+      "summary_refs": {
+        "title": "issue.title",
+        "label": "label.name",
+        "sender": "sender.login",
+        "url": "issue.html_url"
       }
     },
     "issues.assigned": {
@@ -152,6 +191,12 @@
         "assignee_login": "assignee.login",
         "assignee_id": "assignee.id",
         "assignee_type": "assignee.type"
+      },
+      "summary_refs": {
+        "title": "issue.title",
+        "assignee": "assignee.login",
+        "sender": "sender.login",
+        "url": "issue.html_url"
       }
     },
     "issues.unassigned": {
@@ -167,6 +212,12 @@
         "sender": "sender.login",
         "issue_number": "issue.number",
         "assignee_login": "assignee.login"
+      },
+      "summary_refs": {
+        "title": "issue.title",
+        "assignee": "assignee.login",
+        "sender": "sender.login",
+        "url": "issue.html_url"
       }
     },
     "issues.milestoned": {
@@ -186,6 +237,13 @@
         "milestone_title": "milestone.title",
         "milestone_state": "milestone.state",
         "milestone_due_on": "milestone.due_on"
+      },
+      "summary_refs": {
+        "title": "issue.title",
+        "milestone": "milestone.title",
+        "milestone_due_on": "milestone.due_on",
+        "sender": "sender.login",
+        "url": "issue.html_url"
       }
     },
     "issue_comment.created": {
@@ -214,6 +272,13 @@
         "comment_author_association": "comment.author_association",
         "comment_html_url": "comment.html_url",
         "comment_created_at": "comment.created_at"
+      },
+      "summary_refs": {
+        "issue_title": "issue.title",
+        "issue_or_pr": "issue.pull_request.url",
+        "comment": "comment.body",
+        "author": "comment.user.login",
+        "url": "comment.html_url"
       }
     },
     "issue_comment.edited": {
@@ -234,6 +299,13 @@
         "comment_author": "comment.user.login",
         "comment_author_association": "comment.author_association",
         "changes_body_from": "changes.body.from"
+      },
+      "summary_refs": {
+        "issue_title": "issue.title",
+        "comment": "comment.body",
+        "comment_changed_from": "changes.body.from",
+        "author": "comment.user.login",
+        "url": "comment.html_url"
       }
     },
     "issue_comment.deleted": {
@@ -250,6 +322,11 @@
         "pr_url": "issue.pull_request.url",
         "comment_id": "comment.id",
         "comment_author": "comment.user.login"
+      },
+      "summary_refs": {
+        "issue_title": "issue.title",
+        "author": "comment.user.login",
+        "sender": "sender.login"
       }
     },
     "pull_request.opened": {
@@ -295,6 +372,17 @@
         "pr_first_requested_reviewer": "pull_request.requested_reviewers.0.login",
         "pr_milestone_title": "pull_request.milestone.title",
         "pr_created_at": "pull_request.created_at"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "body": "pull_request.body",
+        "author": "pull_request.user.login",
+        "draft": "pull_request.draft",
+        "base_ref": "pull_request.base.ref",
+        "head_ref": "pull_request.head.ref",
+        "first_label": "pull_request.labels.0.name",
+        "first_requested_reviewer": "pull_request.requested_reviewers.0.login",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request.closed": {
@@ -329,6 +417,16 @@
         "pr_additions": "pull_request.additions",
         "pr_deletions": "pull_request.deletions",
         "pr_changed_files": "pull_request.changed_files"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "merged": "pull_request.merged",
+        "merged_by": "pull_request.merged_by.login",
+        "merge_commit_sha": "pull_request.merge_commit_sha",
+        "base_ref": "pull_request.base.ref",
+        "head_ref": "pull_request.head.ref",
+        "sender": "sender.login",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request.reopened": {
@@ -350,6 +448,14 @@
         "pr_author": "pull_request.user.login",
         "pr_head_ref": "pull_request.head.ref",
         "pr_html_url": "pull_request.html_url"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "author": "pull_request.user.login",
+        "draft": "pull_request.draft",
+        "head_ref": "pull_request.head.ref",
+        "sender": "sender.login",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request.edited": {
@@ -370,6 +476,15 @@
         "changes_body_from": "changes.body.from",
         "changes_base_ref_from": "changes.base.ref.from",
         "changes_base_sha_from": "changes.base.sha.from"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "body": "pull_request.body",
+        "title_changed_from": "changes.title.from",
+        "body_changed_from": "changes.body.from",
+        "base_ref_changed_from": "changes.base.ref.from",
+        "sender": "sender.login",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request.ready_for_review": {
@@ -397,6 +512,13 @@
         "pr_additions": "pull_request.additions",
         "pr_deletions": "pull_request.deletions",
         "pr_changed_files": "pull_request.changed_files"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "author": "pull_request.user.login",
+        "base_ref": "pull_request.base.ref",
+        "head_ref": "pull_request.head.ref",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request.converted_to_draft": {
@@ -414,6 +536,11 @@
         "pr_title": "pull_request.title",
         "pr_draft": "pull_request.draft",
         "pr_html_url": "pull_request.html_url"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "sender": "sender.login",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request.synchronize": {
@@ -439,6 +566,14 @@
         "pr_html_url": "pull_request.html_url",
         "before_sha": "before",
         "after_sha": "after"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "before_sha": "before",
+        "after_sha": "after",
+        "head_ref": "pull_request.head.ref",
+        "base_ref": "pull_request.base.ref",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request.review_requested": {
@@ -461,6 +596,14 @@
         "requested_reviewer_type": "requested_reviewer.type",
         "requested_team_slug": "requested_team.slug",
         "requested_team_name": "requested_team.name"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "author": "pull_request.user.login",
+        "requested_reviewer": "requested_reviewer.login",
+        "requested_team": "requested_team.slug",
+        "sender": "sender.login",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request.review_request_removed": {
@@ -478,6 +621,13 @@
         "pr_title": "pull_request.title",
         "requested_reviewer_login": "requested_reviewer.login",
         "requested_team_slug": "requested_team.slug"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "requested_reviewer": "requested_reviewer.login",
+        "requested_team": "requested_team.slug",
+        "sender": "sender.login",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request.labeled": {
@@ -498,6 +648,13 @@
         "label_name": "label.name",
         "label_color": "label.color",
         "label_description": "label.description"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "label": "label.name",
+        "label_description": "label.description",
+        "sender": "sender.login",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request.unlabeled": {
@@ -514,6 +671,12 @@
         "pr_number": "pull_request.number",
         "pr_title": "pull_request.title",
         "label_name": "label.name"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "label": "label.name",
+        "sender": "sender.login",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request.assigned": {
@@ -531,6 +694,12 @@
         "pr_title": "pull_request.title",
         "assignee_login": "assignee.login",
         "assignee_id": "assignee.id"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "assignee": "assignee.login",
+        "sender": "sender.login",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request.auto_merge_enabled": {
@@ -548,6 +717,12 @@
         "pr_title": "pull_request.title",
         "auto_merge_method": "pull_request.auto_merge.merge_method",
         "auto_merge_enabled_by": "pull_request.auto_merge.enabled_by.login"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "enabled_by": "pull_request.auto_merge.enabled_by.login",
+        "merge_method": "pull_request.auto_merge.merge_method",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request.auto_merge_disabled": {
@@ -563,6 +738,12 @@
         "sender": "sender.login",
         "pr_number": "pull_request.number",
         "reason": "reason"
+      },
+      "summary_refs": {
+        "title": "pull_request.title",
+        "reason": "reason",
+        "sender": "sender.login",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request_review.submitted": {
@@ -596,6 +777,16 @@
         "review_commit_id": "review.commit_id",
         "review_submitted_at": "review.submitted_at",
         "review_html_url": "review.html_url"
+      },
+      "summary_refs": {
+        "pr_title": "pull_request.title",
+        "review_author": "review.user.login",
+        "review_state": "review.state",
+        "review_body": "review.body",
+        "pr_author": "pull_request.user.login",
+        "base_ref": "pull_request.base.ref",
+        "head_ref": "pull_request.head.ref",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request_review.dismissed": {
@@ -614,6 +805,13 @@
         "review_id": "review.id",
         "review_state": "review.state",
         "review_author": "review.user.login"
+      },
+      "summary_refs": {
+        "pr_title": "pull_request.title",
+        "review_author": "review.user.login",
+        "review_state": "review.state",
+        "sender": "sender.login",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request_review.edited": {
@@ -634,6 +832,14 @@
         "review_author": "review.user.login",
         "review_body": "review.body",
         "changes_body_from": "changes.body.from"
+      },
+      "summary_refs": {
+        "pr_title": "pull_request.title",
+        "review_author": "review.user.login",
+        "review_state": "review.state",
+        "review_body": "review.body",
+        "review_body_changed_from": "changes.body.from",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request_review_comment.created": {
@@ -672,6 +878,16 @@
         "comment_diff_hunk": "comment.diff_hunk",
         "comment_html_url": "comment.html_url",
         "comment_created_at": "comment.created_at"
+      },
+      "summary_refs": {
+        "pr_title": "pull_request.title",
+        "author": "comment.user.login",
+        "comment": "comment.body",
+        "path": "comment.path",
+        "line": "comment.line",
+        "diff_hunk": "comment.diff_hunk",
+        "in_reply_to_id": "comment.in_reply_to_id",
+        "url": "comment.html_url"
       }
     },
     "pull_request_review_comment.edited": {
@@ -693,6 +909,15 @@
         "comment_body": "comment.body",
         "comment_author": "comment.user.login",
         "changes_body_from": "changes.body.from"
+      },
+      "summary_refs": {
+        "pr_title": "pull_request.title",
+        "author": "comment.user.login",
+        "comment": "comment.body",
+        "comment_changed_from": "changes.body.from",
+        "path": "comment.path",
+        "line": "comment.line",
+        "url": "pull_request.html_url"
       }
     },
     "pull_request_review_comment.deleted": {
@@ -710,6 +935,13 @@
         "comment_id": "comment.id",
         "comment_path": "comment.path",
         "comment_author": "comment.user.login"
+      },
+      "summary_refs": {
+        "pr_title": "pull_request.title",
+        "author": "comment.user.login",
+        "path": "comment.path",
+        "sender": "sender.login",
+        "url": "pull_request.html_url"
       }
     },
     "check_suite.completed": {
@@ -746,6 +978,15 @@
         "head_commit_message": "check_suite.head_commit.message",
         "head_commit_author_name": "check_suite.head_commit.author.name",
         "head_commit_timestamp": "check_suite.head_commit.timestamp"
+      },
+      "summary_refs": {
+        "app": "check_suite.app.name",
+        "conclusion": "check_suite.conclusion",
+        "url": "check_suite.url",
+        "head_branch": "check_suite.head_branch",
+        "head_sha": "check_suite.head_sha",
+        "pr_number": "check_suite.pull_requests.0.number",
+        "head_commit_message": "check_suite.head_commit.message"
       }
     },
     "check_suite.requested": {
@@ -765,6 +1006,12 @@
         "head_sha": "check_suite.head_sha",
         "pr_number": "check_suite.pull_requests.0.number",
         "pr_head_ref": "check_suite.pull_requests.0.head.ref"
+      },
+      "summary_refs": {
+        "check_suite_id": "check_suite.id",
+        "head_branch": "check_suite.head_branch",
+        "head_sha": "check_suite.head_sha",
+        "pr_number": "check_suite.pull_requests.0.number"
       }
     },
     "check_suite.rerequested": {
@@ -782,6 +1029,13 @@
         "head_branch": "check_suite.head_branch",
         "head_sha": "check_suite.head_sha",
         "pr_number": "check_suite.pull_requests.0.number"
+      },
+      "summary_refs": {
+        "check_suite_id": "check_suite.id",
+        "head_branch": "check_suite.head_branch",
+        "head_sha": "check_suite.head_sha",
+        "pr_number": "check_suite.pull_requests.0.number",
+        "sender": "sender.login"
       }
     },
     "check_run.completed": {
@@ -817,6 +1071,16 @@
         "pr_number": "check_run.pull_requests.0.number",
         "pr_head_ref": "check_run.pull_requests.0.head.ref",
         "pr_base_ref": "check_run.pull_requests.0.base.ref"
+      },
+      "summary_refs": {
+        "name": "check_run.name",
+        "app": "check_run.app.name",
+        "conclusion": "check_run.conclusion",
+        "output_title": "check_run.output.title",
+        "output_summary": "check_run.output.summary",
+        "url": "check_run.html_url",
+        "head_sha": "check_run.head_sha",
+        "pr_number": "check_run.pull_requests.0.number"
       }
     },
     "check_run.created": {
@@ -837,6 +1101,13 @@
         "check_run_app_name": "check_run.app.name",
         "pr_number": "check_run.pull_requests.0.number",
         "pr_head_ref": "check_run.pull_requests.0.head.ref"
+      },
+      "summary_refs": {
+        "name": "check_run.name",
+        "app": "check_run.app.name",
+        "status": "check_run.status",
+        "head_sha": "check_run.head_sha",
+        "pr_number": "check_run.pull_requests.0.number"
       }
     },
     "check_run.rerequested": {
@@ -854,6 +1125,12 @@
         "check_run_name": "check_run.name",
         "head_sha": "check_run.head_sha",
         "pr_number": "check_run.pull_requests.0.number"
+      },
+      "summary_refs": {
+        "name": "check_run.name",
+        "head_sha": "check_run.head_sha",
+        "pr_number": "check_run.pull_requests.0.number",
+        "sender": "sender.login"
       }
     },
     "check_run.requested_action": {
@@ -871,6 +1148,13 @@
         "check_run_name": "check_run.name",
         "head_sha": "check_run.head_sha",
         "requested_action_identifier": "requested_action.identifier",
+        "pr_number": "check_run.pull_requests.0.number"
+      },
+      "summary_refs": {
+        "name": "check_run.name",
+        "requested_action": "requested_action.identifier",
+        "sender": "sender.login",
+        "head_sha": "check_run.head_sha",
         "pr_number": "check_run.pull_requests.0.number"
       }
     },
@@ -913,6 +1197,20 @@
         "pr_number": "workflow_run.pull_requests.0.number",
         "pr_head_ref": "workflow_run.pull_requests.0.head.ref",
         "pr_base_ref": "workflow_run.pull_requests.0.base.ref"
+      },
+      "summary_refs": {
+        "workflow_name": "workflow_run.name",
+        "display_title": "workflow_run.display_title",
+        "conclusion": "workflow_run.conclusion",
+        "event": "workflow_run.event",
+        "head_branch": "workflow_run.head_branch",
+        "head_sha": "workflow_run.head_sha",
+        "actor": "workflow_run.actor.login",
+        "attempt": "workflow_run.run_attempt",
+        "run_number": "workflow_run.run_number",
+        "url": "workflow_run.html_url",
+        "pr_number": "workflow_run.pull_requests.0.number",
+        "head_commit_message": "workflow_run.head_commit.message"
       }
     },
     "workflow_run.requested": {
@@ -930,6 +1228,14 @@
         "run_event": "workflow_run.event",
         "run_status": "workflow_run.status",
         "workflow_name": "workflow_run.name",
+        "head_branch": "workflow_run.head_branch",
+        "head_sha": "workflow_run.head_sha",
+        "pr_number": "workflow_run.pull_requests.0.number"
+      },
+      "summary_refs": {
+        "workflow_name": "workflow_run.name",
+        "run_id": "workflow_run.id",
+        "event": "workflow_run.event",
         "head_branch": "workflow_run.head_branch",
         "head_sha": "workflow_run.head_sha",
         "pr_number": "workflow_run.pull_requests.0.number"
@@ -963,6 +1269,15 @@
         "job_runner_name": "workflow_job.runner_name",
         "job_runner_group_name": "workflow_job.runner_group_name",
         "job_first_label": "workflow_job.labels.0"
+      },
+      "summary_refs": {
+        "job_name": "workflow_job.name",
+        "workflow_name": "workflow_job.workflow_name",
+        "conclusion": "workflow_job.conclusion",
+        "url": "workflow_job.html_url",
+        "head_branch": "workflow_job.head_branch",
+        "head_sha": "workflow_job.head_sha",
+        "runner_name": "workflow_job.runner_name"
       }
     },
     "workflow_job.in_progress": {
@@ -983,6 +1298,13 @@
         "workflow_name": "workflow_job.workflow_name",
         "head_branch": "workflow_job.head_branch",
         "head_sha": "workflow_job.head_sha"
+      },
+      "summary_refs": {
+        "job_name": "workflow_job.name",
+        "workflow_name": "workflow_job.workflow_name",
+        "head_branch": "workflow_job.head_branch",
+        "head_sha": "workflow_job.head_sha",
+        "job_id": "workflow_job.id"
       }
     },
     "workflow_job.queued": {
@@ -1001,6 +1323,13 @@
         "workflow_name": "workflow_job.workflow_name",
         "head_branch": "workflow_job.head_branch",
         "head_sha": "workflow_job.head_sha"
+      },
+      "summary_refs": {
+        "job_name": "workflow_job.name",
+        "workflow_name": "workflow_job.workflow_name",
+        "head_branch": "workflow_job.head_branch",
+        "head_sha": "workflow_job.head_sha",
+        "job_id": "workflow_job.id"
       }
     },
     "workflow_job.waiting": {
@@ -1019,6 +1348,13 @@
         "workflow_name": "workflow_job.workflow_name",
         "head_branch": "workflow_job.head_branch",
         "head_sha": "workflow_job.head_sha"
+      },
+      "summary_refs": {
+        "job_name": "workflow_job.name",
+        "workflow_name": "workflow_job.workflow_name",
+        "head_branch": "workflow_job.head_branch",
+        "head_sha": "workflow_job.head_sha",
+        "job_id": "workflow_job.id"
       }
     },
     "deployment_status.created": {
@@ -1057,6 +1393,16 @@
         "workflow_run_conclusion": "workflow_run.conclusion",
         "workflow_run_head_branch": "workflow_run.head_branch",
         "workflow_run_head_sha": "workflow_run.head_sha"
+      },
+      "summary_refs": {
+        "state": "deployment_status.state",
+        "environment": "deployment_status.environment",
+        "ref": "deployment.ref",
+        "sha": "deployment.sha",
+        "description": "deployment_status.description",
+        "environment_url": "deployment_status.environment_url",
+        "creator": "deployment.creator.login",
+        "task": "deployment.task"
       }
     },
     "push": {
@@ -1093,6 +1439,18 @@
         "head_commit_committer_email": "head_commit.committer.email",
         "pusher_name": "pusher.name",
         "pusher_email": "pusher.email"
+      },
+      "summary_refs": {
+        "ref": "ref",
+        "before": "before",
+        "after": "after",
+        "head_commit_message": "head_commit.message",
+        "head_commit_author": "head_commit.author.name",
+        "pusher": "pusher.name",
+        "forced": "forced",
+        "deleted": "deleted",
+        "created": "created",
+        "compare_url": "compare"
       }
     },
     "create": {
@@ -1113,6 +1471,13 @@
         "master_branch": "master_branch",
         "description": "description",
         "pusher_type": "pusher_type"
+      },
+      "summary_refs": {
+        "ref": "ref",
+        "ref_type": "ref_type",
+        "description": "description",
+        "pusher_type": "pusher_type",
+        "sender": "sender.login"
       }
     },
     "delete": {
@@ -1130,6 +1495,12 @@
         "ref": "ref",
         "ref_type": "ref_type",
         "pusher_type": "pusher_type"
+      },
+      "summary_refs": {
+        "ref": "ref",
+        "ref_type": "ref_type",
+        "pusher_type": "pusher_type",
+        "sender": "sender.login"
       }
     },
     "release.published": {
@@ -1156,6 +1527,14 @@
         "release_author": "release.author.login",
         "release_html_url": "release.html_url",
         "release_discussion_url": "release.discussion_url"
+      },
+      "summary_refs": {
+        "tag": "release.tag_name",
+        "name": "release.name",
+        "body": "release.body",
+        "author": "release.author.login",
+        "prerelease": "release.prerelease",
+        "url": "release.html_url"
       }
     },
     "release.released": {
@@ -1175,6 +1554,12 @@
         "release_target_commitish": "release.target_commitish",
         "release_author": "release.author.login",
         "release_html_url": "release.html_url"
+      },
+      "summary_refs": {
+        "tag": "release.tag_name",
+        "name": "release.name",
+        "author": "release.author.login",
+        "url": "release.html_url"
       }
     },
     "release.prereleased": {
@@ -1194,6 +1579,12 @@
         "release_prerelease": "release.prerelease",
         "release_author": "release.author.login",
         "release_html_url": "release.html_url"
+      },
+      "summary_refs": {
+        "tag": "release.tag_name",
+        "name": "release.name",
+        "author": "release.author.login",
+        "url": "release.html_url"
       }
     },
     "release.created": {
@@ -1212,6 +1603,13 @@
         "release_name": "release.name",
         "release_draft": "release.draft",
         "release_html_url": "release.html_url"
+      },
+      "summary_refs": {
+        "tag": "release.tag_name",
+        "name": "release.name",
+        "draft": "release.draft",
+        "url": "release.html_url",
+        "sender": "sender.login"
       }
     },
     "release.edited": {
@@ -1230,6 +1628,15 @@
         "release_name": "release.name",
         "changes_body_from": "changes.body.from",
         "changes_name_from": "changes.name.from"
+      },
+      "summary_refs": {
+        "tag": "release.tag_name",
+        "name": "release.name",
+        "body": "release.body",
+        "name_changed_from": "changes.name.from",
+        "body_changed_from": "changes.body.from",
+        "sender": "sender.login",
+        "url": "release.html_url"
       }
     },
     "discussion.created": {
@@ -1257,6 +1664,13 @@
         "discussion_html_url": "discussion.html_url",
         "discussion_created_at": "discussion.created_at",
         "discussion_locked": "discussion.locked"
+      },
+      "summary_refs": {
+        "title": "discussion.title",
+        "body": "discussion.body",
+        "category": "discussion.category.name",
+        "author": "discussion.user.login",
+        "url": "discussion.html_url"
       }
     },
     "discussion.answered": {
@@ -1276,6 +1690,12 @@
         "answer_body": "answer.body",
         "answer_author": "answer.user.login",
         "answer_html_url": "answer.html_url"
+      },
+      "summary_refs": {
+        "discussion_title": "discussion.title",
+        "answer_body": "answer.body",
+        "answer_author": "answer.user.login",
+        "url": "answer.html_url"
       }
     },
     "discussion.edited": {
@@ -1293,6 +1713,14 @@
         "discussion_title": "discussion.title",
         "changes_title_from": "changes.title.from",
         "changes_body_from": "changes.body.from"
+      },
+      "summary_refs": {
+        "title": "discussion.title",
+        "body": "discussion.body",
+        "title_changed_from": "changes.title.from",
+        "body_changed_from": "changes.body.from",
+        "sender": "sender.login",
+        "url": "discussion.html_url"
       }
     },
     "discussion.labeled": {
@@ -1309,6 +1737,12 @@
         "discussion_number": "discussion.number",
         "discussion_title": "discussion.title",
         "label_name": "label.name"
+      },
+      "summary_refs": {
+        "title": "discussion.title",
+        "label": "label.name",
+        "sender": "sender.login",
+        "url": "discussion.html_url"
       }
     },
     "discussion_comment.created": {
@@ -1332,6 +1766,14 @@
         "comment_html_url": "comment.html_url",
         "comment_parent_id": "comment.parent_id",
         "comment_created_at": "comment.created_at"
+      },
+      "summary_refs": {
+        "discussion_title": "discussion.title",
+        "category": "discussion.category.name",
+        "comment": "comment.body",
+        "author": "comment.user.login",
+        "parent_id": "comment.parent_id",
+        "url": "comment.html_url"
       }
     },
     "discussion_comment.edited": {
@@ -1350,6 +1792,12 @@
         "comment_body": "comment.body",
         "comment_author": "comment.user.login",
         "changes_body_from": "changes.body.from"
+      },
+      "summary_refs": {
+        "discussion_title": "discussion.title",
+        "comment": "comment.body",
+        "comment_changed_from": "changes.body.from",
+        "author": "comment.user.login"
       }
     },
     "discussion_comment.deleted": {
@@ -1366,6 +1814,11 @@
         "discussion_number": "discussion.number",
         "comment_id": "comment.id",
         "comment_author": "comment.user.login"
+      },
+      "summary_refs": {
+        "discussion_number": "discussion.number",
+        "author": "comment.user.login",
+        "sender": "sender.login"
       }
     },
     "commit_comment.created": {
@@ -1389,6 +1842,14 @@
         "comment_position": "comment.position",
         "comment_html_url": "comment.html_url",
         "comment_created_at": "comment.created_at"
+      },
+      "summary_refs": {
+        "commit_id": "comment.commit_id",
+        "path": "comment.path",
+        "line": "comment.line",
+        "comment": "comment.body",
+        "author": "comment.user.login",
+        "url": "comment.html_url"
       }
     },
     "fork": {
@@ -1407,6 +1868,12 @@
         "forkee_owner": "forkee.owner.login",
         "forkee_url": "forkee.html_url",
         "forkee_default_branch": "forkee.default_branch"
+      },
+      "summary_refs": {
+        "forkee_full_name": "forkee.full_name",
+        "forkee_owner": "forkee.owner.login",
+        "forkee_url": "forkee.html_url",
+        "sender": "sender.login"
       }
     },
     "star.created": {
@@ -1421,6 +1888,9 @@
         "repository": "repository.full_name",
         "sender": "sender.login",
         "starred_at": "starred_at"
+      },
+      "summary_refs": {
+        "sender": "sender.login"
       }
     },
     "watch.started": {
@@ -1434,6 +1904,9 @@
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login"
+      },
+      "summary_refs": {
+        "sender": "sender.login"
       }
     }
   },
@@ -1441,265 +1914,761 @@
     "issues_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "opened, edited, deleted, pinned, unpinned, closed, reopened, assigned, unassigned, labeled, unlabeled, locked, unlocked, transferred, milestoned, or demilestoned"},
-        "issue": {"type": "object", "description": "The issue: id, number, title, body, state, state_reason, user, labels[], assignees[], milestone, created_at, updated_at, closed_at, html_url, author_association, reactions, locked, active_lock_reason", "schema_ref": "issue"},
-        "changes": {"type": "object", "description": "Prior values for edited actions: changes.title.from, changes.body.from"},
-        "assignee": {"type": "object", "description": "The user added/removed for assigned/unassigned actions", "schema_ref": "simple-user"},
-        "label": {"type": "object", "description": "The label added/removed for labeled/unlabeled: id, name, color, description, default"},
-        "milestone": {"type": "object", "description": "The milestone for milestoned/demilestoned: id, number, title, state, due_on", "schema_ref": "nullable-milestone"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object", "description": "Present when delivered via a GitHub App installation"}
+        "action": {
+          "type": "string",
+          "description": "opened, edited, deleted, pinned, unpinned, closed, reopened, assigned, unassigned, labeled, unlabeled, locked, unlocked, transferred, milestoned, or demilestoned"
+        },
+        "issue": {
+          "type": "object",
+          "description": "The issue: id, number, title, body, state, state_reason, user, labels[], assignees[], milestone, created_at, updated_at, closed_at, html_url, author_association, reactions, locked, active_lock_reason",
+          "schema_ref": "issue"
+        },
+        "changes": {
+          "type": "object",
+          "description": "Prior values for edited actions: changes.title.from, changes.body.from"
+        },
+        "assignee": {
+          "type": "object",
+          "description": "The user added/removed for assigned/unassigned actions",
+          "schema_ref": "simple-user"
+        },
+        "label": {
+          "type": "object",
+          "description": "The label added/removed for labeled/unlabeled: id, name, color, description, default"
+        },
+        "milestone": {
+          "type": "object",
+          "description": "The milestone for milestoned/demilestoned: id, number, title, state, due_on",
+          "schema_ref": "nullable-milestone"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object",
+          "description": "Present when delivered via a GitHub App installation"
+        }
       }
     },
     "issue_comment_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "created, edited, or deleted"},
-        "issue": {"type": "object", "description": "The issue OR pull request. issue.pull_request.url is populated when the comment is on a PR — use it as the issue-vs-PR discriminator.", "schema_ref": "issue"},
-        "comment": {"type": "object", "description": "id, body, user, created_at, updated_at, html_url, author_association, reactions, performed_via_github_app", "schema_ref": "issue-comment"},
-        "changes": {"type": "object", "description": "changes.body.from for edited action"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "created, edited, or deleted"
+        },
+        "issue": {
+          "type": "object",
+          "description": "The issue OR pull request. issue.pull_request.url is populated when the comment is on a PR — use it as the issue-vs-PR discriminator.",
+          "schema_ref": "issue"
+        },
+        "comment": {
+          "type": "object",
+          "description": "id, body, user, created_at, updated_at, html_url, author_association, reactions, performed_via_github_app",
+          "schema_ref": "issue-comment"
+        },
+        "changes": {
+          "type": "object",
+          "description": "changes.body.from for edited action"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "pull_request_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "opened, edited, closed, reopened, assigned, unassigned, review_requested, review_request_removed, labeled, unlabeled, synchronize, converted_to_draft, ready_for_review, locked, unlocked, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued, milestoned, demilestoned"},
-        "number": {"type": "integer", "description": "PR number"},
-        "pull_request": {"type": "object", "description": "id, number, title, body, state, draft, merged, merged_at, merged_by, merge_commit_sha, user, head (ref/sha/repo), base (ref/sha/repo), labels[], assignees[], requested_reviewers[], requested_teams[], milestone, created_at, updated_at, closed_at, html_url, diff_url, patch_url, additions, deletions, changed_files, commits, comments, review_comments, mergeable, mergeable_state, auto_merge, author_association", "schema_ref": "pull-request"},
-        "changes": {"type": "object", "description": "Prior values for edited action: changes.title.from, changes.body.from, changes.base.ref.from, changes.base.sha.from"},
-        "requested_reviewer": {"type": "object", "description": "Single user requested (review_requested/review_request_removed)", "schema_ref": "simple-user"},
-        "requested_team": {"type": "object", "description": "Single team requested (review_requested/review_request_removed with team)", "schema_ref": "team-full"},
-        "assignee": {"type": "object", "description": "User for assigned/unassigned actions", "schema_ref": "simple-user"},
-        "label": {"type": "object", "description": "Label for labeled/unlabeled actions"},
-        "before": {"type": "string", "description": "Previous head SHA (synchronize action only)"},
-        "after": {"type": "string", "description": "New head SHA (synchronize action only)"},
-        "reason": {"type": "string", "description": "Reason field on auto_merge_enabled/disabled and dequeued"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "opened, edited, closed, reopened, assigned, unassigned, review_requested, review_request_removed, labeled, unlabeled, synchronize, converted_to_draft, ready_for_review, locked, unlocked, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued, milestoned, demilestoned"
+        },
+        "number": {
+          "type": "integer",
+          "description": "PR number"
+        },
+        "pull_request": {
+          "type": "object",
+          "description": "id, number, title, body, state, draft, merged, merged_at, merged_by, merge_commit_sha, user, head (ref/sha/repo), base (ref/sha/repo), labels[], assignees[], requested_reviewers[], requested_teams[], milestone, created_at, updated_at, closed_at, html_url, diff_url, patch_url, additions, deletions, changed_files, commits, comments, review_comments, mergeable, mergeable_state, auto_merge, author_association",
+          "schema_ref": "pull-request"
+        },
+        "changes": {
+          "type": "object",
+          "description": "Prior values for edited action: changes.title.from, changes.body.from, changes.base.ref.from, changes.base.sha.from"
+        },
+        "requested_reviewer": {
+          "type": "object",
+          "description": "Single user requested (review_requested/review_request_removed)",
+          "schema_ref": "simple-user"
+        },
+        "requested_team": {
+          "type": "object",
+          "description": "Single team requested (review_requested/review_request_removed with team)",
+          "schema_ref": "team-full"
+        },
+        "assignee": {
+          "type": "object",
+          "description": "User for assigned/unassigned actions",
+          "schema_ref": "simple-user"
+        },
+        "label": {
+          "type": "object",
+          "description": "Label for labeled/unlabeled actions"
+        },
+        "before": {
+          "type": "string",
+          "description": "Previous head SHA (synchronize action only)"
+        },
+        "after": {
+          "type": "string",
+          "description": "New head SHA (synchronize action only)"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Reason field on auto_merge_enabled/disabled and dequeued"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "pull_request_review_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "submitted, edited, or dismissed"},
-        "review": {"type": "object", "description": "id, user, body, commit_id, submitted_at, state (approved, changes_requested, commented, dismissed), html_url, author_association, pull_request_url"},
-        "pull_request": {"type": "object", "schema_ref": "pull-request"},
-        "changes": {"type": "object", "description": "changes.body.from for edited action"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "submitted, edited, or dismissed"
+        },
+        "review": {
+          "type": "object",
+          "description": "id, user, body, commit_id, submitted_at, state (approved, changes_requested, commented, dismissed), html_url, author_association, pull_request_url"
+        },
+        "pull_request": {
+          "type": "object",
+          "schema_ref": "pull-request"
+        },
+        "changes": {
+          "type": "object",
+          "description": "changes.body.from for edited action"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "pull_request_review_comment_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "created, edited, or deleted"},
-        "comment": {"type": "object", "description": "id, pull_request_review_id, diff_hunk, path, position, original_position, commit_id, original_commit_id, line, original_line, start_line, start_side, side, body, user, in_reply_to_id, created_at, updated_at, html_url, author_association, reactions", "schema_ref": "pull-request-review-comment"},
-        "pull_request": {"type": "object", "schema_ref": "pull-request"},
-        "changes": {"type": "object", "description": "changes.body.from for edited action"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "created, edited, or deleted"
+        },
+        "comment": {
+          "type": "object",
+          "description": "id, pull_request_review_id, diff_hunk, path, position, original_position, commit_id, original_commit_id, line, original_line, start_line, start_side, side, body, user, in_reply_to_id, created_at, updated_at, html_url, author_association, reactions",
+          "schema_ref": "pull-request-review-comment"
+        },
+        "pull_request": {
+          "type": "object",
+          "schema_ref": "pull-request"
+        },
+        "changes": {
+          "type": "object",
+          "description": "changes.body.from for edited action"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "check_suite_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "completed, requested, or rerequested"},
-        "check_suite": {"type": "object", "description": "id, node_id, head_branch, head_sha, status (queued, in_progress, completed), conclusion (success, failure, neutral, cancelled, timed_out, action_required, stale, skipped, startup_failure), url, before, after, pull_requests[] (may be empty for fork PRs or non-PR commits), app (the GitHub App that created the suite — often null for Actions suites), created_at, updated_at, latest_check_runs_count, check_runs_url, head_commit"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "completed, requested, or rerequested"
+        },
+        "check_suite": {
+          "type": "object",
+          "description": "id, node_id, head_branch, head_sha, status (queued, in_progress, completed), conclusion (success, failure, neutral, cancelled, timed_out, action_required, stale, skipped, startup_failure), url, before, after, pull_requests[] (may be empty for fork PRs or non-PR commits), app (the GitHub App that created the suite — often null for Actions suites), created_at, updated_at, latest_check_runs_count, check_runs_url, head_commit"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "check_run_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "created, completed, rerequested, or requested_action"},
-        "check_run": {"type": "object", "description": "id, head_sha, node_id, external_id, name, status, conclusion, started_at, completed_at, output (title, summary, text, annotations_count, annotations_url), check_suite (nested), app, pull_requests[], html_url, details_url"},
-        "requested_action": {"type": "object", "description": "Present only on requested_action: { identifier }"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "created, completed, rerequested, or requested_action"
+        },
+        "check_run": {
+          "type": "object",
+          "description": "id, head_sha, node_id, external_id, name, status, conclusion, started_at, completed_at, output (title, summary, text, annotations_count, annotations_url), check_suite (nested), app, pull_requests[], html_url, details_url"
+        },
+        "requested_action": {
+          "type": "object",
+          "description": "Present only on requested_action: { identifier }"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "workflow_run_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "completed, requested, or in_progress"},
-        "workflow_run": {"type": "object", "description": "id, name, display_title, node_id, head_branch, head_sha, path, run_number, event (trigger type: push, pull_request, workflow_dispatch, …), status, conclusion, workflow_id, check_suite_id, check_suite_node_id, html_url, created_at, updated_at, run_attempt, run_started_at, actor, triggering_actor, head_commit (id, message, author, committer, timestamp), head_repository, pull_requests[] (same fork/cross-repo limitations as check_suite)", "schema_ref": "workflow-run"},
-        "workflow": {"type": "object", "description": "id, node_id, name, path, state, created_at, updated_at", "schema_ref": "workflow"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "completed, requested, or in_progress"
+        },
+        "workflow_run": {
+          "type": "object",
+          "description": "id, name, display_title, node_id, head_branch, head_sha, path, run_number, event (trigger type: push, pull_request, workflow_dispatch, …), status, conclusion, workflow_id, check_suite_id, check_suite_node_id, html_url, created_at, updated_at, run_attempt, run_started_at, actor, triggering_actor, head_commit (id, message, author, committer, timestamp), head_repository, pull_requests[] (same fork/cross-repo limitations as check_suite)",
+          "schema_ref": "workflow-run"
+        },
+        "workflow": {
+          "type": "object",
+          "description": "id, node_id, name, path, state, created_at, updated_at",
+          "schema_ref": "workflow"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "workflow_job_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "completed, in_progress, queued, or waiting"},
-        "workflow_job": {"type": "object", "description": "id, run_id, run_url, run_attempt, node_id, head_sha, head_branch, name, status, conclusion, started_at, completed_at, steps[] (each with name, status, conclusion, number, started_at, completed_at), labels[] (runner labels), runner_id, runner_name, runner_group_id, runner_group_name, workflow_name, html_url"},
-        "deployment": {"type": "object", "description": "Set when the job is tied to a Deployments-gated environment"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "completed, in_progress, queued, or waiting"
+        },
+        "workflow_job": {
+          "type": "object",
+          "description": "id, run_id, run_url, run_attempt, node_id, head_sha, head_branch, name, status, conclusion, started_at, completed_at, steps[] (each with name, status, conclusion, number, started_at, completed_at), labels[] (runner labels), runner_id, runner_name, runner_group_id, runner_group_name, workflow_name, html_url"
+        },
+        "deployment": {
+          "type": "object",
+          "description": "Set when the job is tied to a Deployments-gated environment"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "deployment_status_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "created"},
-        "deployment_status": {"type": "object", "description": "id, state (error, failure, inactive, in_progress, queued, pending, success), description, environment, target_url, log_url, environment_url, created_at, updated_at, creator"},
-        "deployment": {"type": "object", "description": "id, sha, ref, task, environment, description, creator, created_at, updated_at, payload, original_environment, production_environment, transient_environment"},
-        "check_run": {"type": "object", "description": "Linked check run, if any", "nullable": true},
-        "workflow_run": {"type": "object", "description": "Linked workflow run, if this deployment originated from Actions", "nullable": true, "schema_ref": "workflow-run"},
-        "workflow": {"type": "object", "description": "Workflow definition matching the workflow_run", "nullable": true, "schema_ref": "workflow"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "created"
+        },
+        "deployment_status": {
+          "type": "object",
+          "description": "id, state (error, failure, inactive, in_progress, queued, pending, success), description, environment, target_url, log_url, environment_url, created_at, updated_at, creator"
+        },
+        "deployment": {
+          "type": "object",
+          "description": "id, sha, ref, task, environment, description, creator, created_at, updated_at, payload, original_environment, production_environment, transient_environment"
+        },
+        "check_run": {
+          "type": "object",
+          "description": "Linked check run, if any",
+          "nullable": true
+        },
+        "workflow_run": {
+          "type": "object",
+          "description": "Linked workflow run, if this deployment originated from Actions",
+          "nullable": true,
+          "schema_ref": "workflow-run"
+        },
+        "workflow": {
+          "type": "object",
+          "description": "Workflow definition matching the workflow_run",
+          "nullable": true,
+          "schema_ref": "workflow"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "push_event": {
       "type": "object",
       "properties": {
-        "ref": {"type": "string", "description": "Full git ref (refs/heads/main or refs/tags/v1.0)"},
-        "before": {"type": "string", "description": "SHA before the push"},
-        "after": {"type": "string", "description": "SHA after the push (all zeros if deleted=true)"},
-        "created": {"type": "boolean", "description": "Whether this push created the ref"},
-        "deleted": {"type": "boolean", "description": "Whether this push deleted the ref"},
-        "forced": {"type": "boolean", "description": "Whether the push was a force push"},
-        "base_ref": {"type": "string", "description": "Base ref when the push merged another branch", "nullable": true},
-        "compare": {"type": "string", "description": "URL comparing before and after"},
-        "commits": {"type": "array", "description": "Commit objects pushed. Each: id, tree_id, distinct, message, timestamp, url, author, committer, added[], removed[], modified[]"},
-        "head_commit": {"type": "object", "description": "Most recent commit (same shape as commits[] items)", "nullable": true},
-        "pusher": {"type": "object", "description": "name, email"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "ref": {
+          "type": "string",
+          "description": "Full git ref (refs/heads/main or refs/tags/v1.0)"
+        },
+        "before": {
+          "type": "string",
+          "description": "SHA before the push"
+        },
+        "after": {
+          "type": "string",
+          "description": "SHA after the push (all zeros if deleted=true)"
+        },
+        "created": {
+          "type": "boolean",
+          "description": "Whether this push created the ref"
+        },
+        "deleted": {
+          "type": "boolean",
+          "description": "Whether this push deleted the ref"
+        },
+        "forced": {
+          "type": "boolean",
+          "description": "Whether the push was a force push"
+        },
+        "base_ref": {
+          "type": "string",
+          "description": "Base ref when the push merged another branch",
+          "nullable": true
+        },
+        "compare": {
+          "type": "string",
+          "description": "URL comparing before and after"
+        },
+        "commits": {
+          "type": "array",
+          "description": "Commit objects pushed. Each: id, tree_id, distinct, message, timestamp, url, author, committer, added[], removed[], modified[]"
+        },
+        "head_commit": {
+          "type": "object",
+          "description": "Most recent commit (same shape as commits[] items)",
+          "nullable": true
+        },
+        "pusher": {
+          "type": "object",
+          "description": "name, email"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "create_event": {
       "type": "object",
       "properties": {
-        "ref": {"type": "string", "description": "Short name of the created ref (e.g. main, v1.0) — NOT a refs/heads/… path"},
-        "ref_type": {"type": "string", "description": "branch or tag"},
-        "master_branch": {"type": "string", "description": "Repo's default branch name"},
-        "description": {"type": "string", "nullable": true},
-        "pusher_type": {"type": "string", "description": "user or deploy_key"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "ref": {
+          "type": "string",
+          "description": "Short name of the created ref (e.g. main, v1.0) — NOT a refs/heads/… path"
+        },
+        "ref_type": {
+          "type": "string",
+          "description": "branch or tag"
+        },
+        "master_branch": {
+          "type": "string",
+          "description": "Repo's default branch name"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true
+        },
+        "pusher_type": {
+          "type": "string",
+          "description": "user or deploy_key"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "delete_event": {
       "type": "object",
       "properties": {
-        "ref": {"type": "string", "description": "Short name of the deleted ref"},
-        "ref_type": {"type": "string", "description": "branch or tag"},
-        "pusher_type": {"type": "string"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "ref": {
+          "type": "string",
+          "description": "Short name of the deleted ref"
+        },
+        "ref_type": {
+          "type": "string",
+          "description": "branch or tag"
+        },
+        "pusher_type": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "release_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "published, unpublished, created, edited, deleted, prereleased, released"},
-        "release": {"type": "object", "description": "id, tag_name, target_commitish, name, body, draft, prerelease, created_at, published_at, author, html_url, assets[], tarball_url, zipball_url, discussion_url", "schema_ref": "release"},
-        "changes": {"type": "object", "description": "Prior values for edited action"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "published, unpublished, created, edited, deleted, prereleased, released"
+        },
+        "release": {
+          "type": "object",
+          "description": "id, tag_name, target_commitish, name, body, draft, prerelease, created_at, published_at, author, html_url, assets[], tarball_url, zipball_url, discussion_url",
+          "schema_ref": "release"
+        },
+        "changes": {
+          "type": "object",
+          "description": "Prior values for edited action"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "discussion_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "created, edited, deleted, pinned, unpinned, locked, unlocked, transferred, category_changed, answered, unanswered, labeled, unlabeled"},
-        "discussion": {"type": "object", "description": "id, number, title, body, state, category (id, name, slug, description, emoji), user, html_url, created_at, updated_at, locked, comments, answer_html_url, answer_chosen_at, answer_chosen_by, author_association"},
-        "answer": {"type": "object", "description": "Chosen answer comment (answered action)"},
-        "old_answer": {"type": "object", "description": "Previously chosen answer (unanswered action)"},
-        "changes": {"type": "object", "description": "changes.title.from / changes.body.from for edited, changes.category.from for category_changed"},
-        "label": {"type": "object", "description": "Label added/removed for labeled/unlabeled"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "created, edited, deleted, pinned, unpinned, locked, unlocked, transferred, category_changed, answered, unanswered, labeled, unlabeled"
+        },
+        "discussion": {
+          "type": "object",
+          "description": "id, number, title, body, state, category (id, name, slug, description, emoji), user, html_url, created_at, updated_at, locked, comments, answer_html_url, answer_chosen_at, answer_chosen_by, author_association"
+        },
+        "answer": {
+          "type": "object",
+          "description": "Chosen answer comment (answered action)"
+        },
+        "old_answer": {
+          "type": "object",
+          "description": "Previously chosen answer (unanswered action)"
+        },
+        "changes": {
+          "type": "object",
+          "description": "changes.title.from / changes.body.from for edited, changes.category.from for category_changed"
+        },
+        "label": {
+          "type": "object",
+          "description": "Label added/removed for labeled/unlabeled"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "discussion_comment_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "created, edited, or deleted"},
-        "comment": {"type": "object", "description": "id, body, user, created_at, updated_at, html_url, author_association, parent_id (for replies), reactions", "schema_ref": "issue-comment"},
-        "discussion": {"type": "object", "description": "number, title, category, state, user"},
-        "changes": {"type": "object", "description": "changes.body.from for edited action"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "created, edited, or deleted"
+        },
+        "comment": {
+          "type": "object",
+          "description": "id, body, user, created_at, updated_at, html_url, author_association, parent_id (for replies), reactions",
+          "schema_ref": "issue-comment"
+        },
+        "discussion": {
+          "type": "object",
+          "description": "number, title, category, state, user"
+        },
+        "changes": {
+          "type": "object",
+          "description": "changes.body.from for edited action"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "commit_comment_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "created"},
-        "comment": {"type": "object", "description": "id, commit_id, path, position, line, body, user, created_at, updated_at, html_url, author_association, reactions"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "created"
+        },
+        "comment": {
+          "type": "object",
+          "description": "id, commit_id, path, position, line, body, user, created_at, updated_at, html_url, author_association, reactions"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "fork_event": {
       "type": "object",
       "properties": {
-        "forkee": {"type": "object", "description": "The newly-created fork repo", "schema_ref": "repository"},
-        "repository": {"type": "object", "description": "The source repository that was forked", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "forkee": {
+          "type": "object",
+          "description": "The newly-created fork repo",
+          "schema_ref": "repository"
+        },
+        "repository": {
+          "type": "object",
+          "description": "The source repository that was forked",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "star_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "created or deleted"},
-        "starred_at": {"type": "string", "description": "Timestamp when starred (null for deleted action)", "nullable": true},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "created or deleted"
+        },
+        "starred_at": {
+          "type": "string",
+          "description": "Timestamp when starred (null for deleted action)",
+          "nullable": true
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     },
     "watch_event": {
       "type": "object",
       "properties": {
-        "action": {"type": "string", "description": "Always 'started' (legacy naming; GitHub fires this for star events)"},
-        "repository": {"type": "object", "schema_ref": "repository"},
-        "organization": {"type": "object", "schema_ref": "organization-full"},
-        "sender": {"type": "object", "schema_ref": "simple-user"},
-        "installation": {"type": "object"}
+        "action": {
+          "type": "string",
+          "description": "Always 'started' (legacy naming; GitHub fires this for star events)"
+        },
+        "repository": {
+          "type": "object",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object"
+        }
       }
     }
   }
