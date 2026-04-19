@@ -169,6 +169,7 @@ var curatedProviders = []Provider{
 	{ // crof — Crof
 		ID:   "crof",
 		Name: "Crof",
+		API:  "https://crof.ai/v1",
 		Models: map[string]Model{
 			"kimi-k2.5": {
 				ID:          "kimi-k2.5",
