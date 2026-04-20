@@ -44,9 +44,9 @@ You are deploying a self-hosted Daytona sandbox infrastructure across 4 servers 
 
 | Domain | Record Type | Points To | Purpose |
 |--------|------------|-----------|---------|
-| `api.daytona.usehiveloop.com` | A | Control VPS public IP | Daytona API + Dashboard |
-| `dex.daytona.usehiveloop.com` | A | Control VPS public IP | OIDC authentication |
-| `*.preview.usehiveloop.com` | A (wildcard) | Control VPS public IP | Primary preview proxy domain |
+| `api.daytona.ziraloop.com` | A | Control VPS public IP | Daytona API + Dashboard |
+| `dex.daytona.ziraloop.com` | A | Control VPS public IP | OIDC authentication |
+| `*.preview.ziraloop.com` | A (wildcard) | Control VPS public IP | Primary preview proxy domain |
 | `*.preview.useportal.app` | A (wildcard) | Control VPS public IP | Dynamic alias domain (example) |
 | `*.preview.<anything>` | A (wildcard) | Control VPS public IP | Any future domain — just point DNS, it works instantly |
 
@@ -89,7 +89,7 @@ User visits: https://3000-abc123.preview.clientbrand.com
 7. Daytona Proxy parses {port}-{sandboxId} from subdomain → routes to runner
 ```
 
-The **primary domain** (`*.preview.usehiveloop.com`) uses a pre-provisioned wildcard cert via Cloudflare DNS challenge for maximum reliability. All **dynamic alias domains** use on-demand TLS with HTTP-01 challenge — no Cloudflare integration needed for those domains.
+The **primary domain** (`*.preview.ziraloop.com`) uses a pre-provisioned wildcard cert via Cloudflare DNS challenge for maximum reliability. All **dynamic alias domains** use on-demand TLS with HTTP-01 challenge — no Cloudflare integration needed for those domains.
 
 ---
 
@@ -221,12 +221,12 @@ registry_version: "2"
 # =============================================================================
 
 # Control plane domains (static, Cloudflare DNS challenge certs)
-api_domain: "api.daytona.usehiveloop.com"
-dex_domain: "dex.daytona.usehiveloop.com"
+api_domain: "api.daytona.ziraloop.com"
+dex_domain: "dex.daytona.ziraloop.com"
 
 # Primary preview domain (static wildcard cert via Cloudflare DNS challenge)
 # This is the domain Daytona's PROXY_DOMAIN is set to.
-primary_preview_domain: "preview.usehiveloop.com"
+primary_preview_domain: "preview.ziraloop.com"
 
 # Proxy
 proxy_protocol: "https"
@@ -333,7 +333,7 @@ ssh_gateway_public_key: "GENERATE_ME"
 ssh_gateway_host_key: "GENERATE_ME"
 
 # Dex
-dex_admin_email: "admin@usehiveloop.com"
+dex_admin_email: "admin@ziraloop.com"
 dex_admin_password_hash: "GENERATE_ME"  # bcrypt hash
 
 # Cloudflare (for primary domain wildcard TLS only)
@@ -848,8 +848,8 @@ services:
   # CADDY (PUBLIC INGRESS — TLS TERMINATION — DYNAMIC DOMAIN ROUTING)
   #
   # Three responsibilities:
-  # 1. Static TLS for api.daytona.usehiveloop.com + dex.daytona.usehiveloop.com
-  # 2. Wildcard TLS for *.preview.usehiveloop.com (primary, Cloudflare DNS)
+  # 1. Static TLS for api.daytona.ziraloop.com + dex.daytona.ziraloop.com
+  # 2. Wildcard TLS for *.preview.ziraloop.com (primary, Cloudflare DNS)
   # 3. On-demand TLS for ANY other domain (dynamic, HTTP-01 challenge)
   # =========================================================================
   caddy:
@@ -882,7 +882,7 @@ services:
 This is the most critical config file. It has THREE tiers:
 
 1. **Static sites** — API and Dex with Cloudflare DNS challenge certs
-2. **Primary preview domain** — `*.preview.usehiveloop.com` with Cloudflare DNS challenge wildcard cert (always reliable)
+2. **Primary preview domain** — `*.preview.ziraloop.com` with Cloudflare DNS challenge wildcard cert (always reliable)
 3. **Dynamic catch-all** — ANY other domain, on-demand TLS via HTTP-01, validated by Gatekeeper. **No domain list. No restart needed. Ever.**
 
 ```caddyfile
@@ -890,7 +890,7 @@ This is the most critical config file. It has THREE tiers:
 # GLOBAL OPTIONS
 # =============================================================================
 {
-    email admin@usehiveloop.com
+    email admin@ziraloop.com
 
     # ON-DEMAND TLS: Caddy asks the Gatekeeper before issuing a cert
     # for any domain not explicitly listed in a site block below.
@@ -930,7 +930,7 @@ This is the most critical config file. It has THREE tiers:
 }
 
 # =============================================================================
-# TIER 2: PRIMARY PREVIEW DOMAIN — *.preview.usehiveloop.com
+# TIER 2: PRIMARY PREVIEW DOMAIN — *.preview.ziraloop.com
 # Wildcard cert via Cloudflare DNS challenge (most reliable, no HTTP-01)
 # This is what PROXY_DOMAIN is set to in the Daytona API config.
 # =============================================================================
@@ -1477,16 +1477,16 @@ Before running anything, the user must:
 
 1. [ ] Have SSH access (key-based) to all 4 servers as root
 2. [ ] Have 4 server IPs ready
-3. [ ] Have a Cloudflare account with `usehiveloop.com` zone
-4. [ ] Have a Cloudflare API token with DNS:Edit for `usehiveloop.com`
+3. [ ] Have a Cloudflare account with `ziraloop.com` zone
+4. [ ] Have a Cloudflare API token with DNS:Edit for `ziraloop.com`
 5. [ ] Run `chmod +x scripts/generate-secrets.sh && ./scripts/generate-secrets.sh`
 6. [ ] Copy secrets from `secrets/generated-secrets.yml` into `group_vars/control.yml`
 7. [ ] Optionally encrypt: `ansible-vault encrypt group_vars/control.yml`
 8. [ ] Fill in server IPs in `host_vars/` or pass via `--extra-vars`
 9. [ ] Create DNS records:
-   - `api.daytona.usehiveloop.com` A → control VPS IP
-   - `dex.daytona.usehiveloop.com` A → control VPS IP
-   - `*.preview.usehiveloop.com` A → control VPS IP
+   - `api.daytona.ziraloop.com` A → control VPS IP
+   - `dex.daytona.ziraloop.com` A → control VPS IP
+   - `*.preview.ziraloop.com` A → control VPS IP
 
 ---
 
@@ -1549,7 +1549,7 @@ Value: <control VPS IP>
 8. **MinIO port 9000 must be accessible from runner IPs** — runners pull/push snapshots directly to MinIO.
 9. **Registry port 6000 must be accessible from runner IPs** — runners pull snapshot images from the internal registry.
 10. **The `{% raw %}...{% endraw %}` blocks** prevent Jinja2 from interpreting Daytona's `{{PORT}}` and `{{sandboxId}}`. Do not remove them.
-11. **Runners use the API's public domain** (`https://api.daytona.usehiveloop.com/api`) not Docker hostnames — they're on separate machines.
+11. **Runners use the API's public domain** (`https://api.daytona.ziraloop.com/api`) not Docker hostnames — they're on separate machines.
 12. **Runners access MinIO via the control VPS's public IP** — not the `minio` hostname.
 13. **Dex redirect URIs do NOT need dynamic alias domains.** Preview traffic uses token-based auth, not OIDC callbacks.
 14. **The `runner_token` defaults to `default_runner_api_key`** (shared key strategy).

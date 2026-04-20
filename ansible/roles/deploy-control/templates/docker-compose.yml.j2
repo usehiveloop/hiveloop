@@ -243,7 +243,7 @@ services:
 
   # =========================================================================
   # ACME-DNS (authoritative DNS for certificate challenge delegation)
-  # Users CNAME _acme-challenge.their.domain → <uuid>.acme.usehiveloop.com
+  # Users CNAME _acme-challenge.their.domain → <uuid>.acme.ziraloop.com
   # =========================================================================
   acme-dns:
     image: joohoi/acme-dns:latest
@@ -282,4 +282,4 @@ services:
       - caddy_config:/config
     environment:
       CLOUDFLARE_API_TOKEN: "{{ cloudflare_api_token }}"
-      HIVELOOP_INTERNAL_SECRET: "{{ hiveloop_internal_secret | default('') }}"
+      ZIRALOOP_INTERNAL_SECRET: "{{ ziraloop_internal_secret | default('') }}"
