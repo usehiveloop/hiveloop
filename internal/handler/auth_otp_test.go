@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -74,12 +75,24 @@ func (h *otpTestHarness) cleanup(t *testing.T, userEmail string) {
 	t.Helper()
 	var user model.User
 	if err := h.db.Where("email = ?", userEmail).First(&user).Error; err == nil {
+		// Collect org IDs before deleting memberships, since the subquery depends on them.
+		var orgIDs []string
+		h.db.Model(&model.OrgMembership{}).Where("user_id = ?", user.ID).Pluck("org_id", &orgIDs)
+
 		h.db.Where("user_id = ?", user.ID).Delete(&model.RefreshToken{})
 		h.db.Where("user_id = ?", user.ID).Delete(&model.OrgMembership{})
-		h.db.Exec("DELETE FROM orgs WHERE id IN (SELECT org_id FROM org_memberships WHERE user_id = ?)", user.ID)
+		if len(orgIDs) > 0 {
+			h.db.Exec("DELETE FROM orgs WHERE id IN ?", orgIDs)
+		}
 		h.db.Where("id = ?", user.ID).Delete(&model.User{})
 	}
 	h.db.Where("email = ?", userEmail).Delete(&model.OTPCode{})
+
+	// Clean up any orphaned orgs from prior broken cleanup runs.
+	// The OTP flow names orgs "<local-part>'s Workspace".
+	localPart := strings.Split(userEmail, "@")[0]
+	orgName := fmt.Sprintf("%s's Workspace", localPart)
+	h.db.Where("name = ?", orgName).Delete(&model.Org{})
 }
 
 // ---------------------------------------------------------------------------
@@ -89,6 +102,7 @@ func (h *otpTestHarness) cleanup(t *testing.T, userEmail string) {
 func TestOTP_FullFlow_NewUser(t *testing.T) {
 	h := newOTPHarness(t)
 	testEmail := "otp-new-user@test.ziraloop.com"
+	h.cleanup(t, testEmail) // Remove stale data from prior runs
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 
 	// Step 1: Request OTP
@@ -261,6 +275,7 @@ func TestOTP_ExpiredCode(t *testing.T) {
 func TestOTP_NewRequestInvalidatesOld(t *testing.T) {
 	h := newOTPHarness(t)
 	testEmail := "otp-invalidate@test.ziraloop.com"
+	h.cleanup(t, testEmail) // Remove stale data from prior runs
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 
 	// Request first code
