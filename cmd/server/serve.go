@@ -23,6 +23,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/subscriptions"
 	"github.com/ziraloop/ziraloop/internal/mcpserver"
 	"github.com/ziraloop/ziraloop/internal/middleware"
+	posthogobs "github.com/ziraloop/ziraloop/internal/observability/posthog"
 	"github.com/ziraloop/ziraloop/internal/proxy"
 )
 
@@ -148,7 +149,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	// Global middleware
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
-	r.Use(chimw.Recoverer)
+	r.Use(posthogobs.Recoverer(deps.PostHog))
 	r.Use(middleware.SecurityHeaders())
 	r.Use(middleware.CORS(cfg.CORSOrigins))
 	r.Use(middleware.RequestLog(logger))
@@ -574,6 +575,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 0,
 		IdleTimeout:  120 * time.Second,
+		ErrorLog:     posthogobs.NewStdlogBridge("api_server"),
 	}
 
 	goroutine.Go(func() {
@@ -587,7 +589,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	mcpRouter := chi.NewRouter()
 	mcpRouter.Use(chimw.RequestID)
 	mcpRouter.Use(chimw.RealIP)
-	mcpRouter.Use(chimw.Recoverer)
+	mcpRouter.Use(posthogobs.Recoverer(deps.PostHog))
 	mcpRouter.Use(middleware.RequestLog(logger))
 
 
@@ -621,6 +623,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 0,
 		IdleTimeout:  120 * time.Second,
+		ErrorLog:     posthogobs.NewStdlogBridge("mcp_server"),
 	}
 
 	mcpHandler.ServerCache.StartCleanup(ctx, 5*time.Minute)

@@ -22,7 +22,7 @@ export default function ConnectionsPage() {
   const [dialogSearch, setDialogSearch] = useState("")
   const [preSelectedId, setPreSelectedId] = useState<string | null>(null)
 
-  const { data: inConnections, isLoading } = $api.useQuery("get", "/v1/in/connecions")
+  const { data: inConnections, isLoading } = $api.useQuery("get", "/v1/in/connections")
   const { connect, connectingId } = useConnectIntegration()
 
   const connections = inConnections?.data ?? []
