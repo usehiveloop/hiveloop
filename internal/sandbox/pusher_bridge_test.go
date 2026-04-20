@@ -10,14 +10,14 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	bridgepkg "github.com/ziraloop/ziraloop/internal/bridge"
-	"github.com/ziraloop/ziraloop/internal/config"
-	"github.com/ziraloop/ziraloop/internal/crypto"
-	"github.com/ziraloop/ziraloop/internal/model"
-	subagents "github.com/ziraloop/ziraloop/internal/sub-agents"
+	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
+	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	subagents "github.com/usehiveloop/hiveloop/internal/sub-agents"
 )
 
-const pusherTestDBURL = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
+const pusherTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
 
 // TestPusherBuildAgentDefinition seeds a real agent (modeled after the Railway
 // devops agent) into a test database, builds the Bridge AgentDefinition via the
@@ -58,8 +58,8 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	resources := model.JSON{
 		"conn-github-123": map[string]any{
 			"repository": []any{
-				map[string]any{"id": "ziraloop/bridge", "name": "bridge"},
-				map[string]any{"id": "ziraloop/ziraloop", "name": "ziraloop"},
+				map[string]any{"id": "hiveloop/bridge", "name": "bridge"},
+				map[string]any{"id": "hiveloop/hiveloop", "name": "hiveloop"},
 			},
 		},
 	}
@@ -142,8 +142,8 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	// System prompt includes repo context
 	assertContains(t, "system_prompt", def.SystemPrompt, "You are a DevOps engineer.")
 	assertContains(t, "system_prompt repo context", def.SystemPrompt, "CLONED REPOSITORIES")
-	assertContains(t, "system_prompt bridge repo", def.SystemPrompt, "ziraloop/bridge")
-	assertContains(t, "system_prompt ziraloop repo", def.SystemPrompt, "ziraloop/ziraloop")
+	assertContains(t, "system_prompt bridge repo", def.SystemPrompt, "hiveloop/bridge")
+	assertContains(t, "system_prompt hiveloop repo", def.SystemPrompt, "hiveloop/hiveloop")
 
 	// Permissions — deny entries should be stripped out and moved to DisabledTools
 	if def.Permissions == nil {
@@ -177,7 +177,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		}
 	}
 
-	// MCP servers (ziraloop MCP should be present because agent has integrations)
+	// MCP servers (hiveloop MCP should be present because agent has integrations)
 	if def.McpServers == nil {
 		t.Fatal("mcp_servers should not be nil")
 	}
@@ -185,7 +185,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	for i, mcp := range *def.McpServers {
 		mcpNames[i] = mcp.Name
 	}
-	assertSliceContains(t, "mcp_servers", mcpNames, "ziraloop")
+	assertSliceContains(t, "mcp_servers", mcpNames, "hiveloop")
 
 	// Skills
 	if def.Skills == nil {

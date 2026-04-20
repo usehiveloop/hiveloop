@@ -30,7 +30,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/index.ts
 var index_exports = {};
 __export(index_exports, {
-  ZiraLoop: () => ZiraLoop
+  HiveLoop: () => HiveLoop
 });
 module.exports = __toCommonJS(index_exports);
 
@@ -115,116 +115,6 @@ var CatalogResource = class extends BaseResource {
   }
   listActions(id) {
     return this.client.GET("/v1/catalog/integrations/{id}/actions", {
-      params: { path: { id } }
-    });
-  }
-};
-
-// src/resources/connect.ts
-var ConnectSessionsResource = class extends BaseResource {
-  create(body) {
-    return this.client.POST("/v1/connect/sessions", { body });
-  }
-  list(query) {
-    return this.client.GET("/v1/connect/sessions", { params: { query } });
-  }
-  get(id) {
-    return this.client.GET("/v1/connect/sessions/{id}", {
-      params: { path: { id } }
-    });
-  }
-  delete(id) {
-    return this.client.DELETE("/v1/connect/sessions/{id}", {
-      params: { path: { id } }
-    });
-  }
-};
-var ConnectSettingsResource = class extends BaseResource {
-  get() {
-    return this.client.GET("/v1/settings/connect");
-  }
-  update(body) {
-    return this.client.PUT("/v1/settings/connect", { body });
-  }
-};
-var ConnectResource = class extends BaseResource {
-  sessions;
-  settings;
-  constructor(client) {
-    super(client);
-    this.sessions = new ConnectSessionsResource(client);
-    this.settings = new ConnectSettingsResource(client);
-  }
-};
-
-// src/resources/connections.ts
-var ConnectionsResource = class extends BaseResource {
-  baseUrl;
-  apiKey;
-  constructor(client, baseUrl, apiKey) {
-    super(client);
-    this.baseUrl = baseUrl;
-    this.apiKey = apiKey;
-  }
-  async availableScopes() {
-    const { data } = await this.client.GET("/v1/connections/available-scopes", {});
-    return data ?? [];
-  }
-  create(integrationId, body) {
-    return this.client.POST("/v1/integrations/{id}/connections", {
-      params: { path: { id: integrationId } },
-      body
-    });
-  }
-  list(integrationId, query) {
-    return this.client.GET("/v1/integrations/{id}/connections", {
-      params: { path: { id: integrationId }, query }
-    });
-  }
-  get(id) {
-    return this.client.GET("/v1/connections/{id}", {
-      params: { path: { id } }
-    });
-  }
-  /**
-   * Proxy an arbitrary HTTP request through a connection to the upstream provider API.
-   *
-   * The request is forwarded via Nango with the connection's stored credentials.
-   * The raw upstream response (status, headers, body) is returned as-is.
-   */
-  async proxy(id, options) {
-    const { method = "GET", path, body, query, headers } = options;
-    let proxyPath = path.startsWith("/") ? path : `/${path}`;
-    if (query && Object.keys(query).length > 0) {
-      const qs = new URLSearchParams(query).toString();
-      proxyPath += `?${qs}`;
-    }
-    const url = `${this.baseUrl}/v1/connections/${encodeURIComponent(id)}/proxy${proxyPath}`;
-    const fetchHeaders = {
-      Authorization: `Bearer ${this.apiKey}`,
-      ...headers
-    };
-    const init = { method, headers: fetchHeaders };
-    if (body !== void 0 && body !== null) {
-      fetchHeaders["Content-Type"] = fetchHeaders["Content-Type"] ?? "application/json";
-      init.body = typeof body === "string" ? body : JSON.stringify(body);
-    }
-    const resp = await fetch(url, init);
-    const contentType = resp.headers.get("Content-Type") ?? "";
-    let parsed;
-    if (contentType.includes("application/json")) {
-      parsed = await resp.json();
-    } else {
-      parsed = await resp.text();
-    }
-    return {
-      status: resp.status,
-      headers: resp.headers,
-      body: parsed
-    };
-  }
-  delete(id) {
-    return this.client.DELETE("/v1/connections/{id}", {
       params: { path: { id } }
     });
   }
@@ -341,66 +231,6 @@ var CustomDomainsResource = class extends BaseResource {
   }
 };
 
-// src/resources/forge.ts
-var ForgeResource = class extends BaseResource {
-  baseUrl;
-  apiKey;
-  constructor(client, baseUrl, apiKey) {
-    super(client);
-    this.baseUrl = baseUrl;
-    this.apiKey = apiKey;
-  }
-  start(agentID, body) {
-    return this.client.POST("/v1/agents/{agentID}/forge", {
-      params: { path: { agentID } },
-      body
-    });
-  }
-  listRuns(agentID) {
-    return this.client.GET("/v1/agents/{agentID}/forge", {
-      params: { path: { agentID } }
-    });
-  }
-  getRun(runID) {
-    return this.client.GET("/v1/forge-runs/{runID}", {
-      params: { path: { runID } }
-    });
-  }
-  listEvents(runID) {
-    return this.client.GET("/v1/forge-runs/{runID}/events", {
-      params: { path: { runID } }
-    });
-  }
-  listEvals(runID, iterationID) {
-    return this.client.GET("/v1/forge-runs/{runID}/iterations/{iterationID}/evals", {
-      params: { path: { runID, iterationID } }
-    });
-  }
-  cancel(runID) {
-    return this.client.POST("/v1/forge-runs/{runID}/cancel", {
-      params: { path: { runID } }
-    });
-  }
-  apply(runID) {
-    return this.client.POST("/v1/forge-runs/{runID}/apply", {
-      params: { path: { runID } }
-    });
-  }
-  /**
-   * Opens an SSE stream for real-time forge events.
-   * Returns the raw Response so callers can consume the ReadableStream.
-   */
-  async stream(runID) {
-    const url = `${this.baseUrl}/v1/forge-runs/${encodeURIComponent(runID)}/stream`;
-    return fetch(url, {
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        Accept: "text/event-stream"
-      }
-    });
-  }
-};
-
 // src/resources/generations.ts
 var GenerationsResource = class extends BaseResource {
   list(query) {
@@ -410,72 +240,6 @@ var GenerationsResource = class extends BaseResource {
     return this.client.GET("/v1/generations/{id}", {
       params: { path: { id } }
     });
-  }
-};
-
-// src/resources/identities.ts
-var IdentitiesResource = class extends BaseResource {
-  create(body) {
-    return this.client.POST("/v1/identities", { body });
-  }
-  list(query) {
-    return this.client.GET("/v1/identities", { params: { query } });
-  }
-  get(id) {
-    return this.client.GET("/v1/identities/{id}", {
-      params: { path: { id } }
-    });
-  }
-  update(id, body) {
-    return this.client.PUT("/v1/identities/{id}", {
-      params: { path: { id } },
-      body
-    });
-  }
-  delete(id) {
-    return this.client.DELETE("/v1/identities/{id}", {
-      params: { path: { id } }
-    });
-  }
-  getSetup(id) {
-    return this.client.GET("/v1/identities/{id}/setup", {
-      params: { path: { id } }
-    });
-  }
-  updateSetup(id, body) {
-    return this.client.PUT("/v1/identities/{id}/setup", {
-      params: { path: { id } },
-      body
-    });
-  }
-};
-
-// src/resources/integrations.ts
-var IntegrationsResource = class extends BaseResource {
-  create(body) {
-    return this.client.POST("/v1/integrations", { body });
-  }
-  list(query) {
-    return this.client.GET("/v1/integrations", { params: { query } });
-  }
-  get(id) {
-    return this.client.GET("/v1/integrations/{id}", {
-      params: { path: { id } }
-    });
-  }
-  update(id, body) {
-    return this.client.PUT("/v1/integrations/{id}", {
-      params: { path: { id } },
-      body
-    });
-  }
-  delete(id) {
-    return this.client.DELETE("/v1/integrations/{id}", {
-      params: { path: { id } }
-    });
-  }
-  listProviders() {
-    return this.client.GET("/v1/integrations/providers");
   }
 };
 
@@ -589,37 +353,16 @@ var UsageResource = class extends BaseResource {
   }
 };
 
-// src/resources/webhooks.ts
-var WebhooksResource = class extends BaseResource {
-  get() {
-    return this.client.GET("/v1/settings/webhooks");
-  }
-  update(body) {
-    return this.client.PUT("/v1/settings/webhooks", { body });
-  }
-  rotateSecret() {
-    return this.client.POST("/v1/settings/webhooks/rotate-secret");
-  }
-  delete() {
-    return this.client.DELETE("/v1/settings/webhooks");
-  }
-};
-
 // src/client.ts
-var ZiraLoop = class {
+var HiveLoop = class {
   agents;
   apiKeys;
   audit;
   catalog;
-  connect;
-  connections;
   conversations;
   credentials;
   customDomains;
-  forge;
   generations;
-  identities;
-  integrations;
   org;
   providers;
   reporting;
@@ -627,9 +370,8 @@ var ZiraLoop = class {
   sandboxTemplates;
   tokens;
   usage;
-  webhooks;
   constructor(config) {
-    const baseUrl = config.baseUrl ?? "https://api.ziraloop.com";
+    const baseUrl = config.baseUrl ?? "https://api.hiveloop.com";
     const client = (0, import_openapi_fetch.default)({
       baseUrl,
       headers: {
@@ -640,15 +382,10 @@ var ZiraLoop = class {
     this.apiKeys = new ApiKeysResource(client);
     this.audit = new AuditResource(client);
     this.catalog = new CatalogResource(client);
-    this.connect = new ConnectResource(client);
-    this.connections = new ConnectionsResource(client, baseUrl, config.apiKey);
     this.conversations = new ConversationsResource(client, baseUrl, config.apiKey);
     this.credentials = new CredentialsResource(client);
     this.customDomains = new CustomDomainsResource(client);
-    this.forge = new ForgeResource(client, baseUrl, config.apiKey);
     this.generations = new GenerationsResource(client);
-    this.identities = new IdentitiesResource(client);
-    this.integrations = new IntegrationsResource(client);
     this.org = new OrgResource(client);
     this.providers = new ProvidersResource(client);
     this.reporting = new ReportingResource(client);
@@ -656,11 +393,10 @@ var ZiraLoop = class {
     this.sandboxTemplates = new SandboxTemplatesResource(client);
     this.tokens = new TokensResource(client);
     this.usage = new UsageResource(client);
-    this.webhooks = new WebhooksResource(client);
   }
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  ZiraLoop
+  HiveLoop
 });
 //# sourceMappingURL=index.cjs.map

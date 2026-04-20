@@ -13,9 +13,9 @@ import (
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/crypto"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/nango"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
 const (

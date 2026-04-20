@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 // TestAgentModels_CRUD tests all agent-related models against real Postgres.
@@ -120,8 +120,8 @@ func TestAgentModels_CRUD(t *testing.T) {
 	// === WorkspaceStorage ===
 	t.Run("WorkspaceStorage_CRUD", func(t *testing.T) {
 		ws := model.WorkspaceStorage{
-			OrgID: org.ID, TursoDatabaseName: "ziraloop-" + suffix,
-			StorageURL: "libsql://ziraloop-" + suffix + ".turso.io", StorageAuthToken: "tok", WrappedDEK: []byte("dek"),
+			OrgID: org.ID, TursoDatabaseName: "hiveloop-" + suffix,
+			StorageURL: "libsql://hiveloop-" + suffix + ".turso.io", StorageAuthToken: "tok", WrappedDEK: []byte("dek"),
 		}
 		h.db.Create(&ws)
 		t.Cleanup(func() { h.db.Where("id = ?", ws.ID).Delete(&model.WorkspaceStorage{}) })

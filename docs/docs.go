@@ -3973,7 +3973,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.BuiltInToolDefinition"
+                                "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.BuiltInToolDefinition"
                             }
                         }
                     }
@@ -4001,7 +4001,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.SandboxToolDefinition"
+                                "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.SandboxToolDefinition"
                             }
                         }
                     }
@@ -6308,7 +6308,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult"
+                            "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_resources.DiscoveryResult"
                         }
                     },
                     "400": {
@@ -8654,7 +8654,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_ziraloop_ziraloop_internal_mcp.TokenScope": {
+        "github_com_usehiveloop_hiveloop_internal_mcp.TokenScope": {
             "type": "object",
             "properties": {
                 "actions": {
@@ -8677,7 +8677,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_mcp_catalog.ConfigurableResourceSummary": {
+        "github_com_usehiveloop_hiveloop_internal_mcp_catalog.ConfigurableResourceSummary": {
             "type": "object",
             "properties": {
                 "description": {
@@ -8691,21 +8691,21 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaDefinition": {
+        "github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaDefinition": {
             "type": "object",
             "properties": {
                 "items": {
                     "description": "for array types",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaRef"
+                            "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaRef"
                         }
                     ]
                 },
                 "properties": {
                     "type": "object",
                     "additionalProperties": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaPropertyDef"
+                        "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaPropertyDef"
                     }
                 },
                 "type": {
@@ -8713,7 +8713,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaPropertyDef": {
+        "github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaPropertyDef": {
             "type": "object",
             "properties": {
                 "description": {
@@ -8731,7 +8731,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaRef": {
+        "github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaRef": {
             "type": "object",
             "properties": {
                 "$ref": {
@@ -8739,7 +8739,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_mcp_catalog.WebhookConfig": {
+        "github_com_usehiveloop_hiveloop_internal_mcp_catalog.WebhookConfig": {
             "type": "object",
             "properties": {
                 "configuration_notes": {
@@ -8752,7 +8752,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_model.BuiltInToolDefinition": {
+        "github_com_usehiveloop_hiveloop_internal_model.BuiltInToolDefinition": {
             "type": "object",
             "properties": {
                 "category": {
@@ -8773,7 +8773,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_model.ConnectionConfigField": {
+        "github_com_usehiveloop_hiveloop_internal_model.ConnectionConfigField": {
             "type": "object",
             "properties": {
                 "automated": {
@@ -8805,11 +8805,11 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_model.JSON": {
+        "github_com_usehiveloop_hiveloop_internal_model.JSON": {
             "type": "object",
             "additionalProperties": {}
         },
-        "github_com_ziraloop_ziraloop_internal_model.NangoConfig": {
+        "github_com_usehiveloop_hiveloop_internal_model.NangoConfig": {
             "type": "object",
             "properties": {
                 "auth_mode": {
@@ -8830,7 +8830,7 @@ const docTemplate = `{
                 "connection_config": {
                     "type": "object",
                     "additionalProperties": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ConnectionConfigField"
+                        "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.ConnectionConfigField"
                     }
                 },
                 "credentials_schema": {
@@ -8869,7 +8869,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_model.ProviderPromptConfig": {
+        "github_com_usehiveloop_hiveloop_internal_model.ProviderPromptConfig": {
             "type": "object",
             "properties": {
                 "model": {
@@ -8880,13 +8880,13 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap": {
+        "github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap": {
             "type": "object",
             "additionalProperties": {
-                "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptConfig"
+                "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptConfig"
             }
         },
-        "github_com_ziraloop_ziraloop_internal_model.SandboxToolDefinition": {
+        "github_com_usehiveloop_hiveloop_internal_model.SandboxToolDefinition": {
             "type": "object",
             "properties": {
                 "description": {
@@ -8900,7 +8900,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_model.TriggerCondition": {
+        "github_com_usehiveloop_hiveloop_internal_model.TriggerCondition": {
             "type": "object",
             "properties": {
                 "operator": {
@@ -8916,13 +8916,13 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_model.TriggerMatch": {
+        "github_com_usehiveloop_hiveloop_internal_model.TriggerMatch": {
             "type": "object",
             "properties": {
                 "conditions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.TriggerCondition"
+                        "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.TriggerCondition"
                     }
                 },
                 "mode": {
@@ -8931,7 +8931,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_nango.Credentials": {
+        "github_com_usehiveloop_hiveloop_internal_nango.Credentials": {
             "type": "object",
             "properties": {
                 "app_id": {
@@ -8977,7 +8977,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_registry.Cost": {
+        "github_com_usehiveloop_hiveloop_internal_registry.Cost": {
             "type": "object",
             "properties": {
                 "input": {
@@ -8988,7 +8988,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_registry.Limit": {
+        "github_com_usehiveloop_hiveloop_internal_registry.Limit": {
             "type": "object",
             "properties": {
                 "context": {
@@ -8999,7 +8999,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_registry.Modalities": {
+        "github_com_usehiveloop_hiveloop_internal_registry.Modalities": {
             "type": "object",
             "properties": {
                 "input": {
@@ -9016,7 +9016,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_resources.AvailableResource": {
+        "github_com_usehiveloop_hiveloop_internal_resources.AvailableResource": {
             "type": "object",
             "properties": {
                 "id": {
@@ -9030,18 +9030,18 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult": {
+        "github_com_usehiveloop_hiveloop_internal_resources.DiscoveryResult": {
             "type": "object",
             "properties": {
                 "resources": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_resources.AvailableResource"
+                        "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_resources.AvailableResource"
                     }
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_skills.Bundle": {
+        "github_com_usehiveloop_hiveloop_internal_skills.Bundle": {
             "type": "object",
             "properties": {
                 "content": {
@@ -9066,7 +9066,7 @@ const docTemplate = `{
                 "references": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_skills.Reference"
+                        "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Reference"
                     }
                 },
                 "title": {
@@ -9074,7 +9074,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_ziraloop_ziraloop_internal_skills.Reference": {
+        "github_com_usehiveloop_hiveloop_internal_skills.Reference": {
             "type": "object",
             "properties": {
                 "body": {
@@ -9222,13 +9222,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "credentials": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_nango.Credentials"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_nango.Credentials"
                 },
                 "display_name": {
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "provider": {
                     "type": "string"
@@ -9265,7 +9265,7 @@ const docTemplate = `{
                     "description": "Inline source",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_skills.Bundle"
+                            "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Bundle"
                         }
                     ]
                 },
@@ -9392,10 +9392,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "nango_config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "provider": {
                     "type": "string"
@@ -9599,7 +9599,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tags": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 }
             }
         },
@@ -9724,7 +9724,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "agent_config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "credential_id": {
                     "type": "string"
@@ -9733,10 +9733,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "integrations": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "mcp_servers": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "model": {
                     "type": "string"
@@ -9745,7 +9745,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "permissions": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "sandbox_template_id": {
                     "type": "string"
@@ -9757,7 +9757,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "skills": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "status": {
                     "type": "string"
@@ -9769,7 +9769,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tools": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 }
             }
         },
@@ -9785,13 +9785,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "credentials": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_nango.Credentials"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_nango.Credentials"
                 },
                 "display_name": {
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 }
             }
         },
@@ -9927,7 +9927,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "agent_config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "attached_skills": {
                     "type": "array",
@@ -9951,10 +9951,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "integrations": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "mcp_servers": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "model": {
                     "type": "string"
@@ -9963,16 +9963,16 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "permissions": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "provider_id": {
                     "type": "string"
                 },
                 "provider_prompts": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap"
                 },
                 "resources": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "sandbox_id": {
                     "type": "string"
@@ -9993,7 +9993,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "skills": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "status": {
                     "type": "string"
@@ -10011,7 +10011,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tools": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "triggers": {
                     "type": "array",
@@ -10093,7 +10093,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "conditions": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.TriggerMatch"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.TriggerMatch"
                 },
                 "connection_id": {
                     "type": "string"
@@ -10395,7 +10395,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "agent_config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "credential_id": {
                     "type": "string"
@@ -10407,10 +10407,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "integrations": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "mcp_servers": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "model": {
                     "type": "string"
@@ -10419,13 +10419,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "permissions": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "provider_prompts": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap"
                 },
                 "resources": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "sandbox_template_id": {
                     "type": "string"
@@ -10451,7 +10451,7 @@ const docTemplate = `{
                     }
                 },
                 "skills": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "subagent_ids": {
                     "description": "subagents from /v1/subagents to attach on create",
@@ -10467,7 +10467,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tools": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "triggers": {
                     "description": "webhook triggers to create",
@@ -10517,7 +10517,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "provider_id": {
                     "type": "string"
@@ -10583,7 +10583,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "meta": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "nango_connection_id": {
                     "type": "string"
@@ -10620,7 +10620,7 @@ const docTemplate = `{
                     }
                 },
                 "config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "name": {
                     "type": "string"
@@ -10634,7 +10634,7 @@ const docTemplate = `{
                     "description": "Inline source",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_skills.Bundle"
+                            "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Bundle"
                         }
                     ]
                 },
@@ -10670,13 +10670,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "agent_config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "description": {
                     "type": "string"
                 },
                 "mcp_servers": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "model": {
                     "type": "string"
@@ -10685,10 +10685,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "permissions": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "skills": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "system_prompt": {
                     "type": "string"
@@ -10700,7 +10700,7 @@ const docTemplate = `{
                     }
                 },
                 "tools": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 }
             }
         },
@@ -10726,7 +10726,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "provider_id": {
                     "type": "string"
@@ -10944,7 +10944,7 @@ const docTemplate = `{
                 "configurable_resources": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.ConfigurableResourceSummary"
+                        "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.ConfigurableResourceSummary"
                     }
                 },
                 "created_at": {
@@ -10960,7 +10960,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "nango_connection_id": {
                     "type": "string"
@@ -10972,7 +10972,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "provider_config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "revoked_at": {
                     "type": "string"
@@ -10998,10 +10998,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "nango_config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.NangoConfig"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.NangoConfig"
                 },
                 "provider": {
                     "type": "string"
@@ -11032,7 +11032,7 @@ const docTemplate = `{
                 "schemas": {
                     "type": "object",
                     "additionalProperties": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaDefinition"
+                        "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaDefinition"
                     }
                 }
             }
@@ -11101,7 +11101,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "agent_config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "avatar": {
                     "type": "string"
@@ -11128,10 +11128,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "integrations": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "mcp_servers": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "model": {
                     "type": "string"
@@ -11140,7 +11140,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "permissions": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "popular": {
                     "type": "boolean"
@@ -11167,7 +11167,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "skills": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "slug": {
                     "type": "string"
@@ -11191,7 +11191,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tools": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "updated_at": {
                     "type": "string"
@@ -11225,7 +11225,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "refill_amount": {
                     "type": "integer"
@@ -11239,7 +11239,7 @@ const docTemplate = `{
                 "scopes": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp.TokenScope"
+                        "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_mcp.TokenScope"
                     }
                 },
                 "ttl": {
@@ -11269,7 +11269,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "cost": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_registry.Cost"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_registry.Cost"
                 },
                 "family": {
                     "type": "string"
@@ -11281,10 +11281,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "limit": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_registry.Limit"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_registry.Limit"
                 },
                 "modalities": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_registry.Modalities"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_registry.Modalities"
                 },
                 "name": {
                     "type": "string"
@@ -11854,7 +11854,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tags": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 }
             }
         },
@@ -12061,7 +12061,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "created_at": {
                     "type": "string"
@@ -12085,7 +12085,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tags": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "updated_at": {
                     "type": "string"
@@ -12158,7 +12158,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "bundle": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_skills.Bundle"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Bundle"
                 },
                 "created_at": {
                     "type": "string"
@@ -12399,7 +12399,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "refill_amount": {
                     "type": "integer"
@@ -12414,7 +12414,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "scopes": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 }
             }
         },
@@ -12537,7 +12537,7 @@ const docTemplate = `{
                     }
                 },
                 "webhook_config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.WebhookConfig"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.WebhookConfig"
                 }
             }
         },
@@ -12545,7 +12545,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "agent_config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "credential_id": {
                     "type": "string"
@@ -12557,10 +12557,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "integrations": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "mcp_servers": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "model": {
                     "type": "string"
@@ -12569,13 +12569,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "permissions": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "provider_prompts": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap"
                 },
                 "resources": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "sandbox_template_id": {
                     "type": "string"
@@ -12601,7 +12601,7 @@ const docTemplate = `{
                     }
                 },
                 "skills": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "system_prompt": {
                     "type": "string"
@@ -12610,7 +12610,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tools": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "triggers": {
                     "description": "nil=don't touch, []=remove all",
@@ -12625,7 +12625,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "bundle": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_skills.Bundle"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Bundle"
                 }
             }
         },
@@ -12665,7 +12665,7 @@ const docTemplate = `{
                     }
                 },
                 "config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "name": {
                     "type": "string"
@@ -12699,13 +12699,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "agent_config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "description": {
                     "type": "string"
                 },
                 "mcp_servers": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "model": {
                     "type": "string"
@@ -12714,10 +12714,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "permissions": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "skills": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "status": {
                     "type": "string"
@@ -12726,7 +12726,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tools": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 }
             }
         },
@@ -12838,10 +12838,10 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "api.dev.ziraloop.com",
+	Host:             "api.dev.hiveloop.com",
 	BasePath:         "/",
 	Schemes:          []string{"https"},
-	Title:            "ZiraLoop API",
+	Title:            "HiveLoop API",
 	Description:      "Proxy bridge for LLM API credentials.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

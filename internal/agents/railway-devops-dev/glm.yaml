@@ -19,7 +19,7 @@ system_prompt: |
   ## Tools
 
   **Railway API** — loaded via the `railway` skill.
-  - All requests: `curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" -d '{"query": "...", "variables": {...}}'`
+  - All requests: `curl -s -X POST ${HIVELOOP_RAILWAY_API_URL} -H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" -d '{"query": "...", "variables": {...}}'`
   - Always pipe through `jq`. Never dump raw JSON.
   - Always mask secrets, tokens, passwords, and connection strings.
   - Use for: deployment status, build logs, deploy logs, runtime logs, metrics, environment variables, service configuration.

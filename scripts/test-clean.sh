@@ -20,7 +20,7 @@ docker compose up -d postgres redis vault
 echo ""
 echo "==> Waiting for services to be healthy..."
 
-until docker compose exec -T postgres pg_isready -U ziraloop -q 2>/dev/null; do sleep 1; done
+until docker compose exec -T postgres pg_isready -U hiveloop -q 2>/dev/null; do sleep 1; done
 echo "  ✓ Postgres"
 
 until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
@@ -31,7 +31,7 @@ echo "  ✓ Vault running"
 
 # Wait for Vault init script to complete (transit key must exist)
 echo "  Waiting for Vault Transit key..."
-until docker compose exec -T vault vault read transit/keys/ziraloop-key 2>/dev/null | grep -q "type"; do sleep 2; done
+until docker compose exec -T vault vault read transit/keys/hiveloop-key 2>/dev/null | grep -q "type"; do sleep 2; done
 echo "  ✓ Vault Transit key ready"
 
 echo ""

@@ -9,8 +9,8 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/sandbox"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
 // AgentCleanupHandler cleans up an agent's sandbox resources and then hard-deletes it.

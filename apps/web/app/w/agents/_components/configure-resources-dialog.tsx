@@ -141,7 +141,7 @@ function ConnectionListView({ connections, getSelectedCount, getOrphanCount, onS
             return (
               <ChoiceCard
                 key={connectionId}
-                logoUrl={`https://connections.ziraloop.com/images/template-logos/${connection.provider ?? ""}.svg`}
+                logoUrl={`https://connections.hiveloop.com/images/template-logos/${connection.provider ?? ""}.svg`}
                 title={connection.display_name ?? connection.provider ?? ""}
                 description={description}
                 onClick={() => onSelect(connectionId)}

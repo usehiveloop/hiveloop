@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"runtime/debug"
 
-	posthogobs "github.com/ziraloop/ziraloop/internal/observability/posthog"
+	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
 )
 
 // Go runs fn in a new goroutine with panic recovery.

@@ -69,7 +69,7 @@ Secondary effect: each violation generates a `<system-reminder>` attached to the
 ## 3. The subscribed conversation received 25 unsolicited webhook events [HIGH]
 
 **Observation.** Between Kira pushing the PR and closing it, the conversation ingested:
-- 2× `issue_comment.created` from `x-ziraloop` (legit — user asked Kira to check things)
+- 2× `issue_comment.created` from `x-hiveloop` (legit — user asked Kira to check things)
 - 23× `check_run.completed` / `check_suite.completed` / `workflow_run.completed` / `check_run.created` — all from Kira's own PR's CI
 - 2× `pull_request.closed` / `issues.closed` at the end
 
@@ -93,7 +93,7 @@ Each event is a full `# Webhook event:` markdown message appended to Kira's hist
 ```
 issue_body: ## Summary...
 repository_id: 1176924311
-organization: ziraloop
+organization: hiveloop
 sender_id: 273760739
 ...
 ```
@@ -102,7 +102,7 @@ Subsequent events came through the new markdown envelope:
 ```markdown
 # Webhook event: check_run.completed
 - **provider**: github-app
-- **resource**: github/ziraloop/ziraloop/pull/17
+- **resource**: github/hiveloop/hiveloop/pull/17
 ...
 ## Summary
 ...
@@ -194,7 +194,7 @@ This is a symptom of #3 (webhook spam) and #1 (no caching) compounding.
 
 Kira still:
 - Ran `tsc` twice (seq 29, 43) — redundant with the issue's build log
-- Did `ls`, `cat package.json`, checked `ziraloop/ziraloop`, `apps/web`, `lib/` structure (seqs 31, 33, 35)
+- Did `ls`, `cat package.json`, checked `hiveloop/hiveloop`, `apps/web`, `lib/` structure (seqs 31, 33, 35)
 - Installed dependencies (seq 37 — took 1m 30s)
 - Grepped for call sites (seq 516) — Stallone already listed them
 - Invoked a codebase-explorer subagent (seq 417) — meta-investigation

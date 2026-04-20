@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -181,7 +181,7 @@ func TestAdminAuditBucket_NoBucket(t *testing.T) {
 
 func connectTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := "postgres://ziraloop:localdev@localhost:5433/ziraloop?sslmode=disable"
+	dsn := "postgres://hiveloop:localdev@localhost:5433/hiveloop?sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Skipf("skipping: cannot connect to test DB: %v", err)

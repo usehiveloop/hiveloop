@@ -13,22 +13,22 @@ const footerLinks = {
   resources: [
     { label: "Blog", href: "/blog" },
     { label: "Changelog", href: "/changelog" },
-    { label: "Community", href: "https://discord.gg/ziraloop", external: true },
-    { label: "GitHub", href: "https://github.com/ziraloop", external: true },
+    { label: "Community", href: "https://discord.gg/hiveloop", external: true },
+    { label: "GitHub", href: "https://github.com/hiveloop", external: true },
     { label: "Self-hosting", href: "/docs/self-hosting" },
   ],
   company: [
     { label: "About", href: "/about" },
     { label: "Privacy Policy", href: "/legal/privacy" },
     { label: "Terms of Service", href: "/legal/terms" },
-    { label: "Contact", href: "mailto:hello@ziraloop.com", external: true },
+    { label: "Contact", href: "mailto:hello@hiveloop.com", external: true },
   ],
 }
 
 const socialLinks = [
   {
     label: "GitHub",
-    href: "https://github.com/ziraloop",
+    href: "https://github.com/hiveloop",
     icon: (
       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
         <title>github</title>
@@ -38,7 +38,7 @@ const socialLinks = [
   },
   {
     label: "X",
-    href: "https://x.com/ziraloop",
+    href: "https://x.com/hiveloop",
     icon: (
       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
         <title>x</title>
@@ -48,7 +48,7 @@ const socialLinks = [
   },
   {
     label: "Discord",
-    href: "https://discord.gg/ziraloop",
+    href: "https://discord.gg/hiveloop",
     icon: (
       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
         <title>discord</title>
@@ -134,11 +134,11 @@ export function MarketingFooter() {
         <div className="w-full max-w-424 mx-auto px-4 lg:px-0 py-5 flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <span className="text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} ZiraLoop Inc.
+              &copy; {new Date().getFullYear()} HiveLoop Inc.
             </span>
             <span className="hidden sm:inline text-border">|</span>
             <a
-              href="https://status.ziraloop.com"
+              href="https://status.hiveloop.com"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"

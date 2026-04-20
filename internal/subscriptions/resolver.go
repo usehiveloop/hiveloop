@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/trigger/dispatch"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/trigger/dispatch"
 )
 
 // ResolveEventResourceKey computes the canonical resource_key for an incoming
@@ -18,7 +18,7 @@ import (
 //  3. Substituting {name} placeholders in the trigger def's ResourceKeyTemplate
 //     with the extracted refs.
 //
-// Returns the canonical key (e.g. "github/ziraloop/ziraloop/pull/99") and
+// Returns the canonical key (e.g. "github/hiveloop/hiveloop/pull/99") and
 // true on success. Returns "" and false when:
 //   - No trigger def exists for (provider, eventKey)
 //   - The trigger has no resource_key_template

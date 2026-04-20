@@ -8,7 +8,7 @@ import { check, sleep, group } from "k6";
 import { Counter, Trend, Rate } from "k6/metrics";
 
 // --- Config ---
-const BASE_URL = "https://api.ziraloop.com";
+const BASE_URL = "https://api.hiveloop.com";
 const API_KEY = __ENV.API_KEY;
 const AGENT_IDS = (__ENV.AGENT_IDS || "").split(",");
 

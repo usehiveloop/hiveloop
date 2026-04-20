@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 )
 
 // compiledPatternCache memoizes compiled regexes keyed by the raw pattern
