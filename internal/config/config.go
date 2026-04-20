@@ -59,7 +59,7 @@ type Config struct {
 	// Auth (RSA key for JWT signing)
 	AuthRSAPrivateKey   string        `env:"AUTH_RSA_PRIVATE_KEY,required"` // base64-encoded PEM
 	AuthIssuer          string        `env:"AUTH_ISSUER" envDefault:"hiveloop"`
-	AuthAudience        string        `env:"AUTH_AUDIENCE" envDefault:"https://api.hiveloop.com"`
+	AuthAudience        string        `env:"AUTH_AUDIENCE" envDefault:"https://api.usehiveloop.com"`
 	AuthAccessTokenTTL  time.Duration `env:"AUTH_ACCESS_TOKEN_TTL" envDefault:"15m"`
 	AuthRefreshTokenTTL time.Duration `env:"AUTH_REFRESH_TOKEN_TTL" envDefault:"720h"` // 30 days
 

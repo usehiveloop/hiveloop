@@ -335,7 +335,7 @@ var HiveLoop = class {
   tokens;
   usage;
   constructor(config) {
-    const baseUrl = config.baseUrl ?? "https://api.hiveloop.com";
+    const baseUrl = config.baseUrl ?? "https://api.usehiveloop.com";
     const client = createClient({
       baseUrl,
       headers: {
