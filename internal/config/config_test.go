@@ -115,8 +115,8 @@ func TestLoad_AuthConfig_Defaults(t *testing.T) {
 	if cfg.AuthIssuer != "hiveloop" {
 		t.Errorf("expected default AuthIssuer 'hiveloop', got %q", cfg.AuthIssuer)
 	}
-	if cfg.AuthAudience != "https://api.hiveloop.com" {
-		t.Errorf("expected default AuthAudience 'https://api.hiveloop.com', got %q", cfg.AuthAudience)
+	if cfg.AuthAudience != "https://api.usehiveloop.com" {
+		t.Errorf("expected default AuthAudience 'https://api.usehiveloop.com', got %q", cfg.AuthAudience)
 	}
 	if cfg.AuthAccessTokenTTL != 15*time.Minute {
 		t.Errorf("expected default AuthAccessTokenTTL 15m, got %v", cfg.AuthAccessTokenTTL)

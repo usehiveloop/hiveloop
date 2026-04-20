@@ -3,7 +3,7 @@
 # Outputs agent IDs to stdout (one per line).
 set -euo pipefail
 
-API="https://api.hiveloop.com"
+API="https://api.usehiveloop.com"
 AUTH="Authorization: Bearer $HIVELOOP_API_KEY"
 MODEL="google/gemini-2.5-flash-lite"
 

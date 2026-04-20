@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { HiveLoop } from "../src/index.js";
 
 describe("HiveLoop client", () => {
-  it("defaults baseUrl to https://api.hiveloop.com", () => {
+  it("defaults baseUrl to https://api.usehiveloop.com", () => {
     const vault = new HiveLoop({ apiKey: "zira_sk_test" });
     // The client is created — we just verify it has all resource namespaces
     expect(vault.apiKeys).toBeDefined();
