@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -24,24 +25,41 @@ func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
 		if !ok {
 			// TokenAuth middleware should have rejected this already.
 			// Set a sentinel header so the error handler can detect it.
+			slog.Error("proxy director: missing claims on request",
+				"path", req.URL.Path,
+			)
 			req.Header.Set("X-Proxy-Error", "missing claims")
 			return
 		}
 
 		orgID, err := uuid.Parse(claims.OrgID)
 		if err != nil {
+			slog.Error("proxy director: invalid org_id in claims",
+				"org_id", claims.OrgID,
+				"error", err,
+			)
 			req.Header.Set("X-Proxy-Error", "invalid org_id")
 			return
 		}
 
 		cred, err := cacheManager.GetDecryptedCredential(req.Context(), claims.CredentialID, orgID)
 		if err != nil {
+			slog.Error("proxy director: credential lookup failed",
+				"credential_id", claims.CredentialID,
+				"org_id", claims.OrgID,
+				"error", err,
+			)
 			req.Header.Set("X-Proxy-Error", fmt.Sprintf("credential error: %v", err))
 			return
 		}
 
 		// SSRF hardening: validate destination BaseURL and drop metadata-related headers
 		if err := ValidateBaseURL(cred.BaseURL); err != nil {
+			slog.Error("proxy director: disallowed upstream base URL",
+				"base_url", cred.BaseURL,
+				"org_id", claims.OrgID,
+				"error", err,
+			)
 			req.Header.Set("X-Proxy-Error", fmt.Sprintf("disallowed upstream: %v", err))
 			return
 		}
