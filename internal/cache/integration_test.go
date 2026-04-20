@@ -13,13 +13,13 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/cache"
-	"github.com/ziraloop/ziraloop/internal/crypto"
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 const (
-	testDBURL     = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
+	testDBURL     = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
 	testRedisAddr = "localhost:6379"
 )
 

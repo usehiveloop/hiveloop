@@ -1,4 +1,4 @@
-// Package posthog wires the posthog-go SDK into the ziraloop platform for
+// Package posthog wires the posthog-go SDK into the hiveloop platform for
 // error tracking across the HTTP API, the LLM proxy, Asynq workers, and
 // long-running background goroutines. See internal/config.Config for the
 // environment knobs (POSTHOG_API_KEY, POSTHOG_ENDPOINT, POSTHOG_ENABLED).
@@ -14,7 +14,7 @@ import (
 
 	ph "github.com/posthog/posthog-go"
 
-	"github.com/ziraloop/ziraloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/config"
 )
 
 // ClientOptions controls the behavior of the PostHog client created by

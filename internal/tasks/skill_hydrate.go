@@ -10,8 +10,8 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/skills"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/skills"
 )
 
 // SkillHydrateHandler pulls a git-sourced skill and creates a SkillVersion.

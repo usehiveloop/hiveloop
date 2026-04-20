@@ -1,5 +1,5 @@
 # =============================================================================
-# ZiraLoop — Production Docker Compose (Single VPS)
+# HiveLoop — Production Docker Compose (Single VPS)
 # =============================================================================
 #
 # Usage:
@@ -31,7 +31,7 @@ services:
       NANGO_DOMAIN: ${NANGO_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
     networks:
-      - ziraloop
+      - hiveloop
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:2019/config/"]
       interval: 30s
@@ -44,16 +44,16 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-ziraloop}
-      POSTGRES_USER: ${POSTGRES_USER:-ziraloop}
+      POSTGRES_DB: ${POSTGRES_DB:-hiveloop}
+      POSTGRES_USER: ${POSTGRES_USER:-hiveloop}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     networks:
-      - ziraloop
+      - hiveloop
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ziraloop}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiveloop}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -72,7 +72,7 @@ services:
     volumes:
       - redisdata:/data
     networks:
-      - ziraloop
+      - hiveloop
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
@@ -82,7 +82,7 @@ services:
 
   # ── API (Go backend + internal Nginx for MCP routing) ────────────────────
   api:
-    image: ghcr.io/ziraloop/ziraloop:latest
+    image: ghcr.io/hiveloop/hiveloop:latest
     restart: unless-stopped
     env_file:
       - path: .env
@@ -93,9 +93,9 @@ services:
       MCP_PORT: "8081"
       DB_HOST: postgres
       DB_PORT: "5432"
-      DB_USER: ${POSTGRES_USER:-ziraloop}
+      DB_USER: ${POSTGRES_USER:-hiveloop}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_NAME: ${POSTGRES_DB:-ziraloop}
+      DB_NAME: ${POSTGRES_DB:-hiveloop}
       DB_SSLMODE: disable
       REDIS_ADDR: redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -109,7 +109,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - ziraloop
+      - hiveloop
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/healthz"]
       interval: 15s
@@ -123,7 +123,7 @@ services:
   # must be built with the correct URLs. Alternatively, uncomment the build
   # section below to build locally on the VPS.
   web:
-    image: ghcr.io/ziraloop/web:latest
+    image: ghcr.io/hiveloop/web:latest
     # build:
     #   context: ../apps/web
     #   dockerfile: Dockerfile
@@ -138,7 +138,7 @@ services:
       api:
         condition: service_healthy
     networks:
-      - ziraloop
+      - hiveloop
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
       interval: 15s
@@ -150,7 +150,7 @@ services:
   #
   # VITE_* vars are baked at build time. Same consideration as web above.
   connect:
-    image: ghcr.io/ziraloop/connect:latest
+    image: ghcr.io/hiveloop/connect:latest
     # build:
     #   context: ../apps/connect
     #   dockerfile: Dockerfile
@@ -162,7 +162,7 @@ services:
       api:
         condition: service_healthy
     networks:
-      - ziraloop
+      - hiveloop
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/health"]
       interval: 15s
@@ -172,13 +172,13 @@ services:
 
   # ── Nango (OAuth integration proxy — custom fork) ────────────────────────
   nango:
-    image: ghcr.io/ziraloop/integrations:latest
+    image: ghcr.io/hiveloop/integrations:latest
     restart: unless-stopped
     environment:
       SERVER_PORT: "3003"
       NANGO_DB_HOST: postgres
       NANGO_DB_PORT: "5432"
-      NANGO_DB_USER: ${POSTGRES_USER:-ziraloop}
+      NANGO_DB_USER: ${POSTGRES_USER:-hiveloop}
       NANGO_DB_PASSWORD: ${POSTGRES_PASSWORD}
       NANGO_DB_NAME: nango
       NANGO_DB_SSL: "false"
@@ -195,7 +195,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - ziraloop
+      - hiveloop
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3003/health"]
       interval: 15s
@@ -210,5 +210,5 @@ volumes:
   caddy_config:
 
 networks:
-  ziraloop:
+  hiveloop:
     driver: bridge

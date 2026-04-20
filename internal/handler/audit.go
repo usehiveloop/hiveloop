@@ -8,7 +8,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
 )
 
 // AuditHandler serves audit log entries.

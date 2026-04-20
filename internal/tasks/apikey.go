@@ -9,7 +9,7 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 // APIKeyHandler handles TypeAPIKeyUpdate tasks by updating last_used_at.

@@ -14,14 +14,14 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/crypto"
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/registry"
-	"github.com/ziraloop/ziraloop/internal/sandbox"
-	"github.com/ziraloop/ziraloop/internal/tasks"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/registry"
+	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
 // AgentPusher is the interface the handler needs to push agents to Bridge.

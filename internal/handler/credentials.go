@@ -11,13 +11,13 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/cache"
-	"github.com/ziraloop/ziraloop/internal/counter"
-	"github.com/ziraloop/ziraloop/internal/crypto"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/proxy"
-	"github.com/ziraloop/ziraloop/internal/registry"
+	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/counter"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/proxy"
+	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
 type CredentialHandler struct {

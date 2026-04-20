@@ -9,14 +9,14 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/hibiken/asynqmon"
 
-	"github.com/ziraloop/ziraloop/internal/bootstrap"
-	"github.com/ziraloop/ziraloop/internal/email"
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/goroutine"
-	posthogobs "github.com/ziraloop/ziraloop/internal/observability/posthog"
-	"github.com/ziraloop/ziraloop/internal/skills"
-	subagents "github.com/ziraloop/ziraloop/internal/sub-agents"
-	"github.com/ziraloop/ziraloop/internal/tasks"
+	"github.com/usehiveloop/hiveloop/internal/bootstrap"
+	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/goroutine"
+	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
+	"github.com/usehiveloop/hiveloop/internal/skills"
+	subagents "github.com/usehiveloop/hiveloop/internal/sub-agents"
+	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
 func runWork(ctx context.Context, deps *bootstrap.Deps) error {

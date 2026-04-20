@@ -12,12 +12,12 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/auth"
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/handler"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/tasks"
+	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/handler"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
 type agentDeleteHarness struct {

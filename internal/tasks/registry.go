@@ -5,16 +5,16 @@ import (
 	polargo "github.com/polarsource/polar-go"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/cache"
-	"github.com/ziraloop/ziraloop/internal/crypto"
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/nango"
-	"github.com/ziraloop/ziraloop/internal/sandbox"
-	"github.com/ziraloop/ziraloop/internal/skills"
-	"github.com/ziraloop/ziraloop/internal/streaming"
-	"github.com/ziraloop/ziraloop/internal/trigger/dispatch"
-	"github.com/ziraloop/ziraloop/internal/trigger/enrichment"
+	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehiveloop/hiveloop/internal/skills"
+	"github.com/usehiveloop/hiveloop/internal/streaming"
+	"github.com/usehiveloop/hiveloop/internal/trigger/dispatch"
+	"github.com/usehiveloop/hiveloop/internal/trigger/enrichment"
 )
 
 // WorkerDeps holds the dependencies needed by task handlers.

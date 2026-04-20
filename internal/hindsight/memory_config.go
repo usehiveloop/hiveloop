@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 // MemoryConfig is the customer-facing memory configuration for an identity.

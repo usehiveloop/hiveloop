@@ -8,7 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 // Counter manages atomic request-cap counters in Redis with lazy refill from Postgres.

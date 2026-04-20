@@ -1,5 +1,5 @@
 {
-  "name": "zeus",
+  "name": "@hiveloop/admin",
   "version": "0.0.1",
   "type": "module",
   "private": true,

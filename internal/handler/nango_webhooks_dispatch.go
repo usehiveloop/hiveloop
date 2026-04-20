@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/tasks"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
 // dispatchWebhookEvent fans an inbound Nango "forward" webhook into two

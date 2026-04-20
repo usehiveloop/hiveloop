@@ -9,8 +9,8 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/sandbox"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
 // AgentConversationCreateHandler provisions a dedicated sandbox, pushes the

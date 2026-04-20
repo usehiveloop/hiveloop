@@ -107,7 +107,7 @@ func parseSkillTarball(r io.Reader, subpath string) (*parsedSkill, error) {
 }
 
 // stripTopDir removes the first path segment of a GitHub tarball entry
-// (e.g. "ziraloop-skills-abc123/SKILL.md" -> "SKILL.md").
+// (e.g. "hiveloop-skills-abc123/SKILL.md" -> "SKILL.md").
 func stripTopDir(name string) string {
 	name = strings.TrimPrefix(name, "./")
 	idx := strings.Index(name, "/")

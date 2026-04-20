@@ -15,16 +15,16 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/auth"
-	"github.com/ziraloop/ziraloop/internal/email"
-	"github.com/ziraloop/ziraloop/internal/handler"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/handler"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 const (
-	orgTestIssuer   = "ziraloop-e2e-org-test"
-	orgTestAudience = "ziraloop-e2e"
+	orgTestIssuer   = "hiveloop-e2e-org-test"
+	orgTestAudience = "hiveloop-e2e"
 )
 
 // orgHarness bundles infrastructure for org E2E tests using the embedded auth system.

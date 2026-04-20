@@ -12,10 +12,10 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/sandbox"
-	"github.com/ziraloop/ziraloop/internal/subscriptions"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehiveloop/hiveloop/internal/subscriptions"
 )
 
 // SubscriptionDispatchHandler forwards a webhook event into every active

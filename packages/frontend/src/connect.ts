@@ -1,14 +1,14 @@
 import type {
-  ZiraLoopConnectConfig,
+  HiveLoopConnectConfig,
   ConnectOpenOptions,
   ConnectEvent,
   ThemeOption,
 } from './types'
 import { ConnectError } from './errors'
 
-const DEFAULT_BASE_URL = 'https://connect.ziraloop.com'
+const DEFAULT_BASE_URL = 'https://connect.hiveloop.com'
 
-export class ZiraLoopConnect {
+export class HiveLoopConnect {
   private iframe: HTMLIFrameElement | null = null
   private listener: ((event: MessageEvent) => void) | null = null
   private baseURL: string
@@ -17,7 +17,7 @@ export class ZiraLoopConnect {
   private options: ConnectOpenOptions | null = null
   private previousOverflow: string = ''
 
-  constructor(config?: ZiraLoopConnectConfig) {
+  constructor(config?: HiveLoopConnectConfig) {
     this.baseURL = config?.baseURL ?? DEFAULT_BASE_URL
     this.baseOrigin = new URL(this.baseURL).origin
     this.theme = config?.theme ?? 'system'
@@ -50,7 +50,7 @@ export class ZiraLoopConnect {
       url.searchParams.set('preview', 'true')
     }
     iframe.src = url.toString()
-    iframe.id = 'ziraloop-connect-iframe'
+    iframe.id = 'hiveloop-connect-iframe'
     iframe.style.position = 'fixed'
     iframe.style.top = '0'
     iframe.style.left = '0'

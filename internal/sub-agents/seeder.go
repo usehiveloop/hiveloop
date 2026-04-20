@@ -11,7 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 //go:embed */*.yaml

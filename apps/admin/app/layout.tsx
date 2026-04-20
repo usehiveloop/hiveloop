@@ -15,7 +15,7 @@ const fontMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Zeus - ZiraLoop Admin",
+  title: "Zeus - HiveLoop Admin",
 }
 
 export default function RootLayout({

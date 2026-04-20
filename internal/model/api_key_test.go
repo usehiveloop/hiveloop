@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 func TestGenerateAPIKey_Format(t *testing.T) {

@@ -3,7 +3,7 @@ package subscriptions
 import (
 	"testing"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 )
 
 // The resolver tests exercise the webhook-payload → resource_key path that
@@ -17,10 +17,10 @@ func TestResolveEventResourceKey_IssueOpened(t *testing.T) {
 	payload := map[string]any{
 		"action": "opened",
 		"repository": map[string]any{
-			"name":      "ziraloop",
-			"full_name": "ziraloop/ziraloop",
+			"name":      "hiveloop",
+			"full_name": "hiveloop/hiveloop",
 			"owner": map[string]any{
-				"login": "ziraloop",
+				"login": "hiveloop",
 			},
 		},
 		"issue": map[string]any{
@@ -33,7 +33,7 @@ func TestResolveEventResourceKey_IssueOpened(t *testing.T) {
 	if !ok {
 		t.Fatal("expected resolution to succeed")
 	}
-	want := "github/ziraloop/ziraloop/issue/42"
+	want := "github/hiveloop/hiveloop/issue/42"
 	if key != want {
 		t.Errorf("resource_key = %q, want %q", key, want)
 	}
@@ -47,9 +47,9 @@ func TestResolveEventResourceKey_GitHubAppFallsBackToGitHubVariant(t *testing.T)
 	payload := map[string]any{
 		"action": "opened",
 		"repository": map[string]any{
-			"name":      "ziraloop",
-			"full_name": "ziraloop/ziraloop",
-			"owner":     map[string]any{"login": "ziraloop"},
+			"name":      "hiveloop",
+			"full_name": "hiveloop/hiveloop",
+			"owner":     map[string]any{"login": "hiveloop"},
 		},
 		"pull_request": map[string]any{
 			"number": float64(99),
@@ -60,7 +60,7 @@ func TestResolveEventResourceKey_GitHubAppFallsBackToGitHubVariant(t *testing.T)
 	if !ok {
 		t.Fatal("expected github-app → github variant fallback to resolve")
 	}
-	want := "github/ziraloop/ziraloop/pull/99"
+	want := "github/hiveloop/hiveloop/pull/99"
 	if key != want {
 		t.Errorf("resource_key = %q, want %q", key, want)
 	}
@@ -73,9 +73,9 @@ func TestResolveEventResourceKey_MissingRefDropsEvent(t *testing.T) {
 	payload := map[string]any{
 		"action": "opened",
 		"repository": map[string]any{
-			"name":      "ziraloop",
-			"full_name": "ziraloop/ziraloop",
-			"owner":     map[string]any{"login": "ziraloop"},
+			"name":      "hiveloop",
+			"full_name": "hiveloop/hiveloop",
+			"owner":     map[string]any{"login": "hiveloop"},
 		},
 		"issue": map[string]any{
 			"title": "No number field",

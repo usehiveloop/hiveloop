@@ -1,6 +1,6 @@
 import createClient from "openapi-fetch";
 import type { paths } from "./generated/schema.js";
-import type { ZiraLoopConfig } from "./types.js";
+import type { HiveLoopConfig } from "./types.js";
 import { AgentsResource } from "./resources/agents.js";
 import { ApiKeysResource } from "./resources/api-keys.js";
 import { AuditResource } from "./resources/audit.js";
@@ -17,7 +17,7 @@ import { SandboxTemplatesResource } from "./resources/sandbox-templates.js";
 import { TokensResource } from "./resources/tokens.js";
 import { UsageResource } from "./resources/usage.js";
 
-export class ZiraLoop {
+export class HiveLoop {
   public readonly agents: AgentsResource;
   public readonly apiKeys: ApiKeysResource;
   public readonly audit: AuditResource;
@@ -34,8 +34,8 @@ export class ZiraLoop {
   public readonly tokens: TokensResource;
   public readonly usage: UsageResource;
 
-  constructor(config: ZiraLoopConfig) {
-    const baseUrl = config.baseUrl ?? "https://api.ziraloop.com";
+  constructor(config: HiveLoopConfig) {
+    const baseUrl = config.baseUrl ?? "https://api.hiveloop.com";
     const client = createClient<paths>({
       baseUrl,
       headers: {
