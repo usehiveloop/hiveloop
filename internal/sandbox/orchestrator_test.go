@@ -39,6 +39,11 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	if err := model.AutoMigrate(db); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
+
+	// Ensure clean state: remove all sandboxes from prior test runs to prevent
+	// non-deterministic selection due to stale rows.
+	db.Exec("DELETE FROM sandboxes")
+
 	t.Cleanup(func() { sqlDB.Close() })
 	return db
 }
@@ -377,7 +382,7 @@ func TestSelection_CrossOrg(t *testing.T) {
 // --- Assignment Lifecycle Tests ---
 
 func TestAssign_AgentWithExistingSandbox_ReturnsIt(t *testing.T) {
-	orch, _, db := setupOrchestrator(t)
+	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, cred.ID, "shared")
@@ -385,6 +390,9 @@ func TestAssign_AgentWithExistingSandbox_ReturnsIt(t *testing.T) {
 	sbExisting := seedSharedSandbox(t, db, 0, 0)
 	sbOther := seedSharedSandbox(t, db, 0, 0)
 	_ = sbOther
+
+	// Register the existing sandbox with the provider so verifySandboxExists succeeds.
+	provider.registerSandbox(sbExisting.ExternalID, StatusRunning)
 
 	// Pre-assign agent to sbExisting
 	db.Model(&agent).Update("sandbox_id", sbExisting.ID)
