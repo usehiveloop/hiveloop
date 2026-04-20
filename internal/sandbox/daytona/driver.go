@@ -145,6 +145,13 @@ func (d *Driver) StopSandbox(ctx context.Context, externalID string) error {
 	return d.sandboxAction(ctx, externalID, "stop")
 }
 
+// ArchiveSandbox moves a stopped Daytona sandbox into cold storage.
+// Sandbox must be stopped first — Daytona will reject archive on a running sandbox.
+// Calling StartSandbox on an archived sandbox will restore and start it.
+func (d *Driver) ArchiveSandbox(ctx context.Context, externalID string) error {
+	return d.sandboxAction(ctx, externalID, "archive")
+}
+
 // DeleteSandbox permanently removes a Daytona sandbox.
 func (d *Driver) DeleteSandbox(ctx context.Context, externalID string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, d.apiURL+"/sandbox/"+externalID, nil)
@@ -410,8 +417,27 @@ func (d *Driver) GetSnapshotLogs(ctx context.Context, externalID string) (string
 }
 
 // SetAutoStop configures auto-stop interval for a sandbox.
+// intervalMinutes=0 disables auto-stop.
 func (d *Driver) SetAutoStop(ctx context.Context, externalID string, intervalMinutes int) error {
 	url := fmt.Sprintf("%s/sandbox/%s/autostop/%d", d.apiURL, externalID, intervalMinutes)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+d.apiKey)
+	resp, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
+}
+
+// SetAutoArchive configures auto-archive interval for a stopped sandbox.
+// intervalMinutes=0 disables auto-archive (sandbox stays stopped indefinitely
+// until explicitly archived or restarted).
+func (d *Driver) SetAutoArchive(ctx context.Context, externalID string, intervalMinutes int) error {
+	url := fmt.Sprintf("%s/sandbox/%s/autoarchive/%d", d.apiURL, externalID, intervalMinutes)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
 	if err != nil {
 		return err
@@ -471,6 +497,10 @@ func mapState(state interface{}) sandbox.SandboxStatus {
 		return sandbox.StatusStopped
 	case "creating", "starting", "pending":
 		return sandbox.StatusStarting
+	case "archived":
+		return sandbox.StatusArchived
+	case "archiving":
+		return sandbox.StatusArchiving
 	case "error", "unknown":
 		return sandbox.StatusError
 	default:

@@ -752,6 +752,20 @@ func (p *Pusher) loadBridgeSkills(agentID uuid.UUID) []bridgepkg.SkillDefinition
 	return result
 }
 
+// defaultSubagentTimeoutForegroundSecs is the wall-clock cap for a foreground
+// sub-agent invocation. 900s (15 minutes) gives the sub-agent room for a
+// non-trivial exploration or planning task without letting it stall the
+// parent indefinitely. Bridge's own default is 300s (5 min), which proved
+// tight for codebase-exploration subagents that do multiple `bash` /
+// `RipGrep` calls; 15 min is a better ceiling for our agent stack.
+const defaultSubagentTimeoutForegroundSecs = 900
+
+// defaultSubagentTimeoutBackgroundSecs gives background sub-agents a wider
+// window since the parent isn't blocked waiting on them and failure costs
+// less. 1800s (30 min) lets a long-running background job finish without
+// the parent having to resubmit.
+const defaultSubagentTimeoutBackgroundSecs = 1800
+
 // applyAgentConfigDefaults fills in sensible defaults for any AgentConfig fields
 // the user did not explicitly set. The providerID and model are used to pick
 // the best defaults for the specific LLM.
@@ -765,11 +779,18 @@ func applyAgentConfigDefaults(cfg *bridgepkg.AgentConfig, providerID, modelName 
 			*ptr = &val
 		}
 	}
+	setDefaultI64 := func(ptr **int64, val int64) {
+		if *ptr == nil {
+			*ptr = &val
+		}
+	}
 
 	setDefault(&cfg.MaxTokens, defaultMaxTokens(providerID, modelName))
 	setDefault(&cfg.MaxTurns, 250)
 	setDefault(&cfg.MaxTasksPerConversation, 50)
 	setDefault(&cfg.MaxConcurrentConversations, 100)
+	setDefaultI64(&cfg.SubagentTimeoutForegroundSecs, defaultSubagentTimeoutForegroundSecs)
+	setDefaultI64(&cfg.SubagentTimeoutBackgroundSecs, defaultSubagentTimeoutBackgroundSecs)
 
 	if cfg.Temperature == nil {
 		temp := defaultTemperature(providerID, modelName)
