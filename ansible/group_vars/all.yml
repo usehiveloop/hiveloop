@@ -16,9 +16,9 @@ registry_version: "2"
 # DOMAIN CONFIGURATION
 # =============================================================================
 
-api_domain: "api.daytona.usehiveloop.com"
-dex_domain: "dex.daytona.usehiveloop.com"
-primary_preview_domain: "preview.usehiveloop.com"
+api_domain: "api.daytona.ziraloop.com"
+dex_domain: "dex.daytona.ziraloop.com"
+primary_preview_domain: "preview.ziraloop.com"
 proxy_protocol: "https"
 
 # =============================================================================

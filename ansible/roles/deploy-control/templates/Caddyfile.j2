@@ -2,7 +2,7 @@
 # GLOBAL OPTIONS
 # =============================================================================
 {
-    email admin@usehiveloop.com
+    email admin@ziraloop.com
 
     # Enable admin API for dynamic config (custom domain management via /load)
     admin 0.0.0.0:2019
@@ -50,7 +50,7 @@
 }
 
 # acme-dns API proxy (for ZiraLoop backend to register subdomains)
-acme-dns-api.daytona.usehiveloop.com {
+acme-dns-api.daytona.ziraloop.com {
     tls {
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
     }
@@ -63,7 +63,7 @@ acme-dns-api.daytona.usehiveloop.com {
 }
 
 # Caddy admin API proxy (for ZiraLoop backend to POST /load configs)
-caddy-admin.daytona.usehiveloop.com {
+caddy-admin.daytona.ziraloop.com {
     tls {
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
     }

@@ -1,12 +1,12 @@
 [general]
 listen = "0.0.0.0:53"
 protocol = "both"
-domain = "acme.usehiveloop.com"
-nsname = "auth.acme.usehiveloop.com"
-nsadmin = "admin.usehiveloop.com"
+domain = "acme.ziraloop.com"
+nsname = "auth.acme.ziraloop.com"
+nsadmin = "admin.ziraloop.com"
 records = [
-    "acme.usehiveloop.com. A {{ hostvars['controlplane']['ansible_host'] }}",
-    "auth.acme.usehiveloop.com. A {{ hostvars['controlplane']['ansible_host'] }}"
+    "acme.ziraloop.com. A {{ hostvars['controlplane']['ansible_host'] }}",
+    "auth.acme.ziraloop.com. A {{ hostvars['controlplane']['ansible_host'] }}"
 ]
 debug = false
 
