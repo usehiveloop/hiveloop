@@ -35,7 +35,7 @@ echo ""
 # --- Phase 2: Warm up (create one conversation to ensure sandbox is ready) ---
 echo "Phase 2: Warming up sandbox..."
 FIRST_AGENT=$(echo "$AGENT_IDS" | head -1)
-WARMUP=$(curl -s --max-time 180 -X POST "https://api.hiveloop.com/v1/agents/$FIRST_AGENT/conversations" \
+WARMUP=$(curl -s --max-time 180 -X POST "https://api.usehiveloop.com/v1/agents/$FIRST_AGENT/conversations" \
   -H "Authorization: Bearer $HIVELOOP_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{}')
@@ -47,13 +47,13 @@ if [ "$WARMUP_ID" = "FAILED" ]; then
 fi
 
 # Send a test message and wait for response
-curl -s --max-time 15 -X POST "https://api.hiveloop.com/v1/conversations/$WARMUP_ID/messages" \
+curl -s --max-time 15 -X POST "https://api.usehiveloop.com/v1/conversations/$WARMUP_ID/messages" \
   -H "Authorization: Bearer $HIVELOOP_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"content": "Say ok."}' >/dev/null
 echo "Waiting for warmup response..."
 for i in $(seq 1 30); do
-  EVENTS=$(curl -s --max-time 5 "https://api.hiveloop.com/v1/conversations/$WARMUP_ID/events" \
+  EVENTS=$(curl -s --max-time 5 "https://api.usehiveloop.com/v1/conversations/$WARMUP_ID/events" \
     -H "Authorization: Bearer $HIVELOOP_API_KEY" | python3 -c "
 import sys,json
 d=json.loads(sys.stdin.read(),strict=False)

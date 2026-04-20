@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	apiBase    = "https://api.hiveloop.com"
+	apiBase    = "https://api.usehiveloop.com"
 	batchSize  = 5
 	maxRetries = 3
 )
