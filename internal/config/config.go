@@ -157,6 +157,11 @@ type Config struct {
 	WorkerHealthPort      int           `env:"WORKER_HEALTH_PORT" envDefault:"8090"`
 	AsynqConcurrency      int           `env:"ASYNQ_CONCURRENCY" envDefault:"30"`
 	AsynqShutdownTimeout  time.Duration `env:"ASYNQ_SHUTDOWN_TIMEOUT" envDefault:"120s"`
+
+	// PostHog error tracking (empty POSTHOG_API_KEY disables capture)
+	PostHogAPIKey   string `env:"POSTHOG_API_KEY"`
+	PostHogEndpoint string `env:"POSTHOG_ENDPOINT" envDefault:"https://us.i.posthog.com"`
+	PostHogEnabled  bool   `env:"POSTHOG_ENABLED" envDefault:"false"`
 }
 
 func Load() (*Config, error) {

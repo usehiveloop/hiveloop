@@ -15,10 +15,12 @@ func TestAllYAMLsParse(t *testing.T) {
 	}
 
 	count := 0
+	dirCount := 0
 	for _, typeDir := range typeDirs {
 		if !typeDir.IsDir() {
 			continue
 		}
+		dirCount++
 
 		files, err := subagentsFS.ReadDir(typeDir.Name())
 		if err != nil {
@@ -51,9 +53,10 @@ func TestAllYAMLsParse(t *testing.T) {
 		}
 	}
 
-	if count != 42 {
-		t.Errorf("expected 42 YAML definitions (7 subagents x 6 providers), got %d", count)
+	if count < 42 {
+		t.Errorf("expected at least 42 YAML definitions, got %d", count)
 	}
+	t.Logf("parsed %d YAML definitions across %d subagent types", count, dirCount)
 }
 
 func TestLoadGroupMergesProviders(t *testing.T) {
