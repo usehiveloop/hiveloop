@@ -8,18 +8,21 @@ import (
 
 // mockProvider is an in-memory sandbox.Provider for testing.
 type mockProvider struct {
-	mu               sync.Mutex
-	sandboxes        map[string]*mockSandbox
-	endpoints        map[string]string // externalID → URL
-	endpointOverride string            // if set, all GetEndpoint calls return this URL
-	nextID           int
-	executeCommandFn func(ctx context.Context, externalID, command string) (string, error)
-	setAutoStopCalls []setAutoStopCall
+	mu                  sync.Mutex
+	sandboxes           map[string]*mockSandbox
+	endpoints           map[string]string // externalID → URL
+	endpointOverride    string            // if set, all GetEndpoint calls return this URL
+	nextID              int
+	executeCommandFn    func(ctx context.Context, externalID, command string) (string, error)
+	setAutoStopCalls    []autoPolicyCall
+	setAutoArchiveCalls []autoPolicyCall
+	archivedIDs         []string
 }
 
-// setAutoStopCall records one invocation of SetAutoStop. Tests assert against
-// this slice to verify the system sandbox path passes intervalMinutes=0.
-type setAutoStopCall struct {
+// autoPolicyCall records one invocation of SetAutoStop / SetAutoArchive.
+// Tests assert against these slices to verify sandbox creation paths pass
+// intervalMinutes=0 (disabling provider-managed lifecycle).
+type autoPolicyCall struct {
 	externalID      string
 	intervalMinutes int
 }
@@ -138,10 +141,32 @@ func (m *mockProvider) DeleteSnapshot(_ context.Context, _ string) error {
 func (m *mockProvider) SetAutoStop(_ context.Context, externalID string, intervalMinutes int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.setAutoStopCalls = append(m.setAutoStopCalls, setAutoStopCall{
+	m.setAutoStopCalls = append(m.setAutoStopCalls, autoPolicyCall{
 		externalID:      externalID,
 		intervalMinutes: intervalMinutes,
 	})
+	return nil
+}
+
+func (m *mockProvider) SetAutoArchive(_ context.Context, externalID string, intervalMinutes int) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.setAutoArchiveCalls = append(m.setAutoArchiveCalls, autoPolicyCall{
+		externalID:      externalID,
+		intervalMinutes: intervalMinutes,
+	})
+	return nil
+}
+
+func (m *mockProvider) ArchiveSandbox(_ context.Context, externalID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	sb, ok := m.sandboxes[externalID]
+	if !ok {
+		return fmt.Errorf("sandbox not found: %s", externalID)
+	}
+	sb.status = StatusArchived
+	m.archivedIDs = append(m.archivedIDs, externalID)
 	return nil
 }
 

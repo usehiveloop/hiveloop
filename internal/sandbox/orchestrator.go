@@ -240,6 +240,11 @@ func (o *Orchestrator) createPoolSandbox(ctx context.Context) (*model.Sandbox, e
 		return nil, fmt.Errorf("creating pool sandbox via provider: %w", err)
 	}
 
+	// Disable provider-managed auto-stop and auto-archive. Lifecycle for pool
+	// sandboxes is driven by the periodic SandboxLifecycle task (10m idle →
+	// stop, 24h stopped → archive). intervalMinutes=0 disables each policy.
+	disableProviderLifecycle(ctx, o.provider, &sb, info.ExternalID)
+
 	bridgeURL, err := o.provider.GetEndpoint(ctx, info.ExternalID, BridgePort)
 	if err != nil {
 		o.db.Model(&sb).Updates(map[string]any{
@@ -385,16 +390,11 @@ func (o *Orchestrator) createSystemSandbox(ctx context.Context) (*model.Sandbox,
 		return nil, fmt.Errorf("creating system sandbox via provider: %w", err)
 	}
 
-	// Disable Daytona's auto-stop policy on this sandbox. The system sandbox
-	// must stay running indefinitely; the orchestrator's health check skips
-	// auto-stop for sandbox_type='system' but Daytona itself would otherwise
-	// apply its account-level default. Convention: intervalMinutes=0 disables.
-	// Non-fatal — if this fails the periodic health check will wake the
-	// sandbox after Daytona stops it.
-	if err := o.provider.SetAutoStop(ctx, info.ExternalID, 0); err != nil {
-		slog.Warn("failed to disable auto-stop on system sandbox",
-			"sandbox_id", sb.ID, "external_id", info.ExternalID, "error", err)
-	}
+	// Disable Daytona's auto-stop AND auto-archive on this sandbox. The system
+	// sandbox must stay running indefinitely and must never be archived by the
+	// provider. Convention: intervalMinutes=0 disables each policy.
+	// Non-fatal — lifecycle is reconciled by periodic tasks.
+	disableProviderLifecycle(ctx, o.provider, &sb, info.ExternalID)
 
 	bridgeURL, err := o.provider.GetEndpoint(ctx, info.ExternalID, BridgePort)
 	if err != nil {
@@ -472,7 +472,10 @@ func (o *Orchestrator) CreateDedicatedSandbox(ctx context.Context, agent *model.
 
 
 // GetBridgeClient returns a BridgeClient connected to the sandbox.
-// If the pre-auth URL is expired or about to expire, it refreshes it first.
+// This is the single chokepoint for all Bridge interactions — it guarantees
+// the sandbox is active (waking stopped sandboxes, unarchiving archived
+// sandboxes) before returning a client, and refreshes the pre-auth URL if
+// it's about to expire.
 func (o *Orchestrator) GetBridgeClient(ctx context.Context, sb *model.Sandbox) (*bridge.BridgeClient, error) {
 	// Decrypt the Bridge API key
 	apiKey, err := o.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
@@ -480,25 +483,62 @@ func (o *Orchestrator) GetBridgeClient(ctx context.Context, sb *model.Sandbox) (
 		return nil, fmt.Errorf("decrypting bridge api key: %w", err)
 	}
 
-	// Check if URL needs refresh
+	// Ensure the sandbox is running before anyone tries to talk to Bridge.
+	// Handles stopped → wake, archived → unarchive transparently so callers
+	// don't need to know about the lifecycle state machine.
+	if _, err := o.EnsureSandboxActive(ctx, sb); err != nil {
+		return nil, fmt.Errorf("ensuring sandbox active: %w", err)
+	}
+
+	// Check if URL needs refresh (may have been cleared by stop/archive).
 	if o.needsURLRefresh(sb) {
 		if err := o.refreshBridgeURL(ctx, sb); err != nil {
 			return nil, fmt.Errorf("refreshing bridge URL: %w", err)
 		}
 	}
 
+	// Bump last_active_at — any bridge interaction counts as activity, which
+	// resets the 10m idle timer for the sandbox lifecycle task.
+	o.touchLastActive(sb)
+
 	return bridge.NewBridgeClient(sb.BridgeURL, apiKey), nil
 }
 
-// StopSandbox stops a running sandbox.
+// touchLastActive bumps the sandbox's LastActiveAt column asynchronously so
+// hot callers (GetBridgeClient is invoked per-request) don't pay the DB
+// round-trip synchronously. The 10m idle window is coarse enough that a
+// second of drift from the fire-and-forget update is harmless.
+func (o *Orchestrator) touchLastActive(sb *model.Sandbox) {
+	now := time.Now()
+	sb.LastActiveAt = &now
+	go func(id uuid.UUID) {
+		if err := o.db.Model(&model.Sandbox{}).
+			Where("id = ?", id).
+			Update("last_active_at", now).Error; err != nil {
+			slog.Debug("touchLastActive update failed", "sandbox_id", id, "error", err)
+		}
+	}(sb.ID)
+}
+
+// StopSandbox stops a running sandbox. Records the StoppedAt timestamp so the
+// periodic SandboxLifecycle task can archive sandboxes that have been stopped
+// for more than 24 hours.
 func (o *Orchestrator) StopSandbox(ctx context.Context, sb *model.Sandbox) error {
 	if err := o.provider.StopSandbox(ctx, sb.ExternalID); err != nil {
 		return fmt.Errorf("stopping sandbox %s: %w", sb.ID, err)
 	}
-	return o.db.Model(sb).Updates(map[string]any{
+	now := time.Now()
+	if err := o.db.Model(sb).Updates(map[string]any{
 		"status":                "stopped",
+		"stopped_at":            now,
 		"bridge_url_expires_at": nil,
-	}).Error
+	}).Error; err != nil {
+		return err
+	}
+	sb.Status = "stopped"
+	sb.StoppedAt = &now
+	sb.BridgeURLExpiresAt = nil
+	return nil
 }
 
 // DeleteSandbox tears down a sandbox via the provider and removes the DB record.
@@ -659,13 +699,11 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		return nil, fmt.Errorf("waiting for bridge: %w", err)
 	}
 
-	// Disable Daytona's auto-stop. Sandbox lifecycle is managed by our own
-	// background tasks — Daytona's account-level default would otherwise
-	// kill the sandbox prematurely. intervalMinutes=0 disables.
-	if err := o.provider.SetAutoStop(ctx, info.ExternalID, 0); err != nil {
-		slog.Warn("failed to disable auto-stop on dedicated sandbox",
-			"sandbox_id", sb.ID, "external_id", info.ExternalID, "error", err)
-	}
+	// Disable Daytona's auto-stop AND auto-archive. Sandbox lifecycle is
+	// managed by our own background tasks — the periodic SandboxLifecycle
+	// task stops idle sandboxes after 10m and archives stopped sandboxes
+	// after 24h. intervalMinutes=0 disables each policy.
+	disableProviderLifecycle(ctx, o.provider, &sb, info.ExternalID)
 
 	// Run agent-level setup commands for dedicated sandboxes
 	if agent != nil && len(agent.SetupCommands) > 0 {
@@ -698,6 +736,9 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	return &sb, nil
 }
 
+// WakeSandbox starts a stopped (or archived) sandbox. Daytona uses the same
+// StartSandbox endpoint for both resume-from-stop and restore-from-archive.
+// Clears StoppedAt on success so the 24h archive timer resets.
 func (o *Orchestrator) WakeSandbox(ctx context.Context, sb *model.Sandbox) (*model.Sandbox, error) {
 	if err := o.provider.StartSandbox(ctx, sb.ExternalID); err != nil {
 		return nil, fmt.Errorf("starting sandbox %s: %w", sb.ID, err)
@@ -711,10 +752,12 @@ func (o *Orchestrator) WakeSandbox(ctx context.Context, sb *model.Sandbox) (*mod
 	o.db.Model(sb).Updates(map[string]any{
 		"status":         "running",
 		"last_active_at": now,
+		"stopped_at":     nil,
 		"error_message":  nil,
 	})
 	sb.Status = "running"
 	sb.LastActiveAt = &now
+	sb.StoppedAt = nil
 
 	// Wait for Bridge to become healthy (it restarts automatically via entrypoint)
 	if err := o.waitForBridgeHealthy(ctx, sb); err != nil {
@@ -915,6 +958,200 @@ func (o *Orchestrator) waitForBridgeHealthy(ctx context.Context, sb *model.Sandb
 // ExecuteCommand runs a command inside a sandbox via the provider.
 func (o *Orchestrator) ExecuteCommand(ctx context.Context, sb *model.Sandbox, command string) (string, error) {
 	return o.provider.ExecuteCommand(ctx, sb.ExternalID, command)
+}
+
+// --- lifecycle management (sleep + archive) ---
+
+const (
+	// sandboxIdleTimeoutMinutes is how long a running sandbox can sit idle
+	// (no bridge activity) before the periodic lifecycle task stops it.
+	sandboxIdleTimeoutMinutes = 10
+
+	// sandboxArchiveAfterHours is how long a stopped sandbox stays stopped
+	// before the lifecycle task moves it to cold storage (archived).
+	sandboxArchiveAfterHours = 24
+)
+
+// disableProviderLifecycle turns off the provider's auto-stop and auto-archive
+// policies for a sandbox. Lifecycle is managed by the periodic
+// SandboxLifecycle task — see RunSandboxLifecycle. Failures are logged but
+// non-fatal; the lifecycle task is the source of truth and will stop/archive
+// sandboxes independently of provider settings.
+func disableProviderLifecycle(ctx context.Context, provider Provider, sb *model.Sandbox, externalID string) {
+	if err := provider.SetAutoStop(ctx, externalID, 0); err != nil {
+		slog.Warn("failed to disable provider auto-stop",
+			"sandbox_id", sb.ID, "external_id", externalID, "error", err)
+	}
+	if err := provider.SetAutoArchive(ctx, externalID, 0); err != nil {
+		slog.Warn("failed to disable provider auto-archive",
+			"sandbox_id", sb.ID, "external_id", externalID, "error", err)
+	}
+}
+
+// ArchiveSandbox moves a stopped sandbox into cold storage. The sandbox must
+// already be stopped — the provider rejects archive on running sandboxes.
+// On success, the DB row transitions to status='archived'. Use
+// UnarchiveSandbox (or EnsureSandboxActive) to restore it later.
+func (o *Orchestrator) ArchiveSandbox(ctx context.Context, sb *model.Sandbox) error {
+	// Belt-and-braces: if the sandbox isn't stopped, stop it first.
+	if sb.Status != string(StatusStopped) {
+		if err := o.StopSandbox(ctx, sb); err != nil {
+			return fmt.Errorf("stopping sandbox before archive: %w", err)
+		}
+	}
+
+	if err := o.provider.ArchiveSandbox(ctx, sb.ExternalID); err != nil {
+		return fmt.Errorf("archiving sandbox %s: %w", sb.ID, err)
+	}
+
+	if err := o.db.Model(sb).Updates(map[string]any{
+		"status":                string(StatusArchived),
+		"bridge_url_expires_at": nil,
+	}).Error; err != nil {
+		return fmt.Errorf("marking sandbox archived: %w", err)
+	}
+	sb.Status = string(StatusArchived)
+	sb.BridgeURLExpiresAt = nil
+
+	slog.Info("sandbox archived", "sandbox_id", sb.ID, "external_id", sb.ExternalID)
+	return nil
+}
+
+// UnarchiveSandbox restores an archived sandbox back to running state.
+// Daytona uses the same StartSandbox call for waking stopped AND unarchiving
+// archived sandboxes — but unarchive may take longer (restoring from cold
+// storage), so we widen the bridge health deadline.
+func (o *Orchestrator) UnarchiveSandbox(ctx context.Context, sb *model.Sandbox) (*model.Sandbox, error) {
+	slog.Info("unarchiving sandbox", "sandbox_id", sb.ID, "external_id", sb.ExternalID)
+	// Optimistically mark as starting so concurrent callers don't re-trigger.
+	o.db.Model(sb).Update("status", string(StatusStarting))
+	sb.Status = string(StatusStarting)
+
+	return o.WakeSandbox(ctx, sb)
+}
+
+// EnsureSandboxActive guarantees that a sandbox is in running state before
+// downstream code tries to talk to it over Bridge. This is the single
+// chokepoint called by every Bridge-using path:
+//   - already running → no-op
+//   - starting/creating → wait for bridge healthy
+//   - stopped → wake
+//   - archived → unarchive (which also wakes)
+//   - error/unknown → surface the error
+//
+// It mutates sb in place with the refreshed fields (Status, BridgeURL,
+// BridgeURLExpiresAt, LastActiveAt) so callers can keep using the same
+// pointer without re-reading from DB.
+func (o *Orchestrator) EnsureSandboxActive(ctx context.Context, sb *model.Sandbox) (*model.Sandbox, error) {
+	switch sb.Status {
+	case string(StatusRunning):
+		return sb, nil
+
+	case string(StatusStopped):
+		return o.WakeSandbox(ctx, sb)
+
+	case string(StatusArchived), string(StatusArchiving):
+		return o.UnarchiveSandbox(ctx, sb)
+
+	case string(StatusCreating), string(StatusStarting):
+		// Provisioning in flight — wait for bridge.
+		if err := o.waitForBridgeHealthy(ctx, sb); err != nil {
+			return nil, fmt.Errorf("waiting for in-flight sandbox: %w", err)
+		}
+		now := time.Now()
+		o.db.Model(sb).Updates(map[string]any{
+			"status":         "running",
+			"last_active_at": now,
+		})
+		sb.Status = "running"
+		sb.LastActiveAt = &now
+		return sb, nil
+
+	case string(StatusError):
+		return nil, fmt.Errorf("sandbox %s is in error state", sb.ID)
+
+	default:
+		// Unknown DB status — ask the provider for ground truth and retry.
+		status, err := o.provider.GetStatus(ctx, sb.ExternalID)
+		if err != nil {
+			return nil, fmt.Errorf("getting provider status for sandbox %s: %w", sb.ID, err)
+		}
+		sb.Status = string(status)
+		o.db.Model(sb).Update("status", sb.Status)
+		if sb.Status == string(StatusRunning) {
+			return sb, nil
+		}
+		// Recurse once with the reconciled status.
+		return o.EnsureSandboxActive(ctx, sb)
+	}
+}
+
+// RunSandboxLifecycle implements the periodic lifecycle policy for sandboxes:
+//  1. Running sandboxes idle for >10 minutes → stop.
+//  2. Stopped sandboxes stopped for >24 hours → archive.
+//
+// System sandboxes are exempt from both policies (they must stay running).
+// Called from the periodic SandboxLifecycle asynq task every 5 minutes.
+func (o *Orchestrator) RunSandboxLifecycle(ctx context.Context) {
+	now := time.Now()
+	idleCutoff := now.Add(-time.Duration(sandboxIdleTimeoutMinutes) * time.Minute)
+	archiveCutoff := now.Add(-time.Duration(sandboxArchiveAfterHours) * time.Hour)
+
+	// 1. Stop running sandboxes that have been idle past the idle threshold.
+	var idleRunning []model.Sandbox
+	if err := o.db.Where(
+		"status = ? AND sandbox_type != ? AND last_active_at IS NOT NULL AND last_active_at < ?",
+		string(StatusRunning),
+		"system",
+		idleCutoff,
+	).Find(&idleRunning).Error; err != nil {
+		slog.Error("sandbox lifecycle: query idle running sandboxes failed", "error", err)
+	} else {
+		for i := range idleRunning {
+			sb := &idleRunning[i]
+			// For shared sandboxes, skip if agents are still assigned.
+			if sb.SandboxType == "shared" {
+				var agentCount int64
+				o.db.Model(&model.Agent{}).Where("sandbox_id = ?", sb.ID).Count(&agentCount)
+				if agentCount > 0 {
+					continue
+				}
+			}
+			slog.Info("sandbox lifecycle: stopping idle sandbox",
+				"sandbox_id", sb.ID,
+				"external_id", sb.ExternalID,
+				"idle_minutes", int(now.Sub(*sb.LastActiveAt).Minutes()),
+			)
+			if err := o.StopSandbox(ctx, sb); err != nil {
+				slog.Error("sandbox lifecycle: failed to stop idle sandbox",
+					"sandbox_id", sb.ID, "error", err)
+			}
+		}
+	}
+
+	// 2. Archive stopped sandboxes that have been stopped past the archive threshold.
+	var staleStopped []model.Sandbox
+	if err := o.db.Where(
+		"status = ? AND sandbox_type != ? AND stopped_at IS NOT NULL AND stopped_at < ?",
+		string(StatusStopped),
+		"system",
+		archiveCutoff,
+	).Find(&staleStopped).Error; err != nil {
+		slog.Error("sandbox lifecycle: query stale stopped sandboxes failed", "error", err)
+	} else {
+		for i := range staleStopped {
+			sb := &staleStopped[i]
+			slog.Info("sandbox lifecycle: archiving stale stopped sandbox",
+				"sandbox_id", sb.ID,
+				"external_id", sb.ExternalID,
+				"stopped_hours", int(now.Sub(*sb.StoppedAt).Hours()),
+			)
+			if err := o.ArchiveSandbox(ctx, sb); err != nil {
+				slog.Error("sandbox lifecycle: failed to archive stopped sandbox",
+					"sandbox_id", sb.ID, "error", err)
+			}
+		}
+	}
 }
 
 // resolveBuildOpts resolves the base image and resource allocation for a template build.
