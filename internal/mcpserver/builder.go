@@ -9,11 +9,11 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/counter"
-	mcppkg "github.com/ziraloop/ziraloop/internal/mcp"
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/nango"
+	"github.com/usehiveloop/hiveloop/internal/counter"
+	mcppkg "github.com/usehiveloop/hiveloop/internal/mcp"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
 // MemoryToolsFunc is a callback that registers memory tools on a server.
@@ -42,7 +42,7 @@ func BuildServer(
 	addSubscriptionTools SubscriptionToolsFunc,
 ) (*mcp.Server, error) {
 	server := mcp.NewServer(&mcp.Implementation{
-		Name:    "ziraloop",
+		Name:    "hiveloop",
 		Version: "v1.0.0",
 	}, nil)
 

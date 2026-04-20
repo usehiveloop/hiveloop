@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     setCookie = await createSessionCookie(refreshed)
   }
 
-  const activeOrg = req.cookies.get("ziraloop_active_org")?.value ?? null
+  const activeOrg = req.cookies.get("hiveloop_active_org")?.value ?? null
 
   const res = NextResponse.json({
     access_token: session.access_token,

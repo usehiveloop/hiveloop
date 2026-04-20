@@ -6,7 +6,7 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	"github.com/ziraloop/ziraloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/config"
 )
 
 // PeriodicTaskConfigs returns the periodic task configurations for the Asynq scheduler.

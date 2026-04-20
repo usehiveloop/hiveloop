@@ -8,9 +8,9 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/trigger/zira"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/trigger/zira"
 )
 
 // GormRouterTriggerStore is the production implementation backed by Postgres.

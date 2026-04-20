@@ -3,7 +3,7 @@ package sandbox
 import (
 	"testing"
 
-	bridgepkg "github.com/ziraloop/ziraloop/internal/bridge"
+	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 )
 
 // applyImmortalDefault is the single place where every pushed agent gets its

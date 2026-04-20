@@ -14,9 +14,9 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/crypto"
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 // NangoWebhookHandler receives webhook events forwarded by Nango.
@@ -55,7 +55,7 @@ type nangoWebhook struct {
 }
 
 // webhookPayload is the enriched payload sent to the org's webhook endpoint.
-// Nango-specific fields are stripped; ZiraLoop IDs are used instead.
+// Nango-specific fields are stripped; HiveLoop IDs are used instead.
 type webhookPayload struct {
 	Type      string          `json:"type"`
 	Provider  string          `json:"provider"`

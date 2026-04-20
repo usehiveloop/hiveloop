@@ -1,13 +1,13 @@
 ---
 name: railway
-description: Use when deploying services, managing environments, reading logs, or configuring infrastructure on Railway - provides pre-authenticated GraphQL API patterns for projects, services, deployments, variables, domains, volumes, buckets, and templates via ${ZIRALOOP_RAILWAY_API_URL} proxy
+description: Use when deploying services, managing environments, reading logs, or configuring infrastructure on Railway - provides pre-authenticated GraphQL API patterns for projects, services, deployments, variables, domains, volumes, buckets, and templates via ${HIVELOOP_RAILWAY_API_URL} proxy
 ---
 
 # Managing Railway Infrastructure
 
 ## Overview
 
-Manage Railway cloud infrastructure through a pre-authenticated GraphQL API proxy. All requests go to `${ZIRALOOP_RAILWAY_API_URL}` with `Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY`.
+Manage Railway cloud infrastructure through a pre-authenticated GraphQL API proxy. All requests go to `${HIVELOOP_RAILWAY_API_URL}` with `Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY`.
 
 ## When to Use
 
@@ -20,7 +20,7 @@ Manage Railway cloud infrastructure through a pre-authenticated GraphQL API prox
 
 ## Quick Reference
 
-Every call is `curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" -d '{"query": "...", "variables": {...}}'`. Always pipe through `jq`.
+Every call is `curl -s -X POST ${HIVELOOP_RAILWAY_API_URL} -H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" -d '{"query": "...", "variables": {...}}'`. Always pipe through `jq`.
 
 ### Queries
 
@@ -80,14 +80,14 @@ Every call is `curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Be
 ### Request pattern
 
 ```bash
-curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} \
-  -H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY" \
+curl -s -X POST ${HIVELOOP_RAILWAY_API_URL} \
+  -H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"query": "...", "variables": {...}}' \
   | jq 'if .errors then {error: .errors[0].message} else .data end'
 ```
 
-Every request must include `Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY`.
+Every request must include `Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY`.
 
 ### Rule 1: Always filter with jq
 
@@ -95,10 +95,10 @@ Never let raw JSON into your context. Always pipe through `jq` to extract only w
 
 ```bash
 # BAD
-curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" -d '...'
+curl -s -X POST ${HIVELOOP_RAILWAY_API_URL} -H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" -d '...'
 
 # GOOD
-curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" -d '...' \
+curl -s -X POST ${HIVELOOP_RAILWAY_API_URL} -H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" -d '...' \
   | jq '.data.project.services.edges[].node | {id, name}'
 ```
 
@@ -117,7 +117,7 @@ Do NOT copy full queries verbatim if you only need a subset. GraphQL lets you pi
 
 ```bash
 # Only need service names? Don't request deployments, domains, volumes...
-curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
+curl -s -X POST ${HIVELOOP_RAILWAY_API_URL} -H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
   -d '{"query": "query { project(id: \"PROJECT_ID\") { services { edges { node { id name } } } } }"}' \
   | jq '.data.project.services.edges[].node'
 ```
@@ -128,7 +128,7 @@ Your output is logged. Mask secrets, credentials, tokens, and connection strings
 
 **Environment variables** — always mask sensitive values:
 ```bash
-curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
+curl -s -X POST ${HIVELOOP_RAILWAY_API_URL} -H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
   -d '{"query": "query($p:String!,$e:String!,$s:String!){variablesForServiceDeployment(projectId:$p,environmentId:$e,serviceId:$s)}", "variables": {"p":"...","e":"...","s":"..."}}' \
   | jq '.data.variablesForServiceDeployment | to_entries | map({key: .key, value: (if (.key | test("SECRET|KEY|TOKEN|PASSWORD|URL|DSN|CREDENTIALS|PRIVATE|MONGO|POSTGRES|MYSQL|REDIS|AMQP"; "i")) then "****" else .value end)}) | from_entries'
 ```
@@ -149,34 +149,34 @@ Most operations need IDs. Start with discovery:
 
 **Deploy service from image:**
 ```bash
-SERVICE_ID=$(curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
+SERVICE_ID=$(curl -s -X POST ${HIVELOOP_RAILWAY_API_URL} -H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
   -d '{"query": "mutation { serviceCreate(input: { name: \"my-api\", projectId: \"PROJ\", environmentId: \"ENV\", source: { image: \"node:20\" } }) { id } }"}' \
   | jq -r '.data.serviceCreate.id')
 
-curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
+curl -s -X POST ${HIVELOOP_RAILWAY_API_URL} -H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
   -d "{\"query\": \"mutation { serviceDomainCreate(input: { environmentId: \\\"ENV\\\", serviceId: \\\"$SERVICE_ID\\\" }) { domain } }\"}" \
   | jq -r '.data.serviceDomainCreate.domain'
 ```
 
 **Check status, read logs on failure:**
 ```bash
-curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
+curl -s -X POST ${HIVELOOP_RAILWAY_API_URL} -H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
   -d '{"query": "query { serviceInstance(environmentId: \"ENV\", serviceId: \"SVC\") { latestDeployment { id status } } }"}' \
   | jq '.data.serviceInstance.latestDeployment'
 
 # If FAILED/CRASHED — read build logs (messages only)
-curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
+curl -s -X POST ${HIVELOOP_RAILWAY_API_URL} -H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
   -d '{"query": "query { buildLogs(deploymentId: \"DEPLOY\", limit: 200) { timestamp message } }"}' \
   | jq -r '.data.buildLogs[] | "\(.timestamp) \(.message)"'
 ```
 
 **Batch env vars then deploy once:**
 ```bash
-curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
+curl -s -X POST ${HIVELOOP_RAILWAY_API_URL} -H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
   -d '{"query": "mutation($v: EnvironmentVariables!) { variableCollectionUpsert(input: { projectId: \"PROJ\", environmentId: \"ENV\", serviceId: \"SVC\", variables: $v, skipDeploys: true }) }", "variables": {"v": {"DB_URL": "...", "REDIS_URL": "..."}}}' \
   | jq '.data'
 
-curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
+curl -s -X POST ${HIVELOOP_RAILWAY_API_URL} -H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY" -H "Content-Type: application/json" \
   -d '{"query": "mutation { serviceInstanceDeployV2(environmentId: \"ENV\", serviceId: \"SVC\") }"}' \
   | jq '.data'
 ```
@@ -189,7 +189,7 @@ curl -s -X POST ${ZIRALOOP_RAILWAY_API_URL} -H "Authorization: Bearer $ZIRALOOP_
 | Copying full query when only needing 2 fields | Write a minimal query with just those fields |
 | Printing env var values in output | Mask with jq `test("SECRET\|KEY\|TOKEN\|PASSWORD\|URL"; "i")` filter |
 | Printing bucket secretAccessKey | Only extract `{endpoint, bucketName, region}` unless writing to file |
-| Forgetting Authorization header | Always include `-H "Authorization: Bearer $ZIRALOOP_RAILWAY_API_KEY"` |
+| Forgetting Authorization header | Always include `-H "Authorization: Bearer $HIVELOOP_RAILWAY_API_KEY"` |
 | Triggering deploy after each variable change | Use `skipDeploys: true`, then one `ServiceInstanceDeploy` at end |
 | Not checking for errors | Always check `.errors` before using `.data` |
 

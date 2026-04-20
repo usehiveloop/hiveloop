@@ -14,15 +14,15 @@ env:
   PORT: 8080
   LOG_LEVEL: info
   LOG_FORMAT: json
-  POSTGRES_USER: ziraloop
+  POSTGRES_USER: hiveloop
   POSTGRES_PASSWORD: localdev
-  POSTGRES_DB: ziraloop
+  POSTGRES_DB: hiveloop
   POSTGRES_PORT: 5433
   DB_HOST: localhost
   DB_PORT: 5433
-  DB_USER: ziraloop
+  DB_USER: hiveloop
   DB_PASSWORD: localdev
-  DB_NAME: ziraloop
+  DB_NAME: hiveloop
   DB_SSLMODE: disable
   KMS_TYPE: aead
   KMS_KEY: OEx8eTY9N8RbDN6nM9Xwq3qP0c0w4uQ3Yl5o2l5P5Y8=
@@ -33,12 +33,12 @@ env:
   MEM_CACHE_MAX_SIZE: 10000
   JWT_SIGNING_KEY: local-dev-signing-key-for-tests-only
   CORS_ORIGINS: http://localhost:3000
-  VAULT_TOKEN: ziraloop-dev-token
+  VAULT_TOKEN: hiveloop-dev-token
   VAULT_ADDRESS: http://localhost:8200
   # AUTH_RSA_PRIVATE_KEY is generated per-job (see "Generate auth RSA key" steps)
-  AUTH_ISSUER: ziraloop
-  AUTH_AUDIENCE: https://api.ziraloop.com
-  NANGO_ENDPOINT: https://integrations.dev.ziraloop.com
+  AUTH_ISSUER: hiveloop
+  AUTH_AUDIENCE: https://api.hiveloop.com
+  NANGO_ENDPOINT: https://integrations.dev.hiveloop.com
   NANGO_SECRET_KEY: ${{ secrets.NANGO_SECRET_KEY }}
   OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
   FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}

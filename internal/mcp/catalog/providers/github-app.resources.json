@@ -7,7 +7,7 @@
       "display_name": "GitHub Issue",
       "description": "Issue in a GitHub repository. Receives issue lifecycle and comment events.",
       "id_pattern": "^(?P<owner>[\\w.-]+)/(?P<repo>[\\w.-]+)#(?P<number>\\d+)$",
-      "id_example": "ziraloop/ziraloop#42",
+      "id_example": "hiveloop/hiveloop#42",
       "canonical_template": "github/{owner}/{repo}/issue/{number}",
       "events": [
         "issues.closed",
@@ -27,7 +27,7 @@
       "display_name": "GitHub Pull Request",
       "description": "Pull request in a GitHub repository. Receives the key PR lifecycle signals, human review/comment activity, and a single CI rollup (check_suite.completed) — intentionally narrow so agents aren't woken 20+ times per CI run on a single PR. If you need finer-grained signals, fetch via the github integration on demand.",
       "id_pattern": "^(?P<owner>[\\w.-]+)/(?P<repo>[\\w.-]+)#(?P<number>\\d+)$",
-      "id_example": "ziraloop/ziraloop#99",
+      "id_example": "hiveloop/hiveloop#99",
       "canonical_template": "github/{owner}/{repo}/pull/{number}",
       "events": [
         "pull_request.closed",
@@ -47,7 +47,7 @@
       "display_name": "GitHub Discussion",
       "description": "Discussion thread in a GitHub repository. Receives discussion lifecycle and comment events.",
       "id_pattern": "^(?P<owner>[\\w.-]+)/(?P<repo>[\\w.-]+)#(?P<number>\\d+)$",
-      "id_example": "ziraloop/ziraloop#14",
+      "id_example": "hiveloop/hiveloop#14",
       "canonical_template": "github/{owner}/{repo}/discussion/{number}",
       "events": [
         "discussion.created",
@@ -63,7 +63,7 @@
       "display_name": "GitHub Release",
       "description": "Release (tag) in a GitHub repository. Receives release lifecycle events.",
       "id_pattern": "^(?P<owner>[\\w.-]+)/(?P<repo>[\\w.-]+)@(?P<tag>[\\w.+-]+)$",
-      "id_example": "ziraloop/ziraloop@v1.2.0",
+      "id_example": "hiveloop/hiveloop@v1.2.0",
       "canonical_template": "github/{owner}/{repo}/release/{tag}",
       "events": [
         "release.published",
@@ -77,7 +77,7 @@
       "display_name": "GitHub Commit",
       "description": "Events tied to a specific commit SHA. Use when no PR is linked (e.g. direct push to main). Both 7-char short SHAs and 40-char full SHAs are accepted — pick one and stick with it for stable routing. Only the CI rollup (check_suite.completed) fires per CI cycle — not per-individual-check — to cut webhook noise.",
       "id_pattern": "^(?P<owner>[\\w.-]+)/(?P<repo>[\\w.-]+)@(?P<sha>[a-f0-9]{7,40})$",
-      "id_example": "ziraloop/ziraloop@abc123d",
+      "id_example": "hiveloop/hiveloop@abc123d",
       "canonical_template": "github/{owner}/{repo}/commit/{sha}",
       "events": [
         "check_suite.completed",
@@ -88,7 +88,7 @@
       "display_name": "GitHub Branch",
       "description": "Events on a specific branch: pushes, branch creation, branch deletion.",
       "id_pattern": "^(?P<owner>[\\w.-]+)/(?P<repo>[\\w.-]+):(?P<branch>[\\w./-]+)$",
-      "id_example": "ziraloop/ziraloop:main",
+      "id_example": "hiveloop/hiveloop:main",
       "canonical_template": "github/{owner}/{repo}/branch/{branch}",
       "events": [
         "push",
@@ -100,7 +100,7 @@
       "display_name": "GitHub Repository",
       "description": "Repository-wide events: forks, stars, watchers. Use sparingly on popular repos — high event volume.",
       "id_pattern": "^(?P<owner>[\\w.-]+)/(?P<repo>[\\w.-]+)$",
-      "id_example": "ziraloop/ziraloop",
+      "id_example": "hiveloop/hiveloop",
       "canonical_template": "github/{owner}/{repo}",
       "events": [
         "fork",

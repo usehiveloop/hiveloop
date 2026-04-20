@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 // cgroupCommand is the shell command executed inside each sandbox to collect

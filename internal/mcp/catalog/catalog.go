@@ -179,9 +179,9 @@ type ProviderTriggers struct {
 //
 // Example (github_pull_request):
 //   id_pattern:         "^(?P<owner>[\\w.-]+)/(?P<repo>[\\w.-]+)#(?P<number>\\d+)$"
-//   id_example:         "ziraloop/ziraloop#99"
+//   id_example:         "hiveloop/hiveloop#99"
 //   canonical_template: "github/{owner}/{repo}/pull/{number}"
-//   → agent input "ziraloop/ziraloop#99" becomes canonical key "github/ziraloop/ziraloop/pull/99"
+//   → agent input "hiveloop/hiveloop#99" becomes canonical key "github/hiveloop/hiveloop/pull/99"
 type SubscribableResource struct {
 	DisplayName       string   `json:"display_name"`
 	Description       string   `json:"description,omitempty"`

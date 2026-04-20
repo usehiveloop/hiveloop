@@ -1,4 +1,4 @@
-export { ZiraLoopConnect } from './connect'
+export { HiveLoopConnect } from './connect'
 export { ConnectError } from './errors'
 export type {
   ThemeOption,
@@ -9,7 +9,7 @@ export type {
   IntegrationSuccessPayload,
   ResourceSelectionPayload,
   ErrorPayload,
-  ZiraLoopConnectConfig,
+  HiveLoopConnectConfig,
   ConnectOpenOptions,
 } from './types'
 export type { ConnectErrorType } from './errors'

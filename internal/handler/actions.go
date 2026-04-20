@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 )
 
 // ActionsHandler serves the embedded actions catalog.

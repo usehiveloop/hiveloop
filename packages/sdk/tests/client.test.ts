@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { ZiraLoop } from "../src/index.js";
+import { HiveLoop } from "../src/index.js";
 
-describe("ZiraLoop client", () => {
-  it("defaults baseUrl to https://api.ziraloop.com", () => {
-    const vault = new ZiraLoop({ apiKey: "zira_sk_test" });
+describe("HiveLoop client", () => {
+  it("defaults baseUrl to https://api.hiveloop.com", () => {
+    const vault = new HiveLoop({ apiKey: "zira_sk_test" });
     // The client is created — we just verify it has all resource namespaces
     expect(vault.apiKeys).toBeDefined();
     expect(vault.credentials).toBeDefined();
@@ -21,9 +21,9 @@ describe("ZiraLoop client", () => {
   });
 
   it("accepts a custom baseUrl", () => {
-    const vault = new ZiraLoop({
+    const vault = new HiveLoop({
       apiKey: "zira_sk_test",
-      baseUrl: "https://api.dev.ziraloop.com",
+      baseUrl: "https://api.dev.hiveloop.com",
     });
     expect(vault.apiKeys).toBeDefined();
   });

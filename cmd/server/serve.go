@@ -14,17 +14,17 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/bootstrap"
-	"github.com/ziraloop/ziraloop/internal/email"
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/goroutine"
-	"github.com/ziraloop/ziraloop/internal/handler"
-	"github.com/ziraloop/ziraloop/internal/hindsight"
-	"github.com/ziraloop/ziraloop/internal/subscriptions"
-	"github.com/ziraloop/ziraloop/internal/mcpserver"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	posthogobs "github.com/ziraloop/ziraloop/internal/observability/posthog"
-	"github.com/ziraloop/ziraloop/internal/proxy"
+	"github.com/usehiveloop/hiveloop/internal/bootstrap"
+	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/goroutine"
+	"github.com/usehiveloop/hiveloop/internal/handler"
+	"github.com/usehiveloop/hiveloop/internal/hindsight"
+	"github.com/usehiveloop/hiveloop/internal/subscriptions"
+	"github.com/usehiveloop/hiveloop/internal/mcpserver"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
+	"github.com/usehiveloop/hiveloop/internal/proxy"
 )
 
 func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEnqueuer) error {

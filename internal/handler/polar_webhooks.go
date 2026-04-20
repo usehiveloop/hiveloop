@@ -13,7 +13,7 @@ import (
 
 	standardwebhooks "github.com/standard-webhooks/standard-webhooks/libraries/go"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 // PolarWebhookHandler receives and verifies webhook events from Polar.

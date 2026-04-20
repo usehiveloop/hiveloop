@@ -14,10 +14,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/mcpserver"
-	"github.com/ziraloop/ziraloop/internal/nango"
-	"github.com/ziraloop/ziraloop/internal/trigger/zira"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/mcpserver"
+	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehiveloop/hiveloop/internal/trigger/zira"
 )
 
 // EnrichmentAgent gathers context for webhook-triggered specialist agents.

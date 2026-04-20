@@ -39,7 +39,7 @@ const sections = [
   {
     title: "What you need",
     content: [
-      "A GitHub integration connected to your ZiraLoop workspace.",
+      "A GitHub integration connected to your HiveLoop workspace.",
       "A Slack integration (optional) for notifications.",
       "A Linear integration (optional) for auto-creating issues from findings.",
     ],

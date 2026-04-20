@@ -1,10 +1,10 @@
-import { ZiraLoopConnect } from '../connect'
+import { HiveLoopConnect } from '../connect'
 import { ConnectError } from '../errors'
 
-const DEFAULT_ORIGIN = 'https://connect.ziraloop.com'
+const DEFAULT_ORIGIN = 'https://connect.hiveloop.com'
 
 function getIframe(): HTMLIFrameElement {
-  return document.getElementById('ziraloop-connect-iframe') as HTMLIFrameElement
+  return document.getElementById('hiveloop-connect-iframe') as HTMLIFrameElement
 }
 
 function dispatchMessage(data: unknown, origin: string = DEFAULT_ORIGIN) {
@@ -13,8 +13,8 @@ function dispatchMessage(data: unknown, origin: string = DEFAULT_ORIGIN) {
   )
 }
 
-describe('ZiraLoopConnect', () => {
-  let connect: ZiraLoopConnect
+describe('HiveLoopConnect', () => {
+  let connect: HiveLoopConnect
 
   afterEach(() => {
     const iframe = getIframe()
@@ -25,16 +25,16 @@ describe('ZiraLoopConnect', () => {
   })
 
   describe('constructor', () => {
-    it('default baseURL is https://connect.ziraloop.com', () => {
-      connect = new ZiraLoopConnect()
+    it('default baseURL is https://connect.hiveloop.com', () => {
+      connect = new HiveLoopConnect()
       connect.open({ sessionToken: 'tok_test', onClose: () => {} })
       const iframe = getIframe()
-      expect(iframe.src).toContain('https://connect.ziraloop.com')
+      expect(iframe.src).toContain('https://connect.hiveloop.com')
       connect.close()
     })
 
     it('custom baseURL stores correctly', () => {
-      connect = new ZiraLoopConnect({ baseURL: 'https://custom.example.com' })
+      connect = new HiveLoopConnect({ baseURL: 'https://custom.example.com' })
       connect.open({ sessionToken: 'tok_test', onClose: () => {} })
       const iframe = getIframe()
       expect(iframe.src).toContain('https://custom.example.com')
@@ -42,7 +42,7 @@ describe('ZiraLoopConnect', () => {
     })
 
     it('default theme is system', () => {
-      connect = new ZiraLoopConnect()
+      connect = new HiveLoopConnect()
       connect.open({ sessionToken: 'tok_test' })
       const iframe = getIframe()
       const url = new URL(iframe.src)
@@ -51,7 +51,7 @@ describe('ZiraLoopConnect', () => {
     })
 
     it('custom theme stores correctly', () => {
-      connect = new ZiraLoopConnect({ theme: 'dark' })
+      connect = new HiveLoopConnect({ theme: 'dark' })
       connect.open({ sessionToken: 'tok_test' })
       const iframe = getIframe()
       const url = new URL(iframe.src)
@@ -62,7 +62,7 @@ describe('ZiraLoopConnect', () => {
 
   describe('open()', () => {
     beforeEach(() => {
-      connect = new ZiraLoopConnect()
+      connect = new HiveLoopConnect()
     })
 
     afterEach(() => {
@@ -74,7 +74,7 @@ describe('ZiraLoopConnect', () => {
       const iframe = getIframe()
       expect(iframe).not.toBeNull()
       const url = new URL(iframe.src)
-      expect(url.origin).toBe('https://connect.ziraloop.com')
+      expect(url.origin).toBe('https://connect.hiveloop.com')
       expect(url.searchParams.get('session')).toBe('my_session_token')
       expect(url.searchParams.get('theme')).toBe('system')
     })
@@ -210,7 +210,7 @@ describe('ZiraLoopConnect', () => {
 
   describe('messages', () => {
     beforeEach(() => {
-      connect = new ZiraLoopConnect()
+      connect = new HiveLoopConnect()
     })
 
     afterEach(() => {
@@ -349,7 +349,7 @@ describe('ZiraLoopConnect', () => {
 
   describe('close()', () => {
     beforeEach(() => {
-      connect = new ZiraLoopConnect()
+      connect = new HiveLoopConnect()
     })
 
     it('removes iframe from DOM', () => {
@@ -390,7 +390,7 @@ describe('ZiraLoopConnect', () => {
 
   describe('edge cases', () => {
     beforeEach(() => {
-      connect = new ZiraLoopConnect()
+      connect = new HiveLoopConnect()
     })
 
     afterEach(() => {
@@ -429,13 +429,13 @@ describe('ZiraLoopConnect', () => {
     })
 
     it('custom baseURL origin is used for message validation', () => {
-      const customConnect = new ZiraLoopConnect({ baseURL: 'https://my-vault.example.com/connect' })
+      const customConnect = new HiveLoopConnect({ baseURL: 'https://my-vault.example.com/connect' })
       const onSuccess = vi.fn()
       customConnect.open({ sessionToken: 'tok_test', onSuccess })
 
       dispatchMessage(
         { type: 'success', payload: { providerId: 'p', connectionId: 'c' } },
-        'https://connect.ziraloop.com'
+        'https://connect.hiveloop.com'
       )
       expect(onSuccess).not.toHaveBeenCalled()
 

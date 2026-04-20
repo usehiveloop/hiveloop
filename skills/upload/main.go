@@ -1,13 +1,13 @@
 // Command upload reads all skill.json manifests from the skills/ directory,
 // fetches remote reference files, assembles bundles, and upserts them via the
-// Ziraloop API. Existing skills (matched by name) are updated with a new
+// Hiveloop API. Existing skills (matched by name) are updated with a new
 // inline version; missing skills are created.
 //
 // Usage:
 //
 //	go run ./skills/upload
 //
-// Requires ZIRALOOP_SKILLS_API_KEY in the environment (or loaded via .env).
+// Requires HIVELOOP_SKILLS_API_KEY in the environment (or loaded via .env).
 package main
 
 import (
@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	apiBase    = "https://api.ziraloop.com"
+	apiBase    = "https://api.hiveloop.com"
 	batchSize  = 5
 	maxRetries = 3
 )
@@ -307,9 +307,9 @@ func (client *apiClient) updateMetadata(skillID string, name string, description
 // ── Main ────────────────────────────────────────────────────────────────────
 
 func main() {
-	apiKey := os.Getenv("ZIRALOOP_SKILLS_API_KEY")
+	apiKey := os.Getenv("HIVELOOP_SKILLS_API_KEY")
 	if apiKey == "" {
-		log.Fatal("ZIRALOOP_SKILLS_API_KEY is required")
+		log.Fatal("HIVELOOP_SKILLS_API_KEY is required")
 	}
 
 	// Resolve skills/ directory relative to this script's location.

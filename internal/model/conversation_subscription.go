@@ -26,8 +26,8 @@ type ConversationSubscription struct {
 	AgentID        uuid.UUID         `gorm:"type:uuid;not null"`
 	Provider       string            `gorm:"not null"` // "github-app", "linear", etc.
 	ResourceType   string            `gorm:"not null"` // "github_pull_request", etc.
-	ResourceID     string            `gorm:"not null"` // user-provided, e.g. "ziraloop/ziraloop#99"
-	ResourceKey    string            `gorm:"not null"` // canonical, e.g. "github/ziraloop/ziraloop/pull/99"
+	ResourceID     string            `gorm:"not null"` // user-provided, e.g. "hiveloop/hiveloop#99"
+	ResourceKey    string            `gorm:"not null"` // canonical, e.g. "github/hiveloop/hiveloop/pull/99"
 	Source         string            `gorm:"not null;default:'agent'"` // "agent" | "trigger" | (future slots)
 	Status         string            `gorm:"not null;default:'active'"` // "active" | "closed"
 	CreatedAt      time.Time

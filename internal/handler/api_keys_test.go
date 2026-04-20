@@ -18,15 +18,15 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/cache"
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/handler"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/handler"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 const (
-	testDBURL     = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
+	testDBURL     = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
 	testRedisAddr = "localhost:6379"
 )
 

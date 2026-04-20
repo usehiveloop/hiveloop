@@ -177,7 +177,7 @@ export default async function BlogPostPage(props: PageProps) {
           <div className="flex flex-col">
             <span className="text-sm font-semibold text-foreground">{author}</span>
             <span className="text-sm text-muted-foreground">
-              Founder at ZiraLoop. Building the future of production AI agents.
+              Founder at HiveLoop. Building the future of production AI agents.
             </span>
           </div>
         </div>
@@ -233,7 +233,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
     title,
     description,
     authors: [{ name: author }],
-    keywords: [category, "ai agents", "context engineering", "ziraloop"],
+    keywords: [category, "ai agents", "context engineering", "hiveloop"],
     openGraph: {
       title,
       description,
@@ -241,7 +241,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
       publishedTime: date,
       authors: [author],
       url,
-      siteName: "ZiraLoop",
+      siteName: "HiveLoop",
       images: authorAvatar ? [{ url: authorAvatar }] : undefined,
     },
     twitter: {

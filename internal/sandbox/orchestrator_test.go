@@ -14,13 +14,13 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/config"
-	"github.com/ziraloop/ziraloop/internal/crypto"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/turso"
+	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/turso"
 )
 
-const testDBURL = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
+const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -107,8 +107,8 @@ func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 	tursoProvisioner := turso.NewProvisioner(tursoClient, "default", db)
 
 	cfg := &config.Config{
-		BridgeBaseImagePrefix:           "ziraloop-bridge-0-10-0",
-		BridgeHost:                      "test.ziraloop.com",
+		BridgeBaseImagePrefix:           "hiveloop-bridge-0-10-0",
+		BridgeHost:                      "test.hiveloop.com",
 		SharedSandboxIdleTimeoutMins:    30,
 		DedicatedSandboxGracePeriodMins: 5,
 		PoolSandboxResourceThreshold:    80.0,

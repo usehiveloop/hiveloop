@@ -9,9 +9,9 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/trigger/dispatch"
-	"github.com/ziraloop/ziraloop/internal/trigger/enrichment"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/trigger/dispatch"
+	"github.com/usehiveloop/hiveloop/internal/trigger/enrichment"
 )
 
 // RouterDispatchHandler handles the TypeRouterDispatch Asynq task.

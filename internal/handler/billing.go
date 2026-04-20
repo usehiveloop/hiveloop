@@ -13,9 +13,9 @@ import (
 	"github.com/polarsource/polar-go/models/components"
 	"github.com/polarsource/polar-go/models/operations"
 
-	"github.com/ziraloop/ziraloop/internal/config"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 // BillingHandler manages checkout, subscription status, and customer portal.

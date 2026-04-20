@@ -116,7 +116,7 @@ Every test reads a fixture, builds a trigger config, calls `harness.run`, and as
 func TestGormAgentTriggerStore_FindMatching(t *testing.T) {
     dsn := os.Getenv("DATABASE_URL")
     if dsn == "" {
-        dsn = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
+        dsn = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
     }
     db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
     if err != nil {
@@ -208,7 +208,7 @@ Typical output when everything works:
     stores_postgres_test.go:38: Postgres not reachable, skipping real-DB test
 --- SKIP: TestGormAgentTriggerStore_FindMatching (0.00s)
 PASS
-ok  	github.com/ziraloop/ziraloop/internal/trigger/dispatch	1.493s
+ok  	github.com/usehiveloop/hiveloop/internal/trigger/dispatch	1.493s
 ```
 
 ## Adding new tests

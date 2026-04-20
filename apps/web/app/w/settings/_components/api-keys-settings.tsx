@@ -298,7 +298,7 @@ export function ApiKeysSettings() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground">Create API key</p>
                   <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
-                    Generate a key to authenticate requests to the Ziraloop API.
+                    Generate a key to authenticate requests to the Hiveloop API.
                   </p>
                 </div>
                 <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground/30 shrink-0 mt-0.5" />

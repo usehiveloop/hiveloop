@@ -275,11 +275,11 @@ export default function AuthPage() {
           <div className="flex items-center justify-center">
             <p className="text-xs text-muted-foreground/60 leading-relaxed">
               By continuing, you agree to our{" "}
-              <a href="https://ziraloop.com" className="text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
+              <a href="https://hiveloop.com" className="text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
                 Terms of Service
               </a>{" "}
               and{" "}
-              <a href="https://ziraloop.com" className="text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
+              <a href="https://hiveloop.com" className="text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
                 Privacy Policy
               </a>
               .

@@ -1,6 +1,6 @@
 import type { components } from "./generated/schema.js";
 
-export interface ZiraLoopConfig {
+export interface HiveLoopConfig {
   apiKey: string;
   baseUrl?: string;
 }
@@ -19,7 +19,7 @@ export type MintTokenRequest = Schemas["mintTokenRequest"];
 export type MintTokenResponse = Schemas["mintTokenResponse"];
 export type TokenListItem = Schemas["tokenListItem"];
 export type PaginatedTokens = Schemas["paginatedResponse-tokenListItem"];
-export type TokenScope = Schemas["github_com_ziraloop_ziraloop_internal_mcp.TokenScope"];
+export type TokenScope = Schemas["github_com_usehiveloop_hiveloop_internal_mcp.TokenScope"];
 
 // Available scopes for token minting (used by scope selection UI)
 export interface AvailableScopeAction {
@@ -50,7 +50,7 @@ export interface AvailableScopeConnection {
 
 
 
-export type NangoCredentials = Schemas["github_com_ziraloop_ziraloop_internal_nango.Credentials"];
+export type NangoCredentials = Schemas["github_com_usehiveloop_hiveloop_internal_nango.Credentials"];
 
 
 export type UsageResponse = Schemas["usageResponse"];

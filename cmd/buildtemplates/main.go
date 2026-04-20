@@ -24,14 +24,14 @@ import (
 
 	daytona "github.com/daytonaio/daytona/libs/sdk-go/pkg/daytona"
 	"github.com/daytonaio/daytona/libs/sdk-go/pkg/types"
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 const (
 	baseImage         = "ubuntu:24.04"
 	bridgeDir         = "/usr/local/bin"
 	daytonaHome       = "/home/daytona"
-	bridgeReleasesURL = "https://github.com/ziraloop/bridge/releases/download"
+	bridgeReleasesURL = "https://github.com/hiveloop/bridge/releases/download"
 
 	flavorBridge = "bridge"
 	flavorDevBox = "dev-box"
@@ -226,20 +226,20 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	// Git credential helper — fetches GitHub tokens from the control plane
 	// on demand. Token never touches disk; git calls this on every auth request.
 	image = image.Run(
-		`printf '#!/bin/sh\ncurl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$ZIRALOOP_GIT_CREDENTIALS_URL"\n' > /usr/local/bin/git-credential-ziraloop && ` +
-			`chmod +x /usr/local/bin/git-credential-ziraloop`,
+		`printf '#!/bin/sh\ncurl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$HIVELOOP_GIT_CREDENTIALS_URL"\n' > /usr/local/bin/git-credential-hiveloop && ` +
+			`chmod +x /usr/local/bin/git-credential-hiveloop`,
 	)
-	image = image.Run("git config --system credential.helper /usr/local/bin/git-credential-ziraloop")
-	image = image.Run("git config --system user.name ziraloop")
-	image = image.Run("git config --system user.email help@ziraloop.com")
-	image = image.Run("git config --global user.name ziraloop")
-	image = image.Run("git config --global user.email help@ziraloop.com")
+	image = image.Run("git config --system credential.helper /usr/local/bin/git-credential-hiveloop")
+	image = image.Run("git config --system user.name hiveloop")
+	image = image.Run("git config --system user.email help@hiveloop.com")
+	image = image.Run("git config --global user.name hiveloop")
+	image = image.Run("git config --global user.email help@hiveloop.com")
 
 	// gh CLI wrapper — fetches a fresh GitHub token on every invocation so
 	// `gh issue create`, `gh issue list`, etc. work without manual auth.
 	// /usr/local/bin takes precedence over /usr/bin on PATH.
 	image = image.Run(
-		`printf '#!/bin/sh\nexport GH_NO_KEYRING=1\nexport GH_TOKEN=$(curl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$ZIRALOOP_GIT_CREDENTIALS_URL" | grep password | cut -d= -f2)\nexec /usr/bin/gh "$@"\n' > /usr/local/bin/gh-wrapper && ` +
+		`printf '#!/bin/sh\nexport GH_NO_KEYRING=1\nexport GH_TOKEN=$(curl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$HIVELOOP_GIT_CREDENTIALS_URL" | grep password | cut -d= -f2)\nexec /usr/bin/gh "$@"\n' > /usr/local/bin/gh-wrapper && ` +
 			`chmod +x /usr/local/bin/gh-wrapper && ` +
 			`ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh`,
 	)
@@ -264,7 +264,7 @@ func snapshotName(flavor, bridgeVersion, size string) string {
 	case flavorDevBox:
 		return fmt.Sprintf("zira-dev-box-%s-v%s", size, bridgeVersion)
 	default:
-		return fmt.Sprintf("ziraloop-bridge-%s-%s", strings.ReplaceAll(bridgeVersion, ".", "-"), size)
+		return fmt.Sprintf("hiveloop-bridge-%s-%s", strings.ReplaceAll(bridgeVersion, ".", "-"), size)
 	}
 }
 

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ziraloop/ziraloop/internal/observe"
+	"github.com/usehiveloop/hiveloop/internal/observe"
 )
 
 func TestCaptureTransport_NonStreaming_OpenAI(t *testing.T) {

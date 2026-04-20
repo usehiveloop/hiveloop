@@ -1,6 +1,6 @@
-# HashiCorp Vault Production Setup for ZiraLoop
+# HashiCorp Vault Production Setup for HiveLoop
 
-This guide covers setting up HashiCorp Vault in production for envelope encryption with ZiraLoop.
+This guide covers setting up HashiCorp Vault in production for envelope encryption with HiveLoop.
 
 ## Table of Contents
 
@@ -38,7 +38,7 @@ This guide covers setting up HashiCorp Vault in production for envelope encrypti
 │  ┌───────────────────────────┼─────────────────────────────┐   │
 │  │        Private Subnet     │                             │   │
 │  │  ┌──────────────────────┐ │  ┌──────────────────────┐   │   │
-│  │  │   ZiraLoop ECS/EKS   │◄┘  │   ZiraLoop ECS/EKS   │   │   │
+│  │  │   HiveLoop ECS/EKS   │◄┘  │   HiveLoop ECS/EKS   │   │   │
 │  │  │   (Task 1)           │    │   (Task 2)           │   │   │
 │  │  └──────────────────────┘    └──────────────────────┘   │   │
 │  └─────────────────────────────────────────────────────────┘   │
@@ -63,8 +63,8 @@ This guide covers setting up HashiCorp Vault in production for envelope encrypti
 1. Sign up at [portal.cloud.hashicorp.com](https://portal.cloud.hashicorp.com)
 2. Create a Vault cluster in your preferred region
 3. Enable Transit engine via UI or API
-4. Create `ziraloop-key` encryption key
-5. Create AppRole auth for ZiraLoop
+4. Create `hiveloop-key` encryption key
+5. Create AppRole auth for HiveLoop
 
 **Pros:**
 - Zero operational overhead
@@ -418,51 +418,51 @@ vault login -method=userpass username=admin
 # Enable Transit engine
 vault secrets enable -path=transit transit
 
-# Create the encryption key for ZiraLoop
-vault write -f transit/keys/ziraloop-key
+# Create the encryption key for HiveLoop
+vault write -f transit/keys/hiveloop-key
 
 # Enable automatic key rotation (recommended)
-vault write transit/keys/ziraloop-key/config \
+vault write transit/keys/hiveloop-key/config \
   auto_rotate_period=768h  # Rotate every 32 days
 
 # Verify key
-vault read transit/keys/ziraloop-key
+vault read transit/keys/hiveloop-key
 ```
 
-### 2. Create Vault Policies for ZiraLoop
+### 2. Create Vault Policies for HiveLoop
 
 ```hcl
-# ziraloop-policy.hcl
+# hiveloop-policy.hcl
 
 # Read key metadata (needed for operations)
-path "transit/keys/ziraloop-key" {
+path "transit/keys/hiveloop-key" {
   capabilities = ["read"]
 }
 
 # Encrypt DEKs
-path "transit/encrypt/ziraloop-key" {
+path "transit/encrypt/hiveloop-key" {
   capabilities = ["update"]
 }
 
 # Decrypt DEKs
-path "transit/decrypt/ziraloop-key" {
+path "transit/decrypt/hiveloop-key" {
   capabilities = ["update"]
 }
 
 # Generate data keys (optional - if you want Vault to generate DEKs)
-path "transit/datakey/plaintext/ziraloop-key" {
+path "transit/datakey/plaintext/hiveloop-key" {
   capabilities = ["update"]
 }
 
 # Rotate key (if you want application to trigger rotation)
-path "transit/keys/ziraloop-key/rotate" {
+path "transit/keys/hiveloop-key/rotate" {
   capabilities = ["update"]
 }
 ```
 
 ```bash
 # Create the policy
-vault policy write ziraloop-production ziraloop-policy.hcl
+vault policy write hiveloop-production hiveloop-policy.hcl
 ```
 
 ### 3. Configure Authentication
@@ -473,25 +473,25 @@ vault policy write ziraloop-production ziraloop-policy.hcl
 # Enable AppRole auth
 vault auth enable approle
 
-# Create AppRole for ZiraLoop
-vault write auth/approle/role/ziraloop \
-  token_policies="ziraloop-production" \
+# Create AppRole for HiveLoop
+vault write auth/approle/role/hiveloop \
+  token_policies="hiveloop-production" \
   token_ttl=1h \
   token_max_ttl=4h \
   secret_id_ttl=24h \
   secret_id_num_uses=0
 
 # Get RoleID
-vault read auth/approle/role/ziraloop/role-id
+vault read auth/approle/role/hiveloop/role-id
 
 # Generate SecretID
-vault write -f auth/approle/role/ziraloop/secret-id
+vault write -f auth/approle/role/hiveloop/secret-id
 ```
 
 **Application configuration:**
 ```bash
 KMS_TYPE=vault
-KMS_KEY=ziraloop-key
+KMS_KEY=hiveloop-key
 VAULT_ADDRESS=https://vault.internal.yourcompany.com:8200
 VAULT_AUTH_METHOD=approle
 VAULT_ROLE_ID=your-role-id
@@ -510,11 +510,11 @@ vault write auth/kubernetes/config \
   token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
   kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
-# Create role for ZiraLoop service account
-vault write auth/kubernetes/role/ziraloop \
-  bound_service_account_names=ziraloop \
+# Create role for HiveLoop service account
+vault write auth/kubernetes/role/hiveloop \
+  bound_service_account_names=hiveloop \
   bound_service_account_namespaces=production \
-  policies=ziraloop-production \
+  policies=hiveloop-production \
   ttl=1h
 ```
 
@@ -524,20 +524,20 @@ vault write auth/kubernetes/role/ziraloop \
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ziraloop
+  name: hiveloop
 spec:
   template:
     metadata:
       annotations:
         vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: "ziraloop"
+        vault.hashicorp.com/role: "hiveloop"
         vault.hashicorp.com/agent-inject-secret-vault-token: "auth/token/lookup-self"
         vault.hashicorp.com/agent-inject-template-vault-token: |
           {{ with secret "auth/token/lookup-self" }}{{ .Data.id }}{{ end }}
     spec:
-      serviceAccountName: ziraloop
+      serviceAccountName: hiveloop
       containers:
-      - name: ziraloop
+      - name: hiveloop
         env:
         - name: VAULT_TOKEN
           value: "/vault/secrets/vault-token"
@@ -556,10 +556,10 @@ vault write auth/aws/config/client \
   iam_server_id_header_value="vault.yourcompany.com"
 
 # Create role
-vault write auth/aws/role/ziraloop-ecs \
+vault write auth/aws/role/hiveloop-ecs \
   auth_type=iam \
-  bound_iam_principal_arn="arn:aws:iam::ACCOUNT:role/ziraloop-ecs-task-role" \
-  policies=ziraloop-production \
+  bound_iam_principal_arn="arn:aws:iam::ACCOUNT:role/hiveloop-ecs-task-role" \
+  policies=hiveloop-production \
   ttl=1h
 ```
 
@@ -717,7 +717,7 @@ telemetry {
 ```bash
 # Required
 export KMS_TYPE=vault
-export KMS_KEY=ziraloop-key
+export KMS_KEY=hiveloop-key
 export VAULT_ADDRESS=https://vault.internal.yourcompany.com:8200
 export VAULT_TOKEN=s.token_from_auth_method
 
@@ -731,7 +731,7 @@ export VAULT_CLIENT_TIMEOUT=30s
 export VAULT_MAX_RETRIES=3
 ```
 
-### Health Check for ZiraLoop
+### Health Check for HiveLoop
 
 ```go
 // Add to your health check endpoint
@@ -758,14 +758,14 @@ func vaultHealthCheck(ctx context.Context, vaultWrapper *crypto.KeyWrapper) erro
 
 ```bash
 # 1. Rotate Vault Transit key (creates new key version)
-vault write -f transit/keys/ziraloop-key/rotate
+vault write -f transit/keys/hiveloop-key/rotate
 
 # 2. Re-encrypt existing DEKs (optional, gradual migration)
 # This is typically not needed - old ciphertext decrypts with old key version
 # Only new DEKs use the new key version
 
 # 3. Update min_decryption_version to prevent downgrade attacks
-vault write transit/keys/ziraloop-key/config \
+vault write transit/keys/hiveloop-key/config \
   min_decryption_version=2
 
 # 4. Monitor for any decryption failures
@@ -791,10 +791,10 @@ vault write transit/keys/ziraloop-key/config \
 curl https://vault.internal:8200/v1/sys/health
 
 # Check key status
-vault read transit/keys/ziraloop-key
+vault read transit/keys/hiveloop-key
 
 # Rotate key
-vault write -f transit/keys/ziraloop-key/rotate
+vault write -f transit/keys/hiveloop-key/rotate
 
 # View audit logs
 vault audit list
@@ -806,7 +806,7 @@ vault token lookup
 vault token renew
 
 # Revoke token (emergency)
-vault token revoke -mode=path auth/approle/role/ziraloop
+vault token revoke -mode=path auth/approle/role/hiveloop
 
 # Seal Vault (emergency - stops all operations!)
 vault operator seal

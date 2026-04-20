@@ -1,13 +1,13 @@
 ---
 name: vercel
-description: Use when deploying to Vercel, managing projects, domains, environment variables, DNS records, rollbacks, or reading logs - provides pre-authenticated REST API patterns for all Vercel resources via ${ZIRALOOP_VERCEL_API_URL} proxy
+description: Use when deploying to Vercel, managing projects, domains, environment variables, DNS records, rollbacks, or reading logs - provides pre-authenticated REST API patterns for all Vercel resources via ${HIVELOOP_VERCEL_API_URL} proxy
 ---
 
 # Managing Vercel Infrastructure
 
 ## Overview
 
-Manage Vercel cloud infrastructure through a pre-authenticated REST API proxy. All requests go to `${ZIRALOOP_VERCEL_API_URL}` with `Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY`. Vercel uses a standard REST API (not GraphQL).
+Manage Vercel cloud infrastructure through a pre-authenticated REST API proxy. All requests go to `${HIVELOOP_VERCEL_API_URL}` with `Authorization: Bearer $HIVELOOP_VERCEL_API_KEY`. Vercel uses a standard REST API (not GraphQL).
 
 ## When to Use
 
@@ -21,7 +21,7 @@ Manage Vercel cloud infrastructure through a pre-authenticated REST API proxy. A
 
 ## Quick Reference
 
-Every call is `curl -s -X <METHOD> ${ZIRALOOP_VERCEL_API_URL}<path> -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY"`. Always pipe through `jq`.
+Every call is `curl -s -X <METHOD> ${HIVELOOP_VERCEL_API_URL}<path> -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY"`. Always pipe through `jq`.
 
 For team-scoped operations, append `?teamId=TEAM_ID` or `?slug=TEAM_SLUG` to any endpoint.
 
@@ -153,17 +153,17 @@ For team-scoped operations, append `?teamId=TEAM_ID` or `?slug=TEAM_SLUG` to any
 ### Request pattern
 
 ```bash
-curl -s -X GET "${ZIRALOOP_VERCEL_API_URL}/v10/projects" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X GET "${HIVELOOP_VERCEL_API_URL}/v10/projects" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq 'if .error then {error: .error.message} else . end'
 ```
 
-Every request must include `Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY`.
+Every request must include `Authorization: Bearer $HIVELOOP_VERCEL_API_KEY`.
 
 For POST/PATCH/PUT requests, send JSON body:
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v11/projects" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v11/projects" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "my-project"}' \
   | jq '.id'
@@ -175,12 +175,12 @@ Never let raw JSON into your context. Always pipe through `jq` to extract only w
 
 ```bash
 # BAD
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v10/projects" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY"
+curl -s "${HIVELOOP_VERCEL_API_URL}/v10/projects" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY"
 
 # GOOD
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v10/projects" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v10/projects" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.projects[] | {id, name, framework}'
 ```
 
@@ -211,22 +211,22 @@ Your output is logged. Mask secrets, credentials, and env var values.
 
 **Environment variables** — list keys only, mask values:
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v10/projects/PROJECT/env" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v10/projects/PROJECT/env" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.envs[] | {id, key, target, type, value: (if (.type == "secret" or .type == "encrypted" or .type == "sensitive" or (.key | test("SECRET|KEY|TOKEN|PASSWORD|URL|DSN|CREDENTIALS|PRIVATE|MONGO|POSTGRES|MYSQL|REDIS|AMQP"; "i"))) then "****" else .value end)}'
 ```
 
 **Decrypted env var** — pipe to file, never print:
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v1/projects/PROJECT/env/ENV_ID" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v1/projects/PROJECT/env/ENV_ID" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq -r '.value' > /tmp/.env_secret
 ```
 
 **Webhook secrets** — mask after creation:
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/webhooks" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v1/webhooks" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '...' \
   | jq '{id, events, url, secret: "****"}'
@@ -244,13 +244,13 @@ curl -s ... | jq 'if .error then {error: .error.message, code: .error.code} else
 List endpoints return `{ pagination: { count, next, prev } }`. Use `next` as a timestamp cursor:
 ```bash
 # First page
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v6/deployments?projectId=PROJ&limit=20" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v6/deployments?projectId=PROJ&limit=20" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '{deployments: [.deployments[] | {id, state: .readyState, created: .created}], next: .pagination.next}'
 
 # Next page
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v6/deployments?projectId=PROJ&limit=20&from=NEXT_TIMESTAMP" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v6/deployments?projectId=PROJ&limit=20&from=NEXT_TIMESTAMP" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '...'
 ```
 
@@ -258,8 +258,8 @@ curl -s "${ZIRALOOP_VERCEL_API_URL}/v6/deployments?projectId=PROJ&limit=20&from=
 
 Append `?teamId=TEAM_ID` or `?slug=TEAM_SLUG` to any endpoint for team-scoped operations:
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v10/projects?teamId=team_xxx" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v10/projects?teamId=team_xxx" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.projects[] | {id, name}'
 ```
 
@@ -267,8 +267,8 @@ curl -s "${ZIRALOOP_VERCEL_API_URL}/v10/projects?teamId=team_xxx" \
 
 **Create project and deploy from git:**
 ```bash
-PROJECT_ID=$(curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v11/projects" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+PROJECT_ID=$(curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v11/projects" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "my-app", "framework": "nextjs", "gitRepository": {"type": "github", "repo": "owner/repo"}}' \
   | jq -r '.id')
@@ -279,15 +279,15 @@ echo "Created project: $PROJECT_ID"
 **Set env vars then deploy:**
 ```bash
 # Upsert env vars (idempotent)
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v10/projects/my-app/env?upsert=true" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v10/projects/my-app/env?upsert=true" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '[{"key":"DATABASE_URL","value":"postgres://...","type":"encrypted","target":["production","preview"]},{"key":"NODE_ENV","value":"production","type":"plain","target":["production"]}]' \
   | jq '[.[] | {key, id}]'
 
 # Create deployment
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v13/deployments" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v13/deployments" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "my-app", "target": "production", "gitSource": {"type": "github", "ref": "main", "repoId": "REPO_ID"}}' \
   | jq '{id, url, readyState}'
@@ -296,37 +296,37 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v13/deployments" \
 **Check deployment status and read logs on failure:**
 ```bash
 # Check status
-STATE=$(curl -s "${ZIRALOOP_VERCEL_API_URL}/v13/deployments/DEPLOY_ID" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+STATE=$(curl -s "${HIVELOOP_VERCEL_API_URL}/v13/deployments/DEPLOY_ID" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq -r '.readyState')
 
 echo "State: $STATE"
 
 # If ERROR — read build logs
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v3/deployments/DEPLOY_ID/events" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v3/deployments/DEPLOY_ID/events" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq -r '.[] | select(.type == "stdout" or .type == "stderr") | "\(.date) \(.text // .payload.text // "")"'
 ```
 
 **Rollback production:**
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/rollback/DEPLOY_ID" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/rollback/DEPLOY_ID" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '{status: .status}'
 ```
 
 **Add custom domain with DNS:**
 ```bash
 # Add domain to project
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v10/projects/my-app/domains" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v10/projects/my-app/domains" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "app.example.com"}' \
   | jq '{name, verified, verification}'
 
 # Verify after DNS is set
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v9/projects/my-app/domains/app.example.com/verify" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v9/projects/my-app/domains/app.example.com/verify" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '{name, verified}'
 ```
 
@@ -336,7 +336,7 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v9/projects/my-app/domains/app.examp
 |---------|-----|
 | Dumping raw API response into context | Always pipe through `jq` to extract needed fields |
 | Printing env var values in output | Mask with jq type/key check — see Rule 2 |
-| Forgetting Authorization header | Always include `-H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY"` |
+| Forgetting Authorization header | Always include `-H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY"` |
 | Not using `?upsert=true` on env var creation | Without it, duplicate keys cause errors |
 | Forgetting `?teamId=` for team projects | Always include for team-scoped operations |
 | Creating env vars one at a time | POST accepts an array — batch them |
@@ -378,16 +378,16 @@ Detailed curl examples for each endpoint. Only request the fields you need.
 ### GET /v2/user — Who am I?
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v2/user" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v2/user" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '{id: .user.id, name: .user.name, email: .user.email}'
 ```
 
 ### GET /v10/projects — List projects
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v10/projects?limit=20" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v10/projects?limit=20" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.projects[] | {id, name, framework}'
 ```
 
@@ -396,16 +396,16 @@ With search: `?search=my-app&limit=10`
 ### GET /v9/projects/{idOrName} — Get project
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v9/projects/my-app" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v9/projects/my-app" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '{id, name, framework, nodeVersion, targets}'
 ```
 
 ### POST /v11/projects — Create project
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v11/projects" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v11/projects" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "my-app",
@@ -425,8 +425,8 @@ Optional fields: `installCommand`, `devCommand`, `rootDirectory`, `serverlessFun
 ### PATCH /v9/projects/{idOrName} — Update project
 
 ```bash
-curl -s -X PATCH "${ZIRALOOP_VERCEL_API_URL}/v9/projects/my-app" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X PATCH "${HIVELOOP_VERCEL_API_URL}/v9/projects/my-app" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "buildCommand": "next build",
@@ -443,16 +443,16 @@ Other fields: `framework`, `installCommand`, `outputDirectory`, `rootDirectory`,
 ### POST /v1/projects/{id}/pause — Pause project
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/pause" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/pause" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.'
 ```
 
 ### POST /v1/projects/{id}/unpause — Unpause project
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/unpause" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/unpause" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.'
 ```
 
@@ -462,8 +462,8 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/unpause" \
 
 From git:
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v13/deployments" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v13/deployments" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "my-app",
@@ -475,8 +475,8 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v13/deployments" \
 
 Redeploy existing:
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v13/deployments" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v13/deployments" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "my-app", "deploymentId": "EXISTING_DEPLOY_ID", "target": "production"}' \
   | jq '{id, url, readyState}'
@@ -489,8 +489,8 @@ Body fields: `project`, `target` (`"production"` | `"staging"` | omit for previe
 ### GET /v6/deployments — List deployments
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v6/deployments?projectId=PROJECT_ID&limit=10" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v6/deployments?projectId=PROJECT_ID&limit=10" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.deployments[] | {id, state: .readyState, url, created: .created}'
 ```
 
@@ -499,56 +499,56 @@ Filters: `?state=READY`, `?target=production`, `?branch=main`, `?sha=abc123`, `?
 ### GET /v13/deployments/{idOrUrl} — Get deployment
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v13/deployments/DEPLOY_ID" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v13/deployments/DEPLOY_ID" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '{id, name, url, readyState, readySubstate, inspectorUrl, alias, createdAt}'
 ```
 
 ### PATCH /v12/deployments/{id}/cancel — Cancel deployment
 
 ```bash
-curl -s -X PATCH "${ZIRALOOP_VERCEL_API_URL}/v12/deployments/DEPLOY_ID/cancel" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X PATCH "${HIVELOOP_VERCEL_API_URL}/v12/deployments/DEPLOY_ID/cancel" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '{id, readyState}'
 ```
 
 ### GET /v3/deployments/{idOrUrl}/events — Build logs
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v3/deployments/DEPLOY_ID/events" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v3/deployments/DEPLOY_ID/events" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq -r '.[] | select(.type == "stdout" or .type == "stderr") | "\(.date) [\(.type)] \(.text // .payload.text // "")"'
 ```
 
 ### GET /v1/projects/{projectId}/deployments/{deploymentId}/runtime-logs — Runtime logs
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/deployments/DEPLOY_ID/runtime-logs" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/deployments/DEPLOY_ID/runtime-logs" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq -r '.[] | "\(.timestamp) \(.message)"'
 ```
 
 ### POST /v1/projects/{projectId}/rollback/{deploymentId} — Rollback
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/rollback/DEPLOY_ID" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/rollback/DEPLOY_ID" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '{status: .status}'
 ```
 
 ### POST /v10/projects/{projectId}/promote/{deploymentId} — Promote to production
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v10/projects/PROJECT_ID/promote/DEPLOY_ID" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v10/projects/PROJECT_ID/promote/DEPLOY_ID" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '{status: .status}'
 ```
 
 ### GET /v1/projects/{projectId}/promote/aliases — Check promote status
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/promote/aliases" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/promote/aliases" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.aliases[] | {alias: .alias, status: .status}'
 ```
 
@@ -558,15 +558,15 @@ curl -s "${ZIRALOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/promote/aliases" \
 
 ```bash
 # Keys and metadata only — mask values
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v10/projects/my-app/env" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v10/projects/my-app/env" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.envs[] | {id, key, target, type}'
 ```
 
 With decryption (pipe values to file, don't print):
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v10/projects/my-app/env?decrypt=true" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v10/projects/my-app/env?decrypt=true" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.envs' > /tmp/.env_vars.json
 ```
 
@@ -574,8 +574,8 @@ curl -s "${ZIRALOOP_VERCEL_API_URL}/v10/projects/my-app/env?decrypt=true" \
 
 Single:
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v10/projects/my-app/env?upsert=true" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v10/projects/my-app/env?upsert=true" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"key": "DATABASE_URL", "value": "postgres://...", "type": "encrypted", "target": ["production", "preview"]}' \
   | jq '{id, key}'
@@ -583,8 +583,8 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v10/projects/my-app/env?upsert=true"
 
 Batch:
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v10/projects/my-app/env?upsert=true" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v10/projects/my-app/env?upsert=true" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '[
     {"key": "DATABASE_URL", "value": "postgres://...", "type": "encrypted", "target": ["production"]},
@@ -600,16 +600,16 @@ Fields: `key` (required), `value` (required), `type` (required: `plain`|`encrypt
 
 ```bash
 # Never print — pipe to file
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v1/projects/my-app/env/ENV_ID" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v1/projects/my-app/env/ENV_ID" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq -r '.value' > /tmp/.secret
 ```
 
 ### PATCH /v9/projects/{idOrName}/env/{id} — Edit env var
 
 ```bash
-curl -s -X PATCH "${ZIRALOOP_VERCEL_API_URL}/v9/projects/my-app/env/ENV_ID" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X PATCH "${HIVELOOP_VERCEL_API_URL}/v9/projects/my-app/env/ENV_ID" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"value": "new-value", "type": "encrypted", "target": ["production", "preview"]}' \
   | jq '{id, key}'
@@ -620,16 +620,16 @@ curl -s -X PATCH "${ZIRALOOP_VERCEL_API_URL}/v9/projects/my-app/env/ENV_ID" \
 ### GET /v5/domains — List domains
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v5/domains" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v5/domains" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.domains[] | {name, verified, serviceType}'
 ```
 
 ### POST /v7/domains — Add domain to Vercel
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v7/domains" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v7/domains" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "example.com"}' \
   | jq '{name, verified}'
@@ -638,16 +638,16 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v7/domains" \
 ### GET /v6/domains/{domain}/config — Check DNS config
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v6/domains/example.com/config" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v6/domains/example.com/config" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '{configuredBy, misconfigured, cnames, aValues}'
 ```
 
 ### POST /v10/projects/{idOrName}/domains — Add domain to project
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v10/projects/my-app/domains" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v10/projects/my-app/domains" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "app.example.com"}' \
   | jq '{name, verified, verification}'
@@ -656,8 +656,8 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v10/projects/my-app/domains" \
 ### POST /v9/projects/{idOrName}/domains/{domain}/verify — Verify domain
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v9/projects/my-app/domains/app.example.com/verify" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v9/projects/my-app/domains/app.example.com/verify" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '{name, verified}'
 ```
 
@@ -666,8 +666,8 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v9/projects/my-app/domains/app.examp
 ### GET /v5/domains/{domain}/records — List DNS records
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v5/domains/example.com/records" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v5/domains/example.com/records" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.records[] | {id, type, name, value, ttl}'
 ```
 
@@ -675,8 +675,8 @@ curl -s "${ZIRALOOP_VERCEL_API_URL}/v5/domains/example.com/records" \
 
 A record:
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v2/domains/example.com/records" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v2/domains/example.com/records" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type": "A", "name": "", "value": "76.76.21.21", "ttl": 60}' \
   | jq '{uid, name, type, value}'
@@ -684,8 +684,8 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v2/domains/example.com/records" \
 
 CNAME:
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v2/domains/example.com/records" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v2/domains/example.com/records" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type": "CNAME", "name": "www", "value": "cname.vercel-dns.com", "ttl": 60}' \
   | jq '{uid, name, type, value}'
@@ -693,8 +693,8 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v2/domains/example.com/records" \
 
 TXT:
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v2/domains/example.com/records" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v2/domains/example.com/records" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type": "TXT", "name": "_verify", "value": "verification-token", "ttl": 60}' \
   | jq '{uid, name, type, value}'
@@ -711,8 +711,8 @@ TTL range: 60–2147483647 seconds.
 ### POST /v2/deployments/{id}/aliases — Assign alias
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v2/deployments/DEPLOY_ID/aliases" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v2/deployments/DEPLOY_ID/aliases" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"alias": "app.example.com"}' \
   | jq '{uid, alias}'
@@ -721,8 +721,8 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v2/deployments/DEPLOY_ID/aliases" \
 ### GET /v4/aliases — List aliases
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v4/aliases" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v4/aliases" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.aliases[] | {uid, alias, deploymentId}'
 ```
 
@@ -731,8 +731,8 @@ curl -s "${ZIRALOOP_VERCEL_API_URL}/v4/aliases" \
 ### POST /v1/edge-config — Create edge config
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/edge-config" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v1/edge-config" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"slug": "my_config", "items": {"feature_x": true, "max_retries": 3}}' \
   | jq '{id, slug, itemCount}'
@@ -741,16 +741,16 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/edge-config" \
 ### GET /v1/edge-config/{id}/items — Get all items
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v1/edge-config/EC_ID/items" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v1/edge-config/EC_ID/items" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.'
 ```
 
 ### PATCH /v1/edge-config/{id}/items — Batch update items
 
 ```bash
-curl -s -X PATCH "${ZIRALOOP_VERCEL_API_URL}/v1/edge-config/EC_ID/items" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X PATCH "${HIVELOOP_VERCEL_API_URL}/v1/edge-config/EC_ID/items" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"items": [{"operation": "upsert", "key": "feature_x", "value": false}, {"operation": "delete", "key": "old_flag"}]}' \
   | jq '{status}'
@@ -763,16 +763,16 @@ Operations: `create`, `update`, `upsert`, `delete`
 ### GET /v2/teams — List teams
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v2/teams" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v2/teams" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.teams[] | {id, name, slug}'
 ```
 
 ### GET /v3/teams/{teamId}/members — List team members
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v3/teams/TEAM_ID/members" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v3/teams/TEAM_ID/members" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.members[] | {uid, email, role}'
 ```
 
@@ -781,8 +781,8 @@ curl -s "${ZIRALOOP_VERCEL_API_URL}/v3/teams/TEAM_ID/members" \
 ### POST /v1/edge-cache/purge-all — Purge CDN cache
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/edge-cache/purge-all?teamId=TEAM_ID" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v1/edge-cache/purge-all?teamId=TEAM_ID" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"projectId": "PROJECT_ID"}' \
   | jq '.'
@@ -791,8 +791,8 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/edge-cache/purge-all?teamId=TEAM_
 ### POST /v1/edge-cache/invalidate-by-tags — Invalidate by cache tag
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/edge-cache/invalidate-by-tags" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v1/edge-cache/invalidate-by-tags" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"projectId": "PROJECT_ID", "tags": ["blog", "homepage"]}' \
   | jq '.'
@@ -803,8 +803,8 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/edge-cache/invalidate-by-tags" \
 ### PUT /v1/security/firewall/config — Set firewall rules
 
 ```bash
-curl -s -X PUT "${ZIRALOOP_VERCEL_API_URL}/v1/security/firewall/config?projectId=PROJECT_ID" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X PUT "${HIVELOOP_VERCEL_API_URL}/v1/security/firewall/config?projectId=PROJECT_ID" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"rules": [{"name": "block-bad-ips", "type": "ip_address", "action": "deny", "values": [{"value": "1.2.3.4"}]}]}' \
   | jq '.'
@@ -813,8 +813,8 @@ curl -s -X PUT "${ZIRALOOP_VERCEL_API_URL}/v1/security/firewall/config?projectId
 ### GET /v1/security/firewall/config/active — Read firewall config
 
 ```bash
-curl -s "${ZIRALOOP_VERCEL_API_URL}/v1/security/firewall/config/active?projectId=PROJECT_ID" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s "${HIVELOOP_VERCEL_API_URL}/v1/security/firewall/config/active?projectId=PROJECT_ID" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '.rules[] | {name, action, type}'
 ```
 
@@ -823,8 +823,8 @@ curl -s "${ZIRALOOP_VERCEL_API_URL}/v1/security/firewall/config/active?projectId
 ### POST /v1/webhooks — Create webhook
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/webhooks" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v1/webhooks" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://hooks.example.com/vercel", "events": ["deployment.succeeded", "deployment.error"]}' \
   | jq '{id, events, url, secret: "****"}'
@@ -837,8 +837,8 @@ Events: `deployment.created`, `deployment.succeeded`, `deployment.error`, `deplo
 ### PATCH /v1/projects/{idOrName}/rolling-release/config — Configure rolling releases
 
 ```bash
-curl -s -X PATCH "${ZIRALOOP_VERCEL_API_URL}/v1/projects/my-app/rolling-release/config" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X PATCH "${HIVELOOP_VERCEL_API_URL}/v1/projects/my-app/rolling-release/config" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"enabled": true, "advancementType": "manual-approval", "stages": [{"targetPercentage": 10}, {"targetPercentage": 50}, {"targetPercentage": 100}]}' \
   | jq '.'
@@ -847,16 +847,16 @@ curl -s -X PATCH "${ZIRALOOP_VERCEL_API_URL}/v1/projects/my-app/rolling-release/
 ### POST /v1/projects/{idOrName}/rolling-release/approve-stage — Advance stage
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/projects/my-app/rolling-release/approve-stage" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v1/projects/my-app/rolling-release/approve-stage" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '{status}'
 ```
 
 ### POST /v1/projects/{idOrName}/rolling-release/complete — Force complete
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/projects/my-app/rolling-release/complete" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v1/projects/my-app/rolling-release/complete" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   | jq '{status}'
 ```
 
@@ -865,8 +865,8 @@ curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/projects/my-app/rolling-release/c
 ### PATCH /v1/projects/{idOrName}/protection-bypass — Manage protection bypass
 
 ```bash
-curl -s -X PATCH "${ZIRALOOP_VERCEL_API_URL}/v1/projects/my-app/protection-bypass" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X PATCH "${HIVELOOP_VERCEL_API_URL}/v1/projects/my-app/protection-bypass" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"bypass_token_value": {"scope": "automation"}}' \
   | jq '.'
@@ -875,8 +875,8 @@ curl -s -X PATCH "${ZIRALOOP_VERCEL_API_URL}/v1/projects/my-app/protection-bypas
 ### POST /v1/projects/{id}/crons/run — Trigger cron job
 
 ```bash
-curl -s -X POST "${ZIRALOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/crons/run" \
-  -H "Authorization: Bearer $ZIRALOOP_VERCEL_API_KEY" \
+curl -s -X POST "${HIVELOOP_VERCEL_API_URL}/v1/projects/PROJECT_ID/crons/run" \
+  -H "Authorization: Bearer $HIVELOOP_VERCEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"cronPath": "/api/cron/cleanup"}' \
   | jq '.'

@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/registry"
-	"github.com/ziraloop/ziraloop/internal/trigger/zira"
+	"github.com/usehiveloop/hiveloop/internal/registry"
+	"github.com/usehiveloop/hiveloop/internal/trigger/zira"
 )
 
 func TestCleanTitle(t *testing.T) {
