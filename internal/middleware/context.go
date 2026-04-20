@@ -4,6 +4,9 @@ import (
 	"context"
 	"net/http"
 
+	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
+
 	"github.com/ziraloop/ziraloop/internal/model"
 )
 
@@ -99,4 +102,49 @@ func SetAdminAuditChanges(r *http.Request, changes AdminAuditChanges) {
 	if bucket := AdminAuditBucketFromContext(r.Context()); bucket != nil {
 		bucket.Changes = changes
 	}
+}
+
+// DistinctID resolves a stable identifier for observability (error tracking,
+// analytics). The resolution order is:
+//
+//  1. Authenticated user (UserFromContext).
+//  2. Auth JWT claims (AuthClaimsFromContext).
+//  3. Resolved org (OrgFromContext) — prefixed "org:".
+//  4. Sandbox proxy token claims (ClaimsFromContext) — prefixed "org:".
+//  5. API key claims (APIKeyClaimsFromContext) — prefixed "org:".
+//  6. Chi request ID — prefixed "req:".
+//  7. Empty string.
+//
+// Returns "" when nothing is available so the caller can decide whether to
+// use "system" or skip the observation entirely.
+func DistinctID(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+
+	if user, ok := UserFromContext(ctx); ok && user != nil && user.ID != uuid.Nil {
+		return user.ID.String()
+	}
+
+	if claims, ok := AuthClaimsFromContext(ctx); ok && claims != nil && claims.UserID != "" {
+		return claims.UserID
+	}
+
+	if org, ok := OrgFromContext(ctx); ok && org != nil && org.ID != uuid.Nil {
+		return "org:" + org.ID.String()
+	}
+
+	if claims, ok := ClaimsFromContext(ctx); ok && claims != nil && claims.OrgID != "" {
+		return "org:" + claims.OrgID
+	}
+
+	if claims, ok := APIKeyClaimsFromContext(ctx); ok && claims != nil && claims.OrgID != "" {
+		return "org:" + claims.OrgID
+	}
+
+	if requestID := chimw.GetReqID(ctx); requestID != "" {
+		return "req:" + requestID
+	}
+
+	return ""
 }
