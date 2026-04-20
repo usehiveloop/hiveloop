@@ -7,7 +7,7 @@
 # Prerequisites:
 #   - Phase 1 + Phase 2 completed
 #   - .env sourced with all secrets
-#   - API healthy at https://api.daytona.usehiveloop.com
+#   - API healthy at https://api.daytona.ziraloop.com
 
 - name: "Phase 3: Deploy Runners"
   hosts: runners
