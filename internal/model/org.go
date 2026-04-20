@@ -90,6 +90,10 @@ func AutoMigrate(db *gorm.DB) error {
 	// RouterTrigger.ConnectionID now references in_connections.
 	db.Exec(`ALTER TABLE router_triggers DROP CONSTRAINT IF EXISTS fk_router_triggers_connection`)
 
+	// Drop stale unique constraint on in_connections(user_id, in_integration_id).
+	// Multiple connections per user+integration are now allowed (different nango connections).
+	db.Exec(`DROP INDEX IF EXISTS idx_in_conn_user_integ`)
+
 	// Partial unique: a git-sourced skill can only have one version per commit SHA.
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_skill_versions_skill_sha ON skill_versions (skill_id, commit_sha) WHERE commit_sha IS NOT NULL`)
 	// GIN index for skill tag filtering in the marketplace.
