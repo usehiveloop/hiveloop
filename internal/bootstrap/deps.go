@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	ph "github.com/posthog/posthog-go"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
@@ -30,6 +31,8 @@ import (
 	"github.com/ziraloop/ziraloop/internal/turso"
 
 	polargo "github.com/polarsource/polar-go"
+
+	posthogobs "github.com/ziraloop/ziraloop/internal/observability/posthog"
 )
 
 // Deps holds all shared dependencies initialized during bootstrap.
@@ -58,6 +61,7 @@ type Deps struct {
 	ToolUsageWriter *middleware.ToolUsageWriter // nil if spider not configured
 	PolarClient     *polargo.Polar             // nil if POLAR_ACCESS_TOKEN not set
 	S3Client        *storage.S3Client          // nil if AWS_S3_BUCKET_NAME not set
+	PostHog         ph.Client                  // nil if PostHog disabled
 }
 
 // New initializes all shared dependencies. The caller is responsible for
@@ -250,6 +254,21 @@ func New(ctx context.Context) (*Deps, error) {
 		slog.Info("s3 storage ready", "bucket", cfg.S3Bucket)
 	}
 
+	// 19. PostHog error tracking (optional — disabled when POSTHOG_ENABLED=false
+	// or POSTHOG_API_KEY is empty). NewClient returns (nil, nil) in that case.
+	// The caller (main.go) is responsible for wrapping the slog handler once
+	// the service name is known (api vs worker vs proxy).
+	postHogClient, err := posthogobs.NewClient(cfg, posthogobs.ClientOptions{
+		ServiceName: "platform",
+		Environment: cfg.Environment,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("initializing posthog client: %w", err)
+	}
+	if postHogClient != nil {
+		slog.Info("posthog error tracking ready", "endpoint", cfg.PostHogEndpoint)
+	}
+
 	return &Deps{
 		Config:          cfg,
 		DB:              database,
@@ -274,15 +293,18 @@ func New(ctx context.Context) (*Deps, error) {
 		ToolUsageWriter: toolUsageWriter,
 		PolarClient:     polarClient,
 		S3Client:        s3Client,
+		PostHog:         postHogClient,
 	}, nil
 }
 
-// Close releases all resources held by Deps.
+// Close releases all resources held by Deps. PostHog is closed LAST so it can
+// capture any errors produced by the other subsystems shutting down.
 func (d *Deps) Close() {
 	d.CacheManager.Memory().Purge()
 	if sqlDB, err := d.DB.DB(); err == nil {
 		_ = sqlDB.Close()
 	}
 	_ = d.Redis.Close()
+	posthogobs.Close(d.PostHog)
 	slog.Info("deps closed")
 }

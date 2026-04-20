@@ -147,7 +147,8 @@ func (o *Orchestrator) AssignPoolSandbox(ctx context.Context, agent *model.Agent
 			WHERE sandbox_type = 'shared'
 			  AND status = 'running'
 			  AND (memory_limit_bytes = 0 OR (memory_used_bytes * 100.0 / memory_limit_bytes) < ?)
-			ORDER BY CASE WHEN memory_limit_bytes = 0 THEN 0 ELSE (memory_used_bytes * 100.0 / memory_limit_bytes) END ASC
+			ORDER BY CASE WHEN memory_limit_bytes = 0 THEN 0 ELSE (memory_used_bytes * 100.0 / memory_limit_bytes) END ASC,
+			         id ASC
 			LIMIT 1
 			FOR UPDATE SKIP LOCKED
 		`, threshold).Scan(&sb).Error; err != nil {
