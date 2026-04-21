@@ -601,7 +601,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		r.Handle("/*", replyMCPHandler.StreamableHTTPHandler())
 		r.Handle("/", replyMCPHandler.StreamableHTTPHandler())
 	})
-	slog.Info("zira reply MCP registered on /reply/{connectionID}")
+	slog.Info("hiveloop reply MCP registered on /reply/{connectionID}")
 
 	mcpRouter.Route("/{jti}", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, database))

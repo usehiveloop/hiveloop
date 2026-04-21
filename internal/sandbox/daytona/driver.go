@@ -273,7 +273,7 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 	// Bridge binary + storage directory
 	image = image.Run("mkdir -p /home/daytona/.bridge")
 	image = image.Run(
-		`curl -fsSL "https://github.com/hiveloop/bridge/releases/download/v0.17.1/bridge-v0.17.1-x86_64-unknown-linux-gnu.tar.gz" | tar -xzf - -C /usr/local/bin && chmod +x /usr/local/bin/bridge`,
+		`curl -fsSL "https://github.com/usehiveloop/bridge/releases/download/v0.17.1/bridge-v0.17.1-x86_64-unknown-linux-gnu.tar.gz" | tar -xzf - -C /usr/local/bin && chmod +x /usr/local/bin/bridge`,
 	)
 
 	// Customer build commands - join with && so they run as a single RUN instruction

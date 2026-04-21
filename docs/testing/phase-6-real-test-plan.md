@@ -69,10 +69,10 @@ curl -s "${SANDBOX_URL}/sandbox/paginated" -H "Authorization: Bearer ${SANDBOX_K
 import sys,json
 items = json.load(sys.stdin.buffer).get('items', [])
 for sb in items:
-    if sb.get('name','').startswith('zira-'):
+    if sb.get('name','').startswith('hiveloop-'):
         print(f'  {sb[\"name\"]}  id={sb[\"id\"]}  state={sb[\"state\"]}')
         print(f'    DELETE: curl -X DELETE \"{sb.get(\"id\")}\"')
-print(f'Total zira sandboxes: {sum(1 for s in items if s.get(\"name\",\"\").startswith(\"zira-\"))}')
+print(f'Total hiveloop sandboxes: {sum(1 for s in items if s.get(\"name\",\"\").startswith(\"hiveloop-\"))}')
 "
 
 # Delete any leftover sandboxes

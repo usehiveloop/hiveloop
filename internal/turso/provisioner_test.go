@@ -108,8 +108,8 @@ func TestProvisioner_EnsureStorage(t *testing.T) {
 	if ws.StorageURL != storageURL {
 		t.Errorf("DB storage URL mismatch: got %q", ws.StorageURL)
 	}
-	if !strings.HasPrefix(ws.TursoDatabaseName, "zira-") {
-		t.Errorf("DB name should start with zira-, got %q", ws.TursoDatabaseName)
+	if !strings.HasPrefix(ws.TursoDatabaseName, "hiveloop-") {
+		t.Errorf("DB name should start with hiveloop-, got %q", ws.TursoDatabaseName)
 	}
 
 	// Second call should return existing (idempotent)
@@ -146,7 +146,7 @@ func TestProvisioner_DeleteStorage(t *testing.T) {
 
 	ws := model.WorkspaceStorage{
 		OrgID:             org.ID,
-		TursoDatabaseName: "zira-del-" + suffix,
+		TursoDatabaseName: "hiveloop-del-" + suffix,
 		StorageURL:        "libsql://del.turso.io",
 		StorageAuthToken:  "token",
 	}

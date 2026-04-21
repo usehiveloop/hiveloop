@@ -172,7 +172,7 @@ func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Auto-generate slug from ID after creation
-	tmpl.Slug = fmt.Sprintf("zira-tmpl-%s", uuid.New().String()[:8])
+	tmpl.Slug = fmt.Sprintf("hiveloop-tmpl-%s", uuid.New().String()[:8])
 
 	if err := h.db.Create(&tmpl).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create sandbox template"})
