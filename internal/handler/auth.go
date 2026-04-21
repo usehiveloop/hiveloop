@@ -283,10 +283,15 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 				slog.Error("failed to store verification token", "error", err)
 			} else {
 				confirmURL := fmt.Sprintf("%s/auth/confirm-email?token=%s", h.frontendURL, plainToken)
-				_ = h.emailSender.Send(r.Context(), email.Message{
-					To:      req.Email,
-					Subject: "Confirm your email",
-					Body:    confirmURL,
+				_ = h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{
+					To:   req.Email,
+					Slug: email.TmplAuthConfirmEmail,
+					Variables: email.TemplateVars{
+						"firstName":       firstNameFrom(user),
+						"email":           req.Email,
+						"confirmationUrl": confirmURL,
+						"expiresIn":       "24 hours",
+					},
 				})
 			}
 		}
@@ -597,6 +602,17 @@ func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Load the user so we can determine whether this is the FIRST
+	// confirmation (used below to gate the welcome email). Re-confirmations
+	// (after an email change, for example) should not resend welcome.
+	var user model.User
+	if err := h.db.Where("id = ?", verification.UserID).First(&user).Error; err != nil {
+		slog.Error("failed to load user for confirmation", "error", err, "user_id", verification.UserID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+		return
+	}
+	isFirstConfirmation := user.EmailConfirmedAt == nil
+
 	now := time.Now()
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(&verification).Update("used_at", &now).Error; err != nil {
@@ -617,6 +633,16 @@ func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		slog.Error("failed to confirm email", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
+	}
+
+	if isFirstConfirmation {
+		_ = h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{
+			To:   user.Email,
+			Slug: email.TmplAuthWelcome,
+			Variables: email.TemplateVars{
+				"firstName": firstNameFrom(user),
+			},
+		})
 	}
 
 	slog.Info("email confirmed", "user_id", verification.UserID)
@@ -690,10 +716,15 @@ func (h *AuthHandler) ResendConfirmation(w http.ResponseWriter, r *http.Request)
 	}
 
 	confirmURL := fmt.Sprintf("%s/auth/confirm-email?token=%s", h.frontendURL, plainToken)
-	_ = h.emailSender.Send(r.Context(), email.Message{
-		To:      user.Email,
-		Subject: "Confirm your email",
-		Body:    confirmURL,
+	_ = h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{
+		To:   user.Email,
+		Slug: email.TmplAuthConfirmEmail,
+		Variables: email.TemplateVars{
+			"firstName":       firstNameFrom(user),
+			"email":           user.Email,
+			"confirmationUrl": confirmURL,
+			"expiresIn":       "24 hours",
+		},
 	})
 
 	writeJSON(w, http.StatusOK, genericResponse)
@@ -762,10 +793,14 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resetURL := fmt.Sprintf("%s/auth/reset-password?token=%s", h.frontendURL, plainToken)
-	_ = h.emailSender.Send(r.Context(), email.Message{
-		To:      user.Email,
-		Subject: "Reset your password",
-		Body:    resetURL,
+	_ = h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{
+		To:   user.Email,
+		Slug: email.TmplAuthPasswordReset,
+		Variables: email.TemplateVars{
+			"firstName": firstNameFrom(user),
+			"resetUrl":  resetURL,
+			"expiresIn": "1 hour",
+		},
 	})
 
 	slog.Info("password reset requested", "email", user.Email)
@@ -842,6 +877,21 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("password reset completed", "user_id", reset.UserID)
+
+	// Notify the user their password has been changed. This is a security
+	// alert — if they didn't reset, they need to act immediately.
+	var user model.User
+	if err := h.db.Where("id = ?", reset.UserID).First(&user).Error; err == nil {
+		_ = h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{
+			To:   user.Email,
+			Slug: email.TmplAuthPasswordChanged,
+			Variables: email.TemplateVars{
+				"firstName": firstNameFrom(user),
+				"changedAt": now.UTC().Format(time.RFC1123),
+			},
+		})
+	}
+
 	writeJSON(w, http.StatusOK, map[string]string{
 		"status":  "ok",
 		"message": "Password has been reset. Please log in.",
@@ -925,6 +975,17 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("password changed", "user_id", user.ID)
+
+	// Security alert: notify the user their password has been changed.
+	_ = h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{
+		To:   user.Email,
+		Slug: email.TmplAuthPasswordChanged,
+		Variables: email.TemplateVars{
+			"firstName": firstNameFrom(user),
+			"changedAt": now.UTC().Format(time.RFC1123),
+		},
+	})
+
 	writeJSON(w, http.StatusOK, map[string]string{
 		"status":  "ok",
 		"message": "Password changed. Please log in again.",
@@ -1036,8 +1097,20 @@ func (h *AuthHandler) OTPRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Log the code (temporary until email provider is integrated)
-	slog.Info("OTP code generated", "email", req.Email, "code", plainCode)
+	// Send the code via email (asynq-queued, Kibamail-delivered, retried on failure).
+	if err := h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{
+		To:   req.Email,
+		Slug: email.TmplAuthOtpLogin,
+		Variables: email.TemplateVars{
+			"code":      plainCode,
+			"email":     req.Email,
+			"expiresIn": "10 minutes",
+		},
+	}); err != nil {
+		// Enqueue failure shouldn't break login — user can request a new code.
+		// Log loudly so it's paged on dashboards.
+		slog.Error("failed to enqueue OTP email", "error", err, "email", req.Email)
+	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
@@ -1156,6 +1229,22 @@ func (h *AuthHandler) OTPVerify(w http.ResponseWriter, r *http.Request) {
 }
 
 // --- Helpers ---
+
+// firstNameFrom returns a best-effort first name for email personalization.
+// Falls back to the email local-part when the user hasn't provided a name,
+// then to a generic "there" so templates don't render "Hi ,".
+func firstNameFrom(user model.User) string {
+	if name := strings.TrimSpace(user.Name); name != "" {
+		if first, _, ok := strings.Cut(name, " "); ok && first != "" {
+			return first
+		}
+		return name
+	}
+	if at := strings.IndexByte(user.Email, '@'); at > 0 {
+		return user.Email[:at]
+	}
+	return "there"
+}
 
 func (h *AuthHandler) issueTokensAndRespond(w http.ResponseWriter, status int, user model.User, orgID, role string) {
 	accessToken, err := auth.IssueAccessToken(h.privateKey, h.issuer, h.audience, user.ID.String(), orgID, role, h.accessTTL)
