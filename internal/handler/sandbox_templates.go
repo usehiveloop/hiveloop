@@ -12,11 +12,11 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/sandbox"
-	"github.com/ziraloop/ziraloop/internal/tasks"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
 func commandsToString(cmds []string) string {
@@ -172,7 +172,7 @@ func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Auto-generate slug from ID after creation
-	tmpl.Slug = fmt.Sprintf("zira-tmpl-%s", uuid.New().String()[:8])
+	tmpl.Slug = fmt.Sprintf("hiveloop-tmpl-%s", uuid.New().String()[:8])
 
 	if err := h.db.Create(&tmpl).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create sandbox template"})

@@ -93,13 +93,13 @@ instructions: |
     },
     {
       name: "PR Mention Responder",
-      description: "Respond when @ziraloop is mentioned in a pull request comment",
+      description: "Respond when @hiveloop is mentioned in a pull request comment",
       yaml: `conditions:
   match: all
   rules:
     - path: comment.body
       operator: contains
-      value: "@ziraloop"
+      value: "@hiveloop"
     - path: issue.pull_request
       operator: exists
 
@@ -136,13 +136,13 @@ instructions: |
     },
     {
       name: "Issue Mention Responder",
-      description: "Respond when @ziraloop is mentioned in an issue comment",
+      description: "Respond when @hiveloop is mentioned in an issue comment",
       yaml: `conditions:
   match: all
   rules:
     - path: comment.body
       operator: contains
-      value: "@ziraloop"
+      value: "@hiveloop"
     - path: issue.pull_request
       operator: not_exists
 

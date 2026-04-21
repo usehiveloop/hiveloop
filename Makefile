@@ -2,7 +2,7 @@
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
-IMAGE   ?= ziraloop/ziraloop
+IMAGE   ?= hiveloop/hiveloop
 
 # Generate base64-encoded RSA private key for AUTH_RSA_PRIVATE_KEY env var
 generate-auth-keys:
@@ -30,9 +30,9 @@ openapi:
 	raw = json.dumps(d); \
 	raw = raw.replace('internal_handler.', ''); \
 	raw = raw.replace('internal_handler_', ''); \
-	raw = raw.replace('github_com_ziraloop_ziraloop_internal_registry.', ''); \
-	raw = raw.replace('github_com_ziraloop_ziraloop_internal_model.', ''); \
-	raw = raw.replace('github_com_ziraloop_ziraloop_internal_mcp_catalog.', ''); \
+	raw = raw.replace('github_com_usehiveloop_hiveloop_internal_registry.', ''); \
+	raw = raw.replace('github_com_usehiveloop_hiveloop_internal_model.', ''); \
+	raw = raw.replace('github_com_usehiveloop_hiveloop_internal_mcp_catalog.', ''); \
 	json.dump(json.loads(raw), open('docs/openapi.json','w'), indent=2) \
 	"
 	@echo "✓ docs/openapi.json updated"
@@ -48,7 +48,7 @@ build-templates:
 	@test -n "$(VERSION)" || (echo "error: VERSION is required (e.g. make build-templates VERSION=0.10.0)" && exit 1)
 	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates -version=$(VERSION) -provider=$(or $(PROVIDER),daytona) -flavor=$(or $(FLAVOR),bridge) -size=$(or $(SIZE),all)
 
-# Upload skill definitions to Ziraloop API (reads ZIRALOOP_SKILLS_API_KEY from .env)
+# Upload skill definitions to Hiveloop API (reads HIVELOOP_SKILLS_API_KEY from .env)
 upload-skills:
 	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./skills/upload
 
@@ -76,7 +76,7 @@ generate: fetch-actions
 # Build the binary
 build:
 	go build -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT)" \
-		-o bin/ziraloop ./cmd/server
+		-o bin/hiveloop ./cmd/server
 
 # Run unit tests with race detection
 test:
@@ -94,14 +94,14 @@ test-e2e-vault:
 test-setup:
 	docker compose up -d postgres redis vault
 	@echo "Waiting for services..."
-	@until docker compose exec -T postgres pg_isready -U ziraloop -q 2>/dev/null; do sleep 1; done
+	@until docker compose exec -T postgres pg_isready -U hiveloop -q 2>/dev/null; do sleep 1; done
 	@echo "  ✓ Postgres"
 	@until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
 	@echo "  ✓ Redis"
 	@until docker compose exec -T vault vault status 2>/dev/null | grep -q "Version"; do sleep 1; done
 	@echo "  ✓ Vault"
 	@echo "  Waiting for Vault Transit key..."
-	@until docker compose exec -T vault vault read transit/keys/ziraloop-key 2>/dev/null | grep -q "type"; do sleep 2; done
+	@until docker compose exec -T vault vault read transit/keys/hiveloop-key 2>/dev/null | grep -q "type"; do sleep 2; done
 	@echo "  ✓ Vault Transit key ready"
 	@echo ""
 	@echo "  Infrastructure ready. Run tests with:"
@@ -165,7 +165,7 @@ vault-up:
 vault-dev: vault-up
 	@echo ""
 	@echo "Waiting for services..."
-	@until docker compose exec -T postgres pg_isready -U ziraloop -q 2>/dev/null; do sleep 1; done
+	@until docker compose exec -T postgres pg_isready -U hiveloop -q 2>/dev/null; do sleep 1; done
 	@echo "  ✓ Postgres"
 	@until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
 	@echo "  ✓ Redis"
@@ -175,7 +175,7 @@ vault-dev: vault-up
 	@echo "  ✓ Mailpit"
 	@echo ""
 	@echo "========================================"
-	@echo "  ZiraLoop dev stack with Vault is ready"
+	@echo "  HiveLoop dev stack with Vault is ready"
 	@echo "========================================"
 	@echo ""
 	@echo "  Mailpit UI:       http://localhost:8025"
@@ -184,30 +184,30 @@ vault-dev: vault-up
 	@echo "  Redis:            localhost:6379"
 	@echo ""
 	@echo "  Hosted services:"
-	@echo "    Nango:          https://integrations.dev.ziraloop.com"
+	@echo "    Nango:          https://integrations.dev.hiveloop.com"
 	@echo ""
 	@echo "  Vault credentials:"
-	@echo "    Token: ziraloop-dev-token"
-	@echo "    Key:   ziraloop-key"
+	@echo "    Token: hiveloop-dev-token"
+	@echo "    Key:   hiveloop-key"
 	@echo ""
 	@echo "  Add to your .env for Vault KMS:"
 	@echo "    KMS_TYPE=vault"
-	@echo "    KMS_KEY=ziraloop-key"
+	@echo "    KMS_KEY=hiveloop-key"
 	@echo "    VAULT_ADDRESS=http://localhost:8200"
-	@echo "    VAULT_TOKEN=ziraloop-dev-token"
+	@echo "    VAULT_TOKEN=hiveloop-dev-token"
 	@echo ""
 
 # Start dev infra, wait for healthy, then run server with hot reload (air)
 dev: up
 	@echo ""
 	@echo "Waiting for services..."
-	@until docker compose exec -T postgres pg_isready -U ziraloop -q 2>/dev/null; do sleep 1; done
+	@until docker compose exec -T postgres pg_isready -U hiveloop -q 2>/dev/null; do sleep 1; done
 	@echo "  ✓ Postgres"
 	@until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
 	@echo "  ✓ Redis"
 	@echo ""
 	@echo "========================================"
-	@echo "  Starting ZiraLoop (hot reload, debug)"
+	@echo "  Starting HiveLoop (hot reload, debug)"
 	@echo "========================================"
 	@echo "  Postgres:  localhost:5433"
 	@echo "  Redis:     localhost:6379"
@@ -262,7 +262,7 @@ docker-build:
 # Run Docker image locally (connects to host docker-compose infra)
 docker-run:
 	docker run --rm --network host \
-		-e DATABASE_URL=postgres://ziraloop:localdev@localhost:5433/ziraloop?sslmode=disable \
+		-e DATABASE_URL=postgres://hiveloop:localdev@localhost:5433/hiveloop?sslmode=disable \
 		-e KMS_TYPE=aead \
 		-e KMS_KEY=$${KMS_KEY} \
 		-e REDIS_ADDR=localhost:6379 \

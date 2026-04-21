@@ -52,7 +52,7 @@ system_prompt: |
 
   <tools>
   Railway API — primary infrastructure tool, loaded via the `railway` skill.
-  All requests go to `${ZIRALOOP_RAILWAY_API_URL}` with no auth headers — the
+  All requests go to `${HIVELOOP_RAILWAY_API_URL}` with no auth headers — the
   proxy handles authentication. Always pipe through `jq` to extract only
   needed fields. Always mask sensitive environment variable values (secrets,
   tokens, passwords, connection strings).

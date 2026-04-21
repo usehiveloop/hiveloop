@@ -28,7 +28,7 @@ const marketplaceAgents = [
     name: "Incident Responder",
     slug: "incident-responder",
     description: "Monitors infrastructure alerts, correlates events, creates incident channels, and coordinates response workflows.",
-    publisher: { name: "ZiraLoop", avatar: "https://i.pravatar.cc/80?u=ziraloop" },
+    publisher: { name: "HiveLoop", avatar: "https://i.pravatar.cc/80?u=hiveloop" },
     installs: 6200,
     integrations: ["Slack", "Linear", "GitHub"],
     verified: true,
@@ -46,7 +46,7 @@ const marketplaceAgents = [
     name: "Release Manager",
     slug: "release-manager",
     description: "Tracks your release pipeline, generates changelogs from merged PRs, and manages deployment approvals.",
-    publisher: { name: "ZiraLoop", avatar: "https://i.pravatar.cc/80?u=ziraloop2" },
+    publisher: { name: "HiveLoop", avatar: "https://i.pravatar.cc/80?u=hiveloop2" },
     installs: 4500,
     integrations: ["GitHub", "Slack", "Vercel"],
     verified: true,
@@ -55,7 +55,7 @@ const marketplaceAgents = [
     name: "Security Scanner",
     slug: "security-scanner",
     description: "Scans repositories for dependency vulnerabilities, secret leaks, and misconfigurations, then files issues.",
-    publisher: { name: "ZiraLoop", avatar: "https://i.pravatar.cc/80?u=ziraloop3" },
+    publisher: { name: "HiveLoop", avatar: "https://i.pravatar.cc/80?u=hiveloop3" },
     installs: 3400,
     integrations: ["GitHub", "Linear"],
     verified: true,
@@ -200,7 +200,7 @@ export default function Home() {
             {/* Section header */}
             <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
-                Why Ziraloop
+                Why Hiveloop
               </p>
               <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
                 Stop paying for 10 subscriptions.{" "}
@@ -208,7 +208,7 @@ export default function Home() {
                 Build your own agents instead.
               </h2>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
-                Every AI tool is another $20–50/month. Ziraloop gives you the
+                Every AI tool is another $20–50/month. Hiveloop gives you the
                 building blocks to run your own — for a fraction of the cost.
               </p>
             </div>
@@ -293,12 +293,12 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Right: Ziraloop agents */}
+                {/* Right: Hiveloop agents */}
                 <div className="p-6 sm:p-8 lg:p-10 bg-background dark:bg-[oklch(0.14_0.01_55)]">
                   <div className="flex items-center gap-2 mb-6">
                     <span className="w-2 h-2 rounded-full bg-green-500" />
                     <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-foreground">
-                      What you build on Ziraloop
+                      What you build on Hiveloop
                     </span>
                   </div>
 
@@ -1008,7 +1008,7 @@ export default function Home() {
             </h2>
             <p className="relative text-base sm:text-lg text-muted-foreground leading-relaxed max-w-lg">
               Join the waitlist and be the first to run your own agents on
-              Ziraloop.
+              Hiveloop.
             </p>
             <div className="relative flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto">
               <Input

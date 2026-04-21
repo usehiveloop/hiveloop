@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ziraloop/ziraloop/internal/observe"
+	"github.com/usehiveloop/hiveloop/internal/observe"
 )
 
 // CaptureTransport wraps an http.RoundTripper to capture response metadata

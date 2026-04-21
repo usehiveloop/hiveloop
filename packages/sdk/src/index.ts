@@ -1,3 +1,3 @@
-export { ZiraLoop } from "./client.js";
-export type { ZiraLoopConfig } from "./types.js";
+export { HiveLoop } from "./client.js";
+export type { HiveLoopConfig } from "./types.js";
 export type * from "./types.js";

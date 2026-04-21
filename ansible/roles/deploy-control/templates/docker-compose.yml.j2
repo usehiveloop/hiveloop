@@ -9,7 +9,6 @@ volumes:
   dex_data:
   caddy_data:
   caddy_config:
-  acme_dns_data:
 
 services:
   # =========================================================================
@@ -242,25 +241,7 @@ services:
       SSH_GATEWAY_PORT: "2222"
 
   # =========================================================================
-  # ACME-DNS (authoritative DNS for certificate challenge delegation)
-  # Users CNAME _acme-challenge.their.domain → <uuid>.acme.ziraloop.com
-  # =========================================================================
-  acme-dns:
-    image: joohoi/acme-dns:latest
-    container_name: daytona-acme-dns
-    restart: unless-stopped
-    ports:
-      - "53:53/udp"
-      - "53:53/tcp"
-    volumes:
-      - acme_dns_data:/var/lib/acme-dns
-      - {{ control_config_dir }}/acme-dns/config.cfg:/etc/acme-dns/config.cfg:ro
-    networks:
-      - {{ docker_network_name }}
-
-  # =========================================================================
-  # CADDY (PUBLIC INGRESS — TLS TERMINATION — DYNAMIC DOMAIN ROUTING)
-  # Custom domains added dynamically via /load from ZiraLoop backend
+  # CADDY (PUBLIC INGRESS — TLS TERMINATION)
   # =========================================================================
   caddy:
     build:
@@ -282,4 +263,3 @@ services:
       - caddy_config:/config
     environment:
       CLOUDFLARE_API_TOKEN: "{{ cloudflare_api_token }}"
-      ZIRALOOP_INTERNAL_SECRET: "{{ ziraloop_internal_secret | default('') }}"

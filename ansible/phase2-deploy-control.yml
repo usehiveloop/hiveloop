@@ -7,10 +7,10 @@
 # Prerequisites:
 #   - Phase 1 completed
 #   - .env sourced with all secrets
-#   - DNS records pointing to VPS (89.167.18.204):
-#     - api.daytona.ziraloop.com
-#     - dex.daytona.ziraloop.com
-#     - *.preview.ziraloop.com
+#   - DNS records pointing to VPS (77.42.84.83):
+#     - api.daytona.usehiveloop.com
+#     - dex.daytona.usehiveloop.com
+#     - *.preview.usehiveloop.com
 
 - name: "Phase 2: Deploy Control Plane"
   hosts: control

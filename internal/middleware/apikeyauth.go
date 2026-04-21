@@ -9,13 +9,13 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/cache"
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/tasks"
+	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
-// APIKeyAuth returns middleware that authenticates requests using self-issued API keys (zira_sk_*).
+// APIKeyAuth returns middleware that authenticates requests using self-issued API keys (hvl_sk_*).
 // It checks the in-memory cache first, then falls back to the database.
 func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache, enqueuer enqueue.TaskEnqueuer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -26,7 +26,7 @@ func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache, enqueuer enqueue.TaskE
 				return
 			}
 
-			if !strings.HasPrefix(rawKey, "zira_sk_") {
+			if !strings.HasPrefix(rawKey, "hvl_sk_") {
 				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid api key format"})
 				return
 			}
@@ -109,7 +109,7 @@ func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache, enqueuer enqueue.TaskE
 }
 
 // MultiAuth dispatches authentication based on the bearer token prefix:
-// - "zira_sk_*" → API Key auth
+// - "hvl_sk_*" → API Key auth
 // - everything else → Embedded JWT auth (RS256)
 func MultiAuth(pubKey *rsa.PublicKey, issuer, audience string, db *gorm.DB, keyCache *cache.APIKeyCache, enqueuer enqueue.TaskEnqueuer) func(http.Handler) http.Handler {
 	authMW := RequireAuth(pubKey, issuer, audience)
@@ -123,7 +123,7 @@ func MultiAuth(pubKey *rsa.PublicKey, issuer, audience string, db *gorm.DB, keyC
 				return
 			}
 
-			if strings.HasPrefix(token, "zira_sk_") {
+			if strings.HasPrefix(token, "hvl_sk_") {
 				apiKeyMW(next).ServeHTTP(w, r)
 			} else {
 				authMW(next).ServeHTTP(w, r)

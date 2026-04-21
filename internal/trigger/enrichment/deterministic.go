@@ -11,10 +11,10 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/mcpserver"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/nango"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/mcpserver"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
 const maxSectionChars = 8000

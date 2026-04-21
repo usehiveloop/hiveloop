@@ -8,7 +8,7 @@ This document captures things we considered, designed, and consciously chose NOT
 
 **What we considered.**
 
-1. **Link table + agent-initiated linking**. Add an `agent_conversation_resource_links` many-to-many table. Give the agent a `zira_link_resource(connection_id, resource_type, resource_id)` tool that inserts a row tying the current conversation to a future resource key. The executor's lookup does a two-step check: primary resource key first, then fall back to the link table.
+1. **Link table + agent-initiated linking**. Add an `agent_conversation_resource_links` many-to-many table. Give the agent a `hiveloop_link_resource(connection_id, resource_type, resource_id)` tool that inserts a row tying the current conversation to a future resource key. The executor's lookup does a two-step check: primary resource key first, then fall back to the link table.
 2. **Task key templates**. Add a `task_key_template` field on `AgentTrigger` that produces a cross-provider identifier. Regex-capture over payload bodies (`task_key: "linear:{{$pr.body | regex 'LIN-(\\d+)'}}"`). Brittle and hard to debug.
 3. **Task abstraction layer**. Introduce a first-class `tasks` table that conversations belong to. Every agent conversation is attached to a task; tasks span providers. Much bigger schema change, forces every agent into a task model even when it doesn't need one.
 

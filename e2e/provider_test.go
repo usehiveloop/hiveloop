@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/registry"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
 // --------------------------------------------------------------------------

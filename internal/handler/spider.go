@@ -11,9 +11,9 @@ import (
 	"github.com/oklog/ulid/v2"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/spider"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/spider"
 )
 
 // SpiderHandler proxies web crawling/search/screenshot requests to Spider.cloud

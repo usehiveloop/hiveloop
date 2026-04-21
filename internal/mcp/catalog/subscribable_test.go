@@ -16,13 +16,13 @@ func TestSubscribableResource_GitHub(t *testing.T) {
 		wantCanonicalTmpl string
 		wantIDExample     string
 	}{
-		{"github_issue", "github/{owner}/{repo}/issue/{number}", "ziraloop/ziraloop#42"},
-		{"github_pull_request", "github/{owner}/{repo}/pull/{number}", "ziraloop/ziraloop#99"},
-		{"github_discussion", "github/{owner}/{repo}/discussion/{number}", "ziraloop/ziraloop#14"},
-		{"github_release", "github/{owner}/{repo}/release/{tag}", "ziraloop/ziraloop@v1.2.0"},
-		{"github_commit", "github/{owner}/{repo}/commit/{sha}", "ziraloop/ziraloop@abc123d"},
-		{"github_branch", "github/{owner}/{repo}/branch/{branch}", "ziraloop/ziraloop:main"},
-		{"github_repository", "github/{owner}/{repo}", "ziraloop/ziraloop"},
+		{"github_issue", "github/{owner}/{repo}/issue/{number}", "hiveloop/hiveloop#42"},
+		{"github_pull_request", "github/{owner}/{repo}/pull/{number}", "hiveloop/hiveloop#99"},
+		{"github_discussion", "github/{owner}/{repo}/discussion/{number}", "hiveloop/hiveloop#14"},
+		{"github_release", "github/{owner}/{repo}/release/{tag}", "hiveloop/hiveloop@v1.2.0"},
+		{"github_commit", "github/{owner}/{repo}/commit/{sha}", "hiveloop/hiveloop@abc123d"},
+		{"github_branch", "github/{owner}/{repo}/branch/{branch}", "hiveloop/hiveloop:main"},
+		{"github_repository", "github/{owner}/{repo}", "hiveloop/hiveloop"},
 	}
 
 	for _, tt := range tests {

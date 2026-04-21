@@ -5,8 +5,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/trigger/zira"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 
 // RouterTriggerWithRouter bundles a trigger with its parent router config.
@@ -22,7 +22,7 @@ type RouterTriggerStore interface {
 	FindExistingConversation(ctx context.Context, orgID, connectionID uuid.UUID, resourceKey string) (*model.RouterConversation, error)
 	LoadRulesForTrigger(ctx context.Context, triggerID uuid.UUID) ([]model.RoutingRule, error)
 	LoadOrgAgents(ctx context.Context, orgID uuid.UUID) ([]model.Agent, error)
-	LoadOrgConnections(ctx context.Context, orgID uuid.UUID, excludeConnID uuid.UUID) ([]zira.ConnectionWithActions, error)
+	LoadOrgConnections(ctx context.Context, orgID uuid.UUID, excludeConnID uuid.UUID) ([]hiveloop.ConnectionWithActions, error)
 	LoadRecentDecisions(ctx context.Context, orgID uuid.UUID, eventType string, limit int) ([]model.RoutingDecision, error)
 	StoreDecision(ctx context.Context, decision *model.RoutingDecision) error
 	StoreConversation(ctx context.Context, conv *model.RouterConversation) error

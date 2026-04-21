@@ -3,8 +3,8 @@
 # Outputs agent IDs to stdout (one per line).
 set -euo pipefail
 
-API="https://api.ziraloop.com"
-AUTH="Authorization: Bearer $ZIRALOOP_API_KEY"
+API="https://api.usehiveloop.com"
+AUTH="Authorization: Bearer $HIVELOOP_API_KEY"
 MODEL="google/gemini-2.5-flash-lite"
 
 # --- Get or create identity ---

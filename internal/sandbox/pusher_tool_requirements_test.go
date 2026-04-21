@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	bridgepkg "github.com/ziraloop/ziraloop/internal/bridge"
+	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 )
 
 // applyToolRequirementsDefault is the single point where the memory/journal

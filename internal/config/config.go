@@ -8,7 +8,7 @@ import (
 	"github.com/caarlos0/env/v11"
 	"github.com/hibiken/asynq"
 
-	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
 )
 
 type Config struct {
@@ -58,8 +58,8 @@ type Config struct {
 
 	// Auth (RSA key for JWT signing)
 	AuthRSAPrivateKey   string        `env:"AUTH_RSA_PRIVATE_KEY,required"` // base64-encoded PEM
-	AuthIssuer          string        `env:"AUTH_ISSUER" envDefault:"ziraloop"`
-	AuthAudience        string        `env:"AUTH_AUDIENCE" envDefault:"https://api.ziraloop.com"`
+	AuthIssuer          string        `env:"AUTH_ISSUER" envDefault:"hiveloop"`
+	AuthAudience        string        `env:"AUTH_AUDIENCE" envDefault:"https://api.usehiveloop.com"`
 	AuthAccessTokenTTL  time.Duration `env:"AUTH_ACCESS_TOKEN_TTL" envDefault:"15m"`
 	AuthRefreshTokenTTL time.Duration `env:"AUTH_REFRESH_TOKEN_TTL" envDefault:"720h"` // 30 days
 
@@ -105,10 +105,10 @@ type Config struct {
 	SandboxTarget      string `env:"SANDBOX_TARGET"`                           // provider-specific target/region
 
 	// Bridge (agent runtime in sandboxes)
-	BridgeBaseImagePrefix          string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"ziraloop-bridge-0-10-0-small-v2"`                    // snapshot for shared/pool sandboxes
-	BridgeBaseDedicatedImagePrefix string `env:"BRIDGE_BASE_DEDICATED_IMAGE_PREFIX" envDefault:"ziraloop-bridge-0-10-0-small-v2"` // snapshot for dedicated agent sandboxes
+	BridgeBaseImagePrefix          string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"hiveloop-bridge-0-10-0-small-v2"`                    // snapshot for shared/pool sandboxes
+	BridgeBaseDedicatedImagePrefix string `env:"BRIDGE_BASE_DEDICATED_IMAGE_PREFIX" envDefault:"hiveloop-bridge-0-10-0-small-v2"` // snapshot for dedicated agent sandboxes
 	BridgeHost            string `env:"BRIDGE_HOST"`                                                  // our external hostname for webhook URLs
-	ProxyHost             string `env:"PROXY_HOST" envDefault:"proxy.ziraloop.com"`                   // LLM proxy hostname (proxy.ziraloop.com)
+	ProxyHost             string `env:"PROXY_HOST" envDefault:"proxy.hiveloop.com"`                   // LLM proxy hostname (proxy.hiveloop.com)
 
 	// Hindsight (agent memory)
 	HindsightAPIURL string `env:"HINDSIGHT_API_URL"` // e.g. http://hindsight.railway.internal:8888 — empty = memory disabled
@@ -117,10 +117,10 @@ type Config struct {
 	PlatformAdminEmails string `env:"PLATFORM_ADMIN_EMAILS"`
 
 	// Custom preview domains
-	PreviewCNAMETarget   string `env:"PREVIEW_CNAME_TARGET" envDefault:"preview-proxy.ziraloop.com"`
+	PreviewCNAMETarget   string `env:"PREVIEW_CNAME_TARGET" envDefault:"preview-proxy.hiveloop.com"`
 	InternalDomainSecret string `env:"INTERNAL_DOMAIN_SECRET"`  // shared secret for Gatekeeper + acme-dns proxy + Caddy admin proxy
-	AcmeDNSAPIURL        string `env:"ACME_DNS_API_URL"`        // acme-dns registration API (e.g. https://acme-dns-api.daytona.ziraloop.com)
-	CaddyAdminURL        string `env:"CADDY_ADMIN_URL"`         // Caddy admin API proxy (e.g. https://caddy-admin.daytona.ziraloop.com)
+	AcmeDNSAPIURL        string `env:"ACME_DNS_API_URL"`        // acme-dns registration API (e.g. https://acme-dns-api.daytona.hiveloop.com)
+	CaddyAdminURL        string `env:"CADDY_ADMIN_URL"`         // Caddy admin API proxy (e.g. https://caddy-admin.daytona.hiveloop.com)
 
 	// Spider (web crawling/search via spider.cloud)
 	SpiderAPIKey  string `env:"SPIDER_CLOUD_API_KEY"`                                  // empty = spider disabled

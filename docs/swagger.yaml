@@ -1,6 +1,6 @@
 basePath: /
 definitions:
-  github_com_ziraloop_ziraloop_internal_mcp.TokenScope:
+  github_com_usehiveloop_hiveloop_internal_mcp.TokenScope:
     properties:
       actions:
         items:
@@ -15,7 +15,7 @@ definitions:
           type: array
         type: object
     type: object
-  github_com_ziraloop_ziraloop_internal_mcp_catalog.ConfigurableResourceSummary:
+  github_com_usehiveloop_hiveloop_internal_mcp_catalog.ConfigurableResourceSummary:
     properties:
       description:
         type: string
@@ -24,20 +24,20 @@ definitions:
       key:
         type: string
     type: object
-  github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaDefinition:
+  github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaDefinition:
     properties:
       items:
         allOf:
-        - $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaRef'
+        - $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaRef'
         description: for array types
       properties:
         additionalProperties:
-          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaPropertyDef'
+          $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaPropertyDef'
         type: object
       type:
         type: string
     type: object
-  github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaPropertyDef:
+  github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaPropertyDef:
     properties:
       description:
         type: string
@@ -49,12 +49,12 @@ definitions:
       type:
         type: string
     type: object
-  github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaRef:
+  github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaRef:
     properties:
       $ref:
         type: string
     type: object
-  github_com_ziraloop_ziraloop_internal_mcp_catalog.WebhookConfig:
+  github_com_usehiveloop_hiveloop_internal_mcp_catalog.WebhookConfig:
     properties:
       configuration_notes:
         description: |-
@@ -67,7 +67,7 @@ definitions:
           URL in the provider's dashboard for triggers to work.
         type: boolean
     type: object
-  github_com_ziraloop_ziraloop_internal_model.BuiltInToolDefinition:
+  github_com_usehiveloop_hiveloop_internal_model.BuiltInToolDefinition:
     properties:
       category:
         type: string
@@ -81,7 +81,7 @@ definitions:
       name:
         type: string
     type: object
-  github_com_ziraloop_ziraloop_internal_model.ConnectionConfigField:
+  github_com_usehiveloop_hiveloop_internal_model.ConnectionConfigField:
     properties:
       automated:
         type: boolean
@@ -102,10 +102,10 @@ definitions:
       type:
         type: string
     type: object
-  github_com_ziraloop_ziraloop_internal_model.JSON:
+  github_com_usehiveloop_hiveloop_internal_model.JSON:
     additionalProperties: {}
     type: object
-  github_com_ziraloop_ziraloop_internal_model.NangoConfig:
+  github_com_usehiveloop_hiveloop_internal_model.NangoConfig:
     properties:
       auth_mode:
         type: string
@@ -119,7 +119,7 @@ definitions:
         type: array
       connection_config:
         additionalProperties:
-          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ConnectionConfigField'
+          $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.ConnectionConfigField'
         type: object
       credentials_schema:
         additionalProperties: {}
@@ -145,18 +145,18 @@ definitions:
       webhook_user_defined_secret:
         type: boolean
     type: object
-  github_com_ziraloop_ziraloop_internal_model.ProviderPromptConfig:
+  github_com_usehiveloop_hiveloop_internal_model.ProviderPromptConfig:
     properties:
       model:
         type: string
       system_prompt:
         type: string
     type: object
-  github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap:
+  github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap:
     additionalProperties:
-      $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptConfig'
+      $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptConfig'
     type: object
-  github_com_ziraloop_ziraloop_internal_model.SandboxToolDefinition:
+  github_com_usehiveloop_hiveloop_internal_model.SandboxToolDefinition:
     properties:
       description:
         type: string
@@ -165,7 +165,7 @@ definitions:
       name:
         type: string
     type: object
-  github_com_ziraloop_ziraloop_internal_model.TriggerCondition:
+  github_com_usehiveloop_hiveloop_internal_model.TriggerCondition:
     properties:
       operator:
         description: equals, not_equals, one_of, not_one_of, contains, not_contains,
@@ -177,17 +177,17 @@ definitions:
       value:
         description: string or []string depending on operator
     type: object
-  github_com_ziraloop_ziraloop_internal_model.TriggerMatch:
+  github_com_usehiveloop_hiveloop_internal_model.TriggerMatch:
     properties:
       conditions:
         items:
-          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.TriggerCondition'
+          $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.TriggerCondition'
         type: array
       mode:
         description: '"all" (AND) or "any" (OR)'
         type: string
     type: object
-  github_com_ziraloop_ziraloop_internal_nango.Credentials:
+  github_com_usehiveloop_hiveloop_internal_nango.Credentials:
     properties:
       app_id:
         type: string
@@ -218,21 +218,21 @@ definitions:
       webhook_secret:
         type: string
     type: object
-  github_com_ziraloop_ziraloop_internal_registry.Cost:
+  github_com_usehiveloop_hiveloop_internal_registry.Cost:
     properties:
       input:
         type: number
       output:
         type: number
     type: object
-  github_com_ziraloop_ziraloop_internal_registry.Limit:
+  github_com_usehiveloop_hiveloop_internal_registry.Limit:
     properties:
       context:
         type: integer
       output:
         type: integer
     type: object
-  github_com_ziraloop_ziraloop_internal_registry.Modalities:
+  github_com_usehiveloop_hiveloop_internal_registry.Modalities:
     properties:
       input:
         items:
@@ -243,7 +243,7 @@ definitions:
           type: string
         type: array
     type: object
-  github_com_ziraloop_ziraloop_internal_resources.AvailableResource:
+  github_com_usehiveloop_hiveloop_internal_resources.AvailableResource:
     properties:
       id:
         type: string
@@ -252,14 +252,14 @@ definitions:
       type:
         type: string
     type: object
-  github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult:
+  github_com_usehiveloop_hiveloop_internal_resources.DiscoveryResult:
     properties:
       resources:
         items:
-          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_resources.AvailableResource'
+          $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_resources.AvailableResource'
         type: array
     type: object
-  github_com_ziraloop_ziraloop_internal_skills.Bundle:
+  github_com_usehiveloop_hiveloop_internal_skills.Bundle:
     properties:
       content:
         type: string
@@ -276,12 +276,12 @@ definitions:
         type: array
       references:
         items:
-          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_skills.Reference'
+          $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Reference'
         type: array
       title:
         type: string
     type: object
-  github_com_ziraloop_ziraloop_internal_skills.Reference:
+  github_com_usehiveloop_hiveloop_internal_skills.Reference:
     properties:
       body:
         type: string
@@ -378,11 +378,11 @@ definitions:
   internal_handler.adminCreateInIntegrationRequest:
     properties:
       credentials:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_nango.Credentials'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_nango.Credentials'
       display_name:
         type: string
       meta:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       provider:
         type: string
     type: object
@@ -406,7 +406,7 @@ definitions:
     properties:
       bundle:
         allOf:
-        - $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_skills.Bundle'
+        - $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Bundle'
         description: Inline source
       description:
         type: string
@@ -490,9 +490,9 @@ definitions:
       id:
         type: string
       meta:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       nango_config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       provider:
         type: string
       unique_key:
@@ -626,7 +626,7 @@ definitions:
       slug:
         type: string
       tags:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
   internal_handler.adminSkillResponse:
     properties:
@@ -708,21 +708,21 @@ definitions:
   internal_handler.adminUpdateAgentRequest:
     properties:
       agent_config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       credential_id:
         type: string
       description:
         type: string
       integrations:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       mcp_servers:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       model:
         type: string
       name:
         type: string
       permissions:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       sandbox_template_id:
         type: string
       sandbox_type:
@@ -730,7 +730,7 @@ definitions:
       shared_memory:
         type: boolean
       skills:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       status:
         type: string
       system_prompt:
@@ -738,7 +738,7 @@ definitions:
       team:
         type: string
       tools:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
   internal_handler.adminUpdateCredentialRequest:
     properties:
@@ -748,11 +748,11 @@ definitions:
   internal_handler.adminUpdateInIntegrationRequest:
     properties:
       credentials:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_nango.Credentials'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_nango.Credentials'
       display_name:
         type: string
       meta:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
   internal_handler.adminUpdateMarketplaceAgentRequest:
     properties:
@@ -841,7 +841,7 @@ definitions:
   internal_handler.agentResponse:
     properties:
       agent_config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       attached_skills:
         items:
           $ref: '#/definitions/internal_handler.agentSkillSummary'
@@ -857,21 +857,21 @@ definitions:
       instructions:
         type: string
       integrations:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       mcp_servers:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       model:
         type: string
       name:
         type: string
       permissions:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       provider_id:
         type: string
       provider_prompts:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap'
       resources:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       sandbox_id:
         type: string
       sandbox_template_id:
@@ -885,7 +885,7 @@ definitions:
       shared_memory:
         type: boolean
       skills:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       status:
         type: string
       subagents:
@@ -897,7 +897,7 @@ definitions:
       team:
         type: string
       tools:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       triggers:
         items:
           $ref: '#/definitions/internal_handler.agentTriggerResponse'
@@ -950,7 +950,7 @@ definitions:
   internal_handler.agentTriggerInput:
     properties:
       conditions:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.TriggerMatch'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.TriggerMatch'
       connection_id:
         type: string
       trigger_keys:
@@ -1147,7 +1147,7 @@ definitions:
   internal_handler.createAgentRequest:
     properties:
       agent_config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       credential_id:
         type: string
       description:
@@ -1155,19 +1155,19 @@ definitions:
       instructions:
         type: string
       integrations:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       mcp_servers:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       model:
         type: string
       name:
         type: string
       permissions:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       provider_prompts:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap'
       resources:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       sandbox_template_id:
         type: string
       sandbox_tools:
@@ -1185,7 +1185,7 @@ definitions:
           type: string
         type: array
       skills:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       subagent_ids:
         description: subagents from /v1/subagents to attach on create
         items:
@@ -1196,7 +1196,7 @@ definitions:
       team:
         type: string
       tools:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       triggers:
         description: webhook triggers to create
         items:
@@ -1229,7 +1229,7 @@ definitions:
       label:
         type: string
       meta:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       provider_id:
         type: string
       refill_amount:
@@ -1272,7 +1272,7 @@ definitions:
   internal_handler.createInConnectionRequest:
     properties:
       meta:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       nango_connection_id:
         type: string
     type: object
@@ -1296,7 +1296,7 @@ definitions:
           type: string
         type: array
       config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       name:
         type: string
     type: object
@@ -1304,7 +1304,7 @@ definitions:
     properties:
       bundle:
         allOf:
-        - $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_skills.Bundle'
+        - $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Bundle'
         description: Inline source
       description:
         type: string
@@ -1328,19 +1328,19 @@ definitions:
   internal_handler.createSubagentRequest:
     properties:
       agent_config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       description:
         type: string
       mcp_servers:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       model:
         type: string
       name:
         type: string
       permissions:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       skills:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       system_prompt:
         type: string
       tags:
@@ -1348,7 +1348,7 @@ definitions:
           type: string
         type: array
       tools:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
   internal_handler.credentialResponse:
     properties:
@@ -1365,7 +1365,7 @@ definitions:
       last_used_at:
         type: string
       meta:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       provider_id:
         type: string
       refill_amount:
@@ -1506,7 +1506,7 @@ definitions:
         type: integer
       configurable_resources:
         items:
-          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.ConfigurableResourceSummary'
+          $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.ConfigurableResourceSummary'
         type: array
       created_at:
         type: string
@@ -1517,7 +1517,7 @@ definitions:
       in_integration_id:
         type: string
       meta:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       nango_connection_id:
         type: string
       org_id:
@@ -1525,7 +1525,7 @@ definitions:
       provider:
         type: string
       provider_config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       revoked_at:
         type: string
       updated_at:
@@ -1542,9 +1542,9 @@ definitions:
       id:
         type: string
       meta:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       nango_config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.NangoConfig'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.NangoConfig'
       provider:
         type: string
     type: object
@@ -1564,7 +1564,7 @@ definitions:
         type: object
       schemas:
         additionalProperties:
-          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaDefinition'
+          $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaDefinition'
         type: object
     type: object
   internal_handler.integrationSummary:
@@ -1609,7 +1609,7 @@ definitions:
   internal_handler.marketplaceAgentResponse:
     properties:
       agent_config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       avatar:
         type: string
       created_at:
@@ -1627,15 +1627,15 @@ definitions:
       instructions:
         type: string
       integrations:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       mcp_servers:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       model:
         type: string
       name:
         type: string
       permissions:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       popular:
         type: boolean
       published_at:
@@ -1653,7 +1653,7 @@ definitions:
       shared_memory:
         type: boolean
       skills:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       slug:
         type: string
       source_agent_id:
@@ -1669,7 +1669,7 @@ definitions:
       team:
         type: string
       tools:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       updated_at:
         type: string
       verified:
@@ -1691,7 +1691,7 @@ definitions:
       credential_id:
         type: string
       meta:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       refill_amount:
         type: integer
       refill_interval:
@@ -1700,7 +1700,7 @@ definitions:
         type: integer
       scopes:
         items:
-          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_mcp.TokenScope'
+          $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp.TokenScope'
         type: array
       ttl:
         description: e.g. "1h", "24h"
@@ -1720,7 +1720,7 @@ definitions:
   internal_handler.modelSummary:
     properties:
       cost:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_registry.Cost'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_registry.Cost'
       family:
         type: string
       id:
@@ -1728,9 +1728,9 @@ definitions:
       knowledge:
         type: string
       limit:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_registry.Limit'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_registry.Limit'
       modalities:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_registry.Modalities'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_registry.Modalities'
       name:
         type: string
       open_weights:
@@ -2099,7 +2099,7 @@ definitions:
       slug:
         type: string
       tags:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
   internal_handler.refreshRequest:
     properties:
@@ -2234,7 +2234,7 @@ definitions:
       build_status:
         type: string
       config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       created_at:
         type: string
       external_id:
@@ -2250,7 +2250,7 @@ definitions:
       slug:
         type: string
       tags:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       updated_at:
         type: string
     type: object
@@ -2297,7 +2297,7 @@ definitions:
   internal_handler.skillDetailResponse:
     properties:
       bundle:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_skills.Bundle'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Bundle'
       created_at:
         type: string
       description:
@@ -2456,7 +2456,7 @@ definitions:
       jti:
         type: string
       meta:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       refill_amount:
         type: integer
       refill_interval:
@@ -2466,7 +2466,7 @@ definitions:
       revoked_at:
         type: string
       scopes:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
   internal_handler.tokenStats:
     properties:
@@ -2546,12 +2546,12 @@ definitions:
           $ref: '#/definitions/internal_handler.triggerSummary'
         type: array
       webhook_config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.WebhookConfig'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.WebhookConfig'
     type: object
   internal_handler.updateAgentRequest:
     properties:
       agent_config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       credential_id:
         type: string
       description:
@@ -2559,19 +2559,19 @@ definitions:
       instructions:
         type: string
       integrations:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       mcp_servers:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       model:
         type: string
       name:
         type: string
       permissions:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       provider_prompts:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap'
       resources:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       sandbox_template_id:
         type: string
       sandbox_tools:
@@ -2589,13 +2589,13 @@ definitions:
           type: string
         type: array
       skills:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       system_prompt:
         type: string
       team:
         type: string
       tools:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       triggers:
         description: nil=don't touch, []=remove all
         items:
@@ -2605,7 +2605,7 @@ definitions:
   internal_handler.updateContentRequest:
     properties:
       bundle:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_skills.Bundle'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Bundle'
     type: object
   internal_handler.updateMarketplaceAgentRequest:
     properties:
@@ -2631,7 +2631,7 @@ definitions:
           type: string
         type: array
       config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       name:
         type: string
     type: object
@@ -2653,25 +2653,25 @@ definitions:
   internal_handler.updateSubagentRequest:
     properties:
       agent_config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       description:
         type: string
       mcp_servers:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       model:
         type: string
       name:
         type: string
       permissions:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       skills:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       status:
         type: string
       system_prompt:
         type: string
       tools:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
   internal_handler.usageResponse:
     properties:
@@ -2735,11 +2735,11 @@ definitions:
       verified:
         type: boolean
     type: object
-host: api.dev.ziraloop.com
+host: api.dev.hiveloop.com
 info:
   contact: {}
   description: Proxy bridge for LLM API credentials.
-  title: ZiraLoop API
+  title: HiveLoop API
   version: "1.0"
 paths:
   /admin/v1/admin-audit:
@@ -5684,7 +5684,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.BuiltInToolDefinition'
+              $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.BuiltInToolDefinition'
             type: array
       security:
       - BearerAuth: []
@@ -5702,7 +5702,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.SandboxToolDefinition'
+              $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.SandboxToolDefinition'
             type: array
       security:
       - BearerAuth: []
@@ -6786,7 +6786,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult'
+            $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_resources.DiscoveryResult'
         "400":
           description: Bad Request
           schema:

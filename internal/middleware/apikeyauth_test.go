@@ -12,11 +12,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/auth"
-	"github.com/ziraloop/ziraloop/internal/cache"
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 // --------------------------------------------------------------------------
@@ -174,7 +174,7 @@ func TestIntegration_APIKeyAuth_InvalidKey(t *testing.T) {
 	}))
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("Authorization", "Bearer zira_sk_0000000000000000000000000000000000000000000000000000000000000000")
+	req.Header.Set("Authorization", "Bearer hvl_sk_0000000000000000000000000000000000000000000000000000000000000000")
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 

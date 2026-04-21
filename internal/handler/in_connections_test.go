@@ -16,11 +16,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/handler"
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/nango"
+	"github.com/usehiveloop/hiveloop/internal/handler"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
 // nangoConnMockConfig configures the Nango mock for connection tests.
@@ -90,7 +90,7 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 			}
 			json.NewEncoder(w).Encode(map[string]any{
 				"provider":          "github",
-				"connection_config": map[string]any{"org": "ziraloop"},
+				"connection_config": map[string]any{"org": "hiveloop"},
 				"credentials":      map[string]any{"access_token": "gho_xxxx"},
 			})
 			return
@@ -349,7 +349,7 @@ func TestInConnectionHandler_Create_WithMeta(t *testing.T) {
 
 	body, _ := json.Marshal(map[string]any{
 		"nango_connection_id": "nango-conn-meta",
-		"meta":               map[string]any{"resources": map[string]any{"repos": []string{"ziraloop"}}},
+		"meta":               map[string]any{"resources": map[string]any{"repos": []string{"hiveloop"}}},
 	})
 	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

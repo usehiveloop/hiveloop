@@ -34,10 +34,10 @@ func GenerateAPIKey() (plaintext, hash, prefix string, err error) {
 		return "", "", "", fmt.Errorf("generating api key: %w", err)
 	}
 	raw := hex.EncodeToString(b)
-	plaintext = "zira_sk_" + raw
+	plaintext = "hvl_sk_" + raw
 	sum := sha256.Sum256([]byte(plaintext))
 	hash = hex.EncodeToString(sum[:])
-	prefix = plaintext[:16] // "zira_sk_" + first 8 hex chars
+	prefix = plaintext[:16] // "hvl_sk_" + first 9 hex chars
 	return plaintext, hash, prefix, nil
 }
 

@@ -15,11 +15,11 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/auth"
-	"github.com/ziraloop/ziraloop/internal/email"
-	"github.com/ziraloop/ziraloop/internal/goroutine"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/goroutine"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 type loginAttempt struct {

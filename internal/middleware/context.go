@@ -7,7 +7,7 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 type contextKey int

@@ -15,9 +15,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/email"
-	"github.com/ziraloop/ziraloop/internal/handler"
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/handler"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 // ---------------------------------------------------------------------------
@@ -42,7 +42,7 @@ func newOTPHarness(t *testing.T) *otpTestHarness {
 
 	authHandler := handler.NewAuthHandler(
 		db, pk, signingKey,
-		"ziraloop-test", "http://localhost:8080",
+		"hiveloop-test", "http://localhost:8080",
 		15*time.Minute, 720*time.Hour,
 		&email.LogSender{},
 		"http://localhost:3000",
@@ -101,7 +101,7 @@ func (h *otpTestHarness) cleanup(t *testing.T, userEmail string) {
 
 func TestOTP_FullFlow_NewUser(t *testing.T) {
 	h := newOTPHarness(t)
-	testEmail := "otp-new-user@test.ziraloop.com"
+	testEmail := "otp-new-user@test.hiveloop.com"
 	h.cleanup(t, testEmail) // Remove stale data from prior runs
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 
@@ -189,7 +189,7 @@ func TestOTP_FullFlow_NewUser(t *testing.T) {
 
 func TestOTP_FullFlow_ExistingUser(t *testing.T) {
 	h := newOTPHarness(t)
-	testEmail := "otp-existing@test.ziraloop.com"
+	testEmail := "otp-existing@test.hiveloop.com"
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 
 	// Pre-create user with org
@@ -233,7 +233,7 @@ func TestOTP_FullFlow_ExistingUser(t *testing.T) {
 
 func TestOTP_WrongCode(t *testing.T) {
 	h := newOTPHarness(t)
-	testEmail := "otp-wrong@test.ziraloop.com"
+	testEmail := "otp-wrong@test.hiveloop.com"
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 
 	h.doRequest(t, "POST", "/auth/otp/request", map[string]string{"email": testEmail})
@@ -251,7 +251,7 @@ func TestOTP_WrongCode(t *testing.T) {
 
 func TestOTP_ExpiredCode(t *testing.T) {
 	h := newOTPHarness(t)
-	testEmail := "otp-expired@test.ziraloop.com"
+	testEmail := "otp-expired@test.hiveloop.com"
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 
 	h.doRequest(t, "POST", "/auth/otp/request", map[string]string{"email": testEmail})
@@ -274,7 +274,7 @@ func TestOTP_ExpiredCode(t *testing.T) {
 
 func TestOTP_NewRequestInvalidatesOld(t *testing.T) {
 	h := newOTPHarness(t)
-	testEmail := "otp-invalidate@test.ziraloop.com"
+	testEmail := "otp-invalidate@test.hiveloop.com"
 	h.cleanup(t, testEmail) // Remove stale data from prior runs
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 
@@ -340,7 +340,7 @@ func TestOTP_AdminModeRejectsNonAdmin(t *testing.T) {
 		"http://localhost:3000",
 		true,
 	)
-	authHandler.SetAdminMode([]string{"admin@ziraloop.com"})
+	authHandler.SetAdminMode([]string{"admin@hiveloop.com"})
 
 	r := chi.NewRouter()
 	r.Post("/auth/otp/request", authHandler.OTPRequest)
@@ -358,7 +358,7 @@ func TestOTP_AdminModeRejectsNonAdmin(t *testing.T) {
 	}
 
 	// Admin email should succeed
-	body, _ = json.Marshal(map[string]string{"email": "admin@ziraloop.com"})
+	body, _ = json.Marshal(map[string]string{"email": "admin@hiveloop.com"})
 	req = httptest.NewRequest("POST", "/auth/otp/request", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr = httptest.NewRecorder()
@@ -369,7 +369,7 @@ func TestOTP_AdminModeRejectsNonAdmin(t *testing.T) {
 	}
 
 	// Cleanup
-	db.Where("email = ?", "admin@ziraloop.com").Delete(&model.OTPCode{})
+	db.Where("email = ?", "admin@hiveloop.com").Delete(&model.OTPCode{})
 }
 
 // ---------------------------------------------------------------------------

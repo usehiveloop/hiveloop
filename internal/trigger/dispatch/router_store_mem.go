@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/trigger/zira"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 
 // MemoryRouterTriggerStore is an in-memory implementation of RouterTriggerStore
@@ -18,7 +18,7 @@ type MemoryRouterTriggerStore struct {
 	conversations []model.RouterConversation
 	rules         map[uuid.UUID][]model.RoutingRule // trigger_id → rules
 	agents        []model.Agent
-	connections   []zira.ConnectionWithActions
+	connections   []hiveloop.ConnectionWithActions
 	decisions     []model.RoutingDecision
 }
 
@@ -51,7 +51,7 @@ func (store *MemoryRouterTriggerStore) AddAgent(agent model.Agent) {
 }
 
 // AddConnection registers a connection for LoadOrgConnections.
-func (store *MemoryRouterTriggerStore) AddConnection(conn zira.ConnectionWithActions) {
+func (store *MemoryRouterTriggerStore) AddConnection(conn hiveloop.ConnectionWithActions) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	store.connections = append(store.connections, conn)
@@ -120,11 +120,11 @@ func (store *MemoryRouterTriggerStore) LoadOrgAgents(_ context.Context, orgID uu
 	return result, nil
 }
 
-func (store *MemoryRouterTriggerStore) LoadOrgConnections(_ context.Context, orgID uuid.UUID, excludeConnID uuid.UUID) ([]zira.ConnectionWithActions, error) {
+func (store *MemoryRouterTriggerStore) LoadOrgConnections(_ context.Context, orgID uuid.UUID, excludeConnID uuid.UUID) ([]hiveloop.ConnectionWithActions, error) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
-	var result []zira.ConnectionWithActions
+	var result []hiveloop.ConnectionWithActions
 	for _, conn := range store.connections {
 		if conn.Connection.OrgID == orgID && conn.Connection.ID != excludeConnID {
 			result = append(result, conn)

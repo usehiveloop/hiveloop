@@ -4,12 +4,12 @@
 //
 // Verification uses Daytona preview URLs (sandbox.GetPreviewLink) instead of
 // the toolbox proxy, because this Daytona instance returns a toolbox proxy
-// hostname (preview.ziraloop.com) that has no public DNS.
+// hostname (preview.hiveloop.com) that has no public DNS.
 //
 // Usage:
 //
-//	go run ./cmd/verify-devbox -snapshot zira-dev-box-medium-v0.17.2
-//	go run ./cmd/verify-devbox -snapshot zira-dev-box-medium-v0.17.2 -keep
+//	go run ./cmd/verify-devbox -snapshot hiveloop-dev-box-medium-v0.17.2
+//	go run ./cmd/verify-devbox -snapshot hiveloop-dev-box-medium-v0.17.2 -keep
 //	go run ./cmd/verify-devbox -cleanup <sandbox-id>
 //
 // Requires SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, and SANDBOX_TARGET in
@@ -48,7 +48,7 @@ func newClient(ctx context.Context) (*daytona.Client, error) {
 }
 
 func main() {
-	snapshot := flag.String("snapshot", "", "Snapshot name to verify (e.g. zira-dev-box-medium-v0.17.2)")
+	snapshot := flag.String("snapshot", "", "Snapshot name to verify (e.g. hiveloop-dev-box-medium-v0.17.2)")
 	keep := flag.Bool("keep", false, "Keep the sandbox after verification (for manual debugging)")
 	cleanup := flag.String("cleanup", "", "Delete a sandbox by ID and exit (no verification)")
 	flag.Parse()

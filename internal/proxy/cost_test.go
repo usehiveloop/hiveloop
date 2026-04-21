@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/ziraloop/ziraloop/internal/registry"
+	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
 func TestCalculateCost_OpenAI(t *testing.T) {

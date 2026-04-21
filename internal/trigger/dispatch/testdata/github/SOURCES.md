@@ -7,8 +7,8 @@ All payloads sourced from https://github.com/octokit/webhooks/tree/main/payload-
 | `issues.opened.json` | `issues/opened.payload.json` | Codertocat opening issue #1 |
 | `issues.labeled.json` | `issues/labeled.payload.json` | Issue gets a label |
 | `pull_request.opened.json` | `pull_request/opened.payload.json` | PR #2, draft=false |
-| `issue_comment.created.issue.json` | `issue_comment/created.payload.json` | Comment body patched to `@zira can you triage this issue please?` for mention tests |
-| `issue_comment.created.pr.json` | derived from `created.payload.json` | `issue.pull_request` field added (real shape: url/html_url/diff_url/patch_url); body patched to `@zira can you take a look at this PR?`. GitHub uses this same shape when a comment is on a PR. |
+| `issue_comment.created.issue.json` | `issue_comment/created.payload.json` | Comment body patched to `@hiveloop can you triage this issue please?` for mention tests |
+| `issue_comment.created.pr.json` | derived from `created.payload.json` | `issue.pull_request` field added (real shape: url/html_url/diff_url/patch_url); body patched to `@hiveloop can you take a look at this PR?`. GitHub uses this same shape when a comment is on a PR. |
 | `push.json` | `push/payload.json` | Tag push (`refs/tags/simple-tag`) |
 | `push.new-branch.json` | `push/with-new-branch.payload.json` | Branch push to `refs/heads/master` |
 | `workflow_run.completed.json` | `workflow_run/completed.payload.json` | conclusion=success |

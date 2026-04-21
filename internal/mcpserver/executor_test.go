@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/nango"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
 // capturedBody records the JSON body sent to the Nango proxy.

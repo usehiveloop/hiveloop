@@ -7185,7 +7185,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult"];
+                        "application/json": components["schemas"]["github_com_usehiveloop_hiveloop_internal_resources.DiscoveryResult"];
                     };
                 };
                 /** @description Bad Request */
@@ -9833,7 +9833,7 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "github_com_ziraloop_ziraloop_internal_mcp.TokenScope": {
+        "github_com_usehiveloop_hiveloop_internal_mcp.TokenScope": {
             actions?: string[];
             connection_id?: string;
             resources?: {
@@ -9944,7 +9944,7 @@ export interface components {
             /** @description "all" (AND) or "any" (OR) */
             mode?: string;
         };
-        "github_com_ziraloop_ziraloop_internal_nango.Credentials": {
+        "github_com_usehiveloop_hiveloop_internal_nango.Credentials": {
             app_id?: string;
             app_link?: string;
             client_id?: string;
@@ -9973,15 +9973,15 @@ export interface components {
             input?: string[];
             output?: string[];
         };
-        "github_com_ziraloop_ziraloop_internal_resources.AvailableResource": {
+        "github_com_usehiveloop_hiveloop_internal_resources.AvailableResource": {
             id?: string;
             name?: string;
             type?: string;
         };
-        "github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult": {
-            resources?: components["schemas"]["github_com_ziraloop_ziraloop_internal_resources.AvailableResource"][];
+        "github_com_usehiveloop_hiveloop_internal_resources.DiscoveryResult": {
+            resources?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_resources.AvailableResource"][];
         };
-        "github_com_ziraloop_ziraloop_internal_skills.Bundle": {
+        "github_com_usehiveloop_hiveloop_internal_skills.Bundle": {
             content?: string;
             description?: string;
             id?: string;
@@ -9989,10 +9989,10 @@ export interface components {
                 [key: string]: unknown;
             };
             parameters_schema?: number[];
-            references?: components["schemas"]["github_com_ziraloop_ziraloop_internal_skills.Reference"][];
+            references?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Reference"][];
             title?: string;
         };
-        "github_com_ziraloop_ziraloop_internal_skills.Reference": {
+        "github_com_usehiveloop_hiveloop_internal_skills.Reference": {
             body?: string;
             path?: string;
         };
@@ -10040,7 +10040,7 @@ export interface components {
             token_id?: string;
         };
         adminCreateInIntegrationRequest: {
-            credentials?: components["schemas"]["github_com_ziraloop_ziraloop_internal_nango.Credentials"];
+            credentials?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
             provider?: string;
@@ -10056,7 +10056,7 @@ export interface components {
         };
         adminCreateSkillRequest: {
             /** @description Inline source */
-            bundle?: components["schemas"]["github_com_ziraloop_ziraloop_internal_skills.Bundle"];
+            bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
             description?: string;
             featured?: boolean;
             name?: string;
@@ -10230,7 +10230,7 @@ export interface components {
             label?: string;
         };
         adminUpdateInIntegrationRequest: {
-            credentials?: components["schemas"]["github_com_ziraloop_ziraloop_internal_nango.Credentials"];
+            credentials?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
         };
@@ -10412,6 +10412,7 @@ export interface components {
             agent_id?: string;
             created_at?: string;
             id?: string;
+            name?: string;
             status?: string;
             stream_url?: string;
         };
@@ -10511,7 +10512,7 @@ export interface components {
         };
         createSkillRequest: {
             /** @description Inline source */
-            bundle?: components["schemas"]["github_com_ziraloop_ziraloop_internal_skills.Bundle"];
+            bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
             description?: string;
             name?: string;
             repo_ref?: string;
@@ -10713,7 +10714,7 @@ export interface components {
             refill_amount?: number;
             refill_interval?: string;
             remaining?: number;
-            scopes?: components["schemas"]["github_com_ziraloop_ziraloop_internal_mcp.TokenScope"][];
+            scopes?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_mcp.TokenScope"][];
             /** @description e.g. "1h", "24h" */
             ttl?: string;
         };
@@ -11010,7 +11011,7 @@ export interface components {
             setup_commands?: string[];
         };
         skillDetailResponse: {
-            bundle?: components["schemas"]["github_com_ziraloop_ziraloop_internal_skills.Bundle"];
+            bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
             created_at?: string;
             description?: string;
             featured?: boolean;
@@ -11170,7 +11171,7 @@ export interface components {
             triggers?: components["schemas"]["agentTriggerInput"][];
         };
         updateContentRequest: {
-            bundle?: components["schemas"]["github_com_ziraloop_ziraloop_internal_skills.Bundle"];
+            bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
         };
         updateMarketplaceAgentRequest: {
             avatar?: string;

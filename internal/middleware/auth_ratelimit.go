@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/ziraloop/ziraloop/internal/goroutine"
+	"github.com/usehiveloop/hiveloop/internal/goroutine"
 )
 
 type ipLimiterEntry struct {

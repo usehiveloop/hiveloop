@@ -14,11 +14,11 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/bridge"
-	"github.com/ziraloop/ziraloop/internal/config"
-	"github.com/ziraloop/ziraloop/internal/crypto"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/turso"
+	"github.com/usehiveloop/hiveloop/internal/bridge"
+	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/turso"
 )
 
 const (
@@ -53,7 +53,7 @@ func baseEnvVars(cfg *config.Config, bridgeAPIKey string, sandboxID uuid.UUID, w
 		"BRIDGE_LOG_FORMAT":            "json",
 		"BRIDGE_STORAGE_PATH":          "/home/daytona/.bridge/storage",
 		"BRIDGE_WEB_URL":               fmt.Sprintf("https://%s/spider", cfg.BridgeHost),
-		"ZIRALOOP_SANDBOX_ID":          sandboxID.String(),
+		"HIVELOOP_SANDBOX_ID":          sandboxID.String(),
 	}
 	if webhookURL != "" {
 		envVars["BRIDGE_WEBHOOK_URL"] = webhookURL
@@ -63,7 +63,7 @@ func baseEnvVars(cfg *config.Config, bridgeAPIKey string, sandboxID uuid.UUID, w
 
 // setOrgEnvVars adds org-level environment variables to the env map.
 func setOrgEnvVars(envVars map[string]string, orgID uuid.UUID) {
-	envVars["ZIRALOOP_ORG_ID"] = orgID.String()
+	envVars["HIVELOOP_ORG_ID"] = orgID.String()
 }
 
 // setAgentEnvVars adds agent-level environment variables to the env map.
@@ -71,17 +71,17 @@ func setAgentEnvVars(envVars map[string]string, agent *model.Agent, cfg *config.
 	if agent == nil {
 		return
 	}
-	envVars["ZIRALOOP_AGENT_ID"] = agent.ID.String()
-	envVars["ZIRALOOP_GIT_CREDENTIALS_URL"] = fmt.Sprintf("https://%s/internal/git-credentials/%s", cfg.BridgeHost, agent.ID)
-	envVars["ZIRALOOP_RAILWAY_API_URL"] = fmt.Sprintf("https://%s/internal/railway-proxy/%s", cfg.BridgeHost, agent.ID)
-	envVars["ZIRALOOP_RAILWAY_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
-	envVars["ZIRALOOP_VERCEL_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
+	envVars["HIVELOOP_AGENT_ID"] = agent.ID.String()
+	envVars["HIVELOOP_GIT_CREDENTIALS_URL"] = fmt.Sprintf("https://%s/internal/git-credentials/%s", cfg.BridgeHost, agent.ID)
+	envVars["HIVELOOP_RAILWAY_API_URL"] = fmt.Sprintf("https://%s/internal/railway-proxy/%s", cfg.BridgeHost, agent.ID)
+	envVars["HIVELOOP_RAILWAY_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
+	envVars["HIVELOOP_VERCEL_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
 	envVars["GH_NO_KEYRING"] = "1"
 }
 
-// setDriveEndpoint sets the ZIRALOOP_DRIVE_ENDPOINT env var once the sandbox ID is known.
+// setDriveEndpoint sets the HIVELOOP_DRIVE_ENDPOINT env var once the sandbox ID is known.
 func setDriveEndpoint(envVars map[string]string, sandboxID uuid.UUID, cfg *config.Config) {
-	envVars["ZIRALOOP_DRIVE_ENDPOINT"] = fmt.Sprintf("https://%s/internal/sandbox-drive/%s", cfg.BridgeHost, sandboxID)
+	envVars["HIVELOOP_DRIVE_ENDPOINT"] = fmt.Sprintf("https://%s/internal/sandbox-drive/%s", cfg.BridgeHost, sandboxID)
 }
 
 // Orchestrator manages sandbox lifecycle — creating, starting, stopping sandboxes
@@ -223,7 +223,7 @@ func (o *Orchestrator) createPoolSandbox(ctx context.Context) (*model.Sandbox, e
 	envVars := baseEnvVars(o.cfg, bridgeAPIKey, sb.ID, webhookURL)
 
 	snapshotID := o.cfg.BridgeBaseImagePrefix
-	name := fmt.Sprintf("zira-pool-%s", shortID(sb.ID))
+	name := fmt.Sprintf("hiveloop-pool-%s", shortID(sb.ID))
 
 	labels := map[string]string{
 		"sandbox_type": "pool",
@@ -368,7 +368,7 @@ func (o *Orchestrator) createSystemSandbox(ctx context.Context) (*model.Sandbox,
 	envVars := baseEnvVars(o.cfg, bridgeAPIKey, sb.ID, webhookURL)
 
 	snapshotID := o.cfg.BridgeBaseImagePrefix
-	name := fmt.Sprintf("zira-system-%s", shortID(sb.ID))
+	name := fmt.Sprintf("hiveloop-system-%s", shortID(sb.ID))
 
 	labels := map[string]string{
 		"sandbox_type": "system",
@@ -773,9 +773,9 @@ func (o *Orchestrator) buildSandboxName(agent *model.Agent) string {
 	ts := time.Now().Unix()
 	if agent != nil {
 		safeName := sanitizeName(agent.Name)
-		return fmt.Sprintf("zira-ded-%s-%s-%d", safeName, shortID(agent.ID), ts)
+		return fmt.Sprintf("hiveloop-ded-%s-%s-%d", safeName, shortID(agent.ID), ts)
 	}
-	return fmt.Sprintf("zira-ded-%d", ts)
+	return fmt.Sprintf("hiveloop-ded-%d", ts)
 }
 
 // RunHealthCheck syncs sandbox status from the provider and auto-stops idle sandboxes.

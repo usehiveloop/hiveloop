@@ -411,7 +411,7 @@ export default function SandboxTemplatesPage() {
                     slug: event.target.value,
                   }))
                 }
-                placeholder="e.g. zira-dev-box-medium-v0.10.0"
+                placeholder="e.g. hiveloop-dev-box-medium-v0.10.0"
                 className="font-mono"
               />
             </div>

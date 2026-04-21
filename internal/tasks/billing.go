@@ -11,7 +11,7 @@ import (
 	"github.com/polarsource/polar-go/models/components"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 // BillingUsageEventHandler sends agent run events to Polar for metered billing.

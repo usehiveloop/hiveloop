@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/registry"
-	"github.com/ziraloop/ziraloop/internal/trigger/zira"
+	"github.com/usehiveloop/hiveloop/internal/registry"
+	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 
 func TestCleanTitle(t *testing.T) {
@@ -101,11 +101,11 @@ func TestPickCheapestModel_ReturnsCheapestWithCost(t *testing.T) {
 }
 
 func TestGenerateConversationTitle_ToolPath(t *testing.T) {
-	mock := zira.NewMockCompletionClient()
-	mock.SetFallback(zira.CompletionResponse{
-		Message: zira.Message{
+	mock := hiveloop.NewMockCompletionClient()
+	mock.SetFallback(hiveloop.CompletionResponse{
+		Message: hiveloop.Message{
 			Role: "assistant",
-			ToolCalls: []zira.ToolCall{{
+			ToolCalls: []hiveloop.ToolCall{{
 				ID:        "call_1",
 				Name:      "submit_title",
 				Arguments: `{"title": "Debug Safari Login Regression"}`,
@@ -137,9 +137,9 @@ func TestGenerateConversationTitle_ToolPath(t *testing.T) {
 }
 
 func TestGenerateConversationTitle_TextPath(t *testing.T) {
-	mock := zira.NewMockCompletionClient()
-	mock.SetFallback(zira.CompletionResponse{
-		Message: zira.Message{
+	mock := hiveloop.NewMockCompletionClient()
+	mock.SetFallback(hiveloop.CompletionResponse{
+		Message: hiveloop.Message{
 			Role:    "assistant",
 			Content: "Debug Safari Login",
 		},
@@ -164,11 +164,11 @@ func TestGenerateConversationTitle_TextPath(t *testing.T) {
 }
 
 func TestGenerateConversationTitle_ToolPathInvalidArgs(t *testing.T) {
-	mock := zira.NewMockCompletionClient()
-	mock.SetFallback(zira.CompletionResponse{
-		Message: zira.Message{
+	mock := hiveloop.NewMockCompletionClient()
+	mock.SetFallback(hiveloop.CompletionResponse{
+		Message: hiveloop.Message{
 			Role: "assistant",
-			ToolCalls: []zira.ToolCall{{
+			ToolCalls: []hiveloop.ToolCall{{
 				ID:        "call_1",
 				Name:      "submit_title",
 				Arguments: `{"title": `, // malformed
@@ -185,9 +185,9 @@ func TestGenerateConversationTitle_ToolPathInvalidArgs(t *testing.T) {
 func TestGenerateConversationTitle_ToolPathNoToolCallsFallsBackToContent(t *testing.T) {
 	// Edge case: model was told to use a tool but ignored the instruction
 	// and returned text anyway. Current handler falls back to Content.
-	mock := zira.NewMockCompletionClient()
-	mock.SetFallback(zira.CompletionResponse{
-		Message: zira.Message{
+	mock := hiveloop.NewMockCompletionClient()
+	mock.SetFallback(hiveloop.CompletionResponse{
+		Message: hiveloop.Message{
 			Role:    "assistant",
 			Content: "Fallback Title",
 		},

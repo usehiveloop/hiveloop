@@ -14,13 +14,13 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/crypto"
-	"github.com/ziraloop/ziraloop/internal/handler"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/nango"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/handler"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
-const gitCredsTestDBURL = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
+const gitCredsTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
 
 func testSymmetricKey(t *testing.T) *crypto.SymmetricKey {
 	t.Helper()

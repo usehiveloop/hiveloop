@@ -13,10 +13,10 @@ import (
 	"github.com/oklog/ulid/v2"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/goroutine"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/observe"
-	"github.com/ziraloop/ziraloop/internal/registry"
+	"github.com/usehiveloop/hiveloop/internal/goroutine"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/observe"
+	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
 const generationBatchSize = 50

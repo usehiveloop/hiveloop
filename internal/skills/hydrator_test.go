@@ -17,11 +17,11 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/skills"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/skills"
 )
 
-const testDBURL = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
+const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
 
 func connectDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -149,7 +149,7 @@ func TestHydrateFromGit(t *testing.T) {
 
 	fetcher := skills.NewGitFetcher("").WithAPIBase(server.URL)
 
-	repoURL := "https://github.com/ziraskills/greet"
+	repoURL := "https://github.com/usehiveloop/skill-greet"
 	skill := &model.Skill{
 		OrgID:      nil, // public
 		Slug:       "git-test-" + uuid.New().String()[:8],
@@ -213,7 +213,7 @@ func TestHydrateFromGit(t *testing.T) {
 // (<owner>-<repo>-<sha>/), which the fetcher/parser strips.
 func buildFakeTarball(t *testing.T, files map[string]string) []byte {
 	t.Helper()
-	topDir := fmt.Sprintf("ziraskills-greet-%s", uuid.New().String()[:8])
+	topDir := fmt.Sprintf("usehiveloop-skill-greet-%s", uuid.New().String()[:8])
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gz)

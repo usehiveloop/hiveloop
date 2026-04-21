@@ -33,7 +33,7 @@ export default function PrivacyPage() {
       <article className="max-w-2xl mx-auto px-4 pb-24">
         <div className="prose-custom flex flex-col gap-6">
           <p className="text-base sm:text-lg text-muted-foreground leading-[1.8]">
-            At ZiraLoop, we take your privacy seriously. This policy explains how we collect, use, and protect your information.
+            At HiveLoop, we take your privacy seriously. This policy explains how we collect, use, and protect your information.
           </p>
 
           <h2 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mt-8 -tracking-[0.5px]">
@@ -85,7 +85,7 @@ export default function PrivacyPage() {
             7. Your Rights
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground leading-[1.8]">
-            You have the right to access, correct, or delete your data. You can export your data at any time through your account settings. Contact privacy@ziraloop.com for requests.
+            You have the right to access, correct, or delete your data. You can export your data at any time through your account settings. Contact privacy@hiveloop.com for requests.
           </p>
 
           <h2 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mt-8 -tracking-[0.5px]">
@@ -99,7 +99,7 @@ export default function PrivacyPage() {
             Contact Us
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground leading-[1.8]">
-            For privacy-related questions, contact our Data Protection Officer at privacy@ziraloop.com.
+            For privacy-related questions, contact our Data Protection Officer at privacy@hiveloop.com.
           </p>
         </div>
       </article>

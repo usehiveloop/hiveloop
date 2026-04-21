@@ -10,12 +10,12 @@ import (
 
 	"github.com/awnumar/memguard"
 
-	"github.com/ziraloop/ziraloop/internal/bootstrap"
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/goroutine"
-	"github.com/ziraloop/ziraloop/internal/logging"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	posthogobs "github.com/ziraloop/ziraloop/internal/observability/posthog"
+	"github.com/usehiveloop/hiveloop/internal/bootstrap"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/goroutine"
+	"github.com/usehiveloop/hiveloop/internal/logging"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
 )
 
 func init() {
@@ -25,10 +25,10 @@ func init() {
 	posthogobs.SetDistinctIDExtractor(middleware.DistinctID)
 }
 
-// @title ZiraLoop API
+// @title HiveLoop API
 // @version 1.0
 // @description Proxy bridge for LLM API credentials.
-// @host api.dev.ziraloop.com
+// @host api.dev.hiveloop.com
 // @BasePath /
 // @schemes https
 //
@@ -54,7 +54,7 @@ func main() {
 	}
 
 	if cmd == "version" {
-		fmt.Printf("ziraloop %s (%s)\n", version, commit)
+		fmt.Printf("hiveloop %s (%s)\n", version, commit)
 		return
 	}
 
@@ -75,7 +75,7 @@ func run(cmd string) error {
 		return err
 	}
 	logging.Init(cfg.LogLevel, cfg.LogFormat)
-	slog.Info("starting ziraloop", "version", version, "commit", commit, "mode", cmd)
+	slog.Info("starting hiveloop", "version", version, "commit", commit, "mode", cmd)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

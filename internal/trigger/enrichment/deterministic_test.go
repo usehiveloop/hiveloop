@@ -13,9 +13,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/mcpserver"
-	"github.com/ziraloop/ziraloop/internal/nango"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/mcpserver"
+	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
 // ---------------------------------------------------------------------------
@@ -147,7 +147,7 @@ func TestComposeEnrichedMessage_AllSuccessful(t *testing.T) {
 		Provider:  "railway",
 		EventType: "Deployment.failed",
 		Refs: map[string]string{
-			"service_name": "web.ziraloop.com",
+			"service_name": "web.hiveloop.com",
 			"branch":       "main",
 		},
 	}
@@ -160,7 +160,7 @@ func TestComposeEnrichedMessage_AllSuccessful(t *testing.T) {
 
 	assertContains(t, msg, "## Deployment.failed", "event header")
 	assertContains(t, msg, "service_name", "refs key")
-	assertContains(t, msg, "web.ziraloop.com", "refs value")
+	assertContains(t, msg, "web.hiveloop.com", "refs value")
 	assertContains(t, msg, "### build_logs", "build_logs section")
 	assertContains(t, msg, "### service_details", "service_details section")
 	assertContains(t, msg, "```json", "JSON code block")
@@ -245,9 +245,9 @@ func TestEnrichActions_RailwayDeploymentFailed(t *testing.T) {
 	refs := map[string]string{
 		"deployment_id":    "deploy-0df056be",
 		"project_id":       "proj-55776e03",
-		"project_name":     "ziraloop.com",
+		"project_name":     "hiveloop.com",
 		"service_id":       "svc-b6c22e03",
-		"service_name":     "web.ziraloop.com",
+		"service_name":     "web.hiveloop.com",
 		"environment_id":   "env-3c177170",
 		"environment_name": "production",
 		"workspace_id":     "ws-71ad85f8",
@@ -406,7 +406,7 @@ func TestEnrichActions_RailwayDeploymentFailed(t *testing.T) {
 	}, results)
 
 	assertContains(t, composedMessage, "## Deployment.failed", "event header")
-	assertContains(t, composedMessage, "web.ziraloop.com", "service name in refs")
+	assertContains(t, composedMessage, "web.hiveloop.com", "service name in refs")
 	assertContains(t, composedMessage, "mock-result", "API result data")
 
 	// Verify all 4 sections are present.

@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	"github.com/ziraloop/ziraloop/internal/registry"
+	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
 // Cached token discount factors by provider.

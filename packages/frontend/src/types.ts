@@ -43,7 +43,7 @@ export interface ErrorPayload {
   providerId?: string
 }
 
-export interface ZiraLoopConnectConfig {
+export interface HiveLoopConnectConfig {
   baseURL?: string
   theme?: ThemeOption
 }

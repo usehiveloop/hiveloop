@@ -1,4 +1,4 @@
-package zira
+package hiveloop
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 // RoutingResult holds the output of a routing session — which agents were

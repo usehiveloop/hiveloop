@@ -3,7 +3,7 @@ package handler
 import (
 	"testing"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 func TestValidateJSONSchema_Nil(t *testing.T) {

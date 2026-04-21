@@ -61,7 +61,7 @@ system_prompt: |
 
   <tools>
   Railway API — your primary infrastructure tool. Loaded via the `railway` skill.
-  - All requests go to `${ZIRALOOP_RAILWAY_API_URL}` with no auth headers.
+  - All requests go to `${HIVELOOP_RAILWAY_API_URL}` with no auth headers.
   - Always pipe responses through `jq` to extract only needed fields.
   - Always mask sensitive environment variable values.
   - Use the skill's GraphQL queries and mutations for all Railway operations.

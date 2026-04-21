@@ -71,7 +71,7 @@ func TestLoad_CustomValues(t *testing.T) {
 	t.Setenv("REDIS_CACHE_TTL", "1h")
 	t.Setenv("REDIS_DB", "2")
 	t.Setenv("REDIS_PASSWORD", "secret")
-	t.Setenv("CORS_ORIGINS", "http://localhost:3000,https://app.ziraloop.com")
+	t.Setenv("CORS_ORIGINS", "http://localhost:3000,https://app.hiveloop.com")
 
 	cfg, err := Load()
 	if err != nil {
@@ -112,11 +112,11 @@ func TestLoad_AuthConfig_Defaults(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if cfg.AuthIssuer != "ziraloop" {
-		t.Errorf("expected default AuthIssuer 'ziraloop', got %q", cfg.AuthIssuer)
+	if cfg.AuthIssuer != "hiveloop" {
+		t.Errorf("expected default AuthIssuer 'hiveloop', got %q", cfg.AuthIssuer)
 	}
-	if cfg.AuthAudience != "https://api.ziraloop.com" {
-		t.Errorf("expected default AuthAudience 'https://api.ziraloop.com', got %q", cfg.AuthAudience)
+	if cfg.AuthAudience != "https://api.usehiveloop.com" {
+		t.Errorf("expected default AuthAudience 'https://api.usehiveloop.com', got %q", cfg.AuthAudience)
 	}
 	if cfg.AuthAccessTokenTTL != 15*time.Minute {
 		t.Errorf("expected default AuthAccessTokenTTL 15m, got %v", cfg.AuthAccessTokenTTL)
