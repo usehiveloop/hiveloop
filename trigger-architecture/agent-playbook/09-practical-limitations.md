@@ -93,7 +93,7 @@ For technical gaps (things that would be fixed by writing more code rather than 
 
 ## 8. No agent-initiated conversation linking
 
-**What you can't do**: have the agent explicitly say "this conversation I'm in should also receive events that match resource key X from now on." There's no tool like `zira_link_resource`.
+**What you can't do**: have the agent explicitly say "this conversation I'm in should also receive events that match resource key X from now on." There's no tool like `hiveloop_link_resource`.
 
 **Why**: we discussed this extensively and chose not to build it. The reason: agents shouldn't be responsible for plumbing. Their job is the task, not the orchestration layer. See [../08-design-decisions-deferred.md](../08-design-decisions-deferred.md).
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/cache"
 )
 
 func TestAPIKeyCache_SetAndGet(t *testing.T) {

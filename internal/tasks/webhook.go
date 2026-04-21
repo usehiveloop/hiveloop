@@ -15,7 +15,7 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
 )
 
 // WebhookForwardHandler delivers enriched webhook payloads to org endpoints.
@@ -56,8 +56,8 @@ func (h *WebhookForwardHandler) Handle(ctx context.Context, t *asynq.Task) error
 		return fmt.Errorf("create forward request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-ZiraLoop-Signature", signature)
-	req.Header.Set("X-ZiraLoop-Timestamp", fmt.Sprintf("%d", timestamp))
+	req.Header.Set("X-HiveLoop-Signature", signature)
+	req.Header.Set("X-HiveLoop-Timestamp", fmt.Sprintf("%d", timestamp))
 
 	resp, err := h.httpClient.Do(req)
 	if err != nil {

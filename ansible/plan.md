@@ -333,7 +333,7 @@ ssh_gateway_public_key: "GENERATE_ME"
 ssh_gateway_host_key: "GENERATE_ME"
 
 # Dex
-dex_admin_email: "admin@ziraloop.com"
+dex_admin_email: "admin@hivelooploop.com"
 dex_admin_password_hash: "GENERATE_ME"  # bcrypt hash
 
 # Cloudflare (for primary domain wildcard TLS only)
@@ -890,7 +890,7 @@ This is the most critical config file. It has THREE tiers:
 # GLOBAL OPTIONS
 # =============================================================================
 {
-    email admin@ziraloop.com
+    email admin@hivelooploop.com
 
     # ON-DEMAND TLS: Caddy asks the Gatekeeper before issuing a cert
     # for any domain not explicitly listed in a site block below.

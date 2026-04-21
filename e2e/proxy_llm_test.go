@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
 )
 
 

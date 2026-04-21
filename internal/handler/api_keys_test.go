@@ -18,15 +18,15 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/cache"
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/handler"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/handler"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 const (
-	testDBURL     = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
+	testDBURL     = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
 	testRedisAddr = "localhost:6379"
 )
 
@@ -171,11 +171,11 @@ func TestAPIKeyHandler_Create_Success(t *testing.T) {
 
 	// Plaintext key must be present and have correct prefix
 	key, ok := resp["key"].(string)
-	if !ok || !strings.HasPrefix(key, "zira_sk_") {
-		t.Fatalf("expected key with zira_sk_ prefix, got %v", resp["key"])
+	if !ok || !strings.HasPrefix(key, "hvl_sk_") {
+		t.Fatalf("expected key with hvl_sk_ prefix, got %v", resp["key"])
 	}
-	if len(key) != 72 {
-		t.Fatalf("expected key length 72, got %d", len(key))
+	if len(key) != 71 {
+		t.Fatalf("expected key length 71, got %d", len(key))
 	}
 
 	// Key prefix must be present

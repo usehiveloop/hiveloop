@@ -34,7 +34,7 @@
 
     - name: Check runners are reachable
       uri:
-        url: "http://{{ hostvars[item]['ansible_host'] }}:{{ runner_api_port }}/health"
+        url: "http://{{ hostvars[item]['ansible_host'] }}:{{ runner_api_port }}/"
         method: GET
         status_code: 200
         timeout: 10
@@ -53,13 +53,9 @@
           Dex OIDC:   https://{{ dex_domain }}/dex
           Login:      {{ dex_admin_email }}
 
-          Primary Preview Domain:
+          Preview Domain:
             *.{{ primary_preview_domain }}
             Example: https://3000-<id>.{{ primary_preview_domain }}
-
-          Dynamic Alias Domains:
-            Point *.preview.<yourdomain> A → {{ hostvars['controlplane']['ansible_host'] }}
-            It works instantly. No config changes needed.
 
           Runners:
           {% for runner in groups['runners'] %}

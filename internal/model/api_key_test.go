@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 func TestGenerateAPIKey_Format(t *testing.T) {
@@ -13,12 +13,12 @@ func TestGenerateAPIKey_Format(t *testing.T) {
 		t.Fatalf("GenerateAPIKey() error: %v", err)
 	}
 
-	// Plaintext: "zira_sk_" + 64 hex chars = 72 chars
-	if len(plaintext) != 72 {
-		t.Fatalf("expected plaintext length 72, got %d", len(plaintext))
+	// Plaintext: "hvl_sk_" (7) + 64 hex chars = 71 chars
+	if len(plaintext) != 71 {
+		t.Fatalf("expected plaintext length 71, got %d", len(plaintext))
 	}
-	if !strings.HasPrefix(plaintext, "zira_sk_") {
-		t.Fatalf("expected plaintext prefix 'zira_sk_', got %q", plaintext[:8])
+	if !strings.HasPrefix(plaintext, "hvl_sk_") {
+		t.Fatalf("expected plaintext prefix 'hvl_sk_', got %q", plaintext[:7])
 	}
 
 	// Hash: SHA-256 hex = 64 chars
@@ -54,7 +54,7 @@ func TestGenerateAPIKey_Unique(t *testing.T) {
 }
 
 func TestHashAPIKey_Deterministic(t *testing.T) {
-	key := "zira_sk_abcdef1234567890abcdef1234567890abcdef1234567890abcdef12345678"
+	key := "hvl_sk_abcdef1234567890abcdef1234567890abcdef1234567890abcdef12345678"
 	h1 := model.HashAPIKey(key)
 	h2 := model.HashAPIKey(key)
 
@@ -79,8 +79,8 @@ func TestHashAPIKey_MatchesGenerate(t *testing.T) {
 }
 
 func TestHashAPIKey_DifferentKeys(t *testing.T) {
-	h1 := model.HashAPIKey("zira_sk_aaa")
-	h2 := model.HashAPIKey("zira_sk_bbb")
+	h1 := model.HashAPIKey("hvl_sk_aaa")
+	h2 := model.HashAPIKey("hvl_sk_bbb")
 
 	if h1 == h2 {
 		t.Fatal("different keys should produce different hashes")

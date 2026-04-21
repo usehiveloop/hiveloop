@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 )
 
 // The parser tests don't depend on a DB — they operate over the loaded catalog
@@ -26,8 +26,8 @@ func TestParseResourceID_GitHubPullRequest(t *testing.T) {
 	}{
 		{
 			name:       "happy path",
-			resourceID: "ziraloop/ziraloop#99",
-			wantKey:    "github/ziraloop/ziraloop/pull/99",
+			resourceID: "hiveloop/hiveloop#99",
+			wantKey:    "github/hiveloop/hiveloop/pull/99",
 		},
 		{
 			name:       "owner with dots and hyphens",
@@ -36,7 +36,7 @@ func TestParseResourceID_GitHubPullRequest(t *testing.T) {
 		},
 		{
 			name:        "missing hash",
-			resourceID:  "ziraloop/ziraloop/99",
+			resourceID:  "hiveloop/hiveloop/99",
 			wantErr:     true,
 			errContains: "does not match the expected format",
 		},
@@ -48,7 +48,7 @@ func TestParseResourceID_GitHubPullRequest(t *testing.T) {
 		},
 		{
 			name:        "not a number",
-			resourceID:  "ziraloop/ziraloop#abc",
+			resourceID:  "hiveloop/hiveloop#abc",
 			wantErr:     true,
 			errContains: "does not match the expected format",
 		},

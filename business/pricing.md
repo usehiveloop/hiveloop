@@ -1,4 +1,4 @@
-# ZiraLoop Pricing Model
+# HiveLoop Pricing Model
 
 ## Summary
 
@@ -168,7 +168,7 @@ Worst-case scenario: single-agent user (maximum Polar flat fee impact).
 
 ### Why 50/50
 
-Unlike app stores where the platform simply distributes software, ZiraLoop does the heavy lifting:
+Unlike app stores where the platform simply distributes software, HiveLoop does the heavy lifting:
 
 - Platform provides infrastructure, sandboxes, observability, memory, connections
 - Platform handles billing, auth, scaling, uptime
@@ -186,9 +186,9 @@ Comparison to other marketplaces:
 
 - Apple App Store: 70/30 (creator/platform) — but Apple doesn't run the apps
 - Shopify App Store: 80/20 — but merchants run their own stores
-- ZiraLoop: 50/50 — platform runs everything, creator just builds and promotes
+- HiveLoop: 50/50 — platform runs everything, creator just builds and promotes
 
-The key difference: on ZiraLoop, the creator has zero ongoing operational cost. No servers, no billing, no support infrastructure. The platform bears 100% of the operational burden. 50/50 is fair for that level of service.
+The key difference: on HiveLoop, the creator has zero ongoing operational cost. No servers, no billing, no support infrastructure. The platform bears 100% of the operational burden. 50/50 is fair for that level of service.
 
 ---
 
@@ -239,7 +239,7 @@ Infra stays below 3-4% of revenue at every scale. Polar fees are the larger cost
 
 The $4.99/agent/month price point makes the comparison with individual SaaS tools dramatic:
 
-| Tool | Monthly cost | ZiraLoop equivalent |
+| Tool | Monthly cost | HiveLoop equivalent |
 |------|-------------|-------------------|
 | CodeRabbit (code review) | $30/month | $4.99/month (shared) or $6.99 (dedicated) |
 | Cursor (AI coding) | $20/month | $4.99/month |
@@ -249,7 +249,7 @@ The $4.99/agent/month price point makes the comparison with individual SaaS tool
 | Intercom Fin (support) | $99/month | $4.99/month |
 | **Total** | **$723/month** | **$29.94 - $41.94/month** |
 
-Users bring their own LLM API keys, so the biggest variable cost (inference) is not borne by the platform. This is the core of the business model — Ziraloop is an orchestration and infrastructure layer, not a model provider.
+Users bring their own LLM API keys, so the biggest variable cost (inference) is not borne by the platform. This is the core of the business model — Hiveloop is an orchestration and infrastructure layer, not a model provider.
 
 ---
 
@@ -295,7 +295,7 @@ This keeps the creator incentive simple ($2.50/install/month) while giving the p
 
 Traditional app store splits (70/30 creator/platform) don't apply here because those platforms only distribute software — the developer runs their own servers, handles their own billing, manages their own uptime.
 
-On ZiraLoop, the platform does all of that:
+On HiveLoop, the platform does all of that:
 - Runs the agent infrastructure 24/7
 - Provides sandboxes, memory, observability, connections
 - Handles billing, auth, scaling

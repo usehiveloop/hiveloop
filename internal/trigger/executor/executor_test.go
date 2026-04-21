@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/trigger/dispatch"
+	"github.com/usehiveloop/hiveloop/internal/trigger/dispatch"
 )
 
 func TestGroupByPriority_SinglePriority(t *testing.T) {

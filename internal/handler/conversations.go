@@ -10,13 +10,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
-	bridgepkg "github.com/ziraloop/ziraloop/internal/bridge"
-	"github.com/ziraloop/ziraloop/internal/enqueue"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/sandbox"
-	"github.com/ziraloop/ziraloop/internal/streaming"
-	"github.com/ziraloop/ziraloop/internal/tasks"
+	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehiveloop/hiveloop/internal/streaming"
+	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
 // ConversationHandler proxies conversation operations to Bridge.

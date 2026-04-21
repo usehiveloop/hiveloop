@@ -12,12 +12,12 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := "postgres://ziraloop:localdev@localhost:5433/ziraloop?sslmode=disable"
+	dsn := "postgres://hiveloop:localdev@localhost:5433/hiveloop?sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Discard})
 	if err != nil {
 		t.Skipf("Postgres not available: %v", err)

@@ -23,17 +23,17 @@ function formatDate(iso: string): string {
 }
 
 export const metadata: Metadata = {
-  title: "Blog — ZiraLoop",
+  title: "Blog — HiveLoop",
   description:
-    "Engineering deep dives, product updates, and tutorials from the ZiraLoop team.",
+    "Engineering deep dives, product updates, and tutorials from the HiveLoop team.",
   alternates: { canonical: "/blog" },
   openGraph: {
-    title: "Blog — ZiraLoop",
+    title: "Blog — HiveLoop",
     description:
-      "Engineering deep dives, product updates, and tutorials from the ZiraLoop team.",
+      "Engineering deep dives, product updates, and tutorials from the HiveLoop team.",
     url: "/blog",
     type: "website",
-    siteName: "ZiraLoop",
+    siteName: "HiveLoop",
   },
 }
 

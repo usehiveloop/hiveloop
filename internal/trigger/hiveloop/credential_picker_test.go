@@ -1,11 +1,11 @@
-package zira
+package hiveloop
 
 import (
 	"testing"
 
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/registry"
+	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
 // Credential picker tests use the real registry (curated models) to verify

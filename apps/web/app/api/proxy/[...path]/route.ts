@@ -85,7 +85,7 @@ function buildUpstreamHeaders(
   }
 
   // Inject active org from cookie
-  const activeOrgCookie = req.cookies.get("ziraloop_active_org")
+  const activeOrgCookie = req.cookies.get("hiveloop_active_org")
   if (activeOrgCookie?.value) {
     headers.set("X-Org-ID", activeOrgCookie.value)
   }

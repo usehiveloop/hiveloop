@@ -10,16 +10,16 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/subscriptions"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/subscriptions"
 )
 
 // The service test needs a real Postgres. When DATABASE_URL isn't set and the
 // default test DB isn't reachable, we skip — same policy as other DB-dependent
 // tests in this repo (e.g. internal/cache).
 
-const testDBURL = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
+const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
 
 func connectOrSkip(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -147,13 +147,13 @@ func TestSubscribe_HappyPath(t *testing.T) {
 		AgentID:        agentID,
 		ConversationID: convID,
 		ResourceType:   "github_pull_request",
-		ResourceID:     "ziraloop/ziraloop#99",
+		ResourceID:     "hiveloop/hiveloop#99",
 	})
 	if err != nil {
 		t.Fatalf("Subscribe returned error: %v", err)
 	}
-	if result.ResourceKey != "github/ziraloop/ziraloop/pull/99" {
-		t.Errorf("canonical = %q, want github/ziraloop/ziraloop/pull/99", result.ResourceKey)
+	if result.ResourceKey != "github/hiveloop/hiveloop/pull/99" {
+		t.Errorf("canonical = %q, want github/hiveloop/hiveloop/pull/99", result.ResourceKey)
 	}
 	if result.Provider != "github-app" {
 		t.Errorf("provider = %q, want github-app", result.Provider)
@@ -177,7 +177,7 @@ func TestSubscribe_Idempotent(t *testing.T) {
 		AgentID:        agentID,
 		ConversationID: convID,
 		ResourceType:   "github_issue",
-		ResourceID:     "ziraloop/ziraloop#42",
+		ResourceID:     "hiveloop/hiveloop#42",
 	}
 
 	first, err := svc.Subscribe(context.Background(), req)
@@ -207,7 +207,7 @@ func TestSubscribe_UnknownResourceType(t *testing.T) {
 		AgentID:        agentID,
 		ConversationID: convID,
 		ResourceType:   "github_banana",
-		ResourceID:     "ziraloop/ziraloop#1",
+		ResourceID:     "hiveloop/hiveloop#1",
 	})
 	if !errors.Is(err, subscriptions.ErrUnknownResourceType) {
 		t.Fatalf("want ErrUnknownResourceType, got %v", err)
@@ -230,7 +230,7 @@ func TestSubscribe_MissingIntegration(t *testing.T) {
 		AgentID:        agentID,
 		ConversationID: convID,
 		ResourceType:   "github_pull_request",
-		ResourceID:     "ziraloop/ziraloop#99",
+		ResourceID:     "hiveloop/hiveloop#99",
 	})
 	if !errors.Is(err, subscriptions.ErrIntegrationMissing) {
 		t.Fatalf("want ErrIntegrationMissing, got %v", err)
@@ -265,11 +265,11 @@ func TestListActive(t *testing.T) {
 
 	_, _ = svc.Subscribe(ctx, subscriptions.SubscribeRequest{
 		OrgID: orgID, AgentID: agentID, ConversationID: convID,
-		ResourceType: "github_pull_request", ResourceID: "ziraloop/ziraloop#99",
+		ResourceType: "github_pull_request", ResourceID: "hiveloop/hiveloop#99",
 	})
 	_, _ = svc.Subscribe(ctx, subscriptions.SubscribeRequest{
 		OrgID: orgID, AgentID: agentID, ConversationID: convID,
-		ResourceType: "github_issue", ResourceID: "ziraloop/ziraloop#42",
+		ResourceType: "github_issue", ResourceID: "hiveloop/hiveloop#42",
 	})
 
 	active, err := svc.ListActive(ctx, convID)

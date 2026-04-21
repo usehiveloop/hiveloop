@@ -17,16 +17,16 @@ ARG COMMIT=unknown
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT}" \
-    -o /ziraloop ./cmd/server
+    -o /hiveloop ./cmd/server
 
 # ---- Runtime stage ----
 FROM alpine:3.21
 
 RUN apk add --no-cache ca-certificates tzdata nginx
 
-COPY --from=build /ziraloop /ziraloop
+COPY --from=build /hiveloop /hiveloop
 COPY proxy.nginx.conf /etc/nginx/http.d/default.conf
 
 EXPOSE 80 8080
 
-CMD ["sh", "-c", "nginx && exec /ziraloop serve"]
+CMD ["sh", "-c", "nginx && exec /hiveloop serve"]
