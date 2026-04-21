@@ -1281,6 +1281,13 @@ definitions:
       agent_id:
         type: string
     type: object
+  internal_handler.createOrgInviteRequest:
+    properties:
+      email:
+        type: string
+      role:
+        type: string
+    type: object
   internal_handler.createOrgRequest:
     properties:
       name:
@@ -1591,6 +1598,20 @@ definitions:
       p95_ttfb_ms:
         type: number
     type: object
+  internal_handler.listOrgInvitesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.orgInviteResponse'
+        type: array
+    type: object
+  internal_handler.listOrgMembersResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.orgMemberResponse'
+        type: array
+    type: object
   internal_handler.loginRequest:
     properties:
       email:
@@ -1746,6 +1767,55 @@ definitions:
       tool_call:
         type: boolean
     type: object
+  internal_handler.orgInviteAcceptResponse:
+    properties:
+      org_id:
+        type: string
+      org_name:
+        type: string
+      role:
+        type: string
+    type: object
+  internal_handler.orgInvitePreviewResponse:
+    properties:
+      email:
+        type: string
+      expires_at:
+        type: string
+      inviter_name:
+        type: string
+      org_id:
+        type: string
+      org_name:
+        type: string
+      role:
+        type: string
+    type: object
+  internal_handler.orgInviteResponse:
+    properties:
+      accepted_at:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      invited_by_email:
+        type: string
+      invited_by_id:
+        type: string
+      invited_by_name:
+        type: string
+      org_id:
+        type: string
+      revoked_at:
+        type: string
+      role:
+        type: string
+    type: object
   internal_handler.orgMemberDTO:
     properties:
       id:
@@ -1753,6 +1823,19 @@ definitions:
       name:
         type: string
       role:
+        type: string
+    type: object
+  internal_handler.orgMemberResponse:
+    properties:
+      email:
+        type: string
+      joined_at:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+      user_id:
         type: string
     type: object
   internal_handler.orgResponse:
@@ -6919,6 +7002,85 @@ paths:
       summary: List available platform integrations
       tags:
       - in-integrations
+  /v1/invites/{token}:
+    get:
+      description: Returns basic invite details by plaintext token. Returns 404 for
+        invalid/expired/used/revoked tokens without distinguishing.
+      parameters:
+      - description: Invite token (plaintext)
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.orgInvitePreviewResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Preview an invitation (public)
+      tags:
+      - org-invites
+  /v1/invites/{token}/accept:
+    post:
+      description: Accepts an invite and creates the corresponding org membership.
+        The authenticated user's email must match the invite email.
+      parameters:
+      - description: Invite token (plaintext)
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.orgInviteAcceptResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Accept an invitation
+      tags:
+      - org-invites
+  /v1/invites/{token}/decline:
+    post:
+      description: Declines an invite and marks it as terminally revoked.
+      parameters:
+      - description: Invite token (plaintext)
+        in: path
+        name: token
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Decline an invitation
+      tags:
+      - org-invites
   /v1/marketplace/agents:
     get:
       description: Returns published marketplace agents with optional filters. Cached
@@ -7145,6 +7307,140 @@ paths:
       summary: Get current organization
       tags:
       - orgs
+  /v1/orgs/current/invites:
+    get:
+      description: Returns non-expired, non-accepted, non-revoked invites for the
+        current org. Admin-only.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.listOrgInvitesResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List pending invitations
+      tags:
+      - org-invites
+    post:
+      consumes:
+      - application/json
+      description: Creates a pending invitation for the given email and role. Admin-only.
+      parameters:
+      - description: Invite parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createOrgInviteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.orgInviteResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Invite a user to the current organization
+      tags:
+      - org-invites
+  /v1/orgs/current/invites/{id}:
+    delete:
+      description: Marks an invite as revoked. Admin-only. Already-accepted invites
+        cannot be revoked.
+      parameters:
+      - description: Invite ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke a pending invitation
+      tags:
+      - org-invites
+  /v1/orgs/current/invites/{id}/resend:
+    post:
+      description: Generates a new token and re-sends the invite email. Admin-only.
+      parameters:
+      - description: Invite ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.orgInviteResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Resend an invitation
+      tags:
+      - org-invites
+  /v1/orgs/current/members:
+    get:
+      description: Returns every user with an active membership in the current org.
+        Any member may call this.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.listOrgMembersResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List members of the current organization
+      tags:
+      - org-invites
   /v1/providers:
     get:
       description: Returns every provider in the catalog with a model count.
