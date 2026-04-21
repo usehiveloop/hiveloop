@@ -30,6 +30,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&Org{},
 		&User{},
 		&OrgMembership{},
+		&OrgInvite{},
 		&RefreshToken{},
 		&Credential{},
 		&Token{},
@@ -103,6 +104,9 @@ func AutoMigrate(db *gorm.DB) error {
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_conv_sub_by_key ON conversation_subscriptions (org_id, resource_key) WHERE status = 'active'`)
 	// Partial unique: re-subscribing to the same resource in the same conversation is a no-op.
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_conv_sub_idempotent ON conversation_subscriptions (conversation_id, resource_key) WHERE status = 'active'`)
+
+	// Partial unique: prevent duplicate pending invites per (org, email).
+	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_org_invite_pending ON org_invites (org_id, email) WHERE accepted_at IS NULL AND revoked_at IS NULL`)
 
 	return nil
 }
