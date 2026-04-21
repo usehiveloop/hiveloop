@@ -179,7 +179,7 @@ func (executor *Executor) buildMCPList(agentDispatch dispatch.AgentDispatch) []b
 	if executor.cfg != nil && executor.cfg.MCPBaseURL != "" {
 		replyURL := fmt.Sprintf("%s/reply/%s", executor.cfg.MCPBaseURL, agentDispatch.ReplyConnectionID)
 		servers = append(servers, bridgepkg.McpServerDefinition{
-			Name:      "zira-reply",
+			Name:      "hiveloop-reply",
 			Transport: buildMcpTransport(replyURL, ""),
 		})
 	}

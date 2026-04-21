@@ -214,7 +214,7 @@ conditions:
       value: [failure, cancelled, timed_out]
     - path: workflow_run.head_branch
       operator: matches
-      value: "^zira/"
+      value: "^hiveloop/"
     - path: workflow_run.head_repository.fork
       operator: not_equals
       value: true
@@ -258,7 +258,7 @@ terminate_on:
       rules:
         - path: pull_request.head.ref
           operator: matches
-          value: "^zira/"
+          value: "^hiveloop/"
     silent: true
 ```
 
@@ -268,7 +268,7 @@ terminate_on:
 
 **Why filter forks out**: CI runs on PRs from forks don't have push access to the fork's branch. The agent can't push a fix there. Excluding forks avoids wasted runs.
 
-**Why the `^zira/` branch prefix filter**: this is how the agent knows "this is one of my branches" without needing to track ownership in a database. Any branch prefixed `zira/` is the agent's territory. Other branches belong to humans and the agent shouldn't touch them.
+**Why the `^hiveloop/` branch prefix filter**: this is how the agent knows "this is one of my branches" without needing to track ownership in a database. Any branch prefixed `hiveloop/` is the agent's territory. Other branches belong to humans and the agent shouldn't touch them.
 
 **Why "under 5 tool calls"**: runaway prevention. Without a cap, the agent can get lost in a diagnostic rabbit hole, spending huge amounts of tokens trying to solve an unsolvable problem. Five tool calls is a soft cap the agent is asked to respect; it's not enforced by the trigger system, but it's a clear instruction the LLM will usually honor.
 
@@ -302,10 +302,10 @@ conditions:
   rules:
     - path: data.assignee.email
       operator: equals
-      value: zira-coder@company.com
+      value: hiveloop-coder@company.com
     - path: data.labels.*.name
       operator: one_of
-      value: [zira-auto, auto-implement]
+      value: [hiveloop-auto, auto-implement]
 
 context:
   - as: issue
@@ -339,8 +339,8 @@ instructions: |
   issue acknowledging what you're working on. When you open a PR, post
   another comment linking to it.
 
-  Your git branches should be prefixed `zira/linear/` followed by the
-  issue identifier, e.g., `zira/linear/lin-123`. This is how the
+  Your git branches should be prefixed `hiveloop/linear/` followed by the
+  issue identifier, e.g., `hiveloop/linear/lin-123`. This is how the
   follow-up triggers know the PRs are yours.
 ```
 
@@ -358,7 +358,7 @@ conditions:
   rules:
     - path: pull_request.head.ref
       operator: matches
-      value: "^zira/linear/"
+      value: "^hiveloop/linear/"
     - path: sender.login
       operator: not_equals
       value: linear-coder[bot]
@@ -420,7 +420,7 @@ conditions:
       value: [failure, timed_out]
     - path: workflow_run.head_branch
       operator: matches
-      value: "^zira/linear/"
+      value: "^hiveloop/linear/"
 
 context:
   - as: run
@@ -442,7 +442,7 @@ terminate_on:
       rules:
         - path: pull_request.head.ref
           operator: matches
-          value: "^zira/linear/"
+          value: "^hiveloop/linear/"
     silent: true
 ```
 
@@ -450,7 +450,7 @@ terminate_on:
 
 **Why three trigger rows on one agent**: each row has different conditions, different context, and different instructions, but they're all facets of the same job. Splitting into three rows is cleaner than one mega-row with per-event branches.
 
-**Why branch prefix as the ownership signal**: the agent creates PRs from branches named `zira/linear/<issue-id>`. Any other agent or human who creates a similarly-named branch would confuse this, so make sure the prefix is unique to the agent. A better alternative is to use a combination (branch prefix + PR author) to double-check, but branch prefix alone is usually sufficient.
+**Why branch prefix as the ownership signal**: the agent creates PRs from branches named `hiveloop/linear/<issue-id>`. Any other agent or human who creates a similarly-named branch would confuse this, so make sure the prefix is unique to the agent. A better alternative is to use a combination (branch prefix + PR author) to double-check, but branch prefix alone is usually sufficient.
 
 **Why no cross-provider conversation continuation**: this is the limitation discussed at length in [../06-multi-provider-patterns.md](../06-multi-provider-patterns.md). The Linear conversation and the PR conversation are separate threads. The agent re-orients on the PR by reading the PR body (which contains the Linear issue link) and can use its Linear tools mid-run if it needs more context.
 

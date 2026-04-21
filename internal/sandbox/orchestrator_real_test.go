@@ -97,7 +97,7 @@ func TestRealDaytona_PoolSandboxLifecycle(t *testing.T) {
 		t.Log("Cleaning up sandbox...")
 		orch.DeleteSandbox(context.Background(), sb)
 		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
-		tursoClient.DeleteDatabase(context.Background(), "zira-"+shortID(org.ID))
+		tursoClient.DeleteDatabase(context.Background(), "hiveloop-"+shortID(org.ID))
 	})
 
 	if sb.Status != "running" {

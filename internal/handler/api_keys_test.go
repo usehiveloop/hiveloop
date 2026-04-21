@@ -171,11 +171,11 @@ func TestAPIKeyHandler_Create_Success(t *testing.T) {
 
 	// Plaintext key must be present and have correct prefix
 	key, ok := resp["key"].(string)
-	if !ok || !strings.HasPrefix(key, "zira_sk_") {
-		t.Fatalf("expected key with zira_sk_ prefix, got %v", resp["key"])
+	if !ok || !strings.HasPrefix(key, "hvl_sk_") {
+		t.Fatalf("expected key with hvl_sk_ prefix, got %v", resp["key"])
 	}
-	if len(key) != 72 {
-		t.Fatalf("expected key length 72, got %d", len(key))
+	if len(key) != 71 {
+		t.Fatalf("expected key length 71, got %d", len(key))
 	}
 
 	// Key prefix must be present

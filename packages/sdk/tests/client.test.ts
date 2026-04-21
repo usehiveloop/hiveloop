@@ -3,7 +3,7 @@ import { HiveLoop } from "../src/index.js";
 
 describe("HiveLoop client", () => {
   it("defaults baseUrl to https://api.usehiveloop.com", () => {
-    const vault = new HiveLoop({ apiKey: "zira_sk_test" });
+    const vault = new HiveLoop({ apiKey: "hvl_sk_test" });
     // The client is created — we just verify it has all resource namespaces
     expect(vault.apiKeys).toBeDefined();
     expect(vault.credentials).toBeDefined();
@@ -22,7 +22,7 @@ describe("HiveLoop client", () => {
 
   it("accepts a custom baseUrl", () => {
     const vault = new HiveLoop({
-      apiKey: "zira_sk_test",
+      apiKey: "hvl_sk_test",
       baseUrl: "https://api.dev.hiveloop.com",
     });
     expect(vault.apiKeys).toBeDefined();

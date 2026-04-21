@@ -57,7 +57,7 @@ Every agent should have explicit scope boundaries that it refuses to cross. Writ
 
 - "Only respond to issues labeled `bug` or `triage-needed`."
 - "Only review PRs where the head branch starts with `feature/`."
-- "Only act on conversations assigned to the zira team."
+- "Only act on conversations assigned to the hiveloop team."
 - "Only handle events in the `engineering` org's connections."
 - "Never modify production database rows, even if asked."
 - "Never approve or merge a pull request; always leave that to a human."

@@ -31,7 +31,7 @@ const (
 	baseImage         = "ubuntu:24.04"
 	bridgeDir         = "/usr/local/bin"
 	daytonaHome       = "/home/daytona"
-	bridgeReleasesURL = "https://github.com/hiveloop/bridge/releases/download"
+	bridgeReleasesURL = "https://github.com/usehiveloop/bridge/releases/download"
 
 	flavorBridge = "bridge"
 	flavorDevBox = "dev-box"
@@ -256,13 +256,13 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 }
 
 // snapshotName returns the published snapshot name for a flavor + version + size.
-// The dev-box flavor uses the new zira-dev-box-<size>-v<version> scheme; the
+// The dev-box flavor uses the hiveloop-dev-box-<size>-v<version> scheme; the
 // default bridge flavor keeps its historical name so existing snapshots aren't
 // orphaned.
 func snapshotName(flavor, bridgeVersion, size string) string {
 	switch flavor {
 	case flavorDevBox:
-		return fmt.Sprintf("zira-dev-box-%s-v%s", size, bridgeVersion)
+		return fmt.Sprintf("hiveloop-dev-box-%s-v%s", size, bridgeVersion)
 	default:
 		return fmt.Sprintf("hiveloop-bridge-%s-%s", strings.ReplaceAll(bridgeVersion, ".", "-"), size)
 	}

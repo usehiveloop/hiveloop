@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # --- Check requirements ---
 if [ -z "${HIVELOOP_API_KEY:-}" ]; then
   echo "ERROR: Set HIVELOOP_API_KEY environment variable"
-  echo "  export HIVELOOP_API_KEY=zira_sk_..."
+  echo "  export HIVELOOP_API_KEY=hvl_sk_..."
   exit 1
 fi
 
