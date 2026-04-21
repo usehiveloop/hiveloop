@@ -377,6 +377,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 						r.Delete("/", conversationHandler.End)
 						r.Post("/messages", conversationHandler.SendMessage)
 						r.Get("/stream", conversationHandler.Stream)
+						r.Get("/history", conversationHandler.History)
 						r.Post("/abort", conversationHandler.Abort)
 						r.Get("/approvals", conversationHandler.ListApprovals)
 						r.Post("/approvals/{requestID}", conversationHandler.ResolveApproval)
