@@ -140,6 +140,35 @@ func ResolveUser(db *gorm.DB) func(http.Handler) http.Handler {
 	}
 }
 
+// RequireOrgAdmin enforces that the authenticated user's role in the resolved
+// org context is "admin". Must be used AFTER a ResolveOrg* middleware.
+func RequireOrgAdmin(db *gorm.DB) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims, ok := AuthClaimsFromContext(r.Context())
+			if !ok || claims == nil || claims.UserID == "" {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+				return
+			}
+			org, ok := OrgFromContext(r.Context())
+			if !ok || org == nil {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "missing organization context"})
+				return
+			}
+			var m model.OrgMembership
+			if err := db.Where("user_id = ? AND org_id = ?", claims.UserID, org.ID).First(&m).Error; err != nil {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "not a member"})
+				return
+			}
+			if m.Role != "admin" {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin role required"})
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // RequirePlatformAdmin returns middleware that checks if the authenticated user's
 // email is in the platform admin allowlist.
 func RequirePlatformAdmin(adminEmails []string) func(http.Handler) http.Handler {
