@@ -77,6 +77,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	if enqueuer != nil {
 		emailSender = email.NewAsynqSender(enqueuer)
 	}
+	orgInviteHandler := handler.NewOrgInviteHandler(database, emailSender, cfg.FrontendURL)
 	authHandler := handler.NewAuthHandler(database, rsaKey, signingKey,
 		cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL,
 		emailSender, cfg.FrontendURL, cfg.AutoConfirmEmail)
@@ -178,6 +179,9 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	r.Get("/v1/marketplace/agents", marketplaceHandler.List)
 	r.Get("/v1/marketplace/agents/{slug}", marketplaceHandler.GetBySlug)
 
+	// Org invite preview (public, token-based lookup)
+	r.Get("/v1/invites/{token}", orgInviteHandler.Preview)
+
 	// Webhook receivers (HMAC-verified, no auth middleware)
 	r.Post("/internal/webhooks/bridge/{sandboxID}", bridgeWebhookHandler.Handle)
 	r.Post("/internal/webhooks/nango", nangoWebhookHandler.Handle)
@@ -241,12 +245,27 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 		r.Post("/orgs", orgHandler.Create)
 
+		// Authenticated invite accept/decline — user-scoped, no org context required.
+		// The org is derived from the invite token itself.
+		r.Post("/invites/{token}/accept", orgInviteHandler.Accept)
+		r.Post("/invites/{token}/decline", orgInviteHandler.Decline)
+
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.ResolveOrgFlexible(database))
 			r.Use(middleware.RateLimit())
 			r.Use(middleware.Audit(auditWriter))
 
 			r.Get("/orgs/current", orgHandler.Current)
+			r.Get("/orgs/current/members", orgInviteHandler.ListMembers)
+
+			// Admin-only org invite management.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireOrgAdmin(database))
+				r.Post("/orgs/current/invites", orgInviteHandler.Create)
+				r.Get("/orgs/current/invites", orgInviteHandler.List)
+				r.Delete("/orgs/current/invites/{id}", orgInviteHandler.Revoke)
+				r.Post("/orgs/current/invites/{id}/resend", orgInviteHandler.Resend)
+			})
 			r.Get("/usage", usageHandler.Get)
 			r.Get("/audit", auditHandler.List)
 			r.Get("/reporting", reportingHandler.Get)
