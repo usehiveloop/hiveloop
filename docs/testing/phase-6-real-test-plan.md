@@ -24,8 +24,8 @@ SANDBOX_TARGET=us
 SANDBOX_ENCRYPTION_KEY=<base64 encoded 32 bytes>
 
 # Bridge
-BRIDGE_BASE_IMAGE_PREFIX=ziraloop-bridge-0-10-0
-BRIDGE_HOST=ziraloop.outray.app
+BRIDGE_BASE_IMAGE_PREFIX=hiveloop-bridge-0-10-0
+BRIDGE_HOST=hiveloop.outray.app
 
 # Anthropic (for creating real credentials)
 ANTHROPIC_API_KEY=<your anthropic api key>
@@ -41,7 +41,7 @@ docker compose up -d postgres redis mailpit
 make build-templates VERSION=0.10.0 SIZE=small
 
 # Tunnel active (sandbox → your local machine)
-# https://ziraloop.outray.app must point to localhost:8080
+# https://hiveloop.outray.app must point to localhost:8080
 
 # Server running
 make dev
@@ -69,17 +69,17 @@ curl -s "${SANDBOX_URL}/sandbox/paginated" -H "Authorization: Bearer ${SANDBOX_K
 import sys,json
 items = json.load(sys.stdin.buffer).get('items', [])
 for sb in items:
-    if sb.get('name','').startswith('zira-'):
+    if sb.get('name','').startswith('hiveloop-'):
         print(f'  {sb[\"name\"]}  id={sb[\"id\"]}  state={sb[\"state\"]}')
         print(f'    DELETE: curl -X DELETE \"{sb.get(\"id\")}\"')
-print(f'Total zira sandboxes: {sum(1 for s in items if s.get(\"name\",\"\").startswith(\"zira-\"))}')
+print(f'Total hiveloop sandboxes: {sum(1 for s in items if s.get(\"name\",\"\").startswith(\"hiveloop-\"))}')
 "
 
 # Delete any leftover sandboxes
 # curl -s -X DELETE "${SANDBOX_URL}/sandbox/<ID>" -H "Authorization: Bearer ${SANDBOX_KEY}"
 
 # Clean local DB
-PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop -c \
+PGPASSWORD=localdev psql -h localhost -p 5433 -U hiveloop -d hiveloop -c \
   "DELETE FROM conversation_events; DELETE FROM agent_conversations; DELETE FROM sandboxes; DELETE FROM agents;"
 ```
 
@@ -129,7 +129,7 @@ echo "Credential: $CRED_ID"
 ### Step 2: Create shared agent (TRIGGERS SANDBOX CREATION)
 
 This is the big one. It will:
-1. Create a Daytona sandbox from the `ziraloop-bridge-0-10-0-small` snapshot
+1. Create a Daytona sandbox from the `hiveloop-bridge-0-10-0-small` snapshot
 2. Start Bridge inside the sandbox (`nohup /usr/local/bin/bridge ...`)
 3. Wait for Bridge `/health` to respond 200
 4. Mint a proxy token (`ptok_...`) for the agent's credential
@@ -167,7 +167,7 @@ msg="agent pushed to bridge" agent_id=... agent_name=support-bot sandbox_id=...
 ### Step 3: Verify sandbox in DB
 
 ```bash
-PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop -c \
+PGPASSWORD=localdev psql -h localhost -p 5433 -U hiveloop -d hiveloop -c \
   "SELECT id, status, sandbox_type, external_id, substring(bridge_url, 1, 70) as url FROM sandboxes;"
 ```
 
@@ -176,7 +176,7 @@ Expected: 1 row, status=`running`, sandbox_type=`shared`.
 ### Step 4: Verify Bridge is alive and has the agent
 
 ```bash
-BRIDGE_URL=$(PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop -t -A -c \
+BRIDGE_URL=$(PGPASSWORD=localdev psql -h localhost -p 5433 -U hiveloop -d hiveloop -t -A -c \
   "SELECT bridge_url FROM sandboxes WHERE status='running' LIMIT 1;")
 
 # Health check
@@ -189,10 +189,10 @@ curl -s "$BRIDGE_URL/agents" | python3 -m json.tool
 ```
 
 Key things to verify in the agent listing:
-- `provider.base_url` = `https://ziraloop.outray.app/v1/proxy` (our proxy)
+- `provider.base_url` = `https://hiveloop.outray.app/v1/proxy` (our proxy)
 - `provider.provider_type` = `anthropic`
 - `provider.api_key` starts with `ptok_` (minted proxy token)
-- MCP server `ziraloop` is configured
+- MCP server `hiveloop` is configured
 
 ### Step 5: Create second shared agent (REUSES SANDBOX)
 
@@ -278,7 +278,7 @@ A3=$(curl -s --max-time 10 -X POST http://localhost:8080/v1/agents \
 echo "$A3" | python3 -m json.tool
 
 # Verify NO new sandbox was created
-PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop -t -A -c \
+PGPASSWORD=localdev psql -h localhost -p 5433 -U hiveloop -d hiveloop -t -A -c \
   "SELECT COUNT(*) FROM sandboxes;"
 # Expected: 1 (only the shared sandbox)
 ```
@@ -321,19 +321,19 @@ for a in data['data']:
 ## Cleanup
 
 ```bash
-# Delete agents from ZiraLoop
+# Delete agents from HiveLoop
 curl -s -X DELETE "http://localhost:8080/v1/agents/$A2_ID" -H "Authorization: Bearer $API_KEY"
 curl -s -X DELETE "http://localhost:8080/v1/agents/$A3_ID" -H "Authorization: Bearer $API_KEY"
 
 # Delete sandbox from Daytona
 SANDBOX_KEY=$(grep "^SANDBOX_PROVIDER_KEY=" .env | cut -d= -f2- | tr -d '[:space:]')
 SANDBOX_URL=$(grep "^SANDBOX_PROVIDER_URL=" .env | cut -d= -f2- | tr -d '[:space:]')
-EXTERNAL_ID=$(PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop -t -A -c \
+EXTERNAL_ID=$(PGPASSWORD=localdev psql -h localhost -p 5433 -U hiveloop -d hiveloop -t -A -c \
   "SELECT external_id FROM sandboxes LIMIT 1;")
 curl -s -X DELETE "${SANDBOX_URL}/sandbox/${EXTERNAL_ID}" -H "Authorization: Bearer ${SANDBOX_KEY}"
 
 # Clean local DB
-PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop -c \
+PGPASSWORD=localdev psql -h localhost -p 5433 -U hiveloop -d hiveloop -c \
   "DELETE FROM sandboxes; DELETE FROM agents; DELETE FROM workspace_storages;"
 ```
 
@@ -351,7 +351,7 @@ curl -s -X DELETE "${SANDBOX_URL}/sandbox/<ID>" -H "Authorization: Bearer ${SAND
 ### "null value in column bridge_api_key"
 Old schema has the deprecated `bridge_api_key` column. Drop it:
 ```bash
-PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop -c \
+PGPASSWORD=localdev psql -h localhost -p 5433 -U hiveloop -d hiveloop -c \
   "ALTER TABLE sandboxes DROP COLUMN IF EXISTS bridge_api_key;"
 ```
 

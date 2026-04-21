@@ -29,14 +29,11 @@ default_runner_api_key: "{{ lookup('env', 'DAYTONA_RUNNER_API_KEY') }}"
 ssh_gateway_api_key: "{{ lookup('env', 'DAYTONA_SSH_GATEWAY_API_KEY') }}"
 
 # Dex
-dex_admin_email: "admin@ziraloop.com"
+dex_admin_email: "admin@usehiveloop.com"
 dex_admin_password_hash: "{{ lookup('env', 'DAYTONA_DEX_ADMIN_PASSWORD_HASH') }}"
 
 # Cloudflare (for Caddy wildcard TLS)
 cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') }}"
-
-# Shared secret for caddy-admin and acme-dns-api proxy auth
-ziraloop_internal_secret: "{{ lookup('env', 'ZIRALOOP_INTERNAL_SECRET') }}"
 
 # sysctl (control-specific)
 sysctl_params:

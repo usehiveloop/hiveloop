@@ -1,6 +1,6 @@
-package zira
+package hiveloop
 
-import "github.com/ziraloop/ziraloop/internal/model"
+import "github.com/usehiveloop/hiveloop/internal/model"
 
 // NewCompletionClient returns the appropriate CompletionClient adapter for
 // the given credential's provider. Anthropic gets its own adapter; all other

@@ -16,14 +16,14 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/auth"
-	"github.com/ziraloop/ziraloop/internal/middleware"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/token"
+	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/token"
 )
 
 const (
-	testDBURL      = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
+	testDBURL      = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
 	testSigningKey = "local-dev-signing-key-change-in-prod"
 )
 
@@ -88,7 +88,7 @@ func newAuthHelper(t *testing.T) *authTestHelper {
 	}
 }
 
-// createTestOrg creates an ZiraLoop Org in Postgres and mints a JWT for it.
+// createTestOrg creates an HiveLoop Org in Postgres and mints a JWT for it.
 func (ah *authTestHelper) createTestOrg(t *testing.T, db *gorm.DB, name, role string) (model.Org, string) {
 	t.Helper()
 

@@ -1,4 +1,4 @@
-package zira
+package hiveloop
 
 import (
 	"strings"
@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 func TestPrompt_IncludesAllAgents(t *testing.T) {

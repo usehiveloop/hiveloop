@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/trigger/zira"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 
 // RouterDispatchInput is the input to the router dispatch pipeline.
@@ -32,7 +32,7 @@ type AgentDispatch struct {
 	AgentID         uuid.UUID
 	Priority        int
 	RoutingMode     string // "rule" or "triage"
-	EnrichmentPlan     []zira.PlannedEnrichment
+	EnrichmentPlan     []hiveloop.PlannedEnrichment
 	ReplyConnectionID  uuid.UUID // in_connections ID for the source channel
 	ReplyOrgID         uuid.UUID
 	ResourceKey        string
@@ -55,13 +55,13 @@ type AgentDispatch struct {
 type RouterDispatcher struct {
 	store   RouterTriggerStore
 	catalog *catalog.Catalog
-	agent   *zira.RouterAgent // nil = rule-only mode (no LLM)
+	agent   *hiveloop.RouterAgent // nil = rule-only mode (no LLM)
 	logger  *slog.Logger
 }
 
 // NewRouterDispatcher creates a dispatcher. Pass nil for agent if the org
 // only uses rule-based routing (no triage calls).
-func NewRouterDispatcher(store RouterTriggerStore, actionsCatalog *catalog.Catalog, routerAgent *zira.RouterAgent, logger *slog.Logger) *RouterDispatcher {
+func NewRouterDispatcher(store RouterTriggerStore, actionsCatalog *catalog.Catalog, routerAgent *hiveloop.RouterAgent, logger *slog.Logger) *RouterDispatcher {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -121,8 +121,8 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 		}
 
 		// 5. Route: rule-based or LLM triage.
-		var selectedAgents []zira.AgentSelection
-		var enrichmentPlan []zira.PlannedEnrichment
+		var selectedAgents []hiveloop.AgentSelection
+		var enrichmentPlan []hiveloop.PlannedEnrichment
 		routingMode := trigger.RoutingMode
 		routingStart := time.Now()
 
@@ -142,13 +142,13 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 			if agentsErr != nil {
 				return nil, fmt.Errorf("loading org agents: %w", agentsErr)
 			}
-			var connections []zira.ConnectionWithActions
+			var connections []hiveloop.ConnectionWithActions
 			if trigger.EnrichCrossReferences {
 				connections, _ = dispatcher.store.LoadOrgConnections(ctx, input.OrgID, input.ConnectionID)
 			}
 			recentDecisions, _ := dispatcher.store.LoadRecentDecisions(ctx, input.OrgID, eventKey, 10)
 
-			systemPrompt := zira.BuildRoutingPrompt(router.Persona, orgAgents, connections, recentDecisions)
+			systemPrompt := hiveloop.BuildRoutingPrompt(router.Persona, orgAgents, connections, recentDecisions)
 
 			// Build user message from event context.
 			userMessage := buildTriageUserMessage(input, refs)
@@ -167,7 +167,7 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 
 		// 6. Fallback to default agent if no agents selected.
 		if len(selectedAgents) == 0 && router.DefaultAgentID != nil {
-			selectedAgents = []zira.AgentSelection{{
+			selectedAgents = []hiveloop.AgentSelection{{
 				AgentID:  *router.DefaultAgentID,
 				Priority: 99,
 				Reason:   "fallback to default agent",
@@ -235,7 +235,7 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 
 // LoadConnections loads all org connections with their read actions.
 // Used by the enrichment agent to know what integrations are available.
-func (dispatcher *RouterDispatcher) LoadConnections(ctx context.Context, orgID uuid.UUID) ([]zira.ConnectionWithActions, error) {
+func (dispatcher *RouterDispatcher) LoadConnections(ctx context.Context, orgID uuid.UUID) ([]hiveloop.ConnectionWithActions, error) {
 	return dispatcher.store.LoadOrgConnections(ctx, orgID, uuid.Nil)
 }
 

@@ -11,7 +11,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 // RegisterTools is a callback matching mcpserver.SubscriptionToolsFunc that
@@ -52,7 +52,7 @@ resource_id format is per-type — see the reminder for the expected shape (e.g.
 					},
 					"resource_id": map[string]any{
 						"type":        "string",
-						"description": "Resource identifier matching the format for this resource_type (e.g. 'ziraloop/ziraloop#99' for github_pull_request). See the system reminder for examples.",
+						"description": "Resource identifier matching the format for this resource_type (e.g. 'hiveloop/hiveloop#99' for github_pull_request). See the system reminder for examples.",
 					},
 				},
 				"required": []string{"resource_type", "resource_id"},

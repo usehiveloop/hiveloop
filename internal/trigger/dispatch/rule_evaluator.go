@@ -4,20 +4,20 @@ import (
 	"encoding/json"
 	"sort"
 
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/trigger/zira"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 
 // EvaluateRules runs deterministic rule evaluation against the webhook payload.
 // Returns all matching rules' agents sorted by priority (ascending = highest
 // priority first). Multiple rules can match the same event, enabling
 // multi-agent dispatch from a single trigger.
-func EvaluateRules(rules []model.RoutingRule, payload map[string]any) []zira.AgentSelection {
-	var matches []zira.AgentSelection
+func EvaluateRules(rules []model.RoutingRule, payload map[string]any) []hiveloop.AgentSelection {
+	var matches []hiveloop.AgentSelection
 
 	for _, rule := range rules {
 		if ruleMatches(rule, payload) {
-			matches = append(matches, zira.AgentSelection{
+			matches = append(matches, hiveloop.AgentSelection{
 				AgentID:  rule.AgentID,
 				Priority: rule.Priority,
 				Reason:   "deterministic rule match",

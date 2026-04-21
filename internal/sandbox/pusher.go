@@ -12,12 +12,12 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	bridgepkg "github.com/ziraloop/ziraloop/internal/bridge"
-	"github.com/ziraloop/ziraloop/internal/config"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/registry"
-	subagents "github.com/ziraloop/ziraloop/internal/sub-agents"
-	"github.com/ziraloop/ziraloop/internal/token"
+	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
+	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/registry"
+	subagents "github.com/usehiveloop/hiveloop/internal/sub-agents"
+	"github.com/usehiveloop/hiveloop/internal/token"
 )
 
 // providerTypeMap maps our credential provider IDs to Bridge ProviderType values.
@@ -545,7 +545,7 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 	// Add our MCP server only if agent has integrations configured
 	hasIntegrations := agent.Integrations != nil && len(agent.Integrations) > 0
 	if hasIntegrations && p.cfg.MCPBaseURL != "" && jti != "" {
-		ourMCP := buildZiraLoopMCPServer(p.cfg.MCPBaseURL, jti, proxyToken)
+		ourMCP := buildHiveLoopMCPServer(p.cfg.MCPBaseURL, jti, proxyToken)
 		if mcpServers == nil {
 			servers := []bridgepkg.McpServerDefinition{ourMCP}
 			mcpServers = &servers
@@ -608,7 +608,7 @@ func (p *Pusher) buildSubagentDefinitions(parent *model.Agent, parentCred *model
 	return defs, nil
 }
 
-func buildZiraLoopMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDefinition {
+func buildHiveLoopMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDefinition {
 	// Our MCP server uses the JTI as the path and the proxy token for auth
 	url := fmt.Sprintf("%s/%s", mcpBaseURL, jti)
 
@@ -624,7 +624,7 @@ func buildZiraLoopMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDe
 	transport.FromMcpTransport1(httpTransport)
 
 	return bridgepkg.McpServerDefinition{
-		Name:      "ziraloop",
+		Name:      "hiveloop",
 		Transport: transport,
 	}
 }

@@ -3,7 +3,7 @@ package sandbox
 import (
 	"testing"
 
-	bridgepkg "github.com/ziraloop/ziraloop/internal/bridge"
+	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 )
 
 // applyHistoryStripDefault caps history growth on long agent conversations

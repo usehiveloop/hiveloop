@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	CredentialChannel = "ziraloop:invalidate:credential"
-	TokenChannel      = "ziraloop:invalidate:token"
-	APIKeyChannel     = "ziraloop:invalidate:apikey"
+	CredentialChannel = "hiveloop:invalidate:credential"
+	TokenChannel      = "hiveloop:invalidate:token"
+	APIKeyChannel     = "hiveloop:invalidate:apikey"
 )
 
 // Invalidator handles cross-instance cache invalidation via Redis pub/sub.

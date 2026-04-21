@@ -1,11 +1,11 @@
-// Package zira implements Zira's routing brain — the LLM-powered triage and
+// Package hiveloop implements Hiveloop's routing brain — the LLM-powered triage and
 // enrichment layer that decides which specialist agent handles each inbound
 // event and what cross-connection context to gather before dispatch.
 //
 // The package is provider-agnostic: it defines a CompletionClient interface
 // with adapters for OpenAI-compatible providers and Anthropic. Tests use a
 // mock that scripts deterministic tool-call sequences.
-package zira
+package hiveloop
 
 import (
 	"context"

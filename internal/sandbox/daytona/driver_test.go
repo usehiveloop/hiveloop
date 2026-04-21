@@ -3,7 +3,7 @@ package daytona
 import (
 	"testing"
 
-	"github.com/ziraloop/ziraloop/internal/sandbox"
+	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
 // TestDriverImplementsProvider verifies at compile time that Driver satisfies sandbox.Provider.

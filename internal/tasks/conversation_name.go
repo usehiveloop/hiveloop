@@ -10,10 +10,10 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/cache"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/registry"
-	"github.com/ziraloop/ziraloop/internal/trigger/zira"
+	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/registry"
+	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 
 // messageContentMaxBytes caps the first-message content we send to the naming
@@ -108,7 +108,7 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 		return fmt.Errorf("decrypt credential: %w", err)
 	}
 
-	client := zira.NewCompletionClient(&credential, string(decrypted.APIKey))
+	client := hiveloop.NewCompletionClient(&credential, string(decrypted.APIKey))
 	title, err := generateConversationTitle(ctx, client, modelID, supportsTools, firstMessage)
 	if err != nil {
 		return fmt.Errorf("generate title: %w", err)
@@ -205,7 +205,7 @@ func loadFirstMessageContent(ctx context.Context, db *gorm.DB, conversationID an
 // for structured output. Otherwise we fall back to free-form text and parse.
 func generateConversationTitle(
 	ctx context.Context,
-	client zira.CompletionClient,
+	client hiveloop.CompletionClient,
 	modelID string,
 	supportsTools bool,
 	firstMessage string,
@@ -213,9 +213,9 @@ func generateConversationTitle(
 	systemPrompt := "You generate concise conversation titles. Given the user's first message, return a 3–6 word title summarising what the conversation is about. Use title case. No punctuation at the end. Do not wrap in quotes."
 	userPrompt := "First message:\n\n" + firstMessage
 
-	req := zira.CompletionRequest{
+	req := hiveloop.CompletionRequest{
 		Model: modelID,
-		Messages: []zira.Message{
+		Messages: []hiveloop.Message{
 			{Role: "system", Content: systemPrompt},
 			{Role: "user", Content: userPrompt},
 		},
@@ -223,7 +223,7 @@ func generateConversationTitle(
 	}
 
 	if supportsTools {
-		req.Tools = []zira.ToolDef{{
+		req.Tools = []hiveloop.ToolDef{{
 			Name:        "submit_title",
 			Description: "Submit the final conversation title.",
 			Parameters: json.RawMessage(`{

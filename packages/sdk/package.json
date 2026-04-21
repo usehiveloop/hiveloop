@@ -1,7 +1,7 @@
 {
-  "name": "@ziraloop/sdk",
+  "name": "@hiveloop/sdk",
   "version": "1.1.1",
-  "description": "Server-side SDK for the ZiraLoop API",
+  "description": "Server-side SDK for the HiveLoop API",
   "license": "O'Saasy",
   "type": "module",
   "exports": {

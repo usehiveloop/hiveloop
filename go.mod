@@ -1,4 +1,4 @@
-module github.com/ziraloop/ziraloop
+module github.com/usehiveloop/hiveloop
 
 go 1.25.4
 

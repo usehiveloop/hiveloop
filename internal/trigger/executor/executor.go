@@ -14,11 +14,11 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	bridgepkg "github.com/ziraloop/ziraloop/internal/bridge"
-	"github.com/ziraloop/ziraloop/internal/config"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/sandbox"
-	"github.com/ziraloop/ziraloop/internal/trigger/dispatch"
+	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
+	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehiveloop/hiveloop/internal/trigger/dispatch"
 )
 
 // Executor creates or continues Bridge conversations based on routing decisions.
@@ -179,7 +179,7 @@ func (executor *Executor) buildMCPList(agentDispatch dispatch.AgentDispatch) []b
 	if executor.cfg != nil && executor.cfg.MCPBaseURL != "" {
 		replyURL := fmt.Sprintf("%s/reply/%s", executor.cfg.MCPBaseURL, agentDispatch.ReplyConnectionID)
 		servers = append(servers, bridgepkg.McpServerDefinition{
-			Name:      "zira-reply",
+			Name:      "hiveloop-reply",
 			Transport: buildMcpTransport(replyURL, ""),
 		})
 	}

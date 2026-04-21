@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 
-	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/trigger/zira"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 
 // --------------------------------------------------------------------------
@@ -180,11 +180,11 @@ func TestDispatch_Rule_NoMatch_NoDefault_Empty(t *testing.T) {
 }
 
 func TestDispatch_Rule_NoLLMCall(t *testing.T) {
-	mock := zira.NewMockCompletionClient()
+	mock := hiveloop.NewMockCompletionClient()
 	triggerID := uuid.New()
 	store, _ := setupRuleStore(triggerID, model.RoutingRule{AgentID: testAgentA, Priority: 1})
 
-	routerAgent := zira.NewRouterAgent(mock, "test-model", 10)
+	routerAgent := hiveloop.NewRouterAgent(mock, "test-model", 10)
 	dispatcher := NewRouterDispatcher(store, catalog.Global(), routerAgent, slog.Default())
 	_, err := dispatcher.Run(context.Background(), baseInput())
 	if err != nil {
@@ -197,7 +197,7 @@ func TestDispatch_Rule_NoLLMCall(t *testing.T) {
 // Triage routing tests
 // --------------------------------------------------------------------------
 
-func setupTriageStore(triggerID uuid.UUID, mock *zira.MockCompletionClient) (*MemoryRouterTriggerStore, *RouterDispatcher) {
+func setupTriageStore(triggerID uuid.UUID, mock *hiveloop.MockCompletionClient) (*MemoryRouterTriggerStore, *RouterDispatcher) {
 	store := NewMemoryRouterTriggerStore()
 	router := newTestRouter()
 	trigger := newTestTrigger(triggerID, "triage", "app_mention")
@@ -210,27 +210,27 @@ func setupTriageStore(triggerID uuid.UUID, mock *zira.MockCompletionClient) (*Me
 		"pulls_get": {DisplayName: "Get PR", Description: "Get a PR", Access: "read",
 			Parameters: json.RawMessage(`{"type":"object","properties":{"owner":{"type":"string"},"repo":{"type":"string"},"pull_number":{"type":"integer"}},"required":["owner","repo","pull_number"]}`)},
 	}
-	store.AddConnection(zira.ConnectionWithActions{
+	store.AddConnection(hiveloop.ConnectionWithActions{
 		Connection:  model.InConnection{ID: uuid.New(), OrgID: testOrgID},
 		Provider:    "github-app",
 		ReadActions: readActions,
 	})
 
-	routerAgent := zira.NewRouterAgent(mock, "test-model", 10)
+	routerAgent := hiveloop.NewRouterAgent(mock, "test-model", 10)
 	dispatcher := NewRouterDispatcher(store, catalog.Global(), routerAgent, slog.Default())
 	return store, dispatcher
 }
 
 func TestDispatch_Triage_SlackMention_RoutesToAgent(t *testing.T) {
-	mock := zira.NewMockCompletionClient()
+	mock := hiveloop.NewMockCompletionClient()
 	mock.OnMessage("", // triage user message is built from refs, not the raw user text
-		zira.CompletionResponse{Message: zira.Message{Role: "assistant", ToolCalls: []zira.ToolCall{
+		hiveloop.CompletionResponse{Message: hiveloop.Message{Role: "assistant", ToolCalls: []hiveloop.ToolCall{
 			{ID: "c1", Name: "route_to_agent", Arguments: `{"agent_id":"` + testAgentA.String() + `","priority":1,"reason":"PR review"}`},
 			{ID: "c2", Name: "finalize", Arguments: "{}"},
 		}}},
 	)
 	// Also register a fallback for any user message
-	mock.SetFallback(zira.CompletionResponse{Message: zira.Message{Role: "assistant", ToolCalls: []zira.ToolCall{
+	mock.SetFallback(hiveloop.CompletionResponse{Message: hiveloop.Message{Role: "assistant", ToolCalls: []hiveloop.ToolCall{
 		{ID: "c1", Name: "route_to_agent", Arguments: `{"agent_id":"` + testAgentA.String() + `","priority":1,"reason":"PR review"}`},
 		{ID: "c2", Name: "finalize", Arguments: "{}"},
 	}}})
@@ -261,8 +261,8 @@ func TestDispatch_Triage_SlackMention_RoutesToAgent(t *testing.T) {
 }
 
 func TestDispatch_Triage_LLMEmpty_DefaultAgent(t *testing.T) {
-	mock := zira.NewMockCompletionClient()
-	mock.SetFallback(zira.CompletionResponse{Message: zira.Message{Role: "assistant", ToolCalls: []zira.ToolCall{
+	mock := hiveloop.NewMockCompletionClient()
+	mock.SetFallback(hiveloop.CompletionResponse{Message: hiveloop.Message{Role: "assistant", ToolCalls: []hiveloop.ToolCall{
 		{ID: "c1", Name: "finalize", Arguments: "{}"},
 	}}})
 

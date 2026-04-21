@@ -47,7 +47,7 @@ All live in `internal/trigger/dispatch/testdata/github/` with provenance documen
 
 Two fixtures are derived from real payloads rather than taken verbatim:
 
-- **`issue_comment.created.pr.json`**: octokit only ships the issue-comment variant. The PR variant (comment on a pull request) is derived by adding the `issue.pull_request` field GitHub sends in that case, with URL fields pointing at the correct PR endpoints. The comment body is also patched to `@zira can you take a look at this PR?` so the mention-matching tests have realistic content. Full provenance in `SOURCES.md`.
+- **`issue_comment.created.pr.json`**: octokit only ships the issue-comment variant. The PR variant (comment on a pull request) is derived by adding the `issue.pull_request` field GitHub sends in that case, with URL fields pointing at the correct PR endpoints. The comment body is also patched to `@hiveloop can you take a look at this PR?` so the mention-matching tests have realistic content. Full provenance in `SOURCES.md`.
 - **`workflow_run.completed.failure.json`**: octokit's fixture has `conclusion: success`. The tests need to verify the "only on failure" condition path, so we derive a fixture with `workflow_run.conclusion` patched to `failure`.
 
 Both derivations are one-line Python patches, reproducible from the original fixtures, and documented. Committing them to `testdata/` keeps tests hermetic.
@@ -92,7 +92,7 @@ The test functions themselves are short: seed, run, assert. A typical test is 30
 | 2 | `TestDispatch_IssuesOpened_BotFiltered` | `not_one_of` operator. Patches `sender.login` to `dependabot[bot]`, asserts the run is skipped with a reason that mentions both the path and operator. Refs are still populated on the skipped run for debugging visibility. |
 | 3 | `TestDispatch_PullRequestOpened_MultiEvent` | Multi-event trigger `[opened, synchronize, ready_for_review]`. Asserts the correct key matches, resource key is `Codertocat/Hello-World#pr-2`, context action path substitution works for `pulls_list_files`. |
 | 4 | `TestDispatch_PullRequestOpened_DraftSkipped` | `not_equals true` operator against boolean payload field. Patches `pull_request.draft = true`, asserts skip. |
-| 5 | `TestDispatch_IssueComment_MentionOnIssue` | Two conditions with `match: all`: `comment.body contains "@zira"` AND `issue.pull_request not_exists`. Exercises both operators and `{{$refs.x}}` mustache substitution in instructions. |
+| 5 | `TestDispatch_IssueComment_MentionOnIssue` | Two conditions with `match: all`: `comment.body contains "@hiveloop"` AND `issue.pull_request not_exists`. Exercises both operators and `{{$refs.x}}` mustache substitution in instructions. |
 | 6 | `TestDispatch_IssueComment_PRCommentSkipped` | Same trigger as #5 but on the PR variant fixture. `not_exists` fails because `issue.pull_request` IS present. Assertion checks that the skip reason mentions both `issue.pull_request` and `not_exists`. |
 | 7 | `TestDispatch_Push_RegexMatch` | `matches` operator with regex `^refs/heads/master$`. Uses `push.new-branch.json`. Asserts `ResourceKey == ""` because `repository` has no template. |
 | 8 | `TestDispatch_Push_RegexMissMisses` | Same regex against `push.json` (tag push). Regex fails, run skipped. |
@@ -116,7 +116,7 @@ Every test reads a fixture, builds a trigger config, calls `harness.run`, and as
 func TestGormAgentTriggerStore_FindMatching(t *testing.T) {
     dsn := os.Getenv("DATABASE_URL")
     if dsn == "" {
-        dsn = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
+        dsn = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
     }
     db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
     if err != nil {
@@ -208,7 +208,7 @@ Typical output when everything works:
     stores_postgres_test.go:38: Postgres not reachable, skipping real-DB test
 --- SKIP: TestGormAgentTriggerStore_FindMatching (0.00s)
 PASS
-ok  	github.com/ziraloop/ziraloop/internal/trigger/dispatch	1.493s
+ok  	github.com/usehiveloop/hiveloop/internal/trigger/dispatch	1.493s
 ```
 
 ## Adding new tests

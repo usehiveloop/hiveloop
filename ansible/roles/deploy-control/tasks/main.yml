@@ -12,7 +12,6 @@
     - "{{ control_config_dir }}/caddy"
     - "{{ control_config_dir }}/dex"
     - "{{ control_config_dir }}/registry"
-    - "{{ control_config_dir }}/acme-dns"
     - "{{ control_data_dir }}/postgres"
     - "{{ control_data_dir }}/redis"
     - "{{ control_data_dir }}/registry"
@@ -83,13 +82,6 @@
   template:
     src: dex-config.yaml.j2
     dest: "{{ control_config_dir }}/dex/config.yml"
-    mode: "0644"
-  notify: Restart docker compose
-
-- name: Deploy acme-dns config
-  template:
-    src: acme-dns-config.cfg.j2
-    dest: "{{ control_config_dir }}/acme-dns/config.cfg"
     mode: "0644"
   notify: Restart docker compose
 

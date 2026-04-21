@@ -12,11 +12,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/ziraloop/ziraloop/internal/config"
-	"github.com/ziraloop/ziraloop/internal/crypto"
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/sandbox/daytona"
-	"github.com/ziraloop/ziraloop/internal/turso"
+	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/sandbox/daytona"
+	"github.com/usehiveloop/hiveloop/internal/turso"
 )
 
 // TestRealDaytona_PoolSandboxLifecycle tests the pool sandbox orchestrator flow against real Daytona + Turso.
@@ -71,7 +71,7 @@ func TestRealDaytona_PoolSandboxLifecycle(t *testing.T) {
 	tursoProvisioner := turso.NewProvisioner(tursoClient, tursoGroup, db)
 
 	cfg := &config.Config{
-		BridgeBaseImagePrefix:           "ziraloop-bridge-0-10-0",
+		BridgeBaseImagePrefix:           "hiveloop-bridge-0-10-0",
 		BridgeHost:                      os.Getenv("BRIDGE_HOST"),
 		SharedSandboxIdleTimeoutMins:    30,
 		DedicatedSandboxGracePeriodMins: 5,
@@ -97,7 +97,7 @@ func TestRealDaytona_PoolSandboxLifecycle(t *testing.T) {
 		t.Log("Cleaning up sandbox...")
 		orch.DeleteSandbox(context.Background(), sb)
 		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
-		tursoClient.DeleteDatabase(context.Background(), "zira-"+shortID(org.ID))
+		tursoClient.DeleteDatabase(context.Background(), "hiveloop-"+shortID(org.ID))
 	})
 
 	if sb.Status != "running" {

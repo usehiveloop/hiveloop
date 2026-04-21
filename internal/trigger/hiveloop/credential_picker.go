@@ -1,4 +1,4 @@
-package zira
+package hiveloop
 
 import (
 	"fmt"
@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/ziraloop/ziraloop/internal/model"
-	"github.com/ziraloop/ziraloop/internal/registry"
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
 // CredentialWithModel pairs a credential with the selected model ID.

@@ -11,7 +11,7 @@ import type { components } from "@/lib/api/schema"
 type User = components["schemas"]["userResponse"]
 type Org = components["schemas"]["orgMemberDTO"]
 
-const ACTIVE_ORG_COOKIE = "ziraloop_active_org"
+const ACTIVE_ORG_COOKIE = "hiveloop_active_org"
 
 function getOrgIdFromCookie(): string | null {
   if (typeof document === "undefined") return null
