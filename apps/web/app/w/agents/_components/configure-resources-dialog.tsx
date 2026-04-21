@@ -129,7 +129,7 @@ function ConnectionListView({ connections, getSelectedCount, getOrphanCount, onS
           </div>
         ) : (
           connections.map((connection) => {
-            const connectionId = connection.id!
+            const connectionId = connection.id as string
             const count = getSelectedCount(connectionId)
             const orphans = getOrphanCount(connectionId)
             const baseDescription = count > 0
@@ -141,7 +141,7 @@ function ConnectionListView({ connections, getSelectedCount, getOrphanCount, onS
             return (
               <ChoiceCard
                 key={connectionId}
-                logoUrl={`https://connections.hiveloop.com/images/template-logos/${connection.provider ?? ""}.svg`}
+                logoUrl={`https://connections.usehiveloop.com/images/template-logos/${connection.provider ?? ""}.svg`}
                 title={connection.display_name ?? connection.provider ?? ""}
                 description={description}
                 onClick={() => onSelect(connectionId)}
@@ -274,7 +274,7 @@ function ResourceInstanceListView({ connectionId, resourceType, selectedItems, i
         )}
         {isLoading ? (
           Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="h-[52px] w-full rounded-xl" />
+            <Skeleton key={index} className="h-13 w-full rounded-xl" />
           ))
         ) : items.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">
@@ -497,7 +497,7 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
     }
 
     updateAgent.mutate(
-      { params: { path: { id: agent!.id } }, body: { resources: cleanedResources } as never },
+      { params: { path: { id: agent?.id as string } }, body: { resources: cleanedResources } as never },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["get", "/v1/agents"] })
@@ -513,7 +513,7 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md h-[780px] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-md h-195 overflow-hidden flex flex-col">
         <AnimatePresence mode="wait" custom={direction.current}>
           <motion.div
             key={currentStep === "instances" ? `inst-${activeConnectionId}-${activeResourceType}` : currentStep === "types" ? `types-${activeConnectionId}` : "connections"}
