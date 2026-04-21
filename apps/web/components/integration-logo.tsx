@@ -1,7 +1,7 @@
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
-const LOGO_BASE = "https://connections.hiveloop.com/images/template-logos"
+const LOGO_BASE = "https://connections.usehiveloop.com/images/template-logos"
 
 const sizeClasses: Record<number, string> = {
   16: "size-4",
