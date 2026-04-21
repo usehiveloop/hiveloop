@@ -45,8 +45,18 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 
 	// Asynq server
 	redisOpt := cfg.AsynqRedisOpt()
-	// Email sender for the worker (LogSender for now — replace with real SMTP later)
-	logSender := &email.LogSender{}
+
+	// Email sender: Kibamail when configured, LogSender otherwise. The
+	// worker is the only process that actually hits Kibamail — handlers
+	// enqueue, the worker drains with built-in retries.
+	var workerSender email.Sender = &email.LogSender{}
+	if cfg.KibamailAPIKey != "" {
+		workerSender = email.NewKibamailSender(cfg.KibamailAPIKey, cfg.KibamailFromAddress)
+		slog.Info("kibamail sender configured", "from", cfg.KibamailFromAddress)
+	} else {
+		slog.Warn("KIBAMAIL_API_KEY not set — emails will be logged only")
+	}
+
 	workerDeps := &tasks.WorkerDeps{
 		DB:           deps.DB,
 		Cleanup:      deps.Cleanup,
@@ -54,7 +64,14 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		Pusher:       deps.AgentPusher,
 		EncKey:       deps.SandboxEncKey,
 		EmailSend: func(ctx context.Context, to, subject, body string) error {
-			return logSender.Send(ctx, email.Message{To: to, Subject: subject, Body: body})
+			return workerSender.Send(ctx, email.Message{To: to, Subject: subject, Body: body})
+		},
+		EmailSendTemplate: func(ctx context.Context, to, slug string, variables map[string]string) error {
+			return workerSender.SendTemplate(ctx, email.TemplateMessage{
+				To:        to,
+				Slug:      email.TemplateSlug(slug),
+				Variables: variables,
+			})
 		},
 		PolarClient:  deps.PolarClient,
 		SkillFetcher: skills.NewGitFetcher(cfg.GitHubToken),

@@ -9,6 +9,7 @@ const (
 	TypeAPIKeyUpdate              = "apikey:update_last_used"
 	TypeAdminAuditWrite           = "admin_audit:write"
 	TypeEmailSend                 = "email:send"
+	TypeEmailSendTemplate         = "email:send_template"
 	TypeAgentCleanup              = "agent:cleanup"
 	TypeBillingUsageEvent         = "billing:usage_event"
 	TypeSandboxTemplateBuild      = "sandbox_template:build"

@@ -24,7 +24,8 @@ type WorkerDeps struct {
 	Orchestrator     *sandbox.Orchestrator // nil if sandbox not configured
 	Pusher           *sandbox.Pusher       // nil if sandbox not configured
 	EncKey           *crypto.SymmetricKey  // nil if not configured
-	EmailSend        EmailSenderFunc       // nil if email not configured
+	EmailSend         EmailSenderFunc         // nil if email not configured
+	EmailSendTemplate EmailTemplateSenderFunc // nil if template email not configured
 	PolarClient      *polargo.Polar        // nil if billing not configured
 	EventBus         *streaming.EventBus   // nil if streaming not configured
 	SkillFetcher     *skills.GitFetcher    // nil disables git skill hydration
@@ -49,6 +50,9 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 	// Email sending
 	if deps.EmailSend != nil {
 		mux.HandleFunc(TypeEmailSend, NewEmailSendHandler(deps.EmailSend).Handle)
+	}
+	if deps.EmailSendTemplate != nil {
+		mux.HandleFunc(TypeEmailSendTemplate, NewEmailSendTemplateHandler(deps.EmailSendTemplate).Handle)
 	}
 
 	// Periodic task handlers
