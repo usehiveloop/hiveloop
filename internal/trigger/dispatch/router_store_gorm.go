@@ -10,7 +10,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/trigger/zira"
+	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 
 // GormRouterTriggerStore is the production implementation backed by Postgres.
@@ -103,7 +103,7 @@ func (store *GormRouterTriggerStore) LoadOrgAgents(ctx context.Context, orgID uu
 	return agents, nil
 }
 
-func (store *GormRouterTriggerStore) LoadOrgConnections(ctx context.Context, orgID uuid.UUID, excludeConnID uuid.UUID) ([]zira.ConnectionWithActions, error) {
+func (store *GormRouterTriggerStore) LoadOrgConnections(ctx context.Context, orgID uuid.UUID, excludeConnID uuid.UUID) ([]hiveloop.ConnectionWithActions, error) {
 	var connections []model.InConnection
 	query := store.db.WithContext(ctx).Preload("InIntegration").
 		Where("org_id = ? AND revoked_at IS NULL", orgID)
@@ -114,7 +114,7 @@ func (store *GormRouterTriggerStore) LoadOrgConnections(ctx context.Context, org
 		return nil, fmt.Errorf("loading org connections: %w", err)
 	}
 
-	results := make([]zira.ConnectionWithActions, 0, len(connections))
+	results := make([]hiveloop.ConnectionWithActions, 0, len(connections))
 	for _, conn := range connections {
 		provider := conn.InIntegration.Provider
 
@@ -130,7 +130,7 @@ func (store *GormRouterTriggerStore) LoadOrgConnections(ctx context.Context, org
 			}
 		}
 
-		results = append(results, zira.ConnectionWithActions{
+		results = append(results, hiveloop.ConnectionWithActions{
 			Connection:  conn,
 			Provider:    provider,
 			ReadActions: readActions,

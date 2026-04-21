@@ -12,7 +12,7 @@ This means a single agent can react to events from Slack, Linear, and GitHub by 
 
 The use case that drove this discussion: an autonomous coding agent that picks up tasks and opens PRs to complete them. Here's how you'd wire it.
 
-### Agent `zira-linear-worker`
+### Agent `hiveloop-linear-worker`
 
 One agent row. Four AgentTrigger rows, all pointing at this agent:
 
@@ -27,10 +27,10 @@ conditions:
   rules:
     - path: data.assignee.email
       operator: equals
-      value: zira-bot@company.com
+      value: hiveloop-bot@company.com
     - path: data.labels.*.name
       operator: one_of
-      value: [zira, automated]
+      value: [hiveloop, automated]
 context:
   - as: issue
     action: get_issue
@@ -62,10 +62,10 @@ conditions:
   rules:
     - path: pull_request.head.ref
       operator: matches
-      value: "^zira/linear/"
+      value: "^hiveloop/linear/"
     - path: sender.login
       operator: not_equals
-      value: zira-bot[bot]
+      value: hiveloop-bot[bot]
 context:
   - as: pr
     action: pulls_get
@@ -96,7 +96,7 @@ conditions:
       value: [failure, cancelled, timed_out]
     - path: workflow_run.head_branch
       operator: matches
-      value: "^zira/linear/"
+      value: "^hiveloop/linear/"
 context:
   - as: run
     action: actions_get_workflow_run
@@ -117,7 +117,7 @@ conditions:
   rules:
     - path: pull_request.head.ref
       operator: matches
-      value: "^zira/linear/"
+      value: "^hiveloop/linear/"
 terminate_on:
   - trigger_keys: [pull_request.closed]
     conditions:
@@ -135,9 +135,9 @@ terminate_on:
       thanking the reviewer and noting anything worth remembering.
 ```
 
-### Agent `zira-slack-worker`
+### Agent `hiveloop-slack-worker`
 
-**The same four trigger rows, but swap Trigger row 1 to listen on Slack mentions instead of Linear issue assignments.** Rows 2, 3, and 4 are identical except the branch filter uses `^zira/slack/` instead of `^zira/linear/`.
+**The same four trigger rows, but swap Trigger row 1 to listen on Slack mentions instead of Linear issue assignments.** Rows 2, 3, and 4 are identical except the branch filter uses `^hiveloop/slack/` instead of `^hiveloop/linear/`.
 
 Both agents share the same system prompt, same sandbox template, same tools, same model. The only differences are the entry trigger and the branch prefix. This is "two agents with shared config" — the pattern we settled on.
 
@@ -145,7 +145,7 @@ Both agents share the same system prompt, same sandbox template, same tools, sam
 
 The GitHub triggers need to filter to "only PRs this agent created." Two clean approaches:
 
-1. **Branch prefix** (recommended): each agent pushes to a namespaced prefix. `zira/linear/fix-login-bug` vs `zira/slack/add-oauth-flow`. No shared bot identity needed — the filter is just a regex on `pull_request.head.ref`.
+1. **Branch prefix** (recommended): each agent pushes to a namespaced prefix. `hiveloop/linear/fix-login-bug` vs `hiveloop/slack/add-oauth-flow`. No shared bot identity needed — the filter is just a regex on `pull_request.head.ref`.
 2. **PR label**: each agent tags its PRs with `agent:linear-worker` or `agent:slack-worker`. Filter by `pull_request.labels.*.name one_of [agent:linear-worker]`. Requires the agent to manage labels, which is extra work.
 
 Branch prefix wins because it's zero-maintenance — the agent already has to choose a branch name, and adding a prefix is free. Labels are fine too if there's a specific reason to prefer them.
@@ -187,9 +187,9 @@ The cross-provider continuation problem is real but not urgent. We explored thre
 
 ### Approach 1: Link table + agent-initiated linking
 
-Add a `conversation_resource_links` many-to-many table. Give the agent a `zira_link_resource(connection_id, resource_type, resource_id)` tool. When the agent creates a PR while working on a Linear task, it calls the tool, which inserts a row linking the Linear conversation to the GitHub PR's resource key. Future PR events look up the link table as a secondary lookup path.
+Add a `conversation_resource_links` many-to-many table. Give the agent a `hiveloop_link_resource(connection_id, resource_type, resource_id)` tool. When the agent creates a PR while working on a Linear task, it calls the tool, which inserts a row linking the Linear conversation to the GitHub PR's resource key. Future PR events look up the link table as a secondary lookup path.
 
-**Why we rejected it**: you said it clearly — *"we should default to doing the heavy lifting ourselves, so agents can focus only on their tasks."* The moment we give agents a `zira_link_resource` tool, we're effectively saying "part of your job is now plumbing." That's the wrong direction. Agents should get a task and focus on it, not spend tool budget on correlation housekeeping.
+**Why we rejected it**: you said it clearly — *"we should default to doing the heavy lifting ourselves, so agents can focus only on their tasks."* The moment we give agents a `hiveloop_link_resource` tool, we're effectively saying "part of your job is now plumbing." That's the wrong direction. Agents should get a task and focus on it, not spend tool budget on correlation housekeeping.
 
 ### Approach 2: Multi-provider trigger rows
 
@@ -230,7 +230,7 @@ Two agents with four rows each goes through eight independent validation runs. A
 The other example we discussed was a customer-support agent on Intercom. The pattern is the same:
 
 ```yaml
-# Agent zira-support-worker — single trigger row
+# Agent hiveloop-support-worker — single trigger row
 connection_id: <intercom-connection-uuid>
 trigger_keys:
   - conversation.user.replied

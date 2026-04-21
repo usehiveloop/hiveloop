@@ -11,5 +11,8 @@
       "Hard": 65536,
       "Soft": 65536
     }
-  }
+  }{% if inventory_hostname in groups['runners'] %},
+  "insecure-registries": ["{{ hostvars['controlplane']['ansible_host'] }}:{{ registry_port }}"]
+{% endif %}
+
 }

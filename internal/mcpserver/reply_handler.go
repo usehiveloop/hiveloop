@@ -17,8 +17,8 @@ import (
 )
 
 // ReplyMCPHandler exposes per-connection write tools scoped to a conversation's
-// source channel. When the Zira executor creates a conversation, it attaches
-// this MCP server as "zira-reply" so the specialist agent can post messages
+// source channel. When the Hiveloop executor creates a conversation, it attaches
+// this MCP server as "hiveloop-reply" so the specialist agent can post messages
 // back to the channel (Slack thread, GitHub issue, etc.) using the source
 // connection's credentials.
 //
@@ -66,7 +66,7 @@ func (handler *ReplyMCPHandler) serverFactory(request *http.Request) *mcpsdk.Ser
 	}
 
 	server := mcpsdk.NewServer(&mcpsdk.Implementation{
-		Name:    "zira-reply-" + provider,
+		Name:    "hiveloop-reply-" + provider,
 		Version: "v1.0.0",
 	}, nil)
 
@@ -141,7 +141,7 @@ func makeReplyToolHandler(connectionID, provider, actionKey string) func(context
 
 func emptyReplyServer() *mcpsdk.Server {
 	return mcpsdk.NewServer(&mcpsdk.Implementation{
-		Name:    "zira-reply-empty",
+		Name:    "hiveloop-reply-empty",
 		Version: "v1.0.0",
 	}, nil)
 }

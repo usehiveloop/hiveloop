@@ -262,7 +262,7 @@ Two mental models that save time:
 
 When a user says "my trigger didn't work," resist the urge to guess. Instead, pull the log lines for that event and narrate what happened, line by line, out loud (or to a rubber duck).
 
-"The webhook arrived at 14:32. It was a `pull_request.opened` event on connection X. The dispatcher found 2 matching triggers. Trigger A was skipped because condition 0 (sender.login not_equals) failed — the sender was zira-bot[bot] which matches the exclusion filter. Trigger B fired normally. So the user's trigger is correctly firing only for non-bot users. The issue is that the user expected Trigger A to fire, but Trigger A is configured to exclude bots..."
+"The webhook arrived at 14:32. It was a `pull_request.opened` event on connection X. The dispatcher found 2 matching triggers. Trigger A was skipped because condition 0 (sender.login not_equals) failed — the sender was hiveloop-bot[bot] which matches the exclusion filter. Trigger B fired normally. So the user's trigger is correctly firing only for non-bot users. The issue is that the user expected Trigger A to fire, but Trigger A is configured to exclude bots..."
 
 Narrating the logs forces you to read them carefully rather than skim, and 80% of the time the bug becomes obvious in the process.
 

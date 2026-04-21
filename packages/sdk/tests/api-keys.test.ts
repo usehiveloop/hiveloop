@@ -14,7 +14,7 @@ describe("api-keys", () => {
     expect(data).toBeDefined();
     expect(data!.id).toBeDefined();
     expect(data!.key).toBeDefined();
-    expect(data!.key!.startsWith("zira_sk_")).toBe(true);
+    expect(data!.key!.startsWith("hvl_sk_")).toBe(true);
 
     createdKeyId = data!.id!;
   });

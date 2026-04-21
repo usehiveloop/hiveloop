@@ -17,7 +17,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/mcpserver"
 	"github.com/usehiveloop/hiveloop/internal/nango"
-	"github.com/usehiveloop/hiveloop/internal/trigger/zira"
+	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 
 // EnrichmentAgent gathers context for webhook-triggered specialist agents.
@@ -37,7 +37,7 @@ type EnrichmentInput struct {
 	EventAction string
 	OrgID       uuid.UUID
 	Refs        map[string]string
-	Connections []zira.ConnectionWithActions
+	Connections []hiveloop.ConnectionWithActions
 }
 
 // EnrichmentResult is the output of the enrichment agent.
@@ -60,11 +60,11 @@ func NewEnrichmentAgent(nangoClient *nango.Client, actionsCatalog *catalog.Catal
 // group are passed per-call because they are resolved from the org's
 // credentials at runtime. The provider group ("anthropic", "openai", "gemini",
 // etc.) selects the provider-optimized system prompt.
-func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.CompletionClient, modelID string, providerGroup string, input EnrichmentInput, logger *slog.Logger) (*EnrichmentResult, error) {
+func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.CompletionClient, modelID string, providerGroup string, input EnrichmentInput, logger *slog.Logger) (*EnrichmentResult, error) {
 	started := time.Now()
 
 	// Build connection lookup maps.
-	connMap := make(map[string]zira.ConnectionWithActions, len(input.Connections))
+	connMap := make(map[string]hiveloop.ConnectionWithActions, len(input.Connections))
 	for _, conn := range input.Connections {
 		connMap[conn.Connection.ID.String()] = conn
 	}
@@ -92,7 +92,7 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.Completion
 	fetchCount := 0
 
 	// Build tool handlers.
-	handlers := map[string]zira.ToolHandler{
+	handlers := map[string]hiveloop.ToolHandler{
 		"fetch":   agent.newFetchHandler(ctx, input.OrgID, connMap, &fetchResults, &fetchCount, logger),
 		"compose": newComposeHandler(&composedMessage, logger),
 	}
@@ -112,7 +112,7 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.Completion
 		"message_bytes", len(userMessage),
 	)
 
-	messages := []zira.Message{
+	messages := []hiveloop.Message{
 		{Role: "system", Content: systemPrompt},
 		{Role: "user", Content: userMessage},
 	}
@@ -125,7 +125,7 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.Completion
 			"message_count", len(messages),
 		)
 
-		resp, err := client.ChatCompletion(ctx, zira.CompletionRequest{
+		resp, err := client.ChatCompletion(ctx, hiveloop.CompletionRequest{
 			Model:      modelID,
 			Messages:   messages,
 			Tools:      tools,
@@ -179,7 +179,7 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.Completion
 					"tool", toolCall.Name,
 					"call_id", toolCall.ID,
 				)
-				messages = append(messages, zira.Message{
+				messages = append(messages, hiveloop.Message{
 					Role:       "tool",
 					ToolCallID: toolCall.ID,
 					Name:       toolCall.Name,
@@ -199,7 +199,7 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.Completion
 					"error", handlerErr,
 					"handler_latency_ms", handlerLatency,
 				)
-				messages = append(messages, zira.Message{
+				messages = append(messages, hiveloop.Message{
 					Role:       "tool",
 					ToolCallID: toolCall.ID,
 					Name:       toolCall.Name,
@@ -216,7 +216,7 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.Completion
 				"handler_latency_ms", handlerLatency,
 			)
 
-			messages = append(messages, zira.Message{
+			messages = append(messages, hiveloop.Message{
 				Role:       "tool",
 				ToolCallID: toolCall.ID,
 				Name:       toolCall.Name,
@@ -273,11 +273,11 @@ type fetchResultEntry struct {
 func (agent *EnrichmentAgent) newFetchHandler(
 	ctx context.Context,
 	orgID uuid.UUID,
-	connMap map[string]zira.ConnectionWithActions,
+	connMap map[string]hiveloop.ConnectionWithActions,
 	fetchResults *[]fetchResultEntry,
 	fetchCount *int,
 	logger *slog.Logger,
-) zira.ToolHandler {
+) hiveloop.ToolHandler {
 	return func(_ context.Context, _ string, raw json.RawMessage) (string, bool, error) {
 		var args struct {
 			ConnectionID string         `json:"connection_id"`
@@ -367,7 +367,7 @@ func (agent *EnrichmentAgent) newFetchHandler(
 	}
 }
 
-func newComposeHandler(composedMessage *string, logger *slog.Logger) zira.ToolHandler {
+func newComposeHandler(composedMessage *string, logger *slog.Logger) hiveloop.ToolHandler {
 	return func(_ context.Context, _ string, raw json.RawMessage) (string, bool, error) {
 		var args struct {
 			Message string `json:"message"`
@@ -393,7 +393,7 @@ func newComposeHandler(composedMessage *string, logger *slog.Logger) zira.ToolHa
 // Tool definitions
 // --------------------------------------------------------------------------
 
-func buildEnrichmentToolDefs(connections []zira.ConnectionWithActions) []zira.ToolDef {
+func buildEnrichmentToolDefs(connections []hiveloop.ConnectionWithActions) []hiveloop.ToolDef {
 	// Build connection enum and action descriptions.
 	connIDs := make([]string, 0, len(connections))
 	var actionDescriptions []string
@@ -413,7 +413,7 @@ func buildEnrichmentToolDefs(connections []zira.ConnectionWithActions) []zira.To
 	connIDsJSON, _ := json.Marshal(connIDs)
 	actionsDoc := strings.Join(actionDescriptions, "\n")
 
-	return []zira.ToolDef{
+	return []hiveloop.ToolDef{
 		{
 			Name:        "fetch",
 			Description: fmt.Sprintf("Execute a read action against a connected integration. Returns the JSON response.\n\nAvailable actions:\n%s", actionsDoc),

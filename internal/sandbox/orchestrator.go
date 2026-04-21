@@ -223,7 +223,7 @@ func (o *Orchestrator) createPoolSandbox(ctx context.Context) (*model.Sandbox, e
 	envVars := baseEnvVars(o.cfg, bridgeAPIKey, sb.ID, webhookURL)
 
 	snapshotID := o.cfg.BridgeBaseImagePrefix
-	name := fmt.Sprintf("zira-pool-%s", shortID(sb.ID))
+	name := fmt.Sprintf("hiveloop-pool-%s", shortID(sb.ID))
 
 	labels := map[string]string{
 		"sandbox_type": "pool",
@@ -368,7 +368,7 @@ func (o *Orchestrator) createSystemSandbox(ctx context.Context) (*model.Sandbox,
 	envVars := baseEnvVars(o.cfg, bridgeAPIKey, sb.ID, webhookURL)
 
 	snapshotID := o.cfg.BridgeBaseImagePrefix
-	name := fmt.Sprintf("zira-system-%s", shortID(sb.ID))
+	name := fmt.Sprintf("hiveloop-system-%s", shortID(sb.ID))
 
 	labels := map[string]string{
 		"sandbox_type": "system",
@@ -773,9 +773,9 @@ func (o *Orchestrator) buildSandboxName(agent *model.Agent) string {
 	ts := time.Now().Unix()
 	if agent != nil {
 		safeName := sanitizeName(agent.Name)
-		return fmt.Sprintf("zira-ded-%s-%s-%d", safeName, shortID(agent.ID), ts)
+		return fmt.Sprintf("hiveloop-ded-%s-%s-%d", safeName, shortID(agent.ID), ts)
 	}
-	return fmt.Sprintf("zira-ded-%d", ts)
+	return fmt.Sprintf("hiveloop-ded-%d", ts)
 }
 
 // RunHealthCheck syncs sandbox status from the provider and auto-stops idle sandboxes.

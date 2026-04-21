@@ -1,4 +1,4 @@
-package zira
+package hiveloop
 
 import "github.com/usehiveloop/hiveloop/internal/model"
 

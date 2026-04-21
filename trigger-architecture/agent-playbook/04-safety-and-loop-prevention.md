@@ -31,7 +31,7 @@ conditions:
     # ... your other conditions ...
     - path: sender.login
       operator: not_equals
-      value: zira-review-bot[bot]
+      value: hiveloop-review-bot[bot]
 ```
 
 If you use a personal access token or user account, the filter uses that username:
@@ -72,7 +72,7 @@ The fix is symmetric: each agent excludes the OTHER agents' activity too.
 # In Agent A's config
 - path: sender.login
   operator: not_one_of
-  value: [zira-review-bot[bot], zira-triage-bot[bot], zira-summary-bot[bot]]
+  value: [hiveloop-review-bot[bot], hiveloop-triage-bot[bot], hiveloop-summary-bot[bot]]
 ```
 
 This gets tedious as you add agents. Two strategies that scale better:
@@ -87,7 +87,7 @@ This gets tedious as you add agents. Two strategies that scale better:
 
 Loses the ability to respond to useful bots (e.g., GitHub Actions bots leaving deployment status), but it's bulletproof against all-bot loops. Use this when your agent doesn't care about bot-originated events.
 
-**Strategy 2: Maintain a shared "zira-agents" list.**
+**Strategy 2: Maintain a shared "hiveloop-agents" list.**
 
 Keep a list of all your bot identities in a shared place (documentation, config). Every agent's `not_one_of` filter uses the full list. When you add a new agent, update every existing agent's filter. Annoying, but reliable.
 

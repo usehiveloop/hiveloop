@@ -112,7 +112,7 @@ Check the Daytona dashboard or API:
 ```bash
 source .env
 curl -s "https://app.daytona.io/api/sandbox" \
-  -H "Authorization: Bearer $SANDBOX_PROVIDER_KEY" | python3 -m json.tool | grep zira
+  -H "Authorization: Bearer $SANDBOX_PROVIDER_KEY" | python3 -m json.tool | grep hiveloop
 ```
 
 ### 2b. Bridge is running inside the sandbox
@@ -150,7 +150,7 @@ Verify the Turso database exists:
 ```bash
 source .env
 curl -s "https://api.turso.tech/v1/organizations/$TURSO_ORG_SLUG/databases" \
-  -H "Authorization: Bearer $TURSO_API_TOKEN" | python3 -m json.tool | grep zira
+  -H "Authorization: Bearer $TURSO_API_TOKEN" | python3 -m json.tool | grep hiveloop
 ```
 
 ---
@@ -265,7 +265,7 @@ curl -s "https://api.turso.tech/v1/organizations/$TURSO_ORG_SLUG/databases" \
 import sys, json
 dbs = json.load(sys.stdin.buffer).get('databases', [])
 for db in dbs:
-    if db['Name'].startswith('zira-'):
+    if db['Name'].startswith('hiveloop-'):
         print(f'  Delete: {db[\"Name\"]}')
 "
 
@@ -276,7 +276,7 @@ import sys, json
 sbs = json.load(sys.stdin.buffer).get('items', [])
 for sb in sbs:
     name = sb.get('name', '')
-    if name.startswith('zira-'):
+    if name.startswith('hiveloop-'):
         print(f'  Delete: {name} (id={sb[\"id\"]})')
 "
 ```

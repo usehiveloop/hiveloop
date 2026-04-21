@@ -174,7 +174,7 @@ func TestIntegration_APIKeyAuth_InvalidKey(t *testing.T) {
 	}))
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("Authorization", "Bearer zira_sk_0000000000000000000000000000000000000000000000000000000000000000")
+	req.Header.Set("Authorization", "Bearer hvl_sk_0000000000000000000000000000000000000000000000000000000000000000")
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 

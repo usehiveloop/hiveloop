@@ -14,7 +14,7 @@ const footerLinks = {
     { label: "Blog", href: "/blog" },
     { label: "Changelog", href: "/changelog" },
     { label: "Community", href: "https://discord.gg/hiveloop", external: true },
-    { label: "GitHub", href: "https://github.com/hiveloop", external: true },
+    { label: "GitHub", href: "https://github.com/usehiveloop", external: true },
     { label: "Self-hosting", href: "/docs/self-hosting" },
   ],
   company: [
@@ -28,7 +28,7 @@ const footerLinks = {
 const socialLinks = [
   {
     label: "GitHub",
-    href: "https://github.com/hiveloop",
+    href: "https://github.com/usehiveloop",
     icon: (
       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
         <title>github</title>

@@ -37,7 +37,7 @@ func (p *Provisioner) EnsureStorage(ctx context.Context, orgID uuid.UUID) (stora
 	}
 
 	// Create a new Turso database
-	dbName := "zira-" + shortID(orgID)
+	dbName := "hiveloop-" + shortID(orgID)
 	database, err := p.client.CreateDatabase(ctx, dbName, p.group)
 	if err != nil {
 		return "", "", fmt.Errorf("provisioning turso database: %w", err)
