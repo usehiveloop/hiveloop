@@ -42,9 +42,17 @@ futures = "0.3"
 subtle = "2"
 
 # 2C deps
+# `async-openai` is the provider-generic OpenAI-compatible client used by the
+# embedder. See DECISIONS.md — Tranche 2C refactor for rationale. Disabling
+# default features and explicitly selecting `rustls` keeps the TLS story
+# unambiguous across crates. `async-openai` re-exports `backoff` as the retry
+# configuration type, so we pin it at workspace level too.
+async-openai = { version = "0.35", default-features = false, features = ["rustls", "embedding"] }
+backoff = "0.4"
+# reqwest is still pulled in because we hand async-openai a custom
+# `reqwest::Client` to pin timeout + user-agent. `rustls-tls` matches the
+# TLS backend picked for async-openai.
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "gzip"] }
-reqwest-middleware = { version = "0.4", features = ["json"] }
-reqwest-retry = "0.7"
 serde_json = "1"
 sha2 = "0.10"
 rand_chacha = "0.3"

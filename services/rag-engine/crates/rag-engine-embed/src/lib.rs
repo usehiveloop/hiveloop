@@ -1,27 +1,32 @@
-//! Embedder trait + SiliconFlow implementation + deterministic FakeEmbedder.
+//! Embedder trait + OpenAI-compatible implementation + deterministic FakeEmbedder.
 //!
-//! # Tranche 2C
+//! # Tranche 2C (refactored)
 //!
-//! This crate exposes a narrow async trait, an OpenAI-compatible HTTP-backed
-//! implementation aimed at SiliconFlow (but usable against any compatible
-//! endpoint), a deterministic `FakeEmbedder` used by tests, a bounded-
-//! concurrency batching helper, and a figment-driven factory.
+//! This crate exposes a narrow async trait, an `async-openai`-backed
+//! implementation that targets any provider speaking the OpenAI
+//! `/v1/embeddings` surface (SiliconFlow, OpenRouter, Groq, OpenAI,
+//! Together, etc. — selected purely by `LLM_API_URL` / `LLM_API_KEY` /
+//! `LLM_MODEL`), a deterministic `FakeEmbedder` used by tests, a bounded-
+//! concurrency batching helper, and a figment+env-driven factory.
 //!
 //! Per `TESTING.md`, `FakeEmbedder` is the ONLY mock-like construct
-//! permitted in the codebase. Every other test talks to real services.
+//! permitted in production code. Test-time upstream mocks use `wiremock`,
+//! which is a real HTTP server that happens to be controlled by us.
 
 mod batching;
 mod config;
 mod errors;
 mod fake;
-mod siliconflow;
+mod openai_compat;
 mod types;
 
 pub use batching::embed_batched;
-pub use config::{build, EmbedderConfig, FakeConfig, Provider, SiliconFlowConfig};
+pub use config::{
+    build, load_from_env_and_file, EmbedderConfig, FakeConfig, OpenAICompatConfig, Provider,
+};
 pub use errors::EmbedError;
 pub use fake::FakeEmbedder;
-pub use siliconflow::{SiliconFlowEmbedder, SiliconFlowOptions};
+pub use openai_compat::{OpenAICompatEmbedder, OpenAICompatOptions};
 pub use types::EmbedKind;
 
 use async_trait::async_trait;
@@ -37,9 +42,9 @@ use async_trait::async_trait;
 /// method for caller simplicity.
 #[async_trait]
 pub trait Embedder: Send + Sync {
-    /// Stable identifier (e.g. `"siliconflow:qwen3-embedding-4b"`). Used
-    /// for logging, metrics tagging, and dataset-name derivation in the
-    /// storage layer.
+    /// Stable identifier (e.g. `"openai-compat:Qwen/Qwen3-Embedding-4B"`).
+    /// Used for logging, metrics tagging, and dataset-name derivation in
+    /// the storage layer.
     fn id(&self) -> &str;
 
     /// Output dimension. Checked by callers against the configured
