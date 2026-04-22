@@ -69,6 +69,20 @@ Similarly, `tonic-reflection` is not wired in 2A. If we need
   still hitting the live gRPC transport. `main.rs` is a thin wrapper.
 - **No `Cargo.lock` in `.gitignore`.** This is a binary workspace; the
   lock file is committed to guarantee reproducible release builds.
+- **Dockerfile base image: `rust:1.89-slim`.** Transitive dep
+  `getrandom 0.4.2` (pulled in by `rand_chacha` via `tempfile`) needs
+  Cargo's `edition2024` feature, stabilised in Rust 1.85. We bumped
+  from the initial 1.82 pin the plan hinted at.
+- **`protoc` well-known types resolution in `build.rs`.** The naive
+  `tonic_build::configure().compile_protos(&[proto], &[proto_root])`
+  works on macOS (Homebrew ships the `.proto` files next to `protoc`)
+  but fails in the Debian build stage because the stock
+  `protobuf-compiler` package doesn't install them on a standard
+  include path. The Dockerfile now installs `libprotobuf-dev` (which
+  lands them at `/usr/include/google/protobuf/`) and `build.rs`
+  searches `/usr/include`, `/usr/local/include`, and
+  `/opt/homebrew/include` for the well-known types. Honours
+  `PROTOC_INCLUDE` when set for non-standard layouts.
 
 ### Locked `.proto` field numbers
 
