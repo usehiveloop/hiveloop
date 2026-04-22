@@ -14,13 +14,16 @@ path = "src/main.rs"
 
 [dependencies]
 rag-engine-proto = { workspace = true }
-# Stub crates are not depended on in 2A — they are empty. Downstream
-# tranches will add `rag-engine-lance`, `rag-engine-embed`,
-# `rag-engine-rerank`, `rag-engine-chunker` as they become non-empty.
+# 2F — wire the domain crates into the gRPC handlers.
+rag-engine-lance = { workspace = true }
+rag-engine-embed = { workspace = true }
+rag-engine-rerank = { workspace = true }
+rag-engine-chunker = { workspace = true }
 
 tonic = { workspace = true }
 tonic-health = { workspace = true }
 prost = { workspace = true }
+prost-types = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 tower = { workspace = true }
@@ -34,6 +37,7 @@ anyhow = { workspace = true }
 thiserror = { workspace = true }
 subtle = { workspace = true }
 async-trait = { workspace = true }
+chrono = { workspace = true }
 
 # 2G — observability (OTel tracing + Prometheus + middleware + metrics server).
 tracing-opentelemetry = { workspace = true }
@@ -47,12 +51,27 @@ ulid = { workspace = true }
 futures = { workspace = true }
 pin-project-lite = { workspace = true }
 
+# 2F — idempotency LRU cache (not a workspace dep; only the server uses it).
+lru = "0.12"
+
 [dev-dependencies]
 tokio = { workspace = true }
 tonic = { workspace = true }
 tonic-health = { workspace = true }
 prost = { workspace = true }
+prost-types = { workspace = true }
 anyhow = { workspace = true }
 figment = { workspace = true }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 opentelemetry = { workspace = true }
+
+# 2F — real MinIO via testcontainers + deterministic vector generator.
+testcontainers = { workspace = true }
+testcontainers-modules = { workspace = true }
+aws-sdk-s3 = { workspace = true }
+aws-config = { workspace = true }
+aws-credential-types = { workspace = true }
+uuid = { workspace = true }
+rand = { workspace = true }
+tempfile = { workspace = true }
+chrono = { workspace = true }
