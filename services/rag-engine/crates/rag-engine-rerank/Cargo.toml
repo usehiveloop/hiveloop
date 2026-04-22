@@ -1,0 +1,11 @@
+[package]
+name = "rag-engine-rerank"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Reranker trait + SiliconFlow impl + FakeReranker. STUB in Tranche 2A; Tranche 2D fills it."
+
+[dependencies]
+# intentionally empty in 2A — 2D adds reqwest, async-trait, serde_json.
