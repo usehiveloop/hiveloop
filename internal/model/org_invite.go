@@ -17,7 +17,7 @@ type OrgInvite struct {
 	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	OrgID       uuid.UUID `gorm:"type:uuid;not null;index"`
 	Email       string    `gorm:"not null;index"`
-	Role        string    `gorm:"not null"` // "admin" | "viewer"
+	Role        string    `gorm:"not null"` // "admin" | "member" | "viewer"
 	TokenHash   string    `gorm:"not null;uniqueIndex"`
 	InvitedByID uuid.UUID `gorm:"type:uuid;not null"`
 	ExpiresAt   time.Time `gorm:"not null"`

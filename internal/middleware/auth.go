@@ -141,7 +141,7 @@ func ResolveUser(db *gorm.DB) func(http.Handler) http.Handler {
 }
 
 // RequireOrgAdmin enforces that the authenticated user's role in the resolved
-// org context is "admin". Must be used AFTER a ResolveOrg* middleware.
+// org context is "owner" or "admin". Must be used AFTER a ResolveOrg* middleware.
 func RequireOrgAdmin(db *gorm.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -160,7 +160,7 @@ func RequireOrgAdmin(db *gorm.DB) func(http.Handler) http.Handler {
 				writeJSON(w, http.StatusForbidden, map[string]string{"error": "not a member"})
 				return
 			}
-			if m.Role != "admin" {
+			if m.Role != "owner" && m.Role != "admin" {
 				writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin role required"})
 				return
 			}
