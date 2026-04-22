@@ -44,3 +44,11 @@ go.work.sum
 # Binary blob per-platform — don't commit. See
 # internal/rag/doc/SPIKE_RESULT.md for the provisioning flow.
 .lancedb-native/
+
+# --- Rust ---
+# Cargo build artifacts from services/rag-engine/. We commit Cargo.lock
+# at the workspace root (it IS a binary crate) but ignore the target/
+# cache. `Cargo.lock` files inside member crates are redundant — cargo
+# workspaces write a single lock at the workspace root.
+services/rag-engine/target/
+services/rag-engine/**/target/
