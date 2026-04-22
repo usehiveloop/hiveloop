@@ -15,7 +15,15 @@ cd "$(dirname "$0")/.."
 
 : "${RAG_ENGINE_LISTEN_ADDR:=127.0.0.1:50651}"
 : "${RAG_ENGINE_SHARED_SECRET:=smoke-test-secret}"
-export RAG_ENGINE_LISTEN_ADDR RAG_ENGINE_SHARED_SECRET
+# 2F requires an embedder + reranker to boot. Use fake mode so the smoke
+# test needs no external API credentials. Callers can override.
+: "${LLM_PROVIDER:=fake}"
+: "${LLM_EMBEDDING_DIM:=2560}"
+: "${RERANKER_KIND:=fake}"
+# LanceDB defaults to local disk when LANCE_S3_URI is unset — that's fine
+# for smoke; the binary just needs to boot + pass health.
+export RAG_ENGINE_LISTEN_ADDR RAG_ENGINE_SHARED_SECRET \
+    LLM_PROVIDER LLM_EMBEDDING_DIM RERANKER_KIND
 
 echo "smoke: building rag-engine-server (release)"
 cargo build --release --bin rag-engine-server --quiet
