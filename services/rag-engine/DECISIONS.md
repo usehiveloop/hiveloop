@@ -487,3 +487,122 @@ We explicitly `.with_tag("latest")` to avoid a slow pull of the
   * `prune` is implemented but the gRPC RPC is wired in 2F.
   * ANN index auto-build threshold + search-latency SLO test (#20 in
     the plan) — the crate exposes the builder; wiring is on 2F.
+
+---
+
+## Tranche 2F (gRPC server wiring)
+
+### New crate dependencies
+
+| Crate                 | Version | Notes                                                                      |
+|-----------------------|---------|----------------------------------------------------------------------------|
+| `lru`                 | 0.12    | Only used by `idempotency.rs` in the server crate. Not workspace-wide.     |
+| `rag-engine-lance`    | path    | Wired directly (was stubbed in 2A).                                        |
+| `rag-engine-embed`    | path    | Wired directly (was stubbed in 2A). `FakeEmbedder` is part of the public API. |
+| `rag-engine-rerank`   | path    | Wired directly (was stubbed in 2A).                                        |
+| `rag-engine-chunker`  | path    | Wired directly (was stubbed in 2A).                                        |
+
+### Error mapping (domain → gRPC)
+
+| Domain variant                                     | gRPC `Code`            | Notes                                                                |
+|----------------------------------------------------|------------------------|----------------------------------------------------------------------|
+| `LanceStoreError::DatasetNotFound`                 | `NOT_FOUND`            |                                                                      |
+| `LanceStoreError::SchemaMismatch`                  | `FAILED_PRECONDITION`  | Dim / column shape drift on existing dataset.                        |
+| `LanceStoreError::InvalidArgument`                 | `INVALID_ARGUMENT`     |                                                                      |
+| `LanceStoreError::VectorDimMismatch`               | `INVALID_ARGUMENT`     |                                                                      |
+| `LanceStoreError::Connect`                         | `UNAVAILABLE`          | MinIO/S3 unreachable; load balancer can drain.                       |
+| `LanceStoreError::Arrow` / `Internal`              | `INTERNAL`             |                                                                      |
+| `LanceStoreError::LanceDb` (match "not found")     | `NOT_FOUND`            |                                                                      |
+| `LanceStoreError::LanceDb` (match network)         | `UNAVAILABLE`          |                                                                      |
+| `LanceStoreError::LanceDb` (otherwise)             | `INTERNAL`             |                                                                      |
+| `EmbedError::RateLimited`                          | `RESOURCE_EXHAUSTED`   |                                                                      |
+| `EmbedError::Upstream` / `Transport`               | `UNAVAILABLE`          | Upstream provider down.                                              |
+| `EmbedError::InvalidResponse`                      | `INTERNAL`             | Provider returned a parseable-but-wrong body.                        |
+| `EmbedError::Config`                               | `FAILED_PRECONDITION`  | Misconfiguration, not a caller bug.                                  |
+| `RerankError::Http` / `Timeout`                    | `UNAVAILABLE`          |                                                                      |
+| `RerankError::UpstreamStatus(429)`                 | `RESOURCE_EXHAUSTED`   |                                                                      |
+| `RerankError::UpstreamStatus(5xx)`                 | `UNAVAILABLE`          |                                                                      |
+| `RerankError::UpstreamStatus(4xx)`                 | `FAILED_PRECONDITION`  |                                                                      |
+| `RerankError::Decode`                              | `INTERNAL`             |                                                                      |
+| `RerankError::Invalid`                             | `INVALID_ARGUMENT`     |                                                                      |
+| `RerankError::Config`                              | `FAILED_PRECONDITION`  |                                                                      |
+
+Inside `IngestBatch`, per-doc errors are **NOT** propagated as gRPC
+statuses — they become `DocumentStatus::Failed` entries with the
+canonical `error_code` strings listed in `proto/rag_engine.proto:135-142`.
+A whole-batch embedder outage marks every non-skipped doc as
+`Failed/embedding_api_error` and still returns gRPC OK, which is what
+the Go caller wants for selective retry.
+
+### Env vars added by 2F
+
+| Env var                      | Default                  | Purpose                                                                  |
+|------------------------------|--------------------------|--------------------------------------------------------------------------|
+| `LANCE_S3_URI`               | unset (→ local disk)     | S3-compatible URI. Enables S3 storage path in `main.rs::load_store_config`. |
+| `LANCE_S3_REGION`            | `us-east-1`              |                                                                          |
+| `LANCE_S3_ENDPOINT`          | unset                    | MinIO / custom.                                                          |
+| `LANCE_ACCESS_KEY_ID`        | required when `LANCE_S3_URI` set |                                                                      |
+| `LANCE_SECRET_ACCESS_KEY`    | required when `LANCE_S3_URI` set |                                                                      |
+| `LANCE_S3_ALLOW_HTTP`        | `false`                  | `"true"` for MinIO over HTTP.                                            |
+| `LANCE_URI`                  | `./.lancedb`             | Local-disk path when `LANCE_S3_URI` unset.                               |
+| `MAX_DOCS_PER_BATCH`         | `1000`                   | Hard cap on `IngestBatch.documents`.                                     |
+| `MAX_CHUNKS_PER_BATCH`       | `2000`                   | Hard cap on total chunks produced. Matches `rag-engine-lance::MAX_CHUNKS_PER_CALL`. |
+| `IDEMPOTENCY_CACHE_CAPACITY` | `1000`                   | LRU slots per RPC type.                                                  |
+| `IDEMPOTENCY_CACHE_TTL_SECS` | `3600`                   | Per-entry TTL.                                                           |
+
+`LLM_*` (embedder) and `RERANKER_*` env sets are unchanged from 2C / 2D.
+
+### Dataset-open probe
+
+Tranche 2B's `DatasetHandle::create_or_open` takes a `vector_dim` and
+returns `SchemaMismatch` if the stored dim differs. RPCs like Search /
+UpdateACL don't know the dim up front, so the server probes a
+fixed-order set (`2560, 1536, 1024, 768, 384, 128`) which covers every
+Onyx-catalogued embedder. An O(1) metadata read per probe; the
+production Qwen3-4B path lands in the first probe.
+
+If a future embedder introduces a dim outside this set the server
+surfaces `FAILED_PRECONDITION` with a clear hint. 2B can avoid the
+probe by exposing a dim-agnostic `open_existing` helper — that's the
+cleanest path forward but out of scope for 2F.
+
+### Idempotency cache layout
+
+Per-RPC-type separate caches (one `IdempotencyCache<IngestBatchResponse>`,
+one `IdempotencyCache<UpdateAclResponse>`, etc.) so the cached value
+type matches the RPC exactly and no downcast dance is needed. Key
+format: `{dataset}|{org_id}|{idempotency_key}`. For `DeleteByOrg` the
+dataset component is `"*"` because the RPC covers multiple datasets.
+
+### Test strategy
+
+All 16 tests run against real LanceDB **on local disk** (via
+`tempfile::tempdir()`) rather than MinIO, because:
+  * The storage layer is already covered against MinIO in `rag-engine-lance`'s
+    own suite (Tranche 2B's 15 tests).
+  * 2F validates wiring / error-mapping / idempotency — all of which are
+    orthogonal to the storage backend.
+  * MinIO-per-test adds ~5s of container startup per test × 16 tests =
+    ~80s to CI. Local disk runs the full 2F suite in under a second.
+
+The Go→Rust integration test (Tranche 2I) exercises the MinIO path; the
+2B tests exercise the LanceDB layer directly against MinIO. 2F in the
+middle is a thin composition.
+
+### Notes for adjacent tranches
+
+- **2H (lifecycle/panic/shutdown):** `AppState` is `Send + Sync +
+  'static`; any panic handler installed by 2H at `main.rs::main`
+  doesn't need state awareness. The `MetricsLayer::new` call inside
+  `Server::builder()` is untouched — 2H can add additional `tower`
+  layers above it without reaching into `service.rs`. `RagEngineService`
+  stores `Arc<AppState>` internally, so cloning it into tower layers
+  works as-is.
+- **2J (Go testhelpers):** the server respects `LLM_PROVIDER=fake` +
+  `RERANKER_KIND=fake` out of the box. Spinning up a test harness needs
+  only those two env vars + `LLM_EMBEDDING_DIM` (to size the
+  FakeEmbedder's vectors), `LANCE_URI` (to point at a tempdir), and
+  `RAG_ENGINE_SHARED_SECRET`. No CLI flags were added in 2F because
+  every toggle was expressible via env (consistent with 2C's
+  provider-agnostic env contract).
+
