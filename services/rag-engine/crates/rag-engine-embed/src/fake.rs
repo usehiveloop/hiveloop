@@ -20,6 +20,8 @@
 //! purely for compatibility with the real impl.
 
 use async_trait::async_trait;
+// DEVIATION (wave2 consolidation): rand 0.9 API — `gen_range` was renamed
+// to `random_range` and moved onto the `Rng` trait.
 use rand::Rng;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
@@ -79,8 +81,8 @@ impl FakeEmbedder {
 
         let mut v = Vec::with_capacity(dimension as usize);
         for _ in 0..dimension {
-            // Uniform in [-1, 1).
-            let f: f32 = rng.gen_range(-1.0f32..1.0f32);
+            // Uniform in [-1, 1). (rand 0.9: `random_range` replaces `gen_range`.)
+            let f: f32 = rng.random_range(-1.0f32..1.0f32);
             v.push(f);
         }
 

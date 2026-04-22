@@ -285,3 +285,104 @@ and search can share one gauge (plan-split was just
 `rag_inflight_ingests`). 2F/2H can add dedicated `*_ingests` /
 `*_searches` gauges if they need SLI isolation, but do it additively —
 do NOT rename the generic one.
+
+---
+
+## Tranche 2B (LanceDB storage layer)
+
+### Headline — GREEN: the op that killed the lance-go spike works
+
+Metadata-only update on a `list<string>` column (`acl`) works in the
+Rust `lancedb` crate via `UpdateBuilder::column("acl", "[…]")`, where
+the RHS is a DataFusion SQL array literal. Round-trip of `list<utf8>`
+read works via `arrow_array::ListArray::value(i).as_string::<i32>()`.
+The `test_update_acl_does_not_touch_vector` test confirms BYTE-IDENTICAL
+preservation of the vector column across the update.
+
+The lance-go spike's two failure modes:
+  * FTS support - GREEN: `FtsIndexBuilder` + `Query::full_text_search`.
+  * Metadata-only update on `list<string>` - GREEN: see above.
+
+Both are production-ready in this Rust crate. The decision to switch to
+a Rust sidecar (Option C in `SPIKE_RESULT.md`) is therefore vindicated.
+
+### Crate versions (2B additions)
+
+| Crate                    | Version  | Notes                                                              |
+|--------------------------|----------|--------------------------------------------------------------------|
+| `lancedb`                | 0.27.2   | `features = ["aws"]` is REQUIRED to register the s3:// scheme       |
+| `lance-index`            | 4.0      | re-export of `FullTextSearchQuery` — used in `search.rs`            |
+| `arrow` / `arrow-array`  | 57.2     | must match lancedb's transitive pin (57.x); 58 breaks               |
+| `arrow-schema`           | 57.2     | same                                                                |
+| `arrow-buffer`           | 57.2     | same                                                                |
+| `chrono`                 | 0.4      | `serde` feature for timestamp round-trip                            |
+| `uuid`                   | 1        | `v4,serde`                                                          |
+| `sha2`                   | 0.10     | for content fingerprinting (deferred to Phase 3)                    |
+| `tempfile`               | 3        | dev                                                                 |
+| `testcontainers`         | 0.27     | dev                                                                 |
+| `testcontainers-modules` | 0.15     | `features = ["minio"]`; we override `.with_tag("latest")` in tests |
+| `aws-sdk-s3`             | 1.x      | dev — used only to pre-create the test bucket                       |
+| `aws-config`             | 1.x      | dev                                                                 |
+| `rand`                   | 0.9      | dev — deterministic seeded RNG for tests                            |
+
+### Toolchain bump
+
+`rust-version` bumped from 1.75 → **1.91** (lancedb 0.27.2 minimum).
+Developer machines on `rustup install stable` are fine; CI images need
+a refresh.
+
+### Storage connection options
+
+Per the Phase 0 spike, structured S3 credentials DO NOT reach the Rust
+side. We pass everything through `ConnectBuilder::storage_options`:
+
+```rust
+access_key_id, secret_access_key, region,
+endpoint,                    // for MinIO / custom endpoints
+allow_http,                  // MinIO runs on HTTP
+aws_ec2_metadata_disabled,   // avoid 5s IMDS probe
+aws_s3_allow_unsafe_rename,  // required by lance-io on S3
+```
+
+### Schema design deviation from the plan
+
+The plan sketched `metadata: map<utf8, utf8>`. The actual implementation
+uses two parallel `list<utf8>` columns (`metadata_keys`,
+`metadata_values`). LanceDB's Arrow map support for SQL pushdown
+filters is not as mature as list support (and Phase 2 does not filter
+on metadata). Reads rehydrate to a `BTreeMap` at the crate boundary; the
+proto contract is unchanged.
+
+### Index strategy
+
+Scalar + FTS indexes are built eagerly at `create_or_open` time because
+they are cheap on an empty table:
+  * `org_id`, `doc_id`: `BTree` (equality + range pushdown)
+  * `is_public`: `Bitmap` (two values, high selectivity)
+  * `acl`: `LabelList` (backs `array_has` / `array_has_any`)
+  * `content`: `FTS` (tantivy-backed)
+
+The vector ANN index (`IvfPq`) is deferred — `indexes::build_ann_index`
+is the hook, invoked by the caller once the row threshold is crossed.
+IVF_PQ training wants real data.
+
+### Hard limit on batch size
+
+`ingest::MAX_CHUNKS_PER_CALL = 2000` — the 2F gRPC server must split
+incoming batches above this before delegating. Tranche 2F should keep
+`500–1000` as the sweet spot (proto SLO envelope) and only spill into
+the second sub-batch for the large tail.
+
+### Test harness
+
+All 15 tests boot a real MinIO via `testcontainers_modules::minio::MinIO`.
+We explicitly `.with_tag("latest")` to avoid a slow pull of the
+`RELEASE.2025-02-28T09-55-16Z` tag hard-coded upstream.
+
+### Deferred to later tranches
+
+  * `custom_sql_filter` gRPC field — Phase 2 server rejects it with
+    `INVALID_ARGUMENT`; 2B has no code path for it.
+  * `prune` is implemented but the gRPC RPC is wired in 2F.
+  * ANN index auto-build threshold + search-latency SLO test (#20 in
+    the plan) — the crate exposes the builder; wiring is on 2F.
