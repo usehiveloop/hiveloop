@@ -12,10 +12,13 @@ import (
 )
 
 // TestClient_AllRPCs_ReachServer round-trips every unary RPC on the
-// Client against the Tranche-2A stub. Each should surface UNIMPLEMENTED
-// from the server, which proves: auth passed, deadline applied, the
-// generated gRPC stub was dispatched, and our error path returns
-// correctly. Coverage target for all wrapper funcs.
+// Client against the live server. Each call must reach the handler —
+// which means auth passed, deadline applied, gRPC stub dispatched, and
+// our error path returns correctly. Any response that isn't
+// UNAUTHENTICATED / UNAVAILABLE / DEADLINE_EXCEEDED is acceptable; the
+// specific handler behaviour (NOT_FOUND for unknown datasets, OK for
+// no-op deletions, etc.) is covered by service_integration tests on
+// the Rust side.
 func TestClient_AllRPCs_ReachServer(t *testing.T) {
 	addr, _ := startRagEngine(t, testSecret)
 	client := mustNewClient(t, addr, testSecret, 0)
@@ -88,8 +91,16 @@ func TestClient_AllRPCs_ReachServer(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.call()
-			if status.Code(err) != codes.Unimplemented {
-				t.Fatalf("%s: err code = %v, want Unimplemented (err=%v)", tc.name, status.Code(err), err)
+			// Intent: prove the RPC reached the handler. Any code is fine
+			// EXCEPT the handful that mean transport/auth/deadline failed
+			// before the server could respond.
+			switch status.Code(err) {
+			case codes.Unauthenticated:
+				t.Fatalf("%s: auth failed (err=%v)", tc.name, err)
+			case codes.Unavailable:
+				t.Fatalf("%s: server unreachable (err=%v)", tc.name, err)
+			case codes.DeadlineExceeded:
+				t.Fatalf("%s: deadline expired before reaching handler (err=%v)", tc.name, err)
 			}
 		})
 	}
