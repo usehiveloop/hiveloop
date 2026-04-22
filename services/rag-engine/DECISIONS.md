@@ -117,3 +117,87 @@ backward-compatible as long as old numbers keep their types.
 | `IngestionMode` (enum)    | `UNSPECIFIED=0`, `UPSERT=1`, `REINDEX=2`                                                                                                                                                                              |
 | `DocumentStatus` (enum)   | `UNSPECIFIED=0`, `SUCCESS=1`, `FAILED=2`, `SKIPPED=3`                                                                                                                                                                 |
 | `SearchMode` (enum)       | `UNSPECIFIED=0`, `HYBRID=1`, `VECTOR_ONLY=2`, `BM25_ONLY=3`                                                                                                                                                           |
+
+---
+
+## Tranche 2E (chunker)
+
+### Crate versions
+
+| Crate                    | Version | Notes                                                                      |
+|--------------------------|---------|----------------------------------------------------------------------------|
+| `text-splitter`          | 0.20.1  | features: `tiktoken-rs`. Rust-native replacement for Onyx's `chonkie`.     |
+| `tiktoken-rs`            | 0.6.0   | `cl100k_base` BPE. Same BPE Onyx's OpenAI-family embedders target.         |
+| `unicode-normalization`  | 0.1.25  | NFKC for `clean_text`.                                                     |
+| `regex`                  | 1.12.3  | `_INITIAL_FILTER` parity with Onyx.                                        |
+
+### Substitutions — where a direct Python port wasn't viable
+
+1. **`chonkie.SentenceChunker` → `text_splitter::TextSplitter`.** Chonkie
+   is Python-only. `text-splitter` offers the same "recursive, sentence-
+   preferring, token-capped" splitting semantics and supports a custom
+   `ChunkSizer` so we drive it with the same cl100k_base tokenizer Onyx
+   uses. The only observable difference is that `text-splitter` trims
+   leading/trailing whitespace from each chunk by default (Onyx also
+   tends to trim but not uniformly). Downstream retrieval is not
+   whitespace-sensitive so this is a non-issue.
+
+2. **`AccumulatorState.link_offsets` keys.** Onyx computes the offset
+   via `shared_precompare_cleanup(accumulator.text)` (lowercase + strip
+   punctuation) so that citation-match indices line up with LLM-
+   rewritten quotes. Our consumer (Lance writer + UI) uses raw byte
+   offsets into the stored `content` column, so we store those directly.
+   Documented inline in `src/accumulator.rs` with a `// DEVIATION:`
+   marker.
+
+3. **No `STRICT_CHUNK_TOKEN_LIMIT` / `split_text_by_tokens` fallback.**
+   Onyx's `TextChunker._handle_oversized_section` runs a second pass
+   against `split_text_by_tokens` when `chonkie` produces over-budget
+   chunks. `text-splitter` honours the token capacity as a hard ceiling
+   via the custom `ChunkSizer`, so that second pass is redundant.
+   Documented inline in `src/accumulator.rs`.
+
+4. **`clean_text` adds NFKC.** Onyx's `clean_text` does not NFKC-
+   normalise — it relies on connector-side normalisation. We add NFKC
+   at the chunker boundary so the same byte sequence arrives at
+   tiktoken regardless of connector origin. tiktoken's cl100k_base is
+   NFKC-compatible so this is neutral for token counts and strictly
+   safer for deterministic output.
+
+5. **Empty-document sentinel.** Onyx `DocumentChunker.chunk` always
+   emits one empty `ChunkPayload` when `payloads.is_empty()`, even for a
+   fully empty document. We only emit this sentinel when there is a
+   non-empty title prefix (the practical Onyx case — title-only
+   Confluence pages and Slack-channel shells). A document with no
+   title AND no sections produces zero chunks. Justification: an all-
+   empty record pollutes the index without any retrieval signal, and
+   the ingest API can still carry the doc_id metadata on the Go side.
+   Documented inline in `src/lib.rs` with a `// DEVIATION:` marker.
+
+### Hiveloop-vs-Onyx constants
+
+| Constant                        | Onyx | Hiveloop | Reason                                                                  |
+|---------------------------------|------|----------|-------------------------------------------------------------------------|
+| `CHUNK_OVERLAP` (tokens)        | 0    | 102      | 20% overlap (locked in plans/onyx-port-phase2.md §5.3, "Chunker parity"). |
+
+Every other chunker constant matches Onyx upstream; citations are in
+`crates/rag-engine-chunker/src/constants.rs`.
+
+### Test strategy
+
+Per `internal/rag/doc/TESTING.md`, the chunker has no infrastructure
+dependencies — no mocking is needed or allowed. Tests use either the
+real `cl100k_base` tokenizer (for parity tests) or `StubTokenizer` (a
+word-count × 1.3 approximation that keeps unit tests fast). The stub is
+never instantiated in production code.
+
+### Not ported (explicitly out of scope)
+
+- `generate_large_chunks` / `LARGE_CHUNK_RATIO` — multipass retrieval.
+  The locked retrieval flow in Hiveloop does not use large chunks.
+  Constant is still cited in `constants.rs` for future reference.
+- Contextual RAG (`enable_contextual_rag`, doc summary, chunk context).
+  Requires an LLM round-trip during indexing; out of scope for 2E.
+- Image / tabular section chunkers. Proto only exposes text sections
+  (`proto/rag_engine.proto:96-100` has no discriminator); these would
+  ship in a future tranche alongside proto updates.

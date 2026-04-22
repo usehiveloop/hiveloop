@@ -41,6 +41,12 @@ async-trait = "0.1"
 futures = "0.3"
 subtle = "2"
 
+# 2E deps — chunker (tiktoken tokenizer + recursive splitter)
+text-splitter = { version = "0.20", features = ["tiktoken-rs"] }
+tiktoken-rs = "0.6"
+unicode-normalization = "0.1"
+regex = "1"
+
 # The proto crate is internal; depended on by path.
 rag-engine-proto = { path = "crates/rag-engine-proto" }
 rag-engine-lance = { path = "crates/rag-engine-lance" }
