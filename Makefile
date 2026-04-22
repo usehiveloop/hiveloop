@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down rag-spike
+.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down rag-spike rag-engine-build rag-engine-run rag-engine-test rag-engine-fmt rag-engine-clippy rag-engine-smoke proto-lint
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -307,3 +307,39 @@ rag-spike:
 	CGO_LDFLAGS="$$ABS/.lancedb-native/lib/$$TRIPLE/liblancedb_go.a $$LDEXTRA" \
 	DYLD_LIBRARY_PATH="$$ABS/.lancedb-native/lib/$$TRIPLE" \
 	go run -tags lancedb_spike ./internal/rag/vectorstore/spike
+
+# --- Rust rag-engine service targets (Phase 2) ---
+#
+# The Rust sidecar at services/rag-engine/ speaks gRPC to Go on the
+# private network. Phase 2A delivers the scaffolding; downstream
+# tranches (2B-2J) fill in storage, embedder, reranker, chunker,
+# handlers, observability, and the Go client.
+
+rag-engine-build:
+	cd services/rag-engine && cargo build --release
+
+rag-engine-run:
+	cd services/rag-engine && \
+	RAG_ENGINE_SHARED_SECRET=$${RAG_ENGINE_SHARED_SECRET:-localdev-secret-change-me} \
+	cargo run --bin rag-engine-server
+
+rag-engine-test:
+	cd services/rag-engine && cargo test --all
+
+rag-engine-fmt:
+	cd services/rag-engine && cargo fmt --all
+
+rag-engine-clippy:
+	cd services/rag-engine && cargo clippy --all-targets --all-features -- -D warnings
+
+rag-engine-smoke:
+	bash services/rag-engine/scripts/smoke.sh
+
+# Lint the canonical .proto file. Uses `buf` if installed; otherwise a
+# friendly no-op so CI on a minimal image doesn't fail.
+proto-lint:
+	@if command -v buf >/dev/null 2>&1; then \
+		buf lint proto/; \
+	else \
+		echo "proto-lint: 'buf' not installed, skipping (install: https://buf.build/docs/installation)"; \
+	fi

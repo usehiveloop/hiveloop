@@ -1,0 +1,44 @@
+[package]
+name = "rag-engine-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "The rag-engine gRPC server binary. In Tranche 2A it wires config + tracing + auth interceptor + health + unimplemented RPC stubs."
+default-run = "rag-engine-server"
+
+[[bin]]
+name = "rag-engine-server"
+path = "src/main.rs"
+
+[dependencies]
+rag-engine-proto = { workspace = true }
+# Stub crates are not depended on in 2A — they are empty. Downstream
+# tranches will add `rag-engine-lance`, `rag-engine-embed`,
+# `rag-engine-rerank`, `rag-engine-chunker` as they become non-empty.
+
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+prost = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+http = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+figment = { workspace = true }
+serde = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+subtle = { workspace = true }
+async-trait = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+prost = { workspace = true }
+anyhow = { workspace = true }
+figment = { workspace = true }
