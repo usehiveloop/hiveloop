@@ -54,6 +54,9 @@ pin-project-lite = { workspace = true }
 # 2F — idempotency LRU cache (not a workspace dep; only the server uses it).
 lru = "0.12"
 
+# 2H — lifecycle (graceful shutdown + backpressure + panic handler).
+parking_lot = { workspace = true }
+
 [dev-dependencies]
 tokio = { workspace = true }
 tonic = { workspace = true }
