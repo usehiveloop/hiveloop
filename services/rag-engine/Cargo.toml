@@ -12,7 +12,7 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.91"
 license = "MIT"
 publish = false
 
@@ -40,6 +40,24 @@ thiserror = "2"
 async-trait = "0.1"
 futures = "0.3"
 subtle = "2"
+
+# 2B deps
+lancedb = { version = "0.27", features = ["aws"] }
+lance-index = "4.0"
+arrow = "57.2"
+arrow-array = "57.2"
+arrow-schema = "57.2"
+arrow-buffer = "57.2"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+sha2 = "0.10"
+tempfile = "3"
+testcontainers = "0.27"
+testcontainers-modules = { version = "0.15", features = ["minio"] }
+aws-sdk-s3 = { version = "1", default-features = false, features = ["rt-tokio", "behavior-version-latest", "default-https-client"] }
+aws-config = { version = "1", default-features = false, features = ["rt-tokio", "behavior-version-latest"] }
+aws-credential-types = "1"
+rand = "0.9"
 
 # The proto crate is internal; depended on by path.
 rag-engine-proto = { path = "crates/rag-engine-proto" }
