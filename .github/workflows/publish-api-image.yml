@@ -30,7 +30,7 @@ jobs:
       - name: determine tags
         id: tags
         run: |
-          IMAGE=ghcr.io/hiveloop/hiveloop
+          IMAGE=ghcr.io/usehiveloop/hiveloop
           COMMIT=${GITHUB_SHA::7}
 
           if [[ "${{ github.event_name }}" == "release" ]]; then
