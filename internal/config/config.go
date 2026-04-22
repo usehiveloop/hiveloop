@@ -72,7 +72,7 @@ type Config struct {
 	// Kibamail (transactional email). When KibamailAPIKey is empty the
 	// worker falls back to LogSender (emails appear in logs only).
 	KibamailAPIKey      string `env:"KIBAMAIL_API_KEY"`
-	KibamailFromAddress string `env:"KIBAMAIL_FROM_ADDRESS" envDefault:"HiveLoop <betty@notifications.usehiveloop.com>"`
+	KibamailFromAddress string `env:"KIBAMAIL_FROM_ADDRESS" envDefault:"Betty from Hiveloop <betty@notifications.usehiveloop.com>"`
 
 	// OAuth (social login)
 	OAuthGitHubClientID     string `env:"OAUTH_GITHUB_CLIENT_ID"`
