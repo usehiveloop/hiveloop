@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
@@ -62,6 +64,19 @@ type conversationEventResponse struct {
 	SequenceNumber       int64           `json:"sequence_number"`
 	Data                 json.RawMessage `json:"data"`
 	CreatedAt            string          `json:"created_at"`
+}
+
+// conversationHistoryResponse is the payload shape for GET /conversations/{id}/history.
+// It returns events in chronological order so the frontend can render them
+// directly before opening the SSE stream.
+type conversationHistoryResponse struct {
+	ConversationID string                      `json:"conversation_id"`
+	Events         []conversationEventResponse `json:"events"`
+	// LastEventID is the event_id of the last event in this page. Clients
+	// can pass it as the `Last-Event-ID` header when opening the SSE stream
+	// to resume from exactly where history ended.
+	LastEventID string `json:"last_event_id,omitempty"`
+	HasMore     bool   `json:"has_more"`
 }
 
 // Create handles POST /v1/agents/{agentID}/conversations.
@@ -383,7 +398,7 @@ func (h *ConversationHandler) SendMessage(w http.ResponseWriter, r *http.Request
 
 // Stream handles GET /v1/conversations/{convID}/stream (SSE proxy).
 // @Summary Stream conversation events (SSE)
-// @Description Opens a Server-Sent Events stream for real-time agent responses. Events include message_start, content_delta, tool_call_start, tool_call_result, message_end, done.
+// @Description Opens a Server-Sent Events stream for real-time agent responses. Defaults to live-only (cursor "$"); clients that want history should hydrate via GET /v1/conversations/{convID}/history first. Resumes from Last-Event-ID when provided.
 // @Tags conversations
 // @Produce text/event-stream
 // @Param convID path string true "Conversation ID"
@@ -400,15 +415,42 @@ func (h *ConversationHandler) Stream(w http.ResponseWriter, r *http.Request) {
 	h.streamFromRedis(w, r, conv)
 }
 
+// Stream handler tuning constants.
+const (
+	// sseWriteDeadline bounds each individual SSE frame write. Slow clients
+	// that can't accept a frame within this window are disconnected to
+	// prevent them from holding a tap subscriber slot indefinitely.
+	sseWriteDeadline = 10 * time.Second
+
+	// sseMaxAge caps the lifetime of a single SSE connection. Browsers'
+	// EventSource reconnects automatically with Last-Event-ID, so this is
+	// transparent to users but makes deploys and long-running connection
+	// tracking much cleaner.
+	sseMaxAge = 1 * time.Hour
+
+	// sseAuthRecheckInterval controls how often an active SSE stream
+	// re-verifies that the caller still has access to the conversation.
+	// The re-check reuses the same DB lookup as the initial auth, so the
+	// auth cache's TTL gates the worst-case revocation latency.
+	sseAuthRecheckInterval = 60 * time.Second
+
+	// ssePingInterval is the interval at which we emit an SSE keep-alive
+	// comment to keep intermediaries from idling the connection out.
+	ssePingInterval = 15 * time.Second
+)
+
 // streamFromRedis streams events from Redis Streams (multi-subscriber, resumable).
 func (h *ConversationHandler) streamFromRedis(w http.ResponseWriter, r *http.Request, conv *model.AgentConversation) {
-	// Parse Last-Event-ID for resume support
+	// Parse Last-Event-ID for resume support. Default is live-only ("$"):
+	// clients should hydrate history via GET /history first, then open the
+	// stream. Replaying the entire retained window on every connect is
+	// wasteful and inconsistent with the DB (which keeps everything).
 	cursor := r.Header.Get("Last-Event-ID")
 	if cursor == "" {
-		cursor = "0" // replay all available events
+		cursor = "$"
 	}
 
-	// Set SSE headers
+	// Set SSE headers.
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
@@ -416,46 +458,127 @@ func (h *ConversationHandler) streamFromRedis(w http.ResponseWriter, r *http.Req
 	w.WriteHeader(http.StatusOK)
 
 	rc := http.NewResponseController(w)
-	h.db.Model(&conv.Sandbox).Update("last_active_at", time.Now())
 
-	// Subscribe to the conversation's Redis Stream
-	events := h.eventBus.Subscribe(r.Context(), conv.ID.String(), cursor)
+	// Tell EventSource to wait 5s before reconnecting on disconnect (default
+	// is 3s; a bit of backoff smooths deploy rollouts).
+	if err := writeSSEFrame(w, rc, "retry: 5000\n\n"); err != nil {
+		return
+	}
+	// Synthetic "ready" so the frontend can distinguish "connected but no
+	// events yet" from "still connecting".
+	if err := writeSSEFrame(w, rc, "event: ready\ndata: {}\n\n"); err != nil {
+		return
+	}
 
-	// Keep-alive ping ticker
-	pingTicker := time.NewTicker(15 * time.Second)
+	// Subscribe to the conversation's Redis Stream. The EventBus is shared
+	// across all SSE subscribers on this pod via a single per-conversation
+	// tap goroutine — see internal/streaming/bus.go.
+	streamCtx, cancelStream := context.WithCancel(r.Context())
+	defer cancelStream()
+	events := h.eventBus.Subscribe(streamCtx, conv.ID.String(), cursor)
+
+	// Keep-alive, auth recheck, and max age timers.
+	pingTicker := time.NewTicker(ssePingInterval)
 	defer pingTicker.Stop()
+	authTicker := time.NewTicker(sseAuthRecheckInterval)
+	defer authTicker.Stop()
+	maxAge := time.NewTimer(sseMaxAge)
+	defer maxAge.Stop()
+
+	convID := conv.ID
+	orgID := conv.OrgID
 
 	for {
 		select {
 		case event, ok := <-events:
 			if !ok {
-				return // channel closed
+				return // upstream closed (ctx cancelled, tap stopped, or evicted)
 			}
 
-			// Write SSE frame: id, event, data
+			// Strip redundant envelope fields for over-the-wire efficiency.
+			// The browser already knows conversation_id (from URL) and
+			// agent_id (from conversation metadata); they stay in Redis/DB
+			// for the flusher and history endpoint.
+			trimmed := trimSSEEnvelope(event.Data)
+
 			frame := fmt.Sprintf("id: %s\nevent: %s\ndata: %s\n\n",
-				event.ID, event.EventType, string(event.Data))
-
-			if _, err := w.Write([]byte(frame)); err != nil {
-				slog.Debug("SSE client disconnected", "conversation_id", conv.ID)
-				return
-			}
-			if err := rc.Flush(); err != nil {
+				event.ID, event.EventType, string(trimmed))
+			if err := writeSSEFrame(w, rc, frame); err != nil {
+				slog.Debug("SSE client disconnected", "conversation_id", convID)
 				return
 			}
 
 		case <-pingTicker.C:
-			if _, err := w.Write([]byte(": ping\n\n")); err != nil {
+			if err := writeSSEFrame(w, rc, ": ping\n\n"); err != nil {
 				return
 			}
-			if err := rc.Flush(); err != nil {
+
+		case <-authTicker.C:
+			// Re-verify that the caller still owns this conversation.
+			// Drops silently if membership/key was revoked since connect.
+			if !h.stillAuthorized(r.Context(), convID, orgID) {
+				slog.Info("SSE auth recheck failed, closing stream",
+					"conversation_id", convID)
 				return
 			}
+
+		case <-maxAge.C:
+			slog.Debug("SSE max age reached, closing for reconnect",
+				"conversation_id", convID)
+			return
 
 		case <-r.Context().Done():
 			return
 		}
 	}
+}
+
+// writeSSEFrame writes a single SSE frame with a bounded write deadline and
+// flushes. Any error causes the caller to tear the stream down.
+func writeSSEFrame(w http.ResponseWriter, rc *http.ResponseController, frame string) error {
+	if err := rc.SetWriteDeadline(time.Now().Add(sseWriteDeadline)); err != nil && err != http.ErrNotSupported {
+		return err
+	}
+	if _, err := w.Write([]byte(frame)); err != nil {
+		return err
+	}
+	return rc.Flush()
+}
+
+// trimSSEEnvelope removes fields from the event envelope that the browser
+// already knows from context (conversation_id from URL, agent_id from
+// conversation metadata). The original envelope is preserved in Redis and
+// Postgres for history / debugging. On parse error, returns the original
+// bytes unchanged.
+func trimSSEEnvelope(data json.RawMessage) json.RawMessage {
+	if len(data) == 0 {
+		return data
+	}
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return data
+	}
+	delete(obj, "conversation_id")
+	delete(obj, "agent_id")
+	out, err := json.Marshal(obj)
+	if err != nil {
+		return data
+	}
+	return out
+}
+
+// stillAuthorized re-checks that the conversation exists, belongs to the
+// given org, and is still active. Returns false on any lookup failure so
+// we err on the side of dropping the stream when auth state is uncertain.
+func (h *ConversationHandler) stillAuthorized(ctx context.Context, convID uuid.UUID, orgID uuid.UUID) bool {
+	var count int64
+	if err := h.db.WithContext(ctx).
+		Model(&model.AgentConversation{}).
+		Where("id = ? AND org_id = ? AND status = ?", convID, orgID, "active").
+		Count(&count).Error; err != nil {
+		return false
+	}
+	return count == 1
 }
 
 
@@ -683,6 +806,109 @@ func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request)
 		result.NextCursor = &c
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+
+// History handles GET /v1/conversations/{convID}/history.
+// @Summary Hydrate conversation history
+// @Description Returns persisted conversation events in chronological order, intended for hydrating a UI before opening the SSE stream. Paginated via since=<event_id>. Unlike GET /events, this endpoint sorts events ASC by sequence_number so the caller can render in order.
+// @Tags conversations
+// @Produce json
+// @Param convID path string true "Conversation ID"
+// @Param since query string false "Return events with sequence_number greater than this event_id"
+// @Param limit query int false "Page size (default 200, max 1000)"
+// @Success 200 {object} conversationHistoryResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/conversations/{convID}/history [get]
+func (h *ConversationHandler) History(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	convID := chi.URLParam(r, "convID")
+	var conv model.AgentConversation
+	if err := h.db.Where("id = ? AND org_id = ?", convID, org.ID).First(&conv).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load conversation"})
+		return
+	}
+
+	limit := 200
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if n, err := strconvAtoiPositive(l); err == nil {
+			if n > 1000 {
+				n = 1000
+			}
+			limit = n
+		}
+	}
+
+	q := h.db.Where("conversation_id = ?", conv.ID).Order("sequence_number ASC, created_at ASC").Limit(limit + 1)
+	if since := r.URL.Query().Get("since"); since != "" {
+		// Find the anchor event's sequence number, then return everything after it.
+		var anchor model.ConversationEvent
+		if err := h.db.Where("conversation_id = ? AND event_id = ?", conv.ID, since).
+			First(&anchor).Error; err == nil {
+			q = q.Where("sequence_number > ?", anchor.SequenceNumber)
+		}
+	}
+
+	var events []model.ConversationEvent
+	if err := q.Find(&events).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load history"})
+		return
+	}
+
+	hasMore := len(events) > limit
+	if hasMore {
+		events = events[:limit]
+	}
+
+	resp := conversationHistoryResponse{
+		ConversationID: conv.ID.String(),
+		HasMore:        hasMore,
+		Events:         make([]conversationEventResponse, len(events)),
+	}
+	for i, e := range events {
+		resp.Events[i] = conversationEventResponse{
+			ID:                   e.ID.String(),
+			EventID:              e.EventID,
+			EventType:            e.EventType,
+			AgentID:              e.AgentID,
+			BridgeConversationID: e.BridgeConversationID,
+			Timestamp:            e.Timestamp.Format(time.RFC3339),
+			SequenceNumber:       e.SequenceNumber,
+			Data:                 json.RawMessage(e.Data),
+			CreatedAt:            e.CreatedAt.Format(time.RFC3339),
+		}
+	}
+	if len(events) > 0 {
+		resp.LastEventID = events[len(events)-1].EventID
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// strconvAtoiPositive parses a positive integer. Returns an error on non-positive values.
+func strconvAtoiPositive(s string) (int, error) {
+	n := 0
+	if len(s) == 0 {
+		return 0, fmt.Errorf("empty")
+	}
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return 0, fmt.Errorf("not a number")
+		}
+		n = n*10 + int(c-'0')
+	}
+	if n <= 0 {
+		return 0, fmt.Errorf("not positive")
+	}
+	return n, nil
 }
 
 // --- helpers ---
