@@ -41,7 +41,8 @@ async-trait = "0.1"
 futures = "0.3"
 subtle = "2"
 
-# 2C deps
+# 2C + 2D deps — shared HTTP client stack. 2C's versions win for
+# reqwest-middleware/reqwest-retry (newer). 2D adds hex/url/tokio-test.
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "gzip"] }
 reqwest-middleware = { version = "0.4", features = ["json"] }
 reqwest-retry = "0.7"
@@ -50,8 +51,11 @@ sha2 = "0.10"
 rand_chacha = "0.3"
 rand = "0.8"
 tiktoken-rs = "0.6"
-# 2C test deps
+hex = "0.4"
+url = "2"
+# test deps
 wiremock = "0.6"
+tokio-test = "0.4"
 
 # The proto crate is internal; depended on by path.
 rag-engine-proto = { path = "crates/rag-engine-proto" }
