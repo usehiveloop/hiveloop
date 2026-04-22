@@ -188,6 +188,12 @@ pub async fn search(dataset: &DatasetHandle, params: &SearchParams) -> Result<Ve
 
 /// Pull hits out of one Lance result batch.
 fn rows_into_hits(batch: &RecordBatch, out: &mut Vec<SearchHit>) -> Result<()> {
+    // Lance hybrid search returns a header batch with only scoring columns
+    // (`_score`, `_relevance_score`) when the result set is empty — e.g.
+    // immediately after DeleteByOrg. Skip those; there's nothing to unpack.
+    if batch.num_rows() == 0 {
+        return Ok(());
+    }
     let schema = batch.schema();
     let id = batch
         .column(schema.index_of(col::ID)?)
