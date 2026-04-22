@@ -2,7 +2,7 @@
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
-IMAGE   ?= hiveloop/hiveloop
+IMAGE   ?= usehiveloop/hiveloop
 
 # Generate base64-encoded RSA private key for AUTH_RSA_PRIVATE_KEY env var
 generate-auth-keys:
