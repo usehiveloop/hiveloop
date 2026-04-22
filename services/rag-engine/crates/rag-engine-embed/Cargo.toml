@@ -5,8 +5,35 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
-description = "Embedder trait + SiliconFlow impl + FakeEmbedder. STUB in Tranche 2A; Tranche 2C fills it."
+description = "Embedder trait + SiliconFlow impl + FakeEmbedder. Tranche 2C."
+
+[features]
+# When enabled, `FakeEmbedder` is exported for use by other crates
+# (downstream tranches). Tests in this crate always have access regardless
+# of the feature flag.
+fake-embedder = []
 
 [dependencies]
-# intentionally empty in 2A — 2C adds reqwest, reqwest-middleware,
-# reqwest-retry, async-trait, serde_json, sha2, rand_chacha.
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+figment = { workspace = true }
+
+reqwest = { workspace = true }
+reqwest-middleware = { workspace = true }
+reqwest-retry = { workspace = true }
+sha2 = { workspace = true }
+rand_chacha = { workspace = true }
+rand = { workspace = true }
+tiktoken-rs = { workspace = true }
+futures = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+wiremock = { workspace = true }
+serde_json = { workspace = true }
+figment = { workspace = true }
