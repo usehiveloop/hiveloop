@@ -5,7 +5,39 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
-description = "LanceDB storage layer for the rag-engine service. STUB in Tranche 2A; Tranche 2B fills it."
+description = "LanceDB storage layer for the rag-engine service."
 
 [dependencies]
-# intentionally empty in 2A — 2B adds lancedb, arrow-*, futures, uuid, sha2.
+# 2B deps
+lancedb = { workspace = true }
+lance-index = { workspace = true }
+arrow = { workspace = true }
+arrow-array = { workspace = true }
+arrow-schema = { workspace = true }
+arrow-buffer = { workspace = true }
+futures = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+sha2 = { workspace = true }
+
+[dev-dependencies]
+# 2B deps (dev)
+tokio = { workspace = true }
+tempfile = { workspace = true }
+testcontainers = { workspace = true }
+testcontainers-modules = { workspace = true }
+aws-sdk-s3 = { workspace = true }
+aws-config = { workspace = true }
+aws-credential-types = { workspace = true }
+anyhow = { workspace = true }
+rand = { workspace = true }
+uuid = { workspace = true }
+tracing-subscriber = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }
+sha2 = { workspace = true }
