@@ -111,6 +111,31 @@ services:
       "
     restart: "no"
 
+  # --- Rust rag-engine gRPC sidecar (Phase 2) ---
+  # Vector-store sidecar that links LanceDB's Rust crate directly. Go's
+  # Hiveloop backend talks to it via gRPC over the private docker
+  # network, authenticated by a shared-secret bearer token.
+  # Tranche 2A: scaffolding only — RPCs return UNIMPLEMENTED.
+  rag-engine:
+    build:
+      context: .
+      dockerfile: services/rag-engine/Dockerfile
+    environment:
+      RAG_ENGINE_LISTEN_ADDR: "0.0.0.0:50051"
+      RAG_ENGINE_SHARED_SECRET: "${RAG_ENGINE_SHARED_SECRET:-localdev-secret-change-me}"
+      RAG_ENGINE_LOG_LEVEL: "info"
+    ports:
+      - "50051:50051"
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=localhost:50051"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
 volumes:
   pgdata:
   vaultdata:

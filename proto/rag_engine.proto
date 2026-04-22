@@ -1,0 +1,230 @@
+// This is the authoritative contract between Hiveloop's Go backend and the Rust rag-engine service. Source of truth: plans/onyx-port-phase2.md §gRPC. Field numbers are LOCKED after merge. Never re-number; only append.
+
+syntax = "proto3";
+package hiveloop.rag.v1;
+option go_package = "github.com/usehiveloop/hiveloop/internal/rag/ragpb";
+
+import "google/protobuf/timestamp.proto";
+
+service RagEngine {
+  // Dataset lifecycle — one dataset per (provider, model, dim) triple.
+  // Onyx analog: Verifiable.ensure_indices_exist
+  //   backend/onyx/document_index/interfaces.py:171-190
+  rpc CreateDataset(CreateDatasetRequest) returns (CreateDatasetResponse);
+  rpc DropDataset(DropDatasetRequest) returns (DropDatasetResponse);
+
+  // Unary batch ingest — Go sends 500-1000 raw documents per call.
+  // Rust chunks + embeds + writes; returns per-doc detailed results.
+  // Onyx analog: Indexable.index  backend/onyx/document_index/interfaces.py:205-243
+  // SLO: each batch completes in ≤10s. Client deadline: 15s.
+  rpc IngestBatch(IngestBatchRequest) returns (IngestBatchResponse);
+
+  // Metadata-only update — THE operation that failed the lance-go spike.
+  // Onyx analog: Updatable.update_single
+  //   backend/onyx/document_index/interfaces.py:268-302
+  //   plus vespa impl: backend/onyx/document_index/vespa/index.py:653
+  rpc UpdateACL(UpdateACLRequest) returns (UpdateACLResponse);
+
+  // Retrieval — hybrid vector + BM25, with ACL + org + custom filters.
+  // Onyx analog: HybridCapable.hybrid_retrieval
+  //   backend/onyx/document_index/interfaces.py:339-383
+  rpc Search(SearchRequest) returns (SearchResponse);
+
+  // Deletion.
+  // Onyx analog: Deletable.delete_single
+  //   backend/onyx/document_index/interfaces.py:246-265
+  rpc DeleteByDocID(DeleteByDocIDRequest) returns (DeleteByDocIDResponse);
+
+  // Org-wide deletion — cascaded from Postgres org deletion (Phase 1 FK pattern).
+  // Onyx analog: backend/onyx/document_index/vespa/index.py:913
+  //   (delete_entries_by_tenant_id)
+  rpc DeleteByOrg(DeleteByOrgRequest) returns (DeleteByOrgResponse);
+
+  // Prune — delete chunks for a set of doc ids that the source no longer has.
+  // Onyx analog: backend/onyx/background/celery/tasks/pruning/
+  rpc Prune(PruneRequest) returns (PruneResponse);
+
+  // Standard gRPC health: grpc.health.v1.Health (imported, not redefined).
+}
+
+message CreateDatasetRequest {
+  string dataset_name = 1;              // rag_chunks__siliconflow_qwen3_embedding_4b__2560
+  uint32 vector_dim = 2;                // must match embedder for this org
+  string embedding_precision = 3;       // "float32" | "float16" | "int8" per Onyx EmbeddingPrecision
+  string idempotency_key = 4;           // client-generated; server returns ALREADY_EXISTS if replayed
+}
+message CreateDatasetResponse {
+  bool created = 1;                     // false = already existed and schema matches
+  bool schema_ok = 2;                   // schema verified consistent
+}
+
+message DropDatasetRequest {
+  string dataset_name = 1;
+  bool confirm = 2;                     // must be true — safety interlock
+}
+message DropDatasetResponse { bool dropped = 1; }
+
+message IngestBatchRequest {
+  string dataset_name = 1;
+  string org_id = 2;                        // tenant partition key (opaque to Rust)
+  IngestionMode mode = 3;                   // UPSERT | REINDEX
+  string idempotency_key = 4;               // batch-level; replayed request returns prior result
+  uint32 declared_vector_dim = 5;           // Rust validates matches dataset schema
+  repeated DocumentToIngest documents = 6;  // 500-1000 per batch (soft limit; hard max enforced server-side)
+}
+
+enum IngestionMode {
+  INGESTION_MODE_UNSPECIFIED = 0;
+  INGESTION_MODE_UPSERT      = 1;  // chunk+embed; overwrites chunks for (doc_id, dataset)
+  INGESTION_MODE_REINDEX     = 2;  // wipes all existing chunks for each doc_id first, then upserts
+}
+
+// Onyx analog: backend/onyx/connectors/models.py (Document + Section)
+message DocumentToIngest {
+  string doc_id = 1;
+  string semantic_id = 2;                      // human-readable title
+  string link = 3;
+  google.protobuf.Timestamp doc_updated_at = 4;
+  repeated string acl = 5;                     // OPAQUE tokens; server does not interpret
+  bool is_public = 6;                          // mirrors ExternalAccess.is_public
+  repeated Section sections = 7;               // raw text — Rust chunks
+  map<string, string> metadata = 8;            // string-string only; typed metadata lives in Postgres
+  repeated string primary_owners = 9;
+  repeated string secondary_owners = 10;
+}
+
+message Section {
+  string text = 1;
+  string link = 2;
+  string title = 3;                            // optional section heading
+}
+
+message IngestBatchResponse {
+  repeated DocumentResult results = 1;         // ONE per doc in request, SAME ORDER
+  BatchTotals totals = 2;
+}
+
+message DocumentResult {
+  string doc_id = 1;
+  DocumentStatus status = 2;
+  uint32 chunks_written = 3;
+  uint32 tokens_embedded = 4;
+  string error_code = 5;                       // populated iff status=FAILED
+  string error_reason = 6;                     // human-readable
+}
+
+enum DocumentStatus {
+  DOCUMENT_STATUS_UNSPECIFIED = 0;
+  DOCUMENT_STATUS_SUCCESS     = 1;
+  DOCUMENT_STATUS_FAILED      = 2;  // fatal error for this doc; rest of batch continues
+  DOCUMENT_STATUS_SKIPPED     = 3;  // e.g. empty content, no sections
+}
+
+message BatchTotals {
+  uint64 rows_written = 1;
+  uint64 bytes_written = 2;
+  uint32 batch_duration_ms = 3;
+  uint32 chunk_duration_ms = 4;
+  uint32 embedding_duration_ms = 5;
+  uint32 write_duration_ms = 6;
+  uint32 docs_succeeded = 7;
+  uint32 docs_failed = 8;
+  uint32 docs_skipped = 9;
+}
+
+// Error codes the Rust server may populate in DocumentResult.error_code:
+//   "empty_content"          — no text sections
+//   "chunking_failed"        — chunker crate error
+//   "embedding_api_error"    — SiliconFlow call failed after retries
+//   "embedding_dim_mismatch" — embedder returned wrong dim
+//   "nan_vector"             — embedder returned non-finite values
+//   "storage_write_failed"   — LanceDB write error
+//   "internal"               — catch-all; details in error_reason
+//
+// Individual document failures do NOT fail the whole batch — they're
+// reported as DOCUMENT_STATUS_FAILED in results, and the batch response
+// itself is gRPC OK. A gRPC-level error is reserved for infrastructure
+// failures (dataset missing, invalid batch, deadline exceeded).
+
+message UpdateACLRequest {
+  string dataset_name = 1;
+  string org_id = 2;
+  repeated UpdateACLEntry entries = 3;
+  string idempotency_key = 4;
+}
+message UpdateACLEntry {
+  string doc_id = 1;                    // applies to ALL chunks with this doc_id
+  repeated string acl = 2;              // full replacement (not patch)
+  bool is_public = 3;
+}
+message UpdateACLResponse {
+  uint64 docs_updated = 1;
+  uint64 chunks_updated = 2;
+}
+
+message SearchRequest {
+  string dataset_name = 1;
+  string org_id = 2;                    // always applied as a filter
+  string query_text = 3;                // for BM25 + display
+  repeated float query_vector = 4;      // for vector search; server validates dim
+  SearchMode mode = 5;
+  repeated string acl_any_of = 6;       // array_has_any(acl, [...])
+  bool include_public = 7;              // OR PUBLIC into the ACL filter
+  uint32 limit = 8;
+  uint32 candidate_pool = 9;            // how many to pull before fusion/rerank
+  string custom_sql_filter = 10;        // escape hatch; will be Phase 3+ (Phase 2 ignores)
+  double hybrid_alpha = 11;             // 0..1; 1.0 = pure vector, 0.0 = pure BM25
+  bool rerank = 12;                     // if true and reranker configured, rerank before returning
+  google.protobuf.Timestamp doc_updated_after = 13;
+}
+enum SearchMode {
+  SEARCH_MODE_UNSPECIFIED = 0;
+  SEARCH_MODE_HYBRID = 1;
+  SEARCH_MODE_VECTOR_ONLY = 2;
+  SEARCH_MODE_BM25_ONLY = 3;
+}
+message SearchResponse {
+  repeated SearchHit hits = 1;
+  uint32 bm25_candidates = 2;           // debug/observability
+  uint32 vector_candidates = 3;
+  uint32 after_fusion = 4;
+  uint32 after_rerank = 5;
+}
+message SearchHit {
+  string chunk_id = 1;
+  string doc_id = 2;
+  uint32 chunk_index = 3;
+  double score = 4;                     // fused score post-rerank
+  double vector_score = 5;              // raw pre-fusion
+  double bm25_score = 6;                // raw pre-fusion
+  double rerank_score = 7;
+  string content = 8;
+  string blurb = 9;
+  google.protobuf.Timestamp doc_updated_at = 10;
+  map<string, string> metadata = 11;
+}
+
+message DeleteByDocIDRequest {
+  string dataset_name = 1;
+  string org_id = 2;
+  repeated string doc_ids = 3;
+  string idempotency_key = 4;
+}
+message DeleteByDocIDResponse { uint64 chunks_deleted = 1; uint64 docs_deleted = 2; }
+
+message DeleteByOrgRequest {
+  string org_id = 1;
+  repeated string dataset_names = 2;    // caller supplies ALL datasets this org has chunks in
+  bool confirm = 3;
+  string idempotency_key = 4;
+}
+message DeleteByOrgResponse { uint64 chunks_deleted = 1; }
+
+message PruneRequest {
+  string dataset_name = 1;
+  string org_id = 2;
+  repeated string keep_doc_ids = 3;     // opposite polarity: delete docs NOT in this set
+  // When keep_doc_ids is empty, server must refuse (safety).
+  string idempotency_key = 4;
+}
+message PruneResponse { uint64 docs_pruned = 1; uint64 chunks_pruned = 2; }
