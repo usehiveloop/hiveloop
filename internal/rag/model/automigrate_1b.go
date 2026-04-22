@@ -90,5 +90,33 @@ func AutoMigrate1B(db *gorm.DB) error {
 			return err
 		}
 	}
+
+	// FKs — gorm's `constraint:OnDelete:CASCADE` tag on bare column
+	// fields (no association struct) is silently dropped by the
+	// AutoMigrate path. We create the constraints explicitly so org
+	// deletion cascades through index-attempt history — a GDPR-load-
+	// bearing invariant verified by the 1F cascade test. Reuses the
+	// shared idempotent helper from automigrate_1c.go.
+	fks := []struct {
+		table, name, fkCol, refTable, refCol, onDelete string
+	}{
+		{"rag_index_attempts", "fk_rag_index_attempts_org",
+			"org_id", "orgs", "id", "CASCADE"},
+		{"rag_index_attempts", "fk_rag_index_attempts_in_connection",
+			"in_connection_id", "in_connections", "id", "CASCADE"},
+		{"rag_index_attempt_errors", "fk_rag_index_attempt_errors_org",
+			"org_id", "orgs", "id", "CASCADE"},
+		{"rag_index_attempt_errors", "fk_rag_index_attempt_errors_in_connection",
+			"in_connection_id", "in_connections", "id", "CASCADE"},
+		{"rag_sync_records", "fk_rag_sync_records_org",
+			"org_id", "orgs", "id", "CASCADE"},
+	}
+	for _, fk := range fks {
+		if err := ensureFK(db, fk.table, fk.name,
+			fk.fkCol, fk.refTable, fk.refCol, fk.onDelete); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
