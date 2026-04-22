@@ -1,11 +1,8 @@
-//! Wire-level types for the OpenAI-compatible `/v1/embeddings` surface.
+//! Public type surface of the embed crate.
 //!
-//! SiliconFlow is drop-in compatible with OpenAI's embedding API, so the
-//! request/response shape is shared. Kept `pub(crate)` because nothing
-//! outside this crate should speak the wire format — they go through the
-//! `Embedder` trait.
-
-use serde::{Deserialize, Serialize};
+//! Wire-level types for the OpenAI `/v1/embeddings` surface live inside
+//! the `async-openai` crate now (see `openai_compat.rs`). This module only
+//! carries the caller-facing `EmbedKind` enum.
 
 /// Distinguishes whether the embedding is for storage (documents being
 /// indexed) or for querying (a user's search string). Qwen3 models expect
@@ -17,26 +14,4 @@ pub enum EmbedKind {
     Passage,
     /// User query. Qwen prefix: `"query: "`.
     Query,
-}
-
-/// OpenAI-compatible embeddings request body.
-#[derive(Debug, Serialize)]
-pub(crate) struct EmbeddingRequest<'a> {
-    pub model: &'a str,
-    pub input: Vec<String>,
-    pub encoding_format: &'static str,
-}
-
-/// OpenAI-compatible embeddings response body.
-#[derive(Debug, Deserialize)]
-pub(crate) struct EmbeddingResponse {
-    pub data: Vec<EmbeddingRow>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct EmbeddingRow {
-    pub embedding: Vec<f32>,
-    #[allow(dead_code)]
-    #[serde(default)]
-    pub index: usize,
 }

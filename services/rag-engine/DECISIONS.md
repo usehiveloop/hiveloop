@@ -7,6 +7,107 @@ earlier ones.
 
 ---
 
+## Tranche 2C refactor — `async-openai` as a provider-generic client
+
+### Rationale (library-first principle)
+
+The initial 2C implementation hand-rolled ~343 LOC of reqwest +
+reqwest-middleware + reqwest-retry + serde_json wiring against the
+SiliconFlow `/v1/embeddings` endpoint. SiliconFlow is OpenAI-compatible,
+so that surface is shared with OpenRouter, Groq, OpenAI itself, Together,
+and every other "drop-in for OpenAI" provider. Owning the wire code meant
+owning its retry loop, error mapping, rate-limit heuristics, and JSON
+shapes — all of which the `async-openai` crate (4.4M downloads, MIT,
+actively maintained) already implements correctly. We keep only the
+pieces where we have a real opinion (prefix injection, sub-batching,
+dimension validation, concurrency fan-out).
+
+### What changed
+
+- **Removed:** `siliconflow.rs`, `tests/siliconflow.rs`, wire-level
+  `EmbeddingRequest`/`EmbeddingResponse` structs in `types.rs`,
+  `reqwest-middleware` and `reqwest-retry` workspace deps.
+- **Added:** `openai_compat.rs` with `OpenAICompatEmbedder` +
+  `OpenAICompatOptions`, backed by `async-openai`.
+  `Provider::SiliconFlow` renamed to `Provider::OpenAiCompat`.
+  `Provider::Fake` unchanged.
+- **Added:** env-driven loader (`load_from_env_and_file`). Required env:
+  `LLM_API_URL`, `LLM_API_KEY`, `LLM_MODEL`, `LLM_EMBEDDING_DIM`.
+  Optional: `LLM_ID`, `LLM_QUERY_PREFIX`, `LLM_PASSAGE_PREFIX`,
+  `LLM_MAX_INPUT_TOKENS`, `LLM_REQUEST_TIMEOUT_SECS`, `LLM_BATCH_SIZE`,
+  `LLM_CONCURRENCY`, `LLM_MAX_RETRIES`. Qwen models get auto-defaulted
+  prefixes when unset; explicit values (including empty strings) win.
+- **Unchanged:** `Embedder` trait shape (`id()`, `dimension()`,
+  `max_input_tokens()`, `embed()`), `FakeEmbedder`, `embed_batched`
+  helper, `EmbedKind`, `EmbedError`.
+
+### Version pins
+
+| Crate          | Version | Notes                                                                                          |
+|----------------|---------|------------------------------------------------------------------------------------------------|
+| `async-openai` | 0.35.0  | Current stable as of April 2026. Default features disabled; we enable `rustls` + `embedding`.  |
+| `backoff`      | 0.4     | Required at workspace level because `async-openai::Client::with_backoff` takes its type.       |
+| `reqwest`      | 0.12    | Kept — we pass a custom `reqwest::Client` to `async-openai` to pin timeout + user-agent.       |
+
+`reqwest-middleware` and `reqwest-retry` are removed: `async-openai`'s
+built-in `backoff::future::retry` covers the 429 + 5xx retry logic we
+previously wired by hand.
+
+### async-openai quirk: HTTP status loss
+
+`async-openai` discards the HTTP status code before returning:
+non-2xx responses are parsed into `ApiError { message, type, param,
+code }`, which has no status field. For the `RateLimited` vs `Upstream
+{ status, .. }` split we used to do on 429 vs other 4xx, we now:
+
+1. Rely on `async-openai`'s internal retry loop to retry 429 + 5xx.
+   The final post-retry error still decays to `ApiError`.
+2. On the final `ApiError`, heuristically match the message
+   (`"rate limit"` / `"too many requests"` / `"429"`, case-insensitive)
+   to flag `RateLimited`. Everything else becomes `Upstream { status: 0,
+   body: message }`. This is lossy but matches what every provider we
+   care about puts in their 429 bodies; if it ever bites us we can
+   promote to reading raw reqwest responses via a tower layer.
+3. **Load-bearing test consequence:** wiremock 4xx/429 responses MUST
+   set a valid OpenAI-shaped error body (`{"error": {"message": ...}}`)
+   or `async-openai` fails at JSON deserialization, masquerading as
+   `InvalidResponse`. Tests construct the body with a helper.
+
+### Feature flags
+
+- `async-openai = { default-features = false, features = ["rustls",
+  "embedding"] }` — `default = ["rustls"]` upstream, but we spell it
+  out, and `embedding` is required in 0.35 to expose
+  `Client::embeddings()`.
+- `reqwest = { default-features = false, features = ["json",
+  "rustls-tls", "gzip"] }` — matches the TLS choice above.
+
+### Provider contract
+
+Same struct, same env vars, different URL + key + model:
+
+| Provider      | `LLM_API_URL`                           |
+|---------------|-----------------------------------------|
+| SiliconFlow   | `https://api.siliconflow.cn/v1`         |
+| OpenAI        | `https://api.openai.com/v1`             |
+| OpenRouter    | `https://openrouter.ai/api/v1`          |
+| Groq          | `https://api.groq.com/openai/v1`        |
+| Together      | `https://api.together.xyz/v1`           |
+
+A wiremock-backed integration test
+(`provider_agnostic_siliconflow_and_openrouter`) proves the embedder
+doesn't encode any provider-specific assumptions: the same type
+handles both with only URL/key/model swapped.
+
+### Cargo.lock handling
+
+Same protocol as Wave 2: `Cargo.lock` rewrites under `async-openai`'s
+transitive dependency graph but is NOT committed by this branch. Run
+`git update-index --assume-unchanged services/rag-engine/Cargo.lock`
+after first build.
+
+---
+
 ## Tranche 2A (scaffolding)
 
 ### Rust toolchain
