@@ -424,6 +424,14 @@ type AgentConfig struct {
 	// RateLimitRpm Rate limit in requests per minute
 	RateLimitRpm *int32 `json:"rate_limit_rpm,omitempty"`
 
+	// SubagentTimeoutBackgroundSecs Wall-clock timeout (seconds) applied when this agent is invoked as a
+	// background subagent. Default: 300 (5 minutes).
+	SubagentTimeoutBackgroundSecs *int64 `json:"subagent_timeout_background_secs,omitempty"`
+
+	// SubagentTimeoutForegroundSecs Wall-clock timeout (seconds) applied when this agent is invoked as a
+	// foreground subagent. Default: 300 (5 minutes).
+	SubagentTimeoutForegroundSecs *int64 `json:"subagent_timeout_foreground_secs,omitempty"`
+
 	// Temperature Temperature for LLM sampling
 	Temperature *float64 `json:"temperature,omitempty"`
 

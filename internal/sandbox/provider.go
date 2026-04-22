@@ -6,11 +6,13 @@ import "context"
 type SandboxStatus string
 
 const (
-	StatusCreating SandboxStatus = "creating"
-	StatusRunning  SandboxStatus = "running"
-	StatusStopped  SandboxStatus = "stopped"
-	StatusStarting SandboxStatus = "starting"
-	StatusError    SandboxStatus = "error"
+	StatusCreating  SandboxStatus = "creating"
+	StatusRunning   SandboxStatus = "running"
+	StatusStopped   SandboxStatus = "stopped"
+	StatusStarting  SandboxStatus = "starting"
+	StatusArchived  SandboxStatus = "archived"
+	StatusArchiving SandboxStatus = "archiving"
+	StatusError     SandboxStatus = "error"
 )
 
 // CreateSandboxOpts configures a new sandbox.
@@ -59,6 +61,9 @@ type Provider interface {
 	CreateSandbox(ctx context.Context, opts CreateSandboxOpts) (*SandboxInfo, error)
 	StartSandbox(ctx context.Context, externalID string) error
 	StopSandbox(ctx context.Context, externalID string) error
+	// ArchiveSandbox moves a stopped sandbox into cold storage. The provider must
+	// be able to restore it via StartSandbox. The sandbox must be stopped first.
+	ArchiveSandbox(ctx context.Context, externalID string) error
 	DeleteSandbox(ctx context.Context, externalID string) error
 	GetStatus(ctx context.Context, externalID string) (SandboxStatus, error)
 
@@ -72,8 +77,9 @@ type Provider interface {
 	GetSnapshotLogs(ctx context.Context, externalID string) (string, error)
 	DeleteSnapshot(ctx context.Context, externalID string) error
 
-	// Auto-management
+	// Auto-management. intervalMinutes=0 disables the policy.
 	SetAutoStop(ctx context.Context, externalID string, intervalMinutes int) error
+	SetAutoArchive(ctx context.Context, externalID string, intervalMinutes int) error
 
 	// Execution — run a command inside the sandbox.
 	ExecuteCommand(ctx context.Context, externalID string, command string) (string, error)

@@ -19,9 +19,10 @@ type Sandbox struct {
 	BridgeURL         string           `gorm:"not null"`             // pre-authenticated URL to reach Bridge
 	BridgeURLExpiresAt *time.Time                                    // when BridgeURL expires (nil = never)
 	EncryptedBridgeAPIKey []byte       `gorm:"type:bytea;not null"`  // AES-256-GCM encrypted Bridge API key
-	Status            string           `gorm:"not null;default:'creating'"` // creating, running, stopped, starting, error
+	Status            string           `gorm:"not null;default:'creating'"` // creating, running, stopped, starting, archived, archiving, error
 	ErrorMessage      *string
 	LastActiveAt      *time.Time
+	StoppedAt         *time.Time       // when the sandbox was last stopped (used for 24h auto-archive)
 
 	// Resource usage (populated by resource checker cron)
 	MemoryLimitBytes  int64      `gorm:"not null;default:0"`

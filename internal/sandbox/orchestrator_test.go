@@ -728,7 +728,7 @@ func TestEnsureSystemSandbox_DisablesAutoStop(t *testing.T) {
 	t.Cleanup(func() { db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
 
 	provider.mu.Lock()
-	calls := append([]setAutoStopCall(nil), provider.setAutoStopCalls...)
+	calls := append([]autoPolicyCall(nil), provider.setAutoStopCalls...)
 	provider.mu.Unlock()
 
 	if len(calls) != 1 {
