@@ -135,7 +135,7 @@ func invitedDisplayName(u *model.User) string {
 }
 
 func isValidInviteRole(role string) bool {
-	return role == "admin" || role == "viewer"
+	return role == "admin" || role == "member" || role == "viewer"
 }
 
 func normalizeEmail(raw string) string {
@@ -196,7 +196,7 @@ func (h *OrgInviteHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !isValidInviteRole(role) {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "role must be 'admin' or 'viewer'"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "role must be 'admin', 'member', or 'viewer'"})
 		return
 	}
 
