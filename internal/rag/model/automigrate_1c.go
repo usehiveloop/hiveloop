@@ -17,16 +17,20 @@ import "gorm.io/gorm"
 // is required at the DB level — adding an `ALTER TABLE ... ADD
 // CONSTRAINT` after both tranches have migrated. See TestRAGSearchSettings_EmbeddingModelFK.
 func AutoMigrate1C(db *gorm.DB) error {
+	// Phase 3A: RAGConnectionConfig is retired. Its scheduling fields
+	// (RefreshFreqSeconds / PruneFreqSeconds / PermSyncFreqSeconds) moved
+	// onto RAGSource; its IngestConfig JSONB moved onto RAGSource.Config.
+	// AutoMigrate3A drops the rag_connection_configs table entirely for
+	// DBs that still have it.
 	if err := db.AutoMigrate(
 		&RAGSyncState{},
-		&RAGConnectionConfig{},
 		&RAGSearchSettings{},
 	); err != nil {
 		return err
 	}
 
 	// Composite index for org-wide status scans: admin dashboards
-	// ("show me all paused connections in org X"), scheduler gates
+	// ("show me all paused sources in org X"), scheduler gates
 	// ("next perm-sync candidate per org"). The column-level indexes
 	// gorm auto-creates from the tags aren't enough because we need
 	// the (org_id, status) tuple leading.
@@ -35,42 +39,13 @@ func AutoMigrate1C(db *gorm.DB) error {
 		return err
 	}
 
-	// in_connection_id FK is also the natural delete path; rely on
-	// the Postgres FK below for cascade semantics. gorm's AutoMigrate
-	// does not emit ON DELETE CASCADE for cross-package FKs when no
-	// Go-side foreignKey tag is declared, so we add it explicitly.
-	//
-	// DEVIATION from Onyx: InConnection is Hiveloop's analogue of the
-	// CCPair identity row; deleting it must zap the sync state (mirrors
-	// Onyx's ORM-level `cascade="all, delete-orphan"` on CCPair from
-	// backend/onyx/db/models.py:834-836 and similar relationships).
-	if err := ensureFK(db,
-		"rag_sync_states",
-		"fk_rag_sync_state_in_connection",
-		"in_connection_id",
-		"in_connections",
-		"id",
-		"CASCADE",
-	); err != nil {
-		return err
-	}
+	// rag_source_id FK on rag_sync_states is installed by AutoMigrate3A
+	// (runs after rag_sources exists).
 
 	// Org FK: every RAG row must cascade from org deletion for GDPR.
 	if err := ensureFK(db,
 		"rag_sync_states", "fk_rag_sync_state_org",
 		"org_id", "orgs", "id", "CASCADE",
-	); err != nil {
-		return err
-	}
-	if err := ensureFK(db,
-		"rag_connection_configs", "fk_rag_connection_config_org",
-		"org_id", "orgs", "id", "CASCADE",
-	); err != nil {
-		return err
-	}
-	if err := ensureFK(db,
-		"rag_connection_configs", "fk_rag_connection_config_in_connection",
-		"in_connection_id", "in_connections", "id", "CASCADE",
 	); err != nil {
 		return err
 	}
