@@ -34,13 +34,14 @@ func setup1E(t *testing.T) *gorm.DB {
 }
 
 // mkIdentity builds a RAGExternalIdentity with the required fields filled
-// in, leaving the test free to override before insert.
-func mkIdentity(orgID, userID, connID uuid.UUID, provider, extID string) *ragmodel.RAGExternalIdentity {
+// in, leaving the test free to override before insert. The third UUID is
+// the RAGSource ID (post-Phase-3A swap; pre-3A this was the InConnection).
+func mkIdentity(orgID, userID, ragSourceID uuid.UUID, provider, extID string) *ragmodel.RAGExternalIdentity {
 	login := "octocat-" + extID
 	return &ragmodel.RAGExternalIdentity{
 		OrgID:              orgID,
 		UserID:             userID,
-		InConnectionID:     connID,
+		RAGSourceID:        ragSourceID,
 		Provider:           provider,
 		ExternalUserID:     extID,
 		ExternalUserLogin:  &login,
@@ -61,19 +62,20 @@ func TestRAGExternalIdentity_UniquePerUserConnection(t *testing.T) {
 	user := testhelpers.NewTestUser(t, db, org.ID)
 	integ := testhelpers.NewTestInIntegration(t, db, "github")
 	conn := testhelpers.NewTestInConnection(t, db, org.ID, user.ID, integ.ID)
+	src := testhelpers.NewTestRAGSource(t, db, org.ID, conn.ID)
 
-	first := mkIdentity(org.ID, user.ID, conn.ID, "github", "100001")
+	first := mkIdentity(org.ID, user.ID, src.ID, "github", "100001")
 	if err := db.Create(first).Error; err != nil {
 		t.Fatalf("first insert: %v", err)
 	}
 
-	// Second row for the same (user_id, in_connection_id). Provider +
+	// Second row for the same (user_id, rag_source_id). Provider +
 	// ExternalUserID are deliberately different so only the other unique
 	// can fire.
-	second := mkIdentity(org.ID, user.ID, conn.ID, "github", "200002")
+	second := mkIdentity(org.ID, user.ID, src.ID, "github", "200002")
 	err := db.Create(second).Error
 	if err == nil {
-		t.Fatal("expected unique-violation on (user_id, in_connection_id); got nil")
+		t.Fatal("expected unique-violation on (user_id, rag_source_id); got nil")
 	}
 	if !isUniqueViolation(err) {
 		t.Fatalf("expected unique violation, got: %v", err)
@@ -97,16 +99,19 @@ func TestRAGExternalIdentity_UniqueProviderExtIDInOrg(t *testing.T) {
 	connA1 := testhelpers.NewTestInConnection(t, db, orgA.ID, userA1.ID, integ.ID)
 	connA2 := testhelpers.NewTestInConnection(t, db, orgA.ID, userA2.ID, integ.ID)
 	connB := testhelpers.NewTestInConnection(t, db, orgB.ID, userB.ID, integ.ID)
+	srcA1 := testhelpers.NewTestRAGSource(t, db, orgA.ID, connA1.ID)
+	srcA2 := testhelpers.NewTestRAGSource(t, db, orgA.ID, connA2.ID)
+	srcB := testhelpers.NewTestRAGSource(t, db, orgB.ID, connB.ID)
 
-	// Seed: (provider=github, external_user_id=42, org=A) → userA1/connA1.
-	seed := mkIdentity(orgA.ID, userA1.ID, connA1.ID, "github", "42")
+	// Seed: (provider=github, external_user_id=42, org=A) → userA1/srcA1.
+	seed := mkIdentity(orgA.ID, userA1.ID, srcA1.ID, "github", "42")
 	if err := db.Create(seed).Error; err != nil {
 		t.Fatalf("seed insert: %v", err)
 	}
 
 	// Same (provider, external_user_id) in the SAME org but different
-	// user+connection → must violate.
-	dup := mkIdentity(orgA.ID, userA2.ID, connA2.ID, "github", "42")
+	// user+source → must violate.
+	dup := mkIdentity(orgA.ID, userA2.ID, srcA2.ID, "github", "42")
 	if err := db.Create(dup).Error; err == nil {
 		t.Fatal("expected unique violation on (provider, external_user_id, org_id); got nil")
 	} else if !isUniqueViolation(err) {
@@ -115,7 +120,7 @@ func TestRAGExternalIdentity_UniqueProviderExtIDInOrg(t *testing.T) {
 
 	// Same (provider, external_user_id) in a DIFFERENT org → must succeed.
 	// This is the cross-org-isolation business guarantee.
-	cross := mkIdentity(orgB.ID, userB.ID, connB.ID, "github", "42")
+	cross := mkIdentity(orgB.ID, userB.ID, srcB.ID, "github", "42")
 	if err := db.Create(cross).Error; err != nil {
 		t.Fatalf("cross-org insert with same (provider, external_user_id) must succeed, got: %v", err)
 	}
@@ -132,26 +137,27 @@ func TestRAGExternalIdentity_UserCascade(t *testing.T) {
 	user := testhelpers.NewTestUser(t, db, org.ID)
 	integ := testhelpers.NewTestInIntegration(t, db, "github")
 	conn := testhelpers.NewTestInConnection(t, db, org.ID, user.ID, integ.ID)
+	src := testhelpers.NewTestRAGSource(t, db, org.ID, conn.ID)
 
-	id := mkIdentity(org.ID, user.ID, conn.ID, "github", "cascade-user")
+	id := mkIdentity(org.ID, user.ID, src.ID, "github", "cascade-user")
 	if err := db.Create(id).Error; err != nil {
 		t.Fatalf("insert: %v", err)
 	}
 	rowID := id.ID
 
-	// Drop in_connections and org_memberships referencing this user so we
-	// can drop the user row itself without tripping unrelated FKs. We want
-	// to isolate the USER→identity cascade path — the connection-cascade
-	// path has its own test.
-	if err := db.Exec(`DELETE FROM in_connections WHERE id = ?`, conn.ID).Error; err != nil {
-		t.Fatalf("delete connection: %v", err)
-	}
+	// Drop org_memberships referencing this user so we can drop the user
+	// row itself without tripping unrelated FKs. Then delete the user —
+	// the direct user_id FK on rag_external_identities (CASCADE) should
+	// sweep the identity row regardless of what happens to the cascaded
+	// rag_source / in_connection behind it.
 	if err := db.Exec(`DELETE FROM org_memberships WHERE user_id = ?`, user.ID).Error; err != nil {
 		t.Fatalf("delete org_memberships: %v", err)
 	}
 	if err := db.Exec(`DELETE FROM users WHERE id = ?`, user.ID).Error; err != nil {
 		t.Fatalf("delete user: %v", err)
 	}
+	_ = conn // conn.ID may have been cascade-deleted via users; not re-queried.
+	_ = src
 
 	var remaining int64
 	if err := db.Raw(
@@ -167,37 +173,39 @@ func TestRAGExternalIdentity_UserCascade(t *testing.T) {
 	// deletes become no-ops against already-deleted rows, which is fine.
 }
 
-// TestRAGExternalIdentity_InConnectionCascade verifies that deleting an
-// InConnection wipes every cached identity pinned to that connection.
-// This matches the production path where an admin disconnects an
-// integration and we must stop resolving ACLs against source data that
+// TestRAGExternalIdentity_RAGSourceCascade verifies that deleting a
+// RAGSource wipes every cached identity pinned to that source.
+// Post-Phase-3A this replaces the old InConnection-cascade test: the
+// admin UI's "remove RAG source" path now goes through rag_sources, not
+// in_connections, and ACL resolution must stop against source data that
 // can no longer be refreshed.
-func TestRAGExternalIdentity_InConnectionCascade(t *testing.T) {
+func TestRAGExternalIdentity_RAGSourceCascade(t *testing.T) {
 	db := setup1E(t)
 
 	org := testhelpers.NewTestOrg(t, db)
 	user := testhelpers.NewTestUser(t, db, org.ID)
 	integ := testhelpers.NewTestInIntegration(t, db, "github")
 	conn := testhelpers.NewTestInConnection(t, db, org.ID, user.ID, integ.ID)
+	src := testhelpers.NewTestRAGSource(t, db, org.ID, conn.ID)
 
-	id := mkIdentity(org.ID, user.ID, conn.ID, "github", "cascade-conn")
+	id := mkIdentity(org.ID, user.ID, src.ID, "github", "cascade-src")
 	if err := db.Create(id).Error; err != nil {
 		t.Fatalf("insert: %v", err)
 	}
 	rowID := id.ID
 
-	if err := db.Exec(`DELETE FROM in_connections WHERE id = ?`, conn.ID).Error; err != nil {
-		t.Fatalf("delete connection: %v", err)
+	if err := db.Exec(`DELETE FROM rag_sources WHERE id = ?`, src.ID).Error; err != nil {
+		t.Fatalf("delete rag_source: %v", err)
 	}
 
 	var remaining int64
 	if err := db.Raw(
 		`SELECT COUNT(*) FROM rag_external_identities WHERE id = ?`, rowID,
 	).Scan(&remaining).Error; err != nil {
-		t.Fatalf("count after conn delete: %v", err)
+		t.Fatalf("count after rag_source delete: %v", err)
 	}
 	if remaining != 0 {
-		t.Fatalf("expected RAGExternalIdentity removed by connection cascade; %d row(s) remain", remaining)
+		t.Fatalf("expected RAGExternalIdentity removed by rag_source cascade; %d row(s) remain", remaining)
 	}
 }
 

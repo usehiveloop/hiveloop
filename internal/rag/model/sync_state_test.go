@@ -32,7 +32,7 @@ func isUniqueViolation(err error) bool {
 	return false
 }
 
-func TestRAGSyncState_UniquePerInConnection(t *testing.T) {
+func TestRAGSyncState_UniquePerRAGSource(t *testing.T) {
 	db := testhelpers.ConnectTestDB(t)
 	migrate1C(t, db)
 
@@ -40,14 +40,15 @@ func TestRAGSyncState_UniquePerInConnection(t *testing.T) {
 	user := testhelpers.NewTestUser(t, db, org.ID)
 	integ := testhelpers.NewTestInIntegration(t, db, "github")
 	conn := testhelpers.NewTestInConnection(t, db, org.ID, user.ID, integ.ID)
+	src := testhelpers.NewTestRAGSource(t, db, org.ID, conn.ID)
 
 	t.Cleanup(func() {
-		db.Where("in_connection_id = ?", conn.ID).Delete(&ragmodel.RAGSyncState{})
+		db.Where("rag_source_id = ?", src.ID).Delete(&ragmodel.RAGSyncState{})
 	})
 
 	first := &ragmodel.RAGSyncState{
 		OrgID:          org.ID,
-		InConnectionID: conn.ID,
+		RAGSourceID:    src.ID,
 		Status:         ragmodel.RAGConnectionStatusActive,
 		AccessType:     ragmodel.AccessTypePrivate,
 		ProcessingMode: ragmodel.ProcessingModeRegular,
@@ -58,21 +59,21 @@ func TestRAGSyncState_UniquePerInConnection(t *testing.T) {
 
 	second := &ragmodel.RAGSyncState{
 		OrgID:          org.ID,
-		InConnectionID: conn.ID,
+		RAGSourceID:    src.ID,
 		Status:         ragmodel.RAGConnectionStatusPaused,
 		AccessType:     ragmodel.AccessTypePrivate,
 		ProcessingMode: ragmodel.ProcessingModeRegular,
 	}
 	err := db.Create(second).Error
 	if err == nil {
-		t.Fatal("second insert for same in_connection_id must violate unique constraint")
+		t.Fatal("second insert for same rag_source_id must violate unique constraint")
 	}
 	if !isUniqueViolation(err) {
 		t.Fatalf("expected 23505 unique_violation, got: %v", err)
 	}
 }
 
-func TestRAGSyncState_InConnectionCascade(t *testing.T) {
+func TestRAGSyncState_RAGSourceCascade(t *testing.T) {
 	db := testhelpers.ConnectTestDB(t)
 	migrate1C(t, db)
 
@@ -80,10 +81,11 @@ func TestRAGSyncState_InConnectionCascade(t *testing.T) {
 	user := testhelpers.NewTestUser(t, db, org.ID)
 	integ := testhelpers.NewTestInIntegration(t, db, "notion")
 	conn := testhelpers.NewTestInConnection(t, db, org.ID, user.ID, integ.ID)
+	src := testhelpers.NewTestRAGSource(t, db, org.ID, conn.ID)
 
 	state := &ragmodel.RAGSyncState{
 		OrgID:          org.ID,
-		InConnectionID: conn.ID,
+		RAGSourceID:    src.ID,
 		Status:         ragmodel.RAGConnectionStatusScheduled,
 		AccessType:     ragmodel.AccessTypePublic,
 		ProcessingMode: ragmodel.ProcessingModeRegular,
@@ -92,15 +94,15 @@ func TestRAGSyncState_InConnectionCascade(t *testing.T) {
 		t.Fatalf("create sync state: %v", err)
 	}
 
-	// Delete the InConnection directly; the FK cascade we installed in
-	// AutoMigrate1C should take out the sync state row with it.
-	if err := db.Exec(`DELETE FROM in_connections WHERE id = ?`, conn.ID).Error; err != nil {
-		t.Fatalf("delete in_connection: %v", err)
+	// Delete the RAGSource directly; the FK cascade installed in
+	// AutoMigrate3A should take out the sync state row with it.
+	if err := db.Exec(`DELETE FROM rag_sources WHERE id = ?`, src.ID).Error; err != nil {
+		t.Fatalf("delete rag_source: %v", err)
 	}
 
 	var count int64
 	if err := db.Model(&ragmodel.RAGSyncState{}).
-		Where("in_connection_id = ?", conn.ID).
+		Where("rag_source_id = ?", src.ID).
 		Count(&count).Error; err != nil {
 		t.Fatalf("count sync_states: %v", err)
 	}

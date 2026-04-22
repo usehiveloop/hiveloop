@@ -247,25 +247,26 @@ func TestRAGIndexAttempt_HeartbeatPartialIndex(t *testing.T) {
 	integ := testhelpers.NewTestInIntegration(t, db, "github")
 	user := testhelpers.NewTestUser(t, db, org.ID)
 	conn := testhelpers.NewTestInConnection(t, db, org.ID, user.ID, integ.ID)
+	src := testhelpers.NewTestRAGSource(t, db, org.ID, conn.ID)
 
 	// Three attempts: not_started, in_progress (old), success.
 	oldProgress := time.Now().Add(-2 * time.Hour)
 	attempts := []ragmodel.RAGIndexAttempt{
 		{
-			OrgID:          org.ID,
-			InConnectionID: conn.ID,
-			Status:         ragmodel.IndexingStatusNotStarted,
+			OrgID:       org.ID,
+			RAGSourceID: src.ID,
+			Status:      ragmodel.IndexingStatusNotStarted,
 		},
 		{
-			OrgID:             org.ID,
-			InConnectionID:    conn.ID,
-			Status:            ragmodel.IndexingStatusInProgress,
-			LastProgressTime:  &oldProgress,
+			OrgID:            org.ID,
+			RAGSourceID:      src.ID,
+			Status:           ragmodel.IndexingStatusInProgress,
+			LastProgressTime: &oldProgress,
 		},
 		{
-			OrgID:          org.ID,
-			InConnectionID: conn.ID,
-			Status:         ragmodel.IndexingStatusSuccess,
+			OrgID:       org.ID,
+			RAGSourceID: src.ID,
+			Status:      ragmodel.IndexingStatusSuccess,
 		},
 	}
 	for i := range attempts {
@@ -334,11 +335,12 @@ func TestRAGIndexAttemptError_AttemptCascadeDelete(t *testing.T) {
 	integ := testhelpers.NewTestInIntegration(t, db, "github")
 	user := testhelpers.NewTestUser(t, db, org.ID)
 	conn := testhelpers.NewTestInConnection(t, db, org.ID, user.ID, integ.ID)
+	src := testhelpers.NewTestRAGSource(t, db, org.ID, conn.ID)
 
 	attempt := &ragmodel.RAGIndexAttempt{
-		OrgID:          org.ID,
-		InConnectionID: conn.ID,
-		Status:         ragmodel.IndexingStatusFailed,
+		OrgID:       org.ID,
+		RAGSourceID: src.ID,
+		Status:      ragmodel.IndexingStatusFailed,
 	}
 	if err := db.WithContext(ctx).Create(attempt).Error; err != nil {
 		t.Fatalf("create attempt: %v", err)
@@ -346,7 +348,7 @@ func TestRAGIndexAttemptError_AttemptCascadeDelete(t *testing.T) {
 	errRow := &ragmodel.RAGIndexAttemptError{
 		OrgID:          org.ID,
 		IndexAttemptID: attempt.ID,
-		InConnectionID: conn.ID,
+		RAGSourceID:    src.ID,
 		FailureMessage: "boom",
 	}
 	if err := db.WithContext(ctx).Create(errRow).Error; err != nil {

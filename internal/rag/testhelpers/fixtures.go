@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
+	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
 // randSuffix returns a short hex identifier so concurrent tests do not
@@ -142,4 +143,40 @@ func NewTestInConnection(t *testing.T, db *gorm.DB, orgID, userID, integrationID
 	})
 
 	return conn
+}
+
+// NewTestRAGSource inserts a real RAGSource of kind INTEGRATION tying
+// an InConnection into the Phase 3A data model. Phase 1 tests that used
+// to key off in_connection_id now need a RAGSource to satisfy the
+// rag_source_id FK; call this helper to set one up.
+//
+// Registers a t.Cleanup that removes the RAGSource row — every child
+// table has ON DELETE CASCADE on rag_source_id, so this single delete
+// sweeps any sync-state / attempt / junction rows the test created.
+func NewTestRAGSource(
+	t *testing.T,
+	db *gorm.DB,
+	orgID, inConnectionID uuid.UUID,
+) *ragmodel.RAGSource {
+	t.Helper()
+
+	connID := inConnectionID
+	src := &ragmodel.RAGSource{
+		OrgIDValue:     orgID,
+		KindValue:      ragmodel.RAGSourceKindIntegration,
+		Name:           fmt.Sprintf("test-rag-source-%s", randSuffix(t)),
+		Status:         ragmodel.RAGSourceStatusActive,
+		Enabled:        true,
+		InConnectionID: &connID,
+		AccessType:     ragmodel.AccessTypePrivate,
+	}
+	if err := db.Create(src).Error; err != nil {
+		t.Fatalf("NewTestRAGSource: %v", err)
+	}
+
+	t.Cleanup(func() {
+		db.Where("id = ?", src.ID).Delete(&ragmodel.RAGSource{})
+	})
+
+	return src
 }

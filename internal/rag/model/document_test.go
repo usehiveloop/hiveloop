@@ -308,13 +308,13 @@ func TestRAGHierarchyNode_UniqueRawIDSource(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------
-// 6. RAGDocumentByConnection_ConnectionCascade
+// 6. RAGDocumentBySource_SourceCascade
 // ---------------------------------------------------------------------
-// Business value: removing a connection must sweep its junction edges
+// Business value: removing a RAGSource must sweep its junction edges
 // but must NOT remove the underlying document (which may still be
-// referenced by a second connection).
+// referenced by a second source).
 
-func TestRAGDocumentByConnection_ConnectionCascade(t *testing.T) {
+func TestRAGDocumentBySource_SourceCascade(t *testing.T) {
 	db := bootstrap1A(t)
 	org := testhelpers.NewTestOrg(t, db)
 	cleanupDocsForOrg(t, db, org.ID)
@@ -322,6 +322,7 @@ func TestRAGDocumentByConnection_ConnectionCascade(t *testing.T) {
 	user := testhelpers.NewTestUser(t, db, org.ID)
 	integ := testhelpers.NewTestInIntegration(t, db, "github")
 	conn := testhelpers.NewTestInConnection(t, db, org.ID, user.ID, integ.ID)
+	src := testhelpers.NewTestRAGSource(t, db, org.ID, conn.ID)
 
 	doc := &ragmodel.RAGDocument{
 		ID:           docID(t),
@@ -332,28 +333,28 @@ func TestRAGDocumentByConnection_ConnectionCascade(t *testing.T) {
 	if err := db.Create(doc).Error; err != nil {
 		t.Fatalf("create doc: %v", err)
 	}
-	edge := &ragmodel.RAGDocumentByConnection{
+	edge := &ragmodel.RAGDocumentBySource{
 		DocumentID:     doc.ID,
-		InConnectionID: conn.ID,
+		RAGSourceID:    src.ID,
 		HasBeenIndexed: true,
 	}
 	if err := db.Create(edge).Error; err != nil {
 		t.Fatalf("create edge: %v", err)
 	}
 
-	if err := db.Exec(`DELETE FROM in_connections WHERE id = ?`, conn.ID).Error; err != nil {
-		t.Fatalf("delete connection: %v", err)
+	if err := db.Exec(`DELETE FROM rag_sources WHERE id = ?`, src.ID).Error; err != nil {
+		t.Fatalf("delete rag_source: %v", err)
 	}
 
 	// Edge gone.
 	var edgeCount int64
-	if err := db.Model(&ragmodel.RAGDocumentByConnection{}).
-		Where("document_id = ? AND in_connection_id = ?", doc.ID, conn.ID).
+	if err := db.Model(&ragmodel.RAGDocumentBySource{}).
+		Where("document_id = ? AND rag_source_id = ?", doc.ID, src.ID).
 		Count(&edgeCount).Error; err != nil {
 		t.Fatalf("count edges: %v", err)
 	}
 	if edgeCount != 0 {
-		t.Fatalf("expected 0 edge rows after connection delete, got %d", edgeCount)
+		t.Fatalf("expected 0 edge rows after rag_source delete, got %d", edgeCount)
 	}
 
 	// Doc survives.
@@ -364,7 +365,7 @@ func TestRAGDocumentByConnection_ConnectionCascade(t *testing.T) {
 		t.Fatalf("count docs: %v", err)
 	}
 	if docCount != 1 {
-		t.Fatalf("doc should survive connection delete, got count=%d", docCount)
+		t.Fatalf("doc should survive rag_source delete, got count=%d", docCount)
 	}
 }
 
