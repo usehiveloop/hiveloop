@@ -12,7 +12,7 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.91"
 license = "MIT"
 publish = false
 
@@ -40,6 +40,79 @@ thiserror = "2"
 async-trait = "0.1"
 futures = "0.3"
 subtle = "2"
+
+# ---- Wave 2 consolidated dependencies ----
+# 2C + 2D — shared HTTP client stack + misc.
+# 2C (post-refactor) uses `async-openai` as the provider-generic OpenAI-compatible
+# client for the embedder. See DECISIONS.md — Tranche 2C refactor for rationale.
+# Disabling default features and explicitly selecting `rustls` keeps the TLS
+# story unambiguous across crates. `async-openai` re-exports `backoff` as the
+# retry configuration type, so we pin it at workspace level too.
+# 2D reranker still uses `reqwest-middleware` + `reqwest-retry` for its own
+# transport stack — do NOT drop them at workspace level.
+async-openai = { version = "0.35", default-features = false, features = ["rustls", "embedding"] }
+backoff = "0.4"
+# reqwest is still pulled in because we hand async-openai a custom
+# `reqwest::Client` to pin timeout + user-agent. `rustls-tls` matches the
+# TLS backend picked for async-openai.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "gzip"] }
+reqwest-middleware = { version = "0.4", features = ["json"] }
+reqwest-retry = "0.7"
+serde_json = "1"
+sha2 = "0.10"
+# rand + rand_chacha are shared by 2B (tests) and 2C (FakeEmbedder). 2B
+# uses the `random::<T>()` API that landed in rand 0.9; 2C's FakeEmbedder
+# has been ported forward to 0.9 (`random_range` replaces `gen_range`) so
+# the workspace can pin a single, coherent rand 0.9 / rand_chacha 0.9 pair.
+rand = "0.9"
+rand_chacha = "0.9"
+tiktoken-rs = "0.6"
+hex = "0.4"
+url = "2"
+# test deps
+wiremock = "0.6"
+tokio-test = "0.4"
+
+# 2E deps — chunker (recursive splitter + unicode + regex)
+text-splitter = { version = "0.20", features = ["tiktoken-rs"] }
+unicode-normalization = "0.1"
+regex = "1"
+
+# 2G deps — observability (tracing spans → OTLP + Prometheus metrics + request middleware).
+# Version pinning notes (see DECISIONS.md for full rationale):
+#   * `tracing-opentelemetry 0.28` is the matching bridge for `opentelemetry 0.27`.
+#     The plan requested 0.27 of the bridge, but that version targets
+#     `opentelemetry 0.26` and conflicts with `opentelemetry-otlp 0.27` (which
+#     itself requires `tonic ^0.12.3`, matching our workspace pin).
+#   * `opentelemetry-otlp` enables both gRPC (default collector path) and
+#     HTTP/proto as a fallback so operators can point at either.
+tracing-opentelemetry = "0.28"
+opentelemetry = "0.27"
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic", "http-proto", "trace"] }
+opentelemetry-semantic-conventions = { version = "0.27", features = ["semconv_experimental"] }
+prometheus = "0.13"
+axum = "0.7"
+ulid = "1"
+pin-project-lite = "0.2"
+
+# 2B deps — LanceDB storage, Arrow ecosystem pinned at 57.2.
+# DO NOT bump Arrow past 57.2 — lancedb 0.27 is the latest version that
+# links against it. DO NOT downgrade lancedb.
+lancedb = { version = "0.27", features = ["aws"] }
+lance-index = "4.0"
+arrow = "57.2"
+arrow-array = "57.2"
+arrow-schema = "57.2"
+arrow-buffer = "57.2"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+tempfile = "3"
+testcontainers = "0.27"
+testcontainers-modules = { version = "0.15", features = ["minio"] }
+aws-sdk-s3 = { version = "1", default-features = false, features = ["rt-tokio", "behavior-version-latest", "default-https-client"] }
+aws-config = { version = "1", default-features = false, features = ["rt-tokio", "behavior-version-latest"] }
+aws-credential-types = "1"
 
 # The proto crate is internal; depended on by path.
 rag-engine-proto = { path = "crates/rag-engine-proto" }
