@@ -117,3 +117,88 @@ backward-compatible as long as old numbers keep their types.
 | `IngestionMode` (enum)    | `UNSPECIFIED=0`, `UPSERT=1`, `REINDEX=2`                                                                                                                                                                              |
 | `DocumentStatus` (enum)   | `UNSPECIFIED=0`, `SUCCESS=1`, `FAILED=2`, `SKIPPED=3`                                                                                                                                                                 |
 | `SearchMode` (enum)       | `UNSPECIFIED=0`, `HYBRID=1`, `VECTOR_ONLY=2`, `BM25_ONLY=3`                                                                                                                                                           |
+
+---
+
+## Tranche 2G (observability — tracing, metrics, middleware)
+
+### OpenTelemetry version set
+
+The plan specified `tracing-opentelemetry = "0.27"`, `opentelemetry = "0.27"`,
+`opentelemetry_sdk = "0.27"`, `opentelemetry-otlp = "0.27"`,
+`opentelemetry-semantic-conventions = "0.27"`. We landed on a partially
+different set because of an ecosystem-level version alignment break:
+
+| Crate                                 | Plan   | Landed | Why                                                                                  |
+|---------------------------------------|--------|--------|--------------------------------------------------------------------------------------|
+| `opentelemetry`                       | 0.27   | 0.27   | —                                                                                    |
+| `opentelemetry_sdk`                   | 0.27   | 0.27   | + feature `rt-tokio` for `BatchSpanProcessor` on the Tokio runtime                   |
+| `opentelemetry-otlp`                  | 0.27   | 0.27   | features `grpc-tonic`, `http-proto`, `trace`. gRPC is the default collector path.    |
+| `opentelemetry-semantic-conventions`  | 0.27   | 0.27   | feature `semconv_experimental` enables `service.instance.id`                         |
+| `tracing-opentelemetry`               | 0.27   | 0.28   | 0.27 targets `opentelemetry 0.26`; 0.28 is the matching bridge for `opentelemetry 0.27` |
+
+`opentelemetry-otlp 0.27` also requires `tonic ^0.12.3`, which matches
+our workspace pin from Tranche 2A. No change needed there.
+
+### Extra dependencies pulled in by 2G
+
+| Crate                | Version | Purpose                                                                 |
+|----------------------|---------|-------------------------------------------------------------------------|
+| `prometheus`         | 0.13    | process-local `Registry` + `IntCounterVec` / `HistogramVec` primitives  |
+| `axum`               | 0.7     | minimal HTTP server for `/metrics`, paired with the existing `hyper 1`  |
+| `ulid`               | 1       | `service.instance.id` resource attribute                                |
+| `pin-project-lite`   | 0.2     | reserved for future `tower::Layer` future wrappers (not currently used) |
+| `reqwest` (dev-only) | 0.12    | scraping `/metrics` from tests, `rustls-tls`                            |
+
+### Shutdown safety
+
+`provider.shutdown()` is sync-blocking but, when the
+`BatchSpanProcessor` is driven by the Tokio runtime, it can deadlock if
+`Drop` runs after the runtime has already parked. `TelemetryGuard::Drop`
+offloads shutdown to a named OS thread (`"otel-shutdown"`) with a 3-second
+hard timeout — on timeout it leaks the join handle and lets the process
+exit. This is the only correct way to satisfy "Tokio runtime + explicit
+shutdown in guard Drop" without ever hanging SIGTERM.
+
+### Prometheus registry choice
+
+We deliberately built a process-local `Registry` rather than using
+`prometheus::default_registry()`. The default registry is a process
+singleton that bleeds state across cargo test binaries running in the
+same process (which rare but possible). Using our own registry lets
+tests spin up an isolated `Metrics` per test (via `Metrics::new()`)
+while production still funnels through `Metrics::global()`.
+
+### Metrics server port
+
+`metrics_addr` defaults to `0.0.0.0:9090` (env: `RAG_ENGINE_METRICS_ADDR`).
+Separate listener from gRPC so auth failures don't hide `/metrics` and
+so ops can firewall one without the other. Scrape command for a pod
+running the defaults:
+
+```sh
+curl -s http://<pod-ip>:9090/metrics
+```
+
+### Metric rename notes for 2F/2H
+
+The plan (§Tranche 2G Named Metrics) used `rag_rpc_requests_total`,
+`rag_rpc_latency_ms`, etc. We landed on the `rag_engine_*` prefix that
+the task spec actually dictated and used `_seconds` histograms (the
+Prometheus convention) instead of `_ms`. Mapping:
+
+| Plan name                              | Implemented name                               |
+|----------------------------------------|------------------------------------------------|
+| `rag_rpc_requests_total`               | `rag_engine_rpc_total`                         |
+| `rag_rpc_latency_ms`                   | `rag_engine_rpc_duration_seconds` (histogram)  |
+| `rag_lance_search_latency_ms`          | `rag_engine_lance_operation_duration_seconds` |
+| `rag_lance_rows_written_total`         | (deferred to 2B — can be a labelled slice of the lance metric) |
+| `rag_embedder_tokens_total`            | `rag_engine_embedding_tokens_total`            |
+| `rag_inflight_ingests`                 | `rag_engine_inflight_requests{method=...}`     |
+| `rag_idempotency_cache_hits_total`     | (deferred to whatever tranche adds the cache)  |
+
+`rag_engine_inflight_requests` is label-qualified by method so ingest
+and search can share one gauge (plan-split was just
+`rag_inflight_ingests`). 2F/2H can add dedicated `*_ingests` /
+`*_searches` gauges if they need SLI isolation, but do it additively —
+do NOT rename the generic one.

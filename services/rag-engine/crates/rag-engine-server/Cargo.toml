@@ -35,6 +35,18 @@ thiserror = { workspace = true }
 subtle = { workspace = true }
 async-trait = { workspace = true }
 
+# 2G — observability (OTel tracing + Prometheus + middleware + metrics server).
+tracing-opentelemetry = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+opentelemetry-otlp = { workspace = true }
+opentelemetry-semantic-conventions = { workspace = true }
+prometheus = { workspace = true }
+axum = { workspace = true }
+ulid = { workspace = true }
+futures = { workspace = true }
+pin-project-lite = { workspace = true }
+
 [dev-dependencies]
 tokio = { workspace = true }
 tonic = { workspace = true }
@@ -42,3 +54,5 @@ tonic-health = { workspace = true }
 prost = { workspace = true }
 anyhow = { workspace = true }
 figment = { workspace = true }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+opentelemetry = { workspace = true }
