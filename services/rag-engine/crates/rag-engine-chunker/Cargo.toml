@@ -5,8 +5,12 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
-description = "Chunker (text-splitter + tiktoken-rs, Onyx-compatible semantics). STUB in Tranche 2A; Tranche 2E fills it."
+description = "Chunker (text-splitter + tiktoken-rs, Onyx-compatible semantics) — mini-chunks + AccumulatorState ported from Onyx."
 
 [dependencies]
-# intentionally empty in 2A — 2E adds text-splitter, tiktoken-rs,
-# unicode-normalization, regex.
+text-splitter = { workspace = true }
+tiktoken-rs = { workspace = true }
+unicode-normalization = { workspace = true }
+regex = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
