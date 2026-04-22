@@ -77,7 +77,42 @@ services:
       retries: 10
       start_period: 5s
 
+  # --- MinIO (S3-compatible object storage for LanceDB + filestore in dev/test) ---
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/ready"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  # --- One-shot bucket creator for MinIO ---
+  # Creates the hiveloop-rag-test bucket the Phase 0 LanceDB spike and later
+  # RAG integration tests use. Exits 0 once the bucket exists.
+  minio-setup:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/hiveloop-rag-test &&
+      echo 'bucket hiveloop-rag-test ready'
+      "
+    restart: "no"
+
 volumes:
   pgdata:
   vaultdata:
   mailpitdata:
+  miniodata:
