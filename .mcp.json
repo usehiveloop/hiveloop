@@ -7,6 +7,9 @@
         "serve"
       ],
       "type": "stdio"
+    },
+    "forge_extension": {
+      "url": "http://localhost:11339/mcp"
     }
   }
 }

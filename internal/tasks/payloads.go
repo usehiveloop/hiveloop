@@ -68,6 +68,39 @@ func NewEmailSendTask(to, subject, body string) (*asynq.Task, error) {
 }
 
 // ---------------------------------------------------------------------------
+// email:send_template
+// ---------------------------------------------------------------------------
+
+// EmailSendTemplatePayload is the payload for TypeEmailSendTemplate tasks.
+// Variables is a flat string map — Kibamail templates use Handlebars
+// {{key}} substitution and every value is already stringified when enqueued.
+type EmailSendTemplatePayload struct {
+	To        string            `json:"to"`
+	Slug      string            `json:"slug"`
+	Variables map[string]string `json:"variables,omitempty"`
+}
+
+// NewEmailSendTemplateTask creates a task that sends an email via a
+// published Kibamail transactional template (resolved by slug).
+func NewEmailSendTemplateTask(to, slug string, variables map[string]string) (*asynq.Task, error) {
+	payload, err := json.Marshal(EmailSendTemplatePayload{
+		To:        to,
+		Slug:      slug,
+		Variables: variables,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("marshal email template payload: %w", err)
+	}
+	return asynq.NewTask(
+		TypeEmailSendTemplate,
+		payload,
+		asynq.Queue(QueueDefault),
+		asynq.MaxRetry(5),
+		asynq.Timeout(30*time.Second),
+	), nil
+}
+
+// ---------------------------------------------------------------------------
 // apikey:update_last_used
 // ---------------------------------------------------------------------------
 
