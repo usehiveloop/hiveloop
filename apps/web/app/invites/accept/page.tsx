@@ -10,15 +10,9 @@ import { Logo } from "@/components/logo"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Loading03Icon } from "@hugeicons/core-free-icons"
 import { $api } from "@/lib/api/hooks"
-import { api } from "@/lib/api/client"
 import { extractErrorMessage } from "@/lib/api/error"
+import { localPart } from "@/lib/email"
 import { toast } from "sonner"
-
-function localPart(email?: string | null) {
-  if (!email) return ""
-  const at = email.indexOf("@")
-  return at > 0 ? email.slice(0, at) : email
-}
 
 function CenterCard({ children }: { children: React.ReactNode }) {
   return (
@@ -52,6 +46,7 @@ function AcceptInviteContents() {
 
   const acceptMutation = $api.useMutation("post", "/v1/invites/{token}/accept")
   const declineMutation = $api.useMutation("post", "/v1/invites/{token}/decline")
+  const logoutMutation = $api.useMutation("post", "/auth/logout")
 
   const [accepted, setAccepted] = useState<{ orgName: string } | null>(null)
   const [declined, setDeclined] = useState(false)
@@ -90,14 +85,16 @@ function AcceptInviteContents() {
     )
   }, [declineMutation, token])
 
-  const handleLogoutAndGoToAuth = useCallback(async () => {
-    try {
-      await api.POST("/auth/logout", { body: {} })
-    } catch {
-      // ignore
-    }
-    router.replace("/auth")
-  }, [router])
+  const handleLogoutAndGoToAuth = useCallback(() => {
+    logoutMutation.mutate(
+      { body: {} },
+      {
+        onSettled: () => {
+          router.replace("/auth")
+        },
+      },
+    )
+  }, [logoutMutation, router])
 
   // --- State rendering ---
 
@@ -214,7 +211,11 @@ function AcceptInviteContents() {
           You&apos;re signed in as <span className="font-medium text-foreground">{me.user.email}</span>.
         </p>
         <div className="mt-6">
-          <Button className="w-full" onClick={handleLogoutAndGoToAuth}>
+          <Button
+            className="w-full"
+            onClick={handleLogoutAndGoToAuth}
+            loading={logoutMutation.isPending}
+          >
             Sign out and sign in as {localPart(inviteEmail)}
           </Button>
         </div>
