@@ -78,7 +78,7 @@ func (h *OrgHandler) Create(w http.ResponseWriter, r *http.Request) {
 		membership = model.OrgMembership{
 			UserID: uuid.MustParse(claims.UserID),
 			OrgID:  org.ID,
-			Role:   "admin",
+			Role:   "owner",
 		}
 		if err := tx.Create(&membership).Error; err != nil {
 			return fmt.Errorf("creating membership: %w", err)

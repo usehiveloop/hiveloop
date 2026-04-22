@@ -69,6 +69,11 @@ type Config struct {
 	// Auth: auto-confirm email on registration (useful for self-hosted deployments)
 	AutoConfirmEmail bool `env:"AUTO_CONFIRM_EMAIL" envDefault:"false"`
 
+	// Kibamail (transactional email). When KibamailAPIKey is empty the
+	// worker falls back to LogSender (emails appear in logs only).
+	KibamailAPIKey      string `env:"KIBAMAIL_API_KEY"`
+	KibamailFromAddress string `env:"KIBAMAIL_FROM_ADDRESS" envDefault:"Betty from Hiveloop <betty@notifications.usehiveloop.com>"`
+
 	// OAuth (social login)
 	OAuthGitHubClientID     string `env:"OAUTH_GITHUB_CLIENT_ID"`
 	OAuthGitHubClientSecret string `env:"OAUTH_GITHUB_CLIENT_SECRET"`
