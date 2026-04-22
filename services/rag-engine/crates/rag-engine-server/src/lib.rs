@@ -12,14 +12,21 @@
 
 pub mod auth;
 pub mod config;
+pub mod lifecycle;
 pub mod metrics;
 pub mod middleware;
+pub mod panic;
 pub mod service;
 pub mod telemetry;
 
 pub use config::{Config, ConfigError};
+pub use lifecycle::{
+    body_size_limit_layer, concurrency_layer, grpc_catch_panic_layer, shutdown_signal,
+    timeout_layer, BodyLimitLayer, ConcurrencyLayer, LimitsConfig, ShutdownConfig, TimeoutLayer,
+};
 pub use metrics::{Metrics, MetricsServerHandle};
 pub use middleware::MetricsLayer;
+pub use panic::install_panic_handler;
 pub use service::RagEngineService;
 pub use telemetry::TelemetryGuard;
 

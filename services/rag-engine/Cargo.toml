@@ -29,8 +29,14 @@ tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7", features = ["rt"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
-tower = { version = "0.5", features = ["util"] }
-tower-http = { version = "0.6", features = ["trace"] }
+tower = { version = "0.5", features = ["util", "limit", "load-shed", "timeout"] }
+tower-http = { version = "0.6", features = ["trace", "timeout", "limit"] }
+
+# 2H — lifecycle deps (graceful shutdown + backpressure + panic handler).
+# `parking_lot` provides contention-free mutexes used by the panic-handler
+# counter registration path (avoiding `std::sync::Mutex` poisoning when a
+# panic fires while another thread holds the lock).
+parking_lot = "0.12"
 http = "1"
 figment = { version = "0.10", features = ["env", "toml"] }
 serde = { version = "1", features = ["derive"] }
