@@ -47,6 +47,7 @@ sidecar and its Go client.
 | Service language | Rust, stable channel | This plan |
 | Service name + path | `rag-engine` at `services/rag-engine/` inside Hiveloop monorepo | This plan |
 | Transport | gRPC via `tonic` + `prost` | This plan |
+| Ingest RPC shape | Unary batch (500–1000 docs/call), ≤10s SLO, per-doc results | This plan §gRPC |
 | Embedding default | SiliconFlow `Qwen/Qwen3-Embedding-4B` (2560d) | Phase 1G seeded models |
 | Embedding catalog | 5 models seeded per Phase 1G — same IDs | Phase 1G |
 | Pluggability | Per-org; **one model per org for the lifetime of their index** | `ARCHITECTURE.md §2` |
@@ -70,9 +71,9 @@ Onyx ships `DOC_EMBEDDING_CONTEXT_SIZE = 512`, `CHUNK_OVERLAP = 0`
 Per architecture session lock we adopt **512 tokens, 20% overlap (102 tokens)**
 as the Hiveloop default. Rationale: Onyx's 0-overlap leans on mini-chunks
 (`MINI_CHUNK_SIZE = 150`, `app_configs.py:821`) to recover adjacency signal;
-we drop mini-chunks in the initial port and use overlap to compensate.
-`MINI_CHUNK_SIZE` and Onyx's full AccumulatorState multi-section logic are not
-ported in Phase 2 — noted in Phase 2E deferred list.
+we keep both — overlap AND mini-chunks — for maximum retrieval quality. Per
+the locked architectural decision, Phase 2E ports Onyx's full
+`AccumulatorState` multi-section packing alongside mini-chunks.
 
 ---
 
@@ -179,6 +180,8 @@ real `model.AutoMigrate`). This is the only pattern we use.
 | All Redis / asynq state | Go | Trusted | Rust never touches Redis |
 | R2 / MinIO bucket creds | Both | Both sides hold creds but only Rust uses them for LanceDB; Go uses them for filestore | Separate IAM scopes recommended in prod |
 
+**Batch-oriented unary ingest. 500-1000 docs per call. ≤10s SLO. Retry is per-batch. Per-doc detailed results return to Go.** Go sends raw documents (text sections + metadata); Rust chunks, embeds via SiliconFlow, and writes. Go retains full orchestration state (Postgres `index_attempt`, asynq retries, per-batch progress telemetry); Rust is stateless per call.
+
 ### Trust boundary invariant
 
 **The Rust service is identity-blind.** It accepts `acl: list<string>` as an
@@ -234,10 +237,11 @@ service RagEngine {
   rpc CreateDataset(CreateDatasetRequest) returns (CreateDatasetResponse);
   rpc DropDataset(DropDatasetRequest) returns (DropDatasetResponse);
 
-  // Indexing — streaming client-side so large ingests don't buffer.
-  // Onyx analog: Indexable.index
-  //   backend/onyx/document_index/interfaces.py:205-243
-  rpc Ingest(stream IngestChunk) returns (IngestSummary);
+  // Unary batch ingest — Go sends 500-1000 raw documents per call.
+  // Rust chunks + embeds + writes; returns per-doc detailed results.
+  // Onyx analog: Indexable.index  backend/onyx/document_index/interfaces.py:205-243
+  // SLO: each batch completes in ≤10s. Client deadline: 15s.
+  rpc IngestBatch(IngestBatchRequest) returns (IngestBatchResponse);
 
   // Metadata-only update — THE operation that failed the lance-go spike.
   // Onyx analog: Updatable.update_single
@@ -284,45 +288,87 @@ message DropDatasetRequest {
 }
 message DropDatasetResponse { bool dropped = 1; }
 
-message IngestChunk {
-  // The FIRST message in the stream MUST be IngestHeader (oneof).
-  oneof payload {
-    IngestHeader header = 1;
-    ChunkRow row = 2;
-  }
-}
-message IngestHeader {
+message IngestBatchRequest {
   string dataset_name = 1;
-  string org_id = 2;                    // tenant partition key
-  string ingestion_mode = 3;            // "upsert" | "reindex" (reindex wipes old chunks for each doc first)
-  string idempotency_key = 4;           // dedupe stream-level replays
-  uint32 declared_vector_dim = 5;       // server validates matches dataset
+  string org_id = 2;                        // tenant partition key (opaque to Rust)
+  IngestionMode mode = 3;                   // UPSERT | REINDEX
+  string idempotency_key = 4;               // batch-level; replayed request returns prior result
+  uint32 declared_vector_dim = 5;           // Rust validates matches dataset schema
+  repeated DocumentToIngest documents = 6;  // 500-1000 per batch (soft limit; hard max enforced server-side)
 }
-message ChunkRow {
-  string chunk_id = 1;                  // "<doc_id>__<chunk_index>"
-  string doc_id = 2;
-  uint32 chunk_index = 3;
-  string content = 4;                   // full chunk text (BM25 indexed)
-  string title_prefix = 5;              // optional
-  string blurb = 6;                     // first N chars — for retrieval display
-  repeated float vector = 7;            // length must == header.declared_vector_dim
-  repeated string acl = 8;              // OPAQUE tokens; server does not interpret
-  bool is_public = 9;                   // mirrors ExternalAccess.is_public
-  google.protobuf.Timestamp doc_updated_at = 10;
-  map<string, string> metadata = 11;    // freeform string-string; typed metadata stays in Postgres
-  // Boost, hidden, primary_owners, secondary_owners — Phase 3.
+
+enum IngestionMode {
+  INGESTION_MODE_UNSPECIFIED = 0;
+  INGESTION_MODE_UPSERT      = 1;  // chunk+embed; overwrites chunks for (doc_id, dataset)
+  INGESTION_MODE_REINDEX     = 2;  // wipes all existing chunks for each doc_id first, then upserts
 }
-message IngestSummary {
+
+// Onyx analog: backend/onyx/connectors/models.py (Document + Section)
+message DocumentToIngest {
+  string doc_id = 1;
+  string semantic_id = 2;                      // human-readable title
+  string link = 3;
+  google.protobuf.Timestamp doc_updated_at = 4;
+  repeated string acl = 5;                     // OPAQUE tokens; server does not interpret
+  bool is_public = 6;                          // mirrors ExternalAccess.is_public
+  repeated Section sections = 7;               // raw text — Rust chunks
+  map<string, string> metadata = 8;            // string-string only; typed metadata lives in Postgres
+  repeated string primary_owners = 9;
+  repeated string secondary_owners = 10;
+}
+
+message Section {
+  string text = 1;
+  string link = 2;
+  string title = 3;                            // optional section heading
+}
+
+message IngestBatchResponse {
+  repeated DocumentResult results = 1;         // ONE per doc in request, SAME ORDER
+  BatchTotals totals = 2;
+}
+
+message DocumentResult {
+  string doc_id = 1;
+  DocumentStatus status = 2;
+  uint32 chunks_written = 3;
+  uint32 tokens_embedded = 4;
+  string error_code = 5;                       // populated iff status=FAILED
+  string error_reason = 6;                     // human-readable
+}
+
+enum DocumentStatus {
+  DOCUMENT_STATUS_UNSPECIFIED = 0;
+  DOCUMENT_STATUS_SUCCESS     = 1;
+  DOCUMENT_STATUS_FAILED      = 2;  // fatal error for this doc; rest of batch continues
+  DOCUMENT_STATUS_SKIPPED     = 3;  // e.g. empty content, no sections
+}
+
+message BatchTotals {
   uint64 rows_written = 1;
-  uint64 docs_touched = 2;
-  uint64 docs_reindexed = 3;            // nonzero only if reindex mode
-  uint64 bytes_written = 4;             // approximate
-  repeated IngestError errors = 5;
+  uint64 bytes_written = 2;
+  uint32 batch_duration_ms = 3;
+  uint32 chunk_duration_ms = 4;
+  uint32 embedding_duration_ms = 5;
+  uint32 write_duration_ms = 6;
+  uint32 docs_succeeded = 7;
+  uint32 docs_failed = 8;
+  uint32 docs_skipped = 9;
 }
-message IngestError {
-  string chunk_id = 1;
-  string reason = 2;                    // "dim_mismatch", "nan_vector", "empty_content", ...
-}
+
+// Error codes the Rust server may populate in DocumentResult.error_code:
+//   "empty_content"          — no text sections
+//   "chunking_failed"        — chunker crate error
+//   "embedding_api_error"    — SiliconFlow call failed after retries
+//   "embedding_dim_mismatch" — embedder returned wrong dim
+//   "nan_vector"             — embedder returned non-finite values
+//   "storage_write_failed"   — LanceDB write error
+//   "internal"               — catch-all; details in error_reason
+//
+// Individual document failures do NOT fail the whole batch — they're
+// reported as DOCUMENT_STATUS_FAILED in results, and the batch response
+// itself is gRPC OK. A gRPC-level error is reserved for infrastructure
+// failures (dataset missing, invalid batch, deadline exceeded).
 
 message UpdateACLRequest {
   string dataset_name = 1;
@@ -410,9 +456,12 @@ message PruneResponse { uint64 docs_pruned = 1; uint64 chunks_pruned = 2; }
 
 ### RPC-level semantics (non-negotiable)
 
-**Streaming.** Only `Ingest` is streaming (client → server). Everything else is
-unary. Rationale: ingests can be 10k+ chunks each; unary would force either
-memory blow-up or client-side pagination.
+**Streaming.** Every RPC is unary. `IngestBatch` is batch-oriented (500–1000
+docs per call, ≤10s server SLO); Go orchestrates multi-batch ingests and keeps
+per-batch progress + retry state Postgres-side. Rationale: bounded calls give
+Go fine-grained control (real-time progress reporting, retry only failed docs,
+resume without reprocessing earlier batches); streaming hides all of that
+behind an opaque in-flight RPC.
 
 **Error semantics.** Every RPC returns one of these gRPC codes and nothing else:
 - `OK` — happy path
@@ -426,7 +475,7 @@ memory blow-up or client-side pagination.
 - `INTERNAL` — bug; emits panic/error trace to stderr + tracing
 
 **Deadline conventions.** Go client sets deadlines on every RPC:
-- `Ingest`: 10 minutes default (configurable per-call)
+- `IngestBatch`: 15s default client deadline (10s server SLO + overhead). If a batch routinely exceeds budget, caller should reduce batch size toward the 500-doc end of the range.
 - `Search`: 5 seconds default
 - `UpdateACL`: 60 seconds
 - `DeleteByDocID`, `Prune`: 5 minutes
@@ -436,12 +485,15 @@ Server enforces deadline via `tonic`'s interceptor → `tokio::select!` with
 `CancellationToken` passed to LanceDB.
 
 **Idempotency keys.** Mutating RPCs (`CreateDataset`, `UpdateACL`,
-`DeleteByDocID`, `DeleteByOrg`, `Prune`, and the `Ingest` header) carry an
-`idempotency_key`. Server stores a bounded LRU (default 10k entries, TTL 1h) of
-`(key, response_checksum)` tuples. On replay: same key + same request →
-cached response; same key + different request → `INVALID_ARGUMENT`. On restart
-the LRU is empty — idempotency is best-effort, not durable. Durable idempotency
-lives Go-side via asynq task IDs (Phase 3).
+`DeleteByDocID`, `DeleteByOrg`, `Prune`, and `IngestBatch`) carry an
+`idempotency_key`. For `IngestBatch` the key is batch-level: a replay within
+TTL returns the cached `IngestBatchResponse` rather than re-chunking /
+re-embedding / re-writing. Server stores a bounded LRU (default 10k entries,
+TTL 1h) of `(key, response_checksum)` tuples — TTL and size configurable via
+`figment`. On replay: same key + same request → cached response; same key +
+different request → `INVALID_ARGUMENT`. On restart the LRU is empty —
+idempotency is best-effort, not durable. Durable idempotency lives Go-side
+via asynq task IDs (Phase 3).
 
 **Authn.** Phase 2F: bearer token shared secret in metadata header
 `x-rag-auth`; server rejects unauth'd with `UNAUTHENTICATED`. Prod upgrade to
@@ -910,8 +962,11 @@ and produces chunks with Onyx-compatible boundaries.
   (`backend/onyx/indexing/chunker.py:32`).
 
 **DEVIATION already locked above: 512 tokens, 20% overlap (102 tokens).**
-Mini-chunks not ported. AccumulatorState cross-section packing not ported in
-Phase 2 — Phase 3+ revisits.
+Per the locked architectural decision to "port Onyx's mini-chunks +
+`AccumulatorState` patterns as-is for maximum quality", this tranche DOES
+port both `MINI_CHUNK_SIZE=150` mini-chunks and Onyx's full multi-section
+`AccumulatorState` packing logic. Rust owns all chunking — Go sends raw
+`Section`s over `IngestBatch`.
 
 **Files:**
 
@@ -1017,7 +1072,7 @@ crates built in 2B/2C/2D/2E.
 - `services/rag-engine/crates/rag-engine-server/src/service.rs` — `RagEngineService` struct holding `Arc<dyn Embedder>`, `Arc<dyn Reranker>`, `Arc<LanceConnection>`, `Chunker`, idempotency LRU
 - `services/rag-engine/crates/rag-engine-server/src/handlers/create_dataset.rs`
 - `services/rag-engine/crates/rag-engine-server/src/handlers/drop_dataset.rs`
-- `services/rag-engine/crates/rag-engine-server/src/handlers/ingest.rs` — streaming handler
+- `services/rag-engine/crates/rag-engine-server/src/handlers/ingest_batch.rs` — unary batch handler
 - `services/rag-engine/crates/rag-engine-server/src/handlers/update_acl.rs`
 - `services/rag-engine/crates/rag-engine-server/src/handlers/search.rs`
 - `services/rag-engine/crates/rag-engine-server/src/handlers/delete_by_doc.rs`
@@ -1030,14 +1085,32 @@ crates built in 2B/2C/2D/2E.
 
 **Handler specifics:**
 
-- **`Ingest` stream.** First message MUST be `IngestHeader` or the server
-  returns `INVALID_ARGUMENT`. Subsequent `ChunkRow`s are buffered in batches
-  of 128 and flushed to LanceDB via `rag-engine-lance::ingest`. **We do NOT
-  embed server-side in Phase 2** — the Go client is expected to have called
-  an embedder (whether Rust `rag-engine-embed` via a separate gRPC RPC, a
-  Go-side OpenAI client, or a future Phase-3 server-side embed path) and
-  attaches the vector on each `ChunkRow`. This keeps Phase 2 simple; server
-  -side embedding is a deferred item. Dim is validated against dataset dim.
+- **`IngestBatch` (unary).** Go sends 500–1000 raw `DocumentToIngest`s per
+  call; Rust owns the full chunk → embed → write pipeline. Server-side
+  embedding is locked (Rust calls SiliconFlow, Go never touches an embedder).
+  Per-batch pipeline, executed in order:
+  1. **Validate.** `declared_vector_dim` matches dataset dim; `documents`
+     length within hard max (recommend 2000 — anything larger → gRPC
+     `INVALID_ARGUMENT`); each doc has at least one section (else
+     `DOCUMENT_STATUS_SKIPPED` with `error_code="empty_content"`).
+  2. **Deduplicate + normalize.** Drop empty sections; dedupe chunks within a
+     doc (Onyx pattern from `backend/onyx/indexing/chunker.py`).
+  3. **Chunk all documents.** Port Onyx chunker semantics including
+     **mini-chunks** (`MINI_CHUNK_SIZE=150`, `app_configs.py:821`) and
+     multi-section **`AccumulatorState`** packing (`chunker.py`) — per locked
+     architecture decision, we keep Onyx's full chunking quality.
+  4. **Embed.** Collect chunks across all docs, group into embedding
+     sub-batches of 32 (SiliconFlow array input), call SiliconFlow with
+     bounded concurrency (recommend 4). Dim validated per-response.
+  5. **Write.** LanceDB `merge_insert` keyed on `chunk_id`, per-doc
+     `delete+insert` when `mode=REINDEX`.
+  6. **Assemble response.** `IngestBatchResponse.results` preserves request
+     order — one `DocumentResult` per input doc. A per-doc error becomes
+     `DOCUMENT_STATUS_FAILED` with a specific `error_code` (see §gRPC error
+     codes list) and does NOT fail the batch. gRPC-level errors are reserved
+     for infrastructure failures (dataset missing, invalid batch, deadline).
+  7. **Timing.** Each phase timed into `BatchTotals` so Go can surface
+     per-phase attribution in telemetry.
 - **`Search`.** If `query_vector` is empty and `mode` requires vector,
   server calls `Embedder::embed_query(query_text)` and uses the result. If
   `query_vector` is supplied, server uses it verbatim (dim-validated).
@@ -1052,44 +1125,65 @@ crates built in 2B/2C/2D/2E.
 
 1. `test_create_dataset_roundtrip` — client calls, server creates, dataset
    exists on disk via direct crate read. Business value: e2e sanity.
-2. `test_ingest_stream_happy_path` — open stream, send header + 50 rows,
-   receive `IngestSummary` with `rows_written=50`. Business value: the
-   entire hot path works.
-3. `test_ingest_stream_header_missing_returns_invalid_argument` — send a
-   `ChunkRow` as the first message → error. Business value: catches
-   caller bugs at the protocol boundary.
-4. `test_search_vector_only_happy_path` — ingest 10 fake-embedded rows,
+2. `test_ingest_batch_500_docs_roundtrip` — real LanceDB + `FakeEmbedder`.
+   Ingest 500 fabricated docs with varied section counts in one call.
+   Assert every `DocumentResult.status == SUCCESS`, all chunks land in
+   LanceDB, dataset rowcount matches expected, `batch_duration_ms < 10000`.
+   Business value: the whole hot path (chunk + embed + write) works at
+   target batch size within SLO.
+3. `test_ingest_batch_mixed_failures` — seed 10 docs: 3 with zero sections
+   (expect `SKIPPED` + `"empty_content"`), 2 with a `FakeEmbedder`
+   configured to return wrong dim for specific doc_ids (expect `FAILED`
+   + `"embedding_dim_mismatch"`), remaining 5 succeed. Assert the overall
+   gRPC status is `OK`, successes still written, response `results` array
+   has all 10 entries in request order. Business value: per-doc isolation
+   — one bad doc never takes down the rest of the batch, and Go can
+   retry only the failures.
+4. `test_ingest_batch_idempotent_replay` — call with
+   `idempotency_key="k1"`, assert chunks land. Call again with same key +
+   overlapping doc_ids + *different* content. Assert server returns the
+   cached response from call #1; LanceDB state unchanged from call #2.
+   TTL expiry tested separately in a unit on the LRU.
+5. `test_ingest_batch_reindex_mode` — `UPSERT` a doc producing 5 chunks.
+   `REINDEX` the same doc with different content producing 3 chunks.
+   Assert only the 3 new chunks remain; the 5 originals are gone.
+6. `test_ingest_batch_preserves_order` — 50 docs sent in deterministic
+   order; assert `response.results[i].doc_id == request.documents[i].doc_id`
+   for all i. Business value: Go caller indexes results by position.
+7. `test_ingest_batch_hard_max_enforced` — send 3000 docs in one call
+   (above hard max). Expect gRPC `INVALID_ARGUMENT` (no per-doc results).
+8. `test_search_vector_only_happy_path` — ingest 10 fake-embedded rows,
    search with one of the embeddings, assert it's rank 1. Business
    value: vector search integration.
-5. `test_search_hybrid_with_acl_filter_excludes_non_matching` — ingest
+9. `test_search_hybrid_with_acl_filter_excludes_non_matching` — ingest
    mixed ACL, search, assert only matching ACL present. Business value:
    end-to-end ACL.
-6. `test_update_acl_then_search_reflects_new_acl` — ingest with ACL `[A]`,
-   search with ACL filter `[B]` → 0 hits; update ACL to `[B]`, search
-   with `[B]` → 1 hit. Business value: perm-sync round-trip.
-7. `test_delete_by_org_empties_all_datasets_supplied` — ingest org into
-   two datasets, delete org listing both, assert both empty. Business
-   value: org deletion contract.
-8. `test_prune_preserves_keep_list_only` — mirror of 2B test 16 over the
-   wire.
-9. `test_idempotency_key_replay_returns_cached` — call `UpdateACL` with
-   key K, call again with same K + same body, second call returns same
-   response without touching LanceDB (assert via row-metadata fingerprint
-   unchanged-except-mtime). Business value: at-most-once semantics for
-   retried tasks.
-10. `test_auth_interceptor_rejects_missing_token` — call any RPC without
+10. `test_update_acl_then_search_reflects_new_acl` — ingest with ACL `[A]`,
+    search with ACL filter `[B]` → 0 hits; update ACL to `[B]`, search
+    with `[B]` → 1 hit. Business value: perm-sync round-trip.
+11. `test_delete_by_org_empties_all_datasets_supplied` — ingest org into
+    two datasets, delete org listing both, assert both empty. Business
+    value: org deletion contract.
+12. `test_prune_preserves_keep_list_only` — mirror of 2B test 16 over the
+    wire.
+13. `test_idempotency_key_replay_returns_cached` — call `UpdateACL` with
+    key K, call again with same K + same body, second call returns same
+    response without touching LanceDB (assert via row-metadata fingerprint
+    unchanged-except-mtime). Business value: at-most-once semantics for
+    retried tasks.
+14. `test_auth_interceptor_rejects_missing_token` — call any RPC without
     `x-rag-auth`, expect `UNAUTHENTICATED`. Business value: security.
-11. `test_deadline_cancels_long_search` — set 100ms deadline, mock a
+15. `test_deadline_cancels_long_search` — set 100ms deadline, mock a
     LanceDB search to sleep 1s (or use a genuinely huge query), assert
     `DEADLINE_EXCEEDED` and that the LanceDB future was dropped (assert
     via cancellation-token was-cancelled flag). Business value: client
     timeouts free server resources.
-12. `test_concurrency_limiter_rejects_past_max` — spawn
+16. `test_concurrency_limiter_rejects_past_max` — spawn
     `max_concurrent_searches + 1` concurrent searches, one gets
     `RESOURCE_EXHAUSTED`. Business value: graceful degradation beats
     silent slowness.
 
-**Definition of done:** all 12 tests green; one long-running `e2e/` test
+**Definition of done:** all 16 tests green; one long-running `e2e/` test
 script end-to-end ingests 10k chunks and runs 100 searches under 30s on a
 laptop.
 
@@ -1337,7 +1431,7 @@ type Client interface {
     CreateDataset(ctx context.Context, in *ragpb.CreateDatasetRequest) (*ragpb.CreateDatasetResponse, error)
     DropDataset(ctx context.Context, in *ragpb.DropDatasetRequest) (*ragpb.DropDatasetResponse, error)
 
-    Ingest(ctx context.Context, header *ragpb.IngestHeader) (IngestStream, error)  // returns a typed stream wrapper
+    IngestBatch(ctx context.Context, in *ragpb.IngestBatchRequest) (*ragpb.IngestBatchResponse, error)
     UpdateACL(ctx context.Context, in *ragpb.UpdateACLRequest) (*ragpb.UpdateACLResponse, error)
     Search(ctx context.Context, in *ragpb.SearchRequest) (*ragpb.SearchResponse, error)
     DeleteByDocID(ctx context.Context, in *ragpb.DeleteByDocIDRequest) (*ragpb.DeleteByDocIDResponse, error)
@@ -1347,11 +1441,6 @@ type Client interface {
     HealthCheck(ctx context.Context) (grpc_health_v1.HealthCheckResponse_ServingStatus, error)
 
     Close() error
-}
-
-type IngestStream interface {
-    Send(row *ragpb.ChunkRow) error
-    CloseAndRecv() (*ragpb.IngestSummary, error)
 }
 ```
 
@@ -1382,9 +1471,13 @@ deps.RagClient, err = ragclient.Dial(ctx, cfg.RagEngine.Addr, ...)
   `DeleteByOrg`, `UpdateACL`: retry on `UNAVAILABLE` only, max 3 attempts
   with exponential backoff (100ms → 500ms → 2s + jitter), and ONLY if
   the caller supplied an `idempotency_key` (or client auto-generated one).
-- `Ingest`: **no retry** at the RPC level — the client either replays
-  the full stream with the same header idempotency key, or (preferred)
-  the asynq worker that owns the ingest catches the error and re-enqueues.
+- `IngestBatch`: safe to retry as a plain unary call so long as
+  `idempotency_key` is stable — server dedupes via the LRU and returns the
+  cached `IngestBatchResponse`. Default retries = 2 with exponential
+  backoff on `UNAVAILABLE` / `DEADLINE_EXCEEDED`. Higher-level per-doc
+  retries (for `DOCUMENT_STATUS_FAILED` entries) are the caller's
+  responsibility: Go's asynq worker reads `results`, retries only the
+  failed doc_ids in a subsequent smaller batch.
 
 **Circuit breaker:** one breaker per target address. Opens after 50%
 failure rate over a 20-request window (`gobreaker.Settings{
@@ -1407,9 +1500,12 @@ mechanism). NO mocks. The `--embedder=fake` flag makes this fast + free.
    succeeded. Business value: prod resilience.
 4. `TestClient_Search_NoRetryOnInvalidArgument` — send a malformed
    request (empty dataset_name), assert one call attempt, no retries.
-5. `TestClient_Ingest_NoRetryOnFailure` — break mid-stream, assert
-   error bubbles up and client does NOT retry. Business value: ingests
-   are too expensive to silently replay; upstream task owner decides.
+5. `TestClient_IngestBatch_RetryOnUnavailableSucceeds` — wrap the engine
+   dial with a failing connection that returns `UNAVAILABLE` once then
+   succeeds; call `IngestBatch` with a stable `idempotency_key`; assert
+   the second attempt wins and Go sees the `IngestBatchResponse` from
+   the server's cached replay. Business value: bounded client-side retry
+   on the batch RPC is safe because the server dedupes.
 6. `TestClient_Breaker_OpensAfterFailures` — inject 15 consecutive
    `UNAVAILABLE`s, assert breaker is OPEN, 16th call returns
    `ErrCircuitOpen` without touching network.
@@ -1508,7 +1604,8 @@ Implementation notes:
 | `DefaultIndexingEmbedder` | `indexing/embedder.py:89+` | `SiliconflowEmbedder` | `rag-engine-embed/src/siliconflow.rs` |
 | `SentenceChunker`/`DocumentChunker` (role) | `indexing/chunking/` | `Chunker` (simplified, single-pass) | `rag-engine-chunk/src/lib.rs` |
 | `clean_text` | `utils/text_processing.py` | `clean_text` | `rag-engine-chunk/src/clean.rs` |
-| `IndexBatchParams` | `interfaces.py:44-53` | `IngestHeader` proto | `proto/rag_engine.proto` |
+| `IndexBatchParams` | `interfaces.py:44-53` | `IngestBatchRequest` proto | `proto/rag_engine.proto` |
+| `Document` + `Section` | `backend/onyx/connectors/models.py` | `DocumentToIngest` + `Section` proto | `proto/rag_engine.proto` |
 | `VespaDocumentFields` (ACL-only subset) | `interfaces.py:106-118` | `UpdateACLEntry` proto | `proto/rag_engine.proto` |
 | `DocumentAccess.to_acl` | `access/models.py:174-197` | Go-side (already Phase 1D) — Rust consumes | n/a |
 | `ExternalAccess` / `NodeExternalAccess` payload shapes | `access/models.py` | `acl: list<string>` + `is_public: bool` on every chunk | proto |
@@ -1525,11 +1622,8 @@ Implementation notes:
 | Connector framework (GitHub/Notion/etc.) | Phase 3 |
 | External group sync + user-external-group stale sweep | Phase 3 (Phase 1D only defined the tables + prefix helpers) |
 | Polar/billing integration for embed + storage metering | Deferred |
-| Server-side embedding path (currently Go client embeds before calling Ingest) | Optional Phase 2.5; not required |
 | mTLS between Go and Rust (shared-secret only in Phase 2) | Phase 3+ |
 | Re-ranker on BM25-only results (we only rerank hybrid for now) | Phase 3 |
-| Onyx mini-chunks | Deferred — overlap covers the gap |
-| Onyx multi-section `AccumulatorState` chunker semantics | Deferred |
 | Onyx `Contextual RAG` (chunk-summary + doc-summary LLM pass) | Deferred |
 | Custom SQL filter escape hatch on `Search` | Deferred to Phase 3 |
 | Vespa-style `boost`, `hidden`, `primary_owners`, `secondary_owners` columns | Phase 3 (will land via `UpdateMetadata` RPC; proto field reservations noted) |
@@ -1549,7 +1643,7 @@ Implementation notes:
 | CGO escape hatch — someone proposes going back to Go bindings | medium | high | Decision log entry; pure-Rust is the committed path. Revisit only if LanceDB Go binding cuts a release with all spike ops GREEN AND publishes upstream tests proving it. |
 | SiliconFlow rate limits or outage | medium | medium | Per-org API keys (Phase 3) + exponential backoff + Prom alert at 5% 429 rate. FakeEmbedder lets us keep moving in tests without depending on them. |
 | MinIO/R2 S3 compatibility drift | low | high | Pin MinIO image tag; CI tests against both. LanceDB env-var kludges (`AWS_ALLOW_HTTP`, `AWS_S3_ALLOW_UNSAFE_RENAME`, `AWS_EC2_METADATA_DISABLED`) documented in `LANCE_NOTES.md`. |
-| Streaming `Ingest` mid-stream failures leave partial state | medium | medium | LanceDB writes at batch boundary (128 rows); partial ingest leaves a consistent prefix. Client replays full stream with same `idempotency_key` on the header; server treats replay as reindex-mode for touched docs. |
+| `IngestBatch` partial failure leaves mixed state across docs | medium | medium | Per-doc results isolate failures; LanceDB writes per-doc `merge_insert` so each doc is atomic. Go retries only failed `doc_id`s in a follow-up batch with a fresh `idempotency_key`; full-batch replay with the original key returns the cached response via the LRU. |
 | ACL filter injection | low | critical | `filters.rs` is a typed builder; `custom_sql_filter` is rejected in Phase 2. Unit test enumerates injection attempts. |
 | Dataset-per-model explosion (5 seeded × N orgs) | low | low | Dataset count bounded by `min(num_orgs × 1 model, num_seeded_models)` — one model per org invariant caps it. Prometheus `rag_lance_datasets_total` gauge monitors. |
 | Deployment: two binaries now (Hiveloop + rag-engine) | medium | low | docker-compose + Fly/Kamal target each as a separate service; graceful shutdown lets rolling deploys work without dropped ingests. |
@@ -1586,28 +1680,24 @@ point where every tranche's deliverable is proven to compose.
 
 ## Deferred questions (answer before Phase 3)
 
-1. **Server-side embedding** — should `Ingest` accept raw text + model_id and
-   embed server-side, or should Go always pre-embed and pass vectors? Current
-   plan: pre-embed Go-side so the Rust service is storage-only; revisit when
-   Phase 3 scheduler is live and we see which pattern saves round-trips.
-2. **mTLS vs shared-secret** — Phase 2 ships shared-secret only. Prod deploy
+1. **mTLS vs shared-secret** — Phase 2 ships shared-secret only. Prod deploy
    target (Fly/Kubernetes/Kamal?) will dictate mTLS material distribution.
    Decide before prod.
-3. **Dataset name re-use across orgs** — currently one dataset per
+2. **Dataset name re-use across orgs** — currently one dataset per
    `(provider, model, dim)` and all orgs share; org isolation is by
    `org_id` filter. Is that the right tradeoff vs per-org datasets? Argument
    for shared: ANN index amortizes training. Argument for per-org: delete is
    trivial, search latency tighter. Decide before volume.
-4. **Rerank budget** — reranker is called per-search; at p99 search RPS that
+3. **Rerank budget** — reranker is called per-search; at p99 search RPS that
    blows past SiliconFlow's free tier. Need per-org budget tracking; Polar
    integration. Deferred to Phase 3+.
-5. **Chunker parity with Onyx** — we deviated on overlap and dropped
-   mini-chunks. When we re-evaluate retrieval quality against Onyx upstream,
-   do we need to re-add AccumulatorState cross-section packing? Re-measure
-   against an eval corpus before Phase 3.
-6. **Binary distribution** — `cargo install` from source at container build
+4. **Chunker parity with Onyx** — we deviated on overlap but kept mini-chunks
+   and `AccumulatorState`. When we re-evaluate retrieval quality against
+   Onyx upstream, verify the overlap tuning against an eval corpus before
+   Phase 3.
+5. **Binary distribution** — `cargo install` from source at container build
    vs prebuilt binaries pushed to an internal registry? Affects CI time.
-7. **Per-org rate limits on the gRPC server** — currently we enforce global
+6. **Per-org rate limits on the gRPC server** — currently we enforce global
    concurrency. Per-org tower limit needs an interceptor that reads org_id
    from the request. Deferred to Phase 3.
 
