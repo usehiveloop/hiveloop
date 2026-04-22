@@ -35,7 +35,7 @@ import {
   MailSend01Icon,
 } from "@hugeicons/core-free-icons"
 
-type Role = "admin" | "viewer"
+type InviteRole = "admin" | "member" | "viewer"
 
 function formatDate(iso?: string) {
   if (!iso) return "\u2014"
@@ -48,7 +48,7 @@ function formatDate(iso?: string) {
 
 function InviteForm({ onInvited }: { onInvited: () => void }) {
   const [email, setEmail] = useState("")
-  const [role, setRole] = useState<Role>("viewer")
+  const [role, setRole] = useState<InviteRole>("member")
   const createInvite = $api.useMutation("post", "/v1/orgs/current/invites")
 
   function handleSubmit(event: React.FormEvent) {
@@ -61,7 +61,7 @@ function InviteForm({ onInvited }: { onInvited: () => void }) {
         onSuccess: () => {
           toast.success(`Invitation sent to ${trimmed}`)
           setEmail("")
-          setRole("viewer")
+          setRole("member")
           onInvited()
         },
         onError: (error) => {
@@ -86,12 +86,13 @@ function InviteForm({ onInvited }: { onInvited: () => void }) {
       </div>
       <div className="flex flex-col gap-2 sm:w-40">
         <Label htmlFor="invite-role">Role</Label>
-        <Select value={role} onValueChange={(value) => setRole(value as Role)}>
+        <Select value={role} onValueChange={(value) => setRole(value as InviteRole)}>
           <SelectTrigger id="invite-role">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="member">Member</SelectItem>
             <SelectItem value="viewer">Viewer</SelectItem>
           </SelectContent>
         </Select>
