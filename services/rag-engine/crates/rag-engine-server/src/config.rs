@@ -33,6 +33,27 @@ pub struct Config {
 
     /// Tracing / log level filter (e.g. `info`, `debug`, `warn`).
     pub log_level: String,
+
+    /// Address the Prometheus `/metrics` HTTP server binds to. Always
+    /// separate from `listen_addr` so a gRPC auth failure never hides
+    /// the metrics endpoint and a scraper misconfiguration never loads
+    /// the gRPC listener. Default: `0.0.0.0:9090`.
+    ///
+    /// Env: `RAG_ENGINE_METRICS_ADDR`.
+    pub metrics_addr: String,
+
+    /// Optional OTLP endpoint for OpenTelemetry trace export. When unset
+    /// (the default), the process runs in logs-only mode — spans are
+    /// still emitted to the JSON log layer but never shipped anywhere.
+    /// When set, spans are batch-exported to the collector.
+    ///
+    /// Operators can also set `OTEL_EXPORTER_OTLP_ENDPOINT` directly;
+    /// the OTLP SDK honours that env var natively. This field lets the
+    /// same value flow from our TOML/env convention.
+    ///
+    /// Env: `RAG_ENGINE_OTEL_ENDPOINT`.
+    #[serde(default)]
+    pub otel_endpoint: Option<String>,
 }
 
 impl Config {
@@ -40,14 +61,16 @@ impl Config {
         DefaultsShape {
             listen_addr: "0.0.0.0:50051".to_string(),
             log_level: "info".to_string(),
+            metrics_addr: "0.0.0.0:9090".to_string(),
         }
     }
 
     /// Load config from environment variables (and optional TOML file).
     ///
     /// Env var convention: `RAG_ENGINE_LISTEN_ADDR`,
-    /// `RAG_ENGINE_SHARED_SECRET`, `RAG_ENGINE_LOG_LEVEL`. A path to a
-    /// TOML file may be supplied via `RAG_ENGINE_CONFIG`.
+    /// `RAG_ENGINE_SHARED_SECRET`, `RAG_ENGINE_LOG_LEVEL`,
+    /// `RAG_ENGINE_METRICS_ADDR`, `RAG_ENGINE_OTEL_ENDPOINT`. A path to
+    /// a TOML file may be supplied via `RAG_ENGINE_CONFIG`.
     pub fn load() -> Result<Self, ConfigError> {
         let mut fig = Figment::from(Serialized::defaults(Self::defaults()));
 
@@ -68,10 +91,20 @@ impl Config {
             return Err(ConfigError::MissingSharedSecret);
         }
 
+        // Normalise an empty string OTLP endpoint to `None` so operators
+        // can explicitly unset the collector target via env without the
+        // OTLP SDK interpreting "" as localhost.
+        let otel_endpoint =
+            loaded
+                .otel_endpoint
+                .and_then(|s| if s.trim().is_empty() { None } else { Some(s) });
+
         Ok(Config {
             listen_addr: loaded.listen_addr,
             shared_secret: loaded.shared_secret,
             log_level: loaded.log_level,
+            metrics_addr: loaded.metrics_addr,
+            otel_endpoint,
         })
     }
 }
@@ -83,6 +116,7 @@ impl Config {
 struct DefaultsShape {
     listen_addr: String,
     log_level: String,
+    metrics_addr: String,
 }
 
 // Internal shape used for extraction — lets us detect a missing
@@ -93,6 +127,9 @@ struct LoadedShape {
     #[serde(default)]
     shared_secret: String,
     log_level: String,
+    metrics_addr: String,
+    #[serde(default)]
+    otel_endpoint: Option<String>,
 }
 
 /// Typed errors from config loading. `Display` messages are deploy-clear
