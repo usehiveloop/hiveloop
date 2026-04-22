@@ -14,6 +14,8 @@ use std::time::Duration;
 
 use rag_engine_proto::rag_engine_server::RagEngineServer;
 use rag_engine_server::auth::SharedSecretAuth;
+use rag_engine_server::metrics::{spawn_metrics_server, Metrics, MetricsServerHandle};
+use rag_engine_server::middleware::MetricsLayer;
 use rag_engine_server::{RagEngineService, GRPC_SERVICE_NAME};
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
@@ -118,4 +120,103 @@ pub fn with_bearer<T>(req: &mut tonic::Request<T>, token: &str) {
         .parse()
         .expect("valid bearer metadata");
     req.metadata_mut().insert("authorization", val);
+}
+
+// ---------------------------------------------------------------------------
+// 2G helpers — observability harness
+// ---------------------------------------------------------------------------
+
+/// A running test server with the full 2G observability stack wired in:
+///   * tonic gRPC server on ephemeral loopback port
+///   * `MetricsLayer` over every RPC
+///   * a companion `/metrics` HTTP server on its own ephemeral port
+///
+/// Tests use this when they need to assert on Prometheus scrape output
+/// or on middleware behaviour. A dedicated `Metrics` instance (not the
+/// process-global singleton) is used so parallel test invocations don't
+/// race on counter values.
+pub struct ObservabilityServer {
+    pub grpc_addr: SocketAddr,
+    pub metrics_addr: SocketAddr,
+    pub metrics: Metrics,
+    shutdown_tx: Option<oneshot::Sender<()>>,
+    handle: Option<JoinHandle<Result<(), tonic::transport::Error>>>,
+    metrics_handle: Option<MetricsServerHandle>,
+}
+
+impl ObservabilityServer {
+    pub async fn start(shared_secret: &'static str) -> Self {
+        // Pick two free ports (gRPC + metrics). Claim + drop to get a
+        // concrete port number without holding the listener.
+        let probe = TcpListener::bind("127.0.0.1:0").await.expect("probe grpc");
+        let grpc_addr = probe.local_addr().expect("grpc addr");
+        drop(probe);
+
+        // Fresh isolated metrics instance per test — never the global.
+        let metrics =
+            Metrics::new().expect("fresh metrics registry for ObservabilityServer harness");
+
+        let metrics_handle = spawn_metrics_server("127.0.0.1:0".parse().unwrap(), metrics.clone())
+            .await
+            .expect("spawn metrics server");
+        let metrics_addr = metrics_handle.addr;
+
+        let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
+
+        let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+        health_reporter
+            .set_serving::<RagEngineServer<RagEngineService>>()
+            .await;
+        health_reporter
+            .set_service_status(GRPC_SERVICE_NAME, tonic_health::ServingStatus::Serving)
+            .await;
+
+        let auth = SharedSecretAuth::new(shared_secret);
+        let rag_service = RagEngineServer::with_interceptor(RagEngineService::new(), auth);
+        let layer = MetricsLayer::new(metrics.clone());
+
+        let handle = tokio::spawn(async move {
+            Server::builder()
+                .layer(layer)
+                .add_service(health_service)
+                .add_service(rag_service)
+                .serve_with_shutdown(grpc_addr, async {
+                    let _ = shutdown_rx.await;
+                })
+                .await
+        });
+
+        wait_for_listening(grpc_addr).await;
+        wait_for_listening(metrics_addr).await;
+
+        ObservabilityServer {
+            grpc_addr,
+            metrics_addr,
+            metrics,
+            shutdown_tx: Some(shutdown_tx),
+            handle: Some(handle),
+            metrics_handle: Some(metrics_handle),
+        }
+    }
+
+    pub fn grpc_uri(&self) -> String {
+        format!("http://{}", self.grpc_addr)
+    }
+
+    pub fn metrics_url(&self) -> String {
+        format!("http://{}/metrics", self.metrics_addr)
+    }
+}
+
+impl Drop for ObservabilityServer {
+    fn drop(&mut self) {
+        if let Some(tx) = self.shutdown_tx.take() {
+            let _ = tx.send(());
+        }
+        if let Some(h) = self.handle.take() {
+            h.abort();
+        }
+        // `MetricsServerHandle::Drop` sends its own shutdown signal.
+        drop(self.metrics_handle.take());
+    }
 }
