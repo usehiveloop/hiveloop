@@ -35,3 +35,7 @@ certs/
 codedb.snapshot
 # Added by code-review-graph
 .code-review-graph/
+
+# Local-only Go workspace files
+go.work
+go.work.sum
