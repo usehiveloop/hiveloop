@@ -1,7 +1,6 @@
 package model_test
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -202,16 +201,6 @@ func TestRAGExternalIdentity_InConnectionCascade(t *testing.T) {
 	}
 }
 
-// isUniqueViolation keeps the test independent of the pq driver's
-// error-wrapping strategy — gorm wraps pgx/pq errors in a generic form,
-// so matching on the SQLSTATE-ish substring is the most stable pattern.
-func isUniqueViolation(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	return strings.Contains(msg, "duplicate key") ||
-		strings.Contains(msg, "unique constraint") ||
-		strings.Contains(msg, "SQLSTATE 23505") ||
-		strings.Contains(msg, "23505")
-}
+// isUniqueViolation used here comes from sync_state_test.go (same
+// _test package). Kept centralised so every tranche's tests use a
+// single SQLSTATE-based helper.

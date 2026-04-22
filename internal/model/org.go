@@ -6,8 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
-
-	"github.com/usehiveloop/hiveloop/internal/rag"
 )
 
 type Org struct {
@@ -110,11 +108,13 @@ func AutoMigrate(db *gorm.DB) error {
 	// Partial unique: prevent duplicate pending invites per (org, email).
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_org_invite_pending ON org_invites (org_id, email) WHERE accepted_at IS NULL AND revoked_at IS NULL`)
 
-	// RAG schema migrations. Phase 0: empty. Phase 1 tranches populate
-	// internal/rag/register.go:AutoMigrate.
-	if err := rag.AutoMigrate(db); err != nil {
-		return err
-	}
+	// RAG schema migrations live in internal/rag.AutoMigrate. Callers
+	// (bootstrap/deps.go, testhelpers.ConnectTestDB) invoke it
+	// immediately after model.AutoMigrate — we can't invoke it from
+	// here because internal/rag/model imports internal/model (for
+	// model.JSON), so an import from internal/model back into
+	// internal/rag would close a cycle. See plans/onyx-port.md,
+	// Tranche 1F merge notes.
 
 	return nil
 }

@@ -19,9 +19,10 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/db"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehiveloop/hiveloop/internal/rag"
 	"github.com/usehiveloop/hiveloop/internal/registry"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 	"github.com/usehiveloop/hiveloop/internal/sandbox/daytona"
@@ -84,6 +85,13 @@ func New(ctx context.Context) (*Deps, error) {
 	}
 	if err := model.AutoMigrate(database); err != nil {
 		return nil, fmt.Errorf("running migrations: %w", err)
+	}
+	// RAG schema migrations — wired here (and not inside
+	// model.AutoMigrate) because internal/rag/model imports
+	// internal/model for the JSON type, which would close an import
+	// cycle. See plans/onyx-port.md, Tranche 1F.
+	if err := rag.AutoMigrate(database); err != nil {
+		return nil, fmt.Errorf("running RAG migrations: %w", err)
 	}
 	slog.Info("database ready")
 
