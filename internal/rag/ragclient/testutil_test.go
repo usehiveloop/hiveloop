@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -123,10 +124,30 @@ func startRagEngine(t *testing.T, secret string) (addr string, shutdown func()) 
 	addr = pickFreePort(t)
 
 	cmd := exec.Command(bin)
-	cmd.Env = append(os.Environ(),
+	// Strip any host-shell LLM/RERANKER/LANCE creds so accidental paid-API
+	// calls can't fire from test runs (same policy as testhelpers.rag_engine).
+	baseEnv := make([]string, 0, len(os.Environ()))
+	for _, kv := range os.Environ() {
+		upper := strings.ToUpper(kv)
+		switch {
+		case strings.HasPrefix(upper, "LLM_"),
+			strings.HasPrefix(upper, "RERANKER_"),
+			strings.HasPrefix(upper, "LANCE_"),
+			strings.HasPrefix(upper, "SILICONFLOW_"),
+			strings.HasPrefix(upper, "RAG_ENGINE_"):
+			continue
+		}
+		baseEnv = append(baseEnv, kv)
+	}
+	cmd.Env = append(baseEnv,
 		"RAG_ENGINE_LISTEN_ADDR="+addr,
 		"RAG_ENGINE_SHARED_SECRET="+secret,
 		"RAG_ENGINE_LOG_LEVEL=warn",
+		// 2F requires embedder+reranker config. Use fake mode so tests don't
+		// need real API credentials.
+		"LLM_PROVIDER=fake",
+		"LLM_EMBEDDING_DIM=2560",
+		"RERANKER_KIND=fake",
 	)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr

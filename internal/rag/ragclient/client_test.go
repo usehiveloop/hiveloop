@@ -97,9 +97,11 @@ func TestClient_Auth_RejectsWrongSecret(t *testing.T) {
 	}
 }
 
-// TestClient_Auth_AcceptsCorrectSecret: the server returns UNIMPLEMENTED
-// (Tranche 2A stub), which proves auth succeeded (an auth failure
-// short-circuits before the RPC handler runs).
+// TestClient_Auth_AcceptsCorrectSecret: any response other than
+// UNAUTHENTICATED proves the auth interceptor passed the request through
+// to the handler. (Pre-2F this always returned UNIMPLEMENTED from the
+// 2A stub; post-2F the handler actually runs and may return OK or
+// another code depending on handler logic.)
 func TestClient_Auth_AcceptsCorrectSecret(t *testing.T) {
 	addr, _ := startRagEngine(t, testSecret)
 	client := mustNewClient(t, addr, testSecret, 0)
@@ -109,8 +111,8 @@ func TestClient_Auth_AcceptsCorrectSecret(t *testing.T) {
 	_, err := client.CreateDataset(ctx, &ragpb.CreateDatasetRequest{
 		DatasetName: "x", VectorDim: 1, EmbeddingPrecision: "float32", IdempotencyKey: "k",
 	})
-	if status.Code(err) != codes.Unimplemented {
-		t.Fatalf("err code = %v, want Unimplemented (proves auth passed); err=%v", status.Code(err), err)
+	if status.Code(err) == codes.Unauthenticated {
+		t.Fatalf("auth unexpectedly rejected correct secret: err=%v", err)
 	}
 }
 
@@ -148,12 +150,14 @@ func TestClient_IngestBatch_RetryOnUnavailable_Succeeds(t *testing.T) {
 	})
 	<-respawnDone
 
-	// Expected outcomes (both prove retry worked):
-	//   - UNIMPLEMENTED: respawn happened fast enough; RPC reached server.
-	//   - nil: impossibly a later tranche got wired first — still a pass.
-	// UNAVAILABLE would mean retry never reached the restarted server.
-	if err != nil && status.Code(err) != codes.Unimplemented {
-		t.Fatalf("unexpected err code = %v (err=%v); want nil or Unimplemented", status.Code(err), err)
+	// Retry succeeded iff the final attempt reached the respawned server.
+	// Anything that's NOT `Unavailable` / `DeadlineExceeded` proves that —
+	// including NotFound (no such dataset), InvalidArgument (dim mismatch),
+	// or OK. We only fail on transport-level codes, which would mean the
+	// retry loop never landed on a live server.
+	switch status.Code(err) {
+	case codes.Unavailable, codes.DeadlineExceeded:
+		t.Fatalf("retry never reached the respawned server: err=%v", err)
 	}
 }
 
@@ -433,10 +437,26 @@ func startFixedAddrServer(t *testing.T, addr, secret string) func() {
 		t.Fatalf("build rag-engine: %v", err)
 	}
 	cmd := exec.Command(bin)
-	cmd.Env = append(os.Environ(),
+	baseEnv := make([]string, 0, len(os.Environ()))
+	for _, kv := range os.Environ() {
+		upper := strings.ToUpper(kv)
+		switch {
+		case strings.HasPrefix(upper, "LLM_"),
+			strings.HasPrefix(upper, "RERANKER_"),
+			strings.HasPrefix(upper, "LANCE_"),
+			strings.HasPrefix(upper, "SILICONFLOW_"),
+			strings.HasPrefix(upper, "RAG_ENGINE_"):
+			continue
+		}
+		baseEnv = append(baseEnv, kv)
+	}
+	cmd.Env = append(baseEnv,
 		"RAG_ENGINE_LISTEN_ADDR="+addr,
 		"RAG_ENGINE_SHARED_SECRET="+secret,
 		"RAG_ENGINE_LOG_LEVEL=warn",
+		"LLM_PROVIDER=fake",
+		"LLM_EMBEDDING_DIM=2560",
+		"RERANKER_KIND=fake",
 	)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
