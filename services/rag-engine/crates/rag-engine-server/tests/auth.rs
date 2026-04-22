@@ -3,9 +3,10 @@
 //! Business value: verifies the security boundary between Go and Rust.
 //! If Go's Hiveloop backend sends no token — or the wrong token — the
 //! Rust engine rejects. If Go sends the right token, the request
-//! passes through to the service (and hits the 2A `UNIMPLEMENTED`
-//! stub). Also pins the "same-length wrong secret" code path so we
-//! catch regressions in the constant-time comparison branch.
+//! passes through to the service (and in 2F, reaches the real
+//! IngestBatch handler; an empty `documents` list short-circuits to
+//! an OK response). Also pins the "same-length wrong secret" code
+//! path so we catch regressions in the constant-time comparison branch.
 
 mod common;
 
@@ -51,19 +52,21 @@ async fn missing_authorization_header_is_unauthenticated() {
 }
 
 #[tokio::test]
-async fn correct_bearer_passes_auth_and_hits_unimplemented_stub() {
+async fn correct_bearer_passes_auth_and_reaches_handler() {
     let server = TestServer::start(SECRET).await;
     let mut client = connect(&server).await;
 
+    // `sample_request()` has zero documents — the handler short-circuits
+    // to an OK response without touching the dataset. This pins the
+    // auth-passthrough path without depending on dataset creation.
     let mut req = tonic::Request::new(sample_request());
     with_bearer(&mut req, SECRET);
 
-    let err = client
+    let resp = client
         .ingest_batch(req)
         .await
-        .expect_err("auth passes, stub says UNIMPLEMENTED");
-
-    assert_eq!(err.code(), tonic::Code::Unimplemented);
+        .expect("auth passes, handler returns OK on empty batch");
+    assert!(resp.into_inner().results.is_empty());
 }
 
 #[tokio::test]

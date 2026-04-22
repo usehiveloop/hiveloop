@@ -154,7 +154,7 @@ async fn metrics_endpoint_serves_prometheus_text_format() {
 }
 
 #[tokio::test]
-async fn rpc_counter_increments_on_call_even_when_handler_returns_unimplemented() {
+async fn rpc_counter_increments_on_every_call() {
     let server = ObservabilityServer::start(SECRET).await;
 
     let channel = Endpoint::from_shared(server.grpc_uri())
