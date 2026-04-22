@@ -57,6 +57,11 @@ url = "2"
 wiremock = "0.6"
 tokio-test = "0.4"
 
+# 2E deps — chunker (recursive splitter + unicode + regex)
+text-splitter = { version = "0.20", features = ["tiktoken-rs"] }
+unicode-normalization = "0.1"
+regex = "1"
+
 # The proto crate is internal; depended on by path.
 rag-engine-proto = { path = "crates/rag-engine-proto" }
 rag-engine-lance = { path = "crates/rag-engine-lance" }
