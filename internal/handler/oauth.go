@@ -529,7 +529,7 @@ func (h *OAuthHandler) findOrCreateUser(provider string, profile *oauthProfile) 
 		membership := model.OrgMembership{
 			UserID: user.ID,
 			OrgID:  org.ID,
-			Role:   "admin",
+			Role:   "owner",
 		}
 		if err := tx.Create(&membership).Error; err != nil {
 			return fmt.Errorf("creating membership: %w", err)
