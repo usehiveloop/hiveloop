@@ -18,28 +18,29 @@ var tranche1BIndexDDL = []string{
 
 	// Port of ix_index_attempt_latest_for_connector_credential_pair
 	// (Onyx models.py:2297-2301). Lets the scheduler find the most
-	// recent attempt per connection in O(log n).
-	`CREATE INDEX IF NOT EXISTS idx_rag_index_attempt_latest_for_conn
-	 ON rag_index_attempts (in_connection_id, time_created)`,
+	// recent attempt per source in O(log n).
+	// Phase 3A swap: in_connection_id → rag_source_id.
+	`CREATE INDEX IF NOT EXISTS idx_rag_index_attempt_latest_for_source
+	 ON rag_index_attempts (rag_source_id, time_created)`,
 
 	// Port of ix_index_attempt_ccpair_search_settings_time_updated
 	// (Onyx models.py:2302-2308). DESC on time_updated so "latest by
-	// model for this connection" is a one-row index scan.
-	`CREATE INDEX IF NOT EXISTS idx_rag_index_attempt_conn_model_updated
-	 ON rag_index_attempts (in_connection_id, embedding_model_id, time_updated DESC)`,
+	// model for this source" is a one-row index scan.
+	`CREATE INDEX IF NOT EXISTS idx_rag_index_attempt_source_model_updated
+	 ON rag_index_attempts (rag_source_id, embedding_model_id, time_updated DESC)`,
 
 	// Port of ix_index_attempt_cc_pair_settings_poll
 	// (Onyx models.py:2309-2315). Supports the "latest-by-status" poll
 	// the scheduler runs every 15s (see Celery beat schedule).
-	`CREATE INDEX IF NOT EXISTS idx_rag_index_attempt_conn_model_poll
-	 ON rag_index_attempts (in_connection_id, embedding_model_id, status, time_updated DESC)`,
+	`CREATE INDEX IF NOT EXISTS idx_rag_index_attempt_source_model_poll
+	 ON rag_index_attempts (rag_source_id, embedding_model_id, status, time_updated DESC)`,
 
 	// Port of ix_index_attempt_active_coordination
 	// (Onyx models.py:2317-2322). Used by the coordination query that
 	// decides whether an attempt is still "live" before spawning a
 	// sibling attempt.
 	`CREATE INDEX IF NOT EXISTS idx_rag_index_attempt_active_coord
-	 ON rag_index_attempts (in_connection_id, embedding_model_id, status)`,
+	 ON rag_index_attempts (rag_source_id, embedding_model_id, status)`,
 
 	// Hiveloop addition — watchdog partial index. Phase 2's stall
 	// detector scans WHERE status='in_progress' AND
@@ -102,12 +103,10 @@ func AutoMigrate1B(db *gorm.DB) error {
 	}{
 		{"rag_index_attempts", "fk_rag_index_attempts_org",
 			"org_id", "orgs", "id", "CASCADE"},
-		{"rag_index_attempts", "fk_rag_index_attempts_in_connection",
-			"in_connection_id", "in_connections", "id", "CASCADE"},
+		// rag_source_id FK installed by AutoMigrate3A once rag_sources
+		// exists; 1B owns org + attempt-parent FKs only.
 		{"rag_index_attempt_errors", "fk_rag_index_attempt_errors_org",
 			"org_id", "orgs", "id", "CASCADE"},
-		{"rag_index_attempt_errors", "fk_rag_index_attempt_errors_in_connection",
-			"in_connection_id", "in_connections", "id", "CASCADE"},
 		{"rag_sync_records", "fk_rag_sync_records_org",
 			"org_id", "orgs", "id", "CASCADE"},
 	}

@@ -30,10 +30,15 @@ type RAGSyncState struct {
 	// carries org_id with CASCADE). Onyx uses schema-per-tenant.
 	OrgID uuid.UUID `gorm:"type:uuid;not null;index"`
 
-	// InConnectionID — 1:1 link to InConnection. Unique: a connection
-	// has at most one sync state. CASCADE mirrors the Onyx behavior
-	// where deleting a CCPair zaps its sync metadata.
-	InConnectionID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:uq_rag_sync_state_in_connection_id"`
+	// RAGSourceID — 1:1 link to RAGSource. Unique: a source has at most
+	// one sync state. CASCADE mirrors the Onyx behavior where deleting a
+	// CCPair zaps its sync metadata.
+	//
+	// Phase 3A swap (was InConnectionID): every RAG table is now keyed
+	// off the top-level RAGSource, not the underlying InConnection.
+	// INTEGRATION-kind sources carry the InConnection reference on the
+	// RAGSource row itself; WEBSITE / FILE_UPLOAD sources don't have one.
+	RAGSourceID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:uq_rag_sync_state_rag_source_id"`
 
 	// Status — port of Onyx models.py:739-741. Drives the
 	// scheduler's "should I run?" gate; see RAGConnectionStatus.IsActive.

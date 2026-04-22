@@ -36,11 +36,13 @@ type RAGIndexAttemptError struct {
 	IndexAttemptID uuid.UUID    `gorm:"type:uuid;not null;index"`
 	IndexAttempt   RAGIndexAttempt `gorm:"foreignKey:IndexAttemptID;constraint:OnDelete:CASCADE"`
 
-	// InConnectionID — adapts Onyx `connector_credential_pair_id`
+	// RAGSourceID — adapts Onyx `connector_credential_pair_id`
 	// (models.py:2409-2413). Mirror of what's on the parent attempt,
-	// denormalised so the admin UI can filter errors by connection
-	// without a join.
-	InConnectionID uuid.UUID `gorm:"type:uuid;not null;index"`
+	// denormalised so the admin UI can filter errors by source without
+	// a join.
+	//
+	// Phase 3A swap (was InConnectionID).
+	RAGSourceID uuid.UUID `gorm:"type:uuid;not null;index"`
 
 	// DocumentID / DocumentLink — Onyx models.py:2415-2416. Either/or
 	// both may be null — an error raised before we had a document

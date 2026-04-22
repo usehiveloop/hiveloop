@@ -30,11 +30,13 @@ type RAGExternalIdentity struct {
 
 	// UserID → users.id. CASCADE because deleting a Hiveloop user must
 	// drop every cached identity they had.
-	UserID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:uq_rag_external_identity_user_conn"`
+	UserID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:uq_rag_external_identity_user_source"`
 
-	// InConnectionID → in_connections.id. CASCADE because deleting a
-	// connection invalidates any identity cached against it.
-	InConnectionID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:uq_rag_external_identity_user_conn;index:idx_rag_external_identity_conn"`
+	// RAGSourceID → rag_sources.id. CASCADE because deleting a source
+	// invalidates any identity cached against it.
+	//
+	// Phase 3A swap (was InConnectionID).
+	RAGSourceID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:uq_rag_external_identity_user_source;index:idx_rag_external_identity_source"`
 
 	// Provider mirrors the parent InIntegration's provider string
 	// (e.g. "github", "notion"). Denormalized so lookups by

@@ -9,7 +9,7 @@ import (
 
 // RAGExternalUserGroup stores metadata for an external group (e.g. a
 // GitHub team, a Google Drive shared-drive membership) that has been
-// discovered inside a specific InConnection.
+// discovered inside a specific RAGSource.
 //
 // HIVELOOP ADDITION: Onyx has no direct analog — Onyx derives external
 // group display data on-demand inside the perm-sync code path. We
@@ -26,8 +26,10 @@ import (
 type RAGExternalUserGroup struct {
 	ID                  uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	OrgID               uuid.UUID      `gorm:"type:uuid;not null;index"`
-	InConnectionID      uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex:uq_rag_external_user_group_conn_ext,priority:1"`
-	ExternalUserGroupID string         `gorm:"type:text;not null;uniqueIndex:uq_rag_external_user_group_conn_ext,priority:2"`
+	// RAGSourceID — Phase 3A swap (was InConnectionID). The junction
+	// table now keys off the top-level RAGSource.
+	RAGSourceID         uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex:uq_rag_external_user_group_source_ext,priority:1"`
+	ExternalUserGroupID string         `gorm:"type:text;not null;uniqueIndex:uq_rag_external_user_group_source_ext,priority:2"`
 	DisplayName         string         `gorm:"type:text;not null"`
 	GivesAnyoneAccess   bool           `gorm:"not null;default:false"`
 	MemberEmails        pq.StringArray `gorm:"type:text[]"`

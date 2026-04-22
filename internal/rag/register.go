@@ -61,5 +61,14 @@ func AutoMigrate(db *gorm.DB) error {
 		return err
 	}
 
+	// 3A — pivot every RAG table to key off the new top-level
+	// RAGSource. Drops deprecated `in_connection_id` columns + the
+	// `rag_connection_configs` table, renames the doc/hierarchy
+	// junction tables, and installs the `rag_source_id` FKs that
+	// depended on rag_sources existing.
+	if err := ragmodel.AutoMigrate3A(db); err != nil {
+		return err
+	}
+
 	return nil
 }

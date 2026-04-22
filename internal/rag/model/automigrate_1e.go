@@ -39,13 +39,7 @@ func AutoMigrate1E(db *gorm.DB) error {
 		return err
 	}
 
-	// FK: in_connection_id → in_connections.id ON DELETE CASCADE.
-	if err := addFKIfMissing(db,
-		"rag_external_identities", "fk_rag_external_identities_connection",
-		"FOREIGN KEY (in_connection_id) REFERENCES in_connections(id) ON DELETE CASCADE",
-	); err != nil {
-		return err
-	}
+	// rag_source_id FK installed by AutoMigrate3A once rag_sources exists.
 
 	return nil
 }

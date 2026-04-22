@@ -19,8 +19,8 @@ func AutoMigrate1A(db *gorm.DB) error {
 	if err := db.AutoMigrate(
 		&RAGHierarchyNode{},
 		&RAGDocument{},
-		&RAGDocumentByConnection{},
-		&RAGHierarchyNodeByConnection{},
+		&RAGDocumentBySource{},
+		&RAGHierarchyNodeBySource{},
 	); err != nil {
 		return err
 	}
@@ -76,40 +76,26 @@ func AutoMigrate1A(db *gorm.DB) error {
 		   REFERENCES rag_documents(id)
 		   ON DELETE SET NULL`,
 
-		// Junction: RAGDocumentByConnection — both FKs cascade
-		// so connection removal sweeps edges (but leaves the doc).
-		`ALTER TABLE rag_document_by_connections
-		   DROP CONSTRAINT IF EXISTS fk_rag_doc_by_conn_document`,
-		`ALTER TABLE rag_document_by_connections
-		   ADD CONSTRAINT fk_rag_doc_by_conn_document
+		// Junction: RAGDocumentBySource — document FK cascades so
+		// source removal sweeps edges (but leaves the shared doc).
+		// The rag_source_id FK is installed by AutoMigrate3A after
+		// rag_sources exists — we only install the document FK here.
+		`ALTER TABLE rag_document_by_sources
+		   DROP CONSTRAINT IF EXISTS fk_rag_doc_by_source_document`,
+		`ALTER TABLE rag_document_by_sources
+		   ADD CONSTRAINT fk_rag_doc_by_source_document
 		   FOREIGN KEY (document_id)
 		   REFERENCES rag_documents(id)
 		   ON DELETE CASCADE`,
 
-		`ALTER TABLE rag_document_by_connections
-		   DROP CONSTRAINT IF EXISTS fk_rag_doc_by_conn_connection`,
-		`ALTER TABLE rag_document_by_connections
-		   ADD CONSTRAINT fk_rag_doc_by_conn_connection
-		   FOREIGN KEY (in_connection_id)
-		   REFERENCES in_connections(id)
-		   ON DELETE CASCADE`,
-
-		// Junction: RAGHierarchyNodeByConnection — port of
-		// models.py:2489-2493 (both CASCADE).
-		`ALTER TABLE rag_hierarchy_node_by_connections
-		   DROP CONSTRAINT IF EXISTS fk_rag_hier_by_conn_node`,
-		`ALTER TABLE rag_hierarchy_node_by_connections
-		   ADD CONSTRAINT fk_rag_hier_by_conn_node
+		// Junction: RAGHierarchyNodeBySource — hierarchy-node FK only;
+		// the rag_source_id FK is installed by AutoMigrate3A.
+		`ALTER TABLE rag_hierarchy_node_by_sources
+		   DROP CONSTRAINT IF EXISTS fk_rag_hier_by_source_node`,
+		`ALTER TABLE rag_hierarchy_node_by_sources
+		   ADD CONSTRAINT fk_rag_hier_by_source_node
 		   FOREIGN KEY (hierarchy_node_id)
 		   REFERENCES rag_hierarchy_nodes(id)
-		   ON DELETE CASCADE`,
-
-		`ALTER TABLE rag_hierarchy_node_by_connections
-		   DROP CONSTRAINT IF EXISTS fk_rag_hier_by_conn_connection`,
-		`ALTER TABLE rag_hierarchy_node_by_connections
-		   ADD CONSTRAINT fk_rag_hier_by_conn_connection
-		   FOREIGN KEY (in_connection_id)
-		   REFERENCES in_connections(id)
 		   ON DELETE CASCADE`,
 
 		// Partial index driving the sync loop — port of Onyx

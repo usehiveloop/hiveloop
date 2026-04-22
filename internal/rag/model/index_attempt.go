@@ -41,10 +41,14 @@ type RAGIndexAttempt struct {
 	// OrgID — Hiveloop addition for row-level tenancy.
 	OrgID uuid.UUID `gorm:"type:uuid;not null;index;constraint:OnDelete:CASCADE"`
 
-	// InConnectionID — adapts Onyx `connector_credential_pair_id`
-	// (models.py:2200-2204). FK to in_connections(id) with CASCADE so
-	// that tearing down a connection wipes its index-attempt history.
-	InConnectionID uuid.UUID `gorm:"type:uuid;not null;index"`
+	// RAGSourceID — adapts Onyx `connector_credential_pair_id`
+	// (models.py:2200-2204). FK to rag_sources(id) with CASCADE so that
+	// tearing down a source wipes its index-attempt history.
+	//
+	// Phase 3A swap (was InConnectionID): keyed off RAGSource now,
+	// which itself carries the InConnection reference for
+	// INTEGRATION-kind sources.
+	RAGSourceID uuid.UUID `gorm:"type:uuid;not null;index"`
 
 	// EmbeddingModelID — adapts Onyx `search_settings_id`
 	// (models.py:2221-2225). See DEVIATIONS note above regarding 1G
