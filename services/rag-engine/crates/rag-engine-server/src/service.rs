@@ -1089,7 +1089,15 @@ async fn open_dataset_any_dim(
             format!("dataset `{dataset_name}` does not exist"),
         ));
     }
-    for dim in &[2560usize, 1536, 1024, 768, 384, 128] {
+    // Known embedding dims across the models our registry seeds:
+    //   text-embedding-3-large = 3072
+    //   text-embedding-3-small = 1536
+    //   Qwen3-Embedding-8B     = 4096
+    //   Qwen3-Embedding-4B     = 2560
+    //   Qwen3-Embedding-0.6B   = 1024
+    //   Voyage-3-lite          = 512
+    //   plus 768/384/128 for smaller OSS models and test fakes.
+    for dim in &[4096usize, 3072, 2560, 1536, 1024, 768, 512, 384, 128] {
         match DatasetHandle::create_or_open(&state.store, dataset_name, *dim).await {
             Ok((h, _)) => return Ok(h),
             Err(rag_engine_lance::LanceStoreError::SchemaMismatch(_)) => continue,
