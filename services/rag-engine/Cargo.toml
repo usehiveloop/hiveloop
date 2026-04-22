@@ -41,6 +41,24 @@ async-trait = "0.1"
 futures = "0.3"
 subtle = "2"
 
+# 2G deps — observability (tracing spans → OTLP + Prometheus metrics + request middleware).
+# Version pinning notes (see DECISIONS.md for full rationale):
+#   * `tracing-opentelemetry 0.28` is the matching bridge for `opentelemetry 0.27`.
+#     The plan requested 0.27 of the bridge, but that version targets
+#     `opentelemetry 0.26` and conflicts with `opentelemetry-otlp 0.27` (which
+#     itself requires `tonic ^0.12.3`, matching our workspace pin).
+#   * `opentelemetry-otlp` enables both gRPC (default collector path) and
+#     HTTP/proto as a fallback so operators can point at either.
+tracing-opentelemetry = "0.28"
+opentelemetry = "0.27"
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic", "http-proto", "trace"] }
+opentelemetry-semantic-conventions = { version = "0.27", features = ["semconv_experimental"] }
+prometheus = "0.13"
+axum = "0.7"
+ulid = "1"
+pin-project-lite = "0.2"
+
 # The proto crate is internal; depended on by path.
 rag-engine-proto = { path = "crates/rag-engine-proto" }
 rag-engine-lance = { path = "crates/rag-engine-lance" }
