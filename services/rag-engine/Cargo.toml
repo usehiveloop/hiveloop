@@ -42,8 +42,19 @@ futures = "0.3"
 subtle = "2"
 
 # ---- Wave 2 consolidated dependencies ----
-# 2C + 2D — shared HTTP client stack + misc. 2C's versions win for
-# reqwest-middleware/reqwest-retry (newer). 2D adds hex/url/tokio-test.
+# 2C + 2D — shared HTTP client stack + misc.
+# 2C (post-refactor) uses `async-openai` as the provider-generic OpenAI-compatible
+# client for the embedder. See DECISIONS.md — Tranche 2C refactor for rationale.
+# Disabling default features and explicitly selecting `rustls` keeps the TLS
+# story unambiguous across crates. `async-openai` re-exports `backoff` as the
+# retry configuration type, so we pin it at workspace level too.
+# 2D reranker still uses `reqwest-middleware` + `reqwest-retry` for its own
+# transport stack — do NOT drop them at workspace level.
+async-openai = { version = "0.35", default-features = false, features = ["rustls", "embedding"] }
+backoff = "0.4"
+# reqwest is still pulled in because we hand async-openai a custom
+# `reqwest::Client` to pin timeout + user-agent. `rustls-tls` matches the
+# TLS backend picked for async-openai.
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "gzip"] }
 reqwest-middleware = { version = "0.4", features = ["json"] }
 reqwest-retry = "0.7"
