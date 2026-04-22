@@ -1,0 +1,12 @@
+[package]
+name = "rag-engine-embed"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Embedder trait + SiliconFlow impl + FakeEmbedder. STUB in Tranche 2A; Tranche 2C fills it."
+
+[dependencies]
+# intentionally empty in 2A — 2C adds reqwest, reqwest-middleware,
+# reqwest-retry, async-trait, serde_json, sha2, rand_chacha.
