@@ -343,3 +343,17 @@ proto-lint:
 	else \
 		echo "proto-lint: 'buf' not installed, skipping (install: https://buf.build/docs/installation)"; \
 	fi
+
+# Generate Go bindings from the canonical .proto file. Output location is
+# driven by `option go_package` in proto/rag_engine.proto, so the
+# generated files land in internal/rag/ragpb/. Requires protoc,
+# protoc-gen-go, and protoc-gen-go-grpc on $PATH.
+#
+# Install the plugins (once) with:
+#   go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+#   go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+proto-gen-go:
+	protoc -I proto/ \
+		--go_out=. --go_opt=module=github.com/usehiveloop/hiveloop \
+		--go-grpc_out=. --go-grpc_opt=module=github.com/usehiveloop/hiveloop \
+		proto/rag_engine.proto
