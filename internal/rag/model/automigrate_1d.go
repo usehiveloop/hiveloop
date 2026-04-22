@@ -30,7 +30,8 @@ func AutoMigrate1D(db *gorm.DB) error {
 	// without association fields.
 	// ------------------------------------------------------------------
 
-	// RAGExternalUserGroup → orgs, in_connections
+	// RAGExternalUserGroup → orgs. The rag_source_id FK is installed
+	// by AutoMigrate3A once rag_sources exists.
 	if err := db.Exec(`
 		DO $$
 		BEGIN
@@ -39,17 +40,12 @@ func AutoMigrate1D(db *gorm.DB) error {
 				ADD CONSTRAINT fk_rag_external_user_groups_org
 				FOREIGN KEY (org_id) REFERENCES orgs(id) ON DELETE CASCADE;
 			END IF;
-			IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_rag_external_user_groups_conn') THEN
-				ALTER TABLE rag_external_user_groups
-				ADD CONSTRAINT fk_rag_external_user_groups_conn
-				FOREIGN KEY (in_connection_id) REFERENCES in_connections(id) ON DELETE CASCADE;
-			END IF;
 		END$$;
 	`).Error; err != nil {
 		return err
 	}
 
-	// RAGUserExternalUserGroup → users, in_connections
+	// RAGUserExternalUserGroup → users. rag_source_id FK in 3A.
 	if err := db.Exec(`
 		DO $$
 		BEGIN
@@ -58,38 +54,22 @@ func AutoMigrate1D(db *gorm.DB) error {
 				ADD CONSTRAINT fk_rag_user_external_user_groups_user
 				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 			END IF;
-			IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_rag_user_external_user_groups_conn') THEN
-				ALTER TABLE rag_user_external_user_groups
-				ADD CONSTRAINT fk_rag_user_external_user_groups_conn
-				FOREIGN KEY (in_connection_id) REFERENCES in_connections(id) ON DELETE CASCADE;
-			END IF;
 		END$$;
 	`).Error; err != nil {
 		return err
 	}
 
-	// RAGPublicExternalUserGroup → in_connections
-	if err := db.Exec(`
-		DO $$
-		BEGIN
-			IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_rag_public_external_user_groups_conn') THEN
-				ALTER TABLE rag_public_external_user_groups
-				ADD CONSTRAINT fk_rag_public_external_user_groups_conn
-				FOREIGN KEY (in_connection_id) REFERENCES in_connections(id) ON DELETE CASCADE;
-			END IF;
-		END$$;
-	`).Error; err != nil {
-		return err
-	}
+	// RAGPublicExternalUserGroup rag_source_id FK installed by 3A.
 
 	// ------------------------------------------------------------------
 	// Secondary indexes — ports of the Onyx index names, Hiveloop-style
-	// `idx_rag_*` naming convention.
+	// `idx_rag_*` naming convention. Phase 3A swap: in_connection_id →
+	// rag_source_id in every stale-sweep index.
 	// ------------------------------------------------------------------
 
 	// Port of `ix_user_external_group_cc_pair_stale` (models.py:4340-4344).
-	if err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_rag_user_external_group_conn_stale
-		ON rag_user_external_user_groups (in_connection_id, stale)`).Error; err != nil {
+	if err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_rag_user_external_group_source_stale
+		ON rag_user_external_user_groups (rag_source_id, stale)`).Error; err != nil {
 		return err
 	}
 	// Port of `ix_user_external_group_stale` (models.py:4345-4348).
@@ -99,8 +79,8 @@ func AutoMigrate1D(db *gorm.DB) error {
 	}
 
 	// Port of `ix_public_external_group_cc_pair_stale` (models.py:4371-4375).
-	if err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_rag_public_external_group_conn_stale
-		ON rag_public_external_user_groups (in_connection_id, stale)`).Error; err != nil {
+	if err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_rag_public_external_group_source_stale
+		ON rag_public_external_user_groups (rag_source_id, stale)`).Error; err != nil {
 		return err
 	}
 	// Port of `ix_public_external_group_stale` (models.py:4376-4379).
