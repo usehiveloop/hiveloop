@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down rag-spike rag-engine-build rag-engine-run rag-engine-test rag-engine-fmt rag-engine-clippy rag-engine-smoke proto-lint
+.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down rag-spike rag-engine-build rag-engine-run rag-engine-dev rag-engine-dev-bin rag-engine-test rag-engine-fmt rag-engine-clippy rag-engine-smoke proto-lint
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -322,6 +322,41 @@ rag-engine-run:
 	cd services/rag-engine && \
 	RAG_ENGINE_SHARED_SECRET=$${RAG_ENGINE_SHARED_SECRET:-localdev-secret-change-me} \
 	cargo run --bin rag-engine-server
+
+# Start the rag-engine server locally with env vars loaded from ./.env.rag.
+# Copy .env.rag.example to .env.rag and fill in your credentials first.
+# This is the ergonomic day-to-day dev target — it loads the full config
+# (embedder, reranker, LanceDB S3 creds, shared secret, ports, log level,
+# OTel endpoint, etc.) in one shot instead of a 15-line export chain.
+rag-engine-dev:
+	@test -f .env.rag || { \
+		echo ""; \
+		echo "  .env.rag not found."; \
+		echo ""; \
+		echo "  Quickstart:"; \
+		echo "      cp .env.rag.example .env.rag"; \
+		echo "      \$$EDITOR .env.rag      # fill in LLM_API_KEY + any creds"; \
+		echo "      make rag-engine-dev"; \
+		echo ""; \
+		exit 1; \
+	}
+	@set -a; . ./.env.rag; set +a; \
+		echo ""; \
+		echo "  rag-engine-dev: starting with env from .env.rag"; \
+		echo "    LLM_PROVIDER=$${LLM_PROVIDER:-<unset>}  LLM_MODEL=$${LLM_MODEL:-<unset>}  LLM_EMBEDDING_DIM=$${LLM_EMBEDDING_DIM:-<unset>}"; \
+		echo "    RERANKER_KIND=$${RERANKER_KIND:-<unset>}"; \
+		echo "    LANCE_S3_URI=$${LANCE_S3_URI:-<local-disk>}"; \
+		echo "    RAG_ENGINE_LISTEN_ADDR=$${RAG_ENGINE_LISTEN_ADDR:-127.0.0.1:50051}"; \
+		echo ""; \
+		cd services/rag-engine && \
+		exec cargo run --release --bin rag-engine-server
+
+# Same as rag-engine-dev, but uses the already-built release binary instead
+# of `cargo run`. Faster iteration when you haven't changed Rust code.
+rag-engine-dev-bin: rag-engine-build
+	@test -f .env.rag || { echo ".env.rag not found; run 'cp .env.rag.example .env.rag' first"; exit 1; }
+	@set -a; . ./.env.rag; set +a; \
+		exec services/rag-engine/target/release/rag-engine-server
 
 rag-engine-test:
 	cd services/rag-engine && cargo test --all
