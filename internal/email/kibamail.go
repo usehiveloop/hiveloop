@@ -20,7 +20,7 @@ import (
 // errors (5xx, rate limits, transport failures).
 type KibamailSender struct {
 	client *kibamail.Client
-	from   string // e.g. "HiveLoop <betty@notifications.usehiveloop.com>"
+	from   string // e.g. "Betty from Hiveloop <betty@notifications.usehiveloop.com>"
 }
 
 // NewKibamailSender builds a Kibamail-backed sender. Pass the API key and
