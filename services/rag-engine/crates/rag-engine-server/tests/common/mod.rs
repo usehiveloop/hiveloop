@@ -252,3 +252,290 @@ impl Drop for ObservabilityServer {
         drop(self.metrics_handle.take());
     }
 }
+
+// ---------------------------------------------------------------------------
+// 2H helpers — lifecycle harness (backpressure, shutdown, panic)
+// ---------------------------------------------------------------------------
+
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc as StdArc;
+
+use rag_engine_proto::rag_engine_server::RagEngine;
+use rag_engine_proto::{
+    CreateDatasetRequest, CreateDatasetResponse, DeleteByDocIdRequest, DeleteByDocIdResponse,
+    DeleteByOrgRequest, DeleteByOrgResponse, DropDatasetRequest, DropDatasetResponse,
+    IngestBatchRequest, IngestBatchResponse, PruneRequest, PruneResponse, SearchRequest,
+    SearchResponse, UpdateAclRequest, UpdateAclResponse,
+};
+use rag_engine_server::{
+    body_size_limit_layer, concurrency_layer, grpc_catch_panic_layer, timeout_layer, LimitsConfig,
+};
+use tonic::{Request, Response, Status};
+use tower::ServiceBuilder;
+
+/// Test-only `RagEngine` impl with tunable behaviour. Unlike the
+/// production `RagEngineService`, this one lets each RPC:
+///
+///   * delay for a configurable duration (exercises timeout + drain),
+///   * panic on demand (exercises the panic hook),
+///   * count how many in-flight calls it has observed (exercises the
+///     concurrency layer's admission counter).
+///
+/// Every RPC maps onto the same three-dial interface for test
+/// simplicity. Tests pick the RPC that best matches the request shape
+/// they want to exercise (e.g. `IngestBatch` for a large-body request).
+#[derive(Clone, Default)]
+pub struct TestRagService {
+    pub delay: StdArc<parking_lot::RwLock<Duration>>,
+    pub panic_next: StdArc<std::sync::atomic::AtomicBool>,
+    pub inflight: StdArc<AtomicU64>,
+    pub completed: StdArc<AtomicU64>,
+}
+
+impl TestRagService {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_delay(delay: Duration) -> Self {
+        let svc = Self::default();
+        *svc.delay.write() = delay;
+        svc
+    }
+
+    pub fn set_delay(&self, delay: Duration) {
+        *self.delay.write() = delay;
+    }
+
+    pub fn arm_panic(&self) {
+        self.panic_next.store(true, Ordering::SeqCst);
+    }
+
+    pub fn inflight(&self) -> u64 {
+        self.inflight.load(Ordering::SeqCst)
+    }
+
+    pub fn completed(&self) -> u64 {
+        self.completed.load(Ordering::SeqCst)
+    }
+
+    async fn delay_if_configured(&self) {
+        let d = *self.delay.read();
+        if !d.is_zero() {
+            tokio::time::sleep(d).await;
+        }
+    }
+
+    fn maybe_panic(&self) {
+        if self.panic_next.swap(false, Ordering::SeqCst) {
+            panic!("test-induced panic in rag-engine handler");
+        }
+    }
+
+    async fn handle<R>(&self, resp: R) -> Result<Response<R>, Status> {
+        // Admission accounting. Held for the full duration of the
+        // handler via an RAII guard so cancellation (timeout/drop) also
+        // decrements the counter.
+        struct Guard<'a>(&'a AtomicU64);
+        impl<'a> Drop for Guard<'a> {
+            fn drop(&mut self) {
+                self.0.fetch_sub(1, Ordering::SeqCst);
+            }
+        }
+        self.inflight.fetch_add(1, Ordering::SeqCst);
+        let _guard = Guard(&self.inflight);
+
+        self.maybe_panic();
+        self.delay_if_configured().await;
+        self.completed.fetch_add(1, Ordering::SeqCst);
+        Ok(Response::new(resp))
+    }
+}
+
+#[tonic::async_trait]
+impl RagEngine for TestRagService {
+    async fn create_dataset(
+        &self,
+        _request: Request<CreateDatasetRequest>,
+    ) -> Result<Response<CreateDatasetResponse>, Status> {
+        self.handle(CreateDatasetResponse::default()).await
+    }
+
+    async fn drop_dataset(
+        &self,
+        _request: Request<DropDatasetRequest>,
+    ) -> Result<Response<DropDatasetResponse>, Status> {
+        self.handle(DropDatasetResponse::default()).await
+    }
+
+    async fn ingest_batch(
+        &self,
+        _request: Request<IngestBatchRequest>,
+    ) -> Result<Response<IngestBatchResponse>, Status> {
+        self.handle(IngestBatchResponse::default()).await
+    }
+
+    async fn update_acl(
+        &self,
+        _request: Request<UpdateAclRequest>,
+    ) -> Result<Response<UpdateAclResponse>, Status> {
+        self.handle(UpdateAclResponse::default()).await
+    }
+
+    async fn search(
+        &self,
+        _request: Request<SearchRequest>,
+    ) -> Result<Response<SearchResponse>, Status> {
+        self.handle(SearchResponse::default()).await
+    }
+
+    async fn delete_by_doc_id(
+        &self,
+        _request: Request<DeleteByDocIdRequest>,
+    ) -> Result<Response<DeleteByDocIdResponse>, Status> {
+        self.handle(DeleteByDocIdResponse::default()).await
+    }
+
+    async fn delete_by_org(
+        &self,
+        _request: Request<DeleteByOrgRequest>,
+    ) -> Result<Response<DeleteByOrgResponse>, Status> {
+        self.handle(DeleteByOrgResponse::default()).await
+    }
+
+    async fn prune(
+        &self,
+        _request: Request<PruneRequest>,
+    ) -> Result<Response<PruneResponse>, Status> {
+        self.handle(PruneResponse::default()).await
+    }
+}
+
+/// A running test server with the full 2H lifecycle stack wired in:
+///   * body-size limit, concurrency cap, per-RPC timeout, metrics layer
+///   * shared-secret auth interceptor
+///   * a dedicated Prometheus registry (via [`Metrics::new`]) so panic
+///     counts from one test don't bleed into another
+///   * an external shutdown trigger so tests can simulate SIGTERM
+///     deterministically
+///
+/// Tests construct this with `LifecycleServer::start(...)`, issue
+/// whatever RPCs they need, and then drop or call `shutdown_with_deadline`
+/// when asserting shutdown behaviour.
+pub struct LifecycleServer {
+    pub grpc_addr: SocketAddr,
+    pub metrics: rag_engine_server::Metrics,
+    pub service: TestRagService,
+    shutdown_tx: Option<oneshot::Sender<()>>,
+    handle: Option<JoinHandle<Result<(), tonic::transport::Error>>>,
+}
+
+/// Tunable parameters for [`LifecycleServer::start`].
+#[derive(Clone, Copy)]
+pub struct LifecycleParams {
+    pub limits: LimitsConfig,
+    pub initial_handler_delay: Duration,
+}
+
+impl Default for LifecycleParams {
+    fn default() -> Self {
+        Self {
+            limits: LimitsConfig::default(),
+            initial_handler_delay: Duration::from_millis(0),
+        }
+    }
+}
+
+impl LifecycleServer {
+    pub async fn start(shared_secret: &'static str, params: LifecycleParams) -> Self {
+        let probe = TcpListener::bind("127.0.0.1:0").await.expect("probe grpc");
+        let grpc_addr = probe.local_addr().expect("grpc addr");
+        drop(probe);
+
+        let metrics =
+            rag_engine_server::Metrics::new().expect("fresh metrics registry for LifecycleServer");
+
+        let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
+
+        let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+        health_reporter
+            .set_serving::<RagEngineServer<TestRagService>>()
+            .await;
+        health_reporter
+            .set_service_status(GRPC_SERVICE_NAME, tonic_health::ServingStatus::Serving)
+            .await;
+
+        let service = TestRagService::with_delay(params.initial_handler_delay);
+        let auth = SharedSecretAuth::new(shared_secret);
+        let rag_inner = RagEngineServer::new(service.clone())
+            .max_decoding_message_size(params.limits.max_request_bytes);
+        let rag_service = tonic::service::interceptor::InterceptedService::new(rag_inner, auth);
+
+        let stack = ServiceBuilder::new()
+            .layer(MetricsLayer::new(metrics.clone()))
+            .layer(body_size_limit_layer(params.limits.max_request_bytes))
+            .layer(concurrency_layer(params.limits.max_concurrent))
+            .layer(timeout_layer(params.limits.rpc_timeout))
+            .layer(grpc_catch_panic_layer());
+
+        let handle = tokio::spawn(async move {
+            Server::builder()
+                .layer(stack)
+                .add_service(health_service)
+                .add_service(rag_service)
+                .serve_with_shutdown(grpc_addr, async move {
+                    let _ = shutdown_rx.await;
+                })
+                .await
+        });
+
+        wait_for_listening(grpc_addr).await;
+
+        LifecycleServer {
+            grpc_addr,
+            metrics,
+            service,
+            shutdown_tx: Some(shutdown_tx),
+            handle: Some(handle),
+        }
+    }
+
+    pub fn uri(&self) -> String {
+        format!("http://{}", self.grpc_addr)
+    }
+
+    /// Trigger shutdown and wait up to `deadline` for the server task
+    /// to exit. Returns `Ok` if the server drained within the deadline;
+    /// `Err(Elapsed)` if we forced abort.
+    pub async fn shutdown_with_deadline(
+        mut self,
+        deadline: Duration,
+    ) -> Result<Result<(), tonic::transport::Error>, tokio::time::error::Elapsed> {
+        if let Some(tx) = self.shutdown_tx.take() {
+            let _ = tx.send(());
+        }
+        let join = self.handle.take().expect("server handle already consumed");
+        match tokio::time::timeout(deadline, join).await {
+            Ok(join_res) => Ok(join_res.expect("server task should not panic")),
+            Err(elapsed) => {
+                // Exceeded the drain window. Replicate main.rs force-abort.
+                // We don't have the handle any more; the runtime will
+                // drop the spawned task on next poll. For a test assert
+                // "exceeded the deadline" it's enough that `timeout`
+                // returned `Elapsed`.
+                Err(elapsed)
+            }
+        }
+    }
+}
+
+impl Drop for LifecycleServer {
+    fn drop(&mut self) {
+        if let Some(tx) = self.shutdown_tx.take() {
+            let _ = tx.send(());
+        }
+        if let Some(h) = self.handle.take() {
+            h.abort();
+        }
+    }
+}
