@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills
+.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down rag-spike
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -268,3 +268,42 @@ docker-run:
 		-e REDIS_ADDR=localhost:6379 \
 		-e JWT_SIGNING_KEY=local-dev-signing-key \
 		$(IMAGE):latest
+
+# --- RAG test-service targets (Phase 0) ---
+
+# Start the docker-compose services the RAG integration tests need:
+# postgres (for all tranches) + redis (Phase 2 locks) + minio (Phase 0
+# LanceDB spike + Phase 2 vectorstore tests). Creates the
+# hiveloop-rag-test bucket as a side effect.
+test-services-up:
+	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose up -d postgres redis minio
+	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose run --rm minio-setup
+
+# Stop those services (keeps data volumes). Use `make down` for a full
+# teardown.
+test-services-down:
+	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose stop postgres redis minio
+
+# Phase 0 LanceDB Go-binding verification spike. Assumes MinIO is up
+# with the hiveloop-rag-test bucket created (run `make test-services-up`
+# first). CGO flags point at the pre-downloaded native libraries under
+# .lancedb-native/ — run scripts/lancedb-install.sh once to populate
+# that directory. DYLD_LIBRARY_PATH is set so runtime-loaded dylibs
+# resolve on macOS.
+rag-spike:
+	@test -d .lancedb-native/lib || { \
+		echo "error: .lancedb-native/ missing — run ./scripts/lancedb-install.sh" >&2; \
+		exit 1; \
+	}
+	@case "$$(uname -sm)" in \
+		"Darwin arm64") TRIPLE=darwin_arm64; LDEXTRA="-framework Security -framework CoreFoundation -framework SystemConfiguration";; \
+		"Darwin x86_64") TRIPLE=darwin_amd64; LDEXTRA="-framework Security -framework CoreFoundation -framework SystemConfiguration";; \
+		"Linux x86_64") TRIPLE=linux_amd64; LDEXTRA="";; \
+		"Linux aarch64") TRIPLE=linux_arm64; LDEXTRA="";; \
+		*) echo "unsupported platform: $$(uname -sm)" >&2; exit 1;; \
+	esac; \
+	ABS="$$(pwd)"; \
+	CGO_CFLAGS="-I$$ABS/.lancedb-native/include" \
+	CGO_LDFLAGS="$$ABS/.lancedb-native/lib/$$TRIPLE/liblancedb_go.a $$LDEXTRA" \
+	DYLD_LIBRARY_PATH="$$ABS/.lancedb-native/lib/$$TRIPLE" \
+	go run -tags lancedb_spike ./internal/rag/vectorstore/spike

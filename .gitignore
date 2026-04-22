@@ -35,3 +35,8 @@ certs/
 codedb.snapshot
 # Added by code-review-graph
 .code-review-graph/
+
+# LanceDB native artifacts (downloaded by scripts/lancedb-install.sh).
+# Binary blob per-platform — don't commit. See
+# internal/rag/doc/SPIKE_RESULT.md for the provisioning flow.
+.lancedb-native/
