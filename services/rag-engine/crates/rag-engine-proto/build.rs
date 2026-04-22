@@ -24,10 +24,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("cargo:rerun-if-changed={}", proto_file.display());
 
+    // Include path resolution:
+    //   * Our repo's proto/ directory (so `rag_engine.proto` is found).
+    //   * Google's well-known types (Timestamp et al). `protoc` bundles
+    //     these, but the include path it uses differs per distribution
+    //     (`/usr/include` on Debian when `libprotobuf-dev` is installed,
+    //     `<protoc-install>/include` on Homebrew, etc.). If the env var
+    //     `PROTOC_INCLUDE` is set we honour it; otherwise we fall back
+    //     to a short list of well-known locations and rely on `protoc`'s
+    //     own built-in descriptor for the rest.
+    let mut includes: Vec<std::path::PathBuf> = vec![proto_root.clone()];
+    if let Ok(extra) = env::var("PROTOC_INCLUDE") {
+        for p in extra.split(':') {
+            if !p.is_empty() {
+                includes.push(std::path::PathBuf::from(p));
+            }
+        }
+    }
+    for candidate in [
+        "/usr/include",
+        "/usr/local/include",
+        "/opt/homebrew/include",
+    ] {
+        let p = std::path::PathBuf::from(candidate);
+        if p.join("google/protobuf/timestamp.proto").exists() {
+            includes.push(p);
+        }
+    }
+
     tonic_build::configure()
         .build_server(true)
         .build_client(true)
-        .compile_protos(&[proto_file], &[proto_root])?;
+        .compile_protos(&[proto_file], &includes)?;
 
     Ok(())
 }

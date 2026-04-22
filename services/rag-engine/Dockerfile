@@ -8,7 +8,7 @@
 # the `proto/` directory (the `.proto` file is the build input to
 # `rag-engine-proto`'s build.rs) and the `services/rag-engine/` tree.
 
-ARG RUST_VERSION=1.82
+ARG RUST_VERSION=1.89
 
 # --- stage 1: chef -----------------------------------------------------
 FROM rust:${RUST_VERSION}-slim AS chef
@@ -16,6 +16,7 @@ WORKDIR /build
 RUN apt-get update && apt-get install -y --no-install-recommends \
         pkg-config \
         protobuf-compiler \
+        libprotobuf-dev \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 RUN cargo install cargo-chef --locked --version 0.1.68
