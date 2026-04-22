@@ -5,6 +5,16 @@ import (
 	"strings"
 )
 
+// The `Provider` column on each entry is a human-readable label used for
+// surfacing in the admin UI and for deriving a stable LanceDB dataset
+// name — it is NOT consulted at runtime to pick which embedder
+// implementation to invoke. Runtime selection is driven entirely by the
+// Rust rag-engine's `LLM_API_URL` / `LLM_API_KEY` / `LLM_MODEL` env vars
+// (see `services/rag-engine/DECISIONS.md` — "Tranche 2C refactor"). Any
+// provider speaking the OpenAI `/v1/embeddings` surface — SiliconFlow,
+// OpenRouter, Groq, OpenAI, Together — works with the same Rust code
+// path; the label here is for display and dataset namespacing only.
+
 // RegistryEntry is a single catalog row, in Go-side form. It mirrors the
 // persistent columns of model.RAGEmbeddingModel excluding auto-managed
 // timestamps. SeedRegistry translates these into DB rows and upserts
