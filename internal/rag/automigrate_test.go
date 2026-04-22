@@ -47,18 +47,18 @@ func TestAutoMigrate_CreatesEveryTable(t *testing.T) {
 	}
 
 	expected := []string{
-		"rag_connection_configs",
-		"rag_document_by_connections",
+		"rag_document_by_sources",
 		"rag_documents",
 		"rag_embedding_models",
 		"rag_external_identities",
 		"rag_external_user_groups",
-		"rag_hierarchy_node_by_connections",
+		"rag_hierarchy_node_by_sources",
 		"rag_hierarchy_nodes",
 		"rag_index_attempt_errors",
 		"rag_index_attempts",
 		"rag_public_external_user_groups",
 		"rag_search_settings",
+		"rag_sources",
 		"rag_sync_records",
 		"rag_sync_states",
 		"rag_user_external_user_groups",
@@ -115,14 +115,14 @@ func TestAutoMigrate_CreatesEveryExpectedIndex(t *testing.T) {
 		"idx_rag_document_org",
 		"idx_rag_hierarchy_node_org",
 		"idx_rag_hierarchy_node_source_type",
-		"idx_rag_doc_conn_connection",
-		"idx_rag_doc_conn_counts",
-		"idx_rag_hier_conn_connection",
+		"idx_rag_doc_source_source",
+		"idx_rag_doc_source_counts",
+		"idx_rag_hier_source_source",
 		"uq_rag_hierarchy_node_raw_id_source",
-		// 1B
-		"idx_rag_index_attempt_latest_for_conn",
-		"idx_rag_index_attempt_conn_model_updated",
-		"idx_rag_index_attempt_conn_model_poll",
+		// 1B — Phase 3A swap: source_ not conn_
+		"idx_rag_index_attempt_latest_for_source",
+		"idx_rag_index_attempt_source_model_updated",
+		"idx_rag_index_attempt_source_model_poll",
 		"idx_rag_index_attempt_active_coord",
 		"idx_rag_index_attempt_heartbeat",
 		"idx_rag_sync_record_entity_type_start",
@@ -130,16 +130,21 @@ func TestAutoMigrate_CreatesEveryExpectedIndex(t *testing.T) {
 		// 1C
 		"idx_rag_sync_state_org_status",
 		"idx_rag_sync_state_last_pruned",
-		"uq_rag_sync_state_in_connection_id",
+		"uq_rag_sync_state_rag_source_id",
 		// 1D
-		"idx_rag_user_external_group_conn_stale",
+		"idx_rag_user_external_group_source_stale",
 		"idx_rag_user_external_group_stale",
-		"idx_rag_public_external_group_conn_stale",
+		"idx_rag_public_external_group_source_stale",
 		"idx_rag_public_external_group_stale",
-		"uq_rag_external_user_group_conn_ext",
+		"uq_rag_external_user_group_source_ext",
 		// 1E
-		"uq_rag_external_identity_user_conn",
+		"uq_rag_external_identity_user_source",
 		"uq_rag_external_identity_provider_ext_id_org",
+		// 3A
+		"uq_rag_sources_in_connection",
+		"idx_rag_sources_org_status",
+		"idx_rag_sources_needs_ingest",
+		"idx_rag_sources_last_pruned",
 	}
 	for _, name := range mustExist {
 		if _, ok := byName[name]; !ok {
@@ -214,39 +219,42 @@ func TestAutoMigrate_AllFKConstraintsInPlace(t *testing.T) {
 
 	expected := map[key]val{
 		// 1A
-		{"rag_documents", "org_id"}:                  {"orgs", "CASCADE"},
+		{"rag_documents", "org_id"}:                   {"orgs", "CASCADE"},
 		{"rag_documents", "parent_hierarchy_node_id"}: {"rag_hierarchy_nodes", "SET NULL"},
-		{"rag_hierarchy_nodes", "org_id"}:            {"orgs", "CASCADE"},
-		{"rag_hierarchy_nodes", "document_id"}:       {"rag_documents", "SET NULL"},
-		{"rag_hierarchy_nodes", "parent_id"}:         {"rag_hierarchy_nodes", "SET NULL"},
-		{"rag_document_by_connections", "document_id"}:      {"rag_documents", "CASCADE"},
-		{"rag_document_by_connections", "in_connection_id"}: {"in_connections", "CASCADE"},
-		{"rag_hierarchy_node_by_connections", "hierarchy_node_id"}: {"rag_hierarchy_nodes", "CASCADE"},
-		{"rag_hierarchy_node_by_connections", "in_connection_id"}:  {"in_connections", "CASCADE"},
+		{"rag_hierarchy_nodes", "org_id"}:             {"orgs", "CASCADE"},
+		{"rag_hierarchy_nodes", "document_id"}:        {"rag_documents", "SET NULL"},
+		{"rag_hierarchy_nodes", "parent_id"}:          {"rag_hierarchy_nodes", "SET NULL"},
+		{"rag_document_by_sources", "document_id"}:    {"rag_documents", "CASCADE"},
+		// Phase 3A swap: in_connection_id → rag_source_id.
+		{"rag_document_by_sources", "rag_source_id"}:            {"rag_sources", "CASCADE"},
+		{"rag_hierarchy_node_by_sources", "hierarchy_node_id"}:  {"rag_hierarchy_nodes", "CASCADE"},
+		{"rag_hierarchy_node_by_sources", "rag_source_id"}:      {"rag_sources", "CASCADE"},
 		// 1B
 		{"rag_index_attempts", "org_id"}:                 {"orgs", "CASCADE"},
-		{"rag_index_attempts", "in_connection_id"}:       {"in_connections", "CASCADE"},
+		{"rag_index_attempts", "rag_source_id"}:          {"rag_sources", "CASCADE"},
 		{"rag_index_attempt_errors", "org_id"}:           {"orgs", "CASCADE"},
-		{"rag_index_attempt_errors", "in_connection_id"}: {"in_connections", "CASCADE"},
+		{"rag_index_attempt_errors", "rag_source_id"}:    {"rag_sources", "CASCADE"},
 		{"rag_index_attempt_errors", "index_attempt_id"}: {"rag_index_attempts", "CASCADE"},
 		{"rag_sync_records", "org_id"}:                   {"orgs", "CASCADE"},
 		// 1C
-		{"rag_sync_states", "org_id"}:                    {"orgs", "CASCADE"},
-		{"rag_sync_states", "in_connection_id"}:          {"in_connections", "CASCADE"},
-		{"rag_connection_configs", "org_id"}:             {"orgs", "CASCADE"},
-		{"rag_connection_configs", "in_connection_id"}:   {"in_connections", "CASCADE"},
-		{"rag_search_settings", "org_id"}:                {"orgs", "CASCADE"},
-		{"rag_search_settings", "embedding_model_id"}:    {"rag_embedding_models", "RESTRICT"},
+		{"rag_sync_states", "org_id"}:                 {"orgs", "CASCADE"},
+		{"rag_sync_states", "rag_source_id"}:          {"rag_sources", "CASCADE"},
+		{"rag_search_settings", "org_id"}:             {"orgs", "CASCADE"},
+		{"rag_search_settings", "embedding_model_id"}: {"rag_embedding_models", "RESTRICT"},
 		// 1D
-		{"rag_external_user_groups", "org_id"}:           {"orgs", "CASCADE"},
-		{"rag_external_user_groups", "in_connection_id"}: {"in_connections", "CASCADE"},
+		{"rag_external_user_groups", "org_id"}:               {"orgs", "CASCADE"},
+		{"rag_external_user_groups", "rag_source_id"}:        {"rag_sources", "CASCADE"},
 		{"rag_user_external_user_groups", "user_id"}:         {"users", "CASCADE"},
-		{"rag_user_external_user_groups", "in_connection_id"}: {"in_connections", "CASCADE"},
-		{"rag_public_external_user_groups", "in_connection_id"}: {"in_connections", "CASCADE"},
+		{"rag_user_external_user_groups", "rag_source_id"}:   {"rag_sources", "CASCADE"},
+		{"rag_public_external_user_groups", "rag_source_id"}: {"rag_sources", "CASCADE"},
 		// 1E
-		{"rag_external_identities", "org_id"}:            {"orgs", "CASCADE"},
-		{"rag_external_identities", "user_id"}:           {"users", "CASCADE"},
-		{"rag_external_identities", "in_connection_id"}:  {"in_connections", "CASCADE"},
+		{"rag_external_identities", "org_id"}:         {"orgs", "CASCADE"},
+		{"rag_external_identities", "user_id"}:        {"users", "CASCADE"},
+		{"rag_external_identities", "rag_source_id"}:  {"rag_sources", "CASCADE"},
+		// 3A
+		{"rag_sources", "org_id"}:           {"orgs", "CASCADE"},
+		{"rag_sources", "in_connection_id"}: {"in_connections", "CASCADE"},
+		{"rag_sources", "creator_id"}:       {"users", "SET NULL"},
 	}
 
 	for k, wantV := range expected {
@@ -311,6 +319,7 @@ func TestAutoMigrate_OrgFullCascadeDelete(t *testing.T) {
 	user := testhelpers.NewTestUser(t, db, org.ID)
 	integ := testhelpers.NewTestInIntegration(t, db, "github")
 	conn := testhelpers.NewTestInConnection(t, db, org.ID, user.ID, integ.ID)
+	src := testhelpers.NewTestRAGSource(t, db, org.ID, conn.ID)
 
 	// RAGDocument
 	doc := &ragmodel.RAGDocument{
@@ -335,30 +344,30 @@ func TestAutoMigrate_OrgFullCascadeDelete(t *testing.T) {
 		t.Fatalf("create node: %v", err)
 	}
 
-	// RAGDocumentByConnection
-	dbc := &ragmodel.RAGDocumentByConnection{
+	// RAGDocumentBySource
+	dbc := &ragmodel.RAGDocumentBySource{
 		DocumentID:     doc.ID,
-		InConnectionID: conn.ID,
+		RAGSourceID:    src.ID,
 		HasBeenIndexed: false,
 	}
 	if err := db.Create(dbc).Error; err != nil {
-		t.Fatalf("create doc-by-conn: %v", err)
+		t.Fatalf("create doc-by-source: %v", err)
 	}
 
-	// RAGHierarchyNodeByConnection
-	hbc := &ragmodel.RAGHierarchyNodeByConnection{
+	// RAGHierarchyNodeBySource
+	hbc := &ragmodel.RAGHierarchyNodeBySource{
 		HierarchyNodeID: node.ID,
-		InConnectionID:  conn.ID,
+		RAGSourceID:     src.ID,
 	}
 	if err := db.Create(hbc).Error; err != nil {
-		t.Fatalf("create hier-by-conn: %v", err)
+		t.Fatalf("create hier-by-source: %v", err)
 	}
 
 	// RAGIndexAttempt + error
 	attempt := &ragmodel.RAGIndexAttempt{
-		OrgID:          org.ID,
-		InConnectionID: conn.ID,
-		Status:         ragmodel.IndexingStatusNotStarted,
+		OrgID:       org.ID,
+		RAGSourceID: src.ID,
+		Status:      ragmodel.IndexingStatusNotStarted,
 	}
 	if err := db.Create(attempt).Error; err != nil {
 		t.Fatalf("create attempt: %v", err)
@@ -366,7 +375,7 @@ func TestAutoMigrate_OrgFullCascadeDelete(t *testing.T) {
 	iaErr := &ragmodel.RAGIndexAttemptError{
 		OrgID:          org.ID,
 		IndexAttemptID: attempt.ID,
-		InConnectionID: conn.ID,
+		RAGSourceID:    src.ID,
 		FailureMessage: "synthetic failure for cascade test",
 	}
 	if err := db.Create(iaErr).Error; err != nil {
@@ -388,22 +397,13 @@ func TestAutoMigrate_OrgFullCascadeDelete(t *testing.T) {
 	// RAGSyncState
 	ss := &ragmodel.RAGSyncState{
 		OrgID:          org.ID,
-		InConnectionID: conn.ID,
+		RAGSourceID:    src.ID,
 		Status:         ragmodel.RAGConnectionStatusActive,
 		AccessType:     ragmodel.AccessTypePrivate,
 		ProcessingMode: ragmodel.ProcessingModeRegular,
 	}
 	if err := db.Create(ss).Error; err != nil {
 		t.Fatalf("create sync state: %v", err)
-	}
-
-	// RAGConnectionConfig
-	cc := &ragmodel.RAGConnectionConfig{
-		InConnectionID: conn.ID,
-		OrgID:          org.ID,
-	}
-	if err := db.Create(cc).Error; err != nil {
-		t.Fatalf("create conn config: %v", err)
 	}
 
 	// RAGSearchSettings — need a real embedding model id from seed.
@@ -421,7 +421,7 @@ func TestAutoMigrate_OrgFullCascadeDelete(t *testing.T) {
 	// RAGExternalUserGroup
 	eug := &ragmodel.RAGExternalUserGroup{
 		OrgID:               org.ID,
-		InConnectionID:      conn.ID,
+		RAGSourceID:         src.ID,
 		ExternalUserGroupID: "github_backend-cascade-" + uuid.NewString(),
 		DisplayName:         "Backend",
 	}
@@ -433,7 +433,7 @@ func TestAutoMigrate_OrgFullCascadeDelete(t *testing.T) {
 	uug := &ragmodel.RAGUserExternalUserGroup{
 		UserID:              user.ID,
 		ExternalUserGroupID: eug.ExternalUserGroupID,
-		InConnectionID:      conn.ID,
+		RAGSourceID:         src.ID,
 	}
 	if err := db.Create(uug).Error; err != nil {
 		t.Fatalf("create user-external-group: %v", err)
@@ -442,7 +442,7 @@ func TestAutoMigrate_OrgFullCascadeDelete(t *testing.T) {
 	// RAGPublicExternalUserGroup
 	pug := &ragmodel.RAGPublicExternalUserGroup{
 		ExternalUserGroupID: "github_public-cascade-" + uuid.NewString(),
-		InConnectionID:      conn.ID,
+		RAGSourceID:         src.ID,
 	}
 	if err := db.Create(pug).Error; err != nil {
 		t.Fatalf("create public-external-group: %v", err)
@@ -452,7 +452,7 @@ func TestAutoMigrate_OrgFullCascadeDelete(t *testing.T) {
 	ident := &ragmodel.RAGExternalIdentity{
 		OrgID:              org.ID,
 		UserID:             user.ID,
-		InConnectionID:     conn.ID,
+		RAGSourceID:        src.ID,
 		Provider:           "github",
 		ExternalUserID:     "gh-" + uuid.NewString(),
 		ExternalUserEmails: pq.StringArray{"alice@example.com"},
@@ -461,10 +461,10 @@ func TestAutoMigrate_OrgFullCascadeDelete(t *testing.T) {
 		t.Fatalf("create external identity: %v", err)
 	}
 
-	// Snapshot the conn.ID before deleting org — after cascade,
-	// in_connections cascades off org, which cascades into all the RAG
-	// junction tables that don't carry org_id directly.
-	connID := conn.ID
+	// Snapshot the src.ID before deleting org — after cascade,
+	// rag_sources cascades off org, which cascades into every RAG
+	// junction table that keys off rag_source_id.
+	srcID := src.ID
 
 	// Hiveloop's own orgs → org_memberships FK does NOT cascade
 	// (owned by internal/model, not our concern). Remove memberships
@@ -479,7 +479,7 @@ func TestAutoMigrate_OrgFullCascadeDelete(t *testing.T) {
 	}
 
 	// Now verify every RAG row is gone. Query by org_id where it exists,
-	// by in_connection_id where it doesn't.
+	// by rag_source_id where it doesn't.
 	checks := []struct {
 		table string
 		where string
@@ -487,17 +487,17 @@ func TestAutoMigrate_OrgFullCascadeDelete(t *testing.T) {
 	}{
 		{"rag_documents", "org_id = ?", []any{org.ID}},
 		{"rag_hierarchy_nodes", "org_id = ?", []any{org.ID}},
-		{"rag_document_by_connections", "in_connection_id = ?", []any{connID}},
-		{"rag_hierarchy_node_by_connections", "in_connection_id = ?", []any{connID}},
+		{"rag_document_by_sources", "rag_source_id = ?", []any{srcID}},
+		{"rag_hierarchy_node_by_sources", "rag_source_id = ?", []any{srcID}},
 		{"rag_index_attempts", "org_id = ?", []any{org.ID}},
 		{"rag_index_attempt_errors", "org_id = ?", []any{org.ID}},
 		{"rag_sync_records", "org_id = ?", []any{org.ID}},
 		{"rag_sync_states", "org_id = ?", []any{org.ID}},
-		{"rag_connection_configs", "org_id = ?", []any{org.ID}},
+		{"rag_sources", "org_id = ?", []any{org.ID}},
 		{"rag_search_settings", "org_id = ?", []any{org.ID}},
 		{"rag_external_user_groups", "org_id = ?", []any{org.ID}},
-		{"rag_user_external_user_groups", "in_connection_id = ?", []any{connID}},
-		{"rag_public_external_user_groups", "in_connection_id = ?", []any{connID}},
+		{"rag_user_external_user_groups", "rag_source_id = ?", []any{srcID}},
+		{"rag_public_external_user_groups", "rag_source_id = ?", []any{srcID}},
 		{"rag_external_identities", "org_id = ?", []any{org.ID}},
 	}
 	for _, c := range checks {
@@ -611,6 +611,7 @@ func TestAutoMigrate_PartialIndexActuallyUsed_Watchdog(t *testing.T) {
 	user := testhelpers.NewTestUser(t, db, org.ID)
 	integ := testhelpers.NewTestInIntegration(t, db, "github")
 	conn := testhelpers.NewTestInConnection(t, db, org.ID, user.ID, integ.ID)
+	src := testhelpers.NewTestRAGSource(t, db, org.ID, conn.ID)
 
 	stale := time.Now().Add(-1 * time.Hour)
 	fresh := time.Now()
@@ -621,9 +622,9 @@ func TestAutoMigrate_PartialIndexActuallyUsed_Watchdog(t *testing.T) {
 	// reliably picks it once enable_seqscan is off.
 	for i := 0; i < 1000; i++ {
 		a := &ragmodel.RAGIndexAttempt{
-			OrgID:          org.ID,
-			InConnectionID: conn.ID,
-			Status:         ragmodel.IndexingStatusSuccess, // majority branch, misses partial
+			OrgID:       org.ID,
+			RAGSourceID: src.ID,
+			Status:      ragmodel.IndexingStatusSuccess, // majority branch, misses partial
 		}
 		if i%20 == 0 {
 			a.Status = ragmodel.IndexingStatusInProgress

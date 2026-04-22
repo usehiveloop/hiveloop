@@ -34,13 +34,14 @@ func setupExternalGroupSchema(t *testing.T) (*gorm.DB, uuid.UUID, uuid.UUID, uui
 	user := testhelpers.NewTestUser(t, db, org.ID)
 	integ := testhelpers.NewTestInIntegration(t, db, "github")
 	conn := testhelpers.NewTestInConnection(t, db, org.ID, user.ID, integ.ID)
-	// Belt-and-suspenders cleanup of 1D tables for this connection.
+	src := testhelpers.NewTestRAGSource(t, db, org.ID, conn.ID)
+	// Belt-and-suspenders cleanup of 1D tables for this source.
 	t.Cleanup(func() {
-		db.Where("in_connection_id = ?", conn.ID).Delete(&model.RAGExternalUserGroup{})
-		db.Where("in_connection_id = ?", conn.ID).Delete(&model.RAGUserExternalUserGroup{})
-		db.Where("in_connection_id = ?", conn.ID).Delete(&model.RAGPublicExternalUserGroup{})
+		db.Where("rag_source_id = ?", src.ID).Delete(&model.RAGExternalUserGroup{})
+		db.Where("rag_source_id = ?", src.ID).Delete(&model.RAGUserExternalUserGroup{})
+		db.Where("rag_source_id = ?", src.ID).Delete(&model.RAGPublicExternalUserGroup{})
 	})
-	return db, org.ID, user.ID, conn.ID
+	return db, org.ID, user.ID, src.ID
 }
 
 // ---------------------------------------------------------------------
@@ -52,7 +53,7 @@ func TestRAGExternalUserGroup_UniquePerConnection(t *testing.T) {
 
 	base := model.RAGExternalUserGroup{
 		OrgID:               orgID,
-		InConnectionID:      connID,
+		RAGSourceID:         connID,
 		ExternalUserGroupID: "github_backend",
 		DisplayName:         "Backend",
 		MemberEmails:        pq.StringArray{"a@x.com"},
@@ -64,30 +65,30 @@ func TestRAGExternalUserGroup_UniquePerConnection(t *testing.T) {
 		t.Fatalf("first insert: %v", err)
 	}
 
-	// Same (in_connection_id, external_user_group_id) must violate
+	// Same (rag_source_id, external_user_group_id) must violate
 	// uq_rag_external_user_group_conn_ext.
 	dup := model.RAGExternalUserGroup{
 		OrgID:               orgID,
-		InConnectionID:      connID,
+		RAGSourceID:         connID,
 		ExternalUserGroupID: "github_backend",
 		DisplayName:         "Backend (duplicate)",
 		UpdatedAt:           time.Now(),
 	}
 	err := db.Create(&dup).Error
 	if err == nil {
-		t.Fatal("expected unique-violation on duplicate (in_connection_id, external_user_group_id), got nil")
+		t.Fatal("expected unique-violation on duplicate (rag_source_id, external_user_group_id), got nil")
 	}
 	if !strings.Contains(strings.ToLower(err.Error()), "duplicate") && !strings.Contains(strings.ToLower(err.Error()), "unique") {
 		t.Fatalf("expected a duplicate/unique error, got %v", err)
 	}
 }
 
-func TestRAGExternalUserGroup_InConnectionCascade(t *testing.T) {
+func TestRAGExternalUserGroup_RAGSourceCascade(t *testing.T) {
 	db, orgID, _, connID := setupExternalGroupSchema(t)
 
 	row := model.RAGExternalUserGroup{
 		OrgID:               orgID,
-		InConnectionID:      connID,
+		RAGSourceID:         connID,
 		ExternalUserGroupID: "github_frontend",
 		DisplayName:         "Frontend",
 		UpdatedAt:           time.Now(),
@@ -96,10 +97,10 @@ func TestRAGExternalUserGroup_InConnectionCascade(t *testing.T) {
 		t.Fatalf("create: %v", err)
 	}
 
-	// Delete the InConnection row directly. Cascade should drop the
+	// Delete the RAGSource row directly. Cascade should drop the
 	// external-user-group row.
-	if err := db.Exec(`DELETE FROM in_connections WHERE id = ?`, connID).Error; err != nil {
-		t.Fatalf("delete InConnection: %v", err)
+	if err := db.Exec(`DELETE FROM rag_sources WHERE id = ?`, connID).Error; err != nil {
+		t.Fatalf("delete RAGSource: %v", err)
 	}
 
 	var remaining int64
@@ -123,7 +124,7 @@ func TestRAGUserExternalUserGroup_CompositePK(t *testing.T) {
 	row := model.RAGUserExternalUserGroup{
 		UserID:              userID,
 		ExternalUserGroupID: "github_backend",
-		InConnectionID:      connID,
+		RAGSourceID:         connID,
 	}
 	if err := db.Create(&row).Error; err != nil {
 		t.Fatalf("first insert: %v", err)
@@ -131,7 +132,7 @@ func TestRAGUserExternalUserGroup_CompositePK(t *testing.T) {
 	// Same triple must collide on the composite PK.
 	err := db.Create(&row).Error
 	if err == nil {
-		t.Fatal("expected PK violation on duplicate (user_id, external_user_group_id, in_connection_id), got nil")
+		t.Fatal("expected PK violation on duplicate (user_id, external_user_group_id, rag_source_id), got nil")
 	}
 	if !strings.Contains(strings.ToLower(err.Error()), "duplicate") && !strings.Contains(strings.ToLower(err.Error()), "unique") {
 		t.Fatalf("expected a duplicate/unique error, got %v", err)
@@ -159,9 +160,9 @@ func TestRAGUserExternalUserGroup_StaleSweepPattern(t *testing.T) {
 
 	// 1. Seed the prior-sync snapshot.
 	seed := []model.RAGUserExternalUserGroup{
-		{UserID: userID, ExternalUserGroupID: "github_old_a", InConnectionID: connID, Stale: false},
-		{UserID: userID, ExternalUserGroupID: "github_old_b", InConnectionID: connID, Stale: false},
-		{UserID: userID, ExternalUserGroupID: "github_keep", InConnectionID: connID, Stale: false},
+		{UserID: userID, ExternalUserGroupID: "github_old_a", RAGSourceID: connID, Stale: false},
+		{UserID: userID, ExternalUserGroupID: "github_old_b", RAGSourceID: connID, Stale: false},
+		{UserID: userID, ExternalUserGroupID: "github_keep", RAGSourceID: connID, Stale: false},
 	}
 	for i := range seed {
 		if err := db.Create(&seed[i]).Error; err != nil {
@@ -173,7 +174,7 @@ func TestRAGUserExternalUserGroup_StaleSweepPattern(t *testing.T) {
 	if err := db.Exec(`
 		UPDATE rag_user_external_user_groups
 		SET stale = true
-		WHERE in_connection_id = ?
+		WHERE rag_source_id = ?
 	`, connID).Error; err != nil {
 		t.Fatalf("bulk stale update: %v", err)
 	}
@@ -181,7 +182,7 @@ func TestRAGUserExternalUserGroup_StaleSweepPattern(t *testing.T) {
 	// All 3 rows should now be stale.
 	var staleBefore int64
 	db.Model(&model.RAGUserExternalUserGroup{}).
-		Where("in_connection_id = ? AND stale = true", connID).
+		Where("rag_source_id = ? AND stale = true", connID).
 		Count(&staleBefore)
 	if staleBefore != 3 {
 		t.Fatalf("post-stale-update: expected 3 stale rows, got %d", staleBefore)
@@ -192,15 +193,15 @@ func TestRAGUserExternalUserGroup_StaleSweepPattern(t *testing.T) {
 	//    must flip back from stale=true to stale=false; the new row
 	//    must be inserted with stale=false.
 	fresh := []model.RAGUserExternalUserGroup{
-		{UserID: userID, ExternalUserGroupID: "github_keep", InConnectionID: connID, Stale: false},
-		{UserID: userID, ExternalUserGroupID: "github_new", InConnectionID: connID, Stale: false},
+		{UserID: userID, ExternalUserGroupID: "github_keep", RAGSourceID: connID, Stale: false},
+		{UserID: userID, ExternalUserGroupID: "github_new", RAGSourceID: connID, Stale: false},
 	}
 	for i := range fresh {
 		if err := db.Clauses(clause.OnConflict{
 			Columns: []clause.Column{
 				{Name: "user_id"},
 				{Name: "external_user_group_id"},
-				{Name: "in_connection_id"},
+				{Name: "rag_source_id"},
 			},
 			DoUpdates: clause.AssignmentColumns([]string{"stale"}),
 		}).Create(&fresh[i]).Error; err != nil {
@@ -211,14 +212,14 @@ func TestRAGUserExternalUserGroup_StaleSweepPattern(t *testing.T) {
 	// 4. Sync end: sweep remaining stale rows.
 	if err := db.Exec(`
 		DELETE FROM rag_user_external_user_groups
-		WHERE in_connection_id = ? AND stale = true
+		WHERE rag_source_id = ? AND stale = true
 	`, connID).Error; err != nil {
 		t.Fatalf("sweep: %v", err)
 	}
 
 	// Verify the final state.
 	var survivors []model.RAGUserExternalUserGroup
-	if err := db.Where("in_connection_id = ?", connID).
+	if err := db.Where("rag_source_id = ?", connID).
 		Order("external_user_group_id").
 		Find(&survivors).Error; err != nil {
 		t.Fatalf("read survivors: %v", err)
@@ -240,7 +241,7 @@ func TestRAGUserExternalUserGroup_StaleSweepPattern(t *testing.T) {
 	// Explicit: the old non-overlapping rows are gone.
 	var oldRemaining int64
 	db.Model(&model.RAGUserExternalUserGroup{}).
-		Where("in_connection_id = ? AND external_user_group_id IN ?", connID, []string{"github_old_a", "github_old_b"}).
+		Where("rag_source_id = ? AND external_user_group_id IN ?", connID, []string{"github_old_a", "github_old_b"}).
 		Count(&oldRemaining)
 	if oldRemaining != 0 {
 		t.Fatalf("expected 0 of the old-stale rows to remain, got %d", oldRemaining)
@@ -259,9 +260,9 @@ func TestRAGPublicExternalUserGroup_StaleSweepPattern(t *testing.T) {
 	db, _, _, connID := setupExternalGroupSchema(t)
 
 	seed := []model.RAGPublicExternalUserGroup{
-		{ExternalUserGroupID: "gdrive_public_a", InConnectionID: connID, Stale: false},
-		{ExternalUserGroupID: "gdrive_public_b", InConnectionID: connID, Stale: false},
-		{ExternalUserGroupID: "gdrive_public_keep", InConnectionID: connID, Stale: false},
+		{ExternalUserGroupID: "gdrive_public_a", RAGSourceID: connID, Stale: false},
+		{ExternalUserGroupID: "gdrive_public_b", RAGSourceID: connID, Stale: false},
+		{ExternalUserGroupID: "gdrive_public_keep", RAGSourceID: connID, Stale: false},
 	}
 	for i := range seed {
 		if err := db.Create(&seed[i]).Error; err != nil {
@@ -272,20 +273,20 @@ func TestRAGPublicExternalUserGroup_StaleSweepPattern(t *testing.T) {
 	if err := db.Exec(`
 		UPDATE rag_public_external_user_groups
 		SET stale = true
-		WHERE in_connection_id = ?
+		WHERE rag_source_id = ?
 	`, connID).Error; err != nil {
 		t.Fatalf("bulk stale: %v", err)
 	}
 
 	fresh := []model.RAGPublicExternalUserGroup{
-		{ExternalUserGroupID: "gdrive_public_keep", InConnectionID: connID, Stale: false},
-		{ExternalUserGroupID: "gdrive_public_new", InConnectionID: connID, Stale: false},
+		{ExternalUserGroupID: "gdrive_public_keep", RAGSourceID: connID, Stale: false},
+		{ExternalUserGroupID: "gdrive_public_new", RAGSourceID: connID, Stale: false},
 	}
 	for i := range fresh {
 		if err := db.Clauses(clause.OnConflict{
 			Columns: []clause.Column{
 				{Name: "external_user_group_id"},
-				{Name: "in_connection_id"},
+				{Name: "rag_source_id"},
 			},
 			DoUpdates: clause.AssignmentColumns([]string{"stale"}),
 		}).Create(&fresh[i]).Error; err != nil {
@@ -295,13 +296,13 @@ func TestRAGPublicExternalUserGroup_StaleSweepPattern(t *testing.T) {
 
 	if err := db.Exec(`
 		DELETE FROM rag_public_external_user_groups
-		WHERE in_connection_id = ? AND stale = true
+		WHERE rag_source_id = ? AND stale = true
 	`, connID).Error; err != nil {
 		t.Fatalf("sweep: %v", err)
 	}
 
 	var survivors []model.RAGPublicExternalUserGroup
-	if err := db.Where("in_connection_id = ?", connID).
+	if err := db.Where("rag_source_id = ?", connID).
 		Order("external_user_group_id").
 		Find(&survivors).Error; err != nil {
 		t.Fatalf("read survivors: %v", err)
@@ -321,24 +322,24 @@ func TestRAGPublicExternalUserGroup_StaleSweepPattern(t *testing.T) {
 	}
 }
 
-func TestRAGPublicExternalUserGroup_InConnectionCascade(t *testing.T) {
+func TestRAGPublicExternalUserGroup_RAGSourceCascade(t *testing.T) {
 	db, _, _, connID := setupExternalGroupSchema(t)
 
 	row := model.RAGPublicExternalUserGroup{
 		ExternalUserGroupID: "gdrive_public_share_x",
-		InConnectionID:      connID,
+		RAGSourceID:         connID,
 	}
 	if err := db.Create(&row).Error; err != nil {
 		t.Fatalf("create: %v", err)
 	}
 
-	if err := db.Exec(`DELETE FROM in_connections WHERE id = ?`, connID).Error; err != nil {
-		t.Fatalf("delete InConnection: %v", err)
+	if err := db.Exec(`DELETE FROM rag_sources WHERE id = ?`, connID).Error; err != nil {
+		t.Fatalf("delete RAGSource: %v", err)
 	}
 
 	var remaining int64
 	if err := db.Model(&model.RAGPublicExternalUserGroup{}).
-		Where("external_user_group_id = ? AND in_connection_id = ?", "gdrive_public_share_x", connID).
+		Where("external_user_group_id = ? AND rag_source_id = ?", "gdrive_public_share_x", connID).
 		Count(&remaining).Error; err != nil {
 		t.Fatalf("count: %v", err)
 	}
