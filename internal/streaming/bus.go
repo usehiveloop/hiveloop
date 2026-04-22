@@ -1,14 +1,29 @@
 // Package streaming provides real-time event delivery via Redis Streams.
 // Events are published by webhook handlers and consumed by SSE subscribers
 // and a background DB flusher.
+//
+// Subscriber fan-out:
+//
+// Each pod runs at most one XREAD BLOCK loop per conversation, regardless of
+// how many SSE subscribers are watching that conversation. Subscribers attach
+// to an in-process "tap" that forwards every new event to every attached
+// subscriber. This keeps Redis connections bounded by the number of active
+// conversations viewed on the pod, not by the number of viewers.
+//
+// Each subscriber still gets correct backfill from its requested cursor via a
+// synchronous XRANGE up to the tap's cursor at attach time; the tap only
+// forwards events that arrive after the subscriber attached. There are no
+// duplicates and no gaps.
 package streaming
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -21,10 +36,34 @@ type StreamEvent struct {
 	Data      json.RawMessage // Raw JSON payload
 }
 
+// subscriber is one attached consumer of a convTap.
+type subscriber struct {
+	ch      chan StreamEvent // tap -> subscriber drain goroutine
+	evicted chan struct{}    // closed by tap when subscriber is dropped (slow consumer)
+}
+
+// convTap is the single XREAD BLOCK loop for one conversation on this pod.
+// Multiple subscribers can attach; each receives every new event.
+type convTap struct {
+	bus         *EventBus
+	convID      string
+	streamKey   string
+	stopCtx     context.Context
+	cancel      context.CancelFunc
+	done        chan struct{}
+
+	mu          sync.Mutex
+	cursor      string                      // last entry ID the tap has read (advances monotonically)
+	subscribers map[*subscriber]struct{}
+}
+
 // EventBus publishes and subscribes to conversation events via Redis Streams.
 type EventBus struct {
 	redis  *redis.Client
 	prefix string // stream key prefix, e.g., "conv:"
+
+	tapsMu sync.Mutex
+	taps   map[string]*convTap
 }
 
 // NewEventBus creates a new EventBus.
@@ -32,6 +71,7 @@ func NewEventBus(redisClient *redis.Client) *EventBus {
 	return &EventBus{
 		redis:  redisClient,
 		prefix: "conv:",
+		taps:   make(map[string]*convTap),
 	}
 }
 
@@ -69,13 +109,24 @@ func (b *EventBus) Publish(ctx context.Context, convID string, eventType string,
 
 // Subscribe returns a channel that yields events from a conversation stream.
 // cursor controls the starting point:
+//   - ""  = replay all events in the stream (legacy default, treated as "0")
 //   - "0" = replay all events in the stream
 //   - "$" = only new events from this point forward
 //   - a specific entry ID = resume from after that entry
 //
-// The channel is closed when the context is cancelled.
+// Under the hood, subscribers on the same conversation on the same pod share
+// a single XREAD BLOCK loop. Each subscriber receives its own backfill from
+// the requested cursor and then the same live event stream.
+//
+// The returned channel is closed when the context is cancelled or when the
+// subscriber is evicted for being slow (its 64-buffer filled).
 func (b *EventBus) Subscribe(ctx context.Context, convID string, cursor string) <-chan StreamEvent {
-	ch := make(chan StreamEvent, 64)
+	userCh := make(chan StreamEvent, 64)
+
+	backfillFrom := cursor
+	if backfillFrom == "" {
+		backfillFrom = "0" // legacy default: replay everything
+	}
 
 	go func() {
 		defer func() {
@@ -86,78 +137,283 @@ func (b *EventBus) Subscribe(ctx context.Context, convID string, cursor string) 
 					"stack", string(debug.Stack()),
 				)
 			}
-			close(ch)
+			closeChannelSafely(userCh)
 		}()
 
-		pos := cursor
-		if pos == "" {
-			pos = "0" // replay everything by default
+		// 1. Attach to the conversation's tap. attachCursor is a snapshot of
+		//    the tap's cursor at the moment we attached — the tap will only
+		//    forward events with ID > attachCursor to us.
+		tap, err := b.getOrCreateTap(convID)
+		if err != nil {
+			slog.Error("eventbus.Subscribe: failed to create tap",
+				"conversation_id", convID, "error", err)
+			return
 		}
+		sub, attachCursor := tap.attach()
+		defer b.detachSubscriber(convID, tap, sub)
 
-		streamKey := b.streamKey(convID)
-		slog.Info("eventbus.Subscribe: started",
-			"stream_key", streamKey,
-			"cursor", pos,
+		slog.Info("eventbus.Subscribe: attached",
+			"stream_key", tap.streamKey,
+			"cursor", backfillFrom,
+			"attach_cursor", attachCursor,
 			"conversation_id", convID,
 		)
-		pollCount := 0
 
-		for {
-			select {
-			case <-ctx.Done():
-				slog.Info("eventbus.Subscribe: context cancelled",
-					"stream_key", streamKey,
-					"polls", pollCount,
-				)
-				return
-			default:
-			}
-
-			pollCount++
-			streams, err := b.redis.XRead(ctx, &redis.XReadArgs{
-				Streams: []string{streamKey, pos},
-				Block:   5 * time.Second,
-				Count:   50,
-			}).Result()
-			if err != nil {
-				if err == redis.Nil || err == context.Canceled || err == context.DeadlineExceeded {
-					if pollCount%12 == 0 { // log every ~60s
-						slog.Info("eventbus.Subscribe: still waiting",
-							"stream_key", streamKey,
-							"polls", pollCount,
-							"cursor", pos,
-						)
-					}
-					continue
-				}
+		// 2. Backfill: read events from backfillFrom up to attachCursor
+		//    (inclusive) and deliver them in order. The tap will pick up
+		//    from attachCursor + 1 onwards. No duplicates, no gaps.
+		if backfillFrom != "$" {
+			if err := b.backfill(ctx, convID, backfillFrom, attachCursor, userCh); err != nil {
 				if ctx.Err() != nil {
 					return
 				}
-				slog.Error("XREAD error", "conversation_id", convID, "error", err)
-				time.Sleep(500 * time.Millisecond)
-				continue
+				slog.Warn("eventbus.Subscribe: backfill error",
+					"conversation_id", convID, "error", err)
 			}
+		}
 
-			for _, stream := range streams {
-				for _, msg := range stream.Messages {
-					event := StreamEvent{
-						ID:        msg.ID,
-						EventType: msg.Values["event_type"].(string),
-						Data:      json.RawMessage(msg.Values["data"].(string)),
-					}
-
-					select {
-					case ch <- event:
-						pos = msg.ID
-					case <-ctx.Done():
-						return
-					}
+		// 3. Drain live events from the tap until the subscriber is cancelled
+		//    or evicted.
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-sub.evicted:
+				slog.Warn("eventbus.Subscribe: evicted (slow consumer)",
+					"conversation_id", convID)
+				return
+			case evt, ok := <-sub.ch:
+				if !ok {
+					return
+				}
+				select {
+				case userCh <- evt:
+				case <-ctx.Done():
+					return
 				}
 			}
 		}
 	}()
 
-	return ch
+	return userCh
+}
+
+// backfill delivers stream entries strictly greater than `from` and
+// less-than-or-equal to `upTo` into out. If upTo is "" or "0-0" (empty
+// stream), nothing is delivered. The anchor entry (the one matching `from`
+// exactly) is skipped so callers that pass their last-seen ID don't see it
+// again.
+func (b *EventBus) backfill(ctx context.Context, convID, from, upTo string, out chan<- StreamEvent) error {
+	// Empty stream: nothing to backfill.
+	if upTo == "" || upTo == "0-0" {
+		return nil
+	}
+
+	start := from
+	if start == "" || start == "0" {
+		start = "-" // XRANGE: "-" means beginning of stream
+	}
+
+	msgs, err := b.redis.XRange(ctx, b.streamKey(convID), start, upTo).Result()
+	if err != nil {
+		return fmt.Errorf("backfill XRANGE: %w", err)
+	}
+
+	for _, msg := range msgs {
+		// XRANGE is inclusive on both ends. Skip the anchor entry if the
+		// caller supplied a real entry ID (they already saw it).
+		if msg.ID == from && from != "" && from != "0" && from != "-" {
+			continue
+		}
+
+		evt := StreamEvent{
+			ID:        msg.ID,
+			EventType: msgStringField(msg.Values, "event_type"),
+			Data:      json.RawMessage(msgStringField(msg.Values, "data")),
+		}
+
+		select {
+		case out <- evt:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return nil
+}
+
+// getOrCreateTap returns the tap for convID, spawning it if necessary.
+func (b *EventBus) getOrCreateTap(convID string) (*convTap, error) {
+	b.tapsMu.Lock()
+	defer b.tapsMu.Unlock()
+
+	if tap, ok := b.taps[convID]; ok {
+		return tap, nil
+	}
+
+	streamKey := b.streamKey(convID)
+
+	// Seed the tap's starting cursor with the current last entry of the
+	// stream so XREAD picks up only genuinely new events. "0-0" is used when
+	// the stream is empty; XREAD accepts it and returns every future entry.
+	startCursor := "0-0"
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	if res, err := b.redis.XRevRangeN(ctx, streamKey, "+", "-", 1).Result(); err == nil && len(res) > 0 {
+		startCursor = res[0].ID
+	}
+	cancel()
+
+	tapCtx, tapCancel := context.WithCancel(context.Background())
+	tap := &convTap{
+		bus:         b,
+		convID:      convID,
+		streamKey:   streamKey,
+		stopCtx:     tapCtx,
+		cancel:      tapCancel,
+		done:        make(chan struct{}),
+		cursor:      startCursor,
+		subscribers: make(map[*subscriber]struct{}),
+	}
+	b.taps[convID] = tap
+	go tap.run()
+	return tap, nil
+}
+
+// detachSubscriber removes sub from tap and tears the tap down if no
+// subscribers remain.
+func (b *EventBus) detachSubscriber(convID string, tap *convTap, sub *subscriber) {
+	tap.mu.Lock()
+	delete(tap.subscribers, sub)
+	empty := len(tap.subscribers) == 0
+	tap.mu.Unlock()
+
+	if !empty {
+		return
+	}
+
+	// Only remove the tap from the registry if it's still the current one
+	// for this convID (protects against racing recreation).
+	b.tapsMu.Lock()
+	if cur, ok := b.taps[convID]; ok && cur == tap {
+		delete(b.taps, convID)
+	}
+	b.tapsMu.Unlock()
+
+	tap.cancel()
+	<-tap.done
+}
+
+// ActiveTaps returns the number of live conversation taps. Intended for tests
+// and observability.
+func (b *EventBus) ActiveTaps() int {
+	b.tapsMu.Lock()
+	defer b.tapsMu.Unlock()
+	return len(b.taps)
+}
+
+// attach registers a new subscriber with the tap and returns its subscriber
+// handle plus the tap's current cursor snapshot.
+func (t *convTap) attach() (*subscriber, string) {
+	sub := &subscriber{
+		ch:      make(chan StreamEvent, 64),
+		evicted: make(chan struct{}),
+	}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.subscribers[sub] = struct{}{}
+	return sub, t.cursor
+}
+
+// run is the single XREAD BLOCK loop for this conversation.
+func (t *convTap) run() {
+	defer close(t.done)
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("conv tap panicked",
+				"conversation_id", t.convID,
+				"panic", r,
+				"stack", string(debug.Stack()),
+			)
+		}
+		// Close all attached subscribers when the tap exits.
+		t.mu.Lock()
+		for s := range t.subscribers {
+			closeChannelSafely(s.ch)
+		}
+		t.subscribers = nil
+		t.mu.Unlock()
+	}()
+
+	slog.Info("conv tap started",
+		"stream_key", t.streamKey,
+		"conversation_id", t.convID,
+		"start_cursor", t.cursor,
+	)
+
+	for {
+		if t.stopCtx.Err() != nil {
+			return
+		}
+
+		t.mu.Lock()
+		pos := t.cursor
+		t.mu.Unlock()
+
+		streams, err := t.bus.redis.XRead(t.stopCtx, &redis.XReadArgs{
+			Streams: []string{t.streamKey, pos},
+			Block:   5 * time.Second,
+			Count:   50,
+		}).Result()
+		if err != nil {
+			if errors.Is(err, redis.Nil) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				continue
+			}
+			if t.stopCtx.Err() != nil {
+				return
+			}
+			slog.Error("conv tap XREAD error",
+				"conversation_id", t.convID, "error", err)
+			select {
+			case <-t.stopCtx.Done():
+				return
+			case <-time.After(500 * time.Millisecond):
+			}
+			continue
+		}
+
+		for _, stream := range streams {
+			for _, msg := range stream.Messages {
+				evt := StreamEvent{
+					ID:        msg.ID,
+					EventType: msgStringField(msg.Values, "event_type"),
+					Data:      json.RawMessage(msgStringField(msg.Values, "data")),
+				}
+				t.broadcast(evt)
+
+				t.mu.Lock()
+				t.cursor = msg.ID
+				t.mu.Unlock()
+			}
+		}
+	}
+}
+
+// broadcast forwards evt to every attached subscriber. Subscribers whose
+// channel buffer is full are evicted (marked as slow consumer).
+func (t *convTap) broadcast(evt StreamEvent) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	for s := range t.subscribers {
+		select {
+		case s.ch <- evt:
+		default:
+			// Slow consumer: kick them out and close their channel.
+			delete(t.subscribers, s)
+			closeChannelSafely(s.ch)
+			closeChannelSafely(s.evicted)
+		}
+	}
 }
 
 // ReadRange returns events between two entry IDs (inclusive).
@@ -172,8 +428,8 @@ func (b *EventBus) ReadRange(ctx context.Context, convID string, start string, e
 	for _, msg := range msgs {
 		events = append(events, StreamEvent{
 			ID:        msg.ID,
-			EventType: msg.Values["event_type"].(string),
-			Data:      json.RawMessage(msg.Values["data"].(string)),
+			EventType: msgStringField(msg.Values, "event_type"),
+			Data:      json.RawMessage(msgStringField(msg.Values, "data")),
 		})
 	}
 	return events, nil
@@ -268,4 +524,21 @@ func (b *EventBus) Prefix() string {
 // Redis returns the underlying Redis client (for flusher consumer groups).
 func (b *EventBus) Redis() *redis.Client {
 	return b.redis
+}
+
+// closeChannelSafely closes ch unless it has already been closed.
+func closeChannelSafely[T any](ch chan T) {
+	defer func() { _ = recover() }()
+	close(ch)
+}
+
+// msgStringField extracts a string field from a Redis stream message value
+// map, returning "" if absent or the wrong type.
+func msgStringField(values map[string]any, key string) string {
+	v, ok := values[key]
+	if !ok {
+		return ""
+	}
+	s, _ := v.(string)
+	return s
 }

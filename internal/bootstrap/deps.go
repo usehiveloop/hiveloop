@@ -122,11 +122,27 @@ func New(ctx context.Context) (*Deps, error) {
 			DB:       cfg.RedisDB,
 		}
 	}
+	// Explicit pool sizing: the SSE fan-out holds one blocked XREAD
+	// connection per active conversation per pod. Default (10 * GOMAXPROCS)
+	// starves under multi-tenant load. Callers can override via
+	// REDIS_POOL_SIZE env var through config.
+	if redisOpts.PoolSize == 0 {
+		redisOpts.PoolSize = 500
+	}
+	if redisOpts.MinIdleConns == 0 {
+		redisOpts.MinIdleConns = 20
+	}
+	if redisOpts.PoolTimeout == 0 {
+		redisOpts.PoolTimeout = 4 * time.Second
+	}
 	redisClient := redis.NewClient(redisOpts)
 	if err := redisClient.Ping(context.Background()).Err(); err != nil {
 		return nil, fmt.Errorf("connecting to redis: %w", err)
 	}
-	slog.Info("redis ready")
+	slog.Info("redis ready",
+		"pool_size", redisOpts.PoolSize,
+		"min_idle_conns", redisOpts.MinIdleConns,
+	)
 
 	// 6. Cache manager
 	apiKeyCache := cache.NewAPIKeyCache(5000, 5*time.Minute)
