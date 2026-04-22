@@ -10,7 +10,7 @@ type OrgMembership struct {
 	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_membership_user_org"`
 	OrgID     uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_membership_user_org"`
-	Role      string    `gorm:"not null;default:'admin'"` // "admin" or "viewer"
+	Role      string    `gorm:"not null;default:'owner'"` // "owner" | "admin" | "member" | "viewer"
 	User      User      `gorm:"foreignKey:UserID"`
 	Org       Org       `gorm:"foreignKey:OrgID"`
 	CreatedAt time.Time

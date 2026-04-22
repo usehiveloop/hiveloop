@@ -250,7 +250,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		membership = model.OrgMembership{
 			UserID: user.ID,
 			OrgID:  org.ID,
-			Role:   "admin",
+			Role:   "owner",
 		}
 		if err := tx.Create(&membership).Error; err != nil {
 			return fmt.Errorf("creating membership: %w", err)
@@ -298,7 +298,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("user registered", "user_id", user.ID, "email", user.Email)
-	h.issueTokensAndRespond(w, http.StatusCreated, user, org.ID.String(), "admin")
+	h.issueTokensAndRespond(w, http.StatusCreated, user, org.ID.String(), "owner")
 }
 
 // Login handles POST /auth/login.
@@ -1185,7 +1185,7 @@ func (h *AuthHandler) OTPVerify(w http.ResponseWriter, r *http.Request) {
 			membership := model.OrgMembership{
 				UserID: user.ID,
 				OrgID:  org.ID,
-				Role:   "admin",
+				Role:   "owner",
 			}
 			if err := tx.Create(&membership).Error; err != nil {
 				return fmt.Errorf("creating membership: %w", err)
@@ -1200,7 +1200,7 @@ func (h *AuthHandler) OTPVerify(w http.ResponseWriter, r *http.Request) {
 		}
 
 		slog.Info("user created via OTP", "user_id", user.ID, "email", user.Email)
-		h.issueTokensAndRespond(w, http.StatusCreated, user, org.ID.String(), "admin")
+		h.issueTokensAndRespond(w, http.StatusCreated, user, org.ID.String(), "owner")
 		return
 	}
 
