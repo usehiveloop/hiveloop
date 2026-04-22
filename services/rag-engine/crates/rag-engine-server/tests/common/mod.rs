@@ -10,36 +10,78 @@
 #![allow(dead_code)]
 
 use std::net::SocketAddr;
+use std::sync::Arc;
 use std::time::Duration;
 
+use rag_engine_chunker::tokenizer::TiktokenTokenizer;
+use rag_engine_chunker::{Chunker, ChunkerConfig};
+use rag_engine_embed::{Embedder, FakeEmbedder};
+use rag_engine_lance::{LanceStore, StoreConfig};
 use rag_engine_proto::rag_engine_server::RagEngineServer;
+use rag_engine_rerank::{FakeReranker, Reranker};
 use rag_engine_server::auth::SharedSecretAuth;
 use rag_engine_server::metrics::{spawn_metrics_server, Metrics, MetricsServerHandle};
 use rag_engine_server::middleware::MetricsLayer;
-use rag_engine_server::{RagEngineService, GRPC_SERVICE_NAME};
+use rag_engine_server::{AppState, RagEngineService, StateLimits, GRPC_SERVICE_NAME};
+use tempfile::TempDir;
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 use tonic::transport::Server;
 
+/// Default vector dim used across the 2F tests. Small enough for fast
+/// fakes, large enough that dim-mismatch tests have something to differ
+/// against.
+pub const TEST_DIM: u32 = 128;
+
+/// Build a minimal `AppState` backed by fakes + a local lance store in a
+/// `TempDir`. The `TempDir` handle is returned so the caller can keep
+/// the directory alive for the duration of the test; dropping it cleans
+/// up the on-disk data.
+pub async fn build_test_state(dim: u32) -> (Arc<AppState>, TempDir) {
+    let tempdir = tempfile::tempdir().expect("tempdir");
+    let uri = tempdir.path().to_string_lossy().to_string();
+    let store = LanceStore::open(StoreConfig::Local { uri })
+        .await
+        .expect("open lance store");
+
+    let embedder: Arc<dyn Embedder> = Arc::new(FakeEmbedder::new("fake", dim));
+    let reranker: Arc<dyn Reranker> = Arc::new(FakeReranker::new());
+    let chunker = Arc::new(Chunker::new(
+        TiktokenTokenizer::cl100k_base(),
+        ChunkerConfig::default(),
+    ));
+    let limits = StateLimits::defaults();
+    let state = Arc::new(AppState::new(store, embedder, reranker, chunker, limits));
+    (state, tempdir)
+}
+
 /// A running test server + the means to shut it down.
 pub struct TestServer {
     pub addr: SocketAddr,
+    /// Kept alive so the lance tempdir isn't removed under the server.
+    _tempdir: Option<TempDir>,
+    /// Kept so tests can reach into the state for assertions.
+    pub state: Option<Arc<AppState>>,
     shutdown_tx: Option<oneshot::Sender<()>>,
     handle: Option<JoinHandle<Result<(), tonic::transport::Error>>>,
 }
 
 impl TestServer {
     /// Spawn a server with the given shared secret. Returns once the
-    /// server is listening and accepting connections on the returned
-    /// ephemeral address.
+    /// server is listening. Builds a fresh `AppState` backed by fakes.
     pub async fn start(shared_secret: &'static str) -> Self {
-        // Bind first so we pick a concrete port before starting the
-        // tonic accept loop. `TcpListener::bind("127.0.0.1:0")` gives
-        // us an OS-assigned port we can then pass to tonic via
-        // `serve_with_incoming`. We immediately close this listener
-        // and re-bind inside tonic because tonic owns its accept
-        // loop; the point is to claim a known port number.
+        let (state, tempdir) = build_test_state(TEST_DIM).await;
+        Self::start_with_state(shared_secret, state, Some(tempdir)).await
+    }
+
+    /// Variant that accepts a pre-built state (e.g. built against a real
+    /// MinIO container or with a different dim).
+    pub async fn start_with_state(
+        shared_secret: &'static str,
+        state: Arc<AppState>,
+        tempdir: Option<TempDir>,
+    ) -> Self {
         let probe = TcpListener::bind("127.0.0.1:0").await.expect("bind probe");
         let addr = probe.local_addr().expect("local_addr");
         drop(probe);
@@ -55,7 +97,8 @@ impl TestServer {
             .await;
 
         let auth = SharedSecretAuth::new(shared_secret);
-        let rag_service = RagEngineServer::with_interceptor(RagEngineService::new(), auth);
+        let rag_service =
+            RagEngineServer::with_interceptor(RagEngineService::new(state.clone()), auth);
 
         let handle = tokio::spawn(async move {
             Server::builder()
@@ -67,21 +110,18 @@ impl TestServer {
                 .await
         });
 
-        // Poll until the server is actually accepting connections —
-        // tonic's serve() returns a future we've spawned, but the
-        // listener isn't bound until it runs. We probe with a bare
-        // TCP connect.
         wait_for_listening(addr).await;
 
         TestServer {
             addr,
+            _tempdir: tempdir,
+            state: Some(state),
             shutdown_tx: Some(shutdown_tx),
             handle: Some(handle),
         }
     }
 
-    /// Turn `127.0.0.1:PORT` into `http://127.0.0.1:PORT` — what
-    /// `tonic::transport::Endpoint::connect` wants.
+    /// Turn `127.0.0.1:PORT` into `http://127.0.0.1:PORT`.
     pub fn uri(&self) -> String {
         format!("http://{}", self.addr)
     }
@@ -93,8 +133,6 @@ impl Drop for TestServer {
             let _ = tx.send(());
         }
         if let Some(handle) = self.handle.take() {
-            // Best-effort: give the server a moment to drain. We can't
-            // .await in Drop, so we abort if it hangs.
             handle.abort();
         }
     }
@@ -123,22 +161,15 @@ pub fn with_bearer<T>(req: &mut tonic::Request<T>, token: &str) {
 }
 
 // ---------------------------------------------------------------------------
-// 2G helpers — observability harness
+// 2G observability harness — carried forward from 2G with 2F's AppState
 // ---------------------------------------------------------------------------
 
-/// A running test server with the full 2G observability stack wired in:
-///   * tonic gRPC server on ephemeral loopback port
-///   * `MetricsLayer` over every RPC
-///   * a companion `/metrics` HTTP server on its own ephemeral port
-///
-/// Tests use this when they need to assert on Prometheus scrape output
-/// or on middleware behaviour. A dedicated `Metrics` instance (not the
-/// process-global singleton) is used so parallel test invocations don't
-/// race on counter values.
 pub struct ObservabilityServer {
     pub grpc_addr: SocketAddr,
     pub metrics_addr: SocketAddr,
     pub metrics: Metrics,
+    _tempdir: Option<TempDir>,
+    pub state: Arc<AppState>,
     shutdown_tx: Option<oneshot::Sender<()>>,
     handle: Option<JoinHandle<Result<(), tonic::transport::Error>>>,
     metrics_handle: Option<MetricsServerHandle>,
@@ -146,13 +177,10 @@ pub struct ObservabilityServer {
 
 impl ObservabilityServer {
     pub async fn start(shared_secret: &'static str) -> Self {
-        // Pick two free ports (gRPC + metrics). Claim + drop to get a
-        // concrete port number without holding the listener.
         let probe = TcpListener::bind("127.0.0.1:0").await.expect("probe grpc");
         let grpc_addr = probe.local_addr().expect("grpc addr");
         drop(probe);
 
-        // Fresh isolated metrics instance per test — never the global.
         let metrics =
             Metrics::new().expect("fresh metrics registry for ObservabilityServer harness");
 
@@ -160,6 +188,8 @@ impl ObservabilityServer {
             .await
             .expect("spawn metrics server");
         let metrics_addr = metrics_handle.addr;
+
+        let (state, tempdir) = build_test_state(TEST_DIM).await;
 
         let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
 
@@ -172,7 +202,8 @@ impl ObservabilityServer {
             .await;
 
         let auth = SharedSecretAuth::new(shared_secret);
-        let rag_service = RagEngineServer::with_interceptor(RagEngineService::new(), auth);
+        let rag_service =
+            RagEngineServer::with_interceptor(RagEngineService::new(state.clone()), auth);
         let layer = MetricsLayer::new(metrics.clone());
 
         let handle = tokio::spawn(async move {
@@ -193,6 +224,8 @@ impl ObservabilityServer {
             grpc_addr,
             metrics_addr,
             metrics,
+            _tempdir: Some(tempdir),
+            state,
             shutdown_tx: Some(shutdown_tx),
             handle: Some(handle),
             metrics_handle: Some(metrics_handle),
@@ -216,7 +249,6 @@ impl Drop for ObservabilityServer {
         if let Some(h) = self.handle.take() {
             h.abort();
         }
-        // `MetricsServerHandle::Drop` sends its own shutdown signal.
         drop(self.metrics_handle.take());
     }
 }
