@@ -30,7 +30,8 @@ func (h *AdminHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	q := h.db.Model(&model.User{})
 
 	if search := r.URL.Query().Get("search"); search != "" {
-		q = q.Where("email ILIKE ? OR name ILIKE ?", "%"+search+"%", "%"+search+"%")
+		pattern := "%" + escapeLike(search) + "%"
+		q = q.Where("email ILIKE ? OR name ILIKE ?", pattern, pattern)
 	}
 	if r.URL.Query().Get("banned") == "true" {
 		q = q.Where("banned_at IS NOT NULL")

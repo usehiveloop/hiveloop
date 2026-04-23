@@ -9,17 +9,32 @@ import (
 
 // ListInIntegrations handles GET /admin/v1/in-integrations.
 // @Summary List platform integrations
-// @Description Returns all app-owned (platform) integrations.
+// @Description Returns app-owned (platform) integrations with cursor pagination (default limit 100, max 500).
 // @Tags admin
 // @Produce json
+// @Param limit query int false "Page size (default 100, max 500)"
+// @Param cursor query string false "Pagination cursor"
 // @Success 200 {object} map[string]any
 // @Security BearerAuth
 // @Router /admin/v1/in-integrations [get]
 func (h *AdminHandler) ListInIntegrations(w http.ResponseWriter, r *http.Request) {
+	limit, cursor, err := parsePaginationLimits(r, 100, 500)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	q := applyPagination(h.db.Model(&model.InIntegration{}), cursor, limit)
+
 	var integrations []model.InIntegration
-	if err := h.db.Order("created_at DESC").Find(&integrations).Error; err != nil {
+	if err := q.Find(&integrations).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list in-integrations"})
 		return
+	}
+
+	hasMore := len(integrations) > limit
+	if hasMore {
+		integrations = integrations[:limit]
 	}
 
 	resp := make([]adminInIntegrationResponse, len(integrations))
@@ -27,7 +42,12 @@ func (h *AdminHandler) ListInIntegrations(w http.ResponseWriter, r *http.Request
 		resp[i] = toAdminInIntegrationResponse(integ)
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"data": resp})
+	body := map[string]any{"data": resp, "has_more": hasMore}
+	if hasMore {
+		last := integrations[len(integrations)-1]
+		body["next_cursor"] = encodeCursor(last.CreatedAt, last.ID)
+	}
+	writeJSON(w, http.StatusOK, body)
 }
 
 // ListInConnections handles GET /admin/v1/in-connections.

@@ -33,6 +33,12 @@ type authResponse struct {
 	ExpiresIn    int            `json:"expires_in"` // seconds
 	User         userResponse   `json:"user"`
 	Orgs         []orgMemberDTO `json:"orgs"`
+	// Impersonation is true when the tokens were issued by a platform admin
+	// impersonating the user. Clients can surface a visible banner when set.
+	Impersonation bool `json:"impersonation,omitempty"`
+	// ImpersonationOf is the admin user ID that initiated the session, when
+	// Impersonation is true. Empty for regular sessions.
+	ImpersonationOf string `json:"impersonation_of,omitempty"`
 }
 
 type userResponse struct {

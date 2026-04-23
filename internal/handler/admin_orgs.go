@@ -35,7 +35,7 @@ func (h *AdminHandler) ListOrgs(w http.ResponseWriter, r *http.Request) {
 	q := h.db.Model(&model.Org{})
 
 	if search := r.URL.Query().Get("search"); search != "" {
-		q = q.Where("name ILIKE ?", "%"+search+"%")
+		q = q.Where("name ILIKE ?", "%"+escapeLike(search)+"%")
 	}
 	if r.URL.Query().Get("active") == "true" {
 		q = q.Where("active = true")

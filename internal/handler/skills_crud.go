@@ -51,7 +51,7 @@ func (h *SkillHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if searchTerm := strings.TrimSpace(r.URL.Query().Get("q")); searchTerm != "" {
-		like := "%" + searchTerm + "%"
+		like := "%" + escapeLike(searchTerm) + "%"
 		q = q.Where("name ILIKE ? OR description ILIKE ?", like, like)
 	}
 	q = applyPagination(q, cursor, limit)

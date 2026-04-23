@@ -5,11 +5,29 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+// likePatternEscaper escapes SQL LIKE/ILIKE wildcard metacharacters so that
+// user-supplied search terms are treated as literal substrings rather than as
+// patterns. The default Postgres LIKE escape character is backslash, which we
+// rely on here. Callers must wrap the result in `%...%` themselves.
+var likePatternEscaper = strings.NewReplacer(
+	`\`, `\\`,
+	`%`, `\%`,
+	`_`, `\_`,
+)
+
+// escapeLike escapes wildcard characters (%, _, \) in a user-supplied string
+// so it can be safely interpolated into a `%...%` LIKE/ILIKE pattern without
+// allowing the caller to alter the query's match semantics.
+func escapeLike(s string) string {
+	return likePatternEscaper.Replace(s)
+}
 
 type paginationCursor struct {
 	CreatedAt time.Time
@@ -23,14 +41,21 @@ type paginatedResponse[T any] struct {
 }
 
 func parsePagination(r *http.Request) (int, *paginationCursor, error) {
-	limit := 50
+	return parsePaginationLimits(r, 50, 100)
+}
+
+// parsePaginationLimits is a variant of parsePagination that lets callers pick
+// the default and maximum page size. Values outside [1, max] are clamped to
+// max; an invalid (non-numeric or negative) limit returns an error.
+func parsePaginationLimits(r *http.Request, defaultLimit, maxLimit int) (int, *paginationCursor, error) {
+	limit := defaultLimit
 	if l := r.URL.Query().Get("limit"); l != "" {
 		n, err := strconv.Atoi(l)
 		if err != nil || n < 1 {
 			return 0, nil, fmt.Errorf("invalid limit")
 		}
-		if n > 100 {
-			n = 100
+		if n > maxLimit {
+			n = maxLimit
 		}
 		limit = n
 	}

@@ -34,7 +34,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Admin mode: reject non-admin users
-	if h.adminMode && !h.platformAdminEmails[req.Email] {
+	if h.adminMode && !h.isPlatformAdminEmail(req.Email) {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
 		return
 	}

@@ -49,7 +49,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	h.clearLoginFailures(req.Email)
 
 	// Admin mode: reject non-admin users
-	if h.adminMode && !h.platformAdminEmails[user.Email] {
+	if h.adminMode && !h.isPlatformAdminEmail(user.Email) {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
 		return
 	}

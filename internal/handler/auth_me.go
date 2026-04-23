@@ -32,7 +32,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	isPlatformAdmin := len(h.platformAdminEmails) > 0 && h.platformAdminEmails[user.Email]
+	isPlatformAdmin := h.isPlatformAdminEmail(user.Email)
 
 	writeJSON(w, http.StatusOK, meResponse{
 		User: userResponse{

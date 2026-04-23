@@ -58,30 +58,48 @@ func NewAuthHandler(db *gorm.DB, privateKey *rsa.PrivateKey, signingKey []byte, 
 }
 
 // SetAdminMode restricts login to the given platform admin emails only.
-// When enabled, non-admin users receive a 403 on login/register.
+// When enabled, non-admin users receive a 403 on login/register. Emails are
+// stored lowercased so lookups are case-insensitive; use isPlatformAdminEmail
+// at call sites to normalize the runtime value.
 func (h *AuthHandler) SetAdminMode(emails []string) {
 	h.adminMode = true
 	h.platformAdminEmails = make(map[string]bool, len(emails))
 	for _, e := range emails {
-		trimmed := strings.TrimSpace(e)
-		if trimmed != "" {
-			h.platformAdminEmails[trimmed] = true
+		normalized := normalizePlatformAdminEmail(e)
+		if normalized != "" {
+			h.platformAdminEmails[normalized] = true
 		}
 	}
 }
 
 // SetPlatformAdminEmails records which emails are platform admins so that
 // /auth/me can return is_platform_admin without enabling admin-only login mode.
+// Emails are stored lowercased for case-insensitive matching.
 func (h *AuthHandler) SetPlatformAdminEmails(emails []string) {
 	if h.platformAdminEmails == nil {
 		h.platformAdminEmails = make(map[string]bool, len(emails))
 	}
 	for _, e := range emails {
-		trimmed := strings.TrimSpace(e)
-		if trimmed != "" {
-			h.platformAdminEmails[trimmed] = true
+		normalized := normalizePlatformAdminEmail(e)
+		if normalized != "" {
+			h.platformAdminEmails[normalized] = true
 		}
 	}
+}
+
+// normalizePlatformAdminEmail lowercases and trims an email so equality checks
+// against the platform admin allowlist are case-insensitive.
+func normalizePlatformAdminEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
+// isPlatformAdminEmail returns true when the given email (any case) is in the
+// platform admin allowlist.
+func (h *AuthHandler) isPlatformAdminEmail(email string) bool {
+	if len(h.platformAdminEmails) == 0 {
+		return false
+	}
+	return h.platformAdminEmails[normalizePlatformAdminEmail(email)]
 }
 
 // StartCleanup starts a background goroutine that evicts stale login attempts

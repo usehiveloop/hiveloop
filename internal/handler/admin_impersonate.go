@@ -13,11 +13,16 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
+// impersonationAccessTTL caps the lifetime of impersonation access tokens to
+// reduce the window of abuse if a token leaks. Normal user sessions keep their
+// configured TTL; this override applies only to /admin/v1/users/{id}/impersonate.
+const impersonationAccessTTL = 30 * time.Minute
+
 // Impersonate issues tokens for the target user, allowing a platform admin
 // to view the application as that user.
 //
 // @Summary Impersonate a user
-// @Description Issues access and refresh tokens for the target user. Requires platform admin privileges.
+// @Description Issues short-lived access and refresh tokens tagged as an impersonation session. Requires platform admin privileges.
 // @Tags admin
 // @Accept json
 // @Produce json
@@ -47,6 +52,11 @@ func (h *AdminHandler) Impersonate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if targetUser.EmailConfirmedAt == nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "cannot impersonate a user with unconfirmed email"})
+		return
+	}
+
 	var memberships []model.OrgMembership
 	h.db.Preload("Org").Where("user_id = ?", targetUser.ID).Find(&memberships)
 
@@ -58,14 +68,27 @@ func (h *AdminHandler) Impersonate(w http.ResponseWriter, r *http.Request) {
 	orgID := memberships[0].OrgID.String()
 	role := memberships[0].Role
 
-	accessToken, err := auth.IssueAccessToken(h.privateKey, h.issuer, h.audience, targetUser.ID.String(), orgID, role, h.accessTTL)
+	admin, _ := middleware.UserFromContext(r.Context())
+	adminEmail := ""
+	adminID := ""
+	if admin != nil {
+		adminEmail = admin.Email
+		adminID = admin.ID.String()
+	}
+
+	accessTTL := h.accessTTL
+	if accessTTL > impersonationAccessTTL {
+		accessTTL = impersonationAccessTTL
+	}
+
+	accessToken, err := auth.IssueAccessTokenWithImpersonation(h.privateKey, h.issuer, h.audience, targetUser.ID.String(), orgID, role, adminID, accessTTL)
 	if err != nil {
 		slog.Error("impersonate: failed to issue access token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
 
-	refreshToken, err := auth.IssueRefreshToken(h.signingKey, targetUser.ID.String(), h.refreshTTL)
+	refreshToken, err := auth.IssueRefreshTokenWithImpersonation(h.signingKey, targetUser.ID.String(), adminID, h.refreshTTL)
 	if err != nil {
 		slog.Error("impersonate: failed to issue refresh token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
@@ -83,16 +106,13 @@ func (h *AdminHandler) Impersonate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	admin, _ := middleware.UserFromContext(r.Context())
-	adminEmail := ""
-	if admin != nil {
-		adminEmail = admin.Email
-	}
 	middleware.SetAdminAuditChanges(r, middleware.AdminAuditChanges{
-		"action":        map[string]any{"old": nil, "new": "impersonate"},
-		"target_user_id":    map[string]any{"old": nil, "new": targetUser.ID.String()},
-		"target_email":      map[string]any{"old": nil, "new": targetUser.Email},
+		"action":             map[string]any{"old": nil, "new": "impersonate"},
+		"target_user_id":     map[string]any{"old": nil, "new": targetUser.ID.String()},
+		"target_email":       map[string]any{"old": nil, "new": targetUser.Email},
+		"impersonator_id":    map[string]any{"old": nil, "new": adminID},
 		"impersonator_email": map[string]any{"old": nil, "new": adminEmail},
+		"access_ttl_seconds": map[string]any{"old": nil, "new": int(accessTTL.Seconds())},
 	})
 
 	orgs := make([]orgMemberDTO, 0, len(memberships))
@@ -104,18 +124,29 @@ func (h *AdminHandler) Impersonate(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	slog.Info("admin impersonating user", "admin_email", adminEmail, "target_user_id", targetUser.ID, "target_email", targetUser.Email)
+	slog.Info("admin impersonation token issued",
+		"admin_id", adminID,
+		"admin_email", adminEmail,
+		"target_user_id", targetUser.ID,
+		"target_email", targetUser.Email,
+		"access_ttl_seconds", int(accessTTL.Seconds()),
+	)
 
-	writeJSON(w, http.StatusOK, authResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		ExpiresIn:    int(h.accessTTL.Seconds()),
-		User: userResponse{
-			ID:             targetUser.ID.String(),
-			Email:          targetUser.Email,
-			Name:           targetUser.Name,
-			EmailConfirmed: targetUser.EmailConfirmedAt != nil,
+	// Use a minimal user payload here: the standard userResponse includes an
+	// email_confirmed bool that always serializes (no omitempty on primitive),
+	// which would leak confirmation status. Since impersonation now requires
+	// confirmed email, there is no reason to echo it back.
+	writeJSON(w, http.StatusOK, map[string]any{
+		"access_token":     accessToken,
+		"refresh_token":    refreshToken,
+		"expires_in":       int(accessTTL.Seconds()),
+		"impersonation":    true,
+		"impersonation_of": adminID,
+		"user": map[string]any{
+			"id":    targetUser.ID.String(),
+			"email": targetUser.Email,
+			"name":  targetUser.Name,
 		},
-		Orgs: orgs,
+		"orgs": orgs,
 	})
 }

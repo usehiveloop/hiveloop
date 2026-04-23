@@ -163,18 +163,33 @@ func (h *AdminHandler) ListUsage(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"data": results})
 }
 // ListWorkspaceStorage handles GET /admin/v1/workspace-storage.
-// @Summary List all workspace storage
-// @Description Returns all provisioned workspace databases.
+// @Summary List workspace storage
+// @Description Returns provisioned workspace databases with cursor pagination (default limit 100, max 500).
 // @Tags admin
 // @Produce json
+// @Param limit query int false "Page size (default 100, max 500)"
+// @Param cursor query string false "Pagination cursor"
 // @Success 200 {object} map[string]any
 // @Security BearerAuth
 // @Router /admin/v1/workspace-storage [get]
 func (h *AdminHandler) ListWorkspaceStorage(w http.ResponseWriter, r *http.Request) {
+	limit, cursor, err := parsePaginationLimits(r, 100, 500)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	q := applyPagination(h.db.Model(&model.WorkspaceStorage{}), cursor, limit)
+
 	var storages []model.WorkspaceStorage
-	if err := h.db.Order("created_at DESC").Find(&storages).Error; err != nil {
+	if err := q.Find(&storages).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list workspace storage"})
 		return
+	}
+
+	hasMore := len(storages) > limit
+	if hasMore {
+		storages = storages[:limit]
 	}
 
 	resp := make([]adminWorkspaceStorageResponse, len(storages))
@@ -182,7 +197,12 @@ func (h *AdminHandler) ListWorkspaceStorage(w http.ResponseWriter, r *http.Reque
 		resp[i] = toAdminWorkspaceStorageResponse(ws)
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"data": resp})
+	body := map[string]any{"data": resp, "has_more": hasMore}
+	if hasMore {
+		last := storages[len(storages)-1]
+		body["next_cursor"] = encodeCursor(last.CreatedAt, last.ID)
+	}
+	writeJSON(w, http.StatusOK, body)
 }
 
 // DeleteWorkspaceStorage handles DELETE /admin/v1/workspace-storage/{id}.

@@ -170,13 +170,15 @@ func RequireOrgAdmin(db *gorm.DB) func(http.Handler) http.Handler {
 }
 
 // RequirePlatformAdmin returns middleware that checks if the authenticated user's
-// email is in the platform admin allowlist.
+// email is in the platform admin allowlist. The comparison is case-insensitive
+// (emails are normalized to lowercase on both sides) to avoid lockouts when the
+// identity provider or config entry differs only in casing.
 func RequirePlatformAdmin(adminEmails []string) func(http.Handler) http.Handler {
 	emailSet := make(map[string]bool, len(adminEmails))
 	for _, e := range adminEmails {
-		trimmed := strings.TrimSpace(e)
-		if trimmed != "" {
-			emailSet[trimmed] = true
+		normalized := normalizeEmail(e)
+		if normalized != "" {
+			emailSet[normalized] = true
 		}
 	}
 	return func(next http.Handler) http.Handler {
@@ -187,7 +189,7 @@ func RequirePlatformAdmin(adminEmails []string) func(http.Handler) http.Handler 
 				writeJSON(w, http.StatusForbidden, map[string]string{"error": "forbidden"})
 				return
 			}
-			if !emailSet[user.Email] {
+			if !emailSet[normalizeEmail(user.Email)] {
 				slog.Warn("platform admin check: email not in allowlist", "email", user.Email, "path", r.URL.Path)
 				writeJSON(w, http.StatusForbidden, map[string]string{"error": "platform admin access required"})
 				return
@@ -195,4 +197,10 @@ func RequirePlatformAdmin(adminEmails []string) func(http.Handler) http.Handler 
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// normalizeEmail lowercases and trims an email address so equality checks work
+// regardless of how the user typed or how the identity provider stored it.
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
 }

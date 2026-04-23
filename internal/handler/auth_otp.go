@@ -27,7 +27,7 @@ func (h *AuthHandler) OTPRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Admin mode: reject non-admin emails
-	if h.adminMode && !h.platformAdminEmails[req.Email] {
+	if h.adminMode && !h.isPlatformAdminEmail(req.Email) {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
 		return
 	}
@@ -169,7 +169,7 @@ func (h *AuthHandler) OTPVerify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Admin mode check
-	if h.adminMode && !h.platformAdminEmails[user.Email] {
+	if h.adminMode && !h.isPlatformAdminEmail(user.Email) {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
 		return
 	}

@@ -44,7 +44,8 @@ func (h *AdminHandler) ListSkills(w http.ResponseWriter, r *http.Request) {
 		q = q.Where("source_type = ?", sourceType)
 	}
 	if search := r.URL.Query().Get("q"); search != "" {
-		q = q.Where("name ILIKE ? OR slug ILIKE ?", "%"+search+"%", "%"+search+"%")
+		pattern := "%" + escapeLike(search) + "%"
+		q = q.Where("name ILIKE ? OR slug ILIKE ?", pattern, pattern)
 	}
 
 	q = applyPagination(q, cursor, limit)
