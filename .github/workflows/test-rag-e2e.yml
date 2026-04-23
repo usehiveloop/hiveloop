@@ -166,7 +166,11 @@ jobs:
           REGEX="^($(echo "$MY" | tr '\n' '|' | sed 's/|$//'))$"
           echo "::group::go test shard $SHARD ($(echo "$MY" | wc -l) tests)"
           echo "$MY"
-          go test -race -count=1 -run "$REGEX" $PKGS
+          # -p 1 serializes test packages: internal/rag and
+          # internal/rag/ragclient both call model.AutoMigrate against
+          # the same hiveloop_test DB, and concurrent CREATE TYPE races
+          # produce "pg_type_typname_nsp_index" duplicate-key errors.
+          go test -race -count=1 -p 1 -run "$REGEX" $PKGS
           echo "::endgroup::"
         timeout-minutes: 5
 

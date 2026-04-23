@@ -131,14 +131,40 @@ func pickFreePort(t *testing.T) string {
 //
 // Returned addr is "host:port"; shutdown is a func that SIGTERMs the
 // process and waits for exit. Cleanup is also registered on t.Cleanup.
+//
+// Retries up to 3 times to survive the documented pickFreePort →
+// cmd.Start port race: the kernel can reassign our just-released
+// ephemeral port before the Rust process binds it, which surfaces as
+// "Address already in use" and an unheard SERVING. On GitHub / Depot
+// runners this race fires often enough to matter.
 func startRagEngine(t *testing.T, secret string) (addr string, shutdown func()) {
+	t.Helper()
+	const maxAttempts = 3
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		a, sd, err := tryStartRagEngine(t, secret)
+		if err == nil {
+			return a, sd
+		}
+		if attempt == maxAttempts {
+			t.Fatalf("start rag-engine after %d attempts: %v", attempt, err)
+		}
+		t.Logf("start rag-engine attempt %d failed: %v — retrying", attempt, err)
+	}
+	// unreachable
+	return "", func() {}
+}
+
+// tryStartRagEngine is one attempt of the startup dance. Returns a non-
+// nil error instead of calling t.Fatalf so the caller can retry on
+// transient port races.
+func tryStartRagEngine(t *testing.T, secret string) (string, func(), error) {
 	t.Helper()
 	bin, err := buildRagEngineBinary()
 	if err != nil {
-		t.Fatalf("build rag-engine: %v", err)
+		return "", nil, fmt.Errorf("build rag-engine: %w", err)
 	}
 
-	addr = pickFreePort(t)
+	addr := pickFreePort(t)
 
 	cmd := exec.Command(bin)
 	// Strip any host-shell LLM/RERANKER/LANCE creds so accidental paid-API
@@ -173,12 +199,12 @@ func startRagEngine(t *testing.T, secret string) (addr string, shutdown func()) 
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	if err := cmd.Start(); err != nil {
-		t.Fatalf("start rag-engine: %v", err)
+		return "", nil, fmt.Errorf("cmd.Start: %w", err)
 	}
 
 	done := make(chan struct{})
 	var once sync.Once
-	shutdown = func() {
+	shutdown := func() {
 		once.Do(func() {
 			if cmd.Process != nil {
 				_ = cmd.Process.Signal(syscall.SIGTERM)
@@ -195,13 +221,13 @@ func startRagEngine(t *testing.T, secret string) (addr string, shutdown func()) 
 			close(done)
 		})
 	}
-	t.Cleanup(shutdown)
 
 	if err := waitForServing(t, addr, 10*time.Second); err != nil {
 		shutdown()
-		t.Fatalf("rag-engine never became SERVING on %s: %v", addr, err)
+		return "", nil, fmt.Errorf("rag-engine never became SERVING on %s: %w", addr, err)
 	}
-	return addr, shutdown
+	t.Cleanup(shutdown)
+	return addr, shutdown, nil
 }
 
 // waitForServing polls the gRPC health endpoint until it reports
