@@ -26,24 +26,85 @@ func NewDriveHandler(db *gorm.DB, storage *storage.S3Client) *DriveHandler {
 	return &DriveHandler{db: db, storage: storage}
 }
 
+const maxDriveUploadBytes = 50 << 20 // 50 MiB
+
+const maxDriveFileBytes = 50 << 20 // 50 MiB
+
+// "text/" is intentionally NOT a prefix — only specific safe text subtypes
+// are allowed via allowedExactContentTypes, so text/html (and similar
+// browser-executable types) cannot be stored and served back inline via
+// presigned URLs.
 var allowedContentTypePrefixes = []string{
 	"image/",
 	"video/",
 	"audio/",
-	"text/",
-	"application/pdf",
 	"application/vnd.openxmlformats-officedocument.",
-	"application/msword",
+	"application/vnd.oasis.opendocument.",
 	"application/vnd.ms-",
 }
 
-func isAllowedContentType(contentType string) bool {
+var allowedExactContentTypes = map[string]struct{}{
+	"application/pdf":  {},
+	"application/json": {},
+	"application/msword": {},
+	"application/zip":  {},
+	"text/plain":       {},
+	"text/csv":         {},
+	"text/markdown":    {},
+	"text/x-markdown":  {},
+}
+
+// disallowedImageSubtypes are image/* types that can execute script in
+// browsers (SVG) and so must be rejected even though they match image/*.
+var disallowedImageSubtypes = map[string]struct{}{
+	"image/svg+xml": {},
+	"image/svg":     {},
+}
+
+// dangerousExtensions are filename suffixes we refuse regardless of the
+// client-declared content type, to block executable uploads that sneak in
+// under generic types like application/octet-stream.
+var dangerousExtensions = []string{
+	".html", ".htm", ".xhtml", ".svg",
+	".exe", ".dll", ".bat", ".cmd", ".com", ".msi",
+	".sh", ".bash", ".zsh", ".ps1",
+	".js", ".mjs", ".jsp", ".php", ".phtml",
+}
+
+func isAllowedDriveContentType(contentType, filename string) bool {
+	ct := strings.ToLower(strings.TrimSpace(contentType))
+	if semi := strings.Index(ct, ";"); semi >= 0 {
+		ct = strings.TrimSpace(ct[:semi])
+	}
+	if ct == "" {
+		return false
+	}
+
+	lowerName := strings.ToLower(filename)
+	for _, ext := range dangerousExtensions {
+		if strings.HasSuffix(lowerName, ext) {
+			return false
+		}
+	}
+
+	if _, bad := disallowedImageSubtypes[ct]; bad {
+		return false
+	}
+
 	for _, prefix := range allowedContentTypePrefixes {
-		if strings.HasPrefix(contentType, prefix) {
+		if strings.HasPrefix(ct, prefix) {
 			return true
 		}
 	}
+	if _, ok := allowedExactContentTypes[ct]; ok {
+		return true
+	}
 	return false
+}
+
+// isAllowedContentType is kept for backward compatibility.
+func isAllowedContentType(contentType string) bool {
+	return isAllowedDriveContentType(contentType, "")
 }
 
 type driveAssetResponse struct {
@@ -114,8 +175,12 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 		return
 	}
 
+	// Cap the entire request body before parsing so oversized uploads are
+	// rejected instead of spilled to a temp file on disk.
+	request.Body = http.MaxBytesReader(writer, request.Body, maxDriveUploadBytes)
+
 	if err := request.ParseMultipartForm(32 << 20); err != nil {
-		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid multipart form"})
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid multipart form or payload too large"})
 		return
 	}
 
@@ -128,6 +193,13 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 	var assets []driveAssetResponse
 
 	for _, fileHeader := range files {
+		if fileHeader.Size > maxDriveFileBytes {
+			writeJSON(writer, http.StatusRequestEntityTooLarge, map[string]string{
+				"error": fmt.Sprintf("file %q exceeds the %d MiB per-file limit", fileHeader.Filename, maxDriveFileBytes>>20),
+			})
+			return
+		}
+
 		contentType := fileHeader.Header.Get("Content-Type")
 		if contentType == "" || contentType == "application/octet-stream" {
 			contentType = mime.TypeByExtension(fileHeader.Filename)
@@ -136,7 +208,7 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 			}
 		}
 
-		if !isAllowedContentType(contentType) {
+		if !isAllowedDriveContentType(contentType, fileHeader.Filename) {
 			writeJSON(writer, http.StatusBadRequest, map[string]string{
 				"error": fmt.Sprintf("file %q: content type %q is not allowed", fileHeader.Filename, contentType),
 			})

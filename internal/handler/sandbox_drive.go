@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"log/slog"
 	"mime"
@@ -16,6 +17,10 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/storage"
 )
+
+const maxSandboxDriveUploadBytes = 50 << 20 // 50 MiB
+
+const maxSandboxDriveFileBytes = 50 << 20 // 50 MiB
 
 // SandboxDriveHandler provides drive access from within sandboxes,
 // authenticated with the Bridge control plane API key.
@@ -73,7 +78,7 @@ func (handler *SandboxDriveHandler) resolveSandboxAgent(writer http.ResponseWrit
 		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to verify credentials"})
 		return uuid.Nil, nil, false
 	}
-	if string(decryptedKey) != apiKey {
+	if subtle.ConstantTimeCompare([]byte(decryptedKey), []byte(apiKey)) != 1 {
 		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "invalid API key"})
 		return uuid.Nil, nil, false
 	}
@@ -103,8 +108,12 @@ func (handler *SandboxDriveHandler) Upload(writer http.ResponseWriter, request *
 		return
 	}
 
+	// Cap the entire request body before parsing so oversized uploads are
+	// rejected instead of spilled to a temp file on disk.
+	request.Body = http.MaxBytesReader(writer, request.Body, maxSandboxDriveUploadBytes)
+
 	if err := request.ParseMultipartForm(32 << 20); err != nil {
-		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid multipart form"})
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid multipart form or payload too large"})
 		return
 	}
 
@@ -117,6 +126,13 @@ func (handler *SandboxDriveHandler) Upload(writer http.ResponseWriter, request *
 	var assets []driveAssetResponse
 
 	for _, fileHeader := range files {
+		if fileHeader.Size > maxSandboxDriveFileBytes {
+			writeJSON(writer, http.StatusRequestEntityTooLarge, map[string]string{
+				"error": fmt.Sprintf("file %q exceeds the %d MiB per-file limit", fileHeader.Filename, maxSandboxDriveFileBytes>>20),
+			})
+			return
+		}
+
 		contentType := fileHeader.Header.Get("Content-Type")
 		if contentType == "" || contentType == "application/octet-stream" {
 			contentType = mime.TypeByExtension(fileHeader.Filename)
@@ -125,7 +141,13 @@ func (handler *SandboxDriveHandler) Upload(writer http.ResponseWriter, request *
 			}
 		}
 
-		// Sandbox drive accepts any content type (no allowlist restriction)
+		if !isAllowedDriveContentType(contentType, fileHeader.Filename) {
+			writeJSON(writer, http.StatusBadRequest, map[string]string{
+				"error": fmt.Sprintf("file %q: content type %q is not allowed", fileHeader.Filename, contentType),
+			})
+			return
+		}
+
 		assetID := uuid.New()
 		s3Key := fmt.Sprintf("drives/%s/%s/%s", agent.ID, assetID, fileHeader.Filename)
 

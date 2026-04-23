@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -73,15 +74,43 @@ func (sc *S3Client) Delete(ctx context.Context, key string) error {
 }
 
 // PresignedURL generates a time-limited GET URL for downloading an object.
+// Forces Content-Disposition: attachment and Content-Type:
+// application/octet-stream to mitigate stored-XSS from any text/html or
+// SVG content still sitting in the bucket from before the upload allowlist
+// was tightened.
 func (sc *S3Client) PresignedURL(ctx context.Context, key string, ttl time.Duration) (string, error) {
 	presigner := s3.NewPresignClient(sc.client)
+
+	filename := key
+	if idx := strings.LastIndex(key, "/"); idx >= 0 && idx < len(key)-1 {
+		filename = key[idx+1:]
+	}
+	disposition := fmt.Sprintf(`attachment; filename="%s"`, sanitizeFilenameForHeader(filename))
+
 	input := &s3.GetObjectInput{
-		Bucket: aws.String(sc.bucket),
-		Key:    aws.String(key),
+		Bucket:                     aws.String(sc.bucket),
+		Key:                        aws.String(key),
+		ResponseContentDisposition: aws.String(disposition),
+		ResponseContentType:        aws.String("application/octet-stream"),
 	}
 	result, err := presigner.PresignGetObject(ctx, input, s3.WithPresignExpires(ttl))
 	if err != nil {
 		return "", fmt.Errorf("s3 presign %q: %w", key, err)
 	}
 	return result.URL, nil
+}
+
+// sanitizeFilenameForHeader replaces characters that would break a
+// Content-Disposition header value with underscores.
+func sanitizeFilenameForHeader(name string) string {
+	var b strings.Builder
+	b.Grow(len(name))
+	for _, r := range name {
+		if r < 0x20 || r == 0x7f || r == '"' || r == '\\' || r == '\r' || r == '\n' {
+			b.WriteByte('_')
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }
