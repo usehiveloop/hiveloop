@@ -1,7 +1,7 @@
 package handler_test
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
