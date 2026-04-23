@@ -1,0 +1,25 @@
+[general]
+listen = "0.0.0.0:53"
+protocol = "both"
+domain = "acme.usehiveloop.com"
+nsname = "auth.acme.usehiveloop.com"
+nsadmin = "admin.acme.usehiveloop.com"
+records = [
+    "acme.usehiveloop.com. A {{ hostvars['controlplane']['ansible_host'] }}",
+    "auth.acme.usehiveloop.com. A {{ hostvars['controlplane']['ansible_host'] }}"
+]
+debug = false
+
+[database]
+engine = "postgres"
+connection = "postgres://{{ postgres_user }}:{{ postgres_password }}@db:5432/{{ postgres_db }}?sslmode=disable"
+
+[api]
+ip = "0.0.0.0"
+port = "443"
+tls = "none"
+corsorigins = ["*"]
+use_header = false
+
+[logconfig]
+loglevel = "info"

@@ -13,6 +13,19 @@ Create A records pointing to the control plane VPS IP before running Phase 2.
 | `api.daytona.usehiveloop.com` | A | `<VPS_IP>` |
 | `dex.daytona.usehiveloop.com` | A | `<VPS_IP>` |
 | `*.preview.usehiveloop.com` | A | `<VPS_IP>` |
+| `acme-dns-api.daytona.usehiveloop.com` | A | `<VPS_IP>` |
+| `caddy-admin.daytona.usehiveloop.com` | A | `<VPS_IP>` |
+
+### Custom domains — acme-dns zone delegation
+
+Custom preview domains (users bringing their own domain) rely on acme-dns running on the VPS. The zone `acme.usehiveloop.com` must be delegated to it as authoritative.
+
+| Record | Type | Value |
+|--------|------|-------|
+| `auth.acme.usehiveloop.com` | A | `<VPS_IP>` |
+| `acme.usehiveloop.com` | NS | `auth.acme.usehiveloop.com` |
+
+In Cloudflare, the NS record on `acme.usehiveloop.com` tells resolvers to ask the acme-dns server (at `auth.acme.usehiveloop.com`) for anything under `acme.usehiveloop.com`. Cloudflare proxying must be **off** (gray cloud) for `auth.acme.usehiveloop.com` so UDP/TCP :53 traffic reaches the VPS.
 
 For dynamic alias domains (e.g. `*.preview.useportal.app`), add an A record pointing to the same VPS IP. No server-side changes needed — Caddy auto-provisions TLS via on-demand HTTP-01 challenge.
 
@@ -41,7 +54,26 @@ For dynamic alias domains (e.g. `*.preview.useportal.app`), add an A record poin
 3. Zone Resources: Include → Specific zone → `usehiveloop.com`
 4. Copy the token into `.env` as `CLOUDFLARE_API_TOKEN`
 
-This is used by Caddy for DNS-01 challenges to provision wildcard certs for `*.preview.usehiveloop.com`, `api.daytona.usehiveloop.com`, and `dex.daytona.usehiveloop.com`.
+This is used by Caddy for DNS-01 challenges to provision wildcard certs for `*.preview.usehiveloop.com`, `api.daytona.usehiveloop.com`, `dex.daytona.usehiveloop.com`, `acme-dns-api.daytona.usehiveloop.com`, and `caddy-admin.daytona.usehiveloop.com`.
+
+---
+
+## 3b. Hiveloop Internal Secret (for custom-domain backend → Caddy)
+
+The backend talks to the acme-dns API proxy and Caddy admin API proxy using a shared secret sent in the `X-Internal-Secret` header.
+
+Generate and export before running Phase 2:
+
+```bash
+export HIVELOOP_INTERNAL_SECRET="$(openssl rand -hex 32)"
+```
+
+Add the same value to the backend's runtime env as `INTERNAL_DOMAIN_SECRET`, alongside:
+
+```
+ACME_DNS_API_URL=https://acme-dns-api.daytona.usehiveloop.com
+CADDY_ADMIN_URL=https://caddy-admin.daytona.usehiveloop.com
+```
 
 ---
 

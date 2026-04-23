@@ -35,5 +35,6 @@
         - DAYTONA_ADMIN_API_KEY
         - DAYTONA_DEX_ADMIN_PASSWORD_HASH
         - CLOUDFLARE_API_TOKEN
+        - HIVELOOP_INTERNAL_SECRET
   roles:
     - deploy-control

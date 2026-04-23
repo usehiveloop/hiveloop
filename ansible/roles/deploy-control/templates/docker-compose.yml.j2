@@ -9,6 +9,7 @@ volumes:
   dex_data:
   caddy_data:
   caddy_config:
+  acme_dns_data:
 
 services:
   # =========================================================================
@@ -241,7 +242,28 @@ services:
       SSH_GATEWAY_PORT: "2222"
 
   # =========================================================================
-  # CADDY (PUBLIC INGRESS — TLS TERMINATION)
+  # ACME-DNS (authoritative DNS for certificate challenge delegation)
+  # Users CNAME _acme-challenge.their.domain → <uuid>.acme.usehiveloop.com
+  # =========================================================================
+  acme-dns:
+    image: joohoi/acme-dns:latest
+    container_name: daytona-acme-dns
+    restart: unless-stopped
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    volumes:
+      - acme_dns_data:/var/lib/acme-dns
+      - {{ control_config_dir }}/acme-dns/config.cfg:/etc/acme-dns/config.cfg:ro
+    networks:
+      - {{ docker_network_name }}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # =========================================================================
+  # CADDY (PUBLIC INGRESS — TLS TERMINATION — DYNAMIC DOMAIN ROUTING)
+  # Custom domains added dynamically via /load from Hiveloop backend
   # =========================================================================
   caddy:
     build:
@@ -263,3 +285,4 @@ services:
       - caddy_config:/config
     environment:
       CLOUDFLARE_API_TOKEN: "{{ cloudflare_api_token }}"
+      HIVELOOP_INTERNAL_SECRET: "{{ hiveloop_internal_secret | default('') }}"

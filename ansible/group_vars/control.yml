@@ -35,6 +35,9 @@ dex_admin_password_hash: "{{ lookup('env', 'DAYTONA_DEX_ADMIN_PASSWORD_HASH') }}
 # Cloudflare (for Caddy wildcard TLS)
 cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') }}"
 
+# Shared secret for caddy-admin and acme-dns-api proxy auth
+hiveloop_internal_secret: "{{ lookup('env', 'HIVELOOP_INTERNAL_SECRET') }}"
+
 # sysctl (control-specific)
 sysctl_params:
   net.core.somaxconn: 65535
