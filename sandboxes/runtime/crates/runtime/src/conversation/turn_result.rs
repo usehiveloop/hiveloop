@@ -115,7 +115,10 @@ pub(super) async fn handle_timeout(
     elapsed: std::time::Duration,
 ) {
     *history = history_backup;
-    ctx.persisted_messages.lock().unwrap().truncate(pre_turn_len);
+    ctx.persisted_messages
+        .lock()
+        .unwrap()
+        .truncate(pre_turn_len);
     error!(
         conversation_id = ctx.conversation_id,
         timeout_secs = AGENT_CHAT_TIMEOUT.as_secs(),
@@ -146,7 +149,10 @@ pub(super) async fn handle_task_cancelled(
     pre_turn_len: usize,
 ) {
     *history = history_backup;
-    ctx.persisted_messages.lock().unwrap().truncate(pre_turn_len);
+    ctx.persisted_messages
+        .lock()
+        .unwrap()
+        .truncate(pre_turn_len);
     error!(
         conversation_id = ctx.conversation_id,
         "agent chat task cancelled unexpectedly"
@@ -195,14 +201,7 @@ pub(super) async fn dispatch_chat_result(
 ) -> Option<Vec<rig::message::Message>> {
     match chat_result {
         Err(_timeout) => {
-            handle_timeout(
-                ctx,
-                history,
-                history_backup,
-                pre_turn_len,
-                start.elapsed(),
-            )
-            .await;
+            handle_timeout(ctx, history, history_backup, pre_turn_len, start.elapsed()).await;
             None
         }
         Ok(Err(_)) => {

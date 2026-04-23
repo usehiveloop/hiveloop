@@ -27,18 +27,14 @@ pub(super) async fn handle_got_result(
 ) -> TurnOutcome {
     let latency_ms = start.elapsed().as_millis() as u64;
 
-    let (
-        response_text,
-        initial_input_tokens,
-        initial_cached_input_tokens,
-        initial_output_tokens,
-    ) = match classify_turn_result(ctx, result, pre_turn_len).await {
-        Ok(tuple) => tuple,
-        Err(()) => {
-            let _ = history_backup; // caller will restore via FatalRestored
-            return TurnOutcome::FatalRestored;
-        }
-    };
+    let (response_text, initial_input_tokens, initial_cached_input_tokens, initial_output_tokens) =
+        match classify_turn_result(ctx, result, pre_turn_len).await {
+            Ok(tuple) => tuple,
+            Err(()) => {
+                let _ = history_backup; // caller will restore via FatalRestored
+                return TurnOutcome::FatalRestored;
+            }
+        };
 
     let has_text = matches!(&response_text, Some(text) if !text.is_empty());
     let had_tool_calls = history_contains_tool_calls(&enriched_history, history_backup.len());

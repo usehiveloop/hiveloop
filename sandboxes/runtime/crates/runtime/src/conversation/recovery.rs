@@ -32,7 +32,8 @@ pub(super) struct RecoveryInputs<'a> {
     pub(super) metrics: &'a Arc<AgentMetrics>,
     pub(super) conversation_metrics: &'a Arc<ConversationMetrics>,
     pub(super) storage: &'a Option<StorageHandle>,
-    pub(super) persisted_messages: &'a Arc<std::sync::Mutex<Vec<bridge_core::conversation::Message>>>,
+    pub(super) persisted_messages:
+        &'a Arc<std::sync::Mutex<Vec<bridge_core::conversation::Message>>>,
     pub(super) user_text: &'a str,
     pub(super) tool_calls_only: bool,
 }

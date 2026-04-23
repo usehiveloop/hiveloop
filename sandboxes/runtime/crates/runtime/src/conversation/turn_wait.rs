@@ -149,9 +149,14 @@ pub(super) async fn wait_and_dispatch(
     agent_id: &str,
     conversation_id: &str,
 ) -> WaitDisposition {
-    let outcome =
-        wait_for_chat_result(cancel, turn_cancel, conversation_id, result_rx, agent_permissions)
-            .await;
+    let outcome = wait_for_chat_result(
+        cancel,
+        turn_cancel,
+        conversation_id,
+        result_rx,
+        agent_permissions,
+    )
+    .await;
     match outcome {
         ChatWaitOutcome::Shutdown => WaitDisposition::Break,
         ChatWaitOutcome::Abort => {

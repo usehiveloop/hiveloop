@@ -198,10 +198,7 @@ pub(super) fn build_user_text_from_incoming(
 
 /// Given the raw `user_text` and incoming signal, build the bridge_core
 /// `Message` that represents the user's side of this turn for persistence.
-pub(super) fn build_persisted_user_message(
-    incoming: &IncomingMessage,
-    user_text: &str,
-) -> Message {
+pub(super) fn build_persisted_user_message(incoming: &IncomingMessage, user_text: &str) -> Message {
     match incoming {
         IncomingMessage::User(msg) => normalize_messages_for_persistence(std::slice::from_ref(msg))
             .into_iter()

@@ -26,11 +26,8 @@ pub(super) fn run_enforcement(
 
     ef_state.advance_turn();
     let turn_calls = extract_tool_names_from_turn(enriched_history, baseline_len);
-    let violations = crate::tool_enforcement::evaluate_requirements(
-        ef_state,
-        tool_requirements,
-        &turn_calls,
-    );
+    let violations =
+        crate::tool_enforcement::evaluate_requirements(ef_state, tool_requirements, &turn_calls);
     if violations.is_empty() {
         return;
     }

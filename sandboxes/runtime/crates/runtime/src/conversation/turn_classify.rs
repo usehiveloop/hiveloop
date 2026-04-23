@@ -44,7 +44,10 @@ pub(super) async fn classify_turn_result(
                 );
                 Ok((None, 0u64, 0u64, 0u64))
             } else {
-                ctx.persisted_messages.lock().unwrap().truncate(pre_turn_len);
+                ctx.persisted_messages
+                    .lock()
+                    .unwrap()
+                    .truncate(pre_turn_len);
                 error!(
                     agent_id = ctx.agent_id,
                     conversation_id = ctx.conversation_id,

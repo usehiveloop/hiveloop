@@ -149,4 +149,3 @@ fn test_convert_assistant_multiple_tool_calls() {
         _ => panic!("expected Assistant message"),
     }
 }
-

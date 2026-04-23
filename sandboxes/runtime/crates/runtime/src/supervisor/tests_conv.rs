@@ -255,4 +255,3 @@ async fn supervisor_create_conversation_with_api_key_and_tool_filter_succeeds() 
     let (conv_id, _sse_rx) = result.unwrap();
     supervisor.end_conversation("agent1", &conv_id).unwrap();
 }
-
