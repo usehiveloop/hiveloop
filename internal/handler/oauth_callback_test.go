@@ -20,16 +20,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// ---------------------------------------------------------------------------
-// Test harness
-// ---------------------------------------------------------------------------
-
-type oauthTestHarness struct {
-	db      *gorm.DB
-	handler *handler.OAuthHandler
-	router  *chi.Mux
-}
-
 func TestOAuth_Callback_ProviderNotConfigured(t *testing.T) {
 	h := newOAuthHarness(t) // no providers configured
 

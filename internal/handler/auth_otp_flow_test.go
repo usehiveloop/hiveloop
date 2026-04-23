@@ -20,15 +20,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// ---------------------------------------------------------------------------
-// Test harness
-// ---------------------------------------------------------------------------
-
-type otpTestHarness struct {
-	db     *gorm.DB
-	router *chi.Mux
-}
-
 func TestOTP_FullFlow_NewUser(t *testing.T) {
 	h := newOTPHarness(t)
 	testEmail := "otp-new-user@test.hiveloop.com"

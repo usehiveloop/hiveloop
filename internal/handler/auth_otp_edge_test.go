@@ -20,15 +20,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// ---------------------------------------------------------------------------
-// Test harness
-// ---------------------------------------------------------------------------
-
-type otpTestHarness struct {
-	db     *gorm.DB
-	router *chi.Mux
-}
-
 func TestOTP_WrongCode(t *testing.T) {
 	h := newOTPHarness(t)
 	testEmail := "otp-wrong@test.hiveloop.com"
