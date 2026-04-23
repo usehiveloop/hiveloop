@@ -15,26 +15,15 @@ env:
   POSTGRES_DB: hiveloop
 
 jobs:
-  # Sharded RAG E2E suite: Rust crate tests (rag-engine-*) + Go tests that
-  # spawn a real rag-engine binary and probe MinIO. Five shards run in
-  # parallel; each tests its slice of Rust crates (mod 5) plus its slice
-  # of Go tests (sorted by test name, mod 5). The actual `go test` /
-  # `cargo test` step is capped at 5 minutes — cargo build runs in a
-  # separate step with its own cache-sensitive budget.
-  test-rag:
+  # Pre-compile job: one runner pays the cold cargo build cost and
+  # uploads the release binary + test binaries (implicitly, via shared
+  # Swatinem cache) so the five matrix shards all warm-start.
+  # Subsequent runs hit the cache and finish in seconds.
+  precompile-rag-engine:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [0, 1, 2, 3, 4]
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.23"
-          cache: true
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -47,18 +36,70 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: services/rag-engine -> target
-          # Share one cache across all five shards; key off Cargo.lock so
-          # dep bumps invalidate naturally.
           shared-key: rag-engine-e2e
+
+      - name: build rag-engine release binary
+        working-directory: services/rag-engine
+        run: cargo build --release --bin rag-engine-server
+
+      - name: pre-compile all crate test binaries
+        working-directory: services/rag-engine
+        run: cargo test --workspace --no-run
+
+      - name: upload rag-engine-server binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: rag-engine-server
+          path: services/rag-engine/target/release/rag-engine-server
+          retention-days: 1
+          if-no-files-found: error
+
+  # Sharded RAG E2E suite: Rust crate tests (rag-engine-*) + Go tests that
+  # spawn a real rag-engine binary and probe MinIO. Five shards run in
+  # parallel. The actual `cargo test` / `go test` step is capped at
+  # 5 minutes; cache restore + service start run outside that budget.
+  test-rag:
+    needs: precompile-rag-engine
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: install protoc + well-known protos
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "27.x"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: services/rag-engine -> target
+          shared-key: rag-engine-e2e
+          save-if: "false"
+
+      - name: download pre-built rag-engine binary
+        uses: actions/download-artifact@v4
+        with:
+          name: rag-engine-server
+          path: services/rag-engine/target/release/
+
+      - name: restore binary execute bit
+        run: chmod +x services/rag-engine/target/release/rag-engine-server
 
       - name: start services (postgres + redis + minio + bucket)
         run: make test-services-up
         timeout-minutes: 3
-
-      - name: build rag-engine binary (release)
-        working-directory: services/rag-engine
-        run: cargo build --release --bin rag-engine-server
-        timeout-minutes: 10
 
       - name: run shard ${{ matrix.shard }} tests
         env:
