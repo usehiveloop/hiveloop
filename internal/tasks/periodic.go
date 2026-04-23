@@ -41,6 +41,14 @@ func PeriodicTaskConfigs(cfg *config.Config) []*asynq.PeriodicTaskConfig {
 			})
 		}
 
+		// Sandbox lifecycle policy: runs every 5 minutes. Stops sandboxes idle
+		// for >10 min and archives sandboxes stopped for >24 h. Timeout
+		// generous enough to stop/archive dozens of sandboxes in a single tick.
+		configs = append(configs, &asynq.PeriodicTaskConfig{
+			Cronspec: "@every 5m",
+			Task:     asynq.NewTask(TypeSandboxLifecycle, nil),
+			Opts:     []asynq.Option{asynq.Queue(QueuePeriodic), asynq.MaxRetry(1), asynq.Timeout(10 * time.Minute)},
+		})
 	}
 
 	return configs
