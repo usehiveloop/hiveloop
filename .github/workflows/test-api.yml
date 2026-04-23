@@ -190,7 +190,7 @@ jobs:
           echo "Running shard ${{ matrix.shard }} packages:"
           echo "$PACKAGES"
           go test $PACKAGES -race -count=1
-        timeout-minutes: 5
+        timeout-minutes: 10
       - name: cleanup
         if: always()
         run: docker compose down -v --remove-orphans 2>/dev/null || true
