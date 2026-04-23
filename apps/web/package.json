@@ -13,8 +13,7 @@
     "postinstall": "fumadocs-mdx",
     "typecheck": "fumadocs-mdx && tsc --noEmit",
     "generate": "openapi-typescript ../../docs/openapi.json -o lib/api/schema.d.ts",
-    "generate:docs": "tsx scripts/generate-openapi-docs.mts",
-    "setup:polar": "NODE_OPTIONS='--tls-cipher-list=DEFAULT:@SECLEVEL=0' tsx scripts/setup-polar-pricing.ts"
+    "generate:docs": "tsx scripts/generate-openapi-docs.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -23,7 +22,6 @@
     "@microsoft/fetch-event-source": "^2.0.1",
     "@monaco-editor/react": "^4.7.0",
     "@nangohq/frontend": "^0.69.47",
-    "@polar-sh/sdk": "^0.47.0",
     "@tanstack/react-query": "^5.96.2",
     "@tanstack/react-virtual": "^3.13.23",
     "@types/mdx": "^2.0.13",

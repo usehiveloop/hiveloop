@@ -15,9 +15,10 @@ type Org struct {
 	Active         bool           `gorm:"not null;default:true"`
 	AllowedOrigins pq.StringArray `gorm:"type:text[]"`
 
-	// Billing (Polar)
-	PolarCustomerID *string `gorm:"index"`
-	BillingPlan     string  `gorm:"not null;default:'free'"` // "free", "pro"
+	// Denormalised slug of the org's active plan ("free" when no active sub).
+	// Source of truth lives in the subscriptions table; this is cached on
+	// the org row so request-path checks don't need a join.
+	PlanSlug string `gorm:"not null;default:'free';size:64"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -56,7 +57,9 @@ func AutoMigrate(db *gorm.DB) error {
 		&OTPCode{},
 		&MarketplaceAgent{},
 		&ToolUsage{},
+		&Plan{},
 		&Subscription{},
+		&CreditLedgerEntry{},
 		&DriveAsset{},
 		&Router{},
 		&RouterTrigger{},
@@ -107,6 +110,9 @@ func AutoMigrate(db *gorm.DB) error {
 
 	// Partial unique: prevent duplicate pending invites per (org, email).
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_org_invite_pending ON org_invites (org_id, email) WHERE accepted_at IS NULL AND revoked_at IS NULL`)
+
+	// Subscriptions: (provider, external_subscription_id) is globally unique.
+	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_sub_provider_ext ON subscriptions (provider, external_subscription_id)`)
 
 	// RAG schema migrations live in internal/rag.AutoMigrate. Callers
 	// (bootstrap/deps.go, testhelpers.ConnectTestDB) invoke it
