@@ -37,6 +37,9 @@ jobs:
         with:
           workspaces: services/rag-engine -> target
           shared-key: rag-engine-e2e
+          # Preserve compiled dep artifacts in target/deps — without
+          # this the shards spend 5 min recompiling memchr/regex/icu/etc.
+          cache-all-crates: "true"
 
       - name: build rag-engine release binary
         working-directory: services/rag-engine
@@ -86,6 +89,9 @@ jobs:
         with:
           workspaces: services/rag-engine -> target
           shared-key: rag-engine-e2e
+          # Preserve compiled dep artifacts in target/deps — without
+          # this the shards spend 5 min recompiling memchr/regex/icu/etc.
+          cache-all-crates: "true"
           save-if: "false"
 
       - name: download pre-built rag-engine binary
@@ -105,6 +111,11 @@ jobs:
         env:
           SHARD: ${{ matrix.shard }}
           TOTAL: "10"
+          # Point both escape hatches at the prebuilt binary so Go tests
+          # never invoke `cargo build --release` (that path mis-caches in
+          # shards and eats the 5-min budget).
+          RAG_ENGINE_BIN: ${{ github.workspace }}/services/rag-engine/target/release/rag-engine-server
+          RAG_ENGINE_BRANCH: ${{ github.workspace }}/services/rag-engine/target/release/rag-engine-server
         run: |
           set -eo pipefail
 
