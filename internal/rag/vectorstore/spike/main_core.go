@@ -40,47 +40,10 @@ import (
 	"github.com/lancedb/lancedb-go/pkg/lancedb"
 )
 
-const (
-	embeddingDim = 2560 // Qwen3-Embedding-4B dimensionality per the plan's locked decisions.
-	tableName    = "rag_spike"
-	sampleRows   = 100
-)
-
-// opResult captures the PASS/FAIL outcome of a single primitive.
-type opResult struct {
-	name    string
-	ok      bool
-	latency time.Duration
-	detail  string
-	err     error
-}
-
 func main() {
 	ctx := context.Background()
 
-	endpoint := envDefault("MINIO_ENDPOINT", "http://localhost:9000")
-	bucket := envDefault("MINIO_BUCKET", "hiveloop-rag-test")
-	accessKey := envDefault("MINIO_ACCESS_KEY", "minioadmin")
-	secretKey := envDefault("MINIO_SECRET_KEY", "minioadmin")
-	region := envDefault("MINIO_REGION", "us-east-1")
-
-	// v0.1.2 finding: the structured S3Config.Endpoint/ForcePathStyle
-	// fields do NOT propagate to the Rust object_store builder. Only
-	// AWS_* env vars are honored. Set them here so the spike runs
-	// correctly whether or not the caller exported them.
-	setenvIfEmpty("AWS_ACCESS_KEY_ID", accessKey)
-	setenvIfEmpty("AWS_SECRET_ACCESS_KEY", secretKey)
-	setenvIfEmpty("AWS_REGION", region)
-	setenvIfEmpty("AWS_DEFAULT_REGION", region)
-	setenvIfEmpty("AWS_ENDPOINT_URL", endpoint)
-	setenvIfEmpty("AWS_ENDPOINT", endpoint)
-	setenvIfEmpty("AWS_ALLOW_HTTP", "true")
-	setenvIfEmpty("AWS_S3_ALLOW_UNSAFE_RENAME", "true")
-	setenvIfEmpty("AWS_EC2_METADATA_DISABLED", "true")
-
-	// Unique sub-prefix per run so re-runs do not collide.
-	runID := randomRunID()
-	uri := fmt.Sprintf("s3://%s/spike-%s", bucket, runID)
+	endpoint, bucket, accessKey, secretKey, region, runID, uri := setupS3Env()
 
 	fmt.Println("LanceDB Phase 0 spike")
 	fmt.Println("=====================")
@@ -96,7 +59,6 @@ func main() {
 	secretKeyStr := secretKey
 	endpointStr := endpoint
 
-	// --- Op 1: Connect ---
 	start := time.Now()
 	conn, err := lancedb.Connect(ctx, uri, &contracts.ConnectionOptions{
 		Region: &regionStr,
@@ -119,7 +81,6 @@ func main() {
 	defer conn.Close()
 	results = append(results, opResult{name: "1. Connect (S3/MinIO)", ok: true, latency: connLatency, detail: "lancedb.Connect"})
 
-	// --- Op 2: Create dataset ---
 	schema := arrow.NewSchema([]arrow.Field{
 		{Name: "id", Type: arrow.BinaryTypes.String, Nullable: false},
 		{Name: "org_id", Type: arrow.BinaryTypes.String, Nullable: false},
@@ -146,7 +107,6 @@ func main() {
 	defer table.Close()
 	results = append(results, opResult{name: "2. Create dataset", ok: true, latency: createLatency, detail: "conn.CreateTable"})
 
-	// --- Op 3: Upsert 100 rows ---
 	start = time.Now()
 	record, err := buildSampleRecord(schema, sampleRows)
 	if err != nil {
@@ -171,7 +131,6 @@ func main() {
 	}
 	results = append(results, opResult{name: "3. Upsert 100 rows", ok: true, latency: insertLatency, detail: fmt.Sprintf("table.Add → %d rows", count)})
 
-	// --- Op 4: Vector search with metadata filter ---
 	// Filter: org_id = 'org-A' AND (array_has(acl, 'user_email:alice@x.com') OR is_public = true).
 	queryVec := generateUnitVector(embeddingDim)
 	filter := "org_id = 'org-A' AND (array_has(acl, 'user_email:alice@x.com') OR is_public = true)"
@@ -195,7 +154,6 @@ func main() {
 		fmt.Printf("  [warn] vector search latency %s exceeds 100ms target\n", vectorLatency)
 	}
 
-	// --- Op 5: FTS with metadata filter ---
 	// Non-fatal on failure so we can still exercise ops 6 and 7, which are
 	// independent of FTS. The overall outcome still reflects this failure.
 	ftsErr := table.CreateIndex(ctx, []string{"content"}, contracts.IndexTypeFts)
@@ -217,7 +175,6 @@ func main() {
 		})
 	}
 
-	// --- Op 6: Metadata-only update (critical for perm sync) ---
 	// Find an existing id by selecting one row, then update only its ACL.
 	existing, err := table.SelectWithLimit(ctx, 1, 0)
 	if err != nil || len(existing) == 0 {
@@ -311,7 +268,6 @@ func main() {
 	})
 
 op7:
-	// --- Op 7: Delete by id ---
 	start = time.Now()
 	if err := table.Delete(ctx, fmt.Sprintf("id = '%s'", targetID)); err != nil {
 		results = append(results, opResult{name: "7. Delete by id", ok: false, latency: time.Since(start), err: err})
@@ -338,219 +294,3 @@ op7:
 }
 
 // envDefault returns os.Getenv(key), or the fallback if unset.
-func envDefault(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
-}
-
-// setenvIfEmpty sets an env var only if it isn't already set.
-func setenvIfEmpty(key, val string) {
-	if os.Getenv(key) == "" {
-		_ = os.Setenv(key, val)
-	}
-}
-
-// randomRunID returns 8 hex chars identifying this spike run.
-func randomRunID() string {
-	b := make([]byte, 4)
-	_, _ = rand.Read(b)
-	return hex.EncodeToString(b)
-}
-
-// buildSampleRecord generates an Arrow Record with `count` rows matching the
-// spike schema. Rows are split across two orgs and mix public + private +
-// per-user + group-based ACLs so the query filter in op 4 can exercise each
-// branch.
-func buildSampleRecord(schema *arrow.Schema, count int) (arrow.Record, error) {
-	pool := memory.NewGoAllocator()
-
-	ids := make([]string, count)
-	orgIDs := make([]string, count)
-	contents := make([]string, count)
-	isPublic := make([]bool, count)
-	updatedAt := make([]arrow.Timestamp, count)
-	allVectors := make([]float32, count*embeddingDim)
-	acls := make([][]string, count)
-
-	now := time.Now().UTC()
-	for i := 0; i < count; i++ {
-		ids[i] = fmt.Sprintf("doc-%04d", i)
-		if i%2 == 0 {
-			orgIDs[i] = "org-A"
-		} else {
-			orgIDs[i] = "org-B"
-		}
-		contents[i] = fmt.Sprintf("sample doc number %d about widgets and processes", i)
-		isPublic[i] = i%5 == 0
-		updatedAt[i] = arrow.Timestamp(now.Add(time.Duration(i) * time.Minute).UnixMicro())
-
-		vec := generateUnitVector(embeddingDim)
-		copy(allVectors[i*embeddingDim:(i+1)*embeddingDim], vec)
-
-		switch i % 3 {
-		case 0:
-			acls[i] = []string{"user_email:alice@x.com", "PUBLIC"}
-		case 1:
-			acls[i] = []string{"user_email:bob@x.com", "external_group:github_org_x_team_y"}
-		case 2:
-			acls[i] = []string{"external_group:github_org_x_team_y"}
-		}
-	}
-
-	idBuilder := array.NewStringBuilder(pool)
-	idBuilder.AppendValues(ids, nil)
-	idArr := idBuilder.NewArray()
-	defer idArr.Release()
-
-	orgBuilder := array.NewStringBuilder(pool)
-	orgBuilder.AppendValues(orgIDs, nil)
-	orgArr := orgBuilder.NewArray()
-	defer orgArr.Release()
-
-	contentBuilder := array.NewStringBuilder(pool)
-	contentBuilder.AppendValues(contents, nil)
-	contentArr := contentBuilder.NewArray()
-	defer contentArr.Release()
-
-	boolBuilder := array.NewBooleanBuilder(pool)
-	boolBuilder.AppendValues(isPublic, nil)
-	boolArr := boolBuilder.NewArray()
-	defer boolArr.Release()
-
-	tsBuilder := array.NewTimestampBuilder(pool, &arrow.TimestampType{Unit: arrow.Microsecond})
-	tsBuilder.AppendValues(updatedAt, nil)
-	tsArr := tsBuilder.NewArray()
-	defer tsArr.Release()
-
-	// Vector column — FixedSizeList<Float32, embeddingDim>.
-	vecValuesBuilder := array.NewFloat32Builder(pool)
-	vecValuesBuilder.AppendValues(allVectors, nil)
-	vecValuesArr := vecValuesBuilder.NewArray()
-	defer vecValuesArr.Release()
-
-	vecListType := arrow.FixedSizeListOf(embeddingDim, arrow.PrimitiveTypes.Float32)
-	vecData := array.NewData(vecListType, count, []*memory.Buffer{nil}, []arrow.ArrayData{vecValuesArr.Data()}, 0, 0)
-	vecArr := array.NewFixedSizeListData(vecData)
-	defer vecArr.Release()
-
-	// ACL column — List<Utf8>.
-	aclBuilder := array.NewListBuilder(pool, arrow.BinaryTypes.String)
-	aclStrBuilder := aclBuilder.ValueBuilder().(*array.StringBuilder)
-	for _, a := range acls {
-		aclBuilder.Append(true)
-		for _, tok := range a {
-			aclStrBuilder.Append(tok)
-		}
-	}
-	aclArr := aclBuilder.NewArray()
-	defer aclArr.Release()
-
-	columns := []arrow.Array{idArr, orgArr, vecArr, aclArr, contentArr, boolArr, tsArr}
-	rec := array.NewRecord(schema, columns, int64(count))
-	return rec, nil
-}
-
-// generateUnitVector returns a random unit-norm []float32 of length dim.
-func generateUnitVector(dim int) []float32 {
-	v := make([]float32, dim)
-	for i := range v {
-		v[i] = mrand.Float32()*2 - 1
-	}
-	var norm float32
-	for _, x := range v {
-		norm += x * x
-	}
-	norm = float32(math.Sqrt(float64(norm)))
-	if norm > 0 {
-		for i := range v {
-			v[i] /= norm
-		}
-	}
-	return v
-}
-
-// sameVector compares two vector column values (as returned in Select result
-// maps) byte-for-byte. Both sides may be []float32, []interface{}, or a
-// FixedSizeList representation depending on the binding's decoding.
-func sameVector(a, b interface{}) bool {
-	as := toFloat32Slice(a)
-	bs := toFloat32Slice(b)
-	if as == nil || bs == nil {
-		return false
-	}
-	if len(as) != len(bs) {
-		return false
-	}
-	for i := range as {
-		if as[i] != bs[i] {
-			return false
-		}
-	}
-	return true
-}
-
-func toFloat32Slice(x interface{}) []float32 {
-	switch v := x.(type) {
-	case []float32:
-		return v
-	case []interface{}:
-		out := make([]float32, len(v))
-		for i, raw := range v {
-			switch r := raw.(type) {
-			case float32:
-				out[i] = r
-			case float64:
-				out[i] = float32(r)
-			default:
-				return nil
-			}
-		}
-		return out
-	default:
-		return nil
-	}
-}
-
-// reportAndExit prints a PASS/FAIL line per op and exits with 0 if every op
-// passed, non-zero otherwise.
-func reportAndExit(results []opResult) {
-	fmt.Println()
-	fmt.Println("Results")
-	fmt.Println("-------")
-	allOK := true
-	for _, r := range results {
-		status := "PASS"
-		if !r.ok {
-			status = "FAIL"
-			allOK = false
-		}
-		line := fmt.Sprintf("  [%s] %s (%s)", status, r.name, r.latency)
-		if r.detail != "" {
-			line += " — " + r.detail
-		}
-		if r.err != nil {
-			line += " — err: " + r.err.Error()
-		}
-		fmt.Println(line)
-	}
-
-	fmt.Println()
-	if allOK && len(results) == 7 {
-		fmt.Println("OVERALL: PASS (all 7 primitives verified)")
-		os.Exit(0)
-	}
-	fmt.Printf("OVERALL: FAIL (%d/%d primitives verified)\n", countOK(results), 7)
-	os.Exit(1)
-}
-
-func countOK(results []opResult) int {
-	n := 0
-	for _, r := range results {
-		if r.ok {
-			n++
-		}
-	}
-	return n
-}
