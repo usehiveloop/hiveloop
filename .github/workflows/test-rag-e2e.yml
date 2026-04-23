@@ -21,7 +21,7 @@ jobs:
   # in each shard runs against a warm target/ and finishes in seconds
   # instead of recompiling dependencies from scratch.
   precompile-rag-engine:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
@@ -78,7 +78,7 @@ jobs:
   # / `go test` step is capped at 5 minutes.
   test-rag:
     needs: precompile-rag-engine
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     strategy:
       fail-fast: false
       matrix:
