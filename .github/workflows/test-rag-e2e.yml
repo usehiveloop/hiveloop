@@ -1,0 +1,175 @@
+name: test-rag-e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  POSTGRES_USER: hiveloop
+  POSTGRES_PASSWORD: localdev
+  POSTGRES_DB: hiveloop
+
+jobs:
+  # Pre-compile: one runner builds the release binary + all test binaries
+  # and writes a cache keyed on Cargo.lock. Downstream matrix shards
+  # restore the cache verbatim (no Swatinem pruning), so `cargo test -p X`
+  # in each shard runs against a warm target/ and finishes in seconds
+  # instead of recompiling dependencies from scratch.
+  precompile-rag-engine:
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: install protoc + well-known protos (required by lance-encoding)
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "27.x"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: restore cargo + target cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            services/rag-engine/target
+          key: rag-engine-target-v2-${{ runner.os }}-${{ hashFiles('services/rag-engine/Cargo.lock') }}
+
+      - name: build rag-engine release binary
+        working-directory: services/rag-engine
+        run: cargo build --release --bin rag-engine-server
+
+      - name: pre-compile all crate test binaries
+        working-directory: services/rag-engine
+        run: cargo test --workspace --no-run
+
+      - name: save cargo + target cache
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            services/rag-engine/target
+          key: rag-engine-target-v2-${{ runner.os }}-${{ hashFiles('services/rag-engine/Cargo.lock') }}
+
+      - name: upload rag-engine-server binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: rag-engine-server
+          path: services/rag-engine/target/release/rag-engine-server
+          retention-days: 1
+          if-no-files-found: error
+
+  # Sharded RAG E2E suite: 10 matrix shards in parallel. Each shard
+  # restores the warm target/ cache, downloads the prebuilt binary, runs
+  # at most one crate's Rust tests + a ~6-test Go slice. The `cargo test`
+  # / `go test` step is capped at 5 minutes.
+  test-rag:
+    needs: precompile-rag-engine
+    runs-on: depot-ubuntu-24.04-4
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: install protoc + well-known protos
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "27.x"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: restore cargo + target cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            services/rag-engine/target
+          key: rag-engine-target-v2-${{ runner.os }}-${{ hashFiles('services/rag-engine/Cargo.lock') }}
+          fail-on-cache-miss: true
+
+      - name: download pre-built rag-engine binary
+        uses: actions/download-artifact@v4
+        with:
+          name: rag-engine-server
+          path: services/rag-engine/target/release/
+
+      - name: restore binary execute bit
+        run: chmod +x services/rag-engine/target/release/rag-engine-server
+
+      - name: start services (postgres + redis + minio + bucket)
+        run: make test-services-up
+        timeout-minutes: 3
+
+      - name: run shard ${{ matrix.shard }} tests
+        env:
+          SHARD: ${{ matrix.shard }}
+          TOTAL: "10"
+          # Point both escape hatches at the prebuilt binary so Go tests
+          # never invoke `cargo build --release` (that path recompiles
+          # from scratch in shards and eats the 5-min budget).
+          RAG_ENGINE_BIN: ${{ github.workspace }}/services/rag-engine/target/release/rag-engine-server
+          RAG_ENGINE_BRANCH: ${{ github.workspace }}/services/rag-engine/target/release/rag-engine-server
+          # Slow runners need more than 30s to see the gRPC server report
+          # SERVING; 60s is still tight enough to catch real regressions.
+          RAG_ENGINE_BOOT_TIMEOUT: "60s"
+        run: |
+          set -eo pipefail
+
+          # ------------ Rust crate tests -------------------------------
+          # Six crates, one per shard — shards 0..5 get a crate each,
+          # shards 6..9 skip the Rust block.
+          CRATES=(rag-engine-chunker rag-engine-embed rag-engine-lance \
+                  rag-engine-proto rag-engine-rerank rag-engine-server)
+          if [ "$SHARD" -lt "${#CRATES[@]}" ]; then
+            echo "::group::cargo test -p ${CRATES[$SHARD]}"
+            (cd services/rag-engine && cargo test -p "${CRATES[$SHARD]}")
+            echo "::endgroup::"
+          fi
+
+          # ------------ Go tests ---------------------------------------
+          # Enumerate test names across the three infra-dependent
+          # packages, partition alphabetically by NR mod TOTAL.
+          PKGS="./internal/rag ./internal/rag/ragclient ./internal/rag/testhelpers"
+          ALL=$(for p in $PKGS; do
+                  go test -list '^Test' $p 2>/dev/null | grep -E '^Test'
+                done | sort -u)
+          MY=$(echo "$ALL" | awk -v s="$SHARD" -v n="$TOTAL" 'NR % n == s')
+          if [ -z "$MY" ]; then
+            echo "Shard $SHARD has no Go tests to run"
+            exit 0
+          fi
+
+          REGEX="^($(echo "$MY" | tr '\n' '|' | sed 's/|$//'))$"
+          echo "::group::go test shard $SHARD ($(echo "$MY" | wc -l) tests)"
+          echo "$MY"
+          go test -race -count=1 -run "$REGEX" $PKGS
+          echo "::endgroup::"
+        timeout-minutes: 5
+
+      - name: cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans 2>/dev/null || true
