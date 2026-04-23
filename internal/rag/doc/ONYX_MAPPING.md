@@ -58,21 +58,21 @@ When reading Onyx source, assume the root is
 |---|---|---|---|
 | Vector index | `backend/onyx/document_index/vespa/` (Vespa) | `internal/rag/vectorstore/` (LanceDB) | substitution per plan |
 | Filestore | `backend/onyx/file_store/` | `internal/rag/filestore/` | same S3 backend as LanceDB |
-| Indexing pipeline | `backend/onyx/indexing/indexing_pipeline.py` | `internal/rag/pipeline/` | Phase 3 |
-| Embedder | `backend/onyx/indexing/embedder.py` | `internal/rag/embedder/` | Phase 2C — only mockable component |
-| Chunker | `backend/onyx/indexing/chunking/` | `internal/rag/chunker/` | Phase 2 |
+| Indexing pipeline | `backend/onyx/indexing/indexing_pipeline.py` | `internal/rag/pipeline/` | |
+| Embedder | `backend/onyx/indexing/embedder.py` | `internal/rag/embedder/` | only mockable component |
+| Chunker | `backend/onyx/indexing/chunking/` | `internal/rag/chunker/` | |
 | Background tasks | `backend/onyx/background/celery/tasks/` | `internal/rag/tasks/` | Celery → asynq |
 | Search pipeline | `backend/onyx/context/search/pipeline.py` | `internal/rag/search/` | scope limited to retrieval |
 | Redis locks (scattered) | across `backend/onyx/background/celery/tasks/` | `internal/rag/locks/` | centralized in Hiveloop |
 | User / auth | `backend/onyx/db/models.py:User` | `internal/model/User` + `OrgMembership` | existing Hiveloop model |
-| External identity linking | `backend/onyx/db/users.py` helpers | `internal/rag/identity/` + extending `OAuthAccount` | Phase 1E |
+| External identity linking | `backend/onyx/db/users.py` helpers | `internal/rag/identity/` + extending `OAuthAccount` | |
 
 ## Not ported (explicit non-goals)
 
 | Onyx symbol | Reason |
 |---|---|
 | `UserGroup` (EE) | Hiveloop already has `OrgMembership.Role`; doc-level ACLs are a separate axis |
-| `DocumentSet` | Not part of Phase 1 scope |
+| `DocumentSet` | Not in Hiveloop's scope |
 | `Persona`, `Tool` (agent surface) | Hiveloop has its own agent subsystem |
 | Schema-per-tenant middleware | `org_id` column is sufficient |
 | Live embedder-switchover workflow | One model per org for the lifetime of its index |

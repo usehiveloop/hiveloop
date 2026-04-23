@@ -10,10 +10,9 @@ import (
 // backend/onyx/db/models.py:2512-2558.
 //
 // DEVIATION: Onyx keys by (document_id, connector_id, credential_id).
-// Phase 1 collapsed connector+credential into InConnection, keying the
-// junction by (document_id, in_connection_id); Phase 3A moves the key
-// up one more level to (document_id, rag_source_id) so every RAG table
-// uniformly references the top-level RAGSource.
+// Hiveloop keys by (document_id, rag_source_id) — every RAG table
+// uniformly references the top-level RAGSource, which itself carries
+// the InConnection reference for integration-backed sources.
 //
 // The same document can be indexed by multiple sources (imagine a shared
 // Google Drive file visible under two org-member sources); this table is
@@ -32,7 +31,7 @@ type RAGDocumentBySource struct {
 	// ON DELETE CASCADE (removing a source must sweep its edges, but
 	// NOT the shared document — see the cascade test in document_test.go).
 	// Adapts Onyx's composite connector_id + credential_id at
-	// models.py:2519-2525. Phase 3A swap (was in_connection_id).
+	// models.py:2519-2525.
 	RAGSourceID uuid.UUID `gorm:"type:uuid;primaryKey;index:idx_rag_doc_source_source;index:idx_rag_doc_source_counts,priority:1"`
 
 	// HasBeenIndexed distinguishes edges that were created purely by

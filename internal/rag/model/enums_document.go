@@ -1,10 +1,11 @@
-// Package model houses gorm models for the Onyx-derived RAG subsystem.
+// Package model houses gorm models for the Onyx-derived RAG
+// subsystem.
 //
-// This file (enums_document.go) contains only the enums required by
-// Tranche 1A (core document + hierarchy): DocumentSource and
-// HierarchyNodeType. Sibling tranches add their own enum files
-// (enums_index.go, enums_sync.go, ...) — we deliberately fragment by
-// tranche so parallel merges do not collide on one monolithic enums.go.
+// Enums are split across multiple files by the tables they describe
+// (enums_document.go: DocumentSource + HierarchyNodeType; enums_index_attempt.go:
+// indexing + sync status; enums_sync_state.go: connection lifecycle +
+// access type) so each file reads as a small, self-contained enum
+// group.
 package model
 
 // DocumentSource enumerates every upstream source a document can come

@@ -11,14 +11,13 @@ import (
 // those public shares show up in search results.
 //
 // Verbatim port of Onyx `PublicExternalUserGroup` at
-// backend/onyx/db/models.py:4352-4380. Phase 1 adapted `cc_pair_id` to
-// `in_connection_id`; Phase 3A further swaps that to `rag_source_id`.
-// The `stale` flag + indexes are direct ports; see the stale-sweep doc
-// on `RAGUserExternalUserGroup` for the security-critical sync pattern.
+// backend/onyx/db/models.py:4352-4380. Hiveloop adapts `cc_pair_id` to
+// `rag_source_id`. The `stale` flag + indexes are direct ports; see
+// the stale-sweep doc on `RAGUserExternalUserGroup` for the
+// security-critical sync pattern.
 type RAGPublicExternalUserGroup struct {
 	ExternalUserGroupID string `gorm:"type:text;primaryKey"`
-	// RAGSourceID — Phase 3A swap (was InConnectionID). Composite-PK
-	// column, keyed off the top-level RAGSource.
+	// RAGSourceID — composite-PK column, FK to rag_sources(id).
 	RAGSourceID uuid.UUID `gorm:"type:uuid;primaryKey"`
 
 	// Stale flag for the sync pattern. Port of

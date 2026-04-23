@@ -16,8 +16,8 @@ import (
 //
 // DEVIATION vs Onyx:
 //   - We exclude the `document_set` and `user_group` SyncType values
-//     because Hiveloop has no DocumentSet and no UserGroup concept in
-//     Phase 1. See SyncType in enums_index_attempt.go.
+//     because Hiveloop has no DocumentSet and no UserGroup concept.
+//     See SyncType in enums_index_attempt.go.
 //   - OrgID column added; Onyx uses schema-per-tenant, Hiveloop uses
 //     row-level tenancy.
 //   - PK is a uuid, not an autoincrement int (Hiveloop convention).

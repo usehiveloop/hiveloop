@@ -2,6 +2,6 @@
 // via SiliconFlow by default, with a deterministic in-memory fake for
 // tests).
 //
-// Ports backend/onyx/indexing/embedder.py — the IndexingEmbedder interface
-// and its implementations. Phase 2C fills this package.
+// Ports backend/onyx/indexing/embedder.py — the IndexingEmbedder
+// interface and its implementations.
 package embedder

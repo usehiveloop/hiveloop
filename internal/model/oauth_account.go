@@ -7,18 +7,16 @@ import (
 	"github.com/lib/pq"
 )
 
-// OAuthAccount links a user to an external OAuth provider (e.g. GitHub, Google).
+// OAuthAccount links a user to an external OAuth provider (e.g.
+// GitHub, Google).
 //
-// Tranche 1E extension (RAG port): the ProviderUserEmail / ProviderUserLogin /
-// VerifiedEmails / LastSyncedAt columns cache source-canonical identity
-// metadata so RAG permission sync can map a Hiveloop user to source-native
-// ACL entries (e.g. GitHub work email vs personal) without re-hitting the
-// provider on every search. Onyx resolves these on-demand inside perm-sync
-// code (backend/onyx/db/models.py:299-303); we cache because our sync tasks
-// need fast lookup.
-//
-// All new columns are nullable so the migration is safe against live rows —
-// see TestOAuthAccount_MigrationAddsFieldsWithoutBreakingExistingRows.
+// The ProviderUserEmail / ProviderUserLogin / VerifiedEmails /
+// LastSyncedAt columns cache source-canonical identity metadata so
+// RAG permission sync can map a Hiveloop user to source-native ACL
+// entries (e.g. GitHub work email vs personal) without re-hitting
+// the provider on every search. Onyx resolves these on-demand inside
+// perm-sync code (backend/onyx/db/models.py:299-303); we cache
+// because our sync tasks need fast lookup.
 type OAuthAccount struct {
 	ID             uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	UserID         uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_oauth_user_provider"`
@@ -26,16 +24,14 @@ type OAuthAccount struct {
 	ProviderUserID string    `gorm:"not null;uniqueIndex:idx_oauth_provider_uid"`
 	User           User      `gorm:"foreignKey:UserID"`
 
-	// --- Tranche 1E additions (all nullable; migration-safe) ---
-
 	// ProviderUserEmail is the source-canonical email for this OAuth
-	// identity (e.g. a GitHub user's "work" vs "personal" email). Nullable
-	// because legacy rows predate this column and some providers don't
-	// expose an email.
+	// identity (e.g. a GitHub user's "work" vs "personal" email).
+	// Nullable because some providers don't expose an email.
 	ProviderUserEmail *string
 
 	// ProviderUserLogin is the source-native login / username / handle
-	// (e.g. GitHub "@octocat"). Nullable for the same reason as above.
+	// (e.g. GitHub "@octocat"). Nullable because some providers don't
+	// have the concept.
 	ProviderUserLogin *string
 
 	// VerifiedEmails is every email address the upstream provider claims
