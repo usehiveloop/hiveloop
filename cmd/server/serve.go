@@ -74,7 +74,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		emailSender = email.NewAsynqSender(enqueuer)
 	}
 	orgInviteHandler := handler.NewOrgInviteHandler(database, emailSender, cfg.FrontendURL)
-	authHandler := handler.NewAuthHandler(database, rsaKey, signingKey,
+	authHandler := handler.NewAuthHandler(database, redisClient, rsaKey, signingKey,
 		cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL,
 		emailSender, cfg.FrontendURL, cfg.AutoConfirmEmail)
 	if cfg.PlatformAdminEmails != "" {

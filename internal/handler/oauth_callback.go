@@ -1,12 +1,12 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
 
 	"golang.org/x/oauth2"
-
 )
 
 // oauthProfile holds the normalised user info fetched from an OAuth provider.
@@ -106,6 +106,12 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 	// 7. Find or create user + link OAuth account.
 	user, err := h.findOrCreateUser(provider, profile)
 	if err != nil {
+		if errors.Is(err, errOAuthLinkRequiresConfirmation) {
+			slog.Warn("oauth auto-link blocked for confirmed account",
+				"provider", provider, "email", profile.Email)
+			h.redirectError(w, r, "account_link_required")
+			return
+		}
 		slog.Error("oauth user creation failed", "provider", provider, "error", err)
 		h.redirectError(w, r, "account_creation_failed")
 		return

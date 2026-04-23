@@ -40,7 +40,7 @@ func newOTPHarness(t *testing.T) *otpTestHarness {
 	signingKey := []byte("test-signing-key-for-refresh-tokens")
 
 	authHandler := handler.NewAuthHandler(
-		db, pk, signingKey,
+		db, nil, pk, signingKey,
 		"hiveloop-test", "http://localhost:8080",
 		15*time.Minute, 720*time.Hour,
 		&email.LogSender{},

@@ -4,22 +4,17 @@ import (
 	"context"
 	"crypto/rsa"
 	"strings"
-	"sync"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/email"
-	"github.com/usehiveloop/hiveloop/internal/goroutine"
 )
-
-type loginAttempt struct {
-	failures int
-	firstAt  time.Time
-}
 
 type AuthHandler struct {
 	db          *gorm.DB
+	redis       *redis.Client
 	privateKey  *rsa.PrivateKey
 	signingKey  []byte // HMAC key for refresh tokens (JWT_SIGNING_KEY)
 	issuer      string
@@ -34,14 +29,14 @@ type AuthHandler struct {
 	// Used by the admin panel deployment to prevent non-admin users from logging in.
 	adminMode          bool
 	platformAdminEmails map[string]bool
-
-	loginMu       sync.Mutex
-	loginAttempts map[string]*loginAttempt // keyed by email
 }
 
-func NewAuthHandler(db *gorm.DB, privateKey *rsa.PrivateKey, signingKey []byte, issuer, audience string, accessTTL, refreshTTL time.Duration, emailSender email.Sender, frontendURL string, autoConfirmEmail bool) *AuthHandler {
+// NewAuthHandler constructs an AuthHandler. A non-nil redis client is required
+// for login rate limiting; pass a connected client from bootstrap.Deps.Redis.
+func NewAuthHandler(db *gorm.DB, redisClient *redis.Client, privateKey *rsa.PrivateKey, signingKey []byte, issuer, audience string, accessTTL, refreshTTL time.Duration, emailSender email.Sender, frontendURL string, autoConfirmEmail bool) *AuthHandler {
 	h := &AuthHandler{
 		db:               db,
+		redis:            redisClient,
 		privateKey:       privateKey,
 		signingKey:       signingKey,
 		issuer:           issuer,
@@ -51,7 +46,6 @@ func NewAuthHandler(db *gorm.DB, privateKey *rsa.PrivateKey, signingKey []byte, 
 		emailSender:      emailSender,
 		frontendURL:      frontendURL,
 		autoConfirmEmail: autoConfirmEmail,
-		loginAttempts:    make(map[string]*loginAttempt),
 	}
 
 	return h
@@ -84,26 +78,6 @@ func (h *AuthHandler) SetPlatformAdminEmails(emails []string) {
 	}
 }
 
-// StartCleanup starts a background goroutine that evicts stale login attempts
-// every 5 minutes. The goroutine stops when ctx is cancelled.
-func (h *AuthHandler) StartCleanup(ctx context.Context) {
-	goroutine.Go(func() {
-		ticker := time.NewTicker(5 * time.Minute)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				h.loginMu.Lock()
-				cutoff := time.Now().Add(-15 * time.Minute)
-				for email, a := range h.loginAttempts {
-					if a.firstAt.Before(cutoff) {
-						delete(h.loginAttempts, email)
-					}
-				}
-				h.loginMu.Unlock()
-			}
-		}
-	})
-}
+// StartCleanup is a no-op retained for API compatibility. Rate-limit state is
+// now kept in Redis with TTLs so no periodic eviction is required.
+func (h *AuthHandler) StartCleanup(ctx context.Context) {}

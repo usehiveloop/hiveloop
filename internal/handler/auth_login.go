@@ -24,29 +24,34 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Per-account rate limiting: 5 failed attempts per 15 minutes.
-	if h.isLoginLocked(req.Email) {
-		slog.Warn("login rate limited", "email", req.Email)
+	ctx := r.Context()
+	ip := clientIP(r)
+
+	// Composite rate limiting: per-IP bucket (primary, defeats credential
+	// stuffing across many emails) and per-email bucket (secondary, protects
+	// a targeted account). Either exceeding its threshold denies the request.
+	if h.isLoginLocked(ctx, ip, req.Email) {
+		slog.Warn("login rate limited", "email", req.Email, "ip", ip)
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		return
 	}
 
 	var user model.User
 	if err := h.db.Where("email = ?", req.Email).First(&user).Error; err != nil {
-		h.recordLoginFailure(req.Email)
+		h.recordLoginFailure(ctx, ip, req.Email)
 		slog.Warn("login failed", "email", req.Email, "reason", "invalid_credentials")
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		return
 	}
 
 	if user.PasswordHash == "" || !auth.CheckPassword(user.PasswordHash, req.Password) {
-		h.recordLoginFailure(req.Email)
+		h.recordLoginFailure(ctx, ip, req.Email)
 		slog.Warn("login failed", "email", req.Email, "reason", "invalid_credentials")
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		return
 	}
 
-	h.clearLoginFailures(req.Email)
+	h.clearLoginFailures(ctx, ip, req.Email)
 
 	// Admin mode: reject non-admin users
 	if h.adminMode && !h.platformAdminEmails[user.Email] {

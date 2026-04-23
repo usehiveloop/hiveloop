@@ -1,46 +1,121 @@
 package handler
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"log/slog"
+	"net"
 	"net/http"
 	"strings"
 	"time"
 
-
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
-func (h *AuthHandler) isLoginLocked(email string) bool {
-	h.loginMu.Lock()
-	defer h.loginMu.Unlock()
-	a, ok := h.loginAttempts[email]
-	if !ok {
-		return false
+
+// Login rate limiting is Redis-backed with a composite (ip, email) scope.
+// Two independent counters are maintained, each using INCR + EXPIRE with
+// loginLockoutWindow TTL:
+//
+//   login:fail:ip:<ip>       primary bucket — defeats credential stuffing from
+//                            a single source against many emails.
+//   login:fail:email:<email> secondary bucket — keeps per-account lockout.
+//
+// Either bucket exceeding its threshold triggers a deny. On success both
+// buckets are cleared. If Redis is unavailable we fail open so a cache
+// outage never locks every user out.
+
+const (
+	loginFailIPPrefix    = "login:fail:ip:"
+	loginFailEmailPrefix = "login:fail:email:"
+	// maxLoginFailuresPerIP is deliberately higher than the per-email limit
+	// so legitimate shared-NAT traffic is not disrupted by one careless user,
+	// while still breaking credential stuffing that cycles many emails.
+	maxLoginFailuresPerIP = 20
+)
+
+// clientIP returns the IP (host portion) of the request, falling back to
+// RemoteAddr if it is not in host:port form.
+func clientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if comma := strings.IndexByte(xff, ','); comma > 0 {
+			return strings.TrimSpace(xff[:comma])
+		}
+		return strings.TrimSpace(xff)
 	}
-	if time.Since(a.firstAt) > loginLockoutWindow {
-		delete(h.loginAttempts, email)
-		return false
+	if real := r.Header.Get("X-Real-IP"); real != "" {
+		return strings.TrimSpace(real)
 	}
-	return a.failures >= maxLoginFailures
+	if ip, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return ip
+	}
+	return r.RemoteAddr
 }
 
-func (h *AuthHandler) recordLoginFailure(email string) {
-	h.loginMu.Lock()
-	defer h.loginMu.Unlock()
-	a, ok := h.loginAttempts[email]
-	if !ok || time.Since(a.firstAt) > loginLockoutWindow {
-		h.loginAttempts[email] = &loginAttempt{failures: 1, firstAt: time.Now()}
+func (h *AuthHandler) isLoginLocked(ctx context.Context, ip, email string) bool {
+	if h.redis == nil {
+		return false
+	}
+
+	if ip != "" {
+		ipKey := loginFailIPPrefix + ip
+		if n, err := h.redis.Get(ctx, ipKey).Int64(); err == nil && n >= maxLoginFailuresPerIP {
+			return true
+		}
+	}
+	if email != "" {
+		emailKey := loginFailEmailPrefix + email
+		if n, err := h.redis.Get(ctx, emailKey).Int64(); err == nil && n >= maxLoginFailures {
+			return true
+		}
+	}
+	return false
+}
+
+func (h *AuthHandler) recordLoginFailure(ctx context.Context, ip, email string) {
+	if h.redis == nil {
 		return
 	}
-	a.failures++
+
+	incr := func(key string) {
+		n, err := h.redis.Incr(ctx, key).Result()
+		if err != nil {
+			slog.Warn("login rate limit incr failed", "key", key, "error", err)
+			return
+		}
+		if n == 1 {
+			if err := h.redis.Expire(ctx, key, loginLockoutWindow).Err(); err != nil {
+				slog.Warn("login rate limit expire failed", "key", key, "error", err)
+			}
+		}
+	}
+
+	if ip != "" {
+		incr(loginFailIPPrefix + ip)
+	}
+	if email != "" {
+		incr(loginFailEmailPrefix + email)
+	}
 }
 
-func (h *AuthHandler) clearLoginFailures(email string) {
-	h.loginMu.Lock()
-	defer h.loginMu.Unlock()
-	delete(h.loginAttempts, email)
+func (h *AuthHandler) clearLoginFailures(ctx context.Context, ip, email string) {
+	if h.redis == nil {
+		return
+	}
+	keys := make([]string, 0, 2)
+	if ip != "" {
+		keys = append(keys, loginFailIPPrefix+ip)
+	}
+	if email != "" {
+		keys = append(keys, loginFailEmailPrefix+email)
+	}
+	if len(keys) == 0 {
+		return
+	}
+	if err := h.redis.Del(ctx, keys...).Err(); err != nil {
+		slog.Warn("login rate limit clear failed", "error", err)
+	}
 }
 
 // --- OTP Authentication ---

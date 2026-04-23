@@ -2,13 +2,26 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+
+// Refresh handles POST /auth/refresh.
+//
+// The rotation flow is wrapped in a transaction with SELECT ... FOR UPDATE so
+// two concurrent requests presenting the same token cannot both pass the
+// revoked_at check. If a caller presents a token that has already been marked
+// revoked (reuse detection) the whole refresh chain for that user is
+// invalidated — a signal of probable token theft.
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var req refreshRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -28,22 +41,63 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check the token hash in the database (revocation check + rotation).
 	tokenHash := hashToken(req.RefreshToken)
+
 	var storedToken model.RefreshToken
-	if err := h.db.Where("token_hash = ? AND revoked_at IS NULL", tokenHash).First(&storedToken).Error; err != nil {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "refresh token revoked or not found"})
+	var reuseDetected bool
+
+	txErr := h.db.Transaction(func(tx *gorm.DB) error {
+		// Row-lock the token so two concurrent refreshes serialize. The
+		// first commits the revoked_at update; the second re-reads the now
+		// non-null revoked_at and triggers reuse detection below.
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("token_hash = ?", tokenHash).
+			First(&storedToken).Error; err != nil {
+			return err
+		}
+
+		if storedToken.RevokedAt != nil {
+			// The token exists but is already revoked: either a replay of a
+			// previously rotated token or a genuine reuse. Either way we
+			// invalidate every outstanding refresh token for this user.
+			reuseDetected = true
+			now := time.Now()
+			if err := tx.Model(&model.RefreshToken{}).
+				Where("user_id = ? AND revoked_at IS NULL", storedToken.UserID).
+				Update("revoked_at", &now).Error; err != nil {
+				return err
+			}
+			return nil
+		}
+
+		if time.Now().After(storedToken.ExpiresAt) {
+			return errRefreshExpired
+		}
+
+		now := time.Now()
+		return tx.Model(&storedToken).Update("revoked_at", &now).Error
+	})
+
+	if txErr != nil {
+		if errors.Is(txErr, gorm.ErrRecordNotFound) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "refresh token revoked or not found"})
+			return
+		}
+		if errors.Is(txErr, errRefreshExpired) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "refresh token expired"})
+			return
+		}
+		slog.Error("refresh rotation failed", "error", txErr)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
 
-	if time.Now().After(storedToken.ExpiresAt) {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "refresh token expired"})
+	if reuseDetected {
+		slog.Warn("refresh token reuse detected; chain revoked",
+			"user_id", storedToken.UserID, "token_hash", tokenHash)
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "refresh token reuse detected"})
 		return
 	}
-
-	// Revoke the old refresh token (rotation).
-	now := time.Now()
-	h.db.Model(&storedToken).Update("revoked_at", &now)
 
 	// Get memberships to determine org/role.
 	var user model.User
@@ -81,6 +135,10 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	h.issueTokensAndRespond(w, http.StatusOK, user, orgID, role)
 }
 
+// errRefreshExpired is returned from the rotation transaction to signal a
+// 401-expired response without ambiguous ErrRecordNotFound semantics.
+var errRefreshExpired = errors.New("refresh token expired")
+
 // Logout handles POST /auth/logout.
 // @Summary Log out
 // @Description Revokes a refresh token.
@@ -103,9 +161,44 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	claims, ok := middleware.AuthClaimsFromContext(r.Context())
+	if !ok || claims == nil || claims.UserID == "" {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing auth context"})
+		return
+	}
+
+	// Verify the supplied refresh token belongs to the caller before revoking.
+	// Use the JWT claim as the primary check (cheap, no DB lookup needed
+	// when tokens do not match) and cross-check the stored row to cover the
+	// case where the token is valid but not recorded or already revoked.
+	tokenUserID, _, err := auth.ValidateRefreshToken(h.signingKey, req.RefreshToken)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid refresh token"})
+		return
+	}
+	if tokenUserID != claims.UserID {
+		slog.Warn("logout ownership mismatch",
+			"auth_user_id", claims.UserID, "token_user_id", tokenUserID)
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "refresh token does not belong to this user"})
+		return
+	}
+
 	tokenHash := hashToken(req.RefreshToken)
+
+	var stored model.RefreshToken
+	if err := h.db.Where("token_hash = ?", tokenHash).First(&stored).Error; err == nil {
+		if stored.UserID.String() != claims.UserID {
+			slog.Warn("logout ownership mismatch on stored token",
+				"auth_user_id", claims.UserID, "stored_user_id", stored.UserID)
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": "refresh token does not belong to this user"})
+			return
+		}
+	}
+
 	now := time.Now()
-	h.db.Model(&model.RefreshToken{}).Where("token_hash = ? AND revoked_at IS NULL", tokenHash).Update("revoked_at", &now)
+	h.db.Model(&model.RefreshToken{}).
+		Where("token_hash = ? AND user_id = ? AND revoked_at IS NULL", tokenHash, claims.UserID).
+		Update("revoked_at", &now)
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -16,6 +17,13 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+
+// errOAuthLinkRequiresConfirmation is returned by findOrCreateUser when an
+// OAuth sign-in matches a confirmed local account that has not yet linked the
+// provider. The caller must surface an error asking the user to log in with
+// their existing credentials and link the provider from their account
+// settings; we never silently merge the sessions.
+var errOAuthLinkRequiresConfirmation = errors.New("oauth: account exists; link required")
 
 // oauthProfile holds the normalised user info fetched from an OAuth provider.
 
@@ -96,7 +104,16 @@ func (h *OAuthHandler) findOrCreateUser(provider string, profile *oauthProfile) 
 	err = h.db.Where("email = ?", email).First(&user).Error
 
 	if err == nil {
-		// User exists — link the provider.
+		// A local account with this email already exists. Silently linking a
+		// new OAuth provider to a confirmed account is a takeover risk: an
+		// attacker who controls an OAuth-verified email could claim a
+		// pre-existing local account. Require an explicit, authenticated
+		// link step. Unconfirmed accounts (which never proved email
+		// ownership) are still auto-linked since they carry no trust.
+		if user.EmailConfirmedAt != nil {
+			return nil, errOAuthLinkRequiresConfirmation
+		}
+
 		oauthAcct := model.OAuthAccount{
 			UserID:         user.ID,
 			Provider:       provider,
@@ -105,8 +122,9 @@ func (h *OAuthHandler) findOrCreateUser(provider string, profile *oauthProfile) 
 		if err := h.db.Create(&oauthAcct).Error; err != nil {
 			return nil, fmt.Errorf("linking oauth account: %w", err)
 		}
-		// Mark email as confirmed if not already and provider verified it.
-		if user.EmailConfirmedAt == nil && !isPlaceholderEmail(email) {
+		// The OAuth provider just verified this email; promote the account
+		// to confirmed unless the address is a placeholder (e.g. X/Twitter).
+		if !isPlaceholderEmail(email) {
 			now := time.Now()
 			h.db.Model(&user).Update("email_confirmed_at", &now)
 			user.EmailConfirmedAt = &now

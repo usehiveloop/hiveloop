@@ -44,7 +44,7 @@ func newInviteHarness(t *testing.T) *inviteHarness {
 	}
 	pubKey := &privKey.PublicKey
 
-	authHandler := handler.NewAuthHandler(h.db, privKey, []byte("invite-e2e-hmac"),
+	authHandler := handler.NewAuthHandler(h.db, nil, privKey, []byte("invite-e2e-hmac"),
 		inviteTestIssuer, inviteTestAudience, 15*time.Minute, 24*time.Hour,
 		&email.LogSender{}, "http://localhost:3000", true)
 	ctx, cancel := context.WithCancel(context.Background())

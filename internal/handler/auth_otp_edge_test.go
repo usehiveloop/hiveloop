@@ -120,7 +120,7 @@ func TestOTP_AdminModeRejectsNonAdmin(t *testing.T) {
 	}
 
 	authHandler := handler.NewAuthHandler(
-		db, pk, []byte("test-key"),
+		db, nil, pk, []byte("test-key"),
 		"test", "http://localhost",
 		15*time.Minute, 720*time.Hour,
 		&email.LogSender{},
