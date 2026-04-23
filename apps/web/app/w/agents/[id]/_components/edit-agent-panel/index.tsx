@@ -59,8 +59,6 @@ export function EditAgentPanel({ open, onOpenChange, agent }: EditAgentPanelProp
   )
 }
 
-// ---------------------------------------------------------------------------
-
 function SectionHeader({ title, description }: { title: string; description?: string }) {
   return (
     <div className="flex flex-col gap-1">
@@ -108,8 +106,6 @@ function SandboxOption({
     </button>
   )
 }
-
-// ---------------------------------------------------------------------------
 
 function EditAgentForm() {
   const { form, integrations, triggers, skillIds, isSubmitting, setIntegrations, removeIntegration, addTrigger, removeTrigger, updateTrigger, toggleSkill, handleSave } = useEditAgent()

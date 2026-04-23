@@ -306,10 +306,6 @@ export function ManageIntegrationsDialog({
   )
 }
 
-// ---------------------------------------------------------------------------
-// Action detail sub-view (virtualized action list for a single integration)
-// ---------------------------------------------------------------------------
-
 interface ActionDetailViewProps {
   connection: { id?: string; provider?: string; display_name?: string }
   actionSearch: string

@@ -25,10 +25,6 @@ import { toast } from "sonner"
 import { extractErrorMessage } from "@/lib/api/error"
 import type { components } from "@/lib/api/schema"
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 type Agent = components["schemas"]["agentResponse"]
 type InConnection = components["schemas"]["inConnectionResponse"]
 
@@ -44,10 +40,6 @@ interface ConfigurableResource {
   display_name: string
   description: string
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 const slideVariants = {
   enter: (direction: number) => ({ x: direction > 0 ? 60 : -60, opacity: 0 }),
@@ -79,10 +71,6 @@ function getConfigurableResources(connection: InConnection): ConfigurableResourc
   return raw as ConfigurableResource[]
 }
 
-// ---------------------------------------------------------------------------
-// Back button
-// ---------------------------------------------------------------------------
-
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
     <button
@@ -95,10 +83,6 @@ function BackButton({ onClick }: { onClick: () => void }) {
     </button>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Step 1: Connection list
-// ---------------------------------------------------------------------------
 
 interface ConnectionListViewProps {
   connections: InConnection[]
@@ -171,10 +155,6 @@ function ConnectionListView({ connections, getSelectedCount, getOrphanCount, onS
   )
 }
 
-// ---------------------------------------------------------------------------
-// Step 2: Resource type list
-// ---------------------------------------------------------------------------
-
 interface ResourceTypeListViewProps {
   connection: InConnection
   resourceTypes: ConfigurableResource[]
@@ -215,10 +195,6 @@ function ResourceTypeListView({ connection, resourceTypes, getTypeSelectedCount,
     </>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Step 3: Resource instance multi-select
-// ---------------------------------------------------------------------------
 
 interface ResourceInstanceListViewProps {
   connectionId: string
@@ -305,10 +281,6 @@ function ResourceInstanceListView({ connectionId, resourceType, selectedItems, i
   )
 }
 
-// ---------------------------------------------------------------------------
-// Main dialog
-// ---------------------------------------------------------------------------
-
 interface ConfigureResourcesDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -329,7 +301,6 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
   const [activeConnectionId, setActiveConnectionId] = useState<string | null>(null)
   const [activeResourceType, setActiveResourceType] = useState<string | null>(null)
 
-  // Reset state when dialog opens
   useEffect(() => {
     if (open && agent) {
       setResources(parseAgentResources(agent.resources))
@@ -338,7 +309,6 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
     }
   }, [open, agent?.resources])
 
-  // Load connections
   const { data: connectionsData } = $api.useQuery("get", "/v1/in/connections")
   const allConnections = (connectionsData?.data ?? []) as InConnection[]
   const connectionsById = new Map(allConnections.filter((c) => c.id).map((c) => [c.id!, c]))
@@ -402,7 +372,6 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
   const activeConnection = activeConnectionId ? connectionsById.get(activeConnectionId) ?? null : null
   const activeResourceTypes = activeConnection ? getConfigurableResources(activeConnection) : []
 
-  // Selection
   const toggleResource = useCallback(
     (connectionId: string, resourceType: string, item: ResourceItem) => {
       setResources((prev) => {
@@ -423,7 +392,6 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
 
   if (!agent) return null
 
-  // Navigation
   function openConnection(connectionId: string) {
     direction.current = 1
     setActiveConnectionId(connectionId)
@@ -476,7 +444,6 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
     return (resources[connectionId]?.[resourceType] ?? []).some((item) => item.id === resourceId)
   }
 
-  // Save
   function handleSave() {
     if (!agent?.id) return
 

@@ -12,10 +12,6 @@ export type SessionData = {
   expires_at: number // Unix ms when access_token expires
 }
 
-// ---------------------------------------------------------------------------
-// Key derivation — HKDF from SESSION_SECRET → AES-256-GCM key
-// ---------------------------------------------------------------------------
-
 let cachedKey: CryptoKey | null = null
 
 async function getKey(): Promise<CryptoKey> {
@@ -44,10 +40,6 @@ async function getKey(): Promise<CryptoKey> {
   log.info("session encryption key derived successfully")
   return cachedKey
 }
-
-// ---------------------------------------------------------------------------
-// Encrypt / Decrypt
-// ---------------------------------------------------------------------------
 
 export async function encrypt(data: SessionData): Promise<string> {
   log.debug({ expires_at: data.expires_at }, "encrypting session data")
@@ -90,10 +82,6 @@ export async function decrypt(cookie: string): Promise<SessionData | null> {
     return null
   }
 }
-
-// ---------------------------------------------------------------------------
-// Cookie helpers
-// ---------------------------------------------------------------------------
 
 export async function getSession(): Promise<SessionData | null> {
   const store = await cookies()
@@ -144,10 +132,6 @@ export function stripSessionCookie(cookieHeader: string): string {
     .filter((c) => !c.startsWith(`${COOKIE_NAME}=`))
     .join("; ")
 }
-
-// ---------------------------------------------------------------------------
-// Impersonation helpers
-// ---------------------------------------------------------------------------
 
 export type ImpersonatingInfo = {
   userId: string

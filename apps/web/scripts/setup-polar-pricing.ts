@@ -4,10 +4,6 @@ import type { Benefit } from "@polar-sh/sdk/models/components/benefit.js"
 import type { Product } from "@polar-sh/sdk/models/components/product.js"
 import type { MeterCreate } from "@polar-sh/sdk/models/components/metercreate.js"
 
-// ---------------------------------------------------------------------------
-// Configuration
-// ---------------------------------------------------------------------------
-
 interface MeterConfig {
   name: string
   filter: MeterCreate["filter"]
@@ -110,10 +106,6 @@ const PRODUCTS: ProductConfig[] = [
     benefitDescriptions: ["Pro: 300 dedicated runs/month"],
   },
 ]
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function log(action: string, resource: string, name: string, resourceId: string) {
   console.log(`  ${action.padEnd(10)} ${resource.padEnd(10)} ${name.padEnd(40)} ${resourceId}`)
@@ -259,10 +251,6 @@ async function findOrCreateProduct(
 
   return created
 }
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 async function main() {
   const accessToken = process.env.POLAR_ACCESS_TOKEN

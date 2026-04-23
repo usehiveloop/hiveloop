@@ -106,7 +106,6 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
   const [triggers, setTriggers] = useState<TriggerConfig[]>([])
   const [skillIds, setSkillIds] = useState<Set<string>>(new Set())
 
-  // Reset form from agent data when panel opens
   useEffect(() => {
     if (!open || !agent) return
 

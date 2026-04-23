@@ -23,10 +23,6 @@ const AUTH_PATHS = new Set([
 
 const LOGOUT_PATH = "auth/logout"
 
-// ---------------------------------------------------------------------------
-// Concurrent refresh lock
-// ---------------------------------------------------------------------------
-
 let refreshPromise: Promise<SessionData | null> | null = null
 
 async function refreshTokens(refreshToken: string): Promise<SessionData | null> {
@@ -55,10 +51,6 @@ async function safeRefresh(refreshToken: string): Promise<SessionData | null> {
   })
   return refreshPromise
 }
-
-// ---------------------------------------------------------------------------
-// Build headers for upstream request
-// ---------------------------------------------------------------------------
 
 function buildUpstreamHeaders(
   req: NextRequest,
@@ -93,10 +85,6 @@ function buildUpstreamHeaders(
   return headers
 }
 
-// ---------------------------------------------------------------------------
-// Forward a request to the Go backend
-// ---------------------------------------------------------------------------
-
 async function forward(
   url: URL,
   method: string,
@@ -105,10 +93,6 @@ async function forward(
 ) {
   return fetch(url, { method, headers, body })
 }
-
-// ---------------------------------------------------------------------------
-// Main handler
-// ---------------------------------------------------------------------------
 
 async function handler(
   req: NextRequest,
@@ -136,9 +120,6 @@ async function handler(
       ? await req.arrayBuffer()
       : undefined
 
-  // -----------------------------------------------------------------------
-  // Logout interception: inject refresh_token into request body
-  // -----------------------------------------------------------------------
   let upstreamBody: ArrayBuffer | undefined = body
   const isLogout = apiPath === LOGOUT_PATH && req.method === "POST"
 
@@ -148,17 +129,11 @@ async function handler(
     upstreamBody = new TextEncoder().encode(JSON.stringify(payload)).buffer as ArrayBuffer
   }
 
-  // -----------------------------------------------------------------------
-  // Proactive refresh if token is about to expire
-  // -----------------------------------------------------------------------
   if (session && !AUTH_PATHS.has(apiPath) && session.expires_at - Date.now() < 60_000) {
     const refreshed = await safeRefresh(session.refresh_token)
     if (refreshed) session = refreshed
   }
 
-  // -----------------------------------------------------------------------
-  // Forward to backend
-  // -----------------------------------------------------------------------
   const headers = buildUpstreamHeaders(req, session)
   let upstream: Response
   try {
@@ -169,9 +144,6 @@ async function handler(
     return NextResponse.json({ error: "upstream_unavailable" }, { status: 502 })
   }
 
-  // -----------------------------------------------------------------------
-  // Auto-refresh on 401 (retry once)
-  // -----------------------------------------------------------------------
   let refreshedSession: SessionData | null = null
 
   if (upstream.status === 401 && session && !AUTH_PATHS.has(apiPath) && !isLogout) {
@@ -189,9 +161,6 @@ async function handler(
     }
   }
 
-  // -----------------------------------------------------------------------
-  // Build response
-  // -----------------------------------------------------------------------
   const responseHeaders = new Headers()
   const skipHeaders = new Set(["transfer-encoding", "content-encoding", "content-length"])
   upstream.headers.forEach((value, key) => {
@@ -199,9 +168,6 @@ async function handler(
     responseHeaders.set(key, value)
   })
 
-  // -----------------------------------------------------------------------
-  // Intercept auth responses — persist session, strip tokens from body
-  // -----------------------------------------------------------------------
   if (AUTH_PATHS.has(apiPath) && upstream.ok) {
     reqLog.info("intercepting auth response")
     try {

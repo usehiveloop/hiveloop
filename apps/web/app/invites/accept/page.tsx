@@ -32,7 +32,6 @@ function AcceptInviteContents() {
   const router = useRouter()
   const token = searchParams.get("token") ?? ""
 
-  // Invite preview (public)
   const previewQuery = $api.useQuery(
     "get",
     "/v1/invites/{token}",
@@ -40,7 +39,6 @@ function AcceptInviteContents() {
     { enabled: token.length > 0, retry: false },
   )
 
-  // Current auth status — no retry, errors are treated as "logged out".
   const meQuery = $api.useQuery("get", "/auth/me", {}, { retry: false })
   const me = meQuery.data
 
@@ -95,8 +93,6 @@ function AcceptInviteContents() {
       },
     )
   }, [logoutMutation, router])
-
-  // --- State rendering ---
 
   if (!token) {
     return (
@@ -172,7 +168,6 @@ function AcceptInviteContents() {
     )
   }
 
-  // Not logged in
   if (meQuery.isError || !me?.user) {
     return (
       <CenterCard>
@@ -198,7 +193,6 @@ function AcceptInviteContents() {
     )
   }
 
-  // Logged in, check email match
   const userEmail = (me.user.email ?? "").toLowerCase().trim()
   const expected = inviteEmail.toLowerCase().trim()
 
@@ -223,7 +217,6 @@ function AcceptInviteContents() {
     )
   }
 
-  // Logged in, matching email
   return (
     <CenterCard>
       <h1 className="text-lg font-semibold text-foreground">
