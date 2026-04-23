@@ -12,11 +12,11 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/ragpb"
 )
 
-// okRagServer is a test gRPC server that implements every RagEngine RPC
-// by returning an empty-but-successful response. We use this to cover
-// the "nil err → return out, nil" branch in every client wrapper,
-// which the real Tranche-2A binary cannot produce (it returns
-// UNIMPLEMENTED for every RPC).
+// okRagServer is a test gRPC server that implements every RagEngine
+// RPC by returning an empty-but-successful response. We use this to
+// cover the "nil err -> return out, nil" branch in every client
+// wrapper — the real rag-engine binary currently returns UNIMPLEMENTED
+// for those RPCs, so we can't reach the happy path through it.
 //
 // This is NOT a mock of the rag-engine — it's a reference implementation
 // used to verify the Go wrapper layer's own behavior. The real binary
@@ -66,9 +66,9 @@ func startLocalOkServer(t *testing.T) string {
 	return lis.Addr().String()
 }
 
-// TestClient_AllRPCs_HappyPath exercises the nil-error → return-out
+// TestClient_AllRPCs_HappyPath exercises the nil-error -> return-out
 // branch in every wrapper. The real rag-engine binary can't produce
-// those paths on Tranche 2A because every handler returns UNIMPLEMENTED.
+// those paths yet because every handler returns UNIMPLEMENTED.
 func TestClient_AllRPCs_HappyPath(t *testing.T) {
 	addr := startLocalOkServer(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

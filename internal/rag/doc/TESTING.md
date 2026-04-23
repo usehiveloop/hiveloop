@@ -1,8 +1,7 @@
-# Testing philosophy — non-negotiable for every tranche
+# Testing philosophy — non-negotiable
 
-This document is a verbatim copy of the "Testing philosophy" section in
-`/Users/bahdcoder/code/hiveloop.com/plans/onyx-port.md`. Every future
-agent reads this before writing a test.
+Every future agent reads this before writing a test for the RAG
+subsystem.
 
 Hiveloop already runs tests against real services (see
 `internal/middleware/integration_test.go`: real Postgres at
@@ -12,7 +11,7 @@ use.
 ## Hard rules
 
 1. **Mocking is permitted ONLY for the embedder and reranker.** Both make
-   paid external API calls; Phase 2C delivers their interfaces with an
+   paid external API calls; the embedder package ships their interfaces with an
    in-memory deterministic fake. Nothing else gets mocked — not Postgres,
    not Redis, not MinIO, not LanceDB, not Nango, not HTTP handlers.
 2. **Integration-first.** Anything touching infrastructure is tested

@@ -17,7 +17,7 @@ import (
 //
 // DEVIATIONS vs Onyx:
 //   - PK is uuid, not autoincrement int (Hiveloop convention).
-//   - `connector_credential_pair_id` becomes `in_connection_id`.
+//   - `connector_credential_pair_id` becomes `rag_source_id`.
 //   - CASCADE on the attempt FK is explicit — if the parent attempt
 //     goes away (e.g. org deletion cascades through it), the error log
 //     goes with it. Onyx has the same effective behavior via SQLAlchemy
@@ -40,8 +40,6 @@ type RAGIndexAttemptError struct {
 	// (models.py:2409-2413). Mirror of what's on the parent attempt,
 	// denormalised so the admin UI can filter errors by source without
 	// a join.
-	//
-	// Phase 3A swap (was InConnectionID).
 	RAGSourceID uuid.UUID `gorm:"type:uuid;not null;index"`
 
 	// DocumentID / DocumentLink — Onyx models.py:2415-2416. Either/or

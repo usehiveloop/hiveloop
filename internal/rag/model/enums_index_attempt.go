@@ -1,11 +1,7 @@
 package model
 
-// This file holds the enums used by Tranche 1B models
-// (RAGIndexAttempt, RAGIndexAttemptError, RAGSyncRecord). It is
-// intentionally tranche-scoped: other tranches own their own
-// enum file so parallel worktrees don't stomp on each other. A
-// future consolidation into a single enums.go is a cosmetic
-// follow-up, not a correctness issue.
+// Enums for the index-attempt + sync-record tables
+// (RAGIndexAttempt, RAGIndexAttemptError, RAGSyncRecord).
 //
 // Onyx sources:
 //   - IndexingStatus : backend/onyx/db/enums.py:38-62
@@ -70,8 +66,7 @@ const (
 // backend/onyx/db/enums.py:101-111.
 //
 // DEVIATION: we intentionally DO NOT port `document_set` or
-// `user_group` — Hiveloop has neither concept in Phase 1 (see plan
-// Tranche 1B notes + "What Phase 1 deliberately DOES NOT touch").
+// `user_group` — Hiveloop has neither concept.
 type SyncType string
 
 const (

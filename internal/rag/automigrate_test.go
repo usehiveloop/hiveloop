@@ -18,13 +18,13 @@ import (
 // freshMigrate returns a *gorm.DB with the full RAG schema migrated.
 //
 // We deliberately DO NOT drop tables between tests: parallel test
-// packages (`internal/rag/model`, etc.) share the same Postgres test DB,
-// and dropping rag_* tables here would race against their in-flight
-// migrations and inserts. testhelpers.ConnectTestDB already runs
-// model.AutoMigrate + rag.AutoMigrate; if the schema were ever out of
-// shape, that migration itself would fail. The 1F tests instead verify
-// the post-migration schema shape via information_schema / pg_indexes
-// and scope all row-level assertions to per-test orgs.
+// packages share the same Postgres test DB, and dropping rag_* tables
+// here would race against their in-flight migrations and inserts.
+// testhelpers.ConnectTestDB runs model.AutoMigrate + rag.AutoMigrate
+// once per connection; if the schema were ever out of shape that
+// migration would fail. Schema-shape assertions below use
+// information_schema / pg_indexes and row-level assertions are scoped
+// to per-test orgs.
 func freshMigrate(t *testing.T) *gorm.DB {
 	t.Helper()
 	return testhelpers.ConnectTestDB(t)
@@ -102,12 +102,12 @@ func TestAutoMigrate_CreatesEveryExpectedIndex(t *testing.T) {
 		byName[r.IndexName] = r.IndexDef
 	}
 
-	// Must-exist set. Every entry here is a hand-authored index from
-	// one of the tranches' automigrate helpers. If any is missing, a
-	// production query (sync loop, watchdog, stale-sweep) degrades to
-	// seq scan at scale — a P0.
+	// Must-exist set. Every entry is a hand-authored index from the
+	// migration suite. If any is missing, a production query (sync
+	// loop, watchdog, stale-sweep, scheduler scan) degrades to a
+	// sequential scan at scale.
 	mustExist := []string{
-		// 1A
+		// Document + hierarchy
 		"idx_rag_document_needs_sync",
 		"idx_rag_document_ext_emails",
 		"idx_rag_document_ext_group_ids",
@@ -119,7 +119,7 @@ func TestAutoMigrate_CreatesEveryExpectedIndex(t *testing.T) {
 		"idx_rag_doc_source_counts",
 		"idx_rag_hier_source_source",
 		"uq_rag_hierarchy_node_raw_id_source",
-		// 1B — Phase 3A swap: source_ not conn_
+		// Index attempts + sync records
 		"idx_rag_index_attempt_latest_for_source",
 		"idx_rag_index_attempt_source_model_updated",
 		"idx_rag_index_attempt_source_model_poll",
@@ -127,20 +127,20 @@ func TestAutoMigrate_CreatesEveryExpectedIndex(t *testing.T) {
 		"idx_rag_index_attempt_heartbeat",
 		"idx_rag_sync_record_entity_type_start",
 		"idx_rag_sync_record_entity_type_status",
-		// 1C
+		// Sync state
 		"idx_rag_sync_state_org_status",
 		"idx_rag_sync_state_last_pruned",
 		"uq_rag_sync_state_rag_source_id",
-		// 1D
+		// External groups
 		"idx_rag_user_external_group_source_stale",
 		"idx_rag_user_external_group_stale",
 		"idx_rag_public_external_group_source_stale",
 		"idx_rag_public_external_group_stale",
 		"uq_rag_external_user_group_source_ext",
-		// 1E
+		// External identity
 		"uq_rag_external_identity_user_source",
 		"uq_rag_external_identity_provider_ext_id_org",
-		// 3A
+		// RAG sources
 		"uq_rag_sources_in_connection",
 		"idx_rag_sources_org_status",
 		"idx_rag_sources_needs_ingest",
@@ -218,40 +218,39 @@ func TestAutoMigrate_AllFKConstraintsInPlace(t *testing.T) {
 	}
 
 	expected := map[key]val{
-		// 1A
-		{"rag_documents", "org_id"}:                   {"orgs", "CASCADE"},
-		{"rag_documents", "parent_hierarchy_node_id"}: {"rag_hierarchy_nodes", "SET NULL"},
-		{"rag_hierarchy_nodes", "org_id"}:             {"orgs", "CASCADE"},
-		{"rag_hierarchy_nodes", "document_id"}:        {"rag_documents", "SET NULL"},
-		{"rag_hierarchy_nodes", "parent_id"}:          {"rag_hierarchy_nodes", "SET NULL"},
-		{"rag_document_by_sources", "document_id"}:    {"rag_documents", "CASCADE"},
-		// Phase 3A swap: in_connection_id → rag_source_id.
-		{"rag_document_by_sources", "rag_source_id"}:            {"rag_sources", "CASCADE"},
-		{"rag_hierarchy_node_by_sources", "hierarchy_node_id"}:  {"rag_hierarchy_nodes", "CASCADE"},
-		{"rag_hierarchy_node_by_sources", "rag_source_id"}:      {"rag_sources", "CASCADE"},
-		// 1B
+		// Document + hierarchy
+		{"rag_documents", "org_id"}:                              {"orgs", "CASCADE"},
+		{"rag_documents", "parent_hierarchy_node_id"}:            {"rag_hierarchy_nodes", "SET NULL"},
+		{"rag_hierarchy_nodes", "org_id"}:                        {"orgs", "CASCADE"},
+		{"rag_hierarchy_nodes", "document_id"}:                   {"rag_documents", "SET NULL"},
+		{"rag_hierarchy_nodes", "parent_id"}:                     {"rag_hierarchy_nodes", "SET NULL"},
+		{"rag_document_by_sources", "document_id"}:               {"rag_documents", "CASCADE"},
+		{"rag_document_by_sources", "rag_source_id"}:             {"rag_sources", "CASCADE"},
+		{"rag_hierarchy_node_by_sources", "hierarchy_node_id"}:   {"rag_hierarchy_nodes", "CASCADE"},
+		{"rag_hierarchy_node_by_sources", "rag_source_id"}:       {"rag_sources", "CASCADE"},
+		// Index attempts + sync records
 		{"rag_index_attempts", "org_id"}:                 {"orgs", "CASCADE"},
 		{"rag_index_attempts", "rag_source_id"}:          {"rag_sources", "CASCADE"},
 		{"rag_index_attempt_errors", "org_id"}:           {"orgs", "CASCADE"},
 		{"rag_index_attempt_errors", "rag_source_id"}:    {"rag_sources", "CASCADE"},
 		{"rag_index_attempt_errors", "index_attempt_id"}: {"rag_index_attempts", "CASCADE"},
 		{"rag_sync_records", "org_id"}:                   {"orgs", "CASCADE"},
-		// 1C
+		// Sync state + search settings
 		{"rag_sync_states", "org_id"}:                 {"orgs", "CASCADE"},
 		{"rag_sync_states", "rag_source_id"}:          {"rag_sources", "CASCADE"},
 		{"rag_search_settings", "org_id"}:             {"orgs", "CASCADE"},
 		{"rag_search_settings", "embedding_model_id"}: {"rag_embedding_models", "RESTRICT"},
-		// 1D
+		// External groups
 		{"rag_external_user_groups", "org_id"}:               {"orgs", "CASCADE"},
 		{"rag_external_user_groups", "rag_source_id"}:        {"rag_sources", "CASCADE"},
 		{"rag_user_external_user_groups", "user_id"}:         {"users", "CASCADE"},
 		{"rag_user_external_user_groups", "rag_source_id"}:   {"rag_sources", "CASCADE"},
 		{"rag_public_external_user_groups", "rag_source_id"}: {"rag_sources", "CASCADE"},
-		// 1E
+		// External identity
 		{"rag_external_identities", "org_id"}:         {"orgs", "CASCADE"},
 		{"rag_external_identities", "user_id"}:        {"users", "CASCADE"},
 		{"rag_external_identities", "rag_source_id"}:  {"rag_sources", "CASCADE"},
-		// 3A
+		// RAG sources
 		{"rag_sources", "org_id"}:           {"orgs", "CASCADE"},
 		{"rag_sources", "in_connection_id"}: {"in_connections", "CASCADE"},
 		{"rag_sources", "creator_id"}:       {"users", "SET NULL"},

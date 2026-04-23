@@ -18,20 +18,12 @@ import (
 // DEVIATIONS vs Onyx:
 //   - PK is a uuid (not an autoincrement int). Hiveloop convention —
 //     every table uses uuid.UUID PKs. Zero semantic impact.
-//   - `connector_credential_pair_id` becomes `in_connection_id` because
-//     Hiveloop has no CCPair; identity lives on InConnection. See the
-//     "ARCHITECTURAL NOTE" in plans/onyx-port.md under Tranche 1C.
+//   - `connector_credential_pair_id` becomes `rag_source_id` because
+//     Hiveloop keys every RAG table off the top-level RAGSource.
 //   - `search_settings_id` becomes `embedding_model_id` → FK to
-//     `rag_embedding_models(id)`. The rag_embedding_models table is
-//     owned by Tranche 1G and may not exist yet when this tranche is
-//     merged in isolation; the gorm FK declaration is intentionally a
-//     string reference rather than a Go struct reference so the Go
-//     build stays clean. Tranche 1F (finalizer) runs AFTER 1G and
-//     validates the FK resolves. If 1G lands before 1F, all tests
-//     pass. If this tranche is merged before 1G, the runtime
-//     AutoMigrate will still succeed under gorm (constraint is best-
-//     effort under MySQL and is created via a separate DDL under
-//     Postgres). See AutoMigrate1B for the explicit guard.
+//     `rag_embedding_models(id)`. The FK is installed by the model
+//     package's Migrate entry point after the embedding-model catalog
+//     has been created.
 //   - OrgID column added; Onyx uses schema-per-tenant, Hiveloop uses
 //     row-level org_id with a CASCADE FK to orgs(id).
 type RAGIndexAttempt struct {
@@ -42,17 +34,14 @@ type RAGIndexAttempt struct {
 	OrgID uuid.UUID `gorm:"type:uuid;not null;index;constraint:OnDelete:CASCADE"`
 
 	// RAGSourceID — adapts Onyx `connector_credential_pair_id`
-	// (models.py:2200-2204). FK to rag_sources(id) with CASCADE so that
-	// tearing down a source wipes its index-attempt history.
-	//
-	// Phase 3A swap (was InConnectionID): keyed off RAGSource now,
-	// which itself carries the InConnection reference for
+	// (models.py:2200-2204). FK to rag_sources(id) with CASCADE so
+	// that tearing down a source wipes its index-attempt history.
+	// RAGSource carries the InConnection reference for
 	// INTEGRATION-kind sources.
 	RAGSourceID uuid.UUID `gorm:"type:uuid;not null;index"`
 
 	// EmbeddingModelID — adapts Onyx `search_settings_id`
-	// (models.py:2221-2225). See DEVIATIONS note above regarding 1G
-	// cross-tranche ordering.
+	// (models.py:2221-2225). FK to rag_embedding_models(id).
 	EmbeddingModelID *string `gorm:"type:text"`
 
 	// FromBeginning — Onyx models.py:2206-2209. Only set when the
@@ -102,8 +91,8 @@ type RAGIndexAttempt struct {
 
 	// Stall detection / heartbeat — Onyx models.py:2253-2264. The
 	// watchdog scans `status='in_progress' AND last_progress_time <
-	// NOW() - interval` which is why we add a partial index on those
-	// two columns (see AutoMigrate1B).
+	// NOW() - interval`, which is why the partial heartbeat index in
+	// indexes.go covers those two columns.
 	LastProgressTime          *time.Time
 	LastBatchesCompletedCount int `gorm:"not null;default:0"`
 	HeartbeatCounter          int `gorm:"not null;default:0"`

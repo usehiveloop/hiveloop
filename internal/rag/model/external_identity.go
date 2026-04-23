@@ -34,8 +34,6 @@ type RAGExternalIdentity struct {
 
 	// RAGSourceID → rag_sources.id. CASCADE because deleting a source
 	// invalidates any identity cached against it.
-	//
-	// Phase 3A swap (was InConnectionID).
 	RAGSourceID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:uq_rag_external_identity_user_source;index:idx_rag_external_identity_source"`
 
 	// Provider mirrors the parent InIntegration's provider string

@@ -113,8 +113,7 @@ func AutoMigrate(db *gorm.DB) error {
 	// immediately after model.AutoMigrate — we can't invoke it from
 	// here because internal/rag/model imports internal/model (for
 	// model.JSON), so an import from internal/model back into
-	// internal/rag would close a cycle. See plans/onyx-port.md,
-	// Tranche 1F merge notes.
+	// internal/rag would close a cycle.
 
 	return nil
 }

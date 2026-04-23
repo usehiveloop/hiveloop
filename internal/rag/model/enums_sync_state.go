@@ -1,9 +1,6 @@
 package model
 
-// Enums owned by Tranche 1C (sync state + connection config + search
-// settings). Placed in a tranche-specific file to avoid collisions with
-// other parallel Phase 1 tranches that also append enums; Tranche 1F
-// consolidates naming if desired.
+// Enums for the sync-state + search-settings tables.
 
 // RAGConnectionStatus — port of Onyx `ConnectorCredentialPairStatus` at
 // backend/onyx/db/enums.py:180-205.
@@ -64,9 +61,9 @@ const (
 )
 
 // ProcessingMode — verbatim port of Onyx `ProcessingMode` at
-// backend/onyx/db/enums.py:93-98. Controls the docfetching branch that
-// selects the post-fetch pipeline (full chunk→embed→store vs FS drop vs
-// raw binary drop).
+// backend/onyx/db/enums.py:93-98. Controls the docfetching branch
+// that selects the post-fetch pipeline (full chunk -> embed -> store
+// vs FS drop vs raw binary drop).
 type ProcessingMode string
 
 const (

@@ -14,14 +14,15 @@ import (
 // Port of Onyx's Document model at
 // backend/onyx/db/models.py:939-1063.
 //
-// Skipped fields (documented in the Tranche 1A plan — not Phase 1 scope):
+// Skipped fields (deliberately out of scope — revisit when the feature
+// lands):
 //   - kg_stage, kg_processing_time (knowledge graph, deferred)
 //   - relationships to Persona / Tag / DocumentRetrievalFeedback
 //
 // FK style: bare column fields, NO gorm association structs. Adding a
 // `Org model.Org` field here would create an import cycle because
-// internal/model/org.go already imports internal/rag. See the Phase 0
-// report — this rule is load-bearing across every Phase 1 tranche.
+// internal/model/org.go already imports internal/rag. This rule is
+// load-bearing across the RAG package.
 type RAGDocument struct {
 	// ID is the source-given opaque document ID. Primary key. Port of
 	// `id: NullFilteredString, primary_key=True` at models.py:945.

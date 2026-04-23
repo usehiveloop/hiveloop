@@ -19,12 +19,12 @@ package testhelpers
 //   - Cleanup on `t.Cleanup`: SIGTERM with 10s grace → SIGKILL, then
 //     release the per-test S3 prefix so tests don't leak state.
 //
-// NOTE on parallel worktree development: Tranche 2J lands before 2F
-// (server wiring). When these tests run against a binary whose RPCs
-// still return UNIMPLEMENTED, the helper itself still works — the
-// binary boots, health flips to SERVING, a client connects. The E2E
-// tests in e2e_test.go that call real RPCs fail loudly until 2F is
-// merged. That is the correct behavior per TESTING.md (no skips).
+// NOTE on unimplemented handlers: this helper is independent of which
+// RPCs the binary actually serves. When a test hits a handler that
+// still returns UNIMPLEMENTED, the helper itself keeps working — the
+// binary boots, health flips to SERVING, a client connects — and the
+// calling E2E test fails loudly. That is the correct behaviour per
+// TESTING.md (no skips).
 
 import (
 	"context"

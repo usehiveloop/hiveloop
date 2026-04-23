@@ -1,10 +1,8 @@
 package testhelpers_test
 
-// Integration tests for the rag-engine testhelpers themselves.
-//
-// These 4 tests match the Phase 2 plan's "Tranche 2J — Tests" list.
-// Each one pins a behavior that, if it regresses, would leave every
-// downstream tranche unable to trust the helper.
+// Integration tests for the rag-engine testhelpers themselves. Each
+// test pins a behaviour that, if it regresses, would leave every
+// downstream test unable to trust the helper.
 //
 // Every test speaks to a real process + real MinIO. No mocks.
 

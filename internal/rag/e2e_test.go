@@ -13,19 +13,19 @@
 //
 //        make test-services-up
 //
-// 2. Run the suite against this branch (`rag/phase-2j-go-testhelpers`):
+// 2. Run the suite:
 //
 //        go test -race -p 1 -count=1 ./internal/rag -run TestE2E_
 //
-//    On the 2J branch alone, the Rust RPC handlers still return
-//    UNIMPLEMENTED (they are wired in Tranche 2F). Most tests therefore
-//    FAIL with `rpc error: code = Unimplemented`. That is CORRECT — the
-//    assertions are real, there are no skips, and merging 2F flips
-//    them green.
+//    If the Rust rag-engine built from this worktree still has handlers
+//    returning UNIMPLEMENTED, the tests FAIL with `rpc error: code =
+//    Unimplemented` — that is the intended signal. Assertions are
+//    real, there are no skips; shipping a handler flips the matching
+//    test green.
 //
-// 3. Run against a sibling worktree that HAS 2F wired:
+// 3. Run against a sibling worktree that ships a newer rag-engine:
 //
-//        RAG_ENGINE_BRANCH=/Users/you/code/hiveloop-rag-2f \
+//        RAG_ENGINE_BRANCH=/Users/you/code/hiveloop-rag-engine \
 //          go test -race -p 1 -count=1 ./internal/rag -run TestE2E_
 //
 //    RAG_ENGINE_BRANCH may be an absolute path to:

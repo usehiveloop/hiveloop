@@ -16,8 +16,7 @@ import (
 // persist it because (a) the admin UI wants to render display names
 // without making source-API calls, and (b) the stale-sweep pattern used
 // by `RAGUserExternalUserGroup` and `RAGPublicExternalUserGroup` needs a
-// parent row to sweep. See the plan's Tranche 1D section for
-// justification.
+// parent row to sweep.
 //
 // ExternalUserGroupID is the source-prefixed, lowercased group
 // identifier produced by `acl.BuildExtGroupName`. It is ALWAYS stored in
@@ -26,8 +25,8 @@ import (
 type RAGExternalUserGroup struct {
 	ID                  uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	OrgID               uuid.UUID      `gorm:"type:uuid;not null;index"`
-	// RAGSourceID — Phase 3A swap (was InConnectionID). The junction
-	// table now keys off the top-level RAGSource.
+	// RAGSourceID — FK to rag_sources(id); the junction keys off the
+	// top-level RAGSource.
 	RAGSourceID         uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex:uq_rag_external_user_group_source_ext,priority:1"`
 	ExternalUserGroupID string         `gorm:"type:text;not null;uniqueIndex:uq_rag_external_user_group_source_ext,priority:2"`
 	DisplayName         string         `gorm:"type:text;not null"`

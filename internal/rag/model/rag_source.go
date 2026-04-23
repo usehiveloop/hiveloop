@@ -19,12 +19,12 @@ var (
 	ErrSourcePruneFreqTooSmall   = errors.New("prune_freq must be greater than or equal to 5 minutes (300 seconds)")
 )
 
-// RAGSourceKind identifies the kind of RAG source. It is a Hiveloop-only
-// abstraction introduced in Phase 3A — Onyx's ConnectorCredentialPair at
-// backend/onyx/db/models.py:723-837 only knows integration-backed sources.
-// Hiveloop's superset adds WEBSITE (root URL + scrape config, Phase 4+) and
-// FILE_UPLOAD (direct upload, Phase 5+) to keep every source kind keyed off
-// a single top-level row.
+// RAGSourceKind identifies the kind of RAG source. It is a
+// Hiveloop-only abstraction — Onyx's ConnectorCredentialPair at
+// backend/onyx/db/models.py:723-837 only knows integration-backed
+// sources. Hiveloop's superset adds WEBSITE (root URL + scrape
+// config) and FILE_UPLOAD (direct upload) so every source kind is
+// keyed off a single top-level row.
 //
 // Values are uppercase ASCII so Postgres dumps round-trip cleanly and tests
 // can compare byte-identical strings across language boundaries.
@@ -52,10 +52,10 @@ func (k RAGSourceKind) IsValid() bool {
 // String — mirrors the enum literal for logging / formatting.
 func (k RAGSourceKind) String() string { return string(k) }
 
-// RAGSourceStatus is the lifecycle state of a RAGSource. The scheduler
-// (Tranche 3C) scans rows with status IN ('ACTIVE','INITIAL_INDEXING') to
-// pick work; everything else is either paused by the admin, never-connected,
-// or on its way out.
+// RAGSourceStatus is the lifecycle state of a RAGSource. The
+// scheduler scans rows with status IN ('ACTIVE','INITIAL_INDEXING')
+// to pick work; everything else is either paused by the admin,
+// never-connected, or on its way out.
 //
 // Port of Onyx ConnectorCredentialPairStatus at backend/onyx/db/enums.py:180-205,
 // expanded with DISCONNECTED (nothing in Onyx that maps; represents "created
@@ -96,8 +96,8 @@ func (s RAGSourceStatus) IsValid() bool {
 // and DELETING all shouldn't receive new ingest tasks.
 //
 // Mirror of Onyx ConnectorCredentialPairStatus.is_active at
-// backend/onyx/db/enums.py:203-204, narrowed to the two loop-drivers we
-// actually care about in Phase 3.
+// backend/onyx/db/enums.py:203-204, narrowed to the two loop-drivers
+// Hiveloop actually cares about.
 func (s RAGSourceStatus) IsActive() bool {
 	return s == RAGSourceStatusActive || s == RAGSourceStatusInitialIndexing
 }
@@ -105,44 +105,41 @@ func (s RAGSourceStatus) IsActive() bool {
 // String — mirror for logging / formatting.
 func (s RAGSourceStatus) String() string { return string(s) }
 
-// RAGSource is the top-level row for an organisation's RAG data source.
-//
-// It replaces the Phase 1 coupling between RAGSyncState / RAGConnectionConfig
-// and InConnection. A RAGSource has a Kind that dispatches to either an
+// RAGSource is the top-level row for an organisation's RAG data
+// source. A RAGSource has a Kind that dispatches to either an
 // InConnection (integration-backed sources: GitHub, Notion, …) or a
-// kind-specific config blob (WEBSITE, FILE_UPLOAD). Every RAG table in
-// Phase 1 that previously keyed on in_connection_id now keys on
-// rag_source_id — see Tranche 3A's destructive migration in automigrate_3a.go.
+// kind-specific config blob (WEBSITE, FILE_UPLOAD). Every RAG table
+// keys on rag_source_id.
 //
-// Onyx analog: ConnectorCredentialPair at backend/onyx/db/models.py:723-837
-// (conceptual; ours is a superset that supports non-integration kinds).
-// The connector-specific config JSON blob mirrors Connector.connector_specific_config
-// at backend/onyx/db/models.py:1872.
+// Onyx analog: ConnectorCredentialPair at
+// backend/onyx/db/models.py:723-837 (conceptual; ours is a superset
+// that supports non-integration kinds). The connector-specific config
+// JSON blob mirrors Connector.connector_specific_config at
+// backend/onyx/db/models.py:1872.
 //
 // Interface clash note:
 //
-//	Tranche 3B's Source interface (see internal/rag/connectors/interfaces/connector.go)
-//	defines four methods — SourceID(), OrgID(), SourceKind(), Config() — that
-//	return string / string / string / json.RawMessage. This struct cannot have
-//	exported fields with those names because Go does not allow method + field
-//	name collisions on the same receiver. We therefore rename the underlying
-//	fields (ID → ID kept as-is since Source's method is SourceID; the
-//	conflicting fields OrgID, Kind, Config get renamed) and expose
-//	accessor methods matching the interface. The gorm column names are
-//	preserved via explicit `gorm:"column:..."` tags so the migration is
-//	a pure rename on the Go side — no Postgres DDL change.
+//	The Source interface (internal/rag/connectors/interfaces/connector.go)
+//	defines four methods — SourceID(), OrgID(), SourceKind(), Config() —
+//	returning string / string / string / json.RawMessage. This struct
+//	cannot have exported fields with those names because Go disallows
+//	method + field name collisions on the same receiver. The underlying
+//	fields are therefore renamed (OrgID → OrgIDValue, Kind → KindValue,
+//	Config → ConfigValue) and accessors matching the interface are
+//	defined below. Column names are preserved via explicit
+//	`gorm:"column:..."` tags.
 type RAGSource struct {
 	// ID — uuid PK, gen_random_uuid default per Hiveloop convention.
 	ID uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 
-	// orgIDValue is the owning organization's UUID. Renamed from the
-	// plan's OrgID to avoid clashing with the OrgID() accessor required
-	// by 3B's Source interface; the Postgres column name stays org_id.
+	// OrgIDValue is the owning organization's UUID. Renamed from
+	// OrgID to avoid clashing with the OrgID() accessor required by
+	// the Source interface; the Postgres column name stays org_id.
 	OrgIDValue uuid.UUID `gorm:"column:org_id;type:uuid;not null"`
 
-	// kindValue is the RAGSourceKind discriminator. Renamed from Kind
-	// for the same reason — 3B's Source interface requires SourceKind()
-	// as an accessor. We keep the column name as kind.
+	// KindValue is the RAGSourceKind discriminator. Renamed from Kind
+	// for the same reason — the Source interface requires SourceKind()
+	// as an accessor. Column name stays kind.
 	KindValue RAGSourceKind `gorm:"column:kind;type:varchar(32);not null"`
 
 	// Name — admin-facing label, e.g. "Engineering GitHub".
@@ -156,9 +153,9 @@ type RAGSource struct {
 	// regardless of Status.
 	Enabled bool `gorm:"not null;default:true"`
 
-	// configValue is the kind-specific JSON config blob. Renamed from
+	// ConfigValue is the kind-specific JSON config blob. Renamed from
 	// Config to avoid clashing with the Config() accessor required by
-	// 3B's Source interface. Column name stays config.
+	// the Source interface. Column name stays config.
 	//
 	// Shape by kind:
 	//   INTEGRATION : {} (connector-specific config lives on
@@ -169,14 +166,13 @@ type RAGSource struct {
 	ConfigValue model.JSON `gorm:"column:config;type:jsonb;not null;default:'{}'"`
 
 	// InConnectionID — FK to in_connections.id. Non-null iff
-	// Kind=INTEGRATION (CHECK-enforced by automigrate_3a.go). Unique
-	// partial index guarantees one RAGSource per InConnection (see
-	// AutoMigrate3A).
+	// Kind=INTEGRATION (CHECK-enforced). A unique partial index
+	// guarantees one RAGSource per InConnection.
 	InConnectionID *uuid.UUID `gorm:"type:uuid"`
 
-	// AccessType — inherited from Phase 1C sync-state shape. Describes
-	// whether the indexed documents are PUBLIC (visible to anyone in the
-	// org), PRIVATE (ACL gated), or SYNC (ACLs kept fresh via perm_sync).
+	// AccessType — describes whether the indexed documents are PUBLIC
+	// (visible to anyone in the org), PRIVATE (ACL gated), or SYNC
+	// (ACLs kept fresh via perm_sync).
 	AccessType AccessType `gorm:"type:varchar(16);not null"`
 
 	// LastSuccessfulIndexTime — port of Onyx models.py:776-778. Finish
@@ -233,9 +229,9 @@ func (s *RAGSource) SourceID() string { return s.ID.String() }
 // OrgID satisfies interfaces.Source.
 func (s *RAGSource) OrgID() string { return s.OrgIDValue.String() }
 
-// SourceKind satisfies interfaces.Source. Returns the connector kind as a
-// string (matches Connector.Kind() and the InIntegration.Provider values
-// seeded by AutoMigrate3A).
+// SourceKind satisfies interfaces.Source. Returns the connector kind
+// as a string (matches Connector.Kind() and the InIntegration.Provider
+// values seeded at migrate time).
 func (s *RAGSource) SourceKind() string { return string(s.KindValue) }
 
 // Config satisfies interfaces.Source. Marshals the internal JSONB map into

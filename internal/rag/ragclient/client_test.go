@@ -119,8 +119,9 @@ func TestClient_Auth_AcceptsCorrectSecret(t *testing.T) {
 // TestClient_IngestBatch_RetryOnUnavailable_Succeeds demonstrates the
 // retry loop against a real server lifecycle: stop the server so the
 // first RPC attempt fails with UNAVAILABLE, respawn mid-backoff, then
-// assert the final attempt lands on a live server (UNIMPLEMENTED on
-// Tranche 2A — proves the RPC handler was reached after retries).
+// assert the final attempt lands on a live server (currently
+// UNIMPLEMENTED — that proves the RPC handler was reached after
+// retries).
 func TestClient_IngestBatch_RetryOnUnavailable_Succeeds(t *testing.T) {
 	addr, shutdown := startRagEngine(t, testSecret)
 	client := mustNewClient(t, addr, testSecret, 5)
@@ -161,11 +162,11 @@ func TestClient_IngestBatch_RetryOnUnavailable_Succeeds(t *testing.T) {
 	}
 }
 
-// TestClient_IngestBatch_NoRetryOnInvalidArgument: since the Tranche-2A
-// stub always returns UNIMPLEMENTED, we drive the retry engine directly
-// with a synthetic INVALID_ARGUMENT to confirm it stops after exactly
-// one attempt — mirroring what will happen when the real server
-// validates `declared_vector_dim` in Phase 2F.
+// TestClient_IngestBatch_NoRetryOnInvalidArgument: since the
+// rag-engine stub currently returns UNIMPLEMENTED, we drive the retry
+// engine directly with a synthetic INVALID_ARGUMENT to confirm it
+// stops after exactly one attempt — mirroring what will happen when
+// the real server validates `declared_vector_dim`.
 func TestClient_IngestBatch_NoRetryOnInvalidArgument(t *testing.T) {
 	calls := 0
 	err := runWithRetry(context.Background(), idempotentPolicy(5), newTestRand(), func(_ context.Context) error {
@@ -195,9 +196,9 @@ func TestClient_IngestBatch_RequiresIdempotencyKey(t *testing.T) {
 
 // TestClient_Search_TimeoutHonored uses an already-expired context to
 // prove the deadline propagates client-side. Documented limitation:
-// the Tranche-2A Rust stub cannot be coerced into delaying its
-// response, so we can't exercise a server-side slow path here — that
-// lives in later tranches that wire the real handlers.
+// the current Rust stub cannot be coerced into delaying its response,
+// so a server-side slow path is exercised elsewhere once real
+// handlers ship.
 func TestClient_Search_TimeoutHonored(t *testing.T) {
 	addr, _ := startRagEngine(t, testSecret)
 	client := mustNewClient(t, addr, testSecret, 0)
