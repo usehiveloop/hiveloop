@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/redis/go-redis/v9"
+	"encoding/json"
 )
 
 func (b *EventBus) ReadRange(ctx context.Context, convID string, start string, end string) ([]StreamEvent, error) {
