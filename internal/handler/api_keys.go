@@ -21,6 +21,19 @@ type APIKeyHandler struct {
 	cacheManager *cache.Manager
 }
 
+// memberAllowedAPIKeyScopes is the narrow set of scopes a non-admin
+// organization member (role != "owner"/"admin") may request when minting an
+// API key. Admins and owners may request any scope in model.ValidAPIKeyScopes.
+//
+// "connect" covers the public-facing connect flows and is considered safe for
+// non-admin members to delegate to an API key. Sensitive scopes such as
+// "credentials", "tokens", "integrations", "agents", and "all" require an
+// admin/owner role so a lower-privileged member cannot mint a key that
+// exceeds their own permissions.
+var memberAllowedAPIKeyScopes = map[string]bool{
+	"connect": true,
+}
+
 func NewAPIKeyHandler(db *gorm.DB, keyCache *cache.APIKeyCache, cm *cache.Manager) *APIKeyHandler {
 	return &APIKeyHandler{db: db, keyCache: keyCache, cacheManager: cm}
 }
@@ -93,6 +106,11 @@ func (h *APIKeyHandler) Create(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid scope: " + s})
 			return
 		}
+	}
+
+	if !requesterCanGrantScopes(r, h.db, org.ID, req.Scopes) {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "role does not permit requested scopes; admin/owner required"})
+		return
 	}
 
 	plaintext, hash, prefix, err := model.GenerateAPIKey()
@@ -271,4 +289,44 @@ func (h *APIKeyHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("api key revoked", "org_id", org.ID, "key_id", keyID)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
+}
+
+// requesterCanGrantScopes enforces role-based restrictions on which scopes a
+// caller may assign to a new API key. Owners and admins may assign any valid
+// scope. Other members are restricted to memberAllowedAPIKeyScopes.
+//
+// For API-key-authenticated requests (no JWT claims on the context), the
+// minting API key must itself carry the "all" scope to grant elevated scopes.
+func requesterCanGrantScopes(r *http.Request, db *gorm.DB, orgID uuid.UUID, requested []string) bool {
+	allMemberAllowed := true
+	for _, s := range requested {
+		if !memberAllowedAPIKeyScopes[s] {
+			allMemberAllowed = false
+			break
+		}
+	}
+	if allMemberAllowed {
+		return true
+	}
+
+	if claims, ok := middleware.AuthClaimsFromContext(r.Context()); ok && claims != nil && claims.UserID != "" {
+		var m model.OrgMembership
+		userUUID, err := uuid.Parse(claims.UserID)
+		if err != nil {
+			return false
+		}
+		if err := db.Where("user_id = ? AND org_id = ?", userUUID, orgID).First(&m).Error; err != nil {
+			return false
+		}
+		return m.Role == "owner" || m.Role == "admin"
+	}
+
+	if apiClaims, ok := middleware.APIKeyClaimsFromContext(r.Context()); ok && apiClaims != nil {
+		for _, s := range apiClaims.Scopes {
+			if s == "all" {
+				return true
+			}
+		}
+	}
+	return false
 }

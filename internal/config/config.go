@@ -85,6 +85,12 @@ type Config struct {
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:","`
 
+	// Provider base_url allowlist (hostnames only, case-insensitive). When
+	// empty, no host-level allowlist is enforced on credential base_urls —
+	// useful for local/self-hosted dev. In production, set this to the
+	// known LLM-provider hostnames (e.g. api.openai.com,api.anthropic.com).
+	AllowedBaseURLs []string `env:"ALLOWED_BASE_URLS" envSeparator:","`
+
 	// Nango (OAuth integration proxy)
 	NangoEndpoint  string `env:"NANGO_ENDPOINT"`    // e.g. http://localhost:3004
 	NangoSecretKey string `env:"NANGO_SECRET_KEY"`  // Nango secret key for API auth

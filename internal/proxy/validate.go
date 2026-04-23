@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/url"
 	"strings"
+	"sync"
 )
 
 var (
@@ -35,7 +36,46 @@ var (
 
 	// AllowLoopback can be set to true in tests to allow loopback/private addresses.
 	AllowLoopback = false
+
+	// allowedBaseURLHosts is the process-wide allowlist of hostnames that may
+	// be used as credential base_urls. When empty, no host-level allowlist is
+	// enforced and only the SSRF/IP checks below gate the URL (this preserves
+	// local/dev behaviour where operators have not supplied an allowlist).
+	allowedBaseURLHosts   = map[string]struct{}{}
+	allowedBaseURLHostsMu sync.RWMutex
 )
+
+// SetAllowedBaseURLHosts configures the process-wide allowlist of hostnames
+// (case-insensitive) that ValidateBaseURL will accept. Passing an empty slice
+// disables host-level allowlisting and falls back to SSRF-only validation.
+func SetAllowedBaseURLHosts(hosts []string) {
+	normalised := make(map[string]struct{}, len(hosts))
+	for _, h := range hosts {
+		h = strings.TrimSpace(strings.ToLower(h))
+		if h == "" {
+			continue
+		}
+		normalised[h] = struct{}{}
+	}
+	allowedBaseURLHostsMu.Lock()
+	allowedBaseURLHosts = normalised
+	allowedBaseURLHostsMu.Unlock()
+}
+
+// baseURLHostAllowed reports whether the given host passes the allowlist.
+// When the allowlist is empty the function always returns true — callers that
+// require an explicit allowlist must check for that separately or configure
+// one at startup.
+func baseURLHostAllowed(host string) bool {
+	host = strings.ToLower(host)
+	allowedBaseURLHostsMu.RLock()
+	defer allowedBaseURLHostsMu.RUnlock()
+	if len(allowedBaseURLHosts) == 0 {
+		return true
+	}
+	_, ok := allowedBaseURLHosts[host]
+	return ok
+}
 
 func ipInNets(ip net.IP, nets ...*net.IPNet) bool {
 	for _, n := range nets {
@@ -74,6 +114,9 @@ func ValidateBaseURL(raw string) error {
 		if u.Hostname() == "" {
 			return errors.New("invalid base_url: missing host")
 		}
+		if !baseURLHostAllowed(u.Hostname()) {
+			return errors.New("invalid base_url: host not in provider allowlist")
+		}
 		return nil
 	}
 
@@ -91,6 +134,9 @@ func ValidateBaseURL(raw string) error {
 	hLower := strings.ToLower(host)
 	if _, blocked := blockedHostnames[hLower]; blocked {
 		return errors.New("invalid base_url: host not allowed")
+	}
+	if !baseURLHostAllowed(hLower) {
+		return errors.New("invalid base_url: host not in provider allowlist")
 	}
 
 	// If host is an IP literal, validate directly; otherwise resolve and validate each address

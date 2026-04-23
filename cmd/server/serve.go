@@ -43,6 +43,9 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	logger := slog.Default()
 
+	// Apply credential base_url host allowlist (empty = dev-mode, no host filter).
+	proxy.SetAllowedBaseURLHosts(cfg.AllowedBaseURLs)
+
 	// Start cache invalidation subscriber (per-instance, real-time pub/sub)
 	goroutine.Go(func() {
 		if err := cacheManager.Invalidator().Subscribe(ctx); err != nil {

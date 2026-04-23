@@ -60,7 +60,7 @@ type marketplaceAgentResponse struct {
 // @Param verified query bool false "Filter verified agents"
 // @Param limit query int false "Page size"
 // @Param cursor query string false "Pagination cursor"
-// @Success 200 {object} paginatedResponse[marketplaceAgentResponse]
+// @Success 200 {object} paginatedResponse[marketplacePublicAgentResponse]
 // @Router /v1/marketplace/agents [get]
 func (h *MarketplaceHandler) List(w http.ResponseWriter, r *http.Request) {
 	cacheKey := h.listCacheKey(r)
@@ -114,12 +114,12 @@ func (h *MarketplaceHandler) List(w http.ResponseWriter, r *http.Request) {
 		agents = agents[:limit]
 	}
 
-	resp := make([]marketplaceAgentResponse, len(agents))
+	resp := make([]marketplacePublicAgentResponse, len(agents))
 	for i, agent := range agents {
-		resp[i] = toMarketplaceAgentResponse(agent)
+		resp[i] = toMarketplacePublicAgentResponse(agent)
 	}
 
-	result := paginatedResponse[marketplaceAgentResponse]{Data: resp, HasMore: hasMore}
+	result := paginatedResponse[marketplacePublicAgentResponse]{Data: resp, HasMore: hasMore}
 	if hasMore {
 		last := agents[len(agents)-1]
 		c := encodeCursor(last.CreatedAt, last.ID)
@@ -140,7 +140,7 @@ func (h *MarketplaceHandler) List(w http.ResponseWriter, r *http.Request) {
 // @Tags marketplace
 // @Produce json
 // @Param slug path string true "Agent slug"
-// @Success 200 {object} marketplaceAgentResponse
+// @Success 200 {object} marketplacePublicAgentResponse
 // @Failure 404 {object} errorResponse
 // @Router /v1/marketplace/agents/{slug} [get]
 func (h *MarketplaceHandler) GetBySlug(w http.ResponseWriter, r *http.Request) {
@@ -164,7 +164,7 @@ func (h *MarketplaceHandler) GetBySlug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, _ := json.Marshal(toMarketplaceAgentResponse(agent))
+	body, _ := json.Marshal(toMarketplacePublicAgentResponse(agent))
 	h.redis.Set(r.Context(), cacheKey, body, marketplaceCacheTTL)
 
 	w.Header().Set("Content-Type", "application/json")
