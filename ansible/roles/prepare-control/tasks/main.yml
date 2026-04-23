@@ -20,6 +20,47 @@
     port: "2222"
     proto: tcp
 
+- name: Allow DNS (acme-dns) UDP
+  ufw:
+    rule: allow
+    port: "53"
+    proto: udp
+
+- name: Allow DNS (acme-dns) TCP
+  ufw:
+    rule: allow
+    port: "53"
+    proto: tcp
+
+# Disable systemd-resolved stub listener to free port 53 for acme-dns
+- name: Disable systemd-resolved stub listener
+  lineinfile:
+    path: /etc/systemd/resolved.conf
+    regexp: '^#?DNSStubListener='
+    line: 'DNSStubListener=no'
+  register: resolved_changed
+
+- name: Set DNS server in resolved.conf
+  lineinfile:
+    path: /etc/systemd/resolved.conf
+    regexp: '^#?DNS='
+    line: 'DNS=1.1.1.1'
+  register: dns_changed
+
+- name: Fix resolv.conf symlink
+  file:
+    src: /run/systemd/resolve/resolv.conf
+    dest: /etc/resolv.conf
+    state: link
+    force: true
+  when: resolved_changed.changed or dns_changed.changed
+
+- name: Restart systemd-resolved
+  systemd:
+    name: systemd-resolved
+    state: restarted
+  when: resolved_changed.changed or dns_changed.changed
+
 # --- Docker Compose project directory ---
 - name: Create Daytona control plane directory
   file:
