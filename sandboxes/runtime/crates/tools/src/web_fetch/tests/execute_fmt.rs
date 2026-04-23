@@ -41,8 +41,7 @@ async fn test_execute_with_custom_max_length() {
 async fn test_execute_with_default_max_length() {
     let server = MockServer::start().await;
 
-    let html =
-        r#"<html><body><p>Simple content for default max length test.</p></body></html>"#;
+    let html = r#"<html><body><p>Simple content for default max length test.</p></body></html>"#;
 
     // Allow multiple requests
     Mock::given(method("GET"))

@@ -5,8 +5,7 @@ use std::path::Path;
 use strsim::normalized_levenshtein;
 
 /// Recognized image file extensions.
-pub(super) const IMAGE_EXTENSIONS: &[&str] =
-    &["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico"];
+pub(super) const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico"];
 
 /// Check if a file extension is a recognized image type (not SVG — that's text).
 pub(super) fn is_image_extension(path: &Path) -> bool {

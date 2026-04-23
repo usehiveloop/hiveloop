@@ -215,8 +215,7 @@ async fn test_apply_patch_crlf_file() {
     let dir = tempdir().expect("create temp dir");
     let file_path = dir.path().join("crlf_file.txt");
     // Write file with CRLF line endings
-    std::fs::write(&file_path, "fn main() {\r\n    println!(\"old\");\r\n}\r\n")
-        .expect("write");
+    std::fs::write(&file_path, "fn main() {\r\n    println!(\"old\");\r\n}\r\n").expect("write");
 
     let patch = format!(
         "*** Begin Patch\n*** Update File: {}\n@@ fn main() {{\n-    println!(\"old\");\n+    println!(\"new\");\n*** End Patch",

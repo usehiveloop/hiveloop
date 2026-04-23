@@ -13,8 +13,7 @@ async fn test_follow_single_redirect() {
     Mock::given(method("GET"))
         .and(path("/old"))
         .respond_with(
-            ResponseTemplate::new(301)
-                .insert_header("Location", &*format!("{}/new", server.uri())),
+            ResponseTemplate::new(301).insert_header("Location", &*format!("{}/new", server.uri())),
         )
         .expect(1)
         .mount(&server)

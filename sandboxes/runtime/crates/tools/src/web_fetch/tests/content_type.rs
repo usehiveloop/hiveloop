@@ -94,8 +94,7 @@ async fn test_reject_pdf_content_type() {
     Mock::given(method("GET"))
         .and(path("/doc.pdf"))
         .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_raw(b"fake pdf bytes" as &[u8], "application/pdf"),
+            ResponseTemplate::new(200).set_body_raw(b"fake pdf bytes" as &[u8], "application/pdf"),
         )
         .expect(1)
         .mount(&server)
@@ -215,8 +214,7 @@ async fn test_fetch_content_length_too_large() {
     Mock::given(method("GET"))
         .and(path("/cl-huge"))
         .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_raw(large_body.as_bytes().to_vec(), "text/html"),
+            ResponseTemplate::new(200).set_body_raw(large_body.as_bytes().to_vec(), "text/html"),
         )
         .expect(1)
         .mount(&server)
