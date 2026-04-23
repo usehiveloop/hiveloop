@@ -33,7 +33,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
     setLoading(true)
 
     const response = await api.POST("/v1/orgs", {
-      body: { name: name.trim() } as never,
+      body: { name: name.trim() },
     })
 
     if (response.error) {

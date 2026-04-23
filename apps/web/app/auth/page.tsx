@@ -53,7 +53,7 @@ export default function AuthPage() {
 
   const requestOTP = useCallback(async () => {
     otpRequest.mutate(
-      { body: { email } as never },
+      { body: { email } },
       {
         onSuccess: () => {
           setResendTimer(RESEND_COOLDOWN)
@@ -80,7 +80,7 @@ export default function AuthPage() {
     if (value.length < 6) return
 
     otpVerify.mutate(
-      { body: { email, code: value } as never },
+      { body: { email, code: value } },
       {
         onSuccess: () => {
           router.replace("/w")

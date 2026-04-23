@@ -497,7 +497,7 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
     }
 
     updateAgent.mutate(
-      { params: { path: { id: agent?.id as string } }, body: { resources: cleanedResources } as never },
+      { params: { path: { id: agent?.id as string } }, body: { resources: cleanedResources } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["get", "/v1/agents"] })

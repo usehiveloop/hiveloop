@@ -200,7 +200,7 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
       }
     }
 
-    const body: Record<string, unknown> = {
+    const body: components["schemas"]["updateAgentRequest"] = {
       name: values.name.trim(),
       description: values.description.trim() || undefined,
       credential_id: values.credentialId || undefined,
@@ -213,7 +213,7 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
       triggers: triggers.map((trigger) => ({
         connection_id: trigger.connectionId,
         trigger_keys: trigger.triggerKeys,
-        conditions: trigger.conditions,
+        conditions: trigger.conditions ?? undefined,
       })),
       shared_memory: values.sharedMemory,
       team: values.team.trim() || undefined,
@@ -224,7 +224,7 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
     updateAgent.mutate(
       {
         params: { path: { id: agent.id } },
-        body: body as never,
+        body,
       },
       {
         onSuccess: () => {

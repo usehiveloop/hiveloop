@@ -84,7 +84,7 @@ export function AddLlmKeyDialog({ open, onOpenChange, onCreated }: AddLlmKeyDial
           api_key: apiKey.trim(),
           label: label.trim() || `${selectedProvider.name} key`,
           base_url: baseUrl.trim() || undefined,
-        } as never,
+        },
       },
       {
         onSuccess: (data) => {

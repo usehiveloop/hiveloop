@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
+import type { components } from "@/lib/api/schema"
 import { scratchSteps, marketplaceSteps } from "./types"
 import type { CreationMode, Step, SkillPreview, SubagentPreview, TriggerConfig } from "./types"
 
@@ -210,7 +211,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       }
     }
 
-    const body: Record<string, unknown> = {
+    const body: components["schemas"]["createAgentRequest"] = {
       name: values.name.trim(),
       description: values.description.trim() || undefined,
       credential_id: values.credentialId,
@@ -234,12 +235,12 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       body.triggers = triggers.map((trigger) => ({
         connection_id: trigger.connectionId,
         trigger_keys: trigger.triggerKeys,
-        conditions: trigger.conditions,
+        conditions: trigger.conditions ?? undefined,
       }))
     }
 
     createAgent.mutate(
-      { body: body as never },
+      { body },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["get", "/v1/agents"] })

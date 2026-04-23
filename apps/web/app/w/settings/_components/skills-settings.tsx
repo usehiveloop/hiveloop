@@ -166,7 +166,7 @@ function CreateSkillDialog({ open, onOpenChange }: { open: boolean; onOpenChange
     event.preventDefault()
     if (!name.trim()) return
 
-    const body: Record<string, unknown> = {
+    const body: components["schemas"]["createSkillRequest"] = {
       name: name.trim(),
       description: description.trim() || undefined,
       source_type: sourceType,
@@ -191,7 +191,7 @@ function CreateSkillDialog({ open, onOpenChange }: { open: boolean; onOpenChange
     }
 
     createSkill.mutate(
-      { body: body as never },
+      { body },
       {
         onSuccess: () => {
           toast.success("Skill created")
