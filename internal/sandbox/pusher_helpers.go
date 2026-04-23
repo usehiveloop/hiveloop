@@ -1,13 +1,11 @@
 package sandbox
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/model"
