@@ -45,6 +45,7 @@ const (
 	tableName    = "rag_spike"
 	sampleRows   = 100
 )
+
 // opResult captures the PASS/FAIL outcome of a single primitive.
 type opResult struct {
 	name    string

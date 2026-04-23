@@ -1,13 +1,7 @@
 package model_test
 
 import (
-	"errors"
-	"strings"
 	"testing"
-
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
-	"gorm.io/gorm"
 
 	coremodel "github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/rag"
@@ -26,11 +20,11 @@ func TestRAGSource_PersistsConfigJSON(t *testing.T) {
 
 	connID := conn.ID
 	cfg := coremodel.JSON{
-		"repo_allowlist":     []any{"hiveloop/api", "hiveloop/web"},
-		"include_issues":     true,
-		"include_prs":        false,
-		"batch_size":         float64(250), // JSON numbers round-trip as float64
-		"nested":             map[string]any{"depth": float64(2), "enabled": true},
+		"repo_allowlist": []any{"hiveloop/api", "hiveloop/web"},
+		"include_issues": true,
+		"include_prs":    false,
+		"batch_size":     float64(250), // JSON numbers round-trip as float64
+		"nested":         map[string]any{"depth": float64(2), "enabled": true},
 	}
 
 	src := &ragmodel.RAGSource{
@@ -104,4 +98,3 @@ func TestAutoMigrate_IsIdempotent(t *testing.T) {
 		t.Fatalf("rag.AutoMigrate not idempotent: index count %d -> %d", before, after)
 	}
 }
-

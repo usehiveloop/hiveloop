@@ -1,7 +1,6 @@
 package model_test
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -229,4 +228,3 @@ func TestRAGDocument_GINIndexOnExternalUserEmails(t *testing.T) {
 		t.Fatalf("GIN index not used for @> filter: %s", planContains)
 	}
 }
-

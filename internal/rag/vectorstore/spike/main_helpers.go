@@ -45,6 +45,7 @@ const (
 	tableName    = "rag_spike"
 	sampleRows   = 100
 )
+
 func envDefault(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
