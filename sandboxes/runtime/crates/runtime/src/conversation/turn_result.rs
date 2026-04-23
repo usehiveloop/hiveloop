@@ -178,6 +178,7 @@ pub(super) async fn handle_task_cancelled(
 /// (caller updates baseline + fingerprint) or `None` on fatal-restored
 /// (caller restores from the backup it cloned before this call).
 #[allow(clippy::too_many_arguments)]
+#[allow(clippy::type_complexity)]
 pub(super) async fn dispatch_chat_result(
     ctx: &TurnResultCtx<'_>,
     history: &mut Vec<rig::message::Message>,

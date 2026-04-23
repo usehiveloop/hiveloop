@@ -11,6 +11,7 @@ use webhooks::EventBus;
 use super::params::AGENT_CHAT_TIMEOUT;
 
 /// Outcome of waiting for the spawned streaming task.
+#[allow(clippy::type_complexity)]
 pub(super) enum ChatWaitOutcome {
     /// Spawned task returned a result (may be Err/Ok internally).
     Got(
@@ -67,6 +68,7 @@ pub(super) async fn wait_for_chat_result(
 /// Execute the per-turn "abort" cleanup — restore history, truncate persisted
 /// messages, drop any staged journal entries, and emit the AgentError/Done/
 /// TurnCompleted event triple.
+#[allow(clippy::too_many_arguments)]
 pub(super) async fn handle_abort_cleanup(
     history: &mut Vec<rig::message::Message>,
     history_backup: Vec<rig::message::Message>,
@@ -107,6 +109,7 @@ pub(super) async fn handle_abort_cleanup(
 }
 
 /// Possible outcomes of the wait-for-streaming-result phase.
+#[allow(clippy::type_complexity)]
 pub(super) enum WaitDisposition {
     /// Agent-level shutdown fired; loop should break.
     Break,

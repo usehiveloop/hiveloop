@@ -10,6 +10,7 @@ use super::convert::extract_tool_names_from_turn;
 ///
 /// Emits `AgentError` events for violations and sets `pending_tool_reminder`
 /// when any non-Warn enforcement fires.
+#[allow(clippy::too_many_arguments)]
 pub(super) fn run_enforcement(
     enforcement_state: &mut Option<crate::tool_enforcement::ToolEnforcementState>,
     tool_requirements: &[bridge_core::agent::ToolRequirement],
