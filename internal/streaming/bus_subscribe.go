@@ -7,7 +7,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	"encoding/json"
 )
 
 // Subscribe returns a channel that yields events from a conversation stream.

@@ -10,9 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/mcpserver"
-	"github.com/usehiveloop/hiveloop/internal/nango"
 	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 

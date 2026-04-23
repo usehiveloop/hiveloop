@@ -2,16 +2,13 @@ package streaming
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"os"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 const (
