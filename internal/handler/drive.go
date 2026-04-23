@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
@@ -18,18 +17,15 @@ import (
 )
 
 // DriveHandler handles agent drive asset CRUD.
-// Authenticated via proxy token (TokenAuth middleware).
 type DriveHandler struct {
 	db      *gorm.DB
 	storage *storage.S3Client
 }
 
-// NewDriveHandler creates a new DriveHandler.
 func NewDriveHandler(db *gorm.DB, storage *storage.S3Client) *DriveHandler {
 	return &DriveHandler{db: db, storage: storage}
 }
 
-// allowedContentTypePrefixes defines MIME type prefixes accepted for upload.
 var allowedContentTypePrefixes = []string{
 	"image/",
 	"video/",
@@ -50,7 +46,6 @@ func isAllowedContentType(contentType string) bool {
 	return false
 }
 
-// driveAssetResponse is the JSON response for a single drive asset.
 type driveAssetResponse struct {
 	ID          string  `json:"id"`
 	AgentID     string  `json:"agent_id"`
@@ -74,8 +69,6 @@ func toDriveAssetResponse(asset model.DriveAsset) driveAssetResponse {
 	}
 }
 
-// resolveAgentFromToken extracts the org and agent from the proxy token claims.
-// Returns the orgID and agent, or writes an error response and returns false.
 func (handler *DriveHandler) resolveAgentFromToken(writer http.ResponseWriter, request *http.Request) (uuid.UUID, *model.Agent, bool) {
 	claims, ok := middleware.ClaimsFromContext(request.Context())
 	if !ok {
@@ -89,7 +82,6 @@ func (handler *DriveHandler) resolveAgentFromToken(writer http.ResponseWriter, r
 		return uuid.Nil, nil, false
 	}
 
-	// Look up agent_id from the token's meta JSONB field.
 	var tokenRecord model.Token
 	if err := handler.db.Select("meta").Where("jti = ?", claims.JTI).First(&tokenRecord).Error; err != nil {
 		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "token not found"})
@@ -122,7 +114,6 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 		return
 	}
 
-	// 32 MB max memory for multipart parsing; larger files spill to temp disk.
 	if err := request.ParseMultipartForm(32 << 20); err != nil {
 		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid multipart form"})
 		return
@@ -137,7 +128,6 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 	var assets []driveAssetResponse
 
 	for _, fileHeader := range files {
-		// Determine content type from header or detect from extension.
 		contentType := fileHeader.Header.Get("Content-Type")
 		if contentType == "" || contentType == "application/octet-stream" {
 			contentType = mime.TypeByExtension(fileHeader.Filename)
@@ -180,7 +170,6 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 			S3Key:       s3Key,
 		}
 		if err := handler.db.Create(&asset).Error; err != nil {
-			// Best-effort cleanup of the S3 object if DB insert fails.
 			_ = handler.storage.Delete(request.Context(), s3Key)
 			slog.Error("drive asset db insert failed", "agent_id", agent.ID, "error", err)
 			writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to save asset record"})
@@ -191,119 +180,4 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 	}
 
 	writeJSON(writer, http.StatusCreated, map[string]any{"data": assets})
-}
-
-// List handles GET /v1/drive/assets.
-func (handler *DriveHandler) List(writer http.ResponseWriter, request *http.Request) {
-	orgID, agent, ok := handler.resolveAgentFromToken(writer, request)
-	if !ok {
-		return
-	}
-
-	limit, cursor, err := parsePagination(request)
-	if err != nil {
-		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
-	}
-
-	query := handler.db.Where("org_id = ? AND agent_id = ?", orgID, agent.ID)
-
-	// Optional content_type prefix filter (e.g. ?content_type=image).
-	if contentTypeFilter := request.URL.Query().Get("content_type"); contentTypeFilter != "" {
-		query = query.Where("content_type LIKE ?", contentTypeFilter+"%")
-	}
-
-	query = applyPagination(query, cursor, limit)
-
-	var assets []model.DriveAsset
-	if err := query.Find(&assets).Error; err != nil {
-		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to list assets"})
-		return
-	}
-
-	hasMore := len(assets) > limit
-	if hasMore {
-		assets = assets[:limit]
-	}
-
-	response := paginatedResponse[driveAssetResponse]{
-		Data:    make([]driveAssetResponse, 0, len(assets)),
-		HasMore: hasMore,
-	}
-	for _, asset := range assets {
-		response.Data = append(response.Data, toDriveAssetResponse(asset))
-	}
-	if hasMore {
-		last := assets[len(assets)-1]
-		cursorStr := encodeCursor(last.CreatedAt, last.ID)
-		response.NextCursor = &cursorStr
-	}
-
-	writeJSON(writer, http.StatusOK, response)
-}
-
-// Get handles GET /v1/drive/assets/{assetID}.
-func (handler *DriveHandler) Get(writer http.ResponseWriter, request *http.Request) {
-	orgID, agent, ok := handler.resolveAgentFromToken(writer, request)
-	if !ok {
-		return
-	}
-
-	assetID := chi.URLParam(request, "assetID")
-
-	var asset model.DriveAsset
-	if err := handler.db.Where("id = ? AND org_id = ? AND agent_id = ?", assetID, orgID, agent.ID).First(&asset).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "asset not found"})
-			return
-		}
-		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to get asset"})
-		return
-	}
-
-	downloadURL, err := handler.storage.PresignedURL(request.Context(), asset.S3Key, 15*time.Minute)
-	if err != nil {
-		slog.Error("drive presign failed", "asset_id", asset.ID, "error", err)
-		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to generate download URL"})
-		return
-	}
-
-	response := toDriveAssetResponse(asset)
-	response.DownloadURL = &downloadURL
-
-	writeJSON(writer, http.StatusOK, response)
-}
-
-// Delete handles DELETE /v1/drive/assets/{assetID}.
-func (handler *DriveHandler) Delete(writer http.ResponseWriter, request *http.Request) {
-	orgID, agent, ok := handler.resolveAgentFromToken(writer, request)
-	if !ok {
-		return
-	}
-
-	assetID := chi.URLParam(request, "assetID")
-
-	var asset model.DriveAsset
-	if err := handler.db.Where("id = ? AND org_id = ? AND agent_id = ?", assetID, orgID, agent.ID).First(&asset).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "asset not found"})
-			return
-		}
-		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to get asset"})
-		return
-	}
-
-	if err := handler.storage.Delete(request.Context(), asset.S3Key); err != nil {
-		slog.Error("drive s3 delete failed", "asset_id", asset.ID, "error", err)
-		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to delete file from storage"})
-		return
-	}
-
-	if err := handler.db.Delete(&asset).Error; err != nil {
-		slog.Error("drive asset db delete failed", "asset_id", asset.ID, "error", err)
-		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to delete asset record"})
-		return
-	}
-
-	writeJSON(writer, http.StatusOK, map[string]string{"status": "deleted"})
 }

@@ -1,14 +1,10 @@
 package handler
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,7 +24,6 @@ type NangoWebhookHandler struct {
 	enqueuer    enqueue.TaskEnqueuer
 }
 
-// NewNangoWebhookHandler creates a Nango webhook handler.
 func NewNangoWebhookHandler(db *gorm.DB, nangoSecret string, encKey *crypto.SymmetricKey, enqueuer ...enqueue.TaskEnqueuer) *NangoWebhookHandler {
 	h := &NangoWebhookHandler{
 		db:          db,
@@ -42,7 +37,6 @@ func NewNangoWebhookHandler(db *gorm.DB, nangoSecret string, encKey *crypto.Symm
 	return h
 }
 
-// nangoWebhook is the envelope for all Nango webhook types.
 type nangoWebhook struct {
 	From              string          `json:"from"`
 	Type              string          `json:"type"`
@@ -54,22 +48,18 @@ type nangoWebhook struct {
 	Payload           json.RawMessage `json:"payload,omitempty"`
 }
 
-// webhookPayload is the enriched payload sent to the org's webhook endpoint.
-// Nango-specific fields are stripped; HiveLoop IDs are used instead.
 type webhookPayload struct {
-	Type      string          `json:"type"`
-	Provider  string          `json:"provider"`
-	Operation string          `json:"operation,omitempty"`
-	Success   *bool           `json:"success,omitempty"`
-	Payload   json.RawMessage `json:"payload,omitempty"`
-
-	OrgID           string `json:"org_id"`
-	IntegrationID   string `json:"integration_id,omitempty"`
-	IntegrationName string `json:"integration_name,omitempty"`
-	ConnectionID    string `json:"connection_id,omitempty"`
+	Type            string          `json:"type"`
+	Provider        string          `json:"provider"`
+	Operation       string          `json:"operation,omitempty"`
+	Success         *bool           `json:"success,omitempty"`
+	Payload         json.RawMessage `json:"payload,omitempty"`
+	OrgID           string          `json:"org_id"`
+	IntegrationID   string          `json:"integration_id,omitempty"`
+	IntegrationName string          `json:"integration_name,omitempty"`
+	ConnectionID    string          `json:"connection_id,omitempty"`
 }
 
-// webhookContext holds resolved entities from a Nango webhook.
 type webhookContext struct {
 	orgID        uuid.UUID
 	inConnection *model.InConnection
@@ -128,22 +118,15 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Dispatch agent triggers in parallel with the existing org-webhook forward.
-	// The two paths are independent: org-webhook forwards the enriched payload
-	// to a customer-supplied URL, while trigger dispatch evaluates AgentTriggers
-	// against the payload and queues per-agent runs. Failures in one don't
-	// affect the other.
 	dispatchWebhookEvent(h.enqueuer, &wh, wctx)
 
 	h.acknowledge(w)
 }
 
-// acknowledge responds with a 200 OK to the Nango webhook.
 func (h *NangoWebhookHandler) acknowledge(w http.ResponseWriter) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// buildEnrichedBody builds the JSON body for the enriched webhook payload.
 func (h *NangoWebhookHandler) buildEnrichedBody(wh *nangoWebhook, wctx *webhookContext) []byte {
 	provider := wh.Provider
 	payload := webhookPayload{
@@ -165,139 +148,4 @@ func (h *NangoWebhookHandler) buildEnrichedBody(wh *nangoWebhook, wctx *webhookC
 
 	body, _ := json.Marshal(payload)
 	return body
-}
-
-// identify resolves the org, integration, and connection from the webhook.
-//
-// Provider_config_key has two shapes:
-//
-//  1. "in_<slug>" — the user's installed inbound integration (github-app,
-//     linear, etc.). There's no org prefix in the key; Nango publishes one
-//     config key per integration type and distinguishes tenants via the
-//     connection_id. We resolve the org by looking up the InConnection whose
-//     nango_connection_id matches.
-//
-//  2. "<orgID>_<slug>" — legacy org-scoped config keys. The org UUID is the
-//     prefix and we resolve the connection by (org_id, nango_connection_id).
-//
-// Anything else we log and drop.
-func (h *NangoWebhookHandler) identify(wh *nangoWebhook) *webhookContext {
-	if strings.HasPrefix(wh.ProviderConfigKey, "in_") {
-		return h.identifyInIntegration(wh)
-	}
-
-	orgID, uniqueKey, ok := parseProviderConfigKey(wh.ProviderConfigKey)
-	if !ok {
-		slog.Warn("nango webhook: unable to parse provider config key",
-			"provider_config_key", wh.ProviderConfigKey,
-			"type", wh.Type,
-		)
-		return nil
-	}
-
-	slog.Info("nango webhook: resolved org from config key",
-		"org_id", orgID,
-		"unique_key", uniqueKey,
-	)
-
-	wctx := &webhookContext{orgID: orgID}
-
-	var inConnection model.InConnection
-	if err := h.db.Preload("InIntegration").
-		Where("nango_connection_id = ? AND org_id = ? AND revoked_at IS NULL",
-			wh.ConnectionID, orgID).First(&inConnection).Error; err != nil {
-		slog.Warn("nango webhook: in-connection not found",
-			"org_id", orgID,
-			"nango_connection_id", wh.ConnectionID,
-			"type", wh.Type,
-			"error", err,
-		)
-		return wctx
-	}
-	wctx.inConnection = &inConnection
-
-	logAttrs := []any{
-		"type", wh.Type,
-		"provider", inConnection.InIntegration.Provider,
-		"org_id", orgID,
-		"connection_id", inConnection.ID,
-		"nango_connection_id", wh.ConnectionID,
-	}
-	if wh.Type == "auth" {
-		logAttrs = append(logAttrs, "operation", wh.Operation)
-		if wh.Success != nil {
-			logAttrs = append(logAttrs, "success", *wh.Success)
-		}
-	}
-	if wh.Type == "forward" {
-		logAttrs = append(logAttrs, "payload_size", len(wh.Payload))
-	}
-	slog.Info("nango webhook: fully resolved", logAttrs...)
-
-	return wctx
-}
-
-// identifyInIntegration resolves the org+connection for a webhook whose
-// provider_config_key has the "in_*" shape. The config key itself doesn't
-// carry the org — we look the org up via the InConnection whose
-// nango_connection_id matches the webhook's connection_id, which Nango
-// assigns uniquely across all tenants.
-//
-// Non-forward types (auth create/revoke etc.) still go through this path so
-// the upstream filter in dispatchWebhookEvent can decide whether to dispatch;
-// we don't second-guess event types here.
-func (h *NangoWebhookHandler) identifyInIntegration(wh *nangoWebhook) *webhookContext {
-	var inConnection model.InConnection
-	err := h.db.Preload("InIntegration").
-		Where("nango_connection_id = ? AND revoked_at IS NULL", wh.ConnectionID).
-		Order("created_at DESC").
-		First(&inConnection).Error
-	if err != nil {
-		slog.Warn("nango webhook: in-connection not found for in_* provider_config_key",
-			"provider_config_key", wh.ProviderConfigKey,
-			"nango_connection_id", wh.ConnectionID,
-			"type", wh.Type,
-			"operation", wh.Operation,
-			"error", err,
-		)
-		return nil
-	}
-
-	slog.Info("nango webhook: resolved in-integration connection",
-		"type", wh.Type,
-		"provider_config_key", wh.ProviderConfigKey,
-		"nango_connection_id", wh.ConnectionID,
-		"in_connection_id", inConnection.ID,
-		"in_integration_id", inConnection.InIntegrationID,
-		"org_id", inConnection.OrgID,
-		"provider", inConnection.InIntegration.Provider,
-		"payload_size", len(wh.Payload),
-	)
-
-	return &webhookContext{
-		orgID:        inConnection.OrgID,
-		inConnection: &inConnection,
-	}
-}
-
-// parseProviderConfigKey splits "{orgID}_{uniqueKey}" into its parts.
-func parseProviderConfigKey(key string) (uuid.UUID, string, bool) {
-	parts := strings.SplitN(key, "_", 2)
-	if len(parts) != 2 {
-		return uuid.Nil, "", false
-	}
-	orgID, err := uuid.Parse(parts[0])
-	if err != nil {
-		return uuid.Nil, "", false
-	}
-	return orgID, parts[1], true
-}
-
-// verifyNangoSignature verifies the HMAC-SHA256 signature from Nango.
-// Nango signs with: HMAC-SHA256(secret, rawBody), hex-encoded.
-func verifyNangoSignature(body []byte, secret string, signature string) bool {
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write(body)
-	expected := hex.EncodeToString(mac.Sum(nil))
-	return hmac.Equal([]byte(expected), []byte(signature))
 }
