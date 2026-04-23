@@ -30,6 +30,7 @@ import (
 	"os"
 	"time"
 )
+
 func ResolveBinaryForBranch(override string) (string, error) {
 	_, path, err := resolveBuildTarget(override)
 	if err != nil {
@@ -59,4 +60,3 @@ func StatBinary(override string) (*binaryStat, error) {
 	}
 	return &binaryStat{Path: path, ModTime: info.ModTime(), Size: info.Size()}, nil
 }
-

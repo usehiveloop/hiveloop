@@ -145,7 +145,7 @@ func main() {
 	latencyOK := vectorLatency < 100*time.Millisecond
 	results = append(results, opResult{
 		name:    "4. Vector search + filter (<100ms)",
-		ok:     latencyOK,
+		ok:      latencyOK,
 		latency: vectorLatency,
 		detail:  fmt.Sprintf("VectorSearchWithFilter → %d hits", len(vectorResults)),
 	})

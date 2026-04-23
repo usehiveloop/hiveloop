@@ -1,16 +1,12 @@
 package rag_test
 
 import (
-	"sort"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/rag"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
@@ -224,4 +220,3 @@ func TestAutoMigrate_OrgFullCascadeDelete(t *testing.T) {
 		}
 	}
 }
-

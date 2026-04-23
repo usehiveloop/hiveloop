@@ -62,8 +62,8 @@ type RAGIndexAttempt struct {
 
 	// ErrorMsg / FullExceptionTrace — only populated when Status=failed.
 	// Onyx models.py:2217-2220.
-	ErrorMsg            *string `gorm:"type:text"`
-	FullExceptionTrace  *string `gorm:"type:text"`
+	ErrorMsg           *string `gorm:"type:text"`
+	FullExceptionTrace *string `gorm:"type:text"`
 
 	// PollRangeStart / PollRangeEnd — for polling connectors, the
 	// window this attempt is fetching. Onyx models.py:2227-2234.
@@ -100,9 +100,9 @@ type RAGIndexAttempt struct {
 	LastHeartbeatTime         *time.Time
 
 	// Timestamps. Onyx models.py:2266-2280.
-	TimeCreated time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP;index"`
+	TimeCreated time.Time `gorm:"not null;default:CURRENT_TIMESTAMP;index"`
 	TimeStarted *time.Time
-	TimeUpdated time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP;autoUpdateTime"`
+	TimeUpdated time.Time `gorm:"not null;default:CURRENT_TIMESTAMP;autoUpdateTime"`
 }
 
 // TableName pins the Postgres table name. All RAG tables use the

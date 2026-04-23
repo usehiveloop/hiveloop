@@ -1,8 +1,6 @@
 package interfaces
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
 	"reflect"
 	"testing"
@@ -10,68 +8,6 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/nango"
 )
-
-// ---------------------------------------------------------------------
-// Test fixtures
-// ---------------------------------------------------------------------
-
-// stubSource is a test-only Source implementation.
-type stubSource struct {
-	id, orgID, kind string
-	cfg             json.RawMessage
-}
-
-func (s *stubSource) SourceID() string        { return s.id }
-func (s *stubSource) OrgID() string           { return s.orgID }
-func (s *stubSource) SourceKind() string      { return s.kind }
-func (s *stubSource) Config() json.RawMessage { return s.cfg }
-
-// stubConnector implements Connector for registry tests.
-type stubConnector struct{ kind string }
-
-func (c *stubConnector) Kind() string                                     { return c.kind }
-func (c *stubConnector) ValidateConfig(_ context.Context, _ Source) error { return nil }
-
-// testCheckpoint is a Checkpoint-satisfying type used by
-// TestCheckpoint_MarkerInterfaceCompiles.
-type testCheckpoint struct {
-	Cursor string `json:"cursor"`
-	Page   int    `json:"page"`
-}
-
-func (testCheckpoint) isCheckpoint() {}
-
-// testCheckpointedConnector implements CheckpointedConnector[testCheckpoint].
-// Used only to prove at compile time that the generic constraint works.
-// All methods use pointer receivers to match stubConnector's receiver set.
-type testCheckpointedConnector struct{ stubConnector }
-
-func (*testCheckpointedConnector) LoadFromCheckpoint(
-	_ context.Context, _ Source, _ testCheckpoint, _, _ time.Time,
-) (<-chan DocumentOrFailure, error) {
-	ch := make(chan DocumentOrFailure)
-	close(ch)
-	return ch, nil
-}
-func (*testCheckpointedConnector) DummyCheckpoint() testCheckpoint { return testCheckpoint{} }
-func (*testCheckpointedConnector) UnmarshalCheckpoint(raw json.RawMessage) (testCheckpoint, error) {
-	var cp testCheckpoint
-	if err := json.Unmarshal(raw, &cp); err != nil {
-		return testCheckpoint{}, err
-	}
-	return cp, nil
-}
-
-// takesCheckpointedConnector is a package-local generic function that
-// accepts any CheckpointedConnector[T]. Its sole purpose is to prove
-// via compile-time that the Checkpoint marker-interface constraint
-// composes correctly with real generic consumers (tranche 3C's
-// scheduler will look like this).
-func takesCheckpointedConnector[T Checkpoint](_ CheckpointedConnector[T]) {}
-
-// ---------------------------------------------------------------------
-// 1. DocumentOrFailure constructor invariants
-// ---------------------------------------------------------------------
 
 func TestDocumentOrFailure_ConstructorsAreMutuallyExclusive(t *testing.T) {
 	doc := &Document{DocID: "x"}
@@ -250,4 +186,3 @@ func TestRegistry_RegisteredKinds_SortedDeterministic(t *testing.T) {
 // ---------------------------------------------------------------------
 // 7. Empty Section is legal by contract
 // ---------------------------------------------------------------------
-

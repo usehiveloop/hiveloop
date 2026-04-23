@@ -16,12 +16,12 @@ package model
 type IndexingStatus string
 
 const (
-	IndexingStatusNotStarted           IndexingStatus = "not_started"
-	IndexingStatusInProgress           IndexingStatus = "in_progress"
-	IndexingStatusSuccess              IndexingStatus = "success"
-	IndexingStatusCanceled             IndexingStatus = "canceled"
-	IndexingStatusFailed               IndexingStatus = "failed"
-	IndexingStatusCompletedWithErrors  IndexingStatus = "completed_with_errors"
+	IndexingStatusNotStarted          IndexingStatus = "not_started"
+	IndexingStatusInProgress          IndexingStatus = "in_progress"
+	IndexingStatusSuccess             IndexingStatus = "success"
+	IndexingStatusCanceled            IndexingStatus = "canceled"
+	IndexingStatusFailed              IndexingStatus = "failed"
+	IndexingStatusCompletedWithErrors IndexingStatus = "completed_with_errors"
 )
 
 // IsTerminal returns true for every status that the scheduler should
