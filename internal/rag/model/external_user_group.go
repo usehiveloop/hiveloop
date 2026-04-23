@@ -23,8 +23,8 @@ import (
 // that normalized form so joins and ACL lookups produce identical byte
 // sequences with zero ambiguity.
 type RAGExternalUserGroup struct {
-	ID                  uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID               uuid.UUID      `gorm:"type:uuid;not null;index"`
+	ID    uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	OrgID uuid.UUID `gorm:"type:uuid;not null;index"`
 	// RAGSourceID — FK to rag_sources(id); the junction keys off the
 	// top-level RAGSource.
 	RAGSourceID         uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex:uq_rag_external_user_group_source_ext,priority:1"`

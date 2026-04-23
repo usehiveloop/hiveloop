@@ -66,12 +66,12 @@ func (k RAGSourceKind) String() string { return string(k) }
 type RAGSourceStatus string
 
 const (
-	RAGSourceStatusDisconnected     RAGSourceStatus = "DISCONNECTED"
-	RAGSourceStatusInitialIndexing  RAGSourceStatus = "INITIAL_INDEXING"
-	RAGSourceStatusActive           RAGSourceStatus = "ACTIVE"
-	RAGSourceStatusPaused           RAGSourceStatus = "PAUSED"
-	RAGSourceStatusError            RAGSourceStatus = "ERROR"
-	RAGSourceStatusDeleting         RAGSourceStatus = "DELETING"
+	RAGSourceStatusDisconnected    RAGSourceStatus = "DISCONNECTED"
+	RAGSourceStatusInitialIndexing RAGSourceStatus = "INITIAL_INDEXING"
+	RAGSourceStatusActive          RAGSourceStatus = "ACTIVE"
+	RAGSourceStatusPaused          RAGSourceStatus = "PAUSED"
+	RAGSourceStatusError           RAGSourceStatus = "ERROR"
+	RAGSourceStatusDeleting        RAGSourceStatus = "DELETING"
 )
 
 // IsValid returns true when s is one of the recognised RAGSourceStatus
