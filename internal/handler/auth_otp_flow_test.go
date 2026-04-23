@@ -1,22 +1,11 @@
 package handler_test
 
 import (
-	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"gorm.io/gorm"
-
-	"github.com/usehiveloop/hiveloop/internal/email"
-	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
