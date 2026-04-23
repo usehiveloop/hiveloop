@@ -33,7 +33,7 @@ type RAGIndexAttemptError struct {
 	// IndexAttemptID — Onyx models.py:2404-2408. CASCADE so the error
 	// lifecycle tracks the parent attempt (Onyx achieves the same via
 	// SQLAlchemy cascade="all, delete-orphan" at models.py:2290-2294).
-	IndexAttemptID uuid.UUID    `gorm:"type:uuid;not null;index"`
+	IndexAttemptID uuid.UUID       `gorm:"type:uuid;not null;index"`
 	IndexAttempt   RAGIndexAttempt `gorm:"foreignKey:IndexAttemptID;constraint:OnDelete:CASCADE"`
 
 	// RAGSourceID — adapts Onyx `connector_credential_pair_id`
@@ -53,7 +53,7 @@ type RAGIndexAttemptError struct {
 	// Onyx models.py:2418-2424. For time-range connectors (Slack,
 	// calendar) this is how we identify "the slice that failed" so a
 	// subsequent retry can target just that window.
-	EntityID             *string    `gorm:"type:text"`
+	EntityID             *string `gorm:"type:text"`
 	FailedTimeRangeStart *time.Time
 	FailedTimeRangeEnd   *time.Time
 

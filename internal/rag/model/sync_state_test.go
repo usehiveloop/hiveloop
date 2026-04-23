@@ -176,4 +176,3 @@ func containsStatus(xs []ragmodel.RAGConnectionStatus, want ragmodel.RAGConnecti
 	}
 	return false
 }
-
