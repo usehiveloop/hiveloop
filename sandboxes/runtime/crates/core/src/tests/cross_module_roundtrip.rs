@@ -93,4 +93,3 @@ fn agent_definition_deserialize_from_realistic_json() {
     let agent2: AgentDefinition = serde_json::from_str(&json2).expect("re-deserialize");
     assert_eq!(agent, agent2);
 }
-

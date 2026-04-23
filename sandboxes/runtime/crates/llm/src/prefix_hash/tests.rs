@@ -1,11 +1,7 @@
 use super::*;
 use serde_json::json;
 
-fn make_tool<'a>(
-    name: &'a str,
-    desc: &'a str,
-    schema: &'a serde_json::Value,
-) -> ToolPrefix<'a> {
+fn make_tool<'a>(name: &'a str, desc: &'a str, schema: &'a serde_json::Value) -> ToolPrefix<'a> {
     ToolPrefix {
         name,
         description: desc,

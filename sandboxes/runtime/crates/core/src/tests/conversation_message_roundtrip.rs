@@ -151,4 +151,3 @@ fn tool_definition_with_empty_schema_roundtrip() {
 // ──────────────────────────────────────────────
 // MetricsSnapshot
 // ──────────────────────────────────────────────
-
