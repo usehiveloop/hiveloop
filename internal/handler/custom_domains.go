@@ -1,10 +1,8 @@
 package handler
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -27,7 +25,6 @@ type CustomDomainHandler struct {
 	client *http.Client
 }
 
-// NewCustomDomainHandler creates a new custom domain handler.
 func NewCustomDomainHandler(db *gorm.DB, cfg *config.Config) *CustomDomainHandler {
 	return &CustomDomainHandler{
 		db:     db,
@@ -56,7 +53,6 @@ type verifyDomainResponse struct {
 	Message  string `json:"message"`
 }
 
-// acme-dns registration response
 type acmeDNSRegisterResponse struct {
 	FullDomain string `json:"fulldomain"`
 	SubDomain  string `json:"subdomain"`
@@ -204,7 +200,6 @@ func (h *CustomDomainHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check traffic CNAME
 	trafficHost := "verify-check." + cd.Domain
 	trafficCNAME, err := net.LookupCNAME(trafficHost)
 	if err != nil {
@@ -223,7 +218,6 @@ func (h *CustomDomainHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check challenge CNAME
 	challengeHost := "_acme-challenge." + cd.Domain
 	challengeCNAME, err := net.LookupCNAME(challengeHost)
 	if err != nil {
@@ -243,13 +237,11 @@ func (h *CustomDomainHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Mark verified
 	now := time.Now()
 	cd.Verified = true
 	cd.VerifiedAt = &now
 	h.db.Save(&cd)
 
-	// Reload Caddy with all verified domains
 	if err := h.reloadCaddyConfig(); err != nil {
 		slog.Error("failed to reload Caddy config", "error", err, "domain", cd.Domain)
 		// Domain is verified in DB even if Caddy reload fails — next verify/delete will retry
@@ -305,346 +297,3 @@ func (h *CustomDomainHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
-
-// registerAcmeDNS registers a new subdomain with the acme-dns server.
-func (h *CustomDomainHandler) registerAcmeDNS() (*acmeDNSRegisterResponse, error) {
-	if h.cfg.AcmeDNSAPIURL == "" {
-		return nil, fmt.Errorf("ACME_DNS_API_URL not configured")
-	}
-
-	req, err := http.NewRequest("POST", h.cfg.AcmeDNSAPIURL+"/register", nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-Internal-Secret", h.cfg.InternalDomainSecret)
-
-	resp, err := h.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("acme-dns request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("acme-dns returned %d: %s", resp.StatusCode, string(body))
-	}
-
-	var result acmeDNSRegisterResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode acme-dns response: %w", err)
-	}
-
-	return &result, nil
-}
-
-// reloadCaddyConfig builds the full Caddy JSON config from the database
-// and POSTs it to the Caddy admin API /load endpoint for atomic replacement.
-func (h *CustomDomainHandler) reloadCaddyConfig() error {
-	if h.cfg.CaddyAdminURL == "" {
-		return fmt.Errorf("CADDY_ADMIN_URL not configured")
-	}
-
-	// Fetch all verified custom domains
-	var domains []model.CustomDomain
-	if err := h.db.Where("verified = true").Find(&domains).Error; err != nil {
-		return fmt.Errorf("failed to fetch verified domains: %w", err)
-	}
-
-	config := h.buildCaddyConfig(domains)
-
-	body, err := json.Marshal(config)
-	if err != nil {
-		return fmt.Errorf("failed to marshal Caddy config: %w", err)
-	}
-
-	req, err := http.NewRequest("POST", h.cfg.CaddyAdminURL+"/load", bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Internal-Secret", h.cfg.InternalDomainSecret)
-
-	resp, err := h.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("caddy /load request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		respBody, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("caddy /load returned %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	slog.Info("caddy config reloaded", "custom_domains", len(domains))
-	return nil
-}
-
-// buildCaddyConfig generates the complete Caddy JSON config.
-func (h *CustomDomainHandler) buildCaddyConfig(customDomains []model.CustomDomain) map[string]any {
-	// --- Routes ---
-	routes := []any{}
-
-	// Static: acme-dns API proxy
-	routes = append(routes, h.authProxyRoute("acme-dns-api.daytona.hiveloop.com", "acme-dns:443"))
-
-	// Static: Caddy admin API proxy
-	routes = append(routes, h.authProxyRoute("caddy-admin.daytona.hiveloop.com", "localhost:2019"))
-
-	// Static: API + Dashboard
-	routes = append(routes, h.simpleProxyRoute("api.daytona.hiveloop.com", "api:3000", true))
-
-	// Static: Dex OIDC (with CORS)
-	routes = append(routes, h.dexRoute())
-
-	// Static: Primary preview domain
-	routes = append(routes, h.previewProxyRoute("*.preview.hiveloop.com"))
-
-	// Dynamic: Custom preview domains
-	for _, cd := range customDomains {
-		routes = append(routes, h.previewProxyRoute("*."+cd.Domain))
-	}
-
-	// --- TLS Automation Policies ---
-	// Policy 0: Static domains via Cloudflare DNS
-	staticSubjects := []string{
-		"acme-dns-api.daytona.hiveloop.com",
-		"caddy-admin.daytona.hiveloop.com",
-		"api.daytona.hiveloop.com",
-		"dex.daytona.hiveloop.com",
-		"*.preview.hiveloop.com",
-	}
-
-	policies := []any{
-		map[string]any{
-			"subjects": staticSubjects,
-			"issuers": []any{
-				map[string]any{
-					"module": "acme",
-					"email":  "admin@hiveloop.com",
-					"challenges": map[string]any{
-						"dns": map[string]any{
-							"provider": map[string]any{
-								"name":      "cloudflare",
-								"api_token": "{env.CLOUDFLARE_API_TOKEN}",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	// Policy 1: Custom domains via acme-dns (if any)
-	if len(customDomains) > 0 {
-		customSubjects := make([]string, len(customDomains))
-		acmeDNSConfig := map[string]any{}
-
-		for i, cd := range customDomains {
-			wildcardDomain := "*." + cd.Domain
-			customSubjects[i] = wildcardDomain
-			acmeDNSConfig[cd.Domain] = map[string]any{
-				"server_url": "http://acme-dns:443",
-				"username":   cd.AcmeDNSUsername,
-				"password":   cd.AcmeDNSPassword,
-				"subdomain":  cd.AcmeDNSSubdomain,
-			}
-		}
-
-		policies = append(policies, map[string]any{
-			"subjects": customSubjects,
-			"issuers": []any{
-				map[string]any{
-					"module": "acme",
-					"email":  "admin@hiveloop.com",
-					"challenges": map[string]any{
-						"dns": map[string]any{
-							"provider": map[string]any{
-								"name":   "acmedns",
-								"config": acmeDNSConfig,
-							},
-							"resolvers": []string{"1.1.1.1:53", "8.8.8.8:53"},
-						},
-					},
-				},
-			},
-		})
-	}
-
-	// --- Certificates to automate ---
-	automate := make([]string, len(customDomains))
-	for i, cd := range customDomains {
-		automate[i] = "*." + cd.Domain
-	}
-
-	// --- Full config ---
-	config := map[string]any{
-		"admin": map[string]any{
-			"listen": "0.0.0.0:2019",
-		},
-		"apps": map[string]any{
-			"http": map[string]any{
-				"servers": map[string]any{
-					"srv0": map[string]any{
-						"listen": []string{":443"},
-						"routes": routes,
-					},
-				},
-			},
-			"tls": map[string]any{
-				"automation": map[string]any{
-					"policies": policies,
-				},
-			},
-		},
-	}
-
-	// Add certificates.automate if there are custom domains
-	if len(automate) > 0 {
-		config["apps"].(map[string]any)["tls"].(map[string]any)["certificates"] = map[string]any{
-			"automate": automate,
-		}
-	}
-
-	return config
-}
-
-func (h *CustomDomainHandler) authProxyRoute(host, upstream string) map[string]any {
-	return map[string]any{
-		"match": []any{map[string]any{"host": []string{host}}},
-		"handle": []any{
-			map[string]any{
-				"handler": "subroute",
-				"routes": []any{
-					map[string]any{
-						"match": []any{map[string]any{"header": map[string][]string{"X-Internal-Secret": {"{env.HIVELOOP_INTERNAL_SECRET}"}}}},
-						"handle": []any{map[string]any{
-							"handler":   "reverse_proxy",
-							"upstreams": []any{map[string]string{"dial": upstream}},
-						}},
-					},
-					map[string]any{
-						"handle": []any{map[string]any{"handler": "static_response", "status_code": "403"}},
-					},
-				},
-			},
-		},
-		"terminal": true,
-	}
-}
-
-func (h *CustomDomainHandler) simpleProxyRoute(host, upstream string, websocket bool) map[string]any {
-	headers := map[string]any{
-		"request": map[string]any{
-			"set": map[string][]string{
-				"X-Real-Ip":          {"{http.request.remote.host}"},
-				"X-Forwarded-Proto":  {"{http.request.scheme}"},
-			},
-		},
-	}
-	if websocket {
-		headers["request"].(map[string]any)["set"].(map[string][]string)["Connection"] = []string{"{http.request.header.Connection}"}
-		headers["request"].(map[string]any)["set"].(map[string][]string)["Upgrade"] = []string{"{http.request.header.Upgrade}"}
-	}
-	return map[string]any{
-		"match": []any{map[string]any{"host": []string{host}}},
-		"handle": []any{map[string]any{
-			"handler":   "reverse_proxy",
-			"upstreams": []any{map[string]string{"dial": upstream}},
-			"headers":   headers,
-		}},
-		"terminal": true,
-	}
-}
-
-func (h *CustomDomainHandler) dexRoute() map[string]any {
-	return map[string]any{
-		"match": []any{map[string]any{"host": []string{"dex.daytona.hiveloop.com"}}},
-		"handle": []any{
-			map[string]any{
-				"handler": "subroute",
-				"routes": []any{
-					map[string]any{
-						"handle": []any{map[string]any{
-							"handler": "headers",
-							"response": map[string]any{
-								"set": map[string][]string{
-									"Access-Control-Allow-Origin":  {"https://api.daytona.hiveloop.com"},
-									"Access-Control-Allow-Methods": {"GET, OPTIONS"},
-									"Access-Control-Allow-Headers": {"Content-Type, Authorization"},
-								},
-							},
-						}},
-					},
-					map[string]any{
-						"match":  []any{map[string]any{"method": []string{"OPTIONS"}}},
-						"handle": []any{map[string]any{"handler": "static_response", "status_code": "204"}},
-					},
-					map[string]any{
-						"handle": []any{map[string]any{
-							"handler":   "reverse_proxy",
-							"upstreams": []any{map[string]string{"dial": "dex:5556"}},
-							"headers": map[string]any{
-								"request": map[string]any{
-									"set": map[string][]string{
-										"X-Real-Ip":         {"{http.request.remote.host}"},
-										"X-Forwarded-Proto": {"{http.request.scheme}"},
-									},
-								},
-							},
-						}},
-					},
-				},
-			},
-		},
-		"terminal": true,
-	}
-}
-
-func (h *CustomDomainHandler) previewProxyRoute(host string) map[string]any {
-	return map[string]any{
-		"match": []any{map[string]any{"host": []string{host}}},
-		"handle": []any{map[string]any{
-			"handler":   "reverse_proxy",
-			"upstreams": []any{map[string]string{"dial": "proxy:4000"}},
-			"headers": map[string]any{
-				"request": map[string]any{
-					"set": map[string][]string{
-						"X-Forwarded-Host":              {"{http.request.host}"},
-						"X-Daytona-Skip-Preview-Warning": {"true"},
-						"X-Real-Ip":                      {"{http.request.remote.host}"},
-						"Connection":                     {"{http.request.header.Connection}"},
-						"Upgrade":                        {"{http.request.header.Upgrade}"},
-					},
-				},
-			},
-			"transport": map[string]any{
-				"protocol":     "http",
-				"dial_timeout": 30000000000,
-			},
-		}},
-		"terminal": true,
-	}
-}
-
-func validateDomain(domain string) error {
-	if domain == "" {
-		return &validationError{"domain is required"}
-	}
-	if strings.HasPrefix(domain, "*.") {
-		return &validationError{"domain should not include wildcard (omit *.)"}
-	}
-	if strings.Contains(domain, "://") {
-		return &validationError{"domain should not include protocol"}
-	}
-	parts := strings.Split(domain, ".")
-	if len(parts) < 2 {
-		return &validationError{"domain must have at least two parts (e.g. preview.example.com)"}
-	}
-	return nil
-}
-
-type validationError struct {
-	msg string
-}
-
-func (e *validationError) Error() string { return e.msg }
