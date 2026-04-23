@@ -52,6 +52,25 @@ type createSystemConversationRequest struct {
 	CredentialID string `json:"credential_id"`
 }
 
+// validSystemAgentTypes is an allowlist of recognized system agent type names.
+// Keep in sync with the directories under internal/sub-agents/. Unrecognized
+// types must be rejected before any DB lookup so attackers cannot enumerate
+// internal agent names via 404 vs. 201 response differences.
+var validSystemAgentTypes = map[string]bool{
+	"browser-tester-expert":   true,
+	"code-review-bugs":        true,
+	"code-review-duplication": true,
+	"code-review-security":    true,
+	"code-review-semantics":   true,
+	"code-review-verifier":    true,
+	"codebase-explorer":       true,
+	"codebase-summarizer":     true,
+	"critic":                  true,
+	"data-analyst":            true,
+	"deep-researcher":         true,
+	"planner":                 true,
+}
+
 // Create handles POST /v1/system-agents/{type}/conversations.
 func (h *SystemConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
@@ -63,6 +82,10 @@ func (h *SystemConversationHandler) Create(w http.ResponseWriter, r *http.Reques
 	agentType := chi.URLParam(r, "type")
 	if agentType == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "agent type is required"})
+		return
+	}
+	if !validSystemAgentTypes[agentType] {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "system agent not found"})
 		return
 	}
 
@@ -95,7 +118,7 @@ func (h *SystemConversationHandler) Create(w http.ResponseWriter, r *http.Reques
 	var agent model.Agent
 	if err := h.db.Where("name = ? AND is_system = true AND status = 'active'", systemAgentName).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("system agent %q not found", systemAgentName)})
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "system agent not found"})
 			return
 		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load system agent"})
@@ -154,16 +177,21 @@ func (h *SystemConversationHandler) Create(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	proxyToken := "ptok_" + tokenStr
-	_ = proxyToken // TODO: pass to Bridge CreateConversation as per-conversation token override
 
-	// Store the token in DB
+	// Record the proxy token prefix in Meta for audit/observability; the full
+	// token is never stored in plaintext (only the JTI, for revocation). See #43
+	// for wiring this token through to Bridge as a per-conversation auth override.
 	now := time.Now()
 	dbToken := model.Token{
 		OrgID:        org.ID,
 		CredentialID: cred.ID,
 		JTI:          jti,
 		ExpiresAt:    now.Add(24 * time.Hour),
-		Meta:         model.JSON{"agent_id": agent.ID.String(), "type": "system_agent_proxy"},
+		Meta: model.JSON{
+			"agent_id":     agent.ID.String(),
+			"type":         "system_agent_proxy",
+			"token_prefix": proxyToken[:min(len(proxyToken), 12)],
+		},
 	}
 	if err := h.db.Create(&dbToken).Error; err != nil {
 		slog.Error("failed to store proxy token", "error", err)
@@ -178,8 +206,9 @@ func (h *SystemConversationHandler) Create(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Create conversation in Bridge
-	// TODO: Pass proxyToken as per-conversation auth token override when Bridge supports it
+	// TODO(#43): Pass proxyToken as per-conversation auth override once Bridge
+	// supports it. Until then the token is persisted via dbToken (JTI linked to
+	// the conversation via TokenID) so we retain a revocable audit trail.
 	bridgeResp, err := client.CreateConversation(ctx, agent.ID.String())
 	if err != nil {
 		slog.Error("failed to create conversation in bridge", "agent_name", agent.Name, "error", err)

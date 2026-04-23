@@ -203,6 +203,28 @@ func (h *ConversationHandler) ResolveApproval(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Verify the approval request is actually scoped to this conversation before
+	// forwarding to Bridge. Without this check a caller who knows an approval ID
+	// from a different conversation could resolve it via their own conversation
+	// endpoint (IDOR), depending on Bridge's server-side authorization.
+	approvals, err := client.ListApprovals(r.Context(), conv.AgentID.String(), conv.BridgeConversationID)
+	if err != nil {
+		slog.Error("failed to list approvals for scope check", "conversation_id", conv.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to resolve approval"})
+		return
+	}
+	found := false
+	for _, a := range approvals {
+		if a.Id == requestID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "approval request not found"})
+		return
+	}
+
 	decision := bridgepkg.ApprovalDecisionApprove
 	if req.Decision == "deny" {
 		decision = bridgepkg.ApprovalDecisionDeny

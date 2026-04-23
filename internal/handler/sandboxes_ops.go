@@ -101,6 +101,13 @@ type execRequest struct {
 	Commands []string `json:"commands"`
 }
 
+// Sandbox exec input limits. Prevent resource exhaustion from unbounded payloads.
+const (
+	maxExecCommands       = 50
+	maxExecCommandLen     = 4 * 1024
+	maxExecRequestBodyLen = 1 * 1024 * 1024
+)
+
 type commandResult struct {
 	Command  string `json:"command"`
 	Output   string `json:"output"`
@@ -150,6 +157,10 @@ func (h *SandboxHandler) Exec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Cap request body size so a giant JSON payload cannot exhaust memory before
+	// we even inspect it.
+	r.Body = http.MaxBytesReader(w, r.Body, maxExecRequestBodyLen)
+
 	var req execRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
@@ -158,6 +169,16 @@ func (h *SandboxHandler) Exec(w http.ResponseWriter, r *http.Request) {
 	if len(req.Commands) == 0 {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "commands array is required and must not be empty"})
 		return
+	}
+	if len(req.Commands) > maxExecCommands {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "too many commands"})
+		return
+	}
+	for _, cmd := range req.Commands {
+		if len(cmd) > maxExecCommandLen {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "command exceeds maximum length"})
+			return
+		}
 	}
 
 	if h.orchestrator == nil {
