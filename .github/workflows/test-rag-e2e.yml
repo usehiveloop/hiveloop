@@ -38,6 +38,9 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - name: install protoc (required by lance-encoding build script)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends protobuf-compiler
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: services/rag-engine -> target
