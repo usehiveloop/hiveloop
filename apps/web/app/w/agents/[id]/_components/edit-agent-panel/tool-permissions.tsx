@@ -155,7 +155,7 @@ export function ToolPermissionsSection({ permissions, onChange }: ToolPermission
           const categoryTools = grouped.get(category)!
           return (
             <div key={category} className="flex flex-col gap-1.5">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              <p className="text-mini font-medium uppercase tracking-wider text-muted-foreground">
                 {categoryLabels[category] ?? category}
               </p>
               <div className="flex flex-wrap gap-1.5">

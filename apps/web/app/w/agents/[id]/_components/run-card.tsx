@@ -23,11 +23,11 @@ export function RunCard({ run, onClick }: RunCardProps) {
     >
       <span className={`h-2 w-2 rounded-full shrink-0 ${displayStatus.color} ${displayStatus.pulse ? "animate-pulse" : ""}`} />
       <span className="text-sm font-medium text-foreground truncate flex-1 min-w-0">{run.subject}</span>
-      <span className={`font-mono text-[11px] uppercase tracking-[0.5px] shrink-0 ${isWaiting ? "text-yellow-500" : "text-muted-foreground"}`}>
+      <span className={`font-mono text-mini uppercase tracking-micro shrink-0 ${isWaiting ? "text-yellow-500" : "text-muted-foreground"}`}>
         {displayStatus.label}
       </span>
-      <span className="font-mono text-[11px] text-muted-foreground shrink-0">{run.duration}</span>
-      <span className="font-mono text-[11px] text-muted-foreground shrink-0 tabular-nums">${run.cost.toFixed(2)}</span>
+      <span className="font-mono text-mini text-muted-foreground shrink-0">{run.duration}</span>
+      <span className="font-mono text-mini text-muted-foreground shrink-0 tabular-nums">${run.cost.toFixed(2)}</span>
     </button>
   )
 }

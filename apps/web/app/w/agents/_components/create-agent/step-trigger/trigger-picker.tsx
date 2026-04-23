@@ -118,7 +118,7 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
         ) : (
           Object.entries(grouped).map(([resourceType, resourceTriggers]) => (
             <div key={resourceType} className="mb-3">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground px-1 mb-1.5">{resourceType}</p>
+              <p className="text-mini font-medium uppercase tracking-wider text-muted-foreground px-1 mb-1.5">{resourceType}</p>
               <div className="flex flex-col gap-1">
                 {resourceTriggers.map((trigger) => {
                   const triggerKey = trigger.key ?? ""
@@ -139,9 +139,9 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground">{trigger.display_name}</p>
-                        <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-1">{trigger.description}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{trigger.description}</p>
                         {hasFilters && (
-                          <Badge variant="secondary" className="text-[10px] mt-1.5">
+                          <Badge variant="secondary" className="text-2xs mt-1.5">
                             {selectedEvent.conditions!.conditions.length} filter{selectedEvent.conditions!.conditions.length !== 1 ? "s" : ""}
                           </Badge>
                         )}

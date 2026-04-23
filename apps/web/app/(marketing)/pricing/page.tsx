@@ -16,8 +16,8 @@ export default function PricingPage() {
     <div className="w-full bg-background flex flex-col relative">
       {/* Hero */}
       <div className="flex flex-col items-center gap-4 pt-16 sm:pt-24 pb-12 px-4">
-        <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">Pricing</p>
-        <h1 className="font-heading text-[28px] sm:text-[40px] lg:text-[48px] font-bold text-foreground text-center leading-[1.15] -tracking-[0.5px]">
+        <p className="font-mono text-mini font-medium uppercase tracking-medium text-primary">Pricing</p>
+        <h1 className="font-heading text-[28px] sm:text-[40px] lg:text-5xl font-bold text-foreground text-center leading-[1.15] -tracking-micro">
           Simple, transparent pricing
         </h1>
         <p className="text-base sm:text-lg text-muted-foreground text-center max-w-lg">
@@ -31,9 +31,9 @@ export default function PricingPage() {
           {/* Free Plan */}
           <div className="flex flex-col rounded-2xl border border-border p-8 gap-8">
             <div className="flex flex-col gap-4">
-              <span className="font-mono text-[11px] font-medium uppercase tracking-[1px] text-muted-foreground">Free forever</span>
+              <span className="font-mono text-mini font-medium uppercase tracking-small text-muted-foreground">Free forever</span>
               <div className="flex items-baseline gap-1">
-                <span className="font-heading text-[48px] font-bold text-foreground leading-none">$0</span>
+                <span className="font-heading text-5xl font-bold text-foreground leading-none">$0</span>
               </div>
               <p className="text-sm text-muted-foreground">For exploring and prototyping</p>
               <Link href="/auth">
@@ -42,7 +42,7 @@ export default function PricingPage() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground">What&apos;s included</span>
+              <span className="font-mono text-2xs font-medium uppercase tracking-small text-muted-foreground">What&apos;s included</span>
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center gap-2.5 text-sm"><Check /> 1 agent</div>
                 <div className="flex items-center gap-2.5 text-sm"><Check /> 100 runs/month</div>
@@ -67,9 +67,9 @@ export default function PricingPage() {
               }}
             />
             <div className="flex flex-col gap-4 relative">
-              <span className="font-mono text-[11px] font-medium uppercase tracking-[1px] text-primary">Pro</span>
+              <span className="font-mono text-mini font-medium uppercase tracking-small text-primary">Pro</span>
               <div className="flex items-baseline gap-1">
-                <span className="font-heading text-[48px] font-bold text-foreground leading-none">$4.99</span>
+                <span className="font-heading text-5xl font-bold text-foreground leading-none">$4.99</span>
                 <span className="text-sm text-muted-foreground">/mo per agent</span>
               </div>
               <p className="text-sm text-muted-foreground">For teams shipping agents to production</p>
@@ -79,7 +79,7 @@ export default function PricingPage() {
             </div>
 
             <div className="flex flex-col gap-3 relative">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground">Everything in Free, plus</span>
+              <span className="font-mono text-2xs font-medium uppercase tracking-small text-muted-foreground">Everything in Free, plus</span>
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center gap-2.5 text-sm"><Check /> Unlimited agents</div>
                 <div className="flex items-center gap-2.5 text-sm"><Check /> 300 runs/agent/month</div>
@@ -101,9 +101,9 @@ export default function PricingPage() {
         <div className="rounded-2xl border border-border p-8 sm:p-10 relative overflow-hidden">
           <div className="flex flex-col md:flex-row md:items-start gap-8 md:gap-12">
             <div className="flex flex-col gap-4 md:flex-1">
-              <span className="font-mono text-[11px] font-medium uppercase tracking-[1px] text-muted-foreground">Add-on for Pro agents</span>
+              <span className="font-mono text-mini font-medium uppercase tracking-small text-muted-foreground">Add-on for Pro agents</span>
               <div className="flex items-baseline gap-2">
-                <span className="font-heading text-[36px] sm:text-[48px] font-bold text-foreground leading-none">+$2</span>
+                <span className="font-heading text-[36px] sm:text-5xl font-bold text-foreground leading-none">+$2</span>
                 <span className="text-sm text-muted-foreground">/mo per agent</span>
               </div>
               <h3 className="font-heading text-lg font-semibold text-foreground">Dedicated sandbox</h3>
@@ -115,7 +115,7 @@ export default function PricingPage() {
               </Link>
             </div>
             <div className="flex flex-col gap-2.5 md:flex-1">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground mb-1">Everything in Pro, plus</span>
+              <span className="font-mono text-2xs font-medium uppercase tracking-small text-muted-foreground mb-1">Everything in Pro, plus</span>
               <div className="flex items-center gap-2.5 text-sm"><Check /> Isolated sandbox per run</div>
               <div className="flex items-center gap-2.5 text-sm"><Check /> Full shell & filesystem access</div>
               <div className="flex items-center gap-2.5 text-sm"><Check /> Git clone, build tools, linters</div>
@@ -133,7 +133,7 @@ export default function PricingPage() {
       <div className="max-w-5xl mx-auto w-full px-4 pb-20">
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-2">
-            <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">Usage-based pricing</p>
+            <p className="font-mono text-mini font-medium uppercase tracking-medium text-primary">Usage-based pricing</p>
             <h2 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Runs, overages, and what they cost</h2>
             <p className="text-sm text-muted-foreground max-w-2xl">
               A run is a single agent execution — a PR review, a support ticket response, a deploy check. Each plan includes runs. If you go over, you pay per extra run.
@@ -142,7 +142,7 @@ export default function PricingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="rounded-2xl border border-border p-6 flex flex-col gap-4">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground">Free</span>
+              <span className="font-mono text-2xs font-medium uppercase tracking-small text-muted-foreground">Free</span>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Included runs</span>
@@ -167,7 +167,7 @@ export default function PricingPage() {
                   background: "radial-gradient(circle at 50% 0%, color-mix(in oklch, var(--primary) 6%, transparent) 0%, transparent 60%)",
                 }}
               />
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-primary relative">Pro (shared sandbox)</span>
+              <span className="font-mono text-2xs font-medium uppercase tracking-small text-primary relative">Pro (shared sandbox)</span>
               <div className="flex flex-col gap-2 relative">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Included runs</span>
@@ -186,7 +186,7 @@ export default function PricingPage() {
             </div>
 
             <div className="rounded-2xl border border-border p-6 flex flex-col gap-4">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground">Pro + Dedicated sandbox</span>
+              <span className="font-mono text-2xs font-medium uppercase tracking-small text-muted-foreground">Pro + Dedicated sandbox</span>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Included runs</span>
@@ -211,7 +211,7 @@ export default function PricingPage() {
       <div className="max-w-5xl mx-auto w-full px-4 pb-20">
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-2">
-            <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">Real-world examples</p>
+            <p className="font-mono text-mini font-medium uppercase tracking-medium text-primary">Real-world examples</p>
             <h2 className="font-heading text-xl sm:text-2xl font-bold text-foreground">What will you actually pay?</h2>
           </div>
 
@@ -248,7 +248,7 @@ export default function PricingPage() {
       {/* Feature comparison table */}
       <div className="max-w-5xl mx-auto w-full px-4 pb-24">
         <div className="flex flex-col gap-8">
-          <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">Compare plans</p>
+          <p className="font-mono text-mini font-medium uppercase tracking-medium text-primary">Compare plans</p>
 
           {/* Agents & Limits */}
           <div className="flex flex-col">

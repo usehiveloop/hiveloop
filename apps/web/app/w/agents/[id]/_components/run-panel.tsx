@@ -35,7 +35,7 @@ function formatTokens(count: number) {
 function UserMessage({ message }: { message: StreamMessage }) {
   return (
     <div className="rounded-xl bg-primary/10 p-4 ml-8">
-      <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-foreground/60">You</span>
+      <span className="font-mono text-2xs font-medium uppercase tracking-small text-foreground/60">You</span>
       <p className="text-sm text-foreground mt-1.5 leading-relaxed">{message.content}</p>
     </div>
   )
@@ -44,7 +44,7 @@ function UserMessage({ message }: { message: StreamMessage }) {
 function AgentMessage({ message, isStreaming }: { message: StreamMessage; isStreaming: boolean }) {
   return (
     <div className="rounded-xl border border-border p-4">
-      <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-primary">Agent</span>
+      <span className="font-mono text-2xs font-medium uppercase tracking-small text-primary">Agent</span>
       <div className="mt-1.5 text-sm text-foreground leading-relaxed prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-1.5 prose-headings:mt-4 prose-headings:mb-2 prose-li:my-0.5 prose-pre:my-2 prose-ul:my-1.5 prose-ol:my-1.5">
         {message.content ? (
           <Streamdown isAnimating={isStreaming}>{message.content}</Streamdown>
@@ -63,7 +63,7 @@ function AgentMessage({ message, isStreaming }: { message: StreamMessage; isStre
 function ErrorMessage({ message }: { message: StreamMessage }) {
   return (
     <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
-      <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-destructive">Error</span>
+      <span className="font-mono text-2xs font-medium uppercase tracking-small text-destructive">Error</span>
       <p className="text-sm text-destructive mt-1.5">{message.content}</p>
     </div>
   )
@@ -141,9 +141,9 @@ function ToolCallEvent({ event }: { event: RunEvent }) {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {isRunning ? (
-            <span className="font-mono text-[11px] text-primary">Running...</span>
+            <span className="font-mono text-mini text-primary">Running...</span>
           ) : event.toolResult ? (
-            <span className="font-mono text-[11px] text-muted-foreground">{event.toolResult.duration}</span>
+            <span className="font-mono text-mini text-muted-foreground">{event.toolResult.duration}</span>
           ) : null}
           <HugeiconsIcon
             icon={ArrowDown01Icon}
@@ -161,11 +161,11 @@ function ToolCallEvent({ event }: { event: RunEvent }) {
           <div className="border-t border-border px-4 py-3 flex flex-col gap-3">
             {event.toolParams && Object.keys(event.toolParams).length > 0 && (
               <div>
-                <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground">Arguments</span>
+                <span className="font-mono text-2xs font-medium uppercase tracking-small text-muted-foreground">Arguments</span>
                 <div className="mt-1.5 rounded-lg bg-muted p-3">
                   <div className="flex flex-col gap-1">
                     {Object.entries(event.toolParams).map(([key, value]) => (
-                      <div key={key} className="flex gap-2 font-mono text-[11px]">
+                      <div key={key} className="flex gap-2 font-mono text-mini">
                         <span className="text-muted-foreground shrink-0">{key}:</span>
                         <span className="text-foreground break-all">{value}</span>
                       </div>
@@ -177,9 +177,9 @@ function ToolCallEvent({ event }: { event: RunEvent }) {
 
             {parsedResponse && (
               <div>
-                <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground">Response</span>
+                <span className="font-mono text-2xs font-medium uppercase tracking-small text-muted-foreground">Response</span>
                 <div className="mt-1.5 rounded-lg bg-muted p-3 overflow-x-auto">
-                  <pre className="font-mono text-[11px] text-foreground whitespace-pre-wrap break-all leading-relaxed">
+                  <pre className="font-mono text-mini text-foreground whitespace-pre-wrap break-all leading-relaxed">
                     {parsedResponse}
                   </pre>
                 </div>
@@ -193,12 +193,12 @@ function ToolCallEvent({ event }: { event: RunEvent }) {
                   <span className="h-1 w-1 rounded-full bg-primary animate-[bounce_1s_ease-in-out_0.15s_infinite]" />
                   <span className="h-1 w-1 rounded-full bg-primary animate-[bounce_1s_ease-in-out_0.3s_infinite]" />
                 </div>
-                <span className="font-mono text-[11px] text-muted-foreground">Waiting for response...</span>
+                <span className="font-mono text-mini text-muted-foreground">Waiting for response...</span>
               </div>
             )}
 
             {!isRunning && (
-              <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-mono">
+              <div className="flex items-center gap-4 text-mini text-muted-foreground font-mono">
                 <span>Status: <span className={isSuccess ? "text-green-500" : "text-destructive"}>{status}</span></span>
                 <span>Duration: {event.toolResult?.duration}</span>
                 <span>Time: {event.timestamp}</span>
@@ -223,7 +223,7 @@ function ApprovalEvent({ event }: { event: RunEvent }) {
       >
         <span className={`h-2 w-2 rounded-full shrink-0 ${isPending ? "bg-yellow-500 animate-pulse" : "bg-muted-foreground"}`} />
         <span className="font-mono text-xs font-medium text-foreground flex-1 min-w-0 truncate">{event.toolName}</span>
-        <span className="font-mono text-[10px] font-medium uppercase tracking-[0.5px] text-yellow-500 shrink-0">
+        <span className="font-mono text-2xs font-medium uppercase tracking-micro text-yellow-500 shrink-0">
           {isPending ? "Approval needed" : event.approvalStatus}
         </span>
         <HugeiconsIcon
@@ -241,11 +241,11 @@ function ApprovalEvent({ event }: { event: RunEvent }) {
           <div className={`border-t px-4 py-3 flex flex-col gap-3 ${isPending ? "border-yellow-500/20" : "border-border"}`}>
             {event.toolParams && Object.keys(event.toolParams).length > 0 && (
               <div>
-                <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground">Arguments</span>
+                <span className="font-mono text-2xs font-medium uppercase tracking-small text-muted-foreground">Arguments</span>
                 <div className="mt-1.5 rounded-lg bg-muted p-3">
                   <div className="flex flex-col gap-1.5">
                     {Object.entries(event.toolParams).map(([key, value]) => (
-                      <div key={key} className="flex flex-col gap-0.5 font-mono text-[11px]">
+                      <div key={key} className="flex flex-col gap-0.5 font-mono text-mini">
                         <span className="text-muted-foreground">{key}</span>
                         <span className="text-foreground break-all whitespace-pre-wrap">{value}</span>
                       </div>
@@ -375,7 +375,7 @@ export function RunPanel({ conversationId, onClose }: RunPanelProps) {
 
           {error && !messages.length && (
             <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-destructive">Connection error</span>
+              <span className="font-mono text-2xs font-medium uppercase tracking-small text-destructive">Connection error</span>
               <p className="text-sm text-destructive mt-1.5">{error}</p>
             </div>
           )}
@@ -420,7 +420,7 @@ export function RunPanel({ conversationId, onClose }: RunPanelProps) {
               </span>
             </span>
             {tokenStats.model && (
-              <span className="font-mono text-[10px] text-muted-foreground/50 truncate max-w-48">
+              <span className="font-mono text-2xs text-muted-foreground/50 truncate max-w-48">
                 {tokenStats.model}
               </span>
             )}

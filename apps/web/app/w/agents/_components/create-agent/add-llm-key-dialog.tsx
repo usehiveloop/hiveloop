@@ -254,7 +254,7 @@ export function AddLlmKeyDialog({ open, onOpenChange, onCreated }: AddLlmKeyDial
                 {isLoading ? (
                   <div className="flex flex-col gap-2">
                     {Array.from({ length: 6 }).map((_, index) => (
-                      <Skeleton key={index} className="h-[52px] w-full rounded-xl" />
+                      <Skeleton key={index} className="h-13 w-full rounded-xl" />
                     ))}
                   </div>
                 ) : filtered.length === 0 ? (

@@ -34,10 +34,10 @@ function BrowserPanel() {
         </div>
         <div className="flex-1 flex items-center rounded-xl bg-background border border-border px-3 py-1.5">
           <HugeiconsIcon icon={LinkSquare02Icon} size={11} className="text-muted-foreground/40 mr-2" />
-          <span className="text-[11px] text-muted-foreground/40 font-mono truncate">No active browser session</span>
+          <span className="text-mini text-muted-foreground/40 font-mono truncate">No active browser session</span>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-4 flex items-center justify-center text-[12px] text-muted-foreground/40">
+      <div className="flex-1 overflow-y-auto p-4 flex items-center justify-center text-xs text-muted-foreground/40">
         Browser panel is not wired up yet
       </div>
     </div>
@@ -49,10 +49,10 @@ function TerminalPanel() {
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-3 py-2 bg-muted/20 border-b border-border shrink-0">
         <HugeiconsIcon icon={CommandLineIcon} size={12} className="text-muted-foreground" />
-        <span className="text-[11px] font-mono text-muted-foreground">Terminal</span>
+        <span className="text-mini font-mono text-muted-foreground">Terminal</span>
       </div>
       <div className="flex-1 overflow-y-auto bg-foreground p-4 flex items-center justify-center">
-        <span className="font-mono text-[11px] text-background/40">No active terminal session</span>
+        <span className="font-mono text-mini text-background/40">No active terminal session</span>
       </div>
     </div>
   )
@@ -60,7 +60,7 @@ function TerminalPanel() {
 
 function EmptyTimeline() {
   return (
-    <div className="flex items-center justify-center py-20 text-[13px] text-muted-foreground/40">
+    <div className="flex items-center justify-center py-20 text-sm-alt text-muted-foreground/40">
       No events yet. The agent will stream events here as it works.
     </div>
   )
@@ -189,7 +189,7 @@ export default function ConversationPage() {
           {isLoading ? (
             <TimelineSkeleton />
           ) : error ? (
-            <div className="py-10 text-center text-[13px] text-destructive/70">
+            <div className="py-10 text-center text-sm-alt text-destructive/70">
               Failed to load conversation events.
             </div>
           ) : timeline.length === 0 ? (
@@ -198,7 +198,7 @@ export default function ConversationPage() {
             <>
               <ConversationTimeline items={timeline} />
               {hasMore && (
-                <div className="mt-6 text-center text-[11px] text-muted-foreground/40 font-mono">
+                <div className="mt-6 text-center text-mini text-muted-foreground/40 font-mono">
                   More events available — pagination not yet wired.
                 </div>
               )}
@@ -216,7 +216,7 @@ export default function ConversationPage() {
             <Textarea
               placeholder="Composer is not wired up yet"
               disabled
-              className="border-0 bg-transparent min-h-[60px] max-h-32 focus-visible:ring-0 focus-visible:border-transparent text-[14px]"
+              className="border-0 bg-transparent min-h-15 max-h-32 focus-visible:ring-0 focus-visible:border-transparent text-sm"
             />
             <div className="flex items-center justify-between px-2 pt-1">
               <span className="font-mono text-[9px] text-muted-foreground/20">

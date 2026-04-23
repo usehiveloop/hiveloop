@@ -144,7 +144,7 @@ export function SandboxTemplatesList() {
               <HugeiconsIcon icon={ContainerIcon} size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground">Create template</p>
-                <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
+                <p className="text-sm-alt text-muted-foreground mt-0.5 leading-relaxed">
                   Define a custom environment with build commands and dependencies.
                 </p>
               </div>
@@ -169,13 +169,13 @@ export function SandboxTemplatesList() {
                       <span className="text-sm font-medium truncate">{template.name}</span>
                       {getStatusBadge(template.build_status)}
                       {isPublic && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Public</Badge>
+                        <Badge variant="secondary" className="text-2xs px-1.5 py-0">Public</Badge>
                       )}
                     </div>
                     {tags.length > 0 && (
                       <div className="flex items-center gap-1 mt-0.5">
                         {tags.map((tag) => (
-                          <span key={tag} className="text-[11px] text-muted-foreground">
+                          <span key={tag} className="text-mini text-muted-foreground">
                             {tag}
                           </span>
                         ))}

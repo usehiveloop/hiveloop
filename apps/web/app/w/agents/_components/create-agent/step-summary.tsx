@@ -126,7 +126,7 @@ export function StepSummary() {
                     />
                   </div>
                   <span className="text-sm font-medium text-foreground truncate">{skill.name}</span>
-                  <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground ml-auto">
+                  <span className="text-2xs font-medium uppercase tracking-wide text-muted-foreground ml-auto">
                     {skill.scope === "public" ? "Public" : "Your org"}
                   </span>
                 </div>

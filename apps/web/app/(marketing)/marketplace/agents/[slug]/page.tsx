@@ -98,7 +98,7 @@ export default function DetailVariant1() {
             </div>
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2.5">
-                <h1 className="font-heading text-[28px] sm:text-[36px] font-bold text-foreground leading-tight -tracking-[0.5px]">
+                <h1 className="font-heading text-[28px] sm:text-[36px] font-bold text-foreground leading-tight -tracking-micro">
                   {agent.name}
                 </h1>
                 {agent.verified && <HugeiconsIcon icon={CheckmarkBadge01Icon} size={22} className="text-green-500 shrink-0" />}
@@ -183,7 +183,7 @@ export default function DetailVariant1() {
 
               {/* Details */}
               <div className="rounded-2xl border border-border p-6 flex flex-col gap-3">
-                <span className="font-mono text-[10px] font-medium uppercase tracking-[1.5px] text-muted-foreground">Details</span>
+                <span className="font-mono text-2xs font-medium uppercase tracking-medium text-muted-foreground">Details</span>
                 <div className="flex flex-col gap-2.5">
                   {[
                     { label: "Category", value: agent.category },
@@ -200,11 +200,11 @@ export default function DetailVariant1() {
 
               {/* Integrations */}
               <div className="rounded-2xl border border-border p-6 flex flex-col gap-3">
-                <span className="font-mono text-[10px] font-medium uppercase tracking-[1.5px] text-muted-foreground">Integrations</span>
+                <span className="font-mono text-2xs font-medium uppercase tracking-medium text-muted-foreground">Integrations</span>
                 <div className="flex flex-col gap-2">
                   {agent.integrations.map((integration) => (
                     <div key={integration} className="flex items-center gap-2.5">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-2xs font-bold text-muted-foreground">
                         {integration[0]}
                       </div>
                       <span className="text-sm text-foreground">{integration}</span>
@@ -215,7 +215,7 @@ export default function DetailVariant1() {
 
               {/* Publisher */}
               <div className="rounded-2xl border border-border p-6 flex flex-col gap-3">
-                <span className="font-mono text-[10px] font-medium uppercase tracking-[1.5px] text-muted-foreground">Publisher</span>
+                <span className="font-mono text-2xs font-medium uppercase tracking-medium text-muted-foreground">Publisher</span>
                 <div className="flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={agent.publisher.avatar} alt={agent.publisher.name} className="w-10 h-10 rounded-full" />

@@ -94,7 +94,7 @@ export function MarketingFooter() {
             {/* Brand — full width on mobile, 5 cols on desktop */}
             <div className="col-span-2 sm:col-span-5 flex flex-col gap-6 pr-0 sm:pr-8">
               <Logo className="h-7" />
-              <p className="text-[13px] text-muted-foreground leading-relaxed max-w-80">
+              <p className="text-sm-alt text-muted-foreground leading-relaxed max-w-80">
                 Build, run, and monitor production-grade AI agents. Bring your
                 own keys, pick your models, install from the marketplace or
                 create from scratch.
@@ -191,7 +191,7 @@ function FooterColumn({
 }) {
   return (
     <div className="flex flex-col gap-3.5">
-      <span className="font-mono text-[10px] font-medium uppercase tracking-[1.5px] text-foreground">
+      <span className="font-mono text-2xs font-medium uppercase tracking-medium text-foreground">
         {title}
       </span>
       <div className="flex flex-col gap-2">
@@ -202,7 +202,7 @@ function FooterColumn({
               href={link.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[13px] text-muted-foreground hover:text-foreground transition-colors w-fit"
+              className="text-sm-alt text-muted-foreground hover:text-foreground transition-colors w-fit"
             >
               {link.label}
             </a>
@@ -210,7 +210,7 @@ function FooterColumn({
             <Link
               key={link.label}
               href={link.href}
-              className="text-[13px] text-muted-foreground hover:text-foreground transition-colors w-fit"
+              className="text-sm-alt text-muted-foreground hover:text-foreground transition-colors w-fit"
             >
               {link.label}
             </Link>

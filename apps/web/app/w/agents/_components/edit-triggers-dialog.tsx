@@ -385,14 +385,14 @@ function TriggerListView({ triggers, onAdd, onEdit, onRemove, onDone }: TriggerL
                     <Badge
                       key={`${displayName}-${keyIndex}`}
                       variant="secondary"
-                      className="text-[10px] font-mono"
+                      className="text-2xs font-mono"
                     >
                       {displayName}
                     </Badge>
                   ))}
                 </div>
                 {trigger.conditions && trigger.conditions.conditions.length > 0 && (
-                  <p className="text-[11px] text-muted-foreground mt-1">
+                  <p className="text-mini text-muted-foreground mt-1">
                     {trigger.conditions.conditions.length} filter
                     {trigger.conditions.conditions.length !== 1 ? "s" : ""} ({trigger.conditions.mode})
                   </p>

@@ -31,7 +31,7 @@ export function RunsEmpty({ onStartRun, startingRun, onEditAgent }: RunsEmptyPro
             <p className="text-sm font-semibold text-foreground">
               {startingRun ? "Starting run..." : "Start a run"}
             </p>
-            <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
+            <p className="text-sm-alt text-muted-foreground mt-0.5 leading-relaxed">
               Create a new conversation and watch your agent work in real time.
             </p>
           </div>
@@ -50,7 +50,7 @@ export function RunsEmpty({ onStartRun, startingRun, onEditAgent }: RunsEmptyPro
           <HugeiconsIcon icon={PencilEdit02Icon} size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground">Edit agent</p>
-            <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
+            <p className="text-sm-alt text-muted-foreground mt-0.5 leading-relaxed">
               Tweak the system prompt, model, or integrations before running.
             </p>
           </div>

@@ -105,7 +105,7 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
   return (
     <>
       <div className="flex flex-col gap-2">
-        <div className="hidden md:flex items-center gap-3 px-4 py-1 text-[10px] font-mono uppercase tracking-[1px] text-muted-foreground/50">
+        <div className="hidden md:flex items-center gap-3 px-4 py-1 text-2xs font-mono uppercase tracking-small text-muted-foreground/50">
           <span className="flex-1 min-w-0">Provider</span>
           <span className="w-20 shrink-0 text-right">Agents</span>
           <span className="w-24 shrink-0 text-right">Connected</span>
@@ -122,10 +122,10 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
                   {connection.display_name}
                 </span>
               </div>
-              <span className="w-20 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
+              <span className="w-20 shrink-0 text-right text-mini text-muted-foreground font-mono tabular-nums">
                 0
               </span>
-              <span className="w-24 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
+              <span className="w-24 shrink-0 text-right text-mini text-muted-foreground font-mono tabular-nums">
                 {connection.created_at ? formatDate(connection.created_at) : "—"}
               </span>
               <div className="w-6 shrink-0 flex justify-center">
@@ -304,9 +304,9 @@ function WebhookConfigDialog({ connection, open, onOpenChange, loading, onConfir
 
         <div className="flex flex-col gap-4 mt-4">
           <div className="rounded-xl bg-muted/50 border border-border p-4">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-2">Webhook URL</p>
+            <p className="text-mini font-medium uppercase tracking-wider text-muted-foreground mb-2">Webhook URL</p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-[12px] font-mono bg-background rounded-lg px-3 py-2 border border-border break-all select-all">
+              <code className="flex-1 text-xs font-mono bg-background rounded-lg px-3 py-2 border border-border break-all select-all">
                 {webhookUrl}
               </code>
               <Button variant="outline" size="sm" onClick={handleCopy} className="shrink-0 h-8">
@@ -323,8 +323,8 @@ function WebhookConfigDialog({ connection, open, onOpenChange, loading, onConfir
           </div>
 
           <div className="rounded-xl bg-muted/50 border border-border p-4">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-2">Setup instructions</p>
-            <ol className="list-decimal list-inside text-[13px] text-muted-foreground leading-relaxed space-y-1">
+            <p className="text-mini font-medium uppercase tracking-wider text-muted-foreground mb-2">Setup instructions</p>
+            <ol className="list-decimal list-inside text-sm-alt text-muted-foreground leading-relaxed space-y-1">
               <li>Open your {connection.display_name} project dashboard</li>
               <li>Go to <strong>Settings</strong> &rarr; <strong>Webhooks</strong></li>
               <li>Paste the webhook URL shown above</li>

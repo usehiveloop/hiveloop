@@ -96,7 +96,7 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
   return (
     <>
       <div className="flex flex-col gap-2">
-        <div className="hidden md:flex items-center gap-3 px-4 py-1 text-[10px] font-mono uppercase tracking-[1px] text-muted-foreground/50">
+        <div className="hidden md:flex items-center gap-3 px-4 py-1 text-2xs font-mono uppercase tracking-small text-muted-foreground/50">
           <span className="flex-1 min-w-0">Name</span>
           <span className="w-20 shrink-0">Integrations</span>
           <span className="w-28 shrink-0 text-right">Model</span>
@@ -119,13 +119,13 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
               <div className="w-20 shrink-0">
                 <IntegrationLogos integrations={getIntegrationSummaries(agent.integrations, connectionsById)} size={20} />
               </div>
-              <span className="w-28 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums truncate">
+              <span className="w-28 shrink-0 text-right text-mini text-muted-foreground font-mono tabular-nums truncate">
                 {agent.model}
               </span>
-              <span className="w-20 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
+              <span className="w-20 shrink-0 text-right text-mini text-muted-foreground font-mono tabular-nums">
                 {agent.sandbox_type}
               </span>
-              <span className="w-24 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
+              <span className="w-24 shrink-0 text-right text-mini text-muted-foreground font-mono tabular-nums">
                 {agent.created_at ? formatDate(agent.created_at) : "\u2014"}
               </span>
               <div className="w-6 shrink-0 flex justify-center">

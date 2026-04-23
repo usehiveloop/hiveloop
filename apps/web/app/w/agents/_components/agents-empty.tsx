@@ -29,7 +29,7 @@ export function AgentsEmpty({ onCreateFromScratch, onCreateFromMarketplace }: Ag
           <HugeiconsIcon icon={PencilEdit02Icon} size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground">Create from scratch</p>
-            <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
+            <p className="text-sm-alt text-muted-foreground mt-0.5 leading-relaxed">
               Write your own system prompt and configure every detail manually.
             </p>
           </div>
@@ -44,7 +44,7 @@ export function AgentsEmpty({ onCreateFromScratch, onCreateFromMarketplace }: Ag
           <HugeiconsIcon icon={Store01Icon} size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground">Install from marketplace</p>
-            <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
+            <p className="text-sm-alt text-muted-foreground mt-0.5 leading-relaxed">
               Browse community-built agents and install one in seconds.
             </p>
           </div>

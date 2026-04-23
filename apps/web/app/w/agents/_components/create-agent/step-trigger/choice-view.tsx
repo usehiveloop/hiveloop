@@ -48,11 +48,11 @@ export function ChoiceView({ onAddTrigger, onContinue, onBack }: ChoiceViewProps
                     <p className="text-sm font-semibold text-foreground">{trigger.connectionName}</p>
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {trigger.triggerDisplayNames.map((displayName) => (
-                        <Badge key={displayName} variant="secondary" className="text-[10px]">{displayName}</Badge>
+                        <Badge key={displayName} variant="secondary" className="text-2xs">{displayName}</Badge>
                       ))}
                     </div>
                     {trigger.conditions && trigger.conditions.conditions.length > 0 && (
-                      <p className="text-[11px] text-muted-foreground mt-1.5">
+                      <p className="text-mini text-muted-foreground mt-1.5">
                         {trigger.conditions.conditions.length} filter{trigger.conditions.conditions.length !== 1 ? "s" : ""} ({trigger.conditions.mode})
                       </p>
                     )}
@@ -77,7 +77,7 @@ export function ChoiceView({ onAddTrigger, onContinue, onBack }: ChoiceViewProps
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground">Add a trigger</p>
-                <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
+                <p className="text-sm-alt text-muted-foreground mt-0.5 leading-relaxed">
                   Start this agent automatically when a webhook event fires — like a new issue, PR, or deployment.
                 </p>
               </div>

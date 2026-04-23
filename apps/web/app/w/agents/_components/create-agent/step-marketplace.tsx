@@ -75,13 +75,13 @@ export function StepMarketplaceBrowse() {
               </div>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{agent.description}</p>
               <div className="flex items-center gap-3 mt-2">
-                <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground/40">
+                <span className="flex items-center gap-1.5 text-2xs text-muted-foreground/40">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={agent.publisher.avatar} alt="" className="h-3.5 w-3.5 rounded-full" />
                   {agent.publisher.name}
                 </span>
-                <span className="text-[10px] text-muted-foreground/30">·</span>
-                <span className="font-mono text-[10px] text-muted-foreground/40">
+                <span className="text-2xs text-muted-foreground/30">·</span>
+                <span className="font-mono text-2xs text-muted-foreground/40">
                   {formatInstalls(agent.installs)} installs
                 </span>
                 <span className="flex items-center -space-x-1.5 ml-auto">
@@ -162,7 +162,7 @@ export function StepMarketplaceDetail() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <span className="font-mono text-[10px] text-muted-foreground/60 uppercase tracking-[1px]">Required integrations</span>
+          <span className="font-mono text-2xs text-muted-foreground/60 uppercase tracking-small">Required integrations</span>
           <div className="flex flex-wrap gap-2">
             {agent.integrations.map((name) => {
               const connected = connectedIntegrations.has(name)

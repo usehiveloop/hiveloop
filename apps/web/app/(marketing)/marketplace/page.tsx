@@ -50,8 +50,8 @@ export default function MarketplaceAppStore() {
       {/* Hero */}
       <div className="max-w-6xl mx-auto w-full px-4 pt-12 sm:pt-20 pb-8">
         <div className="flex flex-col gap-2 mb-10">
-          <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">Marketplace</p>
-          <h1 className="font-heading text-[28px] sm:text-[40px] lg:text-[48px] font-bold text-foreground leading-[1.15] -tracking-[0.5px]">
+          <p className="font-mono text-mini font-medium uppercase tracking-medium text-primary">Marketplace</p>
+          <h1 className="font-heading text-[28px] sm:text-[40px] lg:text-5xl font-bold text-foreground leading-[1.15] -tracking-micro">
             Discover production-ready agents
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground max-w-lg">
@@ -88,10 +88,10 @@ export default function MarketplaceAppStore() {
               <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-background border border-border shadow-sm text-2xl mb-1">
                 {featuredAgent.icon}
               </div>
-              <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full w-fit">
+              <span className="font-mono text-2xs font-medium uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full w-fit">
                 {featuredAgent.highlight}
               </span>
-              <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground group-hover:text-primary transition-colors -tracking-[0.5px]">
+              <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground group-hover:text-primary transition-colors -tracking-micro">
                 {featuredAgent.name}
               </h2>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
@@ -249,7 +249,7 @@ function AgentCard({ agent }: AgentCardProps) {
                   {agent.integrations.slice(0, 4).map((integration, index) => (
                     <div
                       key={integration}
-                      className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-background text-[10px] font-bold text-muted-foreground shadow-sm"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-background text-2xs font-bold text-muted-foreground shadow-sm"
                       style={{ marginLeft: index > 0 ? "-6px" : 0, zIndex: agent.integrations.length - index }}
                     >
                       {integration[0]}
@@ -277,7 +277,7 @@ function AgentCard({ agent }: AgentCardProps) {
             <HugeiconsIcon icon={CheckmarkBadge01Icon} size={15} className="text-green-500 shrink-0" />
           )}
         </div>
-        <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2 flex-1">
+        <p className="text-sm-alt text-muted-foreground leading-relaxed line-clamp-2 flex-1">
           {agent.description}
         </p>
         <div className="flex items-center justify-between pt-3 border-t border-border/50 mt-auto">
@@ -286,7 +286,7 @@ function AgentCard({ agent }: AgentCardProps) {
             <img src={agent.publisher.avatar} alt={agent.publisher.name} className="h-5 w-5 rounded-full object-cover" />
             <span className="text-xs text-muted-foreground">{agent.publisher.name}</span>
           </div>
-          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-muted-foreground">
+          <span className="text-2xs font-mono font-medium uppercase tracking-wider text-muted-foreground">
             {agent.category}
           </span>
         </div>

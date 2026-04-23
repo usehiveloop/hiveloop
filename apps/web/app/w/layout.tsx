@@ -94,7 +94,7 @@ function WorkspaceHeader() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={8} className="min-w-60">
           <DropdownMenuGroup>
-            <DropdownMenuLabel className="font-mono text-[10px] uppercase tracking-[1.5px]">Workspaces</DropdownMenuLabel>
+            <DropdownMenuLabel className="font-mono text-2xs uppercase tracking-medium">Workspaces</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {orgs.map((org) => (
               <DropdownMenuItem key={org.id} onClick={() => setActiveOrg(org)}>

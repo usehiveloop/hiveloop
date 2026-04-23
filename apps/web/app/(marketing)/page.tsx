@@ -94,11 +94,11 @@ export default function Home() {
           <div className="relative flex flex-col items-center gap-6 sm:gap-8 pt-12 sm:pt-16 lg:pt-25 px-4 sm:px-8 lg:px-0">
             <div className="flex items-center gap-2 px-4 py-2 bg-muted border border-border rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              <span className="font-mono text-[11px] font-medium uppercase tracking-[0.5px] text-muted-foreground">
+              <span className="font-mono text-mini font-medium uppercase tracking-micro text-muted-foreground">
                 introducing the marketplace with revenue sharing
               </span>
             </div>
-            <h1 className="font-heading text-[28px] sm:text-[40px] lg:text-[56px] font-bold text-foreground text-center leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
+            <h1 className="font-heading text-[28px] sm:text-[40px] lg:text-[56px] font-bold text-foreground text-center leading-[1.15] -tracking-micro sm:-tracking-small">
               Run production-grade <br className="hidden sm:block" /> agents for your team
             </h1>
             <p className="text-base sm:text-lg lg:text-xl text-muted-foreground text-center leading-relaxed max-w-160">
@@ -147,7 +147,7 @@ export default function Home() {
 
           {/* Trusted by */}
           <div className="relative z-10 flex flex-col items-center gap-8 py-20 sm:py-28 px-4">
-            <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
+            <p className="font-mono text-mini font-medium uppercase tracking-medium text-primary">
               Trusted by companies of all sizes
             </p>
             <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6 sm:gap-x-16 opacity-40">
@@ -199,10 +199,10 @@ export default function Home() {
           <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
             {/* Section header */}
             <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
+              <p className="font-mono text-mini font-medium uppercase tracking-medium text-primary">
                 Why Hiveloop
               </p>
-              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
+              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-micro sm:-tracking-small">
                 Stop paying for 10 subscriptions.{" "}
                 <br className="hidden sm:block" />
                 Build your own agents instead.
@@ -220,7 +220,7 @@ export default function Home() {
                 <div className="p-6 sm:p-8 lg:p-10 bg-muted/50 dark:bg-card/50 border-b lg:border-b-0 lg:border-r border-border">
                   <div className="flex items-center gap-2 mb-6">
                     <span className="w-2 h-2 rounded-full bg-destructive" />
-                    <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-destructive">
+                    <span className="font-mono text-mini font-medium uppercase tracking-medium text-destructive">
                       What you&apos;re paying today
                     </span>
                   </div>
@@ -262,7 +262,7 @@ export default function Home() {
                       <span className="text-sm font-medium text-muted-foreground">
                         Monthly total
                       </span>
-                      <span className="text-2xl font-heading font-bold text-destructive -tracking-[0.5px]">
+                      <span className="text-2xl font-heading font-bold text-destructive -tracking-micro">
                         $723/mo
                       </span>
                     </div>
@@ -297,7 +297,7 @@ export default function Home() {
                 <div className="p-6 sm:p-8 lg:p-10 bg-background dark:bg-[oklch(0.14_0.01_55)]">
                   <div className="flex items-center gap-2 mb-6">
                     <span className="w-2 h-2 rounded-full bg-green-500" />
-                    <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-foreground">
+                    <span className="font-mono text-mini font-medium uppercase tracking-medium text-foreground">
                       What you build on Hiveloop
                     </span>
                   </div>
@@ -356,7 +356,7 @@ export default function Home() {
                       <span className="text-sm font-medium text-muted-foreground">
                         6 agents x $4.99/mo
                       </span>
-                      <span className="text-2xl font-heading font-bold text-foreground -tracking-[0.5px]">
+                      <span className="text-2xl font-heading font-bold text-foreground -tracking-micro">
                         $29.94/mo
                       </span>
                     </div>
@@ -409,7 +409,7 @@ export default function Home() {
                   key={stat.value}
                   className="flex flex-col items-center text-center gap-1.5"
                 >
-                  <span className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground -tracking-[0.5px]">
+                  <span className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground -tracking-micro">
                     {stat.value}
                   </span>
                   <span className="text-xs sm:text-sm text-muted-foreground leading-snug max-w-32">
@@ -446,10 +446,10 @@ export default function Home() {
           <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
             {/* Section header */}
             <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
+              <p className="font-mono text-mini font-medium uppercase tracking-medium text-primary">
                 Marketplace
               </p>
-              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
+              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-micro sm:-tracking-small">
                 Install an agent in seconds.{" "}
                 <br className="hidden sm:block" />
                 Or build one and get paid.
@@ -508,7 +508,7 @@ export default function Home() {
                   </div>
 
                   {/* Description */}
-                  <p className="text-[13px] leading-relaxed text-muted-foreground line-clamp-2">
+                  <p className="text-sm-alt leading-relaxed text-muted-foreground line-clamp-2">
                     {agent.description}
                   </p>
 
@@ -565,10 +565,10 @@ export default function Home() {
           <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
             {/* Section header */}
             <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
+              <p className="font-mono text-mini font-medium uppercase tracking-medium text-primary">
                 The Agent Forger
               </p>
-              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
+              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-micro sm:-tracking-small">
                 From zero to a running agent{" "}
                 <br className="hidden sm:block" />
                 in under five minutes.
@@ -636,7 +636,7 @@ export default function Home() {
               <div className="p-6 sm:p-8 lg:p-10">
                 <div className="flex items-center gap-2 mb-8">
                   <span className="w-2 h-2 rounded-full bg-primary" />
-                  <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-foreground">
+                  <span className="font-mono text-mini font-medium uppercase tracking-medium text-foreground">
                     How it works
                   </span>
                 </div>
@@ -711,10 +711,10 @@ export default function Home() {
           <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
             {/* Section header */}
             <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
+              <p className="font-mono text-mini font-medium uppercase tracking-medium text-primary">
                 Platform
               </p>
-              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
+              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-micro sm:-tracking-small">
                 Everything your agents need{" "}
                 <br className="hidden sm:block" />
                 to run in production.
@@ -833,10 +833,10 @@ export default function Home() {
           <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
             {/* Section header */}
             <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
+              <p className="font-mono text-mini font-medium uppercase tracking-medium text-primary">
                 Pricing
               </p>
-              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
+              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-micro sm:-tracking-small">
                 Simple, transparent pricing.
               </h2>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
@@ -850,11 +850,11 @@ export default function Home() {
               {/* Free */}
               <div className="flex flex-col rounded-2xl border border-border bg-background p-8 gap-6">
                 <div className="flex flex-col gap-4">
-                  <span className="font-mono text-[11px] font-medium uppercase tracking-[1px] text-muted-foreground">
+                  <span className="font-mono text-mini font-medium uppercase tracking-small text-muted-foreground">
                     Free forever
                   </span>
                   <div className="flex items-baseline gap-1">
-                    <span className="font-heading text-[48px] font-bold text-foreground leading-none">
+                    <span className="font-heading text-5xl font-bold text-foreground leading-none">
                       $0
                     </span>
                   </div>
@@ -912,11 +912,11 @@ export default function Home() {
                   }}
                 />
                 <div className="flex flex-col gap-4 relative">
-                  <span className="font-mono text-[11px] font-medium uppercase tracking-[1px] text-primary">
+                  <span className="font-mono text-mini font-medium uppercase tracking-small text-primary">
                     Pro
                   </span>
                   <div className="flex items-baseline gap-1">
-                    <span className="font-heading text-[48px] font-bold text-foreground leading-none">
+                    <span className="font-heading text-5xl font-bold text-foreground leading-none">
                       $4.99
                     </span>
                     <span className="text-sm text-muted-foreground">
@@ -928,7 +928,7 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2.5 relative">
-                  <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground mb-1">
+                  <span className="font-mono text-2xs font-medium uppercase tracking-small text-muted-foreground mb-1">
                     Everything in Free, plus
                   </span>
                   {[
@@ -1001,7 +1001,7 @@ export default function Home() {
                   "radial-gradient(ellipse at center bottom, black 20%, transparent 70%)",
               }}
             />
-            <h2 className="relative font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
+            <h2 className="relative font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-micro sm:-tracking-small">
               Stop subscribing.{" "}
               <br className="hidden sm:block" />
               Start building.

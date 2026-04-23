@@ -190,7 +190,7 @@ export function MembersSettings() {
           <p className="text-sm text-muted-foreground">No pending invitations.</p>
         ) : (
           <div className="flex flex-col gap-2">
-            <div className="hidden md:flex items-center gap-3 px-4 py-1 text-[10px] font-mono uppercase tracking-[1px] text-muted-foreground/50">
+            <div className="hidden md:flex items-center gap-3 px-4 py-1 text-2xs font-mono uppercase tracking-small text-muted-foreground/50">
               <span className="flex-1 min-w-0">Email</span>
               <span className="w-20 shrink-0">Role</span>
               <span className="w-40 shrink-0">Invited by</span>
@@ -204,12 +204,12 @@ export function MembersSettings() {
                     <p className="text-sm font-medium text-foreground truncate">{invite.email}</p>
                   </div>
                   <div className="w-20 shrink-0">
-                    <Badge variant="secondary" className="text-[10px]">{invite.role}</Badge>
+                    <Badge variant="secondary" className="text-2xs">{invite.role}</Badge>
                   </div>
-                  <span className="w-40 shrink-0 text-[11px] text-muted-foreground truncate">
+                  <span className="w-40 shrink-0 text-mini text-muted-foreground truncate">
                     {invite.invited_by_name || invite.invited_by_email || "\u2014"}
                   </span>
-                  <span className="w-28 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
+                  <span className="w-28 shrink-0 text-right text-mini text-muted-foreground font-mono tabular-nums">
                     {formatDate(invite.created_at)}
                   </span>
                   <div className="w-8 shrink-0 flex justify-center">
@@ -252,7 +252,7 @@ export function MembersSettings() {
                         {invite.invited_by_name || invite.invited_by_email || "\u2014"}
                       </p>
                     </div>
-                    <Badge variant="secondary" className="text-[10px]">{invite.role}</Badge>
+                    <Badge variant="secondary" className="text-2xs">{invite.role}</Badge>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -306,7 +306,7 @@ export function MembersSettings() {
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                 </div>
-                <Badge variant="secondary" className="text-[10px]">{member.role}</Badge>
+                <Badge variant="secondary" className="text-2xs">{member.role}</Badge>
               </div>
             ))}
             <p className="text-sm text-muted-foreground">
@@ -315,7 +315,7 @@ export function MembersSettings() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <div className="hidden md:flex items-center gap-3 px-4 py-1 text-[10px] font-mono uppercase tracking-[1px] text-muted-foreground/50">
+            <div className="hidden md:flex items-center gap-3 px-4 py-1 text-2xs font-mono uppercase tracking-small text-muted-foreground/50">
               <span className="flex-1 min-w-0">Name</span>
               <span className="w-56 shrink-0">Email</span>
               <span className="w-20 shrink-0">Role</span>
@@ -331,13 +331,13 @@ export function MembersSettings() {
                     {member.name || member.email}
                   </p>
                 </div>
-                <span className="w-56 shrink-0 text-[11px] text-muted-foreground truncate md:block">
+                <span className="w-56 shrink-0 text-mini text-muted-foreground truncate md:block">
                   {member.email}
                 </span>
                 <div className="w-20 shrink-0">
-                  <Badge variant="secondary" className="text-[10px]">{member.role}</Badge>
+                  <Badge variant="secondary" className="text-2xs">{member.role}</Badge>
                 </div>
-                <span className="w-28 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
+                <span className="w-28 shrink-0 text-right text-mini text-muted-foreground font-mono tabular-nums">
                   {formatDate(member.joined_at)}
                 </span>
               </div>

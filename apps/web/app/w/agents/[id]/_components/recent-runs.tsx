@@ -9,7 +9,7 @@ type RecentRunsProps = {
 export function RecentRuns({ runs, onSelectRun }: RecentRunsProps) {
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="font-mono text-[10px] font-medium uppercase tracking-[1.5px] text-muted-foreground">
+      <h2 className="font-mono text-2xs font-medium uppercase tracking-medium text-muted-foreground">
         Recent runs
       </h2>
       <div className="flex flex-col gap-2">

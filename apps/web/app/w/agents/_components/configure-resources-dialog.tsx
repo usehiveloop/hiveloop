@@ -260,12 +260,12 @@ function ResourceInstanceListView({ connectionId, resourceType, selectedItems, i
             <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
               {orphans.length} {label}{orphans.length !== 1 ? "s" : ""} no longer accessible
             </p>
-            <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80 mt-0.5">
+            <p className="text-mini text-amber-800/80 dark:text-amber-200/80 mt-0.5">
               These will be removed from this agent when you save.
             </p>
             <ul className="mt-2 space-y-0.5">
               {orphans.map((item) => (
-                <li key={item.id} className="font-mono text-[11px] text-amber-900 dark:text-amber-100">
+                <li key={item.id} className="font-mono text-mini text-amber-900 dark:text-amber-100">
                   {item.id}
                 </li>
               ))}

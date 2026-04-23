@@ -182,7 +182,7 @@ export function ProviderPromptEditor({ value, onChange, className }: ProviderPro
         </div>
 
         {filledCount > 0 && (
-          <p className="text-[11px] text-muted-foreground shrink-0">
+          <p className="text-mini text-muted-foreground shrink-0">
             {filledCount}/{PROMPT_PROVIDERS.length}
           </p>
         )}

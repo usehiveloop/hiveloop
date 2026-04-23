@@ -167,7 +167,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
           <nav className="hidden md:flex w-52 shrink-0 flex-col gap-4 border-r border-border bg-muted/30 p-3">
             {settingsGroups.map((group) => (
               <div key={group.label} className="flex flex-col gap-1">
-                <p className="px-2.5 pb-1 font-mono text-[10px] uppercase tracking-[1.5px] text-muted-foreground">
+                <p className="px-2.5 pb-1 font-mono text-2xs uppercase tracking-medium text-muted-foreground">
                   {group.label}
                 </p>
                 {group.items.map((item) => (

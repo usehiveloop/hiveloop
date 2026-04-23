@@ -314,7 +314,7 @@ export function SkillDetailDialog({ skill, open, onOpenChange }: SkillDetailDial
                 <div className="min-w-0">
                   <p className="text-xs font-medium text-foreground truncate">{skill?.name}</p>
                   {skill?.description && (
-                    <p className="text-[11px] text-muted-foreground truncate">{skill.description}</p>
+                    <p className="text-mini text-muted-foreground truncate">{skill.description}</p>
                   )}
                 </div>
               </div>
@@ -343,7 +343,7 @@ export function SkillDetailDialog({ skill, open, onOpenChange }: SkillDetailDial
                     <Button
                       variant="ghost"
                       className={cn(
-                        "px-2.5 rounded-full text-[11px]",
+                        "px-2.5 rounded-full text-mini",
                         viewMode === "rendered" && "bg-background shadow-sm"
                       )}
                       onClick={() => setViewMode("rendered")}
@@ -354,7 +354,7 @@ export function SkillDetailDialog({ skill, open, onOpenChange }: SkillDetailDial
                     <Button
                       variant="ghost"
                       className={cn(
-                        "px-2.5 rounded-full text-[11px]",
+                        "px-2.5 rounded-full text-mini",
                         viewMode === "raw" && "bg-background shadow-sm"
                       )}
                       onClick={() => setViewMode("raw")}

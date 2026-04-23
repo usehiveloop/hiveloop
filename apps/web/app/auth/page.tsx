@@ -104,7 +104,7 @@ export default function AuthPage() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <h1 className="font-heading text-[28px] text-center font-bold text-foreground leading-tight -tracking-[0.5px]">
+            <h1 className="font-heading text-[28px] text-center font-bold text-foreground leading-tight -tracking-micro">
               Build, run and monitor <br />your agents
             </h1>
             <p className="text-base text-muted-foreground leading-relaxed text-center">

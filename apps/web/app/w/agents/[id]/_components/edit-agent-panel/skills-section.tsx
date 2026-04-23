@@ -26,7 +26,7 @@ export function SkillsSection({ skillIds, onToggle }: SkillsSectionProps) {
       <div className="flex flex-col gap-2">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-[52px] w-full rounded-xl" />
+            <Skeleton key={index} className="h-13 w-full rounded-xl" />
           ))
         ) : skills.length === 0 ? (
           <p className="text-sm text-muted-foreground">No skills available.</p>

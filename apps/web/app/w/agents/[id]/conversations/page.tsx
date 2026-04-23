@@ -8,7 +8,7 @@ export default function ConversationsIndexPage() {
         <div className="h-12 w-12 rounded-2xl bg-muted/30 flex items-center justify-center">
           <HugeiconsIcon icon={Robot01Icon} size={24} className="text-muted-foreground/30" />
         </div>
-        <p className="text-[13px]">Select a conversation to view</p>
+        <p className="text-sm-alt">Select a conversation to view</p>
       </div>
     </div>
   )

@@ -60,16 +60,16 @@ const API_KEY_SCOPES = [
 ] as const
 
 function ScopeBadge({ scopes }: { scopes?: string[] }) {
-  if (!scopes || scopes.length === 0) return <span className="text-[11px] text-muted-foreground">{"\u2014"}</span>
+  if (!scopes || scopes.length === 0) return <span className="text-mini text-muted-foreground">{"\u2014"}</span>
 
   if (scopes.length === 1 && scopes[0] === "all") {
-    return <Badge variant="secondary" className="text-[10px]">all</Badge>
+    return <Badge variant="secondary" className="text-2xs">all</Badge>
   }
 
   return (
     <Tooltip>
       <TooltipTrigger className="cursor-default">
-        <Badge variant="secondary" className="text-[10px]">{scopes.length} scopes</Badge>
+        <Badge variant="secondary" className="text-2xs">{scopes.length} scopes</Badge>
       </TooltipTrigger>
       <TooltipContent>
         {scopes.join(", ")}
@@ -297,7 +297,7 @@ export function ApiKeysSettings() {
                 <HugeiconsIcon icon={Key01Icon} size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground">Create API key</p>
-                  <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
+                  <p className="text-sm-alt text-muted-foreground mt-0.5 leading-relaxed">
                     Generate a key to authenticate requests to the Hiveloop API.
                   </p>
                 </div>
@@ -307,7 +307,7 @@ export function ApiKeysSettings() {
           </div>
         ) : (
           <>
-            <div className="hidden md:flex items-center gap-3 px-4 py-1 text-[10px] font-mono uppercase tracking-[1px] text-muted-foreground/50">
+            <div className="hidden md:flex items-center gap-3 px-4 py-1 text-2xs font-mono uppercase tracking-small text-muted-foreground/50">
               <span className="flex-1 min-w-0">Name</span>
               <span className="w-32 shrink-0">Key</span>
               <span className="w-20 shrink-0">Scopes</span>
@@ -322,13 +322,13 @@ export function ApiKeysSettings() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{apiKey.name}</p>
                   </div>
-                  <span className="w-32 shrink-0 text-[11px] text-muted-foreground font-mono tabular-nums truncate">
+                  <span className="w-32 shrink-0 text-mini text-muted-foreground font-mono tabular-nums truncate">
                     {apiKey.key_prefix ? `${apiKey.key_prefix}...` : "\u2014"}
                   </span>
                   <div className="w-20 shrink-0">
                     <ScopeBadge scopes={apiKey.scopes} />
                   </div>
-                  <span className="w-28 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
+                  <span className="w-28 shrink-0 text-right text-mini text-muted-foreground font-mono tabular-nums">
                     {apiKey.created_at ? formatDate(apiKey.created_at) : "\u2014"}
                   </span>
                   <div className="w-8 shrink-0 flex justify-center">

@@ -90,7 +90,7 @@ export function EnvVarsDialog({ open, onOpenChange, agentName }: EnvVarsDialogPr
               className="min-h-32 font-mono text-xs"
               autoFocus
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-mini text-muted-foreground">
               Paste KEY=VALUE pairs, one per line. Lines starting with # are ignored.
             </p>
             <div className="flex gap-2 justify-end">
@@ -104,7 +104,7 @@ export function EnvVarsDialog({ open, onOpenChange, agentName }: EnvVarsDialogPr
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 px-1 text-[10px] font-mono uppercase tracking-[1px] text-muted-foreground/50">
+            <div className="flex items-center gap-2 px-1 text-2xs font-mono uppercase tracking-small text-muted-foreground/50">
               <span className="flex-1">Key</span>
               <span className="flex-1">Value</span>
               <span className="w-8 shrink-0" />

@@ -181,7 +181,7 @@ function AcceptInviteContents() {
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Sent to <span className="font-medium text-foreground">{inviteEmail}</span> — role{" "}
-          <Badge variant="secondary" className="text-[10px]">{invite.role}</Badge>
+          <Badge variant="secondary" className="text-2xs">{invite.role}</Badge>
         </p>
         <div className="mt-6 flex flex-col gap-2">
           <Link href={nextHref} className={buttonVariants({ className: "w-full" })}>
@@ -191,7 +191,7 @@ function AcceptInviteContents() {
             Create account
           </Link>
         </div>
-        <p className="mt-4 text-[11px] text-muted-foreground text-center">
+        <p className="mt-4 text-mini text-muted-foreground text-center">
           After signing in, come back to this link to accept the invitation.
         </p>
       </CenterCard>
@@ -231,7 +231,7 @@ function AcceptInviteContents() {
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         {invite.inviter_name ?? "An admin"} invited you to {orgName} as{" "}
-        <Badge variant="secondary" className="text-[10px]">{invite.role}</Badge>
+        <Badge variant="secondary" className="text-2xs">{invite.role}</Badge>
       </p>
       <div className="mt-6 flex flex-col gap-2">
         <Button

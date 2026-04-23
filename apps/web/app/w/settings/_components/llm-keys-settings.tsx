@@ -112,7 +112,7 @@ export function LlmKeysSettings() {
       <div className="flex flex-col gap-2">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-[52px] w-full rounded-xl" />
+            <Skeleton key={index} className="h-13 w-full rounded-xl" />
           ))
         ) : credentials.length === 0 ? (
           <div className="flex flex-col items-center py-14">
@@ -131,7 +131,7 @@ export function LlmKeysSettings() {
                 <HugeiconsIcon icon={ArtificialIntelligence01Icon} size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground">Add LLM key</p>
-                  <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
+                  <p className="text-sm-alt text-muted-foreground mt-0.5 leading-relaxed">
                     Connect a provider like OpenAI or Anthropic to power your agents.
                   </p>
                 </div>
@@ -141,7 +141,7 @@ export function LlmKeysSettings() {
           </div>
         ) : (
           <>
-            <div className="hidden md:flex items-center gap-3 px-4 py-1 text-[10px] font-mono uppercase tracking-[1px] text-muted-foreground/50">
+            <div className="hidden md:flex items-center gap-3 px-4 py-1 text-2xs font-mono uppercase tracking-small text-muted-foreground/50">
               <span className="flex-1 min-w-0">Label</span>
               <span className="w-24 shrink-0 text-right">Requests</span>
               <span className="w-28 shrink-0 text-right">Last used</span>
@@ -160,13 +160,13 @@ export function LlmKeysSettings() {
                       <p className="text-xs text-muted-foreground">{credential.provider_id}</p>
                     </div>
                   </div>
-                  <span className="w-24 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
+                  <span className="w-24 shrink-0 text-right text-mini text-muted-foreground font-mono tabular-nums">
                     {credential.request_count ?? 0}
                   </span>
-                  <span className="w-28 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
+                  <span className="w-28 shrink-0 text-right text-mini text-muted-foreground font-mono tabular-nums">
                     {credential.last_used_at ? formatDate(credential.last_used_at) : "\u2014"}
                   </span>
-                  <span className="w-28 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
+                  <span className="w-28 shrink-0 text-right text-mini text-muted-foreground font-mono tabular-nums">
                     {credential.created_at ? formatDate(credential.created_at) : "\u2014"}
                   </span>
                   <div className="w-8 shrink-0 flex justify-center">

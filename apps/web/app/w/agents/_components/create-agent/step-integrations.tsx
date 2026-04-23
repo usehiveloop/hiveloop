@@ -131,7 +131,7 @@ export function StepIntegrations() {
             <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, index) => (
-                  <Skeleton key={index} className="h-[64px] w-full rounded-xl" />
+                  <Skeleton key={index} className="h-16 w-full rounded-xl" />
                 ))
               ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -167,7 +167,7 @@ export function StepIntegrations() {
                       <IntegrationLogo provider={connection.provider ?? ""} size={32} className="shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground">{connection.display_name}</p>
-                        <p className="text-[13px] text-muted-foreground mt-0.5">
+                        <p className="text-sm-alt text-muted-foreground mt-0.5">
                           {actionCount > 0
                             ? `${actionCount} of ${connection.actions_count ?? 0} actions selected`
                             : `${connection.actions_count ?? 0} actions available`}
@@ -299,7 +299,7 @@ function ActionDetailView({
         {isLoading ? (
           <div className="flex flex-col pt-[52px]">
             {Array.from({ length: 6 }).map((_, index) => (
-              <Skeleton key={index} className="h-[60px] w-full rounded-xl mb-2" />
+              <Skeleton key={index} className="h-15 w-full rounded-xl mb-2" />
             ))}
           </div>
         ) : filteredActions.length === 0 ? (
@@ -332,13 +332,13 @@ function ActionDetailView({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-sm font-medium text-foreground truncate">{action.display_name}</span>
-                        <span className={`font-mono text-[9px] uppercase tracking-[0.5px] px-1.5 py-0.5 rounded-full shrink-0 ${
+                        <span className={`font-mono text-[9px] uppercase tracking-micro px-1.5 py-0.5 rounded-full shrink-0 ${
                           action.access === "read" ? "bg-blue-500/10 text-blue-500" : "bg-green-500/10 text-green-500"
                         }`}>
                           {action.access}
                         </span>
                       </div>
-                      <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-1">{action.description}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{action.description}</p>
                     </div>
                     {isSelected && (
                       <HugeiconsIcon icon={Tick02Icon} size={16} className="text-primary shrink-0 mt-0.5" />

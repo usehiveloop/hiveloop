@@ -58,7 +58,7 @@ function SkillHydrationBadge({ skill }: { skill: SkillRow }) {
     return (
       <Tooltip>
         <TooltipTrigger className="cursor-default">
-          <Badge variant="secondary" className="text-[10px] bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
+          <Badge variant="secondary" className="text-2xs bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
             error
           </Badge>
         </TooltipTrigger>
@@ -71,14 +71,14 @@ function SkillHydrationBadge({ skill }: { skill: SkillRow }) {
 
   if (status === "pending") {
     return (
-      <Badge variant="secondary" className="text-[10px] bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20">
+      <Badge variant="secondary" className="text-2xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20">
         pending
       </Badge>
     )
   }
 
   return (
-    <Badge variant="default" className="text-[10px] bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+    <Badge variant="default" className="text-2xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
       ready
     </Badge>
   )
@@ -402,7 +402,7 @@ export function SkillsSettings() {
       <div className="flex flex-col gap-2">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-[52px] w-full rounded-xl" />
+            <Skeleton key={index} className="h-13 w-full rounded-xl" />
           ))
         ) : skills.length === 0 ? (
           <div className="flex flex-col items-center py-14">
@@ -421,7 +421,7 @@ export function SkillsSettings() {
                 <HugeiconsIcon icon={BookOpen01Icon} size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground">Create a skill</p>
-                  <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
+                  <p className="text-sm-alt text-muted-foreground mt-0.5 leading-relaxed">
                     Write inline instructions or sync from a Git repository.
                   </p>
                 </div>
@@ -431,7 +431,7 @@ export function SkillsSettings() {
           </div>
         ) : (
           <>
-            <div className="hidden md:flex items-center gap-3 px-4 py-1 text-[10px] font-mono uppercase tracking-[1px] text-muted-foreground/50">
+            <div className="hidden md:flex items-center gap-3 px-4 py-1 text-2xs font-mono uppercase tracking-small text-muted-foreground/50">
               <span className="flex-1 min-w-0">Name</span>
               <span className="w-20 shrink-0 text-right">Source</span>
               <span className="w-20 shrink-0 text-right">Status</span>
@@ -460,14 +460,14 @@ export function SkillsSettings() {
                     </div>
                   </div>
                   <span className="w-20 shrink-0 text-right">
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge variant="secondary" className="text-2xs">
                       {skill.source_type === "git" ? "git" : "inline"}
                     </Badge>
                   </span>
                   <span className="w-20 shrink-0 text-right">
                     <SkillHydrationBadge skill={skill} />
                   </span>
-                  <span className="w-28 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
+                  <span className="w-28 shrink-0 text-right text-mini text-muted-foreground font-mono tabular-nums">
                     {skill.created_at ? formatDate(skill.created_at) : "\u2014"}
                   </span>
                   <div className="w-8 shrink-0 flex justify-center">
@@ -507,7 +507,7 @@ export function SkillsSettings() {
                     />
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono tabular-nums">
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge variant="secondary" className="text-2xs">
                       {skill.source_type === "git" ? "git" : "inline"}
                     </Badge>
                     <SkillHydrationBadge skill={skill} />

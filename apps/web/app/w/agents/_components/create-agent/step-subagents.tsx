@@ -149,7 +149,7 @@ export function StepSubagents() {
       <div className="flex flex-col gap-2 mt-3 flex-1 overflow-y-auto pr-1">
         {isLoading ? (
           Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="h-[88px] w-full rounded-xl" />
+            <Skeleton key={index} className="h-22 w-full rounded-xl" />
           ))
         ) : subagents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -176,7 +176,7 @@ export function StepSubagents() {
             {hasNextPage && (
               <div ref={loadMoreRef} className="py-4 flex items-center justify-center">
                 {isFetchingNextPage ? (
-                  <Skeleton className="h-[88px] w-full rounded-xl" />
+                  <Skeleton className="h-22 w-full rounded-xl" />
                 ) : (
                   <span className="text-xs text-muted-foreground">Load more</span>
                 )}

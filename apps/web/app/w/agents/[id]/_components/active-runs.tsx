@@ -10,7 +10,7 @@ export function ActiveRuns({ runs, onSelectRun }: ActiveRunsProps) {
   if (runs.length === 0) {
     return (
       <div className="rounded-xl border border-border p-6">
-        <h2 className="font-mono text-[10px] font-medium uppercase tracking-[1.5px] text-muted-foreground mb-4">Active runs</h2>
+        <h2 className="font-mono text-2xs font-medium uppercase tracking-medium text-muted-foreground mb-4">Active runs</h2>
         <p className="text-sm text-muted-foreground">No active runs right now.</p>
       </div>
     )
@@ -18,7 +18,7 @@ export function ActiveRuns({ runs, onSelectRun }: ActiveRunsProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="font-mono text-[10px] font-medium uppercase tracking-[1.5px] text-muted-foreground">
+      <h2 className="font-mono text-2xs font-medium uppercase tracking-medium text-muted-foreground">
         Active runs ({runs.length})
       </h2>
       <div className="flex flex-col gap-2">

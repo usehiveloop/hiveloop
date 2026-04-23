@@ -25,7 +25,7 @@ export function ChoiceCard({ icon, iconClassName, logoUrl, title, description, o
       ) : null}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-foreground">{title}</p>
-        <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
+        <p className="text-sm-alt text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
       </div>
       {trailing ?? (
         <HugeiconsIcon

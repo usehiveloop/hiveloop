@@ -172,7 +172,7 @@ function EditAgentForm() {
           <div className="flex flex-col gap-2">
             {credentialsLoading ? (
               Array.from({ length: 2 }).map((_, i) => (
-                <Skeleton key={i} className="h-[60px] w-full rounded-xl" />
+                <Skeleton key={i} className="h-15 w-full rounded-xl" />
               ))
             ) : credentials.length === 0 ? (
               <p className="text-sm text-muted-foreground">No credentials yet.</p>
@@ -343,11 +343,11 @@ function EditAgentForm() {
                     <p className="text-sm font-medium text-foreground">{trigger.connectionName}</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {trigger.triggerKeys.map((key) => (
-                        <Badge key={key} variant="secondary" className="text-[10px] font-mono">{key}</Badge>
+                        <Badge key={key} variant="secondary" className="text-2xs font-mono">{key}</Badge>
                       ))}
                     </div>
                     {trigger.conditions && trigger.conditions.conditions.length > 0 && (
-                      <p className="text-[11px] text-muted-foreground mt-1">
+                      <p className="text-mini text-muted-foreground mt-1">
                         {trigger.conditions.conditions.length} filter{trigger.conditions.conditions.length !== 1 ? "s" : ""}
                       </p>
                     )}

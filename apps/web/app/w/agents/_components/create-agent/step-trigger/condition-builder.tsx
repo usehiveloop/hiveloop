@@ -113,7 +113,7 @@ export function ConditionBuilderView({ triggerDisplayNames, refs, initialConditi
       <div className="flex flex-col gap-3 mt-4 flex-1 overflow-y-auto">
         {/* Event context */}
         <div className="rounded-xl bg-muted/50 p-3">
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {triggerDisplayNames.join(", ")}
           </p>
         </div>
@@ -129,7 +129,7 @@ export function ConditionBuilderView({ triggerDisplayNames, refs, initialConditi
           >
             <div>
               <Label className="text-sm">Match all conditions</Label>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
+              <p className="text-mini text-muted-foreground mt-0.5">
                 {matchAll ? "All conditions must pass (AND)" : "Any condition can pass (OR)"}
               </p>
             </div>
@@ -149,7 +149,7 @@ export function ConditionBuilderView({ triggerDisplayNames, refs, initialConditi
             >
               <div className="rounded-xl bg-muted/50 border border-transparent p-4">
                 <div className="flex items-start justify-between mb-3">
-                  <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <span className="text-mini font-medium uppercase tracking-wider text-muted-foreground">
                     Condition {index + 1}
                   </span>
                   <button
@@ -164,13 +164,13 @@ export function ConditionBuilderView({ triggerDisplayNames, refs, initialConditi
                 <div className="flex flex-col gap-2.5">
                   {/* Field */}
                   <div className="flex flex-col gap-1.5">
-                    <Label className="text-[11px] text-muted-foreground">Field</Label>
+                    <Label className="text-mini text-muted-foreground">Field</Label>
                     {customPathIndex === index ? (
                       <Input
                         placeholder="payload.path"
                         value={condition.path}
                         onChange={(event) => updateCondition(index, "path", event.target.value)}
-                        className="font-mono text-[12px]"
+                        className="font-mono text-xs"
                         autoFocus
                       />
                     ) : (
@@ -181,7 +181,7 @@ export function ConditionBuilderView({ triggerDisplayNames, refs, initialConditi
                         <SelectContent>
                           {pathOptions.map((option) => (
                             <SelectItem key={option.path} value={option.path}>
-                              <span className="font-mono text-[11px]">{option.label}</span>
+                              <span className="font-mono text-mini">{option.label}</span>
                             </SelectItem>
                           ))}
                           <SelectItem value="__custom__">
@@ -194,7 +194,7 @@ export function ConditionBuilderView({ triggerDisplayNames, refs, initialConditi
 
                   {/* Operator */}
                   <div className="flex flex-col gap-1.5">
-                    <Label className="text-[11px] text-muted-foreground">Operator</Label>
+                    <Label className="text-mini text-muted-foreground">Operator</Label>
                     <Select value={condition.operator} onValueChange={(value) => updateCondition(index, "operator", value ?? "equals")}>
                       <SelectTrigger className="w-full">
                         <SelectValue />
@@ -216,12 +216,12 @@ export function ConditionBuilderView({ triggerDisplayNames, refs, initialConditi
                       transition={{ duration: 0.12 }}
                       className="flex flex-col gap-1.5"
                     >
-                      <Label className="text-[11px] text-muted-foreground">Value</Label>
+                      <Label className="text-mini text-muted-foreground">Value</Label>
                       <Input
                         placeholder="value"
                         value={typeof condition.value === "string" ? condition.value : String(condition.value ?? "")}
                         onChange={(event) => updateCondition(index, "value", event.target.value)}
-                        className="font-mono text-[12px]"
+                        className="font-mono text-xs"
                       />
                     </motion.div>
                   )}

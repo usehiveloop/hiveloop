@@ -40,8 +40,8 @@ function ConversationItem({ conversation, isActive, onClick, index }: {
           conversation.status === "active" ? "bg-green-500" : conversation.status === "error" ? "bg-destructive" : "bg-muted-foreground/15"
         }`} />
         <span className="flex-1 min-w-0">
-          <span className="text-[13px] font-medium truncate block leading-tight">{conversation.title}</span>
-          <span className="text-[11px] text-muted-foreground/40 font-mono mt-0.5 block">{conversation.date}</span>
+          <span className="text-sm-alt font-medium truncate block leading-tight">{conversation.title}</span>
+          <span className="text-mini text-muted-foreground/40 font-mono mt-0.5 block">{conversation.date}</span>
         </span>
       </span>
     </motion.button>
@@ -80,15 +80,15 @@ export default function ConversationsLayout({ children }: { children: React.Reac
 
   return (
     <div className="flex h-[calc(100vh-54px)] overflow-hidden bg-background">
-      <aside className="flex flex-col w-[300px] shrink-0 border-r border-border bg-sidebar h-full">
+      <aside className="flex flex-col w-75 shrink-0 border-r border-border bg-sidebar h-full">
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-border">
           <div className="flex items-center gap-2.5">
             <div className="h-7 w-7 rounded-xl bg-primary/15 flex items-center justify-center">
               <HugeiconsIcon icon={Robot01Icon} size={14} className="text-primary" />
             </div>
             <div>
-              <h2 className="text-[13px] font-semibold text-foreground leading-tight">{agent?.name ?? "Agent"}</h2>
-              <span className="text-[10px] text-muted-foreground/40 font-mono">{agent?.model ?? ""}</span>
+              <h2 className="text-sm-alt font-semibold text-foreground leading-tight">{agent?.name ?? "Agent"}</h2>
+              <span className="text-2xs text-muted-foreground/40 font-mono">{agent?.model ?? ""}</span>
             </div>
           </div>
           <button className="h-7 w-7 rounded-lg hover:bg-primary/8 flex items-center justify-center transition-colors">
@@ -99,7 +99,7 @@ export default function ConversationsLayout({ children }: { children: React.Reac
         <div className="px-3 py-2">
           <div className="flex items-center gap-2 rounded-xl bg-muted/30 px-3 py-2 cursor-text hover:bg-muted/50 transition-colors">
             <HugeiconsIcon icon={Search01Icon} size={13} className="text-muted-foreground/30" />
-            <span className="text-[12px] text-muted-foreground/30">Search conversations...</span>
+            <span className="text-xs text-muted-foreground/30">Search conversations...</span>
           </div>
         </div>
 
@@ -107,7 +107,7 @@ export default function ConversationsLayout({ children }: { children: React.Reac
           {Object.entries(grouped).map(([group, items]) => (
             <div key={group} className="mb-3">
               <div className="flex items-center gap-2 px-3 py-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-[1.5px] text-muted-foreground/25">{group}</span>
+                <span className="text-2xs font-semibold uppercase tracking-medium text-muted-foreground/25">{group}</span>
                 <div className="flex-1 h-px bg-border/40" />
               </div>
               {items.map((conv) => {
@@ -135,7 +135,7 @@ export default function ConversationsLayout({ children }: { children: React.Reac
             </div>
           ))}
           {conversations.length === 0 && (
-            <div className="flex items-center justify-center py-10 text-[12px] text-muted-foreground/40">
+            <div className="flex items-center justify-center py-10 text-xs text-muted-foreground/40">
               No conversations yet
             </div>
           )}

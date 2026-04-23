@@ -33,12 +33,12 @@ function CollapsibleMarkdown({ content }: CollapsibleMarkdownProps) {
   const displayed = expanded || !isLong ? content : content.slice(0, LONG_CONTENT_THRESHOLD) + "\n\n…"
 
   return (
-    <div className="text-[13px] leading-[1.6] text-foreground [&_pre]:my-2 [&_pre]:rounded-lg [&_pre]:bg-muted/60 [&_pre]:p-3 [&_pre]:text-[11px] [&_pre]:overflow-x-auto [&_code]:font-mono [&_code]:text-[11px] [&_p]:my-2 [&_ul]:my-2 [&_ul]:ml-5 [&_ul]:list-disc [&_ol]:my-2 [&_ol]:ml-5 [&_ol]:list-decimal [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-border/40 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_td]:border [&_td]:border-border/40 [&_td]:px-2 [&_td]:py-1 [&_h1]:my-2 [&_h1]:text-[15px] [&_h1]:font-semibold [&_h2]:my-2 [&_h2]:text-[14px] [&_h2]:font-semibold [&_h3]:my-2 [&_h3]:text-[13px] [&_h3]:font-semibold">
+    <div className="text-sm-alt leading-[1.6] text-foreground [&_pre]:my-2 [&_pre]:rounded-lg [&_pre]:bg-muted/60 [&_pre]:p-3 [&_pre]:text-mini [&_pre]:overflow-x-auto [&_code]:font-mono [&_code]:text-mini [&_p]:my-2 [&_ul]:my-2 [&_ul]:ml-5 [&_ul]:list-disc [&_ol]:my-2 [&_ol]:ml-5 [&_ol]:list-decimal [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-border/40 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_td]:border [&_td]:border-border/40 [&_td]:px-2 [&_td]:py-1 [&_h1]:my-2 [&_h1]:text-[15px] [&_h1]:font-semibold [&_h2]:my-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:my-2 [&_h3]:text-sm-alt [&_h3]:font-semibold">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayed}</ReactMarkdown>
       {isLong && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="mt-2 text-[11px] font-medium text-primary hover:underline cursor-pointer"
+          className="mt-2 text-mini font-medium text-primary hover:underline cursor-pointer"
         >
           {expanded ? "Show less" : `Show all (${content.length.toLocaleString()} chars)`}
         </button>
@@ -57,10 +57,10 @@ function ConversationCreatedItem({ timestamp }: SystemMarkerProps) {
       <div className="h-px flex-1 bg-border/30" />
       <div className="flex items-center gap-2 rounded-full bg-muted/30 px-3 py-1">
         <HugeiconsIcon icon={SparklesIcon} size={10} className="text-muted-foreground/50" />
-        <span className="text-[10px] text-muted-foreground/60 font-mono uppercase tracking-wider">
+        <span className="text-2xs text-muted-foreground/60 font-mono uppercase tracking-wider">
           Conversation started
         </span>
-        <span className="text-[10px] text-muted-foreground/30 font-mono">{formatTimestamp(timestamp)}</span>
+        <span className="text-2xs text-muted-foreground/30 font-mono">{formatTimestamp(timestamp)}</span>
       </div>
       <div className="h-px flex-1 bg-border/30" />
     </div>
@@ -71,7 +71,7 @@ function DoneItem({ timestamp }: SystemMarkerProps) {
   return (
     <div className="flex items-center justify-center gap-2 py-3">
       <div className="h-px flex-1 bg-border/30" />
-      <span className="text-[10px] text-muted-foreground/40 font-mono uppercase tracking-wider">
+      <span className="text-2xs text-muted-foreground/40 font-mono uppercase tracking-wider">
         Ended · {formatTimestamp(timestamp)}
       </span>
       <div className="h-px flex-1 bg-border/30" />
@@ -114,10 +114,10 @@ function TriggerMessageCard({ content, timestamp, index }: TriggerMessageCardPro
             <HugeiconsIcon icon={SparklesIcon} size={11} className="text-primary" />
           </div>
           <div className="flex-1 min-w-0 flex items-center gap-2">
-            <span className="font-mono text-[11px] font-medium text-foreground/70 shrink-0">Trigger</span>
+            <span className="font-mono text-mini font-medium text-foreground/70 shrink-0">Trigger</span>
             {preview && (
               <span
-                className="font-mono text-[11px] text-muted-foreground/50 truncate min-w-0"
+                className="font-mono text-mini text-muted-foreground/50 truncate min-w-0"
                 title={preview}
               >
                 <span className="text-muted-foreground/30 mr-1">·</span>
@@ -125,10 +125,10 @@ function TriggerMessageCard({ content, timestamp, index }: TriggerMessageCardPro
               </span>
             )}
           </div>
-          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground/70 shrink-0">
+          <span className="font-mono text-2xs px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground/70 shrink-0">
             {lineCount} lines
           </span>
-          <span className="font-mono text-[10px] text-muted-foreground/30 shrink-0">
+          <span className="font-mono text-2xs text-muted-foreground/30 shrink-0">
             {formatTimestamp(timestamp)}
           </span>
           <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.15 }}>
@@ -145,7 +145,7 @@ function TriggerMessageCard({ content, timestamp, index }: TriggerMessageCardPro
               className="overflow-hidden"
             >
               <div className="border-t border-border/30 px-4 py-3 max-h-[60vh] overflow-auto">
-                <div className="text-[13px] leading-[1.6] text-foreground [&_pre]:my-2 [&_pre]:rounded-lg [&_pre]:bg-muted/60 [&_pre]:p-3 [&_pre]:text-[11px] [&_pre]:overflow-x-auto [&_code]:font-mono [&_code]:text-[11px] [&_p]:my-2 [&_ul]:my-2 [&_ul]:ml-5 [&_ul]:list-disc [&_ol]:my-2 [&_ol]:ml-5 [&_ol]:list-decimal [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-border/40 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_td]:border [&_td]:border-border/40 [&_td]:px-2 [&_td]:py-1 [&_h1]:my-2 [&_h1]:text-[15px] [&_h1]:font-semibold [&_h2]:my-2 [&_h2]:text-[14px] [&_h2]:font-semibold [&_h3]:my-2 [&_h3]:text-[13px] [&_h3]:font-semibold">
+                <div className="text-sm-alt leading-[1.6] text-foreground [&_pre]:my-2 [&_pre]:rounded-lg [&_pre]:bg-muted/60 [&_pre]:p-3 [&_pre]:text-mini [&_pre]:overflow-x-auto [&_code]:font-mono [&_code]:text-mini [&_p]:my-2 [&_ul]:my-2 [&_ul]:ml-5 [&_ul]:list-disc [&_ol]:my-2 [&_ol]:ml-5 [&_ol]:list-decimal [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-border/40 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_td]:border [&_td]:border-border/40 [&_td]:px-2 [&_td]:py-1 [&_h1]:my-2 [&_h1]:text-[15px] [&_h1]:font-semibold [&_h2]:my-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:my-2 [&_h3]:text-sm-alt [&_h3]:font-semibold">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
                 </div>
               </div>
@@ -188,9 +188,9 @@ function AgentResponseItem({
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 mb-1.5">
-          <span className="text-[13px] font-semibold text-primary">Agent</span>
-          <span className="text-[10px] text-muted-foreground/30 font-mono">{formatTimestamp(timestamp)}</span>
-          {model && <span className="text-[10px] text-muted-foreground/25 font-mono">· {model}</span>}
+          <span className="text-sm-alt font-semibold text-primary">Agent</span>
+          <span className="text-2xs text-muted-foreground/30 font-mono">{formatTimestamp(timestamp)}</span>
+          {model && <span className="text-2xs text-muted-foreground/25 font-mono">· {model}</span>}
         </div>
         {status === "streaming" && !content ? (
           <div className="flex items-center gap-1.5 py-2">
@@ -204,7 +204,7 @@ function AgentResponseItem({
           </div>
         )}
         {status === "completed" && inputTokens != null && outputTokens != null && (
-          <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground/30 font-mono">
+          <div className="mt-2 flex items-center gap-3 text-2xs text-muted-foreground/30 font-mono">
             <span>↓ {formatTokens(inputTokens)}</span>
             <span>↑ {formatTokens(outputTokens)}</span>
           </div>
@@ -276,12 +276,12 @@ function ToolCallItem({
             />
           </div>
           <div className="flex-1 min-w-0 flex items-center gap-2">
-            <span className="font-mono text-[11px] font-medium text-foreground/70 shrink-0 truncate max-w-[55%]">
+            <span className="font-mono text-mini font-medium text-foreground/70 shrink-0 truncate max-w-[55%]">
               {toolName}
             </span>
             {subtitle && (
               <span
-                className="font-mono text-[11px] text-muted-foreground/50 truncate min-w-0"
+                className="font-mono text-mini text-muted-foreground/50 truncate min-w-0"
                 title={subtitleFull ?? subtitle}
               >
                 <span className="text-muted-foreground/30 mr-1">·</span>
@@ -294,7 +294,7 @@ function ToolCallItem({
               {meta.map((badge) => (
                 <span
                   key={badge}
-                  className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground/70"
+                  className="font-mono text-2xs px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground/70"
                 >
                   {badge}
                 </span>
@@ -309,7 +309,7 @@ function ToolCallItem({
             </div>
           ) : (
             durationMs != null && (
-              <span className="font-mono text-[10px] text-muted-foreground/30 shrink-0">
+              <span className="font-mono text-2xs text-muted-foreground/30 shrink-0">
                 {formatDuration(durationMs)}
               </span>
             )
@@ -333,7 +333,7 @@ function ToolCallItem({
                 {Object.keys(args).length > 0 && (
                   <div className="rounded-lg bg-muted/40 p-2.5">
                     {Object.entries(args).map(([key, value]) => (
-                      <div key={key} className="font-mono text-[10px] leading-relaxed">
+                      <div key={key} className="font-mono text-2xs leading-relaxed">
                         <span className="text-muted-foreground/50">{key}: </span>
                         <span className="text-foreground/70 whitespace-pre-wrap break-all">
                           {formatArg(value)}
@@ -344,7 +344,7 @@ function ToolCallItem({
                 )}
                 {result && (
                   <div className="rounded-lg bg-muted/40 p-2.5 max-h-80 overflow-auto">
-                    <pre className="font-mono text-[10px] text-foreground/70 whitespace-pre-wrap break-all leading-relaxed">
+                    <pre className="font-mono text-2xs text-foreground/70 whitespace-pre-wrap break-all leading-relaxed">
                       {result}
                     </pre>
                   </div>
@@ -368,7 +368,7 @@ interface TurnSummaryItemProps {
 function TurnSummaryItem({ turnNumber, model, inputTokens, outputTokens }: TurnSummaryItemProps) {
   return (
     <div className="flex items-center justify-center gap-2 py-1.5">
-      <div className="flex items-center gap-2 rounded-full bg-muted/20 px-3 py-1 text-[10px] font-mono text-muted-foreground/40">
+      <div className="flex items-center gap-2 rounded-full bg-muted/20 px-3 py-1 text-2xs font-mono text-muted-foreground/40">
         <HugeiconsIcon icon={FlashIcon} size={10} className="text-muted-foreground/40" />
         <span>turn {turnNumber}</span>
         <span>·</span>

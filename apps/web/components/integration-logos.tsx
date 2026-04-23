@@ -41,7 +41,7 @@ export function IntegrationLogos({ integrations, max = 4, size = 20, className }
             ))}
             {overflow > 0 && (
               <span
-                className="flex items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground"
+                className="flex items-center justify-center rounded-full border-2 border-background bg-muted text-2xs font-medium text-muted-foreground"
                 style={{
                   marginLeft: -(size * 0.3),
                   width: size,
@@ -65,7 +65,7 @@ export function IntegrationLogos({ integrations, max = 4, size = 20, className }
             <div className="flex flex-col gap-0.5 min-w-0">
               <span className="text-xs font-medium">{integration.name}</span>
               {integration.actions.length > 0 && (
-                <span className="text-[10px] opacity-70 leading-relaxed">
+                <span className="text-2xs opacity-70 leading-relaxed">
                   {integration.actions.join(", ")}
                 </span>
               )}

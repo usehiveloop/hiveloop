@@ -17,13 +17,13 @@ const proseComponents = {
   h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
     <h1
       {...props}
-      className="font-heading text-3xl sm:text-4xl font-bold text-foreground mt-12 -tracking-[0.5px]"
+      className="font-heading text-3xl sm:text-4xl font-bold text-foreground mt-12 -tracking-micro"
     />
   ),
   h2: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
     <h2
       {...props}
-      className="font-heading text-2xl sm:text-3xl font-bold text-foreground mt-10 -tracking-[0.5px]"
+      className="font-heading text-2xl sm:text-3xl font-bold text-foreground mt-10 -tracking-micro"
     />
   ),
   h3: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
@@ -75,7 +75,7 @@ const proseComponents = {
     // Block-level code (inside <pre>) gets `language-...` className from MDX —
     // skip our pill styling so the pre/code combo renders as a code block.
     if (className && className.startsWith("language-")) {
-      return <code {...props} className={`${className} font-mono text-[13px] leading-relaxed text-white/80`} />
+      return <code {...props} className={`${className} font-mono text-sm-alt leading-relaxed text-white/80`} />
     }
     return (
       <code
@@ -98,7 +98,7 @@ const proseComponents = {
           <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
           <span className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
           {title && (
-            <span className="flex-1 text-center font-mono text-[10px] text-white/25">{title}</span>
+            <span className="flex-1 text-center font-mono text-2xs text-white/25">{title}</span>
           )}
         </div>
         <pre {...rest} className="p-4 sm:p-5 overflow-x-auto">
@@ -142,10 +142,10 @@ export default async function BlogPostPage(props: PageProps) {
           }}
         />
         <div className="relative max-w-3xl mx-auto px-4 pt-16 sm:pt-24 pb-16 sm:pb-20 flex flex-col items-center text-center gap-6">
-          <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
+          <span className="font-mono text-mini font-medium uppercase tracking-medium text-primary">
             {category}
           </span>
-          <h1 className="font-heading text-[32px] sm:text-[44px] lg:text-[56px] font-bold text-foreground leading-[1.1] -tracking-[1px]">
+          <h1 className="font-heading text-[32px] sm:text-[44px] lg:text-[56px] font-bold text-foreground leading-[1.1] -tracking-small">
             {title}
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-2xl">

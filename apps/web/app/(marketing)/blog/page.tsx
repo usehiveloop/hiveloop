@@ -57,10 +57,10 @@ export default function BlogIndex() {
       <div className="max-w-6xl mx-auto w-full px-4 pb-24">
         {/* Header */}
         <div className="flex flex-col gap-2 pt-12 sm:pt-20 pb-10 sm:pb-14">
-          <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
+          <p className="font-mono text-mini font-medium uppercase tracking-medium text-primary">
             Blog
           </p>
-          <h1 className="font-heading text-[28px] sm:text-[36px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px]">
+          <h1 className="font-heading text-[28px] sm:text-[36px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-micro">
             Stories from the team
           </h1>
         </div>
@@ -90,7 +90,7 @@ export default function BlogIndex() {
               <div className="relative p-8 sm:p-12 lg:p-16 flex flex-col gap-5 max-w-3xl">
                 <div className="flex items-center gap-3">
                   <span
-                    className={`font-mono text-[11px] font-medium uppercase tracking-wider ${
+                    className={`font-mono text-mini font-medium uppercase tracking-wider ${
                       categoryColors[featured.category] ?? "text-primary"
                     }`}
                   >
@@ -100,7 +100,7 @@ export default function BlogIndex() {
                     {formatDate(featured.date)}
                   </span>
                 </div>
-                <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[40px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] group-hover:text-primary transition-colors">
+                <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[40px] font-bold text-foreground leading-[1.15] -tracking-micro group-hover:text-primary transition-colors">
                   {featured.title}
                 </h2>
                 <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
@@ -139,7 +139,7 @@ export default function BlogIndex() {
                 >
                   <div className="flex items-center gap-3">
                     <span
-                      className={`font-mono text-[11px] font-medium uppercase tracking-wider ${
+                      className={`font-mono text-mini font-medium uppercase tracking-wider ${
                         categoryColors[post.category] ?? "text-primary"
                       }`}
                     >
@@ -208,10 +208,10 @@ export default function BlogIndex() {
           />
           <div className="relative p-8 sm:p-12 lg:p-16 flex flex-col lg:flex-row lg:items-center gap-8 lg:gap-16">
             <div className="flex flex-col gap-3 lg:flex-1">
-              <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
+              <span className="font-mono text-mini font-medium uppercase tracking-medium text-primary">
                 Newsletter
               </span>
-              <h2 className="font-heading text-[22px] sm:text-[28px] font-bold text-foreground leading-[1.2] -tracking-[0.5px]">
+              <h2 className="font-heading text-[22px] sm:text-[28px] font-bold text-foreground leading-[1.2] -tracking-micro">
                 Stay in the loop
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-md">
