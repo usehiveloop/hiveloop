@@ -36,8 +36,21 @@ type EventPublisher interface {
 	Publish(ctx context.Context, convID string, eventType string, data json.RawMessage) (string, error)
 }
 
-// NewBridgeWebhookHandler creates a webhook handler.
+// webhookTimestampTolerance bounds the allowed clock skew between Bridge and
+// this server when validating X-Webhook-Timestamp. Requests older or newer
+// than this window are rejected to prevent replay of captured payloads.
+const webhookTimestampTolerance = 5 * time.Minute
+
+// NewBridgeWebhookHandler creates a webhook handler. The encryption key is
+// required: HMAC verification of inbound Bridge events depends on decrypting
+// the per-sandbox Bridge API key, and a nil key would make verification
+// impossible. Rather than silently skipping verification (which would let any
+// caller forge events for any sandbox), we panic here so misconfiguration is
+// caught at boot rather than surfacing as a runtime security hole.
 func NewBridgeWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey, eventBus EventPublisher, enqueuer enqueue.TaskEnqueuer) *BridgeWebhookHandler {
+	if encKey == nil {
+		panic("handler: NewBridgeWebhookHandler requires a non-nil sandbox encryption key; refusing to wire webhook routes without HMAC verification")
+	}
 	return &BridgeWebhookHandler{db: db, encKey: encKey, eventBus: eventBus, enqueuer: enqueuer}
 }
 
@@ -85,32 +98,59 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify HMAC signature
-	if h.encKey != nil {
-		secret, err := h.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
-		if err != nil {
-			slog.Error("webhook: failed to decrypt bridge api key", "sandbox_id", sandboxID, "error", err)
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "signature verification failed"})
-			return
-		}
+	// Verify HMAC signature. The encryption key is required at construction
+	// time (see NewBridgeWebhookHandler), so this branch must always run —
+	// there is no "skip verification when key is nil" path.
+	if h.encKey == nil {
+		// Defensive guard in case a caller bypassed the constructor by
+		// zero-initializing the struct. Treat as a 500 (misconfig), not a
+		// silent accept.
+		slog.Error("webhook: handler missing encryption key; refusing to verify signature", "sandbox_id", sandboxID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "webhook signing not configured"})
+		return
+	}
 
-		signature := r.Header.Get("X-Webhook-Signature")
-		timestampStr := r.Header.Get("X-Webhook-Timestamp")
-		if signature == "" || timestampStr == "" {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing signature headers"})
-			return
-		}
+	secret, err := h.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
+	if err != nil {
+		slog.Error("webhook: failed to decrypt bridge api key", "sandbox_id", sandboxID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "signature verification failed"})
+		return
+	}
 
-		timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
-		if err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid timestamp"})
-			return
-		}
+	signature := r.Header.Get("X-Webhook-Signature")
+	timestampStr := r.Header.Get("X-Webhook-Timestamp")
+	if signature == "" || timestampStr == "" {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing signature headers"})
+		return
+	}
 
-		if !verifyWebhookSignature(body, secret, timestamp, signature) {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid signature"})
-			return
-		}
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid timestamp"})
+		return
+	}
+
+	// Reject stale or far-future timestamps to block replay of captured
+	// payloads. The timestamp is already bound into the HMAC (see
+	// verifyWebhookSignature below), so an attacker cannot rewrite it to a
+	// fresh value without also forging the signature — but if we skipped this
+	// check, a legitimately signed payload could be replayed indefinitely.
+	skew := time.Since(time.Unix(timestamp, 0))
+	if skew < 0 {
+		skew = -skew
+	}
+	if skew > webhookTimestampTolerance {
+		slog.Warn("webhook: rejecting stale timestamp",
+			"sandbox_id", sandboxID,
+			"skew_seconds", int64(skew.Seconds()),
+		)
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "stale webhook timestamp"})
+		return
+	}
+
+	if !verifyWebhookSignature(body, secret, timestamp, signature) {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid signature"})
+		return
 	}
 
 	// Parse batch of events
