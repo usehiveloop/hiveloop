@@ -6,18 +6,20 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/bootstrap"
+	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
 func setupV1Routes(
 	r chi.Router,
-	cfg *bootstrap.Config,
+	cfg *config.Config,
 	rsaPub *rsa.PublicKey,
 	database *gorm.DB,
-	apiKeyCache bootstrap.APIKeyCache,
+	apiKeyCache *cache.APIKeyCache,
 	enqueuer enqueue.TaskEnqueuer,
 	orgHandler *handler.OrgHandler,
 	orgInviteHandler *handler.OrgInviteHandler,
@@ -38,7 +40,7 @@ func setupV1Routes(
 	systemConvHandler *handler.SystemConversationHandler,
 	routerHandler *handler.RouterHandler,
 	customDomainHandler *handler.CustomDomainHandler,
-	orchestrator bootstrap.Orchestrator,
+	orchestrator *sandbox.Orchestrator,
 	auditWriter *middleware.AuditWriter,
 ) {
 	r.Route("/v1", func(r chi.Router) {
@@ -232,7 +234,7 @@ func setupV1Routes(
 
 func setupConnectRoutes(
 	r chi.Router,
-	cfg *bootstrap.Config,
+	cfg *config.Config,
 	rsaPub *rsa.PublicKey,
 	database *gorm.DB,
 	platformAdminEmails []string,
