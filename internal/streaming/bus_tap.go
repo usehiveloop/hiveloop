@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"context"
+	"encoding/json"
 )
 
 func (t *convTap) attach() (*subscriber, string) {

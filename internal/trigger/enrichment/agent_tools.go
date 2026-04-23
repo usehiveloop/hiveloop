@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 
