@@ -84,6 +84,11 @@ type Config struct {
 
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:","`
+	// AdminCORSOrigins is a stricter allowlist for /admin/v1/* routes. When
+	// empty, admin endpoints emit NO CORS headers — admin APIs are
+	// authenticated-only and not intended to be consumed from arbitrary
+	// browser origins. Should be a documented subset of CORS_ORIGINS.
+	AdminCORSOrigins []string `env:"ADMIN_CORS_ORIGINS" envSeparator:","`
 
 	// Nango (OAuth integration proxy)
 	NangoEndpoint  string `env:"NANGO_ENDPOINT"`    // e.g. http://localhost:3004

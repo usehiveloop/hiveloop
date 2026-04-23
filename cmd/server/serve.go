@@ -143,7 +143,11 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	r.Use(chimw.RealIP)
 	r.Use(posthogobs.Recoverer(deps.PostHog))
 	r.Use(middleware.SecurityHeaders())
-	r.Use(middleware.CORS(cfg.CORSOrigins))
+	corsMW, err := middleware.CORS(cfg.Environment, cfg.CORSOrigins)
+	if err != nil {
+		return fmt.Errorf("configure CORS middleware: %w", err)
+	}
+	r.Use(corsMW)
 	r.Use(middleware.RequestLog(logger))
 
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)

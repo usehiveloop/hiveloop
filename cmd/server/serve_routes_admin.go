@@ -31,6 +31,7 @@ func setupAdminRoutes(
 		adminHandler := handler.NewAdminHandler(database, deps.Orchestrator, deps.NangoClient, deps.ActionsCatalog,
 			deps.RSAKey, deps.SigningKey, cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL, enqueuer)
 		r.Route("/admin/v1", func(r chi.Router) {
+			r.Use(middleware.AdminCORS(cfg.AdminCORSOrigins))
 			r.Use(middleware.RequireAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience))
 			r.Use(middleware.RequireEmailConfirmed(database))
 			r.Use(middleware.ResolveUser(database))
