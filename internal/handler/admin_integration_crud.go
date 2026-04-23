@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"time"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -134,11 +136,6 @@ func (h *AdminHandler) GetInIntegration(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, toAdminInIntegrationResponse(integ))
 }
 
-type adminUpdateInIntegrationRequest struct {
-	DisplayName *string            `json:"display_name,omitempty"`
-	Credentials *nango.Credentials `json:"credentials,omitempty"`
-	Meta        model.JSON         `json:"meta,omitempty"`
-}
 
 // UpdateInIntegration handles PUT /admin/v1/in-integrations/{id}.
 // @Summary Update a platform integration

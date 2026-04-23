@@ -1,14 +1,11 @@
 package handler
 
 import (
-	"fmt"
+	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
@@ -113,14 +110,6 @@ func (h *AdminHandler) CreateSkill(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, toAdminSkillResponse(skill))
 }
 
-type adminUpdateSkillRequest struct {
-	Name        *string   `json:"name,omitempty"`
-	Description *string   `json:"description,omitempty"`
-	Status      *string   `json:"status,omitempty"`
-	Featured    *bool     `json:"featured,omitempty"`
-	Tags        *[]string `json:"tags,omitempty"`
-	RepoRef     *string   `json:"repo_ref,omitempty"`
-}
 
 // UpdateSkill handles PUT /admin/v1/skills/{id}.
 // @Summary Update a skill

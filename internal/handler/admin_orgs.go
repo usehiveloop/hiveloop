@@ -1,7 +1,8 @@
 package handler
 
 import (
-	"fmt"
+	"time"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 

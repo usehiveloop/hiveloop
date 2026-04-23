@@ -1,17 +1,9 @@
 package handler
 
 import (
-	"encoding/json"
-	"fmt"
-	"log/slog"
 	"net/http"
-	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
-	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 

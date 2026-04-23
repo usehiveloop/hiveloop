@@ -2,25 +2,16 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/registry"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
-	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
 type AgentPusher interface {
