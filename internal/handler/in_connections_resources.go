@@ -10,7 +10,6 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/resources"
 )
 
 // @Summary List available resources for a connection
