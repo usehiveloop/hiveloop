@@ -46,6 +46,32 @@ type generationResponse struct {
 	CreatedAt       string   `json:"created_at"`
 }
 
+// redactedGenerationResponse mirrors generationResponse but omits fields that
+// identify the originating user (user_id) or reveal network-level PII
+// (ip_address). It is returned to callers who are not admin/owner of the org.
+type redactedGenerationResponse struct {
+	ID              string   `json:"id"`
+	OrgID           string   `json:"org_id"`
+	CredentialID    string   `json:"credential_id"`
+	TokenJTI        string   `json:"token_jti"`
+	ProviderID      string   `json:"provider_id"`
+	Model           string   `json:"model"`
+	RequestPath     string   `json:"request_path"`
+	IsStreaming     bool     `json:"is_streaming"`
+	InputTokens     int      `json:"input_tokens"`
+	OutputTokens    int      `json:"output_tokens"`
+	CachedTokens    int      `json:"cached_tokens"`
+	ReasoningTokens int      `json:"reasoning_tokens"`
+	Cost            float64  `json:"cost"`
+	TTFBMs          *int     `json:"ttfb_ms,omitempty"`
+	TotalMs         int      `json:"total_ms"`
+	UpstreamStatus  int      `json:"upstream_status"`
+	Tags            []string `json:"tags,omitempty"`
+	ErrorType       string   `json:"error_type,omitempty"`
+	ErrorMessage    string   `json:"error_message,omitempty"`
+	CreatedAt       string   `json:"created_at"`
+}
+
 func toGenerationResponse(g model.Generation) generationResponse {
 	resp := generationResponse{
 		ID:              g.ID,
@@ -69,6 +95,35 @@ func toGenerationResponse(g model.Generation) generationResponse {
 		ErrorType:       g.ErrorType,
 		ErrorMessage:    g.ErrorMessage,
 		IPAddress:       g.IPAddress,
+		CreatedAt:       g.CreatedAt.Format(time.RFC3339),
+	}
+	if resp.Tags == nil {
+		resp.Tags = []string{}
+	}
+	return resp
+}
+
+func toRedactedGenerationResponse(g model.Generation) redactedGenerationResponse {
+	resp := redactedGenerationResponse{
+		ID:              g.ID,
+		OrgID:           g.OrgID.String(),
+		CredentialID:    g.CredentialID.String(),
+		TokenJTI:        g.TokenJTI,
+		ProviderID:      g.ProviderID,
+		Model:           g.Model,
+		RequestPath:     g.RequestPath,
+		IsStreaming:     g.IsStreaming,
+		InputTokens:     g.InputTokens,
+		OutputTokens:    g.OutputTokens,
+		CachedTokens:    g.CachedTokens,
+		ReasoningTokens: g.ReasoningTokens,
+		Cost:            g.Cost,
+		TTFBMs:          g.TTFBMs,
+		TotalMs:         g.TotalMs,
+		UpstreamStatus:  g.UpstreamStatus,
+		Tags:            g.Tags,
+		ErrorType:       g.ErrorType,
+		ErrorMessage:    g.ErrorMessage,
 		CreatedAt:       g.CreatedAt.Format(time.RFC3339),
 	}
 	if resp.Tags == nil {
@@ -107,7 +162,11 @@ func (h *GenerationHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, toGenerationResponse(gen))
+	if middleware.IsOrgAdmin(h.db, r.Context()) {
+		writeJSON(w, http.StatusOK, toGenerationResponse(gen))
+		return
+	}
+	writeJSON(w, http.StatusOK, toRedactedGenerationResponse(gen))
 }
 
 // List handles GET /v1/generations.
@@ -180,21 +239,34 @@ func (h *GenerationHandler) List(w http.ResponseWriter, r *http.Request) {
 		gens = gens[:limit]
 	}
 
-	items := make([]generationResponse, len(gens))
-	for i, g := range gens {
-		items[i] = toGenerationResponse(g)
-	}
-
-	resp := paginatedResponse[generationResponse]{
-		Data:    items,
-		HasMore: hasMore,
-	}
+	var nextCursor *string
 	if hasMore && len(gens) > 0 {
 		last := gens[len(gens)-1]
 		// Use string cursor for generation IDs (not UUID)
 		c := encodeCursor(last.CreatedAt, last.OrgID) // reuse org_id as placeholder for cursor encoding
-		resp.NextCursor = &c
+		nextCursor = &c
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	if middleware.IsOrgAdmin(h.db, r.Context()) {
+		items := make([]generationResponse, len(gens))
+		for i, g := range gens {
+			items[i] = toGenerationResponse(g)
+		}
+		writeJSON(w, http.StatusOK, paginatedResponse[generationResponse]{
+			Data:       items,
+			HasMore:    hasMore,
+			NextCursor: nextCursor,
+		})
+		return
+	}
+
+	redacted := make([]redactedGenerationResponse, len(gens))
+	for i, g := range gens {
+		redacted[i] = toRedactedGenerationResponse(g)
+	}
+	writeJSON(w, http.StatusOK, paginatedResponse[redactedGenerationResponse]{
+		Data:       redacted,
+		HasMore:    hasMore,
+		NextCursor: nextCursor,
+	})
 }

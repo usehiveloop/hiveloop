@@ -107,8 +107,11 @@ type usageResponse struct {
 	TokenVolumes   []tokenVolumes  `json:"token_volumes"`
 	Latency        []latencyStats  `json:"latency"`
 	TopModels      []topModel      `json:"top_models"`
-	TopUsers       []topUser       `json:"top_users"`
-	ErrorRates     []errorRate     `json:"error_rates"`
+	// TopUsers contains per-user request counts and cost attribution. It is
+	// only populated for callers with owner/admin role in the org so we do
+	// not leak individual spending patterns or user IDs to regular members.
+	TopUsers   []topUser   `json:"top_users"`
+	ErrorRates []errorRate `json:"error_rates"`
 }
 
 // Get handles GET /v1/usage.
@@ -133,6 +136,8 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 	last7d := today.AddDate(0, 0, -7)
 	last30d := today.AddDate(0, 0, -30)
 	orgID := org.ID
+
+	isAdmin := middleware.IsOrgAdmin(h.db, r.Context())
 
 	var resp usageResponse
 	p := pool.New().WithErrors().WithMaxGoroutines(12)
@@ -187,11 +192,13 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 		resp.TopModels, err = h.queryTopModels(orgID, last30d)
 		return err
 	})
-	p.Go(func() error {
-		var err error
-		resp.TopUsers, err = h.queryTopUsers(orgID, last30d)
-		return err
-	})
+	if isAdmin {
+		p.Go(func() error {
+			var err error
+			resp.TopUsers, err = h.queryTopUsers(orgID, last30d)
+			return err
+		})
+	}
 	p.Go(func() error {
 		var err error
 		resp.ErrorRates, err = h.queryErrorRates(orgID, last30d)

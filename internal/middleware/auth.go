@@ -169,6 +169,29 @@ func RequireOrgAdmin(db *gorm.DB) func(http.Handler) http.Handler {
 	}
 }
 
+// IsOrgAdmin reports whether the caller is an "owner" or "admin" of the
+// organization resolved on the request context. Intended for handlers that
+// need field-level filtering based on role without rejecting the request
+// outright (unlike RequireOrgAdmin).
+func IsOrgAdmin(db *gorm.DB, ctx context.Context) bool {
+	if db == nil || ctx == nil {
+		return false
+	}
+	claims, ok := AuthClaimsFromContext(ctx)
+	if !ok || claims == nil || claims.UserID == "" {
+		return false
+	}
+	org, ok := OrgFromContext(ctx)
+	if !ok || org == nil {
+		return false
+	}
+	var m model.OrgMembership
+	if err := db.Where("user_id = ? AND org_id = ?", claims.UserID, org.ID).First(&m).Error; err != nil {
+		return false
+	}
+	return m.Role == "owner" || m.Role == "admin"
+}
+
 // RequirePlatformAdmin returns middleware that checks if the authenticated user's
 // email is in the platform admin allowlist.
 func RequirePlatformAdmin(adminEmails []string) func(http.Handler) http.Handler {
