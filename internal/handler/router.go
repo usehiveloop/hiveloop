@@ -135,6 +135,13 @@ func (handler *RouterHandler) UpdateRouter(writer http.ResponseWriter, request *
 				writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid default_agent_id"})
 				return
 			}
+			// Verify the agent belongs to the caller's org to prevent
+			// cross-tenant routing (see security issue #48).
+			var agent model.Agent
+			if err := handler.db.Select("id").Where("id = ? AND org_id = ?", parsed, org.ID).First(&agent).Error; err != nil {
+				writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid default_agent_id"})
+				return
+			}
 			updates["default_agent_id"] = parsed
 		}
 	}
@@ -220,6 +227,13 @@ func (handler *RouterHandler) CreateTrigger(writer http.ResponseWriter, request 
 		}
 		connectionID, err := uuid.Parse(body.ConnectionID)
 		if err != nil {
+			writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid connection_id"})
+			return
+		}
+		// Verify the connection belongs to the caller's org to prevent
+		// cross-tenant trigger references (see security issue #54).
+		var connection model.InConnection
+		if err := handler.db.Select("id").Where("id = ? AND org_id = ?", connectionID, org.ID).First(&connection).Error; err != nil {
 			writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid connection_id"})
 			return
 		}
@@ -350,6 +364,14 @@ func (handler *RouterHandler) CreateRule(writer http.ResponseWriter, request *ht
 
 	agentID, err := uuid.Parse(body.AgentID)
 	if err != nil {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
+		return
+	}
+
+	// Verify the agent belongs to the caller's org to prevent cross-tenant
+	// routing rules (see security issue #49).
+	var agent model.Agent
+	if err := handler.db.Select("id").Where("id = ? AND org_id = ?", agentID, org.ID).First(&agent).Error; err != nil {
 		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
 		return
 	}
