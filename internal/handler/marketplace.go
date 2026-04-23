@@ -2,14 +2,10 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
-	"sort"
-	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 

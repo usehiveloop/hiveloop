@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
+	"gorm.io/gorm"
 )
 
 type adminUpdateMarketplaceAgentRequest struct {
