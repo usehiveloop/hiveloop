@@ -62,8 +62,25 @@ func repoRoot() (string, error) {
 // buildRagEngineBinary compiles `rag-engine-server` once per test run.
 // Fails fast with a clear message when cargo is absent — we never
 // substitute a mock.
+//
+// RAG_ENGINE_BIN env var short-circuits the cargo build when set to an
+// existing executable file. CI pre-compiles once and hands every shard
+// the path, avoiding 5× of redundant per-shard builds.
 func buildRagEngineBinary() (string, error) {
 	ragEngineBuildOnce.Do(func() {
+		if override := os.Getenv("RAG_ENGINE_BIN"); override != "" {
+			info, err := os.Stat(override)
+			if err != nil {
+				ragEngineBuildErr = fmt.Errorf("RAG_ENGINE_BIN=%s: %w", override, err)
+				return
+			}
+			if !info.Mode().IsRegular() {
+				ragEngineBuildErr = fmt.Errorf("RAG_ENGINE_BIN=%s is not a regular file", override)
+				return
+			}
+			ragEngineBinaryPath = override
+			return
+		}
 		root, err := repoRoot()
 		if err != nil {
 			ragEngineBuildErr = err
