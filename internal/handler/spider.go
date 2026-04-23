@@ -194,10 +194,7 @@ func (handler *SpiderHandler) recordUsage(r *http.Request, toolName, input strin
 
 // recordUsageCount is the core usage recording method that takes an explicit result count.
 func (handler *SpiderHandler) recordUsageCount(r *http.Request, toolName, input string, resultCount int, callErr error, duration time.Duration) {
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok {
-		return
-	}
+	claims, _ := middleware.ClaimsFromContext(r.Context())
 
 	orgID, _ := uuid.Parse(claims.OrgID)
 	agentID := handler.lookupAgentID(claims.JTI)
