@@ -169,21 +169,43 @@ func StartRagEngineInTestMode(t *testing.T, cfg RagEngineConfig) *RagEngineInsta
 		t.Fatalf("build rag-engine: %v", err)
 	}
 
-	addr := pickFreePort(t)
+	// Port-race retry: pickFreePort → cmd.Start is inherently racy
+	// because the kernel can reassign the just-released ephemeral port
+	// before the Rust process binds it. Up to 3 attempts to absorb that.
 	secret := mustRandomHex(t, 32)
+	const maxAttempts = 3
+	var (
+		addr string
+		cmd  *exec.Cmd
+	)
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		addr = pickFreePort(t)
+		env := buildChildEnv(cfg, addr, secret)
+		cmd = exec.Command(bin)
+		cmd.Env = env
+		cmd.Stdout = os.Stderr
+		cmd.Stderr = os.Stderr
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
-	env := buildChildEnv(cfg, addr, secret)
-
-	cmd := exec.Command(bin)
-	cmd.Env = env
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	// Own process group: prevents ctrl-c from the Go test harness
-	// racing against our SIGTERM.
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-
-	if err := cmd.Start(); err != nil {
-		t.Fatalf("start rag-engine at %s: %v", bin, err)
+		if err := cmd.Start(); err != nil {
+			if attempt == maxAttempts {
+				t.Fatalf("start rag-engine at %s after %d attempts: %v", bin, attempt, err)
+			}
+			t.Logf("start rag-engine attempt %d: %v — retrying", attempt, err)
+			continue
+		}
+		if err := waitForServing(addr, cfg.BootTimeout); err != nil {
+			if cmd.Process != nil {
+				_ = cmd.Process.Signal(syscall.SIGTERM)
+				_ = cmd.Wait()
+			}
+			if attempt == maxAttempts {
+				t.Fatalf("rag-engine never became SERVING on %s within %s after %d attempts: %v", addr, cfg.BootTimeout, attempt, err)
+			}
+			t.Logf("rag-engine not SERVING attempt %d on %s: %v — retrying", attempt, addr, err)
+			continue
+		}
+		break
 	}
 
 	inst := &RagEngineInstance{
@@ -210,11 +232,6 @@ func StartRagEngineInTestMode(t *testing.T, cfg RagEngineConfig) *RagEngineInsta
 			_ = inst.Client.Close()
 		}
 	})
-
-	if err := waitForServing(addr, cfg.BootTimeout); err != nil {
-		inst.Stop()
-		t.Fatalf("rag-engine never became SERVING on %s within %s: %v", addr, cfg.BootTimeout, err)
-	}
 
 	client, err := ragclient.New(context.Background(), ragclient.Config{
 		Endpoint:     addr,
