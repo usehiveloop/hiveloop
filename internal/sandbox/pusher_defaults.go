@@ -3,7 +3,6 @@ package sandbox
 import (
 	"strings"
 
-	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
 func defaultMaxTokens(providerID, modelName string) int32 {

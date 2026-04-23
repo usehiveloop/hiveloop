@@ -6,9 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 

@@ -2,7 +2,6 @@ package sandbox
 
 import (
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
-	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
 const (

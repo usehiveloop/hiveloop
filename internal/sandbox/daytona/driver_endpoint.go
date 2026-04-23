@@ -7,8 +7,6 @@ import (
 	"io"
 	"net/http"
 	"time"
-
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
 func (d *Driver) GetEndpoint(ctx context.Context, externalID string, port int) (string, error) {

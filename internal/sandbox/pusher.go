@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"

@@ -1,7 +1,6 @@
 package daytona
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
