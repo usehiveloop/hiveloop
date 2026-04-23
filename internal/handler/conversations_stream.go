@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/streaming"
 )
 
 // Stream handles GET /v1/conversations/{convID}/stream (SSE proxy).

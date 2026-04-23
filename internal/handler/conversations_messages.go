@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
