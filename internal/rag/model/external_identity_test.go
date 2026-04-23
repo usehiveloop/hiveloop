@@ -12,20 +12,16 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
 
-// setup1E connects to the test DB, runs the 1E tranche migration (since
-// 1F has not wired it into the central rag.AutoMigrate yet), and returns
-// the *gorm.DB. Per-test cleanup of rag_external_identities rows piggybacks
-// on the fixture-level org cleanup since the FK cascades.
-func setup1E(t *testing.T) *gorm.DB {
+// setupExternalIdentity connects to the test DB (which calls
+// rag.AutoMigrate internally, creating every rag_* table) and scrubs
+// any orphan rag_external_identities rows from prior aborted runs.
+func setupExternalIdentity(t *testing.T) *gorm.DB {
 	t.Helper()
 	db := testhelpers.ConnectTestDB(t)
-	if err := ragmodel.AutoMigrate1E(db); err != nil {
-		t.Fatalf("AutoMigrate1E: %v", err)
-	}
-	// Belt-and-suspenders: if a prior test aborted mid-flight the tranche
-	// table may have orphan rows whose parent orgs/users/connections were
-	// already cleaned up. Scrub only the rows we can definitively identify
-	// as orphan (org_id no longer present).
+	// Belt-and-suspenders: if a prior test aborted mid-flight the
+	// table may have orphan rows whose parent orgs/users/connections
+	// were already cleaned up. Scrub only the rows we can definitively
+	// identify as orphan (org_id no longer present).
 	t.Cleanup(func() {
 		db.Exec(`DELETE FROM rag_external_identities
                  WHERE org_id NOT IN (SELECT id FROM orgs)`)
@@ -33,9 +29,8 @@ func setup1E(t *testing.T) *gorm.DB {
 	return db
 }
 
-// mkIdentity builds a RAGExternalIdentity with the required fields filled
-// in, leaving the test free to override before insert. The third UUID is
-// the RAGSource ID (post-Phase-3A swap; pre-3A this was the InConnection).
+// mkIdentity builds a RAGExternalIdentity with the required fields
+// filled in, leaving the test free to override before insert.
 func mkIdentity(orgID, userID, ragSourceID uuid.UUID, provider, extID string) *ragmodel.RAGExternalIdentity {
 	login := "octocat-" + extID
 	return &ragmodel.RAGExternalIdentity{
@@ -56,7 +51,7 @@ func mkIdentity(orgID, userID, ragSourceID uuid.UUID, provider, extID string) *r
 // we want the second write to either UPSERT or fail loudly — never create
 // a duplicate row that would double-count the user in ACLs.
 func TestRAGExternalIdentity_UniquePerUserConnection(t *testing.T) {
-	db := setup1E(t)
+	db := setupExternalIdentity(t)
 
 	org := testhelpers.NewTestOrg(t, db)
 	user := testhelpers.NewTestUser(t, db, org.ID)
@@ -87,7 +82,7 @@ func TestRAGExternalIdentity_UniquePerUserConnection(t *testing.T) {
 // belong to two Hiveloop orgs, but within a single org the pair is unique
 // so a typo / race can't shadow-bind the identity to two different users.
 func TestRAGExternalIdentity_UniqueProviderExtIDInOrg(t *testing.T) {
-	db := setup1E(t)
+	db := setupExternalIdentity(t)
 
 	// Two orgs, two users each in their own org, two connections.
 	orgA := testhelpers.NewTestOrg(t, db)
@@ -131,7 +126,7 @@ func TestRAGExternalIdentity_UniqueProviderExtIDInOrg(t *testing.T) {
 // GDPR-/account-closure compliance path: when a user is removed, their
 // source-side identity cache must not linger.
 func TestRAGExternalIdentity_UserCascade(t *testing.T) {
-	db := setup1E(t)
+	db := setupExternalIdentity(t)
 
 	org := testhelpers.NewTestOrg(t, db)
 	user := testhelpers.NewTestUser(t, db, org.ID)
@@ -180,7 +175,7 @@ func TestRAGExternalIdentity_UserCascade(t *testing.T) {
 // in_connections, and ACL resolution must stop against source data that
 // can no longer be refreshed.
 func TestRAGExternalIdentity_RAGSourceCascade(t *testing.T) {
-	db := setup1E(t)
+	db := setupExternalIdentity(t)
 
 	org := testhelpers.NewTestOrg(t, db)
 	user := testhelpers.NewTestUser(t, db, org.ID)

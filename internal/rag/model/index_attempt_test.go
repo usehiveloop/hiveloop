@@ -185,53 +185,14 @@ func TestSyncStatus_IsTerminal(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Postgres integration tests — real DB, explicit AutoMigrate1B call.
+// Postgres integration tests.
 // ---------------------------------------------------------------------------
 
-// setupDBWith1B runs the Phase 0 harness (which is a no-op rag.AutoMigrate
-// pre-1F) and then explicitly drives AutoMigrate1B so the rag_index_*
-// tables and their indexes exist. This mirrors how the 1F finaliser
-// will call AutoMigrate1B; doing it here keeps the 1B tranche
-// independently verifiable without waiting on 1F.
-func setupDBWith1B(t *testing.T) *gorm.DB {
+// setupIndexAttemptDB opens the test DB with the full RAG schema
+// migrated. ConnectTestDB calls rag.AutoMigrate internally.
+func setupIndexAttemptDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	db := testhelpers.ConnectTestDB(t)
-	if err := ragmodel.AutoMigrate1B(db); err != nil {
-		t.Fatalf("AutoMigrate1B: %v", err)
-	}
-	return db
-}
-
-// TestAutoMigrate1B_Idempotent covers a piece of load-bearing
-// migration invariant in isolation: calling AutoMigrate1B twice must
-// not error and must not produce duplicate indexes.
-func TestAutoMigrate1B_Idempotent(t *testing.T) {
-	db := setupDBWith1B(t)
-
-	// Count Tranche-1B indexes on the three tables.
-	type row struct{ Count int }
-	const q = `
-		SELECT COUNT(*)::int AS count
-		FROM pg_indexes
-		WHERE schemaname = 'public'
-		  AND tablename IN ('rag_index_attempts', 'rag_index_attempt_errors', 'rag_sync_records')
-	`
-	var before row
-	if err := db.Raw(q).Scan(&before).Error; err != nil {
-		t.Fatalf("count indexes pre: %v", err)
-	}
-
-	if err := ragmodel.AutoMigrate1B(db); err != nil {
-		t.Fatalf("second AutoMigrate1B: %v", err)
-	}
-
-	var after row
-	if err := db.Raw(q).Scan(&after).Error; err != nil {
-		t.Fatalf("count indexes post: %v", err)
-	}
-	if before.Count != after.Count {
-		t.Fatalf("AutoMigrate1B not idempotent: index count %d → %d", before.Count, after.Count)
-	}
+	return testhelpers.ConnectTestDB(t)
 }
 
 // TestRAGIndexAttempt_HeartbeatPartialIndex confirms the watchdog
@@ -241,7 +202,7 @@ func TestAutoMigrate1B_Idempotent(t *testing.T) {
 // mistake where the WHERE clause in the index doesn't match the query
 // predicate (Postgres then silently ignores it).
 func TestRAGIndexAttempt_HeartbeatPartialIndex(t *testing.T) {
-	db := setupDBWith1B(t)
+	db := setupIndexAttemptDB(t)
 	ctx := context.Background()
 	org := testhelpers.NewTestOrg(t, db)
 	integ := testhelpers.NewTestInIntegration(t, db, "github")
@@ -329,7 +290,7 @@ func TestRAGIndexAttempt_HeartbeatPartialIndex(t *testing.T) {
 // context; orphaned rows would accumulate indefinitely and leak PII
 // from deleted connections.
 func TestRAGIndexAttemptError_AttemptCascadeDelete(t *testing.T) {
-	db := setupDBWith1B(t)
+	db := setupIndexAttemptDB(t)
 	ctx := context.Background()
 	org := testhelpers.NewTestOrg(t, db)
 	integ := testhelpers.NewTestInIntegration(t, db, "github")

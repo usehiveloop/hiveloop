@@ -15,21 +15,13 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
 
-// setupExternalGroupSchema opens the test DB and runs the 1D
-// automigrate. Tranche 1F will fold this into the central AutoMigrate;
-// until then every 1D test calls it directly.
-//
-// It returns a *gorm.DB plus a per-test InConnection fixture (which
-// every table in this tranche references). Callers also receive the
-// orgID so they can clean up rag_external_user_groups rows they
-// created directly (cleanup chain order is CASCADE-safe since every
-// FK is ON DELETE CASCADE).
+// setupExternalGroupSchema opens the test DB (which migrates the full
+// RAG schema) plus per-test org / user / connection / source fixtures
+// that every test in this file needs. The returned source ID is a FK
+// target for the three external-group tables.
 func setupExternalGroupSchema(t *testing.T) (*gorm.DB, uuid.UUID, uuid.UUID, uuid.UUID) {
 	t.Helper()
 	db := testhelpers.ConnectTestDB(t)
-	if err := model.AutoMigrate1D(db); err != nil {
-		t.Fatalf("AutoMigrate1D: %v", err)
-	}
 	org := testhelpers.NewTestOrg(t, db)
 	user := testhelpers.NewTestUser(t, db, org.ID)
 	integ := testhelpers.NewTestInIntegration(t, db, "github")
