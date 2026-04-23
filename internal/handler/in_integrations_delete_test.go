@@ -1,8 +1,11 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
+
+	"github.com/google/uuid"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
