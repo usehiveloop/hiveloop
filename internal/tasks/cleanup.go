@@ -80,3 +80,23 @@ func (h *SandboxResourceCheckHandler) Handle(ctx context.Context, _ *asynq.Task)
 	h.orchestrator.RunResourceCheck(ctx)
 	return nil
 }
+
+// --- Sandbox Lifecycle ---
+
+// SandboxLifecycleHandler runs the periodic lifecycle policy:
+//   - running sandboxes idle for >10 minutes → stop
+//   - stopped sandboxes stopped for >24 hours → archive
+//
+// Scheduled every 5 minutes. System sandboxes are exempt.
+type SandboxLifecycleHandler struct {
+	orchestrator *sandbox.Orchestrator
+}
+
+func NewSandboxLifecycleHandler(orchestrator *sandbox.Orchestrator) *SandboxLifecycleHandler {
+	return &SandboxLifecycleHandler{orchestrator: orchestrator}
+}
+
+func (h *SandboxLifecycleHandler) Handle(ctx context.Context, _ *asynq.Task) error {
+	h.orchestrator.RunSandboxLifecycle(ctx)
+	return nil
+}

@@ -813,6 +813,24 @@
             "description": "Rate limit in requests per minute",
             "minimum": 0
           },
+          "subagent_timeout_background_secs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Wall-clock timeout (seconds) applied when this agent is invoked as a\nbackground subagent. Default: 300 (5 minutes).",
+            "minimum": 0
+          },
+          "subagent_timeout_foreground_secs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Wall-clock timeout (seconds) applied when this agent is invoked as a\nforeground subagent. Default: 300 (5 minutes).",
+            "minimum": 0
+          },
           "temperature": {
             "type": [
               "number",
