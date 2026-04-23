@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"fmt"
-	"net/http"
 	"net/mail"
 	"strings"
 	"time"
