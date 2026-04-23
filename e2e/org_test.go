@@ -19,7 +19,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/email"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 const (
