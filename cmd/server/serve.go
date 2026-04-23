@@ -126,7 +126,11 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	}
 	agentHandler := handler.NewAgentHandler(database, reg, pusherForHandler, sandboxEncKey, enqueuer)
 	agentHandler.SetCatalog(actionsCatalog)
-	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
+	var platformAdminEmails []string
+	if cfg.PlatformAdminEmails != "" {
+		platformAdminEmails = strings.Split(cfg.PlatformAdminEmails, ",")
+	}
+	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient, platformAdminEmails)
 
 	var driveHandler *handler.DriveHandler
 	if deps.S3Client != nil {
@@ -155,10 +159,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
 	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, subagentHandler, agentHandler, marketplaceHandler, conversationHandler, systemConvHandler, routerHandler, customDomainHandler, orchestrator, auditWriter)
 
-	var platformAdminEmails []string
-	if cfg.PlatformAdminEmails != "" {
-		platformAdminEmails = strings.Split(cfg.PlatformAdminEmails, ",")
-	}
 	setupConnectRoutes(r, cfg, rsaPub, database, platformAdminEmails, inIntegrationHandler, inConnectionHandler)
 	setupAdminRoutes(r, cfg, deps, rsaPub, database, platformAdminEmails, enqueuer, marketplaceHandler)
 	setupProxyAndAuxRoutes(r, cfg, deps, signingKey, database, proxyHandler, driveHandler, sandboxEncKey, auditWriter, generationWriter, ctr)

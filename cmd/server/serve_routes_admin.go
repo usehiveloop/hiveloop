@@ -101,6 +101,7 @@ func setupAdminRoutes(
 			r.Delete("/workspace-storage/{id}", adminHandler.DeleteWorkspaceStorage)
 			r.Get("/marketplace/agents", marketplaceHandler.AdminList)
 			r.Put("/marketplace/agents/{id}", marketplaceHandler.AdminUpdate)
+			r.Post("/marketplace/agents/{id}/publish", marketplaceHandler.AdminPublish)
 			r.Delete("/marketplace/agents/{id}", marketplaceHandler.AdminDelete)
 			r.Post("/marketplace/cache/bust", marketplaceHandler.BustCache)
 		})

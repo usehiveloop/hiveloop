@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -20,12 +21,27 @@ const (
 
 // MarketplaceHandler manages the agent marketplace.
 type MarketplaceHandler struct {
-	db    *gorm.DB
-	redis *redis.Client
+	db           *gorm.DB
+	redis        *redis.Client
+	adminEmails  map[string]bool
 }
 
-func NewMarketplaceHandler(db *gorm.DB, redisClient *redis.Client) *MarketplaceHandler {
-	return &MarketplaceHandler{db: db, redis: redisClient}
+func NewMarketplaceHandler(db *gorm.DB, redisClient *redis.Client, platformAdminEmails []string) *MarketplaceHandler {
+	emailSet := make(map[string]bool, len(platformAdminEmails))
+	for _, e := range platformAdminEmails {
+		trimmed := strings.TrimSpace(e)
+		if trimmed != "" {
+			emailSet[trimmed] = true
+		}
+	}
+	return &MarketplaceHandler{db: db, redis: redisClient, adminEmails: emailSet}
+}
+
+func (h *MarketplaceHandler) isPlatformAdmin(email string) bool {
+	if h == nil || h.adminEmails == nil {
+		return false
+	}
+	return h.adminEmails[email]
 }
 
 type createMarketplaceAgentRequest struct {

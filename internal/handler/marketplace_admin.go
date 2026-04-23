@@ -143,6 +143,44 @@ func (h *MarketplaceHandler) AdminUpdate(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, toMarketplaceAgentResponse(ma))
 }
 
+// AdminPublish handles POST /admin/v1/marketplace/agents/{id}/publish.
+// @Summary Admin publish marketplace agent
+// @Description Approves a marketplace listing and flips its status to published.
+// @Tags admin
+// @Produce json
+// @Param id path string true "Marketplace agent ID"
+// @Success 200 {object} marketplaceAgentResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /admin/v1/marketplace/agents/{id}/publish [post]
+func (h *MarketplaceHandler) AdminPublish(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var ma model.MarketplaceAgent
+	if err := h.db.Where("id = ?", id).First(&ma).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "marketplace agent not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to find marketplace agent"})
+		return
+	}
+
+	updates := map[string]any{"status": "published"}
+	if ma.PublishedAt == nil {
+		now := time.Now()
+		updates["published_at"] = &now
+	}
+
+	if err := h.db.Model(&ma).Updates(updates).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to publish marketplace agent"})
+		return
+	}
+
+	h.db.Preload("Publisher").Where("id = ?", id).First(&ma)
+	slog.Info("admin: marketplace agent published", "marketplace_id", ma.ID)
+	writeJSON(w, http.StatusOK, toMarketplaceAgentResponse(ma))
+}
+
 // AdminDelete handles DELETE /admin/v1/marketplace/agents/{id}.
 // @Summary Admin delete marketplace agent
 // @Description Permanently deletes a marketplace agent.

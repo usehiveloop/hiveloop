@@ -83,8 +83,24 @@ func (h *MarketplaceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Status != nil {
 		status := *req.Status
-		if status != "draft" && status != "published" && status != "archived" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "status must be draft, published, or archived"})
+		isAdmin := h.isPlatformAdmin(user.Email)
+		switch status {
+		case "draft", "pending_review", "archived":
+		case "published":
+			// Only platform admins can directly publish. Publisher requests are
+			// downgraded to pending_review for moderator approval.
+			if !isAdmin {
+				status = "pending_review"
+			}
+		case "unlisted":
+			// Owner may unlist only if currently published (unpublish their own);
+			// admins may set unlisted at any time.
+			if !isAdmin && ma.Status != "published" {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "only admins can set unlisted unless transitioning from published"})
+				return
+			}
+		default:
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "status must be draft, pending_review, published, unlisted, or archived"})
 			return
 		}
 		updates["status"] = status
