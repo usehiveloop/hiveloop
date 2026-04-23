@@ -38,8 +38,11 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
-      - name: install protoc (required by lance-encoding build script)
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends protobuf-compiler
+      - name: install protoc + well-known protos (required by lance-encoding)
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "27.x"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: Swatinem/rust-cache@v2
         with:
