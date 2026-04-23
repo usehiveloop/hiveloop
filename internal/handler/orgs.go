@@ -14,6 +14,10 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
+// maxOrgsOwnedPerUser caps how many organizations a single user may own.
+// Enforced by OrgHandler.Create to prevent resource-exhaustion abuse (see #62).
+const maxOrgsOwnedPerUser = 10
+
 type OrgHandler struct {
 	db *gorm.DB
 }
@@ -64,6 +68,25 @@ func (h *OrgHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Per-user org creation quota (see #62).
+	userID, parseErr := uuid.Parse(claims.UserID)
+	if parseErr != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid user id"})
+		return
+	}
+	var ownedCount int64
+	if err := h.db.Model(&model.OrgMembership{}).
+		Where("user_id = ? AND role = ?", userID, "owner").
+		Count(&ownedCount).Error; err != nil {
+		slog.Error("failed to count owned orgs", "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create organization"})
+		return
+	}
+	if ownedCount >= int64(maxOrgsOwnedPerUser) {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "organization creation limit reached"})
+		return
+	}
+
 	var org model.Org
 	var membership model.OrgMembership
 
@@ -76,7 +99,7 @@ func (h *OrgHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 
 		membership = model.OrgMembership{
-			UserID: uuid.MustParse(claims.UserID),
+			UserID: userID,
 			OrgID:  org.ID,
 			Role:   "owner",
 		}

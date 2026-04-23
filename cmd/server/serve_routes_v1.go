@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rsa"
 
 	"github.com/go-chi/chi/v5"
@@ -16,6 +17,7 @@ import (
 
 func setupV1Routes(
 	r chi.Router,
+	ctx context.Context,
 	cfg *config.Config,
 	rsaPub *rsa.PublicKey,
 	database *gorm.DB,
@@ -47,11 +49,15 @@ func setupV1Routes(
 		r.Use(middleware.MultiAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience, database, apiKeyCache, enqueuer))
 		r.Use(middleware.RequireEmailConfirmed(database))
 
-		r.Post("/orgs", orgHandler.Create)
-
-		// Authenticated invite accept/decline — user-scoped, no org context required.
-		r.Post("/invites/{token}/accept", orgInviteHandler.Accept)
-		r.Post("/invites/{token}/decline", orgInviteHandler.Decline)
+		// Org creation and invite accept/decline sit outside the per-org
+		// RateLimit group (they have no org context yet). Guard them with
+		// a per-IP AuthRateLimit instead (see issues #59 and #62).
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.AuthRateLimit(ctx, 10, 20))
+			r.Post("/orgs", orgHandler.Create)
+			r.Post("/invites/{token}/accept", orgInviteHandler.Accept)
+			r.Post("/invites/{token}/decline", orgInviteHandler.Decline)
+		})
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.ResolveOrgFlexible(database))
@@ -61,7 +67,6 @@ func setupV1Routes(
 			r.Get("/orgs/current", orgHandler.Current)
 			r.Get("/orgs/current/members", orgInviteHandler.ListMembers)
 
-			// Admin-only org invite management.
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireOrgAdmin(database))
 				r.Post("/orgs/current/invites", orgInviteHandler.Create)
@@ -69,35 +74,54 @@ func setupV1Routes(
 				r.Delete("/orgs/current/invites/{id}", orgInviteHandler.Revoke)
 				r.Post("/orgs/current/invites/{id}/resend", orgInviteHandler.Resend)
 			})
-			r.Get("/usage", usageHandler.Get)
-			r.Get("/audit", auditHandler.List)
-			r.Get("/reporting", reportingHandler.Get)
-			r.Get("/generations", generationHandler.List)
-			r.Get("/generations/{id}", generationHandler.Get)
 
-			r.Post("/api-keys", apiKeyHandler.Create)
+			// Admin-only sensitive data reads, credential/API-key/token mutations,
+			// and billing management (see issues #50, #51, #53, #56).
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireOrgAdmin(database))
+
+				r.Get("/usage", usageHandler.Get)
+				r.Get("/audit", auditHandler.List)
+				r.Get("/reporting", reportingHandler.Get)
+				r.Get("/generations", generationHandler.List)
+				r.Get("/generations/{id}", generationHandler.Get)
+
+				r.Post("/api-keys", apiKeyHandler.Create)
+				r.Delete("/api-keys/{id}", apiKeyHandler.Revoke)
+
+				if billingHandler != nil {
+					r.Post("/billing/checkout", billingHandler.CreateCheckout)
+					r.Post("/billing/portal", billingHandler.CreatePortal)
+				}
+
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequireAPIKeyScopeOrJWT("credentials"))
+					r.Post("/credentials", credHandler.Create)
+					r.Delete("/credentials/{id}", credHandler.Revoke)
+				})
+
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequireAPIKeyScopeOrJWT("tokens"))
+					r.Post("/tokens", tokenHandler.Mint)
+					r.Delete("/tokens/{jti}", tokenHandler.Revoke)
+				})
+			})
+
 			r.Get("/api-keys", apiKeyHandler.List)
-			r.Delete("/api-keys/{id}", apiKeyHandler.Revoke)
 
 			if billingHandler != nil {
-				r.Post("/billing/checkout", billingHandler.CreateCheckout)
 				r.Get("/billing/subscription", billingHandler.GetSubscription)
-				r.Post("/billing/portal", billingHandler.CreatePortal)
 			}
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("credentials"))
-				r.Post("/credentials", credHandler.Create)
 				r.Get("/credentials", credHandler.List)
 				r.Get("/credentials/{id}", credHandler.Get)
-				r.Delete("/credentials/{id}", credHandler.Revoke)
 			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("tokens"))
 				r.Get("/tokens", tokenHandler.List)
-				r.Post("/tokens", tokenHandler.Mint)
-				r.Delete("/tokens/{jti}", tokenHandler.Revoke)
 			})
 
 			r.Group(func(r chi.Router) {
