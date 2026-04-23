@@ -4,9 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use dashmap::DashMap;
 
-use super::{
-    BackendError, CachePayload, CacheProvider, CacheResourceBackend, CreatedCache,
-};
+use super::{BackendError, CachePayload, CacheProvider, CacheResourceBackend, CreatedCache};
 
 /// Fake backend that records operations in memory. Useful for tests and
 /// for dry-running the pool without talking to a real provider.

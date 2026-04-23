@@ -117,7 +117,10 @@ async fn test_emitter_auto_repairs_case_mismatch() {
         .collect();
 
     let mut executors: HashMap<String, Arc<dyn ToolExecutor>> = HashMap::new();
-    executors.insert("bash".to_string(), Arc::new(StubBash("repaired_bash_output")));
+    executors.insert(
+        "bash".to_string(),
+        Arc::new(StubBash("repaired_bash_output")),
+    );
 
     let emitter = make_emitter_with(bus, tool_names, executors);
 

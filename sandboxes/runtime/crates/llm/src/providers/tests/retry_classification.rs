@@ -63,9 +63,8 @@ fn test_retryable_provider_error_upstream() {
 
 #[test]
 fn test_retryable_provider_error_overloaded() {
-    let err = PromptError::CompletionError(CompletionError::ProviderError(
-        "model is overloaded".into(),
-    ));
+    let err =
+        PromptError::CompletionError(CompletionError::ProviderError("model is overloaded".into()));
     assert!(is_retryable_error(&err));
 }
 
@@ -128,8 +127,7 @@ fn test_not_retryable_prompt_cancelled() {
 
 #[test]
 fn test_not_retryable_provider_error_generic() {
-    let err = PromptError::CompletionError(CompletionError::ProviderError(
-        "invalid model name".into(),
-    ));
+    let err =
+        PromptError::CompletionError(CompletionError::ProviderError("invalid model name".into()));
     assert!(!is_retryable_error(&err));
 }

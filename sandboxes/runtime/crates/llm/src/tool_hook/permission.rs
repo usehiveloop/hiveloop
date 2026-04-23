@@ -50,13 +50,7 @@ impl ToolCallEmitter {
                     &self.conversation_id,
                     json!({"id": ctx.id, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": effective_name}),
                 ));
-                self.persist_tool_interaction(
-                    effective_name,
-                    ctx.id,
-                    ctx.arguments,
-                    &error,
-                    true,
-                );
+                self.persist_tool_interaction(effective_name, ctx.id, ctx.arguments, &error, true);
                 Err(ToolCallHookAction::Skip { reason: error })
             }
             Some(ToolPermission::RequireApproval) => {

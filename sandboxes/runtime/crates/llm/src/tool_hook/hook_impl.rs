@@ -102,11 +102,7 @@ impl ToolCallEmitter {
 
     /// Validate tool arguments against the tool's JSON schema. Catches
     /// malformed calls early so the agent can retry immediately.
-    fn validate_args(
-        &self,
-        effective_name: &str,
-        ctx: &CallCtx,
-    ) -> Result<(), ToolCallHookAction> {
+    fn validate_args(&self, effective_name: &str, ctx: &CallCtx) -> Result<(), ToolCallHookAction> {
         let Some(executor) = self.tool_executors.get(effective_name) else {
             return Ok(());
         };

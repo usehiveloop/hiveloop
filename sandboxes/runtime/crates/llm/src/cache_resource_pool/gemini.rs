@@ -13,9 +13,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 
-use super::{
-    BackendError, CachePayload, CacheProvider, CacheResourceBackend, CreatedCache,
-};
+use super::{BackendError, CachePayload, CacheProvider, CacheResourceBackend, CreatedCache};
 
 pub struct GeminiExplicitBackend {
     pub base_url: String,
