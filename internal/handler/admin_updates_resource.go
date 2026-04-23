@@ -2,17 +2,14 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -83,24 +80,6 @@ func (h *AdminHandler) UpdateCredential(w http.ResponseWriter, r *http.Request) 
 	h.db.Where("id = ?", id).First(&cred)
 	slog.Info("admin: credential updated", "credential_id", id)
 	writeJSON(w, http.StatusOK, toAdminCredentialResponse(cred))
-}
-type adminUpdateAgentRequest struct {
-	Name              *string    `json:"name,omitempty"`
-	Description       *string    `json:"description,omitempty"`
-	CredentialID      *string    `json:"credential_id,omitempty"`
-	SandboxType       *string    `json:"sandbox_type,omitempty"`
-	SandboxTemplateID *string    `json:"sandbox_template_id,omitempty"`
-	SystemPrompt      *string    `json:"system_prompt,omitempty"`
-	Model             *string    `json:"model,omitempty"`
-	Tools             model.JSON `json:"tools,omitempty"`
-	McpServers        model.JSON `json:"mcp_servers,omitempty"`
-	Skills            model.JSON `json:"skills,omitempty"`
-	Integrations      model.JSON `json:"integrations,omitempty"`
-	AgentConfig       model.JSON `json:"agent_config,omitempty"`
-	Permissions       model.JSON `json:"permissions,omitempty"`
-	Team              *string    `json:"team,omitempty"`
-	SharedMemory      *bool      `json:"shared_memory,omitempty"`
-	Status            *string    `json:"status,omitempty"`
 }
 
 // UpdateAgent handles PUT /admin/v1/agents/{id}.

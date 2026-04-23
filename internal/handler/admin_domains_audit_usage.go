@@ -1,13 +1,11 @@
 package handler
 
 import (
-	"fmt"
+	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
-	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
