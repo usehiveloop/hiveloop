@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
