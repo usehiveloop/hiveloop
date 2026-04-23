@@ -179,7 +179,14 @@ jobs:
         timeout-minutes: 5
       - name: run internal tests (shard ${{ matrix.shard }}/4)
         run: |
-          PACKAGES=$(go list ./internal/... | awk -v s=${{ matrix.shard }} -v n=4 'NR % n == s')
+          # internal/rag (root), ragclient, and testhelpers spawn the Rust
+          # rag-engine binary and require MinIO; run them in a dedicated
+          # E2E job with infra, not the sharded unit suite.
+          PACKAGES=$(go list ./internal/... \
+            | grep -vE '^github.com/usehiveloop/hiveloop/internal/rag$' \
+            | grep -vE '^github.com/usehiveloop/hiveloop/internal/rag/ragclient$' \
+            | grep -vE '^github.com/usehiveloop/hiveloop/internal/rag/testhelpers$' \
+            | awk -v s=${{ matrix.shard }} -v n=4 'NR % n == s')
           echo "Running shard ${{ matrix.shard }} packages:"
           echo "$PACKAGES"
           go test $PACKAGES -race -count=1
