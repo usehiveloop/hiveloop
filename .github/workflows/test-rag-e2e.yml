@@ -15,10 +15,11 @@ env:
   POSTGRES_DB: hiveloop
 
 jobs:
-  # Pre-compile job: one runner pays the cold cargo build cost and
-  # uploads the release binary + test binaries (implicitly, via shared
-  # Swatinem cache) so the five matrix shards all warm-start.
-  # Subsequent runs hit the cache and finish in seconds.
+  # Pre-compile: one runner builds the release binary + all test binaries
+  # and writes a cache keyed on Cargo.lock. Downstream matrix shards
+  # restore the cache verbatim (no Swatinem pruning), so `cargo test -p X`
+  # in each shard runs against a warm target/ and finishes in seconds
+  # instead of recompiling dependencies from scratch.
   precompile-rag-engine:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -33,13 +34,16 @@ jobs:
           version: "27.x"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: Swatinem/rust-cache@v2
+      - name: restore cargo + target cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
         with:
-          workspaces: services/rag-engine -> target
-          shared-key: rag-engine-e2e
-          # Preserve compiled dep artifacts in target/deps — without
-          # this the shards spend 5 min recompiling memchr/regex/icu/etc.
-          cache-all-crates: "true"
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            services/rag-engine/target
+          key: rag-engine-target-v1-${{ runner.os }}-${{ hashFiles('services/rag-engine/Cargo.lock') }}
 
       - name: build rag-engine release binary
         working-directory: services/rag-engine
@@ -49,6 +53,17 @@ jobs:
         working-directory: services/rag-engine
         run: cargo test --workspace --no-run
 
+      - name: save cargo + target cache
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            services/rag-engine/target
+          key: rag-engine-target-v1-${{ runner.os }}-${{ hashFiles('services/rag-engine/Cargo.lock') }}
+
       - name: upload rag-engine-server binary
         uses: actions/upload-artifact@v4
         with:
@@ -57,10 +72,10 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  # Sharded RAG E2E suite: Rust crate tests (rag-engine-*) + Go tests that
-  # spawn a real rag-engine binary and probe MinIO. Five shards run in
-  # parallel. The actual `cargo test` / `go test` step is capped at
-  # 5 minutes; cache restore + service start run outside that budget.
+  # Sharded RAG E2E suite: 10 matrix shards in parallel. Each shard
+  # restores the warm target/ cache, downloads the prebuilt binary, runs
+  # at most one crate's Rust tests + a ~6-test Go slice. The `cargo test`
+  # / `go test` step is capped at 5 minutes.
   test-rag:
     needs: precompile-rag-engine
     runs-on: ubuntu-latest
@@ -85,14 +100,16 @@ jobs:
           version: "27.x"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: Swatinem/rust-cache@v2
+      - name: restore cargo + target cache
+        uses: actions/cache/restore@v4
         with:
-          workspaces: services/rag-engine -> target
-          shared-key: rag-engine-e2e
-          # Preserve compiled dep artifacts in target/deps — without
-          # this the shards spend 5 min recompiling memchr/regex/icu/etc.
-          cache-all-crates: "true"
-          save-if: "false"
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            services/rag-engine/target
+          key: rag-engine-target-v1-${{ runner.os }}-${{ hashFiles('services/rag-engine/Cargo.lock') }}
+          fail-on-cache-miss: true
 
       - name: download pre-built rag-engine binary
         uses: actions/download-artifact@v4
@@ -112,10 +129,13 @@ jobs:
           SHARD: ${{ matrix.shard }}
           TOTAL: "10"
           # Point both escape hatches at the prebuilt binary so Go tests
-          # never invoke `cargo build --release` (that path mis-caches in
-          # shards and eats the 5-min budget).
+          # never invoke `cargo build --release` (that path recompiles
+          # from scratch in shards and eats the 5-min budget).
           RAG_ENGINE_BIN: ${{ github.workspace }}/services/rag-engine/target/release/rag-engine-server
           RAG_ENGINE_BRANCH: ${{ github.workspace }}/services/rag-engine/target/release/rag-engine-server
+          # Slow runners need more than 30s to see the gRPC server report
+          # SERVING; 60s is still tight enough to catch real regressions.
+          RAG_ENGINE_BOOT_TIMEOUT: "60s"
         run: |
           set -eo pipefail
 
