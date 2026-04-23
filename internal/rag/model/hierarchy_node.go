@@ -24,8 +24,7 @@ import (
 //     association structs (no `Org model.Org` field). This is a
 //     deliberate, load-bearing decision: internal/model/org.go imports
 //     internal/rag, so pulling model types into the rag package would
-//     create an import cycle. See the Phase 0 report and plan section
-//     "CRITICAL CONTEXT".
+//     create an import cycle.
 type RAGHierarchyNode struct {
 	// Integer PK — mirrors Onyx's `id: Integer, primary_key=True`
 	// (models.py:855). We use int64 so there is headroom; Onyx's Python

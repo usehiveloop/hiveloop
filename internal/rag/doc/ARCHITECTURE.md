@@ -73,9 +73,8 @@ Plus `external_group_syncing/` running on its own cadence for connectors
 with group-based ACLs.
 
 Each loop holds a per-connection Redis lock for the duration of its run;
-the scheduler skips a connection whose lock is held. Watchdog scans a
-partial index on `last_progress_time` to recover stuck runs (cited in
-the plan's Tranche 1B).
+the scheduler skips a connection whose lock is held. A watchdog scans a
+partial index on `last_progress_time` to recover stuck runs.
 
 **Why three loops instead of one.** Permissions on a 100k-doc corpus
 change more often than the docs themselves. Coupling the two loops means
@@ -102,7 +101,7 @@ sorted deterministically, and passed into LanceDB's SQL-filter engine.
 
 **Invariant.** If the write-side prefix and read-side prefix drift by
 even one character, the filter matches zero rows and queries silently
-return empty. Phase 1D therefore includes a pure-logic test that every
+return empty. The acl package ships a pure-logic test that every
 prefix function's output exactly equals the Onyx reference strings.
 
 ---
@@ -144,8 +143,8 @@ row-level `WHERE org_id = ?` filtering everywhere. Rationale:
 - Schema-per-tenant would force a parallel migration runner.
 
 The cost — every query must carry `org_id` — is paid up-front in the
-data-layer tests (Tranche 1A: FK cascade tests prove org-delete wipes
-all descendants).
+data-layer tests (FK cascade tests prove org-delete wipes every
+descendant row).
 
 ---
 
@@ -153,7 +152,7 @@ all descendants).
 
 These are tracked here so future agents don't re-litigate them.
 
-- Reranker: Qwen3-Reranker-0.6B via SiliconFlow. Pluggable. Phase 2C.
+- Reranker: Qwen3-Reranker-0.6B via SiliconFlow. Pluggable.
 - Chat / answer generation: out of scope entirely. Hiveloop already has
   its own chat subsystem; RAG only exposes `Search() -> []Chunk`.
 - Connector auth: Nango only. No direct provider HTTP clients.

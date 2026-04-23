@@ -40,10 +40,10 @@ func PrefixUserEmail(email string) string {
 // backend/onyx/access/utils.py:11-14. The "group:" prefix namespaces
 // Onyx-internal user groups against user emails and external groups.
 //
-// NOTE: Hiveloop Phase 1 does not port Onyx's EE UserGroup table (the
-// plan calls this out). This helper is still ported verbatim because
-// indexing code paths that compute ACLs may encounter legacy group rows
-// during migration and because the helper is cheap to keep in sync.
+// NOTE: Hiveloop does not port Onyx's EE UserGroup table. This helper
+// is still ported verbatim because indexing code paths that compute
+// ACLs may encounter legacy group rows during migration and because
+// the helper is cheap to keep in sync.
 func PrefixUserGroup(name string) string {
 	return "group:" + name
 }

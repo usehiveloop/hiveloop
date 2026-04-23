@@ -43,11 +43,10 @@ func NewTestOrg(t *testing.T, db *gorm.DB) *model.Org {
 	}
 
 	t.Cleanup(func() {
-		// Delete direct dependents before the org itself. Hiveloop uses a
-		// mix of ON DELETE CASCADE (modern models) and no FK action
-		// (older ones), so we belt-and-suspenders the common RAG-adjacent
-		// tables. Once Phase 1 lands RAG-specific tables will be added
-		// here.
+		// Delete direct dependents before the org itself. Hiveloop uses
+		// a mix of ON DELETE CASCADE (modern models) and no FK action
+		// (older ones), so we belt-and-suspenders the common
+		// RAG-adjacent tables.
 		db.Where("org_id = ?", org.ID).Delete(&model.InConnection{})
 		db.Where("org_id = ?", org.ID).Delete(&model.OrgMembership{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Credential{})
@@ -146,9 +145,9 @@ func NewTestInConnection(t *testing.T, db *gorm.DB, orgID, userID, integrationID
 }
 
 // NewTestRAGSource inserts a real RAGSource of kind INTEGRATION tying
-// an InConnection into the Phase 3A data model. Phase 1 tests that used
-// to key off in_connection_id now need a RAGSource to satisfy the
-// rag_source_id FK; call this helper to set one up.
+// an InConnection to the RAG source model. Tests that need to
+// satisfy the rag_source_id FK on any child RAG table should call
+// this helper to set one up.
 //
 // Registers a t.Cleanup that removes the RAGSource row — every child
 // table has ON DELETE CASCADE on rag_source_id, so this single delete

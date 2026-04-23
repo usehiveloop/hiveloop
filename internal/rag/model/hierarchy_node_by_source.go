@@ -9,9 +9,9 @@ import (
 // HierarchyNodeByConnectorCredentialPair at
 // backend/onyx/db/models.py:2480-2510.
 //
-// DEVIATION: Phase 1 collapsed Onyx's (connector_id, credential_id) to
-// in_connection_id; Phase 3A further swaps to rag_source_id so every
-// junction uniformly references the top-level RAGSource.
+// DEVIATION: Hiveloop collapses Onyx's (connector_id, credential_id)
+// to rag_source_id so every junction uniformly references the
+// top-level RAGSource.
 //
 // Onyx comment at models.py:2481-2483 documents the pruning pattern:
 // during pruning, stale entries for the current source are removed;
@@ -25,8 +25,7 @@ type RAGHierarchyNodeBySource struct {
 
 	// RAGSourceID — part of the composite PK, FK to rag_sources.id with
 	// ON DELETE CASCADE. Adapts Onyx's composite connector_id +
-	// credential_id at models.py:2492-2493. Phase 3A swap (was
-	// in_connection_id).
+	// credential_id at models.py:2492-2493.
 	RAGSourceID uuid.UUID `gorm:"type:uuid;primaryKey;index:idx_rag_hier_source_source"`
 }
 

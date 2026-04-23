@@ -1,11 +1,10 @@
-// Package testhelpers is the shared integration-test scaffolding for the
-// RAG subsystem. Every subsequent tranche consumes `ConnectTestDB` plus the
+// Package testhelpers is the shared integration-test scaffolding for
+// the RAG subsystem. Every RAG test consumes `ConnectTestDB` plus the
 // fixtures in fixtures.go.
 //
 // The pattern is a public-API duplicate of the private helper at
-// internal/middleware/integration_test.go:31-60 (see TESTING.md for why we
-// do not share). When Phase 1 lands we may refactor both call sites onto a
-// single helper, but Phase 0 leaves the middleware one untouched.
+// internal/middleware/integration_test.go:31-60 (see TESTING.md for
+// why we do not share).
 package testhelpers
 
 import (
@@ -27,13 +26,12 @@ const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?ssl
 // `model.AutoMigrate` (which in turn calls `rag.AutoMigrate`), and
 // registers `t.Cleanup` to close the underlying *sql.DB.
 //
-// Unlike the private helper in the middleware package, this one imports
-// the rag package so the RAG schema is migrated alongside the core
-// Hiveloop schema. Phase 0's AutoMigrate is a no-op; Phase 1 tranches
-// append real migrations.
+// Unlike the private helper in the middleware package, this one
+// imports the rag package so the RAG schema is migrated alongside the
+// core Hiveloop schema.
 //
-// A test that needs a test DB but the service isn't running should see a
-// hard, loud failure — see rule 7 of TESTING.md.
+// A test that needs a test DB but the service isn't running should see
+// a hard, loud failure — see rule 7 of TESTING.md.
 func ConnectTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
