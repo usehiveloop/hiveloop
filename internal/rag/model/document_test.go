@@ -16,19 +16,13 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
 
-// bootstrap1A opens a test DB, ensures the Tranche 1A schema is in
-// place, and registers per-test cleanup for the RAG tables owned by
-// this tranche. ConnectTestDB already hits model.AutoMigrate + the
-// (currently empty) rag.AutoMigrate; Tranche 1F will move the
-// AutoMigrate1A call into rag.AutoMigrate and this helper will drop
-// that call.
-func bootstrap1A(t *testing.T) *gorm.DB {
+// bootstrapDocs opens a test DB with the full RAG schema migrated.
+// testhelpers.ConnectTestDB calls rag.AutoMigrate internally, which
+// creates every rag_* table, index, constraint, and FK this package
+// needs.
+func bootstrapDocs(t *testing.T) *gorm.DB {
 	t.Helper()
-	db := testhelpers.ConnectTestDB(t)
-	if err := ragmodel.AutoMigrate1A(db); err != nil {
-		t.Fatalf("AutoMigrate1A: %v", err)
-	}
-	return db
+	return testhelpers.ConnectTestDB(t)
 }
 
 // cleanupDocsForOrg scopes cleanup to the org so parallel test runs
@@ -40,8 +34,8 @@ func cleanupDocsForOrg(t *testing.T, db *gorm.DB, orgID uuid.UUID) {
 	t.Cleanup(func() {
 		// Document-level rows first (hierarchy nodes FK-set-null into
 		// docs; junctions cascade).
-		db.Exec(`DELETE FROM rag_document_by_connections WHERE document_id IN (SELECT id FROM rag_documents WHERE org_id = ?)`, orgID)
-		db.Exec(`DELETE FROM rag_hierarchy_node_by_connections WHERE hierarchy_node_id IN (SELECT id FROM rag_hierarchy_nodes WHERE org_id = ?)`, orgID)
+		db.Exec(`DELETE FROM rag_document_by_sources WHERE document_id IN (SELECT id FROM rag_documents WHERE org_id = ?)`, orgID)
+		db.Exec(`DELETE FROM rag_hierarchy_node_by_sources WHERE hierarchy_node_id IN (SELECT id FROM rag_hierarchy_nodes WHERE org_id = ?)`, orgID)
 		db.Exec(`DELETE FROM rag_documents WHERE org_id = ?`, orgID)
 		db.Exec(`DELETE FROM rag_hierarchy_nodes WHERE org_id = ?`, orgID)
 	})
@@ -59,7 +53,7 @@ func docID(t *testing.T) string {
 // fail GDPR tenant-deletion compliance.
 
 func TestRAGDocument_OrgCascadeDelete(t *testing.T) {
-	db := bootstrap1A(t)
+	db := bootstrapDocs(t)
 	org := testhelpers.NewTestOrg(t, db)
 
 	doc := &ragmodel.RAGDocument{
@@ -92,7 +86,7 @@ func TestRAGDocument_OrgCascadeDelete(t *testing.T) {
 // re-parenting on the next sync.
 
 func TestRAGDocument_ParentHierarchyNodeSetNullOnDelete(t *testing.T) {
-	db := bootstrap1A(t)
+	db := bootstrapDocs(t)
 	org := testhelpers.NewTestOrg(t, db)
 	cleanupDocsForOrg(t, db, org.ID)
 
@@ -139,7 +133,7 @@ func TestRAGDocument_ParentHierarchyNodeSetNullOnDelete(t *testing.T) {
 // 15 seconds per-tenant, which is a P0.
 
 func TestRAGDocument_NeedsSyncPartialIndexExistsAndIsUsed(t *testing.T) {
-	db := bootstrap1A(t)
+	db := bootstrapDocs(t)
 	org := testhelpers.NewTestOrg(t, db)
 	cleanupDocsForOrg(t, db, org.ID)
 
@@ -212,7 +206,7 @@ func TestRAGDocument_NeedsSyncPartialIndexExistsAndIsUsed(t *testing.T) {
 // admin UI). Full-scan ACL filter on a 1M-doc tenant = timeouts.
 
 func TestRAGDocument_GINIndexOnExternalUserEmails(t *testing.T) {
-	db := bootstrap1A(t)
+	db := bootstrapDocs(t)
 	org := testhelpers.NewTestOrg(t, db)
 	cleanupDocsForOrg(t, db, org.ID)
 
@@ -275,7 +269,7 @@ func TestRAGDocument_GINIndexOnExternalUserEmails(t *testing.T) {
 // sees duplicates in tree).
 
 func TestRAGHierarchyNode_UniqueRawIDSource(t *testing.T) {
-	db := bootstrap1A(t)
+	db := bootstrapDocs(t)
 	org := testhelpers.NewTestOrg(t, db)
 	cleanupDocsForOrg(t, db, org.ID)
 
@@ -315,7 +309,7 @@ func TestRAGHierarchyNode_UniqueRawIDSource(t *testing.T) {
 // referenced by a second source).
 
 func TestRAGDocumentBySource_SourceCascade(t *testing.T) {
-	db := bootstrap1A(t)
+	db := bootstrapDocs(t)
 	org := testhelpers.NewTestOrg(t, db)
 	cleanupDocsForOrg(t, db, org.ID)
 

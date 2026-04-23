@@ -11,15 +11,15 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
 
-// migrate1GAndCleanup stands up the rag_embedding_models table via the
-// 1G migrator and registers a t.Cleanup that truncates it. The catalog
-// is global (no org_id), so cleanup is a full TRUNCATE — isolation is
-// per-test. We run seeding fresh each test so ordering cannot bleed
-// state between cases.
-func migrate1GAndCleanup(t *testing.T, db *gorm.DB) {
+// migrateAndCleanup stands up the rag_embedding_models table and
+// registers a t.Cleanup that wipes it. The catalog is global (no
+// org_id), so cleanup is a full table clear — isolation is per-test.
+// We run seeding fresh each test so ordering cannot bleed state
+// between cases.
+func migrateAndCleanup(t *testing.T, db *gorm.DB) {
 	t.Helper()
-	if err := embedder.AutoMigrate1G(db); err != nil {
-		t.Fatalf("AutoMigrate1G: %v", err)
+	if err := embedder.Migrate(db); err != nil {
+		t.Fatalf("embedder.Migrate: %v", err)
 	}
 	t.Cleanup(func() {
 		// DELETE (not TRUNCATE): the shared test Postgres may have
@@ -41,7 +41,7 @@ func migrate1GAndCleanup(t *testing.T, db *gorm.DB) {
 
 func TestSeedRegistry_SeedsAllModels(t *testing.T) {
 	db := testhelpers.ConnectTestDB(t)
-	migrate1GAndCleanup(t, db)
+	migrateAndCleanup(t, db)
 
 	if err := embedder.SeedRegistry(db); err != nil {
 		t.Fatalf("SeedRegistry: %v", err)
@@ -73,7 +73,7 @@ func TestSeedRegistry_SeedsAllModels(t *testing.T) {
 
 func TestSeedRegistry_Idempotent(t *testing.T) {
 	db := testhelpers.ConnectTestDB(t)
-	migrate1GAndCleanup(t, db)
+	migrateAndCleanup(t, db)
 
 	for i := 0; i < 2; i++ {
 		if err := embedder.SeedRegistry(db); err != nil {
@@ -94,7 +94,7 @@ func TestSeedRegistry_Idempotent(t *testing.T) {
 
 func TestSeedRegistry_UpdatesOnRegistryChange(t *testing.T) {
 	db := testhelpers.ConnectTestDB(t)
-	migrate1GAndCleanup(t, db)
+	migrateAndCleanup(t, db)
 
 	// Initial seed — captures whatever Registry() says right now.
 	if err := embedder.SeedRegistry(db); err != nil {
@@ -159,7 +159,7 @@ func TestSeedRegistry_UpdatesOnRegistryChange(t *testing.T) {
 
 func TestSeedFromEntries_EmptySliceIsNoOp(t *testing.T) {
 	db := testhelpers.ConnectTestDB(t)
-	migrate1GAndCleanup(t, db)
+	migrateAndCleanup(t, db)
 
 	// Seed so there's something in the table.
 	if err := embedder.SeedRegistry(db); err != nil {
@@ -182,8 +182,7 @@ func TestSeedFromEntries_EmptySliceIsNoOp(t *testing.T) {
 
 // closedDB returns a *gorm.DB whose underlying *sql.DB has been closed,
 // so every subsequent query errors out. Used to exercise error-return
-// branches in seedFromEntries / AutoMigrate1G without racing against a
-// real DB.
+// branches in seedFromEntries / Migrate without racing against a real DB.
 func closedDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	db := testhelpers.ConnectTestDB(t)
@@ -208,11 +207,11 @@ func TestSeedFromEntries_PropagatesDBError(t *testing.T) {
 	}
 }
 
-func TestAutoMigrate1G_PropagatesDBError(t *testing.T) {
+func TestMigrate_PropagatesDBError(t *testing.T) {
 	// Same pattern as above — exercises the early-return branch when
 	// gorm.AutoMigrate fails.
 	db := closedDB(t)
-	if err := embedder.AutoMigrate1G(db); err == nil {
+	if err := embedder.Migrate(db); err == nil {
 		t.Fatal("expected error from closed DB, got nil")
 	}
 }
