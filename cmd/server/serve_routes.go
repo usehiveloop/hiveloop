@@ -8,29 +8,26 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/bootstrap"
 	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
 func setupPublicRoutes(
 	r chi.Router,
-	cfg *config.Config,
+	cfg *bootstrap.Config,
 	database *gorm.DB,
 	redisClient *redis.Client,
 	providerHandler *handler.ProviderHandler,
 	inIntegrationHandler *handler.InIntegrationHandler,
-	actionsCatalog *catalog.Catalog,
+	actionsCatalog bootstrap.ActionsCatalog,
 	marketplaceHandler *handler.MarketplaceHandler,
 	orgInviteHandler *handler.OrgInviteHandler,
 	bridgeWebhookHandler *handler.BridgeWebhookHandler,
 	nangoWebhookHandler *handler.NangoWebhookHandler,
 	incomingWebhookHandler *handler.IncomingWebhookHandler,
-	nangoClient *nango.Client,
-	sandboxEncKey *crypto.SymmetricKey,
+	nangoClient bootstrap.NangoClient,
+	sandboxEncKey []byte,
 ) {
 	r.Get("/healthz", healthz)
 	r.Get("/readyz", readyz(database, redisClient))
@@ -82,7 +79,7 @@ func setupPublicRoutes(
 func setupAuthRoutes(
 	r chi.Router,
 	ctx context.Context,
-	cfg *config.Config,
+	cfg *bootstrap.Config,
 	rsaPub *rsa.PublicKey,
 	authHandler *handler.AuthHandler,
 	oauthHandler *handler.OAuthHandler,

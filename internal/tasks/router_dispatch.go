@@ -61,21 +61,29 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		return fmt.Errorf("unmarshal webhook payload: %w", err)
 	}
 
-	input := dispatch.RouterDispatchInput{
-		Provider:     payload.Provider,
-		EventType:    payload.EventType,
-		EventAction:  payload.EventAction,
-		OrgID:        payload.OrgID,
-		ConnectionID: payload.ConnectionID,
-		Payload:      webhookPayload,
-	}
-
 	// Run dispatcher: match triggers, evaluate rules, select agents.
 	logger.Info("dispatcher starting")
-	dispatches, err := handler.dispatcher.Run(ctx, input)
-	if err != nil {
-		logger.Error("dispatcher failed", "error", err)
-		return fmt.Errorf("router dispatch: %w", err)
+
+	var dispatches []dispatch.AgentDispatch
+	var dispatchErr error
+	if payload.RouterTriggerID != nil {
+		// Direct trigger dispatch (HTTP/cron): bypass trigger matching.
+		dispatches, dispatchErr = handler.dispatcher.RunForTrigger(ctx, *payload.RouterTriggerID, webhookPayload)
+	} else {
+		// Standard webhook dispatch: match triggers by event key.
+		input := dispatch.RouterDispatchInput{
+			Provider:     payload.Provider,
+			EventType:    payload.EventType,
+			EventAction:  payload.EventAction,
+			OrgID:        payload.OrgID,
+			ConnectionID: payload.ConnectionID,
+			Payload:      webhookPayload,
+		}
+		dispatches, dispatchErr = handler.dispatcher.Run(ctx, input)
+	}
+	if dispatchErr != nil {
+		logger.Error("dispatcher failed", "error", dispatchErr)
+		return fmt.Errorf("router dispatch: %w", dispatchErr)
 	}
 
 	if len(dispatches) == 0 {
@@ -216,6 +224,18 @@ func buildDispatchInstructions(agentDispatch dispatch.AgentDispatch) string {
 
 	if agentDispatch.EnrichedMessage != "" {
 		builder.WriteString(agentDispatch.EnrichedMessage)
+		return builder.String()
+	}
+
+	// Trigger-level instructions (cron/http triggers).
+	if agentDispatch.TriggerInstructions != "" {
+		builder.WriteString(dispatch.SubstituteRefs(agentDispatch.TriggerInstructions, agentDispatch.Refs))
+		if len(agentDispatch.Refs) > 0 {
+			builder.WriteString("\n\n---\n\n")
+			for key, value := range agentDispatch.Refs {
+				builder.WriteString(fmt.Sprintf("%s: %s\n", key, value))
+			}
+		}
 		return builder.String()
 	}
 

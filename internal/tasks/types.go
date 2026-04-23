@@ -20,12 +20,14 @@ const (
 	TypeAgentConversationCreate   = "agent:conversation_create"
 	TypeConversationName          = "conversation:name"
 	TypeSubscriptionDispatch      = "subscription:dispatch"
+	TypeCronTriggerDispatch       = "cron_trigger:dispatch"
 
 	// Periodic tasks (scheduled by the worker)
 	TypeTokenCleanup         = "periodic:token_cleanup"
 	TypeStreamCleanup        = "periodic:stream_cleanup"
 	TypeSandboxHealthCheck   = "periodic:sandbox_health_check"
 	TypeSandboxResourceCheck = "periodic:sandbox_resource_check"
+	TypeCronTriggerPoll      = "periodic:cron_trigger_poll"
 	TypeSandboxLifecycle     = "periodic:sandbox_lifecycle"
 )
 
