@@ -5,22 +5,10 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"gorm.io/gorm"
 
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
-
-// migrate1C runs AutoMigrate1C exactly once per test binary. Tranche 1C
-// is not yet wired into rag.AutoMigrate (that happens in 1F), so tests
-// must migrate their own tables. Idempotence is already exercised by
-// AutoMigrate1C's internal guards; re-running is safe.
-func migrate1C(t *testing.T, db *gorm.DB) {
-	t.Helper()
-	if err := ragmodel.AutoMigrate1C(db); err != nil {
-		t.Fatalf("AutoMigrate1C: %v", err)
-	}
-}
 
 // isUniqueViolation pins on the actual Postgres error code 23505 so we
 // don't false-positive on other integrity failures (e.g. FK, check).
@@ -34,7 +22,6 @@ func isUniqueViolation(err error) bool {
 
 func TestRAGSyncState_UniquePerRAGSource(t *testing.T) {
 	db := testhelpers.ConnectTestDB(t)
-	migrate1C(t, db)
 
 	org := testhelpers.NewTestOrg(t, db)
 	user := testhelpers.NewTestUser(t, db, org.ID)
@@ -75,7 +62,6 @@ func TestRAGSyncState_UniquePerRAGSource(t *testing.T) {
 
 func TestRAGSyncState_RAGSourceCascade(t *testing.T) {
 	db := testhelpers.ConnectTestDB(t)
-	migrate1C(t, db)
 
 	org := testhelpers.NewTestOrg(t, db)
 	user := testhelpers.NewTestUser(t, db, org.ID)
@@ -94,8 +80,8 @@ func TestRAGSyncState_RAGSourceCascade(t *testing.T) {
 		t.Fatalf("create sync state: %v", err)
 	}
 
-	// Delete the RAGSource directly; the FK cascade installed in
-	// AutoMigrate3A should take out the sync state row with it.
+	// Delete the RAGSource directly; the rag_source_id FK cascade
+	// should take out the sync state row with it.
 	if err := db.Exec(`DELETE FROM rag_sources WHERE id = ?`, src.ID).Error; err != nil {
 		t.Fatalf("delete rag_source: %v", err)
 	}
