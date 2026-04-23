@@ -267,7 +267,6 @@ export function SkillDetailDialog({ skill, open, onOpenChange }: SkillDetailDial
   const isMarkdown = selectedFile ? isMarkdownFile(selectedFile.path) : false
   const language = selectedFile ? getLanguageFromPath(selectedFile.path) : "text"
 
-  // Reset selection when opening a different skill.
   const skillId = skill?.id
   const previousSkillId = useMemo(() => skillId, [open])
   if (skillId !== previousSkillId) {

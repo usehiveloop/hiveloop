@@ -199,7 +199,6 @@ export function useConversationStream(conversationId: string | null) {
               const existing = updated[idx]
               updated[idx] = {
                 ...existing,
-                // Use full_response as fallback if chunks were missed
                 content: existing.content || fullResponse || "",
                 inputTokens,
                 outputTokens,

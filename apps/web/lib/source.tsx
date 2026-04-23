@@ -20,8 +20,6 @@ export const source = loader({
   },
 });
 
-// --- Blog ---------------------------------------------------------------
-//
 // Blog posts come from a flat fumadocs-mdx collection. Each .mdx file in
 // content/blog/ becomes one entry. We wrap the raw collection here with a
 // strongly-typed helper layer so the page files don't have to handle the

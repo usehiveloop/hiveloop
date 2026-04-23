@@ -91,7 +91,6 @@ export function AddConnectionDialog({
 
   const integrations = data ?? []
 
-  // Handle pre-selected integration from empty state
   useEffect(() => {
     if (preSelectedIntegrationId && integrations.length > 0 && !selectedIntegration) {
       const found = integrations.find((i) => i.id === preSelectedIntegrationId)
