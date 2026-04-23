@@ -3,7 +3,6 @@ package handler
 import (
 	"crypto/rsa"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 

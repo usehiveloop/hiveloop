@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -194,12 +193,6 @@ func (h *AdminHandler) GetSandboxTemplate(w http.ResponseWriter, r *http.Request
 	}
 
 	writeJSON(w, http.StatusOK, toAdminSandboxTemplateResponse(tmpl))
-}
-type adminUpdateSandboxTemplateRequest struct {
-	Name *string  `json:"name,omitempty"`
-	Slug *string  `json:"slug,omitempty"` // Daytona snapshot name
-	Tags []string `json:"tags,omitempty"` // user-facing tags
-	Size *string  `json:"size,omitempty"`
 }
 
 // UpdateSandboxTemplate handles PUT /admin/v1/sandbox-templates/{id}.
