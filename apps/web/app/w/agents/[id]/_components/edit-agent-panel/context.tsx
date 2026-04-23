@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { createContext, useContext, useState, useCallback } from "react"
 import { useForm, type UseFormReturn } from "react-hook-form"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -106,45 +106,55 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
   const [triggers, setTriggers] = useState<TriggerConfig[]>([])
   const [skillIds, setSkillIds] = useState<Set<string>>(new Set())
 
-  // Reset form from agent data when panel opens
-  useEffect(() => {
-    if (!open || !agent) return
+  // Reset form from agent data when the panel opens or switches to a different
+  // agent. Uses React's "adjust state during render" pattern
+  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  // instead of a useEffect — the reset is keyed on (open, agent.id, agent.updated_at)
+  // so subsequent server updates to the same agent re-seed the form.
+  const [seededKey, setSeededKey] = useState<string | null>(null)
+  if (open && agent) {
+    const nextKey = `${agent.id ?? ""}:${(agent as Record<string, unknown>).updated_at ?? ""}`
+    if (nextKey !== seededKey) {
+      setSeededKey(nextKey)
 
-    const rawPrompts = agent.provider_prompts ?? {}
-    const providerPrompts: Record<string, string> = {}
-    for (const [provider, config] of Object.entries(rawPrompts)) {
-      providerPrompts[provider] = config.system_prompt ?? ""
-    }
-
-    const rawPermissions = (agent.permissions ?? {}) as Record<string, string>
-    const parsedPermissions: Record<string, PermissionLevel> = {}
-    for (const [key, value] of Object.entries(rawPermissions)) {
-      if (value === "allow" || value === "deny" || value === "require_approval") {
-        parsedPermissions[key] = value
+      const rawPrompts = agent.provider_prompts ?? {}
+      const providerPrompts: Record<string, string> = {}
+      for (const [provider, config] of Object.entries(rawPrompts)) {
+        providerPrompts[provider] = config.system_prompt ?? ""
       }
-    }
 
-    form.reset({
-      name: agent.name ?? "",
-      description: agent.description ?? "",
-      credentialId: agent.credential_id ?? "",
-      model: agent.model ?? "",
-      sandboxType: (agent.sandbox_type as "shared" | "dedicated") ?? "shared",
-      providerPrompts,
-      instructions: agent.instructions ?? "",
-      team: agent.team ?? "",
-      sharedMemory: agent.shared_memory ?? false,
-      permissions: parsedPermissions,
-    })
-    setIntegrations(parseAgentIntegrations(agent.integrations))
-    setTriggers(parseAgentTriggers(agent))
-    const attachedSkills = (agent as Record<string, unknown>).attached_skills
-    setSkillIds(new Set(
-      Array.isArray(attachedSkills)
-        ? attachedSkills.map((skill: Record<string, unknown>) => skill.id as string).filter(Boolean)
-        : [],
-    ))
-  }, [open, agent, form])
+      const rawPermissions = (agent.permissions ?? {}) as Record<string, string>
+      const parsedPermissions: Record<string, PermissionLevel> = {}
+      for (const [key, value] of Object.entries(rawPermissions)) {
+        if (value === "allow" || value === "deny" || value === "require_approval") {
+          parsedPermissions[key] = value
+        }
+      }
+
+      form.reset({
+        name: agent.name ?? "",
+        description: agent.description ?? "",
+        credentialId: agent.credential_id ?? "",
+        model: agent.model ?? "",
+        sandboxType: (agent.sandbox_type as "shared" | "dedicated") ?? "shared",
+        providerPrompts,
+        instructions: agent.instructions ?? "",
+        team: agent.team ?? "",
+        sharedMemory: agent.shared_memory ?? false,
+        permissions: parsedPermissions,
+      })
+      setIntegrations(parseAgentIntegrations(agent.integrations))
+      setTriggers(parseAgentTriggers(agent))
+      const attachedSkills = (agent as Record<string, unknown>).attached_skills
+      setSkillIds(new Set(
+        Array.isArray(attachedSkills)
+          ? attachedSkills.map((skill: Record<string, unknown>) => skill.id as string).filter(Boolean)
+          : [],
+      ))
+    }
+  } else if (!open && seededKey !== null) {
+    setSeededKey(null)
+  }
 
   const addTrigger = useCallback((trigger: TriggerConfig) => {
     setTriggers((previous) => [...previous, trigger])

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -72,8 +72,12 @@ export function EditTriggersDialog({
     { enabled: !!selectedConnection?.provider },
   )
 
-  useEffect(() => {
-    if (!catalogData) return
+  // When async catalog data arrives, merge any discovered refs into existing
+  // selectedEvents that don't yet have refs. Uses React's "adjust state during
+  // render" pattern keyed on catalogData identity.
+  const [mergedCatalog, setMergedCatalog] = useState<typeof catalogData | null>(null)
+  if (catalogData && catalogData !== mergedCatalog) {
+    setMergedCatalog(catalogData)
     const catalogTriggers = catalogData.triggers ?? []
     setSelectedEvents((previous) => {
       let changed = false
@@ -91,7 +95,7 @@ export function EditTriggersDialog({
       }
       return changed ? next : previous
     })
-  }, [catalogData])
+  }
 
   const innerVariants = {
     enter: (direction: number) => ({ x: direction > 0 ? 60 : -60, opacity: 0 }),

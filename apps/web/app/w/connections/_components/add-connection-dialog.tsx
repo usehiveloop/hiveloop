@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useCallback, useEffect } from "react"
+import { useMemo, useState, useCallback } from "react"
 import { $api } from "@/lib/api/hooks"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -91,15 +91,24 @@ export function AddConnectionDialog({
 
   const integrations = data ?? []
 
-  // Handle pre-selected integration from empty state
-  useEffect(() => {
-    if (preSelectedIntegrationId && integrations.length > 0 && !selectedIntegration) {
-      const found = integrations.find((i) => i.id === preSelectedIntegrationId)
-      if (found && needsForm(found)) {
-        setSelectedIntegration(found)
-      }
+  // Handle pre-selected integration from empty state. React's "adjust state
+  // during render" pattern: when the caller passes a preSelected ID and the
+  // integrations list finishes loading, seed selectedIntegration once.
+  const [seededPreSelectedId, setSeededPreSelectedId] = useState<string | null>(null)
+  if (
+    preSelectedIntegrationId &&
+    preSelectedIntegrationId !== seededPreSelectedId &&
+    integrations.length > 0 &&
+    !selectedIntegration
+  ) {
+    const found = integrations.find((i) => i.id === preSelectedIntegrationId)
+    setSeededPreSelectedId(preSelectedIntegrationId)
+    if (found && needsForm(found)) {
+      setSelectedIntegration(found)
     }
-  }, [preSelectedIntegrationId, integrations, selectedIntegration])
+  } else if (!preSelectedIntegrationId && seededPreSelectedId !== null) {
+    setSeededPreSelectedId(null)
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return integrations

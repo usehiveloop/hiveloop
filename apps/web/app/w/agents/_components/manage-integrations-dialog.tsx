@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useRef, useCallback, useEffect } from "react"
+import { useState, useMemo, useRef, useCallback } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -49,9 +49,14 @@ export function ManageIntegrationsDialog({
   const [actionSearch, setActionSearch] = useState("")
   const detailDirection = useRef<1 | -1>(1)
 
-  // Seed local state from agentIntegrations when dialog opens
-  useEffect(() => {
-    if (open) {
+  // Seed local state from agentIntegrations when the dialog opens (or when the
+  // parent passes a different agentIntegrations prop mid-open). Follows React's
+  // "adjust state during render" pattern instead of a useEffect.
+  const [seededKey, setSeededKey] = useState<string>("")
+  if (open) {
+    const nextKey = JSON.stringify(agentIntegrations)
+    if (nextKey !== seededKey) {
+      setSeededKey(nextKey)
       const ids = new Set(Object.keys(agentIntegrations))
       const actions: Record<string, Set<string>> = {}
       for (const [id, config] of Object.entries(agentIntegrations)) {
@@ -63,7 +68,9 @@ export function ManageIntegrationsDialog({
       setDetailConnectionId(null)
       setActionSearch("")
     }
-  }, [open, agentIntegrations])
+  } else if (seededKey !== "") {
+    setSeededKey("")
+  }
 
   const { data: connectionsData, isLoading } = $api.useQuery("get", "/v1/in/connections")
   const connections = connectionsData?.data ?? []

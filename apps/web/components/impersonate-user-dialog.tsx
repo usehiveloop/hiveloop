@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/auth/auth-context"
 import { Button } from "@/components/ui/button"
@@ -32,14 +32,18 @@ export function ImpersonateUserDialog({ open, onOpenChange }: ImpersonateUserDia
   const [impersonating, setImpersonating] = useState<string | null>(null)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => {
-    if (!open) {
-      setSearch("")
-      setResults([])
-      setSearching(false)
-      setImpersonating(null)
-    }
-  }, [open])
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        setSearch("")
+        setResults([])
+        setSearching(false)
+        setImpersonating(null)
+      }
+      onOpenChange(nextOpen)
+    },
+    [onOpenChange],
+  )
 
   useEffect(() => {
     if (debounceTimer.current) {
@@ -85,7 +89,7 @@ export function ImpersonateUserDialog({ open, onOpenChange }: ImpersonateUserDia
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Impersonate User</DialogTitle>

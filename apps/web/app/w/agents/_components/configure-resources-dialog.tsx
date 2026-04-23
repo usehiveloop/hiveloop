@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { useState, useRef, useCallback, useMemo } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -329,14 +329,22 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
   const [activeConnectionId, setActiveConnectionId] = useState<string | null>(null)
   const [activeResourceType, setActiveResourceType] = useState<string | null>(null)
 
-  // Reset state when dialog opens
-  useEffect(() => {
-    if (open && agent) {
+  // Reset state whenever the dialog reopens or the underlying agent.resources
+  // change. We follow React's "adjust state during render" pattern
+  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  // instead of a useEffect so the reset is synchronous with the prop change.
+  const [resetKey, setResetKey] = useState<string>("")
+  if (open && agent) {
+    const nextKey = JSON.stringify(agent.resources ?? null)
+    if (nextKey !== resetKey) {
+      setResetKey(nextKey)
       setResources(parseAgentResources(agent.resources))
       setActiveConnectionId(null)
       setActiveResourceType(null)
     }
-  }, [open, agent?.resources])
+  } else if (!open && resetKey !== "") {
+    setResetKey("")
+  }
 
   // Load connections
   const { data: connectionsData } = $api.useQuery("get", "/v1/in/connections")
