@@ -43,7 +43,7 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             services/rag-engine/target
-          key: rag-engine-target-v1-${{ runner.os }}-${{ hashFiles('services/rag-engine/Cargo.lock') }}
+          key: rag-engine-target-v2-${{ runner.os }}-${{ hashFiles('services/rag-engine/Cargo.lock') }}
 
       - name: build rag-engine release binary
         working-directory: services/rag-engine
@@ -62,7 +62,7 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             services/rag-engine/target
-          key: rag-engine-target-v1-${{ runner.os }}-${{ hashFiles('services/rag-engine/Cargo.lock') }}
+          key: rag-engine-target-v2-${{ runner.os }}-${{ hashFiles('services/rag-engine/Cargo.lock') }}
 
       - name: upload rag-engine-server binary
         uses: actions/upload-artifact@v4
@@ -108,7 +108,7 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             services/rag-engine/target
-          key: rag-engine-target-v1-${{ runner.os }}-${{ hashFiles('services/rag-engine/Cargo.lock') }}
+          key: rag-engine-target-v2-${{ runner.os }}-${{ hashFiles('services/rag-engine/Cargo.lock') }}
           fail-on-cache-miss: true
 
       - name: download pre-built rag-engine binary
