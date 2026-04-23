@@ -28,7 +28,6 @@ require (
 	github.com/oapi-codegen/runtime v1.3.1
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/pb33f/libopenapi v0.34.3
-	github.com/polarsource/polar-go v0.16.0
 	github.com/posthog/posthog-go v1.11.3
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/sashabaranov/go-openai v1.41.2

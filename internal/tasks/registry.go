@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"github.com/hibiken/asynq"
-	polargo "github.com/polarsource/polar-go"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/cache"
@@ -26,7 +25,6 @@ type WorkerDeps struct {
 	EncKey           *crypto.SymmetricKey  // nil if not configured
 	EmailSend         EmailSenderFunc         // nil if email not configured
 	EmailSendTemplate EmailTemplateSenderFunc // nil if template email not configured
-	PolarClient      *polargo.Polar        // nil if billing not configured
 	EventBus         *streaming.EventBus   // nil if streaming not configured
 	SkillFetcher     *skills.GitFetcher    // nil disables git skill hydration
 	NangoClient      *nango.Client         // nil disables deterministic enrichment
@@ -73,11 +71,6 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		handler := NewSandboxTemplateBuildHandler(deps.DB, deps.Orchestrator)
 		mux.HandleFunc(TypeSandboxTemplateBuild, handler.Handle)
 		mux.HandleFunc(TypeSandboxTemplateRetryBuild, handler.HandleRetry)
-	}
-
-	// Billing usage event
-	if deps.PolarClient != nil {
-		mux.HandleFunc(TypeBillingUsageEvent, NewBillingUsageEventHandler(deps.DB, deps.PolarClient).Handle)
 	}
 
 	// Skill hydration from git repos

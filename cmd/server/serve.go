@@ -104,6 +104,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		if enqueuer != nil {
 			conversationHandler.SetEnqueuer(enqueuer)
 		}
+		conversationHandler.SetCredits(deps.Credits)
 		systemConvHandler = handler.NewSystemConversationHandler(database, orchestrator, agentPusher, eventBus, signingKey, cfg)
 	}
 
@@ -133,10 +134,8 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		driveHandler = handler.NewDriveHandler(database, deps.S3Client)
 	}
 
-	var billingHandler *handler.BillingHandler
-	if deps.PolarClient != nil {
-		billingHandler = handler.NewBillingHandler(database, deps.PolarClient, cfg)
-	}
+	billingHandler := handler.NewBillingHandler(database, deps.BillingRegistry, deps.Credits)
+	billingWebhookHandler := handler.NewBillingWebhookHandler(database, deps.BillingRegistry, deps.Credits)
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -148,7 +147,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, bridgeWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey)
+	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, bridgeWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, billingWebhookHandler, nangoClient, sandboxEncKey)
 
 	// HTTP triggers: unauthenticated endpoint, trigger UUID acts as bearer token.
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)

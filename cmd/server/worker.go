@@ -73,7 +73,6 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 				Variables: variables,
 			})
 		},
-		PolarClient:  deps.PolarClient,
 		SkillFetcher: skills.NewGitFetcher(cfg.GitHubToken),
 		NangoClient:  deps.NangoClient,
 		CacheManager: deps.CacheManager,

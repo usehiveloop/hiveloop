@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/cache"
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/counter"
@@ -30,8 +31,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/storage"
 	"github.com/usehiveloop/hiveloop/internal/streaming"
 	"github.com/usehiveloop/hiveloop/internal/turso"
-
-	polargo "github.com/polarsource/polar-go"
 
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
 )
@@ -57,12 +56,13 @@ type Deps struct {
 	EventBus       *streaming.EventBus
 	Flusher        *streaming.Flusher
 	Cleanup        *streaming.Cleanup
-	Retainer        *hindsight.Retainer         // nil if Hindsight not configured
-	SpiderClient    *spider.Client             // nil if spider not configured
-	ToolUsageWriter *middleware.ToolUsageWriter // nil if spider not configured
-	PolarClient     *polargo.Polar             // nil if POLAR_ACCESS_TOKEN not set
-	S3Client        *storage.S3Client          // nil if AWS_S3_BUCKET_NAME not set
-	PostHog         ph.Client                  // nil if PostHog disabled
+	Retainer         *hindsight.Retainer         // nil if Hindsight not configured
+	SpiderClient     *spider.Client              // nil if spider not configured
+	ToolUsageWriter  *middleware.ToolUsageWriter // nil if spider not configured
+	BillingRegistry  *billing.Registry           // always non-nil; may have zero providers
+	Credits          *billing.CreditsService     // credit ledger service
+	S3Client         *storage.S3Client           // nil if AWS_S3_BUCKET_NAME not set
+	PostHog          ph.Client                   // nil if PostHog disabled
 }
 
 // New initializes all shared dependencies. The caller is responsible for
@@ -254,19 +254,13 @@ func New(ctx context.Context) (*Deps, error) {
 		retainer = hindsight.NewRetainer(eventBus, database, hClient)
 	}
 
-	// 17. Polar billing client (optional)
-	var polarClient *polargo.Polar
-	if cfg.PolarAccessToken != "" {
-		server := polargo.ServerSandbox
-		if cfg.PolarServer == "production" {
-			server = polargo.ServerProduction
-		}
-		polarClient = polargo.New(
-			polargo.WithSecurity(cfg.PolarAccessToken),
-			polargo.WithServer(server),
-		)
-		slog.Info("polar billing client initialized", "server", cfg.PolarServer)
-	}
+	// 17. Billing — provider-agnostic. The registry starts empty; individual
+	// providers (Stripe, Paddle, Polar, etc.) register themselves when their
+	// env vars are present. The credit ledger service works regardless of
+	// whether any provider is registered.
+	billingRegistry := billing.NewRegistry()
+	credits := billing.NewCreditsService(database)
+	slog.Info("billing ready", "providers", billingRegistry.Names())
 
 	// 18. S3 storage (agent drive — optional)
 	var s3Client *storage.S3Client
@@ -315,7 +309,8 @@ func New(ctx context.Context) (*Deps, error) {
 		Retainer:        retainer,
 		SpiderClient:    spiderClient,
 		ToolUsageWriter: toolUsageWriter,
-		PolarClient:     polarClient,
+		BillingRegistry: billingRegistry,
+		Credits:         credits,
 		S3Client:        s3Client,
 		PostHog:         postHogClient,
 	}, nil

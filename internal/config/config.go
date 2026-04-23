@@ -131,14 +131,6 @@ type Config struct {
 	SpiderAPIKey  string `env:"SPIDER_CLOUD_API_KEY"`                                  // empty = spider disabled
 	SpiderBaseURL string `env:"SPIDER_BASE_URL" envDefault:"https://api.spider.cloud"` // Spider.cloud API endpoint
 
-	// Polar billing (empty = billing disabled, e.g. self-hosted)
-	PolarAccessToken           string `env:"POLAR_ACCESS_TOKEN"`
-	PolarWebhookSecret         string `env:"POLAR_WEBHOOK_SECRET"`
-	PolarServer                string `env:"POLAR_SERVER" envDefault:"sandbox"`                // "sandbox" or "production"
-	PolarProductFreeID         string `env:"POLAR_PRODUCT_FREE_ID"`
-	PolarProductProSharedID    string `env:"POLAR_PRODUCT_PRO_SHARED_ID"`
-	PolarProductProDedicatedID string `env:"POLAR_PRODUCT_PRO_DEDICATED_ID"`
-
 	// S3 (agent drive storage — empty AWS_S3_BUCKET_NAME disables the drive)
 	S3Bucket    string `env:"AWS_S3_BUCKET_NAME"`
 	S3Region    string `env:"AWS_DEFAULT_REGION" envDefault:"us-east-1"`

@@ -341,8 +341,6 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/polarsource/polar-go v0.16.0 h1:0YB4+DB0vsuvdxNVOvJpju5yKkMCHt6vmBRp9W2sKeo=
-github.com/polarsource/polar-go v0.16.0/go.mod h1:FB11Q4m2n3wIk6l/POOkz0MVOUx1o0Yt4Y97MnQfe0c=
 github.com/posthog/posthog-go v1.11.3 h1:5rFFJxILDBBZa+sSvHZKIROaDUGi+vQHAQjSWlibXJY=
 github.com/posthog/posthog-go v1.11.3/go.mod h1:xsVOW9YImilUcazwPNEq4PJDqEZf2KeCS758zXjwkPg=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
