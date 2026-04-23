@@ -64,7 +64,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3, 4]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -104,21 +104,20 @@ jobs:
       - name: run shard ${{ matrix.shard }} tests
         env:
           SHARD: ${{ matrix.shard }}
-          TOTAL: "5"
+          TOTAL: "10"
         run: |
           set -eo pipefail
 
           # ------------ Rust crate tests -------------------------------
-          # Six crates, round-robin by mod 5 → shard 0 gets two.
+          # Six crates, one per shard — shards 0..5 get a crate each,
+          # shards 6..9 skip the Rust block.
           CRATES=(rag-engine-chunker rag-engine-embed rag-engine-lance \
                   rag-engine-proto rag-engine-rerank rag-engine-server)
-          for i in "${!CRATES[@]}"; do
-            if [ $(( i % TOTAL )) -eq "$SHARD" ]; then
-              echo "::group::cargo test -p ${CRATES[$i]}"
-              (cd services/rag-engine && cargo test -p "${CRATES[$i]}")
-              echo "::endgroup::"
-            fi
-          done
+          if [ "$SHARD" -lt "${#CRATES[@]}" ]; then
+            echo "::group::cargo test -p ${CRATES[$SHARD]}"
+            (cd services/rag-engine && cargo test -p "${CRATES[$SHARD]}")
+            echo "::endgroup::"
+          fi
 
           # ------------ Go tests ---------------------------------------
           # Enumerate test names across the three infra-dependent
