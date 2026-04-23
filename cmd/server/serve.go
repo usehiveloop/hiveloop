@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/bootstrap"
 	"github.com/usehiveloop/hiveloop/internal/email"
@@ -18,6 +19,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
+	"github.com/usehiveloop/hiveloop/internal/mcpserver"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
 	"github.com/usehiveloop/hiveloop/internal/proxy"
@@ -110,6 +112,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus, enqueuer)
 	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey, sandboxEncKey, enqueuer)
 	incomingWebhookHandler := handler.NewIncomingWebhookHandler(database, enqueuer)
+	httpTriggerHandler := handler.NewHTTPTriggerHandler(database, enqueuer)
 
 	var templateBuilder handler.TemplateBuildable
 	if orchestrator != nil {
@@ -148,6 +151,9 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
 	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, bridgeWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey)
+
+	// HTTP triggers: unauthenticated endpoint, trigger UUID acts as bearer token.
+	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
 	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, subagentHandler, agentHandler, marketplaceHandler, conversationHandler, systemConvHandler, routerHandler, customDomainHandler, orchestrator, auditWriter)
 

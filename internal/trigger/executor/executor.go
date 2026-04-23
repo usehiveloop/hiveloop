@@ -242,6 +242,18 @@ func buildInstructions(agentDispatch dispatch.AgentDispatch) string {
 		return builder.String()
 	}
 
+	// Trigger-level instructions (cron/http triggers).
+	if agentDispatch.TriggerInstructions != "" {
+		builder.WriteString(dispatch.SubstituteRefs(agentDispatch.TriggerInstructions, agentDispatch.Refs))
+		if len(agentDispatch.Refs) > 0 {
+			builder.WriteString("\n\n---\n\n")
+			for key, value := range agentDispatch.Refs {
+				builder.WriteString(fmt.Sprintf("%s: %s\n", key, value))
+			}
+		}
+		return builder.String()
+	}
+
 	// Fallback: flat refs.
 	for key, value := range agentDispatch.Refs {
 		builder.WriteString(fmt.Sprintf("%s: %s\n", key, value))

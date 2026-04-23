@@ -95,6 +95,13 @@ func findStepReferences(input string) []string {
 	return out
 }
 
+// SubstituteRefs is the exported alias for substituteRefs — callers outside
+// this package (executor, task handlers) need to apply $refs.x substitution
+// to trigger instruction templates before building conversation messages.
+func SubstituteRefs(input string, refs map[string]string) string {
+	return substituteRefs(input, refs)
+}
+
 // substitutePathParams fills {param} placeholders in an action's path template
 // from a values map. This is a separate, much simpler substitution from the
 // ref/step machinery — paths like /repos/{owner}/{repo}/issues/{issue_number}

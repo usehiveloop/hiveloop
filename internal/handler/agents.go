@@ -42,19 +42,33 @@ func (h *AgentHandler) SetCatalog(c *catalog.Catalog) {
 
 var _ AgentPusher = (*sandbox.Pusher)(nil)
 
+// agentTriggerInput defines a trigger to create alongside the agent.
+// Each entry creates a RouterTrigger + RoutingRule that automatically invokes
+// this agent when the trigger fires.
+//
+// TriggerType determines the kind of trigger:
+//   - "webhook" (default): fires on matching webhook events. Requires connection_id and trigger_keys.
+//   - "http": fires on HTTP requests to /incoming/triggers/{id}. No connection required.
+//   - "cron": fires on a cron schedule. Requires cron_schedule.
 type agentTriggerInput struct {
-	ConnectionID string              `json:"connection_id"`
-	TriggerKeys  []string            `json:"trigger_keys"`
+	TriggerType  string              `json:"trigger_type,omitempty"` // "webhook" (default), "http", "cron"
+	ConnectionID string              `json:"connection_id,omitempty"`
+	TriggerKeys  []string            `json:"trigger_keys,omitempty"`
 	Conditions   *model.TriggerMatch `json:"conditions,omitempty"`
+	CronSchedule string              `json:"cron_schedule,omitempty"`
+	Instructions string              `json:"instructions,omitempty"`
 }
 
 type agentTriggerResponse struct {
 	ID           string   `json:"id"`
-	ConnectionID string   `json:"connection_id"`
-	Provider     string   `json:"provider"`
-	TriggerKeys  []string `json:"trigger_keys"`
+	TriggerType  string   `json:"trigger_type"`
+	ConnectionID string   `json:"connection_id,omitempty"`
+	Provider     string   `json:"provider,omitempty"`
+	TriggerKeys  []string `json:"trigger_keys,omitempty"`
 	Enabled      bool     `json:"enabled"`
-	Conditions   any      `json:"conditions"`
+	Conditions   any      `json:"conditions,omitempty"`
+	CronSchedule string   `json:"cron_schedule,omitempty"`
+	Instructions string   `json:"instructions,omitempty"`
 }
 
 type createAgentRequest struct {
