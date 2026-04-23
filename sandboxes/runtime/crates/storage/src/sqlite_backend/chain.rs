@@ -27,7 +27,13 @@ pub(super) async fn save_chain_link(
             "INSERT OR REPLACE INTO chain_links
                  (conversation_id, chain_index, started_at, trigger_token_count, checkpoint_text)
              VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![conversation_id, chain_index, started_at, trigger_token_count, compressed_checkpoint],
+            params![
+                conversation_id,
+                chain_index,
+                started_at,
+                trigger_token_count,
+                compressed_checkpoint
+            ],
         )?;
         Ok(())
     })
