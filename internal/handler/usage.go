@@ -1,12 +1,10 @@
 package handler
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/sourcegraph/conc/pool"
 	"gorm.io/gorm"
 
