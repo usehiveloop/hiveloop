@@ -9,7 +9,6 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 
 func TestDispatch_ThreadAffinity_ExistingConv(t *testing.T) {
