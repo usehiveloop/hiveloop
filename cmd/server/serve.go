@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
-	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/bootstrap"
 	"github.com/usehiveloop/hiveloop/internal/email"
@@ -19,7 +18,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
-	"github.com/usehiveloop/hiveloop/internal/mcpserver"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
 	"github.com/usehiveloop/hiveloop/internal/proxy"
