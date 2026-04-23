@@ -18,7 +18,6 @@ type UsageHandler struct {
 	db *gorm.DB
 }
 
-// NewUsageHandler creates a new usage handler.
 func NewUsageHandler(db *gorm.DB) *UsageHandler {
 	return &UsageHandler{db: db}
 }
@@ -41,7 +40,6 @@ type apiKeyStats struct {
 	Active  int64 `json:"active"`
 	Revoked int64 `json:"revoked"`
 }
-
 
 type requestStats struct {
 	Total     int64 `json:"total"`
@@ -107,14 +105,12 @@ type usageResponse struct {
 	Requests       requestStats    `json:"requests"`
 	DailyRequests  []dailyRequests `json:"daily_requests"`
 	TopCredentials []topCredential `json:"top_credentials"`
-
-	// Generation-based analytics
-	SpendOverTime []spendOverTime `json:"spend_over_time"`
-	TokenVolumes  []tokenVolumes  `json:"token_volumes"`
-	Latency       []latencyStats  `json:"latency"`
-	TopModels     []topModel      `json:"top_models"`
-	TopUsers      []topUser       `json:"top_users"`
-	ErrorRates    []errorRate     `json:"error_rates"`
+	SpendOverTime  []spendOverTime `json:"spend_over_time"`
+	TokenVolumes   []tokenVolumes  `json:"token_volumes"`
+	Latency        []latencyStats  `json:"latency"`
+	TopModels      []topModel      `json:"top_models"`
+	TopUsers       []topUser       `json:"top_users"`
+	ErrorRates     []errorRate     `json:"error_rates"`
 }
 
 // Get handles GET /v1/usage.
@@ -143,311 +139,65 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 	var resp usageResponse
 	p := pool.New().WithErrors().WithMaxGoroutines(12)
 
-	// Query 1: Credentials (single query with conditional aggregation)
 	p.Go(func() error {
-		var row struct {
-			Total   int64
-			Active  int64
-			Revoked int64
-		}
-		if err := h.db.Raw(`
-			SELECT
-				COUNT(*) AS total,
-				COUNT(*) FILTER (WHERE revoked_at IS NULL) AS active,
-				COUNT(*) FILTER (WHERE revoked_at IS NOT NULL) AS revoked
-			FROM credentials WHERE org_id = ?`, orgID).Scan(&row).Error; err != nil {
-			return fmt.Errorf("credentials: %w", err)
-		}
-		resp.Credentials = credentialStats{Total: row.Total, Active: row.Active, Revoked: row.Revoked}
-		return nil
+		var err error
+		resp.Credentials, err = h.queryCredentials(orgID)
+		return err
 	})
-
-	// Query 2: Tokens (single query with conditional aggregation)
 	p.Go(func() error {
-		var row struct {
-			Total   int64
-			Active  int64
-			Expired int64
-			Revoked int64
-		}
-		if err := h.db.Raw(`
-			SELECT
-				COUNT(*) AS total,
-				COUNT(*) FILTER (WHERE revoked_at IS NULL AND expires_at > ?) AS active,
-				COUNT(*) FILTER (WHERE revoked_at IS NULL AND expires_at <= ?) AS expired,
-				COUNT(*) FILTER (WHERE revoked_at IS NOT NULL) AS revoked
-			FROM tokens WHERE org_id = ?`, now, now, orgID).Scan(&row).Error; err != nil {
-			return fmt.Errorf("tokens: %w", err)
-		}
-		resp.Tokens = tokenStats{Total: row.Total, Active: row.Active, Expired: row.Expired, Revoked: row.Revoked}
-		return nil
+		var err error
+		resp.Tokens, err = h.queryTokens(orgID, now)
+		return err
 	})
-
-	// Query 3: API Keys + Identities (single query, two subselects)
 	p.Go(func() error {
-		var row struct {
-			AKTotal    int64
-			AKActive   int64
-		}
-		if err := h.db.Raw(`
-			SELECT
-				(SELECT COUNT(*) FROM api_keys WHERE org_id = ?) AS ak_total,
-				(SELECT COUNT(*) FROM api_keys WHERE org_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)) AS ak_active`,
-			orgID, orgID, now).Scan(&row).Error; err != nil {
-			return fmt.Errorf("api_keys: %w", err)
-		}
-		resp.APIKeys = apiKeyStats{Total: row.AKTotal, Active: row.AKActive, Revoked: row.AKTotal - row.AKActive}
-		return nil
+		var err error
+		resp.APIKeys, err = h.queryAPIKeys(orgID, now)
+		return err
 	})
-
-	// Query 4: Request counts (single query with conditional aggregation)
 	p.Go(func() error {
-		var row struct {
-			Total     int64 `gorm:"column:total"`
-			Today     int64 `gorm:"column:today"`
-			Yesterday int64 `gorm:"column:yesterday"`
-			Last7d    int64 `gorm:"column:last_7d"`
-			Last30d   int64 `gorm:"column:last_30d"`
-		}
-		if err := h.db.Raw(`
-			SELECT
-				COUNT(*) AS total,
-				COUNT(*) FILTER (WHERE created_at >= ?) AS today,
-				COUNT(*) FILTER (WHERE created_at >= ? AND created_at < ?) AS yesterday,
-				COUNT(*) FILTER (WHERE created_at >= ?) AS last_7d,
-				COUNT(*) FILTER (WHERE created_at >= ?) AS last_30d
-			FROM audit_log WHERE org_id = ? AND action = 'proxy.request'`,
-			today, yesterday, today, last7d, last30d, orgID).Scan(&row).Error; err != nil {
-			return fmt.Errorf("request_counts: %w", err)
-		}
-		resp.Requests = requestStats{
-			Total:     row.Total,
-			Today:     row.Today,
-			Yesterday: row.Yesterday,
-			Last7d:    row.Last7d,
-			Last30d:   row.Last30d,
-		}
-		return nil
+		var err error
+		resp.Requests, err = h.queryRequests(orgID, today, yesterday, last7d, last30d)
+		return err
 	})
-
-	// Query 5: Daily request counts (last 30 days)
 	p.Go(func() error {
-		var dailyRows []struct {
-			Date  time.Time
-			Count int64
-		}
-		if err := h.db.Raw(`
-			SELECT DATE(created_at) AS date, COUNT(*) AS count
-			FROM audit_log
-			WHERE org_id = ? AND action = 'proxy.request' AND created_at >= ?
-			GROUP BY DATE(created_at)
-			ORDER BY date ASC`, orgID, last30d).Scan(&dailyRows).Error; err != nil {
-			return fmt.Errorf("daily_requests: %w", err)
-		}
-		resp.DailyRequests = make([]dailyRequests, 0, len(dailyRows))
-		for _, row := range dailyRows {
-			resp.DailyRequests = append(resp.DailyRequests, dailyRequests{
-				Date:  row.Date.Format("2006-01-02"),
-				Count: row.Count,
-			})
-		}
-		return nil
+		var err error
+		resp.DailyRequests, err = h.queryDailyRequests(orgID, last30d)
+		return err
 	})
-
-	// Query 6: Top credentials by request count (last 30 days)
 	p.Go(func() error {
-		var topRows []struct {
-			CredentialID uuid.UUID
-			Label        string
-			ProviderID   string
-			RequestCount int64
-		}
-		if err := h.db.Raw(`
-			SELECT a.credential_id, c.label, c.provider_id, COUNT(*) AS request_count
-			FROM audit_log a
-			JOIN credentials c ON c.id = a.credential_id
-			WHERE a.org_id = ? AND a.action = 'proxy.request' AND a.created_at >= ? AND a.credential_id IS NOT NULL
-			GROUP BY a.credential_id, c.label, c.provider_id
-			ORDER BY request_count DESC
-			LIMIT 5`, orgID, last30d).Scan(&topRows).Error; err != nil {
-			return fmt.Errorf("top_credentials: %w", err)
-		}
-		resp.TopCredentials = make([]topCredential, 0, len(topRows))
-		for _, row := range topRows {
-			resp.TopCredentials = append(resp.TopCredentials, topCredential{
-				ID:           row.CredentialID.String(),
-				Label:        row.Label,
-				ProviderID:   row.ProviderID,
-				RequestCount: row.RequestCount,
-			})
-		}
-		return nil
+		var err error
+		resp.TopCredentials, err = h.queryTopCredentials(orgID, last30d)
+		return err
 	})
-
-	// Query 7: Spend over time (last 30 days, from generations)
 	p.Go(func() error {
-		var rows []struct {
-			Date      time.Time
-			TotalCost float64
-		}
-		if err := h.db.Raw(`
-			SELECT DATE(created_at) AS date, COALESCE(SUM(cost), 0) AS total_cost
-			FROM generations
-			WHERE org_id = ? AND created_at >= ?
-			GROUP BY DATE(created_at)
-			ORDER BY date ASC`, orgID, last30d).Scan(&rows).Error; err != nil {
-			return fmt.Errorf("spend_over_time: %w", err)
-		}
-		resp.SpendOverTime = make([]spendOverTime, 0, len(rows))
-		for _, row := range rows {
-			resp.SpendOverTime = append(resp.SpendOverTime, spendOverTime{
-				Date:      row.Date.Format("2006-01-02"),
-				TotalCost: row.TotalCost,
-			})
-		}
-		return nil
+		var err error
+		resp.SpendOverTime, err = h.querySpendOverTime(orgID, last30d)
+		return err
 	})
-
-	// Query 8: Token volumes (last 30 days, from generations)
 	p.Go(func() error {
-		var rows []struct {
-			Date         time.Time
-			InputTokens  int64
-			OutputTokens int64
-			CachedTokens int64
-		}
-		if err := h.db.Raw(`
-			SELECT DATE(created_at) AS date,
-				COALESCE(SUM(input_tokens), 0) AS input_tokens,
-				COALESCE(SUM(output_tokens), 0) AS output_tokens,
-				COALESCE(SUM(cached_tokens), 0) AS cached_tokens
-			FROM generations
-			WHERE org_id = ? AND created_at >= ?
-			GROUP BY DATE(created_at)
-			ORDER BY date ASC`, orgID, last30d).Scan(&rows).Error; err != nil {
-			return fmt.Errorf("token_volumes: %w", err)
-		}
-		resp.TokenVolumes = make([]tokenVolumes, 0, len(rows))
-		for _, row := range rows {
-			resp.TokenVolumes = append(resp.TokenVolumes, tokenVolumes{
-				Date:         row.Date.Format("2006-01-02"),
-				InputTokens:  row.InputTokens,
-				OutputTokens: row.OutputTokens,
-				CachedTokens: row.CachedTokens,
-			})
-		}
-		return nil
+		var err error
+		resp.TokenVolumes, err = h.queryTokenVolumes(orgID, last30d)
+		return err
 	})
-
-	// Query 9: Latency stats (last 30 days, from generations)
 	p.Go(func() error {
-		var rows []struct {
-			Date      time.Time
-			AvgTTFBMs float64
-			P95TTFBMs float64
-		}
-		if err := h.db.Raw(`
-			SELECT DATE(created_at) AS date,
-				COALESCE(AVG(ttfb_ms), 0) AS avg_ttfb_ms,
-				COALESCE(percentile_cont(0.95) WITHIN GROUP (ORDER BY ttfb_ms), 0) AS p95_ttfb_ms
-			FROM generations
-			WHERE org_id = ? AND created_at >= ? AND ttfb_ms IS NOT NULL
-			GROUP BY DATE(created_at)
-			ORDER BY date ASC`, orgID, last30d).Scan(&rows).Error; err != nil {
-			return fmt.Errorf("latency: %w", err)
-		}
-		resp.Latency = make([]latencyStats, 0, len(rows))
-		for _, row := range rows {
-			resp.Latency = append(resp.Latency, latencyStats{
-				Date:      row.Date.Format("2006-01-02"),
-				AvgTTFBMs: row.AvgTTFBMs,
-				P95TTFBMs: row.P95TTFBMs,
-			})
-		}
-		return nil
+		var err error
+		resp.Latency, err = h.queryLatency(orgID, last30d)
+		return err
 	})
-
-	// Query 10: Top models (last 30 days, from generations)
 	p.Go(func() error {
-		var rows []struct {
-			Model        string
-			ProviderID   string
-			RequestCount int64
-			TotalCost    float64
-		}
-		if err := h.db.Raw(`
-			SELECT model, provider_id, COUNT(*) AS request_count, COALESCE(SUM(cost), 0) AS total_cost
-			FROM generations
-			WHERE org_id = ? AND created_at >= ? AND model != ''
-			GROUP BY model, provider_id
-			ORDER BY request_count DESC
-			LIMIT 10`, orgID, last30d).Scan(&rows).Error; err != nil {
-			return fmt.Errorf("top_models: %w", err)
-		}
-		resp.TopModels = make([]topModel, 0, len(rows))
-		for _, row := range rows {
-			resp.TopModels = append(resp.TopModels, topModel{
-				Model:        row.Model,
-				ProviderID:   row.ProviderID,
-				RequestCount: row.RequestCount,
-				TotalCost:    row.TotalCost,
-			})
-		}
-		return nil
+		var err error
+		resp.TopModels, err = h.queryTopModels(orgID, last30d)
+		return err
 	})
-
-	// Query 11: Top users by cost (last 30 days, from generations)
 	p.Go(func() error {
-		var rows []struct {
-			UserID       string
-			RequestCount int64
-			TotalCost    float64
-		}
-		if err := h.db.Raw(`
-			SELECT user_id, COUNT(*) AS request_count, COALESCE(SUM(cost), 0) AS total_cost
-			FROM generations
-			WHERE org_id = ? AND created_at >= ? AND user_id != ''
-			GROUP BY user_id
-			ORDER BY total_cost DESC
-			LIMIT 10`, orgID, last30d).Scan(&rows).Error; err != nil {
-			return fmt.Errorf("top_users: %w", err)
-		}
-		resp.TopUsers = make([]topUser, 0, len(rows))
-		for _, row := range rows {
-			resp.TopUsers = append(resp.TopUsers, topUser{
-				UserID:       row.UserID,
-				RequestCount: row.RequestCount,
-				TotalCost:    row.TotalCost,
-			})
-		}
-		return nil
+		var err error
+		resp.TopUsers, err = h.queryTopUsers(orgID, last30d)
+		return err
 	})
-
-	// Query 12: Error rates (last 30 days, from generations)
 	p.Go(func() error {
-		var rows []struct {
-			Date       time.Time
-			Total      int64
-			ErrorCount int64
-		}
-		if err := h.db.Raw(`
-			SELECT DATE(created_at) AS date, COUNT(*) AS total,
-				COUNT(*) FILTER (WHERE error_type != '' AND error_type IS NOT NULL) AS error_count
-			FROM generations
-			WHERE org_id = ? AND created_at >= ?
-			GROUP BY DATE(created_at)
-			ORDER BY date ASC`, orgID, last30d).Scan(&rows).Error; err != nil {
-			return fmt.Errorf("error_rates: %w", err)
-		}
-		resp.ErrorRates = make([]errorRate, 0, len(rows))
-		for _, row := range rows {
-			resp.ErrorRates = append(resp.ErrorRates, errorRate{
-				Date:       row.Date.Format("2006-01-02"),
-				Total:      row.Total,
-				ErrorCount: row.ErrorCount,
-			})
-		}
-		return nil
+		var err error
+		resp.ErrorRates, err = h.queryErrorRates(orgID, last30d)
+		return err
 	})
 
 	if err := p.Wait(); err != nil {
@@ -456,7 +206,6 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Ensure non-null arrays
 	if resp.DailyRequests == nil {
 		resp.DailyRequests = []dailyRequests{}
 	}
