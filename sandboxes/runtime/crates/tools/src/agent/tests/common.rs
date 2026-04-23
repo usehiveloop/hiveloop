@@ -2,9 +2,7 @@ use async_trait::async_trait;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
-use crate::agent::{
-    AgentContext, AgentTaskHandle, AgentTaskResult, SubAgentRunner, TaskBudget,
-};
+use crate::agent::{AgentContext, AgentTaskHandle, AgentTaskResult, SubAgentRunner, TaskBudget};
 
 pub(super) struct MockRunner {
     pub subagents: Vec<(String, String)>,

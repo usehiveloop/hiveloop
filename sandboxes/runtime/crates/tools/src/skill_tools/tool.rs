@@ -91,8 +91,7 @@ impl ToolExecutor for SkillTool {
                             s.id, file_path, file_content
                         )),
                         None => {
-                            let available: Vec<&str> =
-                                s.files.keys().map(|k| k.as_str()).collect();
+                            let available: Vec<&str> = s.files.keys().map(|k| k.as_str()).collect();
                             Err(format!(
                                 "File '{}' not found in skill '{}'. Available files: [{}]",
                                 file_path,
