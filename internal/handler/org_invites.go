@@ -47,11 +47,9 @@ type orgInviteResponse struct {
 }
 
 type orgInvitePreviewResponse struct {
-	OrgID       string `json:"org_id"`
 	OrgName     string `json:"org_name"`
 	InviterName string `json:"inviter_name"`
 	Role        string `json:"role"`
-	Email       string `json:"email"`
 	ExpiresAt   string `json:"expires_at"`
 }
 

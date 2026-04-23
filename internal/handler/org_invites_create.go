@@ -85,8 +85,7 @@ func (h *OrgInviteHandler) Create(w http.ResponseWriter, r *http.Request) {
 		First(&existingInvite).Error
 	if err == nil {
 		writeJSON(w, http.StatusConflict, map[string]string{
-			"error":     "invite already pending",
-			"invite_id": existingInvite.ID.String(),
+			"error": "an invite already exists for this email",
 		})
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
