@@ -9,15 +9,9 @@ import { Label } from "@/components/ui/label"
 import { IntegrationLogo } from "@/components/integration-logo"
 import type { components } from "@/lib/api/schema"
 
-type NangoConfig = components["schemas"]["NangoConfig"]
 type ConnectionConfigField = components["schemas"]["ConnectionConfigField"]
 
-interface Integration {
-  id?: string
-  provider?: string
-  display_name?: string
-  nango_config?: NangoConfig
-}
+type Integration = components["schemas"]["inIntegrationAvailableResponse"]
 
 interface CredentialsFormProps {
   integration: Integration

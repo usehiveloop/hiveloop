@@ -6,6 +6,12 @@ import { fetchEventSource } from "@microsoft/fetch-event-source"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL as string
 
+/**
+ * Response shape for `GET /api/auth/stream-token` — a Next.js edge route that
+ * forwards a short-lived access token for direct backend SSE connections.
+ * Not part of the backend OpenAPI spec (it's a frontend-only helper); the
+ * contract lives alongside the handler at `app/api/auth/stream-token/route.ts`.
+ */
 interface StreamToken {
   access_token: string
   org_id: string | null

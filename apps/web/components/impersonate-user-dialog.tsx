@@ -12,8 +12,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import type { components } from "@/lib/api/schema"
 
-interface AdminUser {
+// Backend fields are all optional in the spec; this dialog only consumes the
+// identity triple, which must be present on any real row we render.
+type AdminUser = components["schemas"]["adminUserResponse"] & {
   id: string
   email: string
   name: string
