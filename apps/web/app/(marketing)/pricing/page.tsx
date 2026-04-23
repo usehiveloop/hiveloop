@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Tick02Icon, Cancel01Icon } from "@hugeicons/core-free-icons"
+import { MarketingGlow } from "../_components/backdrop"
 
 function Check() {
   return <HugeiconsIcon icon={Tick02Icon} size={16} className="text-green-500 shrink-0" />
@@ -60,12 +61,7 @@ export default function PricingPage() {
 
           {/* Pro Plan */}
           <div className="flex flex-col rounded-2xl border-2 border-primary/30 p-8 gap-8 relative overflow-hidden">
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: "radial-gradient(circle at 50% 0%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
-              }}
-            />
+            <MarketingGlow glow="top" />
             <div className="flex flex-col gap-4 relative">
               <span className="font-mono text-[11px] font-medium uppercase tracking-[1px] text-primary">Pro</span>
               <div className="flex items-baseline gap-1">
@@ -161,12 +157,7 @@ export default function PricingPage() {
             </div>
 
             <div className="rounded-2xl border-2 border-primary/30 p-6 flex flex-col gap-4 relative overflow-hidden">
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background: "radial-gradient(circle at 50% 0%, color-mix(in oklch, var(--primary) 6%, transparent) 0%, transparent 60%)",
-                }}
-              />
+              <MarketingGlow glow="top" glowIntensity="sm" />
               <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-primary relative">Pro (shared sandbox)</span>
               <div className="flex flex-col gap-2 relative">
                 <div className="flex items-center justify-between">
@@ -330,12 +321,7 @@ export default function PricingPage() {
       {/* CTA */}
       <div className="max-w-5xl mx-auto w-full px-4 pb-24">
         <div className="flex flex-col items-center gap-6 rounded-2xl border border-border p-12 text-center relative overflow-hidden">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: "radial-gradient(circle at 50% 100%, color-mix(in oklch, var(--primary) 6%, transparent) 0%, transparent 60%)",
-            }}
-          />
+          <MarketingGlow glow="bottom" glowIntensity="sm" />
           <h2 className="font-heading text-2xl sm:text-3xl font-bold text-foreground relative">Ready to build?</h2>
           <p className="text-muted-foreground max-w-md relative">
             Start with the free plan and upgrade when you need production features.

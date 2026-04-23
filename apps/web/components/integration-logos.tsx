@@ -30,16 +30,21 @@ export function IntegrationLogos({ integrations, max = 4, size = 20, className }
       <TooltipTrigger
         render={
           <div className={cn("flex items-center justify-center cursor-default w-fit", className)}>
-            {visible.map((integration, i) => (
+            {visible.map((integration) => (
+              // marginLeft scales with the `size` prop (30%), so earlier
+              // logos overlap later ones. Values come from component props,
+              // not design tokens, so Tailwind can't express this statically.
+              // The `first:ml-0` Tailwind utility handles the leading item.
               <div
                 key={integration.provider}
-                className="rounded-full border-2 border-background"
-                style={{ marginLeft: i === 0 ? 0 : -(size * 0.3) }}
+                className="rounded-full border-2 border-background first:ml-0"
+                style={{ marginLeft: -(size * 0.3) }}
               >
                 <IntegrationLogo provider={integration.provider} size={size} />
               </div>
             ))}
             {overflow > 0 && (
+              // Width/height/margin all scale with the prop-driven `size`.
               <span
                 className="flex items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground"
                 style={{

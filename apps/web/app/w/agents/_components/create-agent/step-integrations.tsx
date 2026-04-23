@@ -307,20 +307,19 @@ function ActionDetailView({
             <p className="text-sm text-muted-foreground">No actions found.</p>
           </div>
         ) : (
-          <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+          // `height` comes from TanStack Virtual — recomputed per render from
+          // row count × estimated row size and changes on scroll/filter.
+          <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((virtualItem) => {
               const action = filteredActions[virtualItem.index]
               const isSelected = selectedActions.has(action.key!)
               return (
+                // `translateY` is the row's live scroll offset from the
+                // virtualizer and changes every frame.
                 <div
                   key={action.key}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
+                  className="absolute top-0 left-0 w-full"
+                  style={{ transform: `translateY(${virtualItem.start}px)` }}
                 >
                   <button
                     type="button"

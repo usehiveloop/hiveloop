@@ -30,8 +30,7 @@ function ConversationItem({ conversation, isActive, onClick, index }: {
       {isActive && (
         <motion.div
           layoutId="active-pill"
-          className="absolute inset-0 rounded-xl bg-primary/8 border border-primary/12"
-          style={{ zIndex: -1 }}
+          className="absolute inset-0 rounded-xl bg-primary/8 border border-primary/12 -z-[1]"
           transition={{ type: "spring", stiffness: 500, damping: 35 }}
         />
       )}

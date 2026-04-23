@@ -144,10 +144,8 @@ export function BillingSettings() {
 
         <div className="rounded-xl border-2 border-primary/30 p-5 space-y-3 relative overflow-hidden">
           <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: "radial-gradient(circle at 50% 0%, color-mix(in oklch, var(--primary) 6%, transparent) 0%, transparent 60%)",
-            }}
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none marketing-glow-top marketing-glow-sm"
           />
           <div className="relative">
             <p className="text-sm font-medium text-foreground">Pro Dedicated</p>

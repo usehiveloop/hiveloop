@@ -4,6 +4,7 @@ import { findPostBySlug, getAllPosts } from "@/lib/source"
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 import { ReadingProgress } from "./reading-progress"
+import { MarketingBackdrop, MarketingGlow } from "../../_components/backdrop"
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -124,23 +125,7 @@ export default async function BlogPostPage(props: PageProps) {
 
       {/* Hero */}
       <div className="relative w-full overflow-hidden">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(ellipse at 50% 80%, color-mix(in oklch, var(--primary) 12%, transparent) 0%, transparent 60%)",
-          }}
-        />
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-            maskImage:
-              "radial-gradient(ellipse at 50% 100%, black 10%, transparent 60%)",
-          }}
-        />
+        <MarketingBackdrop grid="top-center" gridSize="md" glow="bottom-center" glowIntensity="lg" />
         <div className="relative max-w-3xl mx-auto px-4 pt-16 sm:pt-24 pb-16 sm:pb-20 flex flex-col items-center text-center gap-6">
           <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
             {category}
@@ -184,13 +169,7 @@ export default async function BlogPostPage(props: PageProps) {
 
         {/* Newsletter */}
         <div className="mt-12 relative rounded-2xl border border-border overflow-hidden">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(ellipse at 70% 50%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
-            }}
-          />
+          <MarketingGlow glow="right-center" />
           <div className="relative p-6 sm:p-8 flex flex-col gap-4">
             <span className="font-heading text-lg font-semibold text-foreground">
               Enjoyed this post?

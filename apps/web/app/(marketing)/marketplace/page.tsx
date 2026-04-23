@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Search01Icon, Download04Icon, CheckmarkBadge01Icon } from "@hugeicons/core-free-icons"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { MarketingBackdrop, MarketingGlow } from "../_components/backdrop"
 
 /**
  * Variant 1: "App Store"
@@ -70,20 +71,7 @@ export default function MarketplaceAppStore() {
       <div className="max-w-6xl mx-auto w-full px-4 pb-12">
         <Link href={`/marketplace/agents/${featuredAgent.slug}`} className="group block">
           <div className="relative rounded-3xl border border-border overflow-hidden hover:border-primary/40 transition-colors">
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: "radial-gradient(ellipse at 80% 50%, color-mix(in oklch, var(--primary) 10%, transparent) 0%, transparent 60%)",
-              }}
-            />
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                backgroundImage: "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-                backgroundSize: "60px 60px",
-                maskImage: "radial-gradient(ellipse at 80% 50%, black 10%, transparent 50%)",
-              }}
-            />
+            <MarketingBackdrop grid="right-50" gridSize="md" glow="right-far" glowIntensity="md-high" />
             <div className="relative p-8 sm:p-10 lg:p-14 flex flex-col gap-4 max-w-2xl">
               <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-background border border-border shadow-sm text-2xl mb-1">
                 {featuredAgent.icon}
@@ -178,7 +166,7 @@ export default function MarketplaceAppStore() {
       {/* CTA */}
       <div className="max-w-6xl mx-auto w-full px-4 pb-24">
         <div className="flex flex-col items-center gap-6 rounded-3xl border border-border p-12 text-center relative overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 100%, color-mix(in oklch, var(--primary) 6%, transparent) 0%, transparent 60%)" }} />
+          <MarketingGlow glow="bottom" glowIntensity="sm" />
           <h2 className="font-heading text-2xl sm:text-3xl font-bold text-foreground relative">Build an agent, earn revenue</h2>
           <p className="text-muted-foreground max-w-md relative">Publish your agent to the marketplace and earn 50% of every install. Build once, earn forever.</p>
           <div className="flex gap-3 relative">
@@ -225,17 +213,18 @@ function AgentCard({ agent }: AgentCardProps) {
     >
       {/* Card header with gradient */}
       <div className="relative h-28 bg-muted/30 overflow-hidden border-b border-border/50">
+        {/*
+         * Inline style required — the gradient is chosen at runtime based on
+         * `agent.category`. Each category ships a distinct hue through the
+         * `categoryGradients` lookup, so Tailwind's static class extraction
+         * can't express it.
+         */}
         <div
           className="absolute inset-0"
           style={{ background: categoryGradients[agent.category] || defaultGradient }}
         />
         <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-            maskImage: "radial-gradient(ellipse at 70% 50%, black 10%, transparent 60%)",
-          }}
+          className="absolute inset-0 agent-card-grid"
         />
         {/* Agent icon */}
         <div className="absolute top-4 left-5 flex items-center justify-center w-11 h-11 rounded-xl bg-background border border-border shadow-sm text-xl">
@@ -247,10 +236,12 @@ function AgentCard({ agent }: AgentCardProps) {
               render={
                 <div className="flex items-center cursor-default">
                   {agent.integrations.slice(0, 4).map((integration, index) => (
+                    // zIndex is runtime-dependent so the first integration
+                    // stays on top as siblings overlap with negative margin.
                     <div
                       key={integration}
-                      className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-background text-[10px] font-bold text-muted-foreground shadow-sm"
-                      style={{ marginLeft: index > 0 ? "-6px" : 0, zIndex: agent.integrations.length - index }}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-background text-[10px] font-bold text-muted-foreground shadow-sm first:ml-0 -ml-1.5"
+                      style={{ zIndex: agent.integrations.length - index }}
                     >
                       {integration[0]}
                     </div>

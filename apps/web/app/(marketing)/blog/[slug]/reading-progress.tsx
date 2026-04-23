@@ -74,7 +74,14 @@ export function ReadingProgress() {
 
   return (
     <div className="fixed top-0 left-0 right-0 z-200 h-0.5 bg-border">
-      <div ref={barRef} className="h-full bg-primary" style={{ width: "0%" }} />
+      {/*
+        Width starts at 0 via `w-0`; the effect below mutates
+        `ref.current.style.width` directly on every scroll frame — bypassing
+        React so the update lands in microseconds instead of waiting for a
+        reconciliation pass. The runtime width can't be expressed as a static
+        Tailwind class.
+      */}
+      <div ref={barRef} className="h-full w-0 bg-primary" />
     </div>
   )
 }

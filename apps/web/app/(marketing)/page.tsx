@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Download04Icon, CheckmarkBadge01Icon } from "@hugeicons/core-free-icons"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { MarketingBackdrop, MarketingGlow } from "./_components/backdrop"
 
 const marketplaceAgents = [
   {
@@ -72,25 +73,8 @@ export default function Home() {
     <div className="w-full bg-background flex flex-col relative">
       <div className="flex flex-1 px-4 sm:px-6 lg:px-0">
         <div className="w-full max-w-424 lg:min-h-425 mx-auto relative overflow-hidden">
-          {/* Grid background */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              maskImage:
-                "radial-gradient(ellipse at center, black, transparent 80%)",
-            }}
-          />
-          {/* Hero glow */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 40%, color-mix(in oklch, var(--primary) 12%, transparent) 0%, transparent 70%)",
-            }}
-          />
+          {/* Grid + hero glow */}
+          <MarketingBackdrop grid="hero" glow="hero" glowIntensity="lg" />
           <div className="relative flex flex-col items-center gap-6 sm:gap-8 pt-12 sm:pt-16 lg:pt-25 px-4 sm:px-8 lg:px-0">
             <div className="flex items-center gap-2 px-4 py-2 bg-muted border border-border rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
@@ -177,24 +161,7 @@ export default function Home() {
       {/* Value proposition: Replace subscriptions */}
       <section className="w-full px-4 sm:px-6 lg:px-0">
         <div className="w-full max-w-424 mx-auto relative">
-          {/* Grid background */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              maskImage:
-                "radial-gradient(ellipse at center, black, transparent 70%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
-            }}
-          />
+          <MarketingBackdrop grid="center" glow="center" />
 
           <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
             {/* Section header */}
@@ -425,23 +392,7 @@ export default function Home() {
       {/* Marketplace */}
       <section className="w-full px-4 sm:px-6 lg:px-0">
         <div className="w-full max-w-424 mx-auto relative">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              maskImage:
-                "radial-gradient(ellipse at center, black, transparent 70%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 40%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
-            }}
-          />
+          <MarketingBackdrop grid="center" glow="top-center" />
 
           <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
             {/* Section header */}
@@ -476,10 +427,15 @@ export default function Home() {
                         render={
                           <div className="flex items-center cursor-default">
                             {agent.integrations.map((integration, index) => (
+                              // Inline style keeps index-driven stacking:
+                              // negative margin overlaps siblings and zIndex
+                              // reverses the stacking so earlier items sit on
+                              // top. Both values depend on the runtime index
+                              // and can't be expressed as static Tailwind.
                               <div
                                 key={integration}
-                                className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[9px] font-bold text-muted-foreground"
-                                style={{ marginLeft: index > 0 ? "-8px" : 0, zIndex: agent.integrations.length - index }}
+                                className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[9px] font-bold text-muted-foreground first:ml-0 -ml-2"
+                                style={{ zIndex: agent.integrations.length - index }}
                               >
                                 {integration[0]}
                               </div>
@@ -544,23 +500,7 @@ export default function Home() {
       {/* Agent Forger */}
       <section className="w-full px-4 sm:px-6 lg:px-0">
         <div className="w-full max-w-424 mx-auto relative">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              maskImage:
-                "radial-gradient(ellipse at center, black, transparent 70%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 30%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
-            }}
-          />
+          <MarketingBackdrop grid="center" glow="center-high" />
 
           <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
             {/* Section header */}
@@ -690,23 +630,7 @@ export default function Home() {
       {/* Platform features */}
       <section className="w-full px-4 sm:px-6 lg:px-0">
         <div className="w-full max-w-424 mx-auto relative">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              maskImage:
-                "radial-gradient(ellipse at center, black, transparent 70%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
-            }}
-          />
+          <MarketingBackdrop grid="center" glow="center" />
 
           <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
             {/* Section header */}
@@ -812,23 +736,7 @@ export default function Home() {
       {/* Pricing */}
       <section className="w-full px-4 sm:px-6 lg:px-0">
         <div className="w-full max-w-424 mx-auto relative">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              maskImage:
-                "radial-gradient(ellipse at center, black, transparent 70%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 40%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
-            }}
-          />
+          <MarketingBackdrop grid="center" glow="top-center" />
 
           <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
             {/* Section header */}
@@ -904,13 +812,7 @@ export default function Home() {
 
               {/* Pro */}
               <div className="flex flex-col rounded-2xl border-2 border-primary/30 bg-background p-8 gap-6 relative overflow-hidden">
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background:
-                      "radial-gradient(circle at 50% 0%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
-                  }}
-                />
+                <MarketingGlow glow="top" />
                 <div className="flex flex-col gap-4 relative">
                   <span className="font-mono text-[11px] font-medium uppercase tracking-[1px] text-primary">
                     Pro
@@ -984,23 +886,7 @@ export default function Home() {
       <section className="w-full px-4 sm:px-6 lg:px-0">
         <div className="w-full max-w-424 mx-auto relative pb-20 sm:pb-28 lg:pb-36">
           <div className="relative flex flex-col items-center gap-8 rounded-4xl border border-border ring-1 ring-foreground/5 p-10 sm:p-16 lg:p-20 text-center overflow-hidden max-w-5xl mx-auto shadow-[0_0_60px_-20px_color-mix(in_oklch,var(--primary)_12%,transparent),0_0_20px_-10px_color-mix(in_oklch,var(--primary)_8%,transparent)]">
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  "radial-gradient(circle at 50% 100%, color-mix(in oklch, var(--primary) 10%, transparent) 0%, transparent 60%)",
-              }}
-            />
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                backgroundImage:
-                  "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-                backgroundSize: "40px 40px",
-                maskImage:
-                  "radial-gradient(ellipse at center bottom, black 20%, transparent 70%)",
-              }}
-            />
+            <MarketingBackdrop grid="bottom" glow="bottom" glowIntensity="md-high" />
             <h2 className="relative font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
               Stop subscribing.{" "}
               <br className="hidden sm:block" />

@@ -1,22 +1,10 @@
+import { MarketingBackdrop } from "../../_components/backdrop"
+
 export default function TermsPage() {
   return (
     <div className="w-full bg-background flex flex-col relative min-h-screen">
       <div className="relative w-full overflow-hidden">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: "radial-gradient(ellipse at 50% 80%, color-mix(in oklch, var(--primary) 12%, transparent) 0%, transparent 60%)",
-          }}
-        />
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-            maskImage: "radial-gradient(ellipse at 50% 100%, black 10%, transparent 60%)",
-          }}
-        />
+        <MarketingBackdrop grid="top-center" gridSize="md" glow="bottom-center" glowIntensity="lg" />
         <div className="relative max-w-3xl mx-auto px-4 pt-16 sm:pt-24 pb-16 sm:pb-20 flex flex-col items-center text-center gap-6">
           <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
             Legal

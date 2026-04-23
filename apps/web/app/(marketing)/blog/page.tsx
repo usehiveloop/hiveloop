@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getAllPosts } from "@/lib/source"
 import type { Metadata } from "next"
+import { MarketingBackdrop } from "../_components/backdrop"
 
 // All post metadata is read at build time from MDX frontmatter via the
 // fumadocs source. Adding a new post = dropping an .mdx file in
@@ -69,23 +70,7 @@ export default function BlogIndex() {
         {featured && (
           <Link href={featured.url} className="group block mb-12 sm:mb-16">
             <div className="relative rounded-3xl overflow-hidden border border-border hover:border-primary/40 transition-colors">
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(ellipse at 30% 50%, color-mix(in oklch, var(--primary) 10%, transparent) 0%, transparent 70%)",
-                }}
-              />
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-                  backgroundSize: "60px 60px",
-                  maskImage:
-                    "radial-gradient(ellipse at 30% 50%, black 10%, transparent 60%)",
-                }}
-              />
+              <MarketingBackdrop grid="left-bottom" gridSize="md" glow="left-bottom" glowIntensity="md-high" />
 
               <div className="relative p-8 sm:p-12 lg:p-16 flex flex-col gap-5 max-w-3xl">
                 <div className="flex items-center gap-3">
@@ -189,23 +174,7 @@ export default function BlogIndex() {
 
         {/* Newsletter */}
         <div className="mt-16 sm:mt-24 mb-16 sm:mb-24 relative rounded-3xl border border-border overflow-hidden">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(ellipse at 70% 50%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              maskImage:
-                "radial-gradient(ellipse at 70% 50%, black 10%, transparent 50%)",
-            }}
-          />
+          <MarketingBackdrop grid="right-center" glow="right-center" />
           <div className="relative p-8 sm:p-12 lg:p-16 flex flex-col lg:flex-row lg:items-center gap-8 lg:gap-16">
             <div className="flex flex-col gap-3 lg:flex-1">
               <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">

@@ -14,10 +14,16 @@
 
 @theme {
     --font-heading: var(--font-bricolage), "Bricolage Grotesque", system-ui, sans-serif;
+    /* The Sora wordmark stack — consumed via `font-wordmark` in `<Logo>`. */
+    --font-wordmark: var(--font-sora), sans-serif;
 }
 
 @theme inline {
     --font-sans: var(--font-sans);
+    /* Background for rendered code blocks. Matches the OneDark syntax theme
+     * used by `react-syntax-highlighter` in `skill-detail-dialog` so the
+     * surrounding <pre> wrapper blends with the highlighted tokens. */
+    --color-code-background: var(--code-background);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -91,6 +97,7 @@
     --sidebar-accent-foreground: oklch(0.214 0.009 43.1);
     --sidebar-border: oklch(0.922 0.005 34.3);
     --sidebar-ring: oklch(0.714 0.014 41.2);
+    --code-background: #282c34;
 }
 
 .dark {
@@ -125,6 +132,7 @@
     --sidebar-accent-foreground: oklch(0.986 0.002 67.8);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.547 0.021 43.1);
+    --code-background: #282c34;
 }
 
 @layer base {
@@ -150,4 +158,137 @@
 
 [data-streamdown="heading-2"] {
   font-size: 16px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Marketing backdrop utilities
+ *
+ * Reusable grid-lines + radial-glow backgrounds used across every marketing
+ * section. Centralising them here replaces dozens of repeated `style={{}}`
+ * inline-style blocks on marketing pages with a single `<MarketingBackdrop>`
+ * component that composes these classes.
+ * ------------------------------------------------------------------------- */
+.marketing-grid {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.marketing-grid-lg {
+  background-size: 60px 60px;
+}
+
+/*
+ * Agent-detail hero uses a DevOps-blue tint instead of the primary accent
+ * (matches the category palette used in marketplace cards). Fades from the
+ * lower-left because the agent icon sits top-left.
+ */
+.agent-detail-glow-devops {
+  background: radial-gradient(ellipse at 30% 80%, oklch(0.55 0.15 250 / 14%) 0%, transparent 60%);
+}
+
+/*
+ * Smaller grid (24px cells) used inside marketplace agent cards. Applied
+ * directly because only one component uses it and the mask is fixed.
+ */
+.agent-card-grid {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse at 70% 50%, black 10%, transparent 60%);
+          mask-image: radial-gradient(ellipse at 70% 50%, black 10%, transparent 60%);
+}
+
+.marketing-grid-mask-center {
+  -webkit-mask-image: radial-gradient(ellipse at center, black, transparent 70%);
+          mask-image: radial-gradient(ellipse at center, black, transparent 70%);
+}
+.marketing-grid-mask-hero {
+  -webkit-mask-image: radial-gradient(ellipse at center, black, transparent 80%);
+          mask-image: radial-gradient(ellipse at center, black, transparent 80%);
+}
+
+.marketing-grid-mask-bottom {
+  -webkit-mask-image: radial-gradient(ellipse at center bottom, black 20%, transparent 70%);
+          mask-image: radial-gradient(ellipse at center bottom, black 20%, transparent 70%);
+}
+
+.marketing-grid-mask-left-bottom {
+  -webkit-mask-image: radial-gradient(ellipse at 30% 50%, black 10%, transparent 60%);
+          mask-image: radial-gradient(ellipse at 30% 50%, black 10%, transparent 60%);
+}
+
+.marketing-grid-mask-right-center {
+  -webkit-mask-image: radial-gradient(ellipse at 70% 50%, black 10%, transparent 50%);
+          mask-image: radial-gradient(ellipse at 70% 50%, black 10%, transparent 50%);
+}
+.marketing-grid-mask-right-50 {
+  -webkit-mask-image: radial-gradient(ellipse at 80% 50%, black 10%, transparent 50%);
+          mask-image: radial-gradient(ellipse at 80% 50%, black 10%, transparent 50%);
+}
+.marketing-grid-mask-right-60 {
+  -webkit-mask-image: radial-gradient(ellipse at 70% 50%, black 10%, transparent 60%);
+          mask-image: radial-gradient(ellipse at 70% 50%, black 10%, transparent 60%);
+}
+.marketing-grid-mask-left-50 {
+  -webkit-mask-image: radial-gradient(ellipse at 30% 80%, black 10%, transparent 50%);
+          mask-image: radial-gradient(ellipse at 30% 80%, black 10%, transparent 50%);
+}
+
+.marketing-grid-mask-top-center {
+  -webkit-mask-image: radial-gradient(ellipse at 50% 100%, black 10%, transparent 60%);
+          mask-image: radial-gradient(ellipse at 50% 100%, black 10%, transparent 60%);
+}
+
+/* Glow intensity — `--glow` is the `color-mix` tint used by each position. */
+.marketing-glow-sm {
+  --glow: color-mix(in oklch, var(--primary) 6%, transparent);
+}
+.marketing-glow-md {
+  --glow: color-mix(in oklch, var(--primary) 8%, transparent);
+}
+.marketing-glow-md-high {
+  --glow: color-mix(in oklch, var(--primary) 10%, transparent);
+}
+.marketing-glow-lg {
+  --glow: color-mix(in oklch, var(--primary) 12%, transparent);
+}
+
+.marketing-glow-top {
+  background: radial-gradient(circle at 50% 0%, var(--glow) 0%, transparent 60%);
+}
+.marketing-glow-top-center {
+  background: radial-gradient(circle at 50% 40%, var(--glow) 0%, transparent 60%);
+}
+.marketing-glow-hero {
+  background: radial-gradient(circle at 50% 40%, var(--glow) 0%, transparent 70%);
+}
+.marketing-glow-center {
+  background: radial-gradient(circle at 50% 50%, var(--glow) 0%, transparent 60%);
+}
+.marketing-glow-center-high {
+  background: radial-gradient(circle at 50% 30%, var(--glow) 0%, transparent 60%);
+}
+.marketing-glow-bottom {
+  background: radial-gradient(circle at 50% 100%, var(--glow) 0%, transparent 60%);
+}
+.marketing-glow-bottom-center {
+  background: radial-gradient(ellipse at 50% 80%, var(--glow) 0%, transparent 60%);
+}
+.marketing-glow-left-bottom {
+  background: radial-gradient(ellipse at 30% 50%, var(--glow) 0%, transparent 70%);
+}
+.marketing-glow-right-center {
+  background: radial-gradient(ellipse at 70% 50%, var(--glow) 0%, transparent 60%);
+}
+.marketing-glow-right-far {
+  background: radial-gradient(ellipse at 80% 50%, var(--glow) 0%, transparent 60%);
+}
+.marketing-glow-right-wide {
+  background: radial-gradient(circle at 70% 50%, var(--glow) 0%, transparent 70%);
+}
+.marketing-glow-left-bottom-far {
+  background: radial-gradient(ellipse at 30% 80%, var(--glow) 0%, transparent 60%);
 }

@@ -128,6 +128,8 @@ function FileTreeItem({ node, depth, selectedPath, onSelect }: FileTreeItemProps
           type="button"
           onClick={() => setExpanded(!expanded)}
           className="flex items-center gap-2 w-full px-2 py-1.5 text-left text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors cursor-pointer"
+          // paddingLeft is runtime-computed from tree `depth` to indent nested
+          // nodes; Tailwind can't extract a dynamic numeric value.
           style={{ paddingLeft: `${depth * 12 + 8}px` }}
         >
           <HugeiconsIcon icon={Folder01Icon} size={14} className="shrink-0 text-muted-foreground" />
@@ -156,6 +158,8 @@ function FileTreeItem({ node, depth, selectedPath, onSelect }: FileTreeItemProps
           ? "bg-primary/10 text-foreground"
           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
       )}
+      // paddingLeft is runtime-computed from tree `depth` to indent nested
+      // nodes; Tailwind can't extract a dynamic numeric value.
       style={{ paddingLeft: `${depth * 12 + 8}px` }}
     >
       <HugeiconsIcon icon={File01Icon} size={14} className="shrink-0" />
@@ -170,7 +174,7 @@ interface MarkdownViewerProps {
 
 function MarkdownViewer({ content }: MarkdownViewerProps) {
   return (
-    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-heading prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-p:text-sm prose-p:leading-relaxed prose-li:text-sm prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-[#282c34] prose-pre:rounded-xl prose-table:text-sm prose-th:text-xs prose-td:text-xs">
+    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-heading prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-p:text-sm prose-p:leading-relaxed prose-li:text-sm prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-code-background prose-pre:rounded-xl prose-table:text-sm prose-th:text-xs prose-td:text-xs">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

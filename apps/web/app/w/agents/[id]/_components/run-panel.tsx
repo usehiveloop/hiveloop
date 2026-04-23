@@ -154,8 +154,9 @@ function ToolCallEvent({ event }: { event: RunEvent }) {
       </button>
 
       <div
-        className="grid transition-all duration-200 ease-out"
-        style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
+        className={`grid transition-all duration-200 ease-out ${
+          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
       >
         <div className="overflow-hidden">
           <div className="border-t border-border px-4 py-3 flex flex-col gap-3">
@@ -234,8 +235,9 @@ function ApprovalEvent({ event }: { event: RunEvent }) {
       </button>
 
       <div
-        className="grid transition-all duration-200 ease-out"
-        style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
+        className={`grid transition-all duration-200 ease-out ${
+          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
       >
         <div className="overflow-hidden">
           <div className={`border-t px-4 py-3 flex flex-col gap-3 ${isPending ? "border-yellow-500/20" : "border-border"}`}>

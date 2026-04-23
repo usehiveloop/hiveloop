@@ -69,19 +69,15 @@ function formatInstalls(count: number) {
 export default function DetailVariant1() {
   return (
     <div className="w-full bg-background flex flex-col relative min-h-screen">
-      {/* Hero */}
+      {/* Hero — DevOps category-tinted backdrop */}
       <div className="w-full relative overflow-hidden border-b border-border">
         <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse at 30% 80%, oklch(0.55 0.15 250 / 14%) 0%, transparent 60%)" }}
+          aria-hidden="true"
+          className="absolute inset-0 pointer-events-none agent-detail-glow-devops"
         />
         <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-            maskImage: "radial-gradient(ellipse at 30% 80%, black 10%, transparent 50%)",
-          }}
+          aria-hidden="true"
+          className="absolute inset-0 pointer-events-none marketing-grid marketing-grid-lg marketing-grid-mask-left-50"
         />
 
         <div className="max-w-6xl mx-auto w-full px-4 relative py-10 sm:py-14">

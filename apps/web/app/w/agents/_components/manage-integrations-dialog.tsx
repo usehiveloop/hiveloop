@@ -441,26 +441,24 @@ function ActionDetailView({
             <p className="text-sm text-muted-foreground">No actions found.</p>
           </div>
         ) : (
+          // `height` is computed live by TanStack Virtual from the current
+          // row count × estimated row size; it changes on every scroll and
+          // filter edit, so it can't be expressed as a static Tailwind class.
           <div
-            style={{
-              height: virtualizer.getTotalSize(),
-              position: "relative",
-            }}
+            className="relative"
+            style={{ height: virtualizer.getTotalSize() }}
           >
             {virtualizer.getVirtualItems().map((virtualItem) => {
               const action = filteredActions[virtualItem.index]
               const actionKey = action.key ?? ""
               const isSelected = selectedActions.has(actionKey)
               return (
+                // `translateY` is the row's computed scroll offset — truly
+                // dynamic per-frame data from the virtualizer.
                 <div
                   key={actionKey}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
+                  className="absolute top-0 left-0 w-full"
+                  style={{ transform: `translateY(${virtualItem.start}px)` }}
                 >
                   <button
                     type="button"

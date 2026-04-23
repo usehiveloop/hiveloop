@@ -40,6 +40,9 @@ function ToggleGroup({
       data-size={size}
       data-spacing={spacing}
       data-orientation={orientation}
+      // `--gap` is a CSS custom property fed by the runtime `spacing` prop and
+      // consumed by the `gap-[--spacing(var(--gap))]` class below. The value
+      // can't be a static Tailwind class because it's chosen at call-site.
       style={{ "--gap": spacing } as React.CSSProperties}
       className={cn(
         "group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] data-[spacing=0]:data-[variant=outline]:rounded-3xl data-vertical:flex-col data-vertical:items-stretch",
