@@ -30,8 +30,7 @@ fn extract_frontmatter_no_closing_delimiter() {
 
 #[test]
 fn parse_skill_md_with_frontmatter() {
-    let raw =
-        "---\nname: Code Review\ndescription: Reviews code\n---\n\nYou are a code reviewer.";
+    let raw = "---\nname: Code Review\ndescription: Reviews code\n---\n\nYou are a code reviewer.";
     let skill = parse_skill_md(raw, "code-review", SkillSource::ClaudeCode);
 
     assert_eq!(skill.id, "code-review");

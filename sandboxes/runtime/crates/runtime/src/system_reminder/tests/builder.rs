@@ -80,9 +80,7 @@ fn test_reminder_with_subagents() {
     assert!(!reminder.is_empty());
     assert!(output.contains("<system-reminder>"));
     assert!(output.contains("## Available sub-agents"));
-    assert!(
-        output.contains("The following sub-agents are available for use with the Agent tool:")
-    );
+    assert!(output.contains("The following sub-agents are available for use with the Agent tool:"));
     assert!(output.contains("- **researcher** - Searches and summarizes information"));
     assert!(output.contains("- **coder** - Writes and reviews code"));
     assert!(output.contains("</system-reminder>"));

@@ -6,7 +6,8 @@ pub(super) const MIN_STRIPPABLE_BYTES: usize = 200;
 
 /// Tools whose output should never be stripped.
 /// These are semantic/metadata tools, not data-producing tools.
-pub(super) const EXEMPT_TOOLS: &[&str] = &["journal_read", "journal_write", "todoread", "todowrite"];
+pub(super) const EXEMPT_TOOLS: &[&str] =
+    &["journal_read", "journal_write", "todoread", "todowrite"];
 
 /// Per-result byte slot used to translate `age_threshold` (assistant-message
 /// count) into a byte budget. Every tool result is capped at ~2KB by the
