@@ -53,9 +53,13 @@
           Dex OIDC:   https://{{ dex_domain }}/dex
           Login:      {{ dex_admin_email }}
 
-          Preview Domain:
+          Primary Preview Domain:
             *.{{ primary_preview_domain }}
             Example: https://3000-<id>.{{ primary_preview_domain }}
+
+          Dynamic Alias Domains:
+            Point *.preview.<yourdomain> A → {{ hostvars['controlplane']['ansible_host'] }}
+            It works instantly. No config changes needed.
 
           Runners:
           {% for runner in groups['runners'] %}
