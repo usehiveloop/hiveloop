@@ -103,3 +103,37 @@ func toInIntegrationAvailableResponse(integ model.InIntegration) inIntegrationAv
 func inNangoKey(uniqueKey string) string {
 	return "in_" + uniqueKey
 }
+
+// nangoConnectionBelongsToUser inspects a Nango GetConnection response and
+// returns true if its end_user.id matches the expected authenticated user.
+// When creating a connect session we supply `end_user.id = user.ID.String()`,
+// and Nango persists that identifier against the resulting connection. A
+// connection whose end_user does not match the caller must be treated as
+// foreign and rejected.
+//
+// Nango's response shape for GET /connection/{id} nests data under either
+// "data" or is returned at the top level depending on version; we accept both.
+func nangoConnectionBelongsToUser(resp map[string]any, expectedUserID string) bool {
+	if resp == nil || expectedUserID == "" {
+		return false
+	}
+	candidates := []map[string]any{resp}
+	if inner, ok := resp["data"].(map[string]any); ok {
+		candidates = append(candidates, inner)
+	}
+	if inner, ok := resp["connection"].(map[string]any); ok {
+		candidates = append(candidates, inner)
+	}
+	for _, c := range candidates {
+		if eu, ok := c["end_user"].(map[string]any); ok {
+			if id, _ := eu["id"].(string); id != "" && id == expectedUserID {
+				return true
+			}
+		}
+		// Some Nango responses surface end_user_id as a top-level string.
+		if id, ok := c["end_user_id"].(string); ok && id != "" && id == expectedUserID {
+			return true
+		}
+	}
+	return false
+}

@@ -87,7 +87,10 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 }
 
 // loadAgentSubagents batch-loads attached subagent summaries for one or more agents.
-func (h *AgentHandler) loadAgentSubagents(agentIDs ...uuid.UUID) map[uuid.UUID][]agentSubagentSummary {
+// Subagent details are filtered by org (defense-in-depth): only subagents owned by
+// the caller's org or published public subagents (org_id IS NULL AND status = 'active')
+// are returned, even if a stray cross-org link was somehow created.
+func (h *AgentHandler) loadAgentSubagents(orgID uuid.UUID, agentIDs ...uuid.UUID) map[uuid.UUID][]agentSubagentSummary {
 	if len(agentIDs) == 0 {
 		return nil
 	}
@@ -103,7 +106,10 @@ func (h *AgentHandler) loadAgentSubagents(agentIDs ...uuid.UUID) map[uuid.UUID][
 		subIDs[index] = link.SubagentID
 	}
 	var subs []model.Agent
-	if err := h.db.Select("id, name, description, model").Where("id IN ?", subIDs).Find(&subs).Error; err != nil {
+	if err := h.db.
+		Select("id, name, description, model").
+		Where("id IN ? AND (org_id = ? OR (org_id IS NULL AND status = ?))", subIDs, orgID, "active").
+		Find(&subs).Error; err != nil {
 		return nil
 	}
 	subByID := make(map[uuid.UUID]model.Agent, len(subs))
@@ -127,7 +133,10 @@ func (h *AgentHandler) loadAgentSubagents(agentIDs ...uuid.UUID) map[uuid.UUID][
 }
 
 // loadAgentSkills batch-loads attached skill summaries for one or more agents.
-func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]agentSkillSummary {
+// Skill details are filtered by org (defense-in-depth): only skills owned by the
+// caller's org or published public skills (org_id IS NULL AND status = 'published')
+// are returned, even if a stray cross-org link was somehow created.
+func (h *AgentHandler) loadAgentSkills(orgID uuid.UUID, agentIDs ...uuid.UUID) map[uuid.UUID][]agentSkillSummary {
 	if len(agentIDs) == 0 {
 		return nil
 	}
@@ -143,7 +152,10 @@ func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]ag
 		skillIDs[index] = link.SkillID
 	}
 	var skills []model.Skill
-	if err := h.db.Select("id, name, description, source_type").Where("id IN ?", skillIDs).Find(&skills).Error; err != nil {
+	if err := h.db.
+		Select("id, name, description, source_type").
+		Where("id IN ? AND (org_id = ? OR (org_id IS NULL AND status = ?))", skillIDs, orgID, model.SkillStatusPublished).
+		Find(&skills).Error; err != nil {
 		return nil
 	}
 	skillByID := make(map[uuid.UUID]model.Skill, len(skills))

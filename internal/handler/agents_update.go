@@ -234,15 +234,45 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.SkillIDs != nil {
+		skillUUIDs := make([]uuid.UUID, 0, len(*req.SkillIDs))
+		seen := make(map[uuid.UUID]struct{}, len(*req.SkillIDs))
+		for _, rawID := range *req.SkillIDs {
+			parsed, parseErr := uuid.Parse(rawID)
+			if parseErr != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid skill_id %q", rawID)})
+				return
+			}
+			if _, dup := seen[parsed]; dup {
+				continue
+			}
+			seen[parsed] = struct{}{}
+			skillUUIDs = append(skillUUIDs, parsed)
+		}
+
+		// Validate each skill belongs to this org or is a published public skill,
+		// matching the visibility rule used in agents_create.go.
+		if len(skillUUIDs) > 0 {
+			var visibleSkills []model.Skill
+			if err := h.db.
+				Select("id").
+				Where("id IN ? AND (org_id = ? OR (org_id IS NULL AND status = ?))",
+					skillUUIDs, org.ID, model.SkillStatusPublished).
+				Find(&visibleSkills).Error; err != nil {
+				slog.Error("failed to validate skill_ids during update", "agent_id", agent.ID, "error", err)
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to validate skills"})
+				return
+			}
+			if len(visibleSkills) != len(skillUUIDs) {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "one or more skill_ids are not visible to this org"})
+				return
+			}
+		}
+
 		if err := h.db.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Where("agent_id = ?", agent.ID).Delete(&model.AgentSkill{}).Error; err != nil {
 				return err
 			}
-			for _, rawID := range *req.SkillIDs {
-				skillUUID, parseErr := uuid.Parse(rawID)
-				if parseErr != nil {
-					continue
-				}
+			for _, skillUUID := range skillUUIDs {
 				if err := tx.Create(&model.AgentSkill{
 					AgentID: agent.ID,
 					SkillID: skillUUID,
@@ -258,6 +288,6 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	resp := toAgentResponse(agent)
 	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]
-	resp.AttachedSkills = h.loadAgentSkills(agent.ID)[agent.ID]
+	resp.AttachedSkills = h.loadAgentSkills(org.ID, agent.ID)[agent.ID]
 	writeJSON(w, http.StatusOK, resp)
 }

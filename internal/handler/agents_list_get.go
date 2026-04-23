@@ -68,8 +68,8 @@ func (h *AgentHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	// Batch load triggers, subagents, and skills for all agents.
 	triggersMap := h.loadAgentTriggers(agentIDs...)
-	subagentsMap := h.loadAgentSubagents(agentIDs...)
-	skillsMap := h.loadAgentSkills(agentIDs...)
+	subagentsMap := h.loadAgentSubagents(org.ID, agentIDs...)
+	skillsMap := h.loadAgentSkills(org.ID, agentIDs...)
 	for index, agent := range agents {
 		resp[index].Triggers = triggersMap[agent.ID]
 		resp[index].AttachedSubagents = subagentsMap[agent.ID]
@@ -116,8 +116,8 @@ func (h *AgentHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	resp := toAgentResponse(agent)
 	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]
-	resp.AttachedSubagents = h.loadAgentSubagents(agent.ID)[agent.ID]
-	resp.AttachedSkills = h.loadAgentSkills(agent.ID)[agent.ID]
+	resp.AttachedSubagents = h.loadAgentSubagents(org.ID, agent.ID)[agent.ID]
+	resp.AttachedSkills = h.loadAgentSkills(org.ID, agent.ID)[agent.ID]
 
 	writeJSON(w, http.StatusOK, resp)
 }

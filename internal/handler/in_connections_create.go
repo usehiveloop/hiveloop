@@ -70,6 +70,27 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verify the nango_connection_id belongs to the calling user. Without this check,
+	// an attacker can pass a foreign org's Nango connection ID and create a local
+	// InConnection pointing at another tenant's OAuth credentials.
+	//
+	// Nango persists the `end_user.id` we supplied when creating the connect session
+	// (see CreateConnectSession — we set it to user.ID.String()). Fetch the Nango
+	// connection and confirm the end_user matches the authenticated caller.
+	nk := inNangoKey(integ.UniqueKey)
+	nangoConn, err := h.nango.GetConnection(r.Context(), req.NangoConnectionID, nk)
+	if err != nil {
+		slog.Warn("nango connection verification failed", "error", err, "org_id", org.ID, "user_id", user.ID, "nango_connection_id", req.NangoConnectionID)
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "nango_connection_id is not valid for this integration"})
+		return
+	}
+	if !nangoConnectionBelongsToUser(nangoConn, user.ID.String()) {
+		slog.Warn("nango connection end_user mismatch — possible cross-tenant attempt",
+			"org_id", org.ID, "user_id", user.ID, "nango_connection_id", req.NangoConnectionID)
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "nango_connection_id does not belong to the requesting user"})
+		return
+	}
+
 	conn := model.InConnection{
 		ID:                uuid.New(),
 		OrgID:             org.ID,

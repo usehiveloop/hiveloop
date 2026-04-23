@@ -81,6 +81,11 @@ func (h *InConnectionHandler) CreateReconnectSession(w http.ResponseWriter, r *h
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing user context"})
 		return
 	}
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
 
 	connID := chi.URLParam(r, "id")
 	if connID == "" {
@@ -89,7 +94,7 @@ func (h *InConnectionHandler) CreateReconnectSession(w http.ResponseWriter, r *h
 	}
 
 	var conn model.InConnection
-	if err := h.db.Preload("InIntegration").Where("id = ? AND revoked_at IS NULL", connID).First(&conn).Error; err != nil {
+	if err := h.db.Preload("InIntegration").Where("id = ? AND org_id = ? AND revoked_at IS NULL", connID, org.ID).First(&conn).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "connection not found"})
 			return
