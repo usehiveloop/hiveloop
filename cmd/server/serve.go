@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/bootstrap"
@@ -20,11 +19,11 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
-	"github.com/usehiveloop/hiveloop/internal/subscriptions"
 	"github.com/usehiveloop/hiveloop/internal/mcpserver"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
 	"github.com/usehiveloop/hiveloop/internal/proxy"
+	"github.com/usehiveloop/hiveloop/internal/subscriptions"
 )
 
 func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEnqueuer) error {
@@ -59,7 +58,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	// Generation writer (buffered, non-blocking)
 	generationWriter := middleware.NewGenerationWriter(database, reg, 10000)
 
-	// Handlers
 	mcpHandler := handler.NewMCPHandler(database, signingKey, actionsCatalog, nangoClient, ctr)
 	if cfg.HindsightAPIURL != "" {
 		mcpHandler.SetMemoryTools(hindsight.NewMemoryToolsFunc(hindsight.NewClient(cfg.HindsightAPIURL)))
@@ -101,7 +99,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	reportingHandler := handler.NewReportingHandler(database)
 	proxyHandler := handler.NewProxyHandler(cacheManager, &proxy.CaptureTransport{Inner: proxy.NewTransport()})
 
-	// Conversation handlers (require sandbox orchestrator)
 	var conversationHandler *handler.ConversationHandler
 	var systemConvHandler *handler.SystemConversationHandler
 	if orchestrator != nil && agentPusher != nil {
@@ -132,22 +129,17 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	agentHandler.SetCatalog(actionsCatalog)
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
 
-	// Drive handler (optional — nil S3Client means drive is disabled)
 	var driveHandler *handler.DriveHandler
 	if deps.S3Client != nil {
 		driveHandler = handler.NewDriveHandler(database, deps.S3Client)
 	}
 
-	// Billing handler (optional — nil PolarClient means billing is disabled)
 	var billingHandler *handler.BillingHandler
 	if deps.PolarClient != nil {
 		billingHandler = handler.NewBillingHandler(database, deps.PolarClient, cfg)
 	}
 
-	// Router
 	r := chi.NewRouter()
-
-	// Global middleware
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
 	r.Use(posthogobs.Recoverer(deps.PostHog))
@@ -155,440 +147,20 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	r.Use(middleware.CORS(cfg.CORSOrigins))
 	r.Use(middleware.RequestLog(logger))
 
-	// Health checks
-	r.Get("/healthz", healthz)
-	r.Get("/readyz", readyz(database, redisClient))
-
-	// Provider discovery (no auth)
-	r.Get("/v1/providers", providerHandler.List)
-	r.Get("/v1/providers/{id}", providerHandler.Get)
-	r.Get("/v1/providers/{id}/models", providerHandler.Models)
-
-	// In-integration discovery (no auth)
-	r.Get("/v1/in/integrations/available", inIntegrationHandler.ListAvailable)
-
-	// Integration catalog discovery (no auth)
-	actionsHandler := handler.NewActionsHandler(actionsCatalog)
-	r.Get("/v1/catalog/integrations", actionsHandler.ListIntegrations)
-	r.Get("/v1/catalog/integrations/{id}", actionsHandler.GetIntegration)
-	r.Get("/v1/catalog/integrations/{id}/actions", actionsHandler.ListActions)
-	r.Get("/v1/catalog/integrations/{id}/triggers", actionsHandler.ListTriggers)
-	r.Get("/v1/catalog/integrations/{id}/schema-paths", actionsHandler.GetSchemaPaths)
-
-	// Marketplace discovery (no auth, Redis cached)
-	r.Get("/v1/marketplace/agents", marketplaceHandler.List)
-	r.Get("/v1/marketplace/agents/{slug}", marketplaceHandler.GetBySlug)
-
-	// Org invite preview (public, token-based lookup)
-	r.Get("/v1/invites/{token}", orgInviteHandler.Preview)
-
-	// Webhook receivers (HMAC-verified, no auth middleware)
-	r.Post("/internal/webhooks/bridge/{sandboxID}", bridgeWebhookHandler.Handle)
-	r.Post("/internal/webhooks/nango", nangoWebhookHandler.Handle)
-	if cfg.PolarWebhookSecret != "" {
-		polarWebhookHandler := handler.NewPolarWebhookHandler(database, cfg.PolarWebhookSecret, cfg.PolarProductFreeID)
-		r.Post("/internal/webhooks/polar", polarWebhookHandler.Handle)
-	}
-
-	// Sandbox proxy endpoints (bearer-token auth, no middleware)
-	if nangoClient != nil && sandboxEncKey != nil {
-		gitCredsHandler := handler.NewGitCredentialsHandler(database, sandboxEncKey, nangoClient)
-		r.Post("/internal/git-credentials/{agentID}", gitCredsHandler.Handle)
-
-		railwayProxyHandler := handler.NewRailwayProxyHandler(database, sandboxEncKey, nangoClient)
-		r.Post("/internal/railway-proxy/{agentID}", railwayProxyHandler.Handle)
-	}
-
-	// Direct incoming webhooks for providers requiring manual webhook configuration
-	// (e.g. Railway). URL format: /incoming/webhooks/{provider}/{connectionID}
-	r.Post("/incoming/webhooks/{provider}/{connectionID}", incomingWebhookHandler.Handle)
-
-	// Embedded auth
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	// Auth routes
-	r.Route("/auth", func(r chi.Router) {
-		r.Use(middleware.AuthRateLimit(ctx, 10, 20))
-		r.Post("/register", authHandler.Register)
-		r.Post("/login", authHandler.Login)
-		r.Post("/refresh", authHandler.Refresh)
-		r.Post("/otp/request", authHandler.OTPRequest)
-		r.Post("/otp/verify", authHandler.OTPVerify)
-		r.Post("/confirm-email", authHandler.ConfirmEmail)
-		r.Post("/resend-confirmation", authHandler.ResendConfirmation)
-		r.Post("/forgot-password", authHandler.ForgotPassword)
-		r.Post("/reset-password", authHandler.ResetPassword)
-		r.Group(func(r chi.Router) {
-			r.Use(middleware.RequireAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience))
-			r.Post("/logout", authHandler.Logout)
-			r.Get("/me", authHandler.Me)
-			r.Post("/change-password", authHandler.ChangePassword)
-		})
-	})
+	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, bridgeWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey)
+	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
+	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, subagentHandler, agentHandler, marketplaceHandler, conversationHandler, systemConvHandler, routerHandler, customDomainHandler, orchestrator, auditWriter)
 
-	// OAuth social login
-	r.Route("/oauth", func(r chi.Router) {
-		r.Use(middleware.AuthRateLimit(ctx, 10, 20))
-		r.Get("/github", oauthHandler.GitHubLogin)
-		r.Get("/github/callback", oauthHandler.GitHubCallback)
-		r.Get("/google", oauthHandler.GoogleLogin)
-		r.Get("/google/callback", oauthHandler.GoogleCallback)
-		r.Get("/x", oauthHandler.XLogin)
-		r.Get("/x/callback", oauthHandler.XCallback)
-		r.Post("/exchange", oauthHandler.Exchange)
-	})
-
-	// Org-authenticated routes
-	r.Route("/v1", func(r chi.Router) {
-		r.Use(middleware.MultiAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience, database, apiKeyCache, enqueuer))
-		r.Use(middleware.RequireEmailConfirmed(database))
-
-		r.Post("/orgs", orgHandler.Create)
-
-		// Authenticated invite accept/decline — user-scoped, no org context required.
-		// The org is derived from the invite token itself.
-		r.Post("/invites/{token}/accept", orgInviteHandler.Accept)
-		r.Post("/invites/{token}/decline", orgInviteHandler.Decline)
-
-		r.Group(func(r chi.Router) {
-			r.Use(middleware.ResolveOrgFlexible(database))
-			r.Use(middleware.RateLimit())
-			r.Use(middleware.Audit(auditWriter))
-
-			r.Get("/orgs/current", orgHandler.Current)
-			r.Get("/orgs/current/members", orgInviteHandler.ListMembers)
-
-			// Admin-only org invite management.
-			r.Group(func(r chi.Router) {
-				r.Use(middleware.RequireOrgAdmin(database))
-				r.Post("/orgs/current/invites", orgInviteHandler.Create)
-				r.Get("/orgs/current/invites", orgInviteHandler.List)
-				r.Delete("/orgs/current/invites/{id}", orgInviteHandler.Revoke)
-				r.Post("/orgs/current/invites/{id}/resend", orgInviteHandler.Resend)
-			})
-			r.Get("/usage", usageHandler.Get)
-			r.Get("/audit", auditHandler.List)
-			r.Get("/reporting", reportingHandler.Get)
-			r.Get("/generations", generationHandler.List)
-			r.Get("/generations/{id}", generationHandler.Get)
-
-			r.Post("/api-keys", apiKeyHandler.Create)
-			r.Get("/api-keys", apiKeyHandler.List)
-			r.Delete("/api-keys/{id}", apiKeyHandler.Revoke)
-
-			if billingHandler != nil {
-				r.Post("/billing/checkout", billingHandler.CreateCheckout)
-				r.Get("/billing/subscription", billingHandler.GetSubscription)
-				r.Post("/billing/portal", billingHandler.CreatePortal)
-			}
-
-			r.Group(func(r chi.Router) {
-				r.Use(middleware.RequireAPIKeyScopeOrJWT("credentials"))
-				r.Post("/credentials", credHandler.Create)
-				r.Get("/credentials", credHandler.List)
-				r.Get("/credentials/{id}", credHandler.Get)
-				r.Delete("/credentials/{id}", credHandler.Revoke)
-			})
-
-			r.Group(func(r chi.Router) {
-				r.Use(middleware.RequireAPIKeyScopeOrJWT("tokens"))
-				r.Get("/tokens", tokenHandler.List)
-				r.Post("/tokens", tokenHandler.Mint)
-				r.Delete("/tokens/{jti}", tokenHandler.Revoke)
-			})
-
-			r.Group(func(r chi.Router) {
-				r.Use(middleware.RequireAPIKeyScopeOrJWT("all"))
-			})
-
-			r.Group(func(r chi.Router) {
-				r.Use(middleware.RequireAPIKeyScopeOrJWT("connect"))
-			})
-
-			r.Group(func(r chi.Router) {
-				r.Use(middleware.RequireAPIKeyScopeOrJWT("integrations"))
-			})
-
-			r.Group(func(r chi.Router) {
-				r.Use(middleware.RequireAPIKeyScopeOrJWT("integrations"))
-			})
-
-			r.Group(func(r chi.Router) {
-				r.Use(middleware.RequireAPIKeyScopeOrJWT("agents"))
-				r.Route("/sandbox-templates", func(r chi.Router) {
-					r.Post("/", sandboxTemplateHandler.Create)
-					r.Get("/", sandboxTemplateHandler.List)
-					r.Get("/public", sandboxTemplateHandler.ListPublic)
-					r.Get("/{id}", sandboxTemplateHandler.Get)
-					r.Put("/{id}", sandboxTemplateHandler.Update)
-					r.Delete("/{id}", sandboxTemplateHandler.Delete)
-					r.Post("/{id}/build", sandboxTemplateHandler.TriggerBuild)
-					r.Post("/{id}/retry", sandboxTemplateHandler.RetryBuild)
-				})
-				r.Route("/skills", func(r chi.Router) {
-					r.Post("/", skillHandler.Create)
-					r.Get("/", skillHandler.List)
-					r.Get("/{id}", skillHandler.Get)
-					r.Patch("/{id}", skillHandler.Update)
-					r.Delete("/{id}", skillHandler.Delete)
-					r.Put("/{id}/content", skillHandler.UpdateContent)
-					r.Post("/{id}/hydrate", skillHandler.Hydrate)
-					r.Get("/{id}/versions", skillHandler.ListVersions)
-					r.Post("/{id}/publish", skillHandler.Publish)
-					r.Delete("/{id}/publish", skillHandler.Unpublish)
-				})
-				r.Route("/subagents", func(r chi.Router) {
-					r.Post("/", subagentHandler.Create)
-					r.Get("/", subagentHandler.List)
-					r.Get("/{id}", subagentHandler.Get)
-					r.Patch("/{id}", subagentHandler.Update)
-					r.Delete("/{id}", subagentHandler.Delete)
-				})
-				r.Get("/agents/sandbox-tools", agentHandler.ListSandboxTools)
-				r.Get("/agents/built-in-tools", agentHandler.ListBuiltInTools)
-				r.Route("/agents", func(r chi.Router) {
-					r.Post("/", agentHandler.Create)
-					r.Get("/", agentHandler.List)
-					r.Get("/{id}", agentHandler.Get)
-					r.Put("/{id}", agentHandler.Update)
-					r.Delete("/{id}", agentHandler.Delete)
-					r.Get("/{id}/setup", agentHandler.GetSetup)
-					r.Put("/{id}/setup", agentHandler.UpdateSetup)
-					if conversationHandler != nil {
-						r.Post("/{agentID}/conversations", conversationHandler.Create)
-						r.Get("/{agentID}/conversations", conversationHandler.List)
-					}
-					// Agent triggers removed — routing is now handled by the
-					// Zira router at /v1/router/triggers.
-				})
-
-				// Zira Router — unified routing identity for the org.
-				r.Route("/router", func(r chi.Router) {
-					r.Get("/", routerHandler.GetOrCreateRouter)
-					r.Put("/", routerHandler.UpdateRouter)
-					r.Post("/triggers", routerHandler.CreateTrigger)
-					r.Get("/triggers", routerHandler.ListTriggers)
-					r.Delete("/triggers/{id}", routerHandler.DeleteTrigger)
-					r.Post("/triggers/{id}/rules", routerHandler.CreateRule)
-					r.Get("/triggers/{id}/rules", routerHandler.ListRules)
-					r.Delete("/triggers/{id}/rules/{ruleID}", routerHandler.DeleteRule)
-					r.Get("/decisions", routerHandler.ListDecisions)
-					r.Route("/{agentID}/skills", func(r chi.Router) {
-						r.Post("/", skillHandler.AttachToAgent)
-						r.Get("/", skillHandler.ListAgentSkills)
-						r.Delete("/{skillID}", skillHandler.DetachFromAgent)
-					})
-					r.Route("/{agentID}/subagents", func(r chi.Router) {
-						r.Post("/", subagentHandler.AttachToAgent)
-						r.Get("/", subagentHandler.ListAgentSubagents)
-						r.Delete("/{subagentID}", subagentHandler.DetachFromAgent)
-					})
-				})
-				r.Route("/marketplace/agents", func(r chi.Router) {
-					r.Use(middleware.ResolveUser(database))
-					r.Post("/", marketplaceHandler.Create)
-					r.Put("/{id}", marketplaceHandler.Update)
-					r.Delete("/{id}", marketplaceHandler.Delete)
-				})
-				if conversationHandler != nil {
-					r.Route("/conversations/{convID}", func(r chi.Router) {
-						r.Get("/", conversationHandler.Get)
-						r.Delete("/", conversationHandler.End)
-						r.Post("/messages", conversationHandler.SendMessage)
-						r.Get("/stream", conversationHandler.Stream)
-						r.Get("/history", conversationHandler.History)
-						r.Post("/abort", conversationHandler.Abort)
-						r.Get("/approvals", conversationHandler.ListApprovals)
-						r.Post("/approvals/{requestID}", conversationHandler.ResolveApproval)
-						r.Get("/events", conversationHandler.ListEvents)
-					})
-				}
-				if systemConvHandler != nil {
-					r.Post("/system-agents/{type}/conversations", systemConvHandler.Create)
-				}
-				r.Route("/sandboxes", func(r chi.Router) {
-					sandboxHandler := handler.NewSandboxHandler(database, orchestrator)
-					r.Get("/", sandboxHandler.List)
-					r.Get("/{id}", sandboxHandler.Get)
-					if orchestrator != nil {
-						r.Post("/{id}/stop", sandboxHandler.Stop)
-						r.Post("/{id}/exec", sandboxHandler.Exec)
-						r.Delete("/{id}", sandboxHandler.Delete)
-					}
-				})
-			})
-
-			r.Group(func(r chi.Router) {
-				r.Use(middleware.RequireAPIKeyScopeOrJWT("all"))
-				r.Post("/custom-domains", customDomainHandler.Create)
-				r.Get("/custom-domains", customDomainHandler.List)
-				r.Post("/custom-domains/{id}/verify", customDomainHandler.Verify)
-				r.Delete("/custom-domains/{id}", customDomainHandler.Delete)
-			})
-		})
-	})
-
-	// Connect API (session-authenticated)
-
-	// In-integrations & in-connections
 	var platformAdminEmails []string
 	if cfg.PlatformAdminEmails != "" {
 		platformAdminEmails = strings.Split(cfg.PlatformAdminEmails, ",")
 	}
-	r.Route("/v1/in", func(r chi.Router) {
-		r.Use(middleware.RequireAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience))
-		r.Use(middleware.RequireEmailConfirmed(database))
-		r.Use(middleware.ResolveUser(database))
-		r.Group(func(r chi.Router) {
-			r.Use(middleware.RequirePlatformAdmin(platformAdminEmails))
-			r.Post("/integrations", inIntegrationHandler.Create)
-			r.Get("/integrations", inIntegrationHandler.List)
-			r.Get("/integrations/{id}", inIntegrationHandler.Get)
-			r.Put("/integrations/{id}", inIntegrationHandler.Update)
-			r.Delete("/integrations/{id}", inIntegrationHandler.Delete)
-		})
-		r.Group(func(r chi.Router) {
-			r.Use(middleware.ResolveOrgFlexible(database))
-			r.Post("/integrations/{id}/connect-session", inConnectionHandler.CreateConnectSession)
-			r.Post("/integrations/{id}/connections", inConnectionHandler.Create)
-			r.Get("/connections", inConnectionHandler.List)
-			r.Get("/connections/{id}", inConnectionHandler.Get)
-			r.Get("/connections/{id}/resources/{type}", inConnectionHandler.ListResources)
-			r.Post("/connections/{id}/reconnect-session", inConnectionHandler.CreateReconnectSession)
-			r.Patch("/connections/{id}/webhook-configured", inConnectionHandler.MarkWebhookConfigured)
-			r.Delete("/connections/{id}", inConnectionHandler.Revoke)
-		})
-	})
+	setupConnectRoutes(r, cfg, rsaPub, database, platformAdminEmails, inIntegrationHandler, inConnectionHandler)
+	setupAdminRoutes(r, cfg, deps, rsaPub, database, platformAdminEmails, enqueuer, marketplaceHandler)
+	setupProxyAndAuxRoutes(r, cfg, deps, signingKey, database, proxyHandler, driveHandler, sandboxEncKey, auditWriter, generationWriter, ctr)
 
-	// Admin API
-	if cfg.AdminAPIEnabled {
-		adminHandler := handler.NewAdminHandler(database, orchestrator, nangoClient, actionsCatalog,
-			rsaKey, signingKey, cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL, enqueuer)
-		r.Route("/admin/v1", func(r chi.Router) {
-			r.Use(middleware.RequireAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience))
-			r.Use(middleware.RequireEmailConfirmed(database))
-			r.Use(middleware.ResolveUser(database))
-			r.Use(middleware.RequirePlatformAdmin(platformAdminEmails))
-			r.Use(middleware.AdminAudit(database, enqueuer))
-
-			r.Get("/stats", adminHandler.Stats)
-			r.Get("/users", adminHandler.ListUsers)
-			r.Get("/users/{id}", adminHandler.GetUser)
-			r.Put("/users/{id}", adminHandler.UpdateUser)
-			r.Post("/users/{id}/ban", adminHandler.BanUser)
-			r.Post("/users/{id}/unban", adminHandler.UnbanUser)
-			r.Post("/users/{id}/confirm-email", adminHandler.ConfirmUserEmail)
-			r.Delete("/users/{id}", adminHandler.DeleteUser)
-			r.Post("/users/{id}/impersonate", adminHandler.Impersonate)
-			r.Get("/orgs", adminHandler.ListOrgs)
-			r.Get("/orgs/{id}", adminHandler.GetOrg)
-			r.Put("/orgs/{id}", adminHandler.UpdateOrgFull)
-			r.Post("/orgs/{id}/deactivate", adminHandler.DeactivateOrg)
-			r.Post("/orgs/{id}/activate", adminHandler.ActivateOrg)
-			r.Get("/orgs/{id}/members", adminHandler.ListOrgMembers)
-			r.Delete("/orgs/{id}", adminHandler.DeleteOrg)
-			r.Get("/credentials", adminHandler.ListCredentials)
-			r.Get("/credentials/{id}", adminHandler.GetCredential)
-			r.Put("/credentials/{id}", adminHandler.UpdateCredential)
-			r.Post("/credentials/{id}/revoke", adminHandler.RevokeCredential)
-			r.Get("/api-keys", adminHandler.ListAPIKeys)
-			r.Post("/api-keys/{id}/revoke", adminHandler.RevokeAPIKey)
-			r.Get("/tokens", adminHandler.ListTokens)
-			r.Post("/tokens/{id}/revoke", adminHandler.RevokeToken)
-			r.Get("/agents", adminHandler.ListAgents)
-			r.Get("/agents/{id}", adminHandler.GetAgent)
-			r.Put("/agents/{id}", adminHandler.UpdateAgent)
-			r.Post("/agents/{id}/archive", adminHandler.ArchiveAgent)
-			r.Delete("/agents/{id}", adminHandler.DeleteAgent)
-			r.Get("/skills", adminHandler.ListSkills)
-			r.Get("/skills/{id}", adminHandler.GetSkill)
-			r.Post("/skills", adminHandler.CreateSkill)
-			r.Put("/skills/{id}", adminHandler.UpdateSkill)
-			r.Delete("/skills/{id}", adminHandler.DeleteSkill)
-			r.Get("/sandboxes", adminHandler.ListSandboxes)
-			r.Get("/sandboxes/{id}", adminHandler.GetSandbox)
-			r.Post("/sandboxes/{id}/stop", adminHandler.StopSandbox)
-			r.Delete("/sandboxes/{id}", adminHandler.DeleteSandbox)
-			r.Post("/sandboxes/cleanup", adminHandler.CleanupSandboxes)
-			r.Get("/sandbox-templates", adminHandler.ListSandboxTemplates)
-			r.Post("/sandbox-templates", adminHandler.CreateSandboxTemplate)
-			r.Get("/sandbox-templates/{id}", adminHandler.GetSandboxTemplate)
-			r.Put("/sandbox-templates/{id}", adminHandler.UpdateSandboxTemplate)
-			r.Delete("/sandbox-templates/{id}", adminHandler.DeleteSandboxTemplate)
-			r.Get("/conversations", adminHandler.ListConversations)
-			r.Get("/conversations/{id}", adminHandler.GetConversation)
-			r.Delete("/conversations/{id}", adminHandler.EndConversation)
-			r.Get("/generations", adminHandler.ListGenerations)
-			r.Get("/generations/stats", adminHandler.GenerationStats)
-			r.Get("/in-integration-providers", adminHandler.ListInIntegrationProviders)
-			r.Post("/in-integrations", adminHandler.CreateInIntegration)
-			r.Get("/in-integrations", adminHandler.ListInIntegrations)
-			r.Get("/in-integrations/{id}", adminHandler.GetInIntegration)
-			r.Put("/in-integrations/{id}", adminHandler.UpdateInIntegration)
-			r.Delete("/in-integrations/{id}", adminHandler.DeleteInIntegration)
-			r.Get("/in-connections", adminHandler.ListInConnections)
-			r.Get("/custom-domains", adminHandler.ListCustomDomains)
-			r.Delete("/custom-domains/{id}", adminHandler.DeleteCustomDomain)
-			r.Get("/audit", adminHandler.ListAudit)
-			r.Get("/usage", adminHandler.ListUsage)
-			r.Get("/admin-audit", adminHandler.ListAdminAudit)
-			r.Get("/workspace-storage", adminHandler.ListWorkspaceStorage)
-			r.Delete("/workspace-storage/{id}", adminHandler.DeleteWorkspaceStorage)
-			r.Get("/marketplace/agents", marketplaceHandler.AdminList)
-			r.Put("/marketplace/agents/{id}", marketplaceHandler.AdminUpdate)
-			r.Delete("/marketplace/agents/{id}", marketplaceHandler.AdminDelete)
-			r.Post("/marketplace/cache/bust", marketplaceHandler.BustCache)
-		})
-		slog.Info("admin API enabled", "path", "/admin/v1")
-	}
-
-	// Proxy routes
-	r.Route("/v1/proxy", func(r chi.Router) {
-		r.Use(middleware.TokenAuth(signingKey, database))
-		r.Use(middleware.RemainingCheck(ctr))
-		r.Use(middleware.Audit(auditWriter, "proxy.request"))
-		r.Use(middleware.Generation(generationWriter, database))
-		r.Handle("/*", proxyHandler)
-	})
-
-	// Drive routes (agent file storage, authenticated with proxy token)
-	if driveHandler != nil {
-		r.Route("/v1/drive", func(r chi.Router) {
-			r.Use(middleware.TokenAuth(signingKey, database))
-			r.Post("/assets", driveHandler.Upload)
-			r.Get("/assets", driveHandler.List)
-			r.Get("/assets/{assetID}", driveHandler.Get)
-			r.Delete("/assets/{assetID}", driveHandler.Delete)
-		})
-	}
-
-	// Sandbox drive routes (authenticated with Bridge control plane API key)
-	if deps.S3Client != nil && sandboxEncKey != nil {
-		sandboxDriveHandler := handler.NewSandboxDriveHandler(database, deps.S3Client, sandboxEncKey)
-		r.Route("/internal/sandbox-drive/{sandboxID}", func(r chi.Router) {
-			r.Post("/assets", sandboxDriveHandler.Upload)
-			r.Get("/assets", sandboxDriveHandler.List)
-			r.Get("/assets/{assetID}", sandboxDriveHandler.Get)
-			r.Delete("/assets/{assetID}", sandboxDriveHandler.Delete)
-		})
-	}
-
-	// Spider routes (web crawling/search via spider.cloud)
-	// Mounted at /spider (not /v1/spider) to avoid the /v1 org-auth middleware group.
-	// TODO: re-enable TokenAuth after verifying spider responses
-	if deps.SpiderClient != nil {
-		spiderHandler := handler.NewSpiderHandler(deps.SpiderClient, deps.ToolUsageWriter, database)
-		r.Route("/spider", func(r chi.Router) {
-			r.Post("/crawl", spiderHandler.Crawl)
-			r.Post("/search", spiderHandler.Search)
-			r.Post("/links", spiderHandler.Links)
-			r.Post("/screenshot", spiderHandler.Screenshot)
-			r.Post("/transform", spiderHandler.Transform)
-		})
-		slog.Info("spider routes registered (NO AUTH - temporary)")
-	}
-
-	// Main HTTP server
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      r,
@@ -605,57 +177,8 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		}
 	})
 
-	// MCP Server (separate port)
-	mcpRouter := chi.NewRouter()
-	mcpRouter.Use(chimw.RequestID)
-	mcpRouter.Use(chimw.RealIP)
-	mcpRouter.Use(posthogobs.Recoverer(deps.PostHog))
-	mcpRouter.Use(middleware.RequestLog(logger))
+	mcpSrv := setupMCPServer(ctx, cfg, deps, signingKey, database, mcpHandler)
 
-
-	// Zira reply MCP — exposes per-connection write tools for specialist agents
-	// to post back to the source channel (Slack thread, GitHub issue, etc.).
-	replyMCPHandler := mcpserver.NewReplyMCPHandler(database, actionsCatalog)
-	mcpRouter.Route("/reply/{connectionID}", func(r chi.Router) {
-		r.Use(middleware.TokenAuth(signingKey, database))
-		r.Handle("/*", replyMCPHandler.StreamableHTTPHandler())
-		r.Handle("/", replyMCPHandler.StreamableHTTPHandler())
-	})
-	slog.Info("hiveloop reply MCP registered on /reply/{connectionID}")
-
-	mcpRouter.Route("/{jti}", func(r chi.Router) {
-		r.Use(middleware.TokenAuth(signingKey, database))
-		r.Use(mcpHandler.ValidateJTIMatch)
-		r.Use(mcpHandler.ValidateHasScopes)
-		r.Handle("/*", mcpHandler.StreamableHTTPHandler())
-	})
-
-	mcpRouter.Route("/sse/{jti}", func(r chi.Router) {
-		r.Use(middleware.TokenAuth(signingKey, database))
-		r.Use(mcpHandler.ValidateJTIMatch)
-		r.Use(mcpHandler.ValidateHasScopes)
-		r.Handle("/*", mcpHandler.SSEHandler())
-	})
-
-	mcpSrv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.MCPPort),
-		Handler:      mcpRouter,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 0,
-		IdleTimeout:  120 * time.Second,
-		ErrorLog:     posthogobs.NewStdlogBridge("mcp_server"),
-	}
-
-	mcpHandler.ServerCache.StartCleanup(ctx, 5*time.Minute)
-
-	goroutine.Go(func() {
-		slog.Info("mcp server starting", "port", cfg.MCPPort)
-		if err := mcpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("mcp server error", "error", err)
-		}
-	})
-
-	// Wait for shutdown
 	<-ctx.Done()
 	slog.Info("shutting down")
 
@@ -677,37 +200,4 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	slog.Info("serve shutdown complete")
 	return nil
-}
-
-func healthz(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(`{"status":"ok"}`))
-}
-
-func readyz(database *gorm.DB, rc *redis.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		sqlDB, err := database.DB()
-		if err != nil {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = w.Write([]byte(`{"status":"error","detail":"db connection failed"}`))
-			return
-		}
-		if err := sqlDB.Ping(); err != nil {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = w.Write([]byte(`{"status":"error","detail":"db ping failed"}`))
-			return
-		}
-
-		if err := rc.Ping(r.Context()).Err(); err != nil {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = w.Write([]byte(`{"status":"error","detail":"redis ping failed"}`))
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
-	}
 }
