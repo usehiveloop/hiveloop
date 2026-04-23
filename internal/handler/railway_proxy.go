@@ -3,10 +3,14 @@ package handler
 import (
 	"bytes"
 	"crypto/subtle"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -24,7 +28,55 @@ const (
 	railwayTokenCacheSize = 100000
 	railwayTokenCacheTTL  = 30 * time.Minute
 	railwayProvider       = "railway"
+
+	// maxRailwayProxyBodyBytes caps the size of a forwarded GraphQL request
+	// at 64 KiB. Railway operations we allow are small queries/mutations
+	// that fit comfortably in this window — anything larger is either a
+	// mistake or an attempt to probe unknown operations (issue #47).
+	maxRailwayProxyBodyBytes = 64 * 1024
 )
+
+// railwayAllowedOperations is the allowlist of GraphQL operations the
+// Hiveloop agent is expected to call through the Railway proxy. Every
+// other operationName (or parsed-root selection when operationName is
+// absent) is rejected with 403 (issue #47).
+//
+// TODO(security-47): this list is a best-effort starting point derived
+// from the Railway GraphQL operations the agent tooling uses today.
+// Audit and extend as new operations are rolled out. When Railway
+// publishes a narrower org-scoped token type, prefer that over this
+// proxy-side allowlist.
+var railwayAllowedOperations = map[string]bool{
+	"me":                       true,
+	"project":                  true,
+	"projects":                 true,
+	"service":                  true,
+	"deployments":              true,
+	"deployment":               true,
+	"deploymentLogs":           true,
+	"buildLogs":                true,
+	"environments":             true,
+	"environment":              true,
+	"variables":                true,
+	"deploymentRedeploy":       true,
+	"deploymentRestart":        true,
+	"variableUpsert":           true,
+	"variableCollectionUpsert": true,
+	"serviceInstanceUpdate":    true,
+}
+
+// railwayOperationNameRE extracts the operation name from the opening
+// tokens of a GraphQL document, e.g. "query Foo(...)" or
+// "mutation DeploymentRedeploy { ... }".
+var railwayOperationNameRE = regexp.MustCompile(`^\s*(?:query|mutation|subscription)\s+([A-Za-z_][A-Za-z0-9_]*)`)
+
+// railwayFirstSelectionRE captures the first top-level selection for
+// anonymous operations such as "{ me { name } }" or "query { me { ... } }".
+var railwayFirstSelectionRE = regexp.MustCompile(`[{]\s*([A-Za-z_][A-Za-z0-9_]*)`)
+
+// errRailwayOperationNotAllowed marks a GraphQL request that doesn't
+// match the Hiveloop allowlist.
+var errRailwayOperationNotAllowed = errors.New("operation not permitted by railway proxy allowlist")
 
 type railwayTokenEntry struct {
 	token    string
@@ -111,20 +163,76 @@ func (h *RailwayProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Cap and read the request body before any upstream work (issue #47:
+	// tight 64 KiB cap; issue #44: explicit cap with 413 on overflow).
+	r.Body = http.MaxBytesReader(w, r.Body, maxRailwayProxyBodyBytes)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "request body too large"})
+			return
+		}
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read request body"})
+		return
+	}
+
+	// Reject any GraphQL operation that isn't on the allowlist (issue #47).
+	if err := enforceRailwayOperationAllowlist(body); err != nil {
+		slog.Warn("railway-proxy: rejected operation",
+			"agent_id", agentID,
+			"error", err,
+		)
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": err.Error()})
+		return
+	}
+
 	// Get Railway token (cached or fresh from Nango)
 	railwayToken, err := h.getRailwayToken(w, r, &agent, agentID)
 	if err != nil {
 		return // error already written to w
 	}
 
-	// Forward the request body to Railway's GraphQL API
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read request body"})
-		return
-	}
-
 	h.proxyToRailway(w, r, body, railwayToken)
+}
+
+// enforceRailwayOperationAllowlist inspects an incoming GraphQL request
+// body and returns an error if the operation isn't on the allowlist.
+// We first consult the JSON `operationName` field, then fall back to
+// parsing the opening token of the `query` string. Batched (array) or
+// otherwise malformed bodies are rejected.
+func enforceRailwayOperationAllowlist(body []byte) error {
+	type gqlRequest struct {
+		OperationName string `json:"operationName"`
+		Query         string `json:"query"`
+	}
+	var req gqlRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		return fmt.Errorf("invalid graphql request body: %w", err)
+	}
+	name := strings.TrimSpace(req.OperationName)
+	if name == "" {
+		name = extractRailwayOperationName(req.Query)
+	}
+	if name == "" {
+		return errRailwayOperationNotAllowed
+	}
+	if !railwayAllowedOperations[name] {
+		return fmt.Errorf("%w: %q", errRailwayOperationNotAllowed, name)
+	}
+	return nil
+}
+
+// extractRailwayOperationName pulls an operation identifier out of a
+// GraphQL query string. Returns "" if nothing matches.
+func extractRailwayOperationName(query string) string {
+	if m := railwayOperationNameRE.FindStringSubmatch(query); len(m) == 2 {
+		return m[1]
+	}
+	if m := railwayFirstSelectionRE.FindStringSubmatch(query); len(m) == 2 {
+		return m[1]
+	}
+	return ""
 }
 
 // getRailwayToken returns a Railway API token for the agent's org, using

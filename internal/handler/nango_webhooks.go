@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -14,6 +15,11 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+
+// maxNangoWebhookBodyBytes caps the size of a single Nango webhook at
+// 10 MiB (issue #44). Nango payloads are JSON envelopes that are well
+// under this limit in normal operation.
+const maxNangoWebhookBodyBytes = 10 * 1024 * 1024
 
 // NangoWebhookHandler receives webhook events forwarded by Nango.
 type NangoWebhookHandler struct {
@@ -67,18 +73,31 @@ type webhookContext struct {
 
 // Handle processes POST /internal/webhooks/nango.
 func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	// Body is capped before read to protect against memory exhaustion
+	// (issue #44). Nango delivers compact JSON envelopes so 10 MiB is
+	// comfortably above any real payload.
+	r.Body = http.MaxBytesReader(w, r.Body, maxNangoWebhookBodyBytes)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			slog.Warn("nango webhook: body exceeds size limit", "limit_bytes", maxNangoWebhookBodyBytes)
+			writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "request body too large"})
+			return
+		}
 		slog.Error("nango webhook: failed to read request body", "error", err)
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read body"})
 		return
 	}
 
+	// Do NOT log raw_body here (issue #46). Nango payloads can carry
+	// OAuth tokens and other credentials in the `payload` field. We
+	// log only a redacted summary of untrusted input and defer any
+	// payload-shape logging to after signature verification + parsing.
 	slog.Info("nango webhook: received",
 		"body_size", len(body),
 		"content_type", r.Header.Get("Content-Type"),
 		"has_signature", r.Header.Get("X-Nango-Hmac-Sha256") != "",
-		"raw_body", string(body),
 	)
 
 	signature := r.Header.Get("X-Nango-Hmac-Sha256")
@@ -95,7 +114,9 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	var wh nangoWebhook
 	if err := json.Unmarshal(body, &wh); err != nil {
-		slog.Error("nango webhook: failed to parse payload", "error", err, "body", string(body))
+		// Do not log the raw body — it is trusted (HMAC verified) but
+		// still contains credentials in the `payload` field (issue #46).
+		slog.Error("nango webhook: failed to parse payload", "error", err, "body_size", len(body))
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid webhook payload"})
 		return
 	}

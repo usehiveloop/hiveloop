@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -22,6 +23,10 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
+
+// maxBridgeWebhookBodyBytes caps the size of a single Bridge webhook
+// batch at 10 MiB to prevent memory-exhaustion DoS (issue #44).
+const maxBridgeWebhookBodyBytes = 10 * 1024 * 1024
 
 // BridgeWebhookHandler receives webhook events from Bridge instances.
 type BridgeWebhookHandler struct {
@@ -78,9 +83,15 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Read body
+	// Read body with a hard size cap (issue #44).
+	r.Body = http.MaxBytesReader(w, r.Body, maxBridgeWebhookBodyBytes)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "request body too large"})
+			return
+		}
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read body"})
 		return
 	}

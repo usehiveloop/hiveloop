@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -15,6 +16,9 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+
+// maxPolarWebhookBodyBytes caps Polar webhook bodies at 10 MiB (issue #44).
+const maxPolarWebhookBodyBytes = 10 * 1024 * 1024
 
 // PolarWebhookHandler receives and verifies webhook events from Polar.
 type PolarWebhookHandler struct {
@@ -57,8 +61,14 @@ type polarCustomerRef struct {
 
 // Handle processes incoming Polar webhook events.
 func (h *PolarWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxPolarWebhookBodyBytes)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "request body too large"})
+			return
+		}
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read body"})
 		return
 	}
