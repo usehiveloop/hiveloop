@@ -3,15 +3,11 @@ package main
 import (
 	"crypto/rsa"
 	"log/slog"
-	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/bootstrap"
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/counter"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
@@ -19,7 +15,7 @@ import (
 
 func setupAdminRoutes(
 	r chi.Router,
-	cfg *config.Config,
+	cfg *bootstrap.Config,
 	deps *bootstrap.Deps,
 	rsaPub *rsa.PublicKey,
 	database *gorm.DB,
@@ -97,6 +93,7 @@ func setupAdminRoutes(
 			r.Delete("/custom-domains/{id}", adminHandler.DeleteCustomDomain)
 			r.Get("/audit", adminHandler.ListAudit)
 			r.Get("/usage", adminHandler.ListUsage)
+			r.Get("/admin-audit", adminHandler.ListAdminAudit)
 			r.Get("/workspace-storage", adminHandler.ListWorkspaceStorage)
 			r.Delete("/workspace-storage/{id}", adminHandler.DeleteWorkspaceStorage)
 			r.Get("/marketplace/agents", marketplaceHandler.AdminList)
@@ -110,16 +107,16 @@ func setupAdminRoutes(
 
 func setupProxyAndAuxRoutes(
 	r chi.Router,
-	cfg *config.Config,
+	cfg *bootstrap.Config,
 	deps *bootstrap.Deps,
 	signingKey []byte,
 	database *gorm.DB,
-	proxyHandler http.Handler,
+	proxyHandler *handler.ProxyHandler,
 	driveHandler *handler.DriveHandler,
-	sandboxEncKey *crypto.SymmetricKey,
+	sandboxEncKey []byte,
 	auditWriter *middleware.AuditWriter,
 	generationWriter *middleware.GenerationWriter,
-	ctr *counter.Counter,
+	ctr bootstrap.Counter,
 ) {
 	r.Route("/v1/proxy", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, database))

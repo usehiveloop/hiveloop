@@ -11,20 +11,26 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
+// loadAgentTriggers loads the routing triggers configured for one or more agents.
+// Returns a map from agent ID to trigger responses. Uses a single query with
+// joins to avoid N+1.
 func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]agentTriggerResponse {
 	if len(agentIDs) == 0 {
 		return nil
 	}
 
 	type triggerRow struct {
-		RuleID      uuid.UUID      `gorm:"column:rule_id"`
-		AgentID     uuid.UUID      `gorm:"column:agent_id"`
-		TriggerID   uuid.UUID      `gorm:"column:trigger_id"`
-		ConnID      uuid.UUID      `gorm:"column:conn_id"`
-		Provider    string         `gorm:"column:provider"`
-		TriggerKeys pq.StringArray `gorm:"column:trigger_keys"`
-		Enabled     bool           `gorm:"column:enabled"`
-		Conditions  model.RawJSON  `gorm:"column:conditions"`
+		RuleID       uuid.UUID      `gorm:"column:rule_id"`
+		AgentID      uuid.UUID      `gorm:"column:agent_id"`
+		TriggerID    uuid.UUID      `gorm:"column:trigger_id"`
+		TriggerType  string         `gorm:"column:trigger_type"`
+		ConnID       *uuid.UUID     `gorm:"column:conn_id"`
+		Provider     *string        `gorm:"column:provider"`
+		TriggerKeys  pq.StringArray `gorm:"column:trigger_keys"`
+		Enabled      bool           `gorm:"column:enabled"`
+		Conditions   model.RawJSON  `gorm:"column:conditions"`
+		CronSchedule string         `gorm:"column:cron_schedule"`
+		Instructions string         `gorm:"column:instructions"`
 	}
 
 	var rows []triggerRow
@@ -33,15 +39,18 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 			rr.id AS rule_id,
 			rr.agent_id,
 			rt.id AS trigger_id,
+			rt.trigger_type,
 			rt.connection_id AS conn_id,
 			ii.provider,
 			rt.trigger_keys,
 			rt.enabled,
-			rr.conditions
+			rr.conditions,
+			rt.cron_schedule,
+			rt.instructions
 		FROM routing_rules rr
 		JOIN router_triggers rt ON rt.id = rr.router_trigger_id
-		JOIN in_connections ic ON ic.id = rt.connection_id
-		JOIN in_integrations ii ON ii.id = ic.in_integration_id
+		LEFT JOIN in_connections ic ON ic.id = rt.connection_id
+		LEFT JOIN in_integrations ii ON ii.id = ic.in_integration_id
 		WHERE rr.agent_id IN ?
 		ORDER BY rt.id ASC
 	`, agentIDs).Scan(&rows)
@@ -56,18 +65,28 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 			}
 		}
 
-		result[row.AgentID] = append(result[row.AgentID], agentTriggerResponse{
+		response := agentTriggerResponse{
 			ID:           row.TriggerID.String(),
-			ConnectionID: row.ConnID.String(),
-			Provider:     row.Provider,
+			TriggerType:  row.TriggerType,
 			TriggerKeys:  []string(row.TriggerKeys),
 			Enabled:      row.Enabled,
 			Conditions:   conditions,
-		})
+			CronSchedule: row.CronSchedule,
+			Instructions: row.Instructions,
+		}
+		if row.ConnID != nil {
+			response.ConnectionID = row.ConnID.String()
+		}
+		if row.Provider != nil {
+			response.Provider = *row.Provider
+		}
+
+		result[row.AgentID] = append(result[row.AgentID], response)
 	}
 	return result
 }
 
+// loadAgentSubagents batch-loads attached subagent summaries for one or more agents.
 func (h *AgentHandler) loadAgentSubagents(agentIDs ...uuid.UUID) map[uuid.UUID][]agentSubagentSummary {
 	if len(agentIDs) == 0 {
 		return nil
@@ -107,6 +126,7 @@ func (h *AgentHandler) loadAgentSubagents(agentIDs ...uuid.UUID) map[uuid.UUID][
 	return result
 }
 
+// loadAgentSkills batch-loads attached skill summaries for one or more agents.
 func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]agentSkillSummary {
 	if len(agentIDs) == 0 {
 		return nil
@@ -146,6 +166,9 @@ func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]ag
 	return result
 }
 
+// createAgentTriggers creates RouterTrigger + RoutingRule records for an agent
+// inside an existing transaction. The router is found or created for the org.
+// Connection IDs are in_connections IDs from the frontend.
 func createAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agentTriggerInput) error {
 	if len(triggers) == 0 {
 		return nil
@@ -160,19 +183,47 @@ func createAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agent
 	}
 
 	for _, input := range triggers {
-		connectionID, err := uuid.Parse(input.ConnectionID)
-		if err != nil {
-			return fmt.Errorf("invalid connection_id %q: %w", input.ConnectionID, err)
+		triggerType := input.TriggerType
+		if triggerType == "" {
+			triggerType = "webhook"
 		}
 
 		trigger := model.RouterTrigger{
 			OrgID:        orgID,
 			RouterID:     router.ID,
-			ConnectionID: connectionID,
-			TriggerKeys:  pq.StringArray(input.TriggerKeys),
 			Enabled:      true,
+			TriggerType:  triggerType,
 			RoutingMode:  "rule",
+			Instructions: input.Instructions,
 		}
+
+		switch triggerType {
+		case "webhook":
+			connectionID, parseErr := uuid.Parse(input.ConnectionID)
+			if parseErr != nil {
+				return fmt.Errorf("invalid connection_id %q: %w", input.ConnectionID, parseErr)
+			}
+			trigger.ConnectionID = &connectionID
+			trigger.TriggerKeys = pq.StringArray(input.TriggerKeys)
+
+		case "http":
+			trigger.TriggerKeys = pq.StringArray(input.TriggerKeys)
+
+		case "cron":
+			if input.CronSchedule == "" {
+				return fmt.Errorf("cron_schedule is required for cron triggers")
+			}
+			nextRun, parseErr := computeNextRun(input.CronSchedule)
+			if parseErr != nil {
+				return fmt.Errorf("invalid cron_schedule %q: %w", input.CronSchedule, parseErr)
+			}
+			trigger.CronSchedule = input.CronSchedule
+			trigger.NextRunAt = &nextRun
+
+		default:
+			return fmt.Errorf("invalid trigger_type %q", triggerType)
+		}
+
 		if err := tx.Create(&trigger).Error; err != nil {
 			return fmt.Errorf("create router trigger: %w", err)
 		}
@@ -195,6 +246,8 @@ func createAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agent
 	return nil
 }
 
+// deleteAgentTriggers removes all RouterTrigger + RoutingRule records owned by
+// an agent. CASCADE on the RouterTrigger FK deletes the RoutingRule rows.
 func deleteAgentTriggers(db *gorm.DB, agentID uuid.UUID) error {
 	var triggerIDs []uuid.UUID
 	if err := db.Model(&model.RoutingRule{}).
@@ -210,3 +263,4 @@ func deleteAgentTriggers(db *gorm.DB, agentID uuid.UUID) error {
 	}
 	return nil
 }
+

@@ -45,6 +45,10 @@ type AgentDispatch struct {
 	// Set by the enrichment agent — replaces flat refs in instructions.
 	EnrichedMessage string
 
+	// TriggerInstructions is the per-trigger prompt template (cron/http triggers).
+	// Takes precedence over flat refs when building the first message.
+	TriggerInstructions string
+
 	// For "continue" intent — the existing conversation to send to.
 	ExistingConversationID string
 	ExistingSandboxID      uuid.UUID
@@ -89,148 +93,201 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 	var allDispatches []AgentDispatch
 
 	for _, match := range triggerMatches {
-		trigger := match.Trigger
-		router := match.Router
-
-		// 2. Extract refs from payload.
-		triggerDef := dispatcher.lookupTriggerDef(input.Provider, eventKey)
-		refs, _ := extractRefs(input.Payload, triggerDef.Refs)
-
-		// 3. Resolve resource key.
-		resourceDef := dispatcher.lookupResourceDef(trigger, triggerDef)
-		resourceKey := resolveRouterResourceKey(resourceDef, refs)
-
-		// 4. Thread affinity: check for existing conversation.
-		existingConv, err := dispatcher.store.FindExistingConversation(ctx, input.OrgID, input.ConnectionID, resourceKey)
-		if err != nil {
-			dispatcher.logger.Error("thread affinity check failed", "error", err)
+		dispatches, dispatchErr := dispatcher.dispatchForTrigger(ctx, match, input, eventKey)
+		if dispatchErr != nil {
+			return nil, dispatchErr
 		}
-		if existingConv != nil {
-			allDispatches = append(allDispatches, AgentDispatch{
-				AgentID:                existingConv.AgentID,
-				RunIntent:              "continue",
-				ExistingConversationID: existingConv.BridgeConversationID,
-				ExistingSandboxID:      existingConv.SandboxID,
-				ResourceKey:            resourceKey,
-				Refs:                   refs,
-				RouterTriggerID:        trigger.ID,
-				RouterPersona:          router.Persona,
-				MemoryTeam:             router.MemoryTeam,
-			})
-			continue
-		}
-
-		// 5. Route: rule-based or LLM triage.
-		var selectedAgents []hiveloop.AgentSelection
-		var enrichmentPlan []hiveloop.PlannedEnrichment
-		routingMode := trigger.RoutingMode
-		routingStart := time.Now()
-
-		switch routingMode {
-		case "rule":
-			rules, rulesErr := dispatcher.store.LoadRulesForTrigger(ctx, trigger.ID)
-			if rulesErr != nil {
-				return nil, fmt.Errorf("loading rules: %w", rulesErr)
-			}
-			selectedAgents = EvaluateRules(rules, input.Payload)
-
-		case "triage":
-			if dispatcher.agent == nil {
-				return nil, fmt.Errorf("triage routing requested but no LLM agent configured")
-			}
-			orgAgents, agentsErr := dispatcher.store.LoadOrgAgents(ctx, input.OrgID)
-			if agentsErr != nil {
-				return nil, fmt.Errorf("loading org agents: %w", agentsErr)
-			}
-			var connections []hiveloop.ConnectionWithActions
-			if trigger.EnrichCrossReferences {
-				connections, _ = dispatcher.store.LoadOrgConnections(ctx, input.OrgID, input.ConnectionID)
-			}
-			recentDecisions, _ := dispatcher.store.LoadRecentDecisions(ctx, input.OrgID, eventKey, 10)
-
-			systemPrompt := hiveloop.BuildRoutingPrompt(router.Persona, orgAgents, connections, recentDecisions)
-
-			// Build user message from event context.
-			userMessage := buildTriageUserMessage(input, refs)
-
-			result, triageErr := dispatcher.agent.Route(ctx, systemPrompt, userMessage, orgAgents, connections)
-			if triageErr != nil {
-				dispatcher.logger.Error("triage routing failed", "error", triageErr)
-				// Fall through to default agent.
-			} else {
-				selectedAgents = result.SelectedAgents
-				enrichmentPlan = result.EnrichmentPlan
-			}
-		}
-
-		routingLatency := time.Since(routingStart).Milliseconds()
-
-		// 6. Fallback to default agent if no agents selected.
-		if len(selectedAgents) == 0 && router.DefaultAgentID != nil {
-			selectedAgents = []hiveloop.AgentSelection{{
-				AgentID:  *router.DefaultAgentID,
-				Priority: 99,
-				Reason:   "fallback to default agent",
-			}}
-		}
-
-		if len(selectedAgents) == 0 {
-			dispatcher.logger.Info("no agents selected", "event", eventKey, "trigger_id", trigger.ID)
-			continue
-		}
-
-		dispatcher.logger.Info("trigger matched",
-			"trigger_id", trigger.ID,
-			"event_key", eventKey,
-			"routing_mode", routingMode,
-			"routing_latency_ms", routingLatency,
-			"ref_count", len(refs),
-			"agents_selected", len(selectedAgents),
-		)
-
-		// 7. Build dispatches.
-		// The reply connection is resolved by the executor from the trigger's
-		// ConnectionID — the dispatcher just passes the ID through.
-		for _, selection := range selectedAgents {
-			allDispatches = append(allDispatches, AgentDispatch{
-				AgentID:         selection.AgentID,
-				Priority:        selection.Priority,
-				RoutingMode:     routingMode,
-				EnrichmentPlan:  enrichmentPlan,
-				ReplyConnectionID: input.ConnectionID,
-				ReplyOrgID:        input.OrgID,
-				ResourceKey:     resourceKey,
-				RunIntent:       "normal",
-				RouterTriggerID: trigger.ID,
-				RouterPersona:   router.Persona,
-				MemoryTeam:      router.MemoryTeam,
-				Refs:            refs,
-			})
-		}
-
-		// 9. Store routing decision.
-		agentIDs := make(pq.StringArray, len(selectedAgents))
-		for index, selection := range selectedAgents {
-			agentIDs[index] = selection.AgentID.String()
-		}
-		intentSummary := ""
-		if len(selectedAgents) > 0 {
-			intentSummary = selectedAgents[0].Reason
-		}
-		dispatcher.store.StoreDecision(ctx, &model.RoutingDecision{
-			OrgID:           input.OrgID,
-			RouterTriggerID: trigger.ID,
-			RoutingMode:     routingMode,
-			EventType:       eventKey,
-			ResourceKey:     resourceKey,
-			IntentSummary:   intentSummary,
-			SelectedAgents:  agentIDs,
-			EnrichmentSteps: len(enrichmentPlan),
-			LatencyMs:       int(time.Since(routingStart).Milliseconds()),
-		})
+		allDispatches = append(allDispatches, dispatches...)
 	}
 
 	return allDispatches, nil
+}
+
+// RunForTrigger executes the routing pipeline for a specific trigger, bypassing
+// trigger matching. Used by HTTP and cron triggers where the trigger is already
+// known. The payload is optional — cron triggers pass nil (no webhook body).
+func (dispatcher *RouterDispatcher) RunForTrigger(ctx context.Context, triggerID uuid.UUID, payload map[string]any) ([]AgentDispatch, error) {
+	match, err := dispatcher.store.FindTriggerByID(ctx, triggerID)
+	if err != nil {
+		return nil, fmt.Errorf("loading trigger %s: %w", triggerID, err)
+	}
+
+	if payload == nil {
+		payload = map[string]any{}
+	}
+
+	eventKey := match.Trigger.TriggerType // "http" or "cron"
+
+	input := RouterDispatchInput{
+		Provider:  match.Trigger.TriggerType,
+		EventType: match.Trigger.TriggerType,
+		OrgID:     match.Trigger.OrgID,
+		Payload:   payload,
+	}
+	if match.Trigger.ConnectionID != nil {
+		input.ConnectionID = *match.Trigger.ConnectionID
+	}
+
+	dispatches, err := dispatcher.dispatchForTrigger(ctx, *match, input, eventKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// For cron/http triggers, inject the trigger's instructions into each dispatch.
+	if match.Trigger.Instructions != "" {
+		for index := range dispatches {
+			if dispatches[index].RunIntent == "normal" {
+				dispatches[index].TriggerInstructions = match.Trigger.Instructions
+			}
+		}
+	}
+
+	return dispatches, nil
+}
+
+// dispatchForTrigger runs the routing pipeline for a single trigger + input.
+// Shared by Run (webhook matching) and RunForTrigger (direct dispatch).
+func (dispatcher *RouterDispatcher) dispatchForTrigger(ctx context.Context, match RouterTriggerWithRouter, input RouterDispatchInput, eventKey string) ([]AgentDispatch, error) {
+	trigger := match.Trigger
+	router := match.Router
+
+	// 1. Extract refs from payload.
+	triggerDef := dispatcher.lookupTriggerDef(input.Provider, eventKey)
+	refs, _ := extractRefs(input.Payload, triggerDef.Refs)
+
+	// 2. Resolve resource key.
+	resourceDef := dispatcher.lookupResourceDef(trigger, triggerDef)
+	resourceKey := resolveRouterResourceKey(resourceDef, refs)
+
+	// 3. Thread affinity: check for existing conversation.
+	connectionID := input.ConnectionID
+	existingConv, err := dispatcher.store.FindExistingConversation(ctx, input.OrgID, connectionID, resourceKey)
+	if err != nil {
+		dispatcher.logger.Error("thread affinity check failed", "error", err)
+	}
+	if existingConv != nil {
+		return []AgentDispatch{{
+			AgentID:                existingConv.AgentID,
+			RunIntent:              "continue",
+			ExistingConversationID: existingConv.BridgeConversationID,
+			ExistingSandboxID:      existingConv.SandboxID,
+			ResourceKey:            resourceKey,
+			Refs:                   refs,
+			RouterTriggerID:        trigger.ID,
+			RouterPersona:          router.Persona,
+			MemoryTeam:             router.MemoryTeam,
+		}}, nil
+	}
+
+	// 4. Route: rule-based or LLM triage.
+	var selectedAgents []hiveloop.AgentSelection
+	var enrichmentPlan []hiveloop.PlannedEnrichment
+	routingMode := trigger.RoutingMode
+	routingStart := time.Now()
+
+	switch routingMode {
+	case "rule":
+		rules, rulesErr := dispatcher.store.LoadRulesForTrigger(ctx, trigger.ID)
+		if rulesErr != nil {
+			return nil, fmt.Errorf("loading rules: %w", rulesErr)
+		}
+		selectedAgents = EvaluateRules(rules, input.Payload)
+
+	case "triage":
+		if dispatcher.agent == nil {
+			return nil, fmt.Errorf("triage routing requested but no LLM agent configured")
+		}
+		orgAgents, agentsErr := dispatcher.store.LoadOrgAgents(ctx, input.OrgID)
+		if agentsErr != nil {
+			return nil, fmt.Errorf("loading org agents: %w", agentsErr)
+		}
+		var connections []hiveloop.ConnectionWithActions
+		if trigger.EnrichCrossReferences {
+			connections, _ = dispatcher.store.LoadOrgConnections(ctx, input.OrgID, input.ConnectionID)
+		}
+		recentDecisions, _ := dispatcher.store.LoadRecentDecisions(ctx, input.OrgID, eventKey, 10)
+
+		systemPrompt := hiveloop.BuildRoutingPrompt(router.Persona, orgAgents, connections, recentDecisions)
+
+		// Build user message from event context.
+		userMessage := buildTriageUserMessage(input, refs)
+
+		result, triageErr := dispatcher.agent.Route(ctx, systemPrompt, userMessage, orgAgents, connections)
+		if triageErr != nil {
+			dispatcher.logger.Error("triage routing failed", "error", triageErr)
+			// Fall through to default agent.
+		} else {
+			selectedAgents = result.SelectedAgents
+			enrichmentPlan = result.EnrichmentPlan
+		}
+	}
+
+	routingLatency := time.Since(routingStart).Milliseconds()
+
+	// 5. Fallback to default agent if no agents selected.
+	if len(selectedAgents) == 0 && router.DefaultAgentID != nil {
+		selectedAgents = []hiveloop.AgentSelection{{
+			AgentID:  *router.DefaultAgentID,
+			Priority: 99,
+			Reason:   "fallback to default agent",
+		}}
+	}
+
+	if len(selectedAgents) == 0 {
+		dispatcher.logger.Info("no agents selected", "event", eventKey, "trigger_id", trigger.ID)
+		return nil, nil
+	}
+
+	dispatcher.logger.Info("trigger matched",
+		"trigger_id", trigger.ID,
+		"event_key", eventKey,
+		"routing_mode", routingMode,
+		"routing_latency_ms", routingLatency,
+		"ref_count", len(refs),
+		"agents_selected", len(selectedAgents),
+	)
+
+	// 6. Build dispatches.
+	var dispatches []AgentDispatch
+	for _, selection := range selectedAgents {
+		dispatches = append(dispatches, AgentDispatch{
+			AgentID:           selection.AgentID,
+			Priority:          selection.Priority,
+			RoutingMode:       routingMode,
+			EnrichmentPlan:    enrichmentPlan,
+			ReplyConnectionID: input.ConnectionID,
+			ReplyOrgID:        input.OrgID,
+			ResourceKey:       resourceKey,
+			RunIntent:         "normal",
+			RouterTriggerID:   trigger.ID,
+			RouterPersona:     router.Persona,
+			MemoryTeam:        router.MemoryTeam,
+			Refs:              refs,
+		})
+	}
+
+	// 7. Store routing decision.
+	agentIDs := make(pq.StringArray, len(selectedAgents))
+	for index, selection := range selectedAgents {
+		agentIDs[index] = selection.AgentID.String()
+	}
+	intentSummary := ""
+	if len(selectedAgents) > 0 {
+		intentSummary = selectedAgents[0].Reason
+	}
+	dispatcher.store.StoreDecision(ctx, &model.RoutingDecision{
+		OrgID:           input.OrgID,
+		RouterTriggerID: trigger.ID,
+		RoutingMode:     routingMode,
+		EventType:       eventKey,
+		ResourceKey:     resourceKey,
+		IntentSummary:   intentSummary,
+		SelectedAgents:  agentIDs,
+		EnrichmentSteps: len(enrichmentPlan),
+		LatencyMs:       int(time.Since(routingStart).Milliseconds()),
+	})
+
+	return dispatches, nil
 }
 
 // LoadConnections loads all org connections with their read actions.

@@ -12,7 +12,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/bootstrap"
-	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/mcpserver"
@@ -22,7 +21,7 @@ import (
 
 func setupMCPServer(
 	ctx context.Context,
-	cfg *config.Config,
+	cfg *bootstrap.Config,
 	deps *bootstrap.Deps,
 	signingKey []byte,
 	database *gorm.DB,

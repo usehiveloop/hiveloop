@@ -19,6 +19,7 @@ type RouterTriggerWithRouter struct {
 // Two implementations exist: gorm (production Postgres) and memory (tests).
 type RouterTriggerStore interface {
 	FindMatchingTriggers(ctx context.Context, orgID, connectionID uuid.UUID, triggerKeys []string) ([]RouterTriggerWithRouter, error)
+	FindTriggerByID(ctx context.Context, triggerID uuid.UUID) (*RouterTriggerWithRouter, error)
 	FindExistingConversation(ctx context.Context, orgID, connectionID uuid.UUID, resourceKey string) (*model.RouterConversation, error)
 	LoadRulesForTrigger(ctx context.Context, triggerID uuid.UUID) ([]model.RoutingRule, error)
 	LoadOrgAgents(ctx context.Context, orgID uuid.UUID) ([]model.Agent, error)

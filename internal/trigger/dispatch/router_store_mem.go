@@ -2,6 +2,7 @@ package dispatch
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
@@ -57,6 +58,18 @@ func (store *MemoryRouterTriggerStore) AddConnection(conn hiveloop.ConnectionWit
 	store.connections = append(store.connections, conn)
 }
 
+func (store *MemoryRouterTriggerStore) FindTriggerByID(_ context.Context, triggerID uuid.UUID) (*RouterTriggerWithRouter, error) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	for _, item := range store.triggers {
+		if item.Trigger.ID == triggerID && item.Trigger.Enabled {
+			return &item, nil
+		}
+	}
+	return nil, fmt.Errorf("trigger %s not found", triggerID)
+}
+
 func (store *MemoryRouterTriggerStore) FindMatchingTriggers(_ context.Context, orgID, connectionID uuid.UUID, triggerKeys []string) ([]RouterTriggerWithRouter, error) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
@@ -69,7 +82,7 @@ func (store *MemoryRouterTriggerStore) FindMatchingTriggers(_ context.Context, o
 	var matches []RouterTriggerWithRouter
 	for _, item := range store.triggers {
 		trigger := item.Trigger
-		if trigger.OrgID != orgID || trigger.ConnectionID != connectionID || !trigger.Enabled {
+		if trigger.OrgID != orgID || trigger.ConnectionID == nil || *trigger.ConnectionID != connectionID || !trigger.Enabled {
 			continue
 		}
 		for _, key := range trigger.TriggerKeys {

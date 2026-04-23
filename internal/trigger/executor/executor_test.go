@@ -102,6 +102,44 @@ func TestBuildInstructions_FallsBackToRefsWithoutEnrichment(t *testing.T) {
 	}
 }
 
+func TestBuildInstructions_TriggerInstructions_SubstitutesRefs(t *testing.T) {
+	agentDispatch := dispatch.AgentDispatch{
+		TriggerInstructions: "Process $refs.channel and notify $refs.user about the event.",
+		Refs:                map[string]string{"channel": "C123", "user": "U456"},
+	}
+	instructions := buildInstructions(agentDispatch)
+	if containsString(instructions, "$refs.channel") {
+		t.Error("$refs.channel should have been substituted")
+	}
+	if containsString(instructions, "$refs.user") {
+		t.Error("$refs.user should have been substituted")
+	}
+	if !containsString(instructions, "Process C123 and notify U456 about the event.") {
+		t.Errorf("expected substituted instructions, got: %s", instructions)
+	}
+}
+
+func TestBuildInstructions_TriggerInstructions_MustacheRefs(t *testing.T) {
+	agentDispatch := dispatch.AgentDispatch{
+		TriggerInstructions: "Deploy to {{$refs.environment}} for {{$refs.repo}}.",
+		Refs:                map[string]string{"environment": "production", "repo": "ziraloop"},
+	}
+	instructions := buildInstructions(agentDispatch)
+	if !containsString(instructions, "Deploy to production for ziraloop.") {
+		t.Errorf("expected mustache refs substituted, got: %s", instructions)
+	}
+}
+
+func TestBuildInstructions_TriggerInstructions_NoRefsNoChange(t *testing.T) {
+	agentDispatch := dispatch.AgentDispatch{
+		TriggerInstructions: "Run your daily standup check.",
+	}
+	instructions := buildInstructions(agentDispatch)
+	if !containsString(instructions, "Run your daily standup check.") {
+		t.Errorf("instructions without refs should pass through unchanged, got: %s", instructions)
+	}
+}
+
 func TestBuildContinuationMessage(t *testing.T) {
 	agentDispatch := dispatch.AgentDispatch{
 		Refs: map[string]string{"text": "hello again", "user": "U789"},
