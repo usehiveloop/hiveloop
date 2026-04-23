@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/auth/auth-context"
+import { $api } from "@/lib/api/hooks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -27,52 +28,36 @@ interface ImpersonateUserDialogProps {
 export function ImpersonateUserDialog({ open, onOpenChange }: ImpersonateUserDialogProps) {
   const { impersonate } = useAuth()
   const [search, setSearch] = useState("")
-  const [results, setResults] = useState<AdminUser[]>([])
-  const [searching, setSearching] = useState(false)
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [impersonating, setImpersonating] = useState<string | null>(null)
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => {
-    if (!open) {
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
       setSearch("")
-      setResults([])
-      setSearching(false)
+      setDebouncedSearch("")
       setImpersonating(null)
     }
-  }, [open])
+    onOpenChange(nextOpen)
+  }
 
+  // Debounce search input so we only fire one query per pause in typing.
   useEffect(() => {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current)
-    }
-
-    if (!search.trim()) {
-      setResults([])
-      setSearching(false)
-      return
-    }
-
-    setSearching(true)
-    debounceTimer.current = setTimeout(async () => {
-      try {
-        const response = await fetch(`/api/proxy/admin/v1/users?search=${encodeURIComponent(search.trim())}&limit=10`)
-        if (response.ok) {
-          const data = await response.json()
-          setResults(data.data ?? [])
-        }
-      } catch {
-        // Silently fail — user will see empty results
-      } finally {
-        setSearching(false)
-      }
-    }, 300)
-
-    return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current)
-      }
-    }
+    const trimmed = search.trim()
+    const timer = setTimeout(() => setDebouncedSearch(trimmed), trimmed ? 300 : 0)
+    return () => clearTimeout(timer)
   }, [search])
+
+  const usersQuery = $api.useQuery(
+    "get",
+    "/admin/v1/users",
+    { params: { query: { search: debouncedSearch, limit: 10 } } },
+    { enabled: open && debouncedSearch.length > 0 },
+  )
+
+  const results = ((usersQuery.data?.data ?? []) as AdminUser[])
+  const searching =
+    search.trim().length > 0 &&
+    (search.trim() !== debouncedSearch || usersQuery.isFetching)
 
   async function handleImpersonate(user: AdminUser) {
     setImpersonating(user.id)
@@ -85,7 +70,7 @@ export function ImpersonateUserDialog({ open, onOpenChange }: ImpersonateUserDia
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Impersonate User</DialogTitle>

@@ -12,6 +12,11 @@ interface StreamToken {
   expires_at: number
 }
 
+// `/api/auth/stream-token` is a local Next.js route handler (see
+// app/api/auth/stream-token/route.ts) that mints a short-lived bearer token for
+// direct backend SSE connections. It reads/refreshes session cookies, so it is
+// outside the OpenAPI schema and must be called with raw fetch rather than the
+// typed `$api` client.
 async function fetchStreamToken(): Promise<StreamToken> {
   const res = await fetch("/api/auth/stream-token")
   if (!res.ok) {

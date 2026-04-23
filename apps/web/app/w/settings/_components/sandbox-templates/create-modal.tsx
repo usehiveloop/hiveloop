@@ -29,7 +29,7 @@ import {
   useTriggerBuild,
   useRetryBuild,
   usePublicTemplates,
-  createSandboxTemplate,
+  useCreateSandboxTemplate,
   type SandboxTemplate,
 } from "@/hooks/use-sandbox-template"
 
@@ -77,6 +77,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
 
   const triggerBuild = useTriggerBuild()
   const retryBuild = useRetryBuild()
+  const createTemplate = useCreateSandboxTemplate()
 
   useEffect(() => {
     if (!template || !isBuilding || hasShownSuccessRef.current) return
@@ -126,11 +127,13 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
     }
 
     try {
-      const createdTemplate = await createSandboxTemplate({
-        name: name.trim(),
-        build_commands: filteredCommands,
-        base_template_id: selectedBaseTemplate || undefined,
-      })
+      const createdTemplate = (await createTemplate.mutateAsync({
+        body: {
+          name: name.trim(),
+          build_commands: filteredCommands,
+          base_template_id: selectedBaseTemplate || undefined,
+        },
+      })) as SandboxTemplate
 
       if (!createdTemplate.id) {
         toast.error("Failed to get template ID")
@@ -148,7 +151,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
 
       setBuildTemplateId(createdTemplate.id)
       setIsBuilding(true)
-    } catch (err) {
+    } catch {
       toast.error("Failed to create template")
     }
   }

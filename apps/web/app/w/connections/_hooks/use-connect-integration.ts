@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import Nango, { AuthError } from "@nangohq/frontend"
 import { toast } from "sonner"
-import { api } from "@/lib/api/client"
+import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 
 interface ConnectOptions {
@@ -17,22 +17,42 @@ export function useConnectIntegration() {
   const queryClient = useQueryClient()
   const [connectingId, setConnectingId] = useState<string | null>(null)
 
-  const mutation = useMutation({
-    mutationFn: async ({
-      integrationId,
-      options,
-    }: {
-      integrationId: string
-      options?: ConnectOptions
-    }) => {
-      const session = await api.POST("/v1/in/integrations/{id}/connect-session", {
+  // Two typed $api mutations are composed into a single connect flow: create a
+  // Nango connect-session, run the Nango auth popup, then persist the resulting
+  // connection. mutateAsync lets us sequence them with the external SDK call in
+  // between without falling back to a raw useMutation + api.POST.
+  const createSession = $api.useMutation(
+    "post",
+    "/v1/in/integrations/{id}/connect-session",
+  )
+  const saveConnection = $api.useMutation(
+    "post",
+    "/v1/in/integrations/{id}/connections",
+  )
+
+  async function connect(
+    integrationId: string,
+    optionsOrOnSuccess?: ConnectOptions & { onSuccess?: () => void } | (() => void),
+  ) {
+    let options: ConnectOptions | undefined
+    let onSuccess: (() => void) | undefined
+
+    if (typeof optionsOrOnSuccess === "function") {
+      onSuccess = optionsOrOnSuccess
+    } else if (optionsOrOnSuccess) {
+      const { onSuccess: onSuccessFn, ...rest } = optionsOrOnSuccess
+      onSuccess = onSuccessFn
+      if (Object.keys(rest).length > 0) options = rest
+    }
+
+    setConnectingId(integrationId)
+    try {
+      const session = await createSession.mutateAsync({
         params: { path: { id: integrationId } },
       })
 
-      if (session.error) throw new Error("Failed to create session")
-
       const { token, provider_config_key: providerConfigKey } =
-        session.data as { token: string; provider_config_key: string }
+        session as { token: string; provider_config_key: string }
 
       const nango = new Nango({
         connectSessionToken: token,
@@ -48,47 +68,20 @@ export function useConnectIntegration() {
         ? await nango.auth(providerConfigKey, authOptions)
         : await nango.auth(providerConfigKey)
 
-      const connection = await api.POST("/v1/in/integrations/{id}/connections", {
+      await saveConnection.mutateAsync({
         params: { path: { id: integrationId } },
         body: { nango_connection_id: authResult.connectionId } as never,
       })
 
-      if (connection.error) throw new Error("Failed to save connection")
-
-      return connection.data
-    },
-    onMutate: ({ integrationId }) => {
-      setConnectingId(integrationId)
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get", "/v1/in/connections"] })
       toast.success("Connection added successfully")
-    },
-    onError: (error) => {
+      onSuccess?.()
+    } catch (error) {
       if (error instanceof AuthError && error.type === "window_closed") return
       toast.error(extractErrorMessage(error, "Connection failed. Please try again."))
-    },
-    onSettled: () => {
+    } finally {
       setConnectingId(null)
-    },
-  })
-
-  function connect(
-    integrationId: string,
-    optionsOrOnSuccess?: ConnectOptions & { onSuccess?: () => void } | (() => void),
-  ) {
-    let options: ConnectOptions | undefined
-    let onSuccess: (() => void) | undefined
-
-    if (typeof optionsOrOnSuccess === "function") {
-      onSuccess = optionsOrOnSuccess
-    } else if (optionsOrOnSuccess) {
-      const { onSuccess: onSuccessFn, ...rest } = optionsOrOnSuccess
-      onSuccess = onSuccessFn
-      if (Object.keys(rest).length > 0) options = rest
     }
-
-    mutation.mutate({ integrationId, options }, { onSuccess })
   }
 
   return { connect, connectingId }

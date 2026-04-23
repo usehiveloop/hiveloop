@@ -110,6 +110,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.replace("/auth")
   }, [router])
 
+  // `/api/auth/impersonate` and `/api/auth/stop-impersonate` are local Next.js
+  // route handlers (see app/api/auth/…/route.ts). They mutate session cookies
+  // before/after proxying to the backend, so they live outside the OpenAPI
+  // schema and cannot go through the typed `$api` client. Raw fetch is the
+  // correct path here.
   const impersonate = useCallback(async (userId: string) => {
     const response = await fetch("/api/auth/impersonate", {
       method: "POST",

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
-import { api } from "@/lib/api/client"
+import { $api } from "@/lib/api/hooks"
 import { useAuth } from "@/lib/auth/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,30 +24,27 @@ interface CreateWorkspaceDialogProps {
 export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDialogProps) {
   const { addOrg } = useAuth()
   const [name, setName] = useState("")
-  const [loading, setLoading] = useState(false)
+  const createOrg = $api.useMutation("post", "/v1/orgs")
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
     if (!name.trim()) return
 
-    setLoading(true)
-
-    const response = await api.POST("/v1/orgs", {
-      body: { name: name.trim() } as never,
-    })
-
-    if (response.error) {
-      toast.error("Failed to create workspace")
-      setLoading(false)
-      return
-    }
-
-    const created = response.data as { id: string; name: string }
-    addOrg({ id: created.id, name: created.name, role: "admin" })
-    toast.success(`Workspace "${created.name}" created`)
-    setName("")
-    setLoading(false)
-    onOpenChange(false)
+    createOrg.mutate(
+      { body: { name: name.trim() } as never },
+      {
+        onSuccess: (data) => {
+          const created = data as { id: string; name: string }
+          addOrg({ id: created.id, name: created.name, role: "admin" })
+          toast.success(`Workspace "${created.name}" created`)
+          setName("")
+          onOpenChange(false)
+        },
+        onError: () => {
+          toast.error("Failed to create workspace")
+        },
+      },
+    )
   }
 
   return (
@@ -80,7 +77,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
           </div>
 
           <DialogFooter>
-            <Button type="submit" loading={loading}>
+            <Button type="submit" loading={createOrg.isPending}>
               Create workspace
             </Button>
           </DialogFooter>

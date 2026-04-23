@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ChoiceCard } from "./create-agent/choice-card"
 import { $api } from "@/lib/api/hooks"
-import { api } from "@/lib/api/client"
 import { useQueryClient, useQueries } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { extractErrorMessage } from "@/lib/api/error"
@@ -363,18 +362,14 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
   }, [resources])
 
   const reachabilityQueries = useQueries({
-    queries: statePairs.map(({ connId, resourceType }) => ({
-      queryKey: ["resources-reachability", connId, resourceType],
-      queryFn: async () => {
-        const res = await api.GET("/v1/in/connections/{id}/resources/{type}", {
-          params: { path: { id: connId, type: resourceType } },
-        })
-        if (res.error) throw res.error
-        return res.data
-      },
-      enabled: open,
-      staleTime: 60_000,
-    })),
+    queries: statePairs.map(({ connId, resourceType }) =>
+      $api.queryOptions(
+        "get",
+        "/v1/in/connections/{id}/resources/{type}",
+        { params: { path: { id: connId, type: resourceType } } },
+        { enabled: open, staleTime: 60_000 },
+      ),
+    ),
   })
 
   const reachableSets = useMemo(() => {
