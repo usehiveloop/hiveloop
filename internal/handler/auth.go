@@ -37,6 +37,9 @@ type AuthHandler struct {
 
 	loginMu       sync.Mutex
 	loginAttempts map[string]*loginAttempt // keyed by email
+
+	otpVerifyMu       sync.Mutex
+	otpVerifyAttempts map[string]*loginAttempt // keyed by email
 }
 
 func NewAuthHandler(db *gorm.DB, privateKey *rsa.PrivateKey, signingKey []byte, issuer, audience string, accessTTL, refreshTTL time.Duration, emailSender email.Sender, frontendURL string, autoConfirmEmail bool) *AuthHandler {
@@ -50,8 +53,9 @@ func NewAuthHandler(db *gorm.DB, privateKey *rsa.PrivateKey, signingKey []byte, 
 		refreshTTL:       refreshTTL,
 		emailSender:      emailSender,
 		frontendURL:      frontendURL,
-		autoConfirmEmail: autoConfirmEmail,
-		loginAttempts:    make(map[string]*loginAttempt),
+		autoConfirmEmail:  autoConfirmEmail,
+		loginAttempts:     make(map[string]*loginAttempt),
+		otpVerifyAttempts: make(map[string]*loginAttempt),
 	}
 
 	return h
@@ -95,14 +99,22 @@ func (h *AuthHandler) StartCleanup(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				h.loginMu.Lock()
 				cutoff := time.Now().Add(-15 * time.Minute)
+				h.loginMu.Lock()
 				for email, a := range h.loginAttempts {
 					if a.firstAt.Before(cutoff) {
 						delete(h.loginAttempts, email)
 					}
 				}
 				h.loginMu.Unlock()
+
+				h.otpVerifyMu.Lock()
+				for email, a := range h.otpVerifyAttempts {
+					if a.firstAt.Before(cutoff) {
+						delete(h.otpVerifyAttempts, email)
+					}
+				}
+				h.otpVerifyMu.Unlock()
 			}
 		}
 	})
