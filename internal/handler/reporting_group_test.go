@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"encoding/json"
-	"net/http"
 	"testing"
 	"time"
 )
