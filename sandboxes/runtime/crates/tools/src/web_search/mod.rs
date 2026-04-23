@@ -37,8 +37,7 @@ impl WebSearchTool {
     /// Create a new `WebSearchTool` with the given endpoint URL.
     pub fn new(endpoint: String) -> Self {
         let year = chrono::Utc::now().format("%Y").to_string();
-        let description =
-            include_str!("../instructions/web_search.txt").replace("{{year}}", &year);
+        let description = include_str!("../instructions/web_search.txt").replace("{{year}}", &year);
         Self {
             client: reqwest::Client::builder()
                 .timeout(Duration::from_secs(15))

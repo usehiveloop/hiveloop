@@ -142,8 +142,7 @@ fn test_glob_execute_populates_hint_when_truncated() {
         fs::write(dir_path.join(format!("f{i:05}.rs")), "x").expect("write");
     }
 
-    let result =
-        execute_glob("**/*.rs", dir_path.to_str().unwrap()).expect("glob should succeed");
+    let result = execute_glob("**/*.rs", dir_path.to_str().unwrap()).expect("glob should succeed");
 
     assert!(result.truncated, "should be truncated at MAX_RESULTS");
     let hint = result.hint.expect("hint should be present when truncated");

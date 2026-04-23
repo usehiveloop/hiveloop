@@ -64,8 +64,7 @@ async fn test_serper_response_parsing() {
     let args = serde_json::json!({ "query": "rust async" });
     let result = tool.execute(args).await.expect("execute should succeed");
 
-    let results: Vec<SearchResult> =
-        serde_json::from_str(&result).expect("should parse results");
+    let results: Vec<SearchResult> = serde_json::from_str(&result).expect("should parse results");
 
     // Knowledge graph + 2 organic = 3 results
     assert_eq!(results.len(), 3);
@@ -104,8 +103,7 @@ async fn test_post_body_contains_query() {
     let args = serde_json::json!({ "query": "hello world" });
     let result = tool.execute(args).await.expect("execute should succeed");
 
-    let results: Vec<SearchResult> =
-        serde_json::from_str(&result).expect("should parse results");
+    let results: Vec<SearchResult> = serde_json::from_str(&result).expect("should parse results");
     assert!(results.is_empty());
 }
 

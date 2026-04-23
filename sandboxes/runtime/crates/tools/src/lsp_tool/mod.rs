@@ -63,11 +63,15 @@ impl ToolExecutor for LspTool {
             .map_err(|e| e.to_string())?;
 
         match args.operation {
-            LspOperation::GoToDefinition => ops::go_to_definition(&self.manager, &args, &file).await,
+            LspOperation::GoToDefinition => {
+                ops::go_to_definition(&self.manager, &args, &file).await
+            }
             LspOperation::FindReferences => ops::find_references(&self.manager, &args, &file).await,
             LspOperation::Hover => ops::hover(&self.manager, &args, &file).await,
             LspOperation::DocumentSymbol => ops::document_symbol(&self.manager, &file).await,
-            LspOperation::WorkspaceSymbol => ops::workspace_symbol(&self.manager, &args, &file).await,
+            LspOperation::WorkspaceSymbol => {
+                ops::workspace_symbol(&self.manager, &args, &file).await
+            }
             LspOperation::GoToImplementation => {
                 ops::go_to_implementation(&self.manager, &args, &file).await
             }

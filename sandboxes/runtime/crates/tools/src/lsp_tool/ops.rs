@@ -88,10 +88,7 @@ pub(super) async fn hover(
     }
 }
 
-pub(super) async fn document_symbol(
-    manager: &LspManager,
-    file: &Path,
-) -> Result<String, String> {
+pub(super) async fn document_symbol(manager: &LspManager, file: &Path) -> Result<String, String> {
     let symbols = manager
         .document_symbols(file)
         .await
@@ -101,8 +98,7 @@ pub(super) async fn document_symbol(
         return Ok("No symbols found in document.".into());
     }
 
-    let results: Vec<SymbolResult> =
-        symbols.into_iter().map(convert_document_symbol).collect();
+    let results: Vec<SymbolResult> = symbols.into_iter().map(convert_document_symbol).collect();
 
     serde_json::to_string_pretty(&results).map_err(|e| e.to_string())
 }
@@ -260,14 +256,8 @@ pub(super) async fn outgoing_calls(
     serde_json::to_string_pretty(&results).map_err(|e| e.to_string())
 }
 
-pub(super) async fn diagnostics(
-    manager: &LspManager,
-    file: &Path,
-) -> Result<String, String> {
-    let diags = manager
-        .diagnostics(file)
-        .await
-        .map_err(|e| e.to_string())?;
+pub(super) async fn diagnostics(manager: &LspManager, file: &Path) -> Result<String, String> {
+    let diags = manager.diagnostics(file).await.map_err(|e| e.to_string())?;
 
     if diags.is_empty() {
         return Ok("No diagnostics found.".into());
