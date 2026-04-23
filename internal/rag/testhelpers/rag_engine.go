@@ -253,6 +253,11 @@ func applyDefaults(cfg RagEngineConfig) RagEngineConfig {
 	}
 	if cfg.BootTimeout == 0 {
 		cfg.BootTimeout = 30 * time.Second
+		if v := os.Getenv("RAG_ENGINE_BOOT_TIMEOUT"); v != "" {
+			if d, err := time.ParseDuration(v); err == nil && d > 0 {
+				cfg.BootTimeout = d
+			}
+		}
 	}
 	if cfg.ShutdownTimeout == 0 {
 		cfg.ShutdownTimeout = 10 * time.Second
