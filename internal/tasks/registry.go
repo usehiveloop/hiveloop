@@ -110,6 +110,10 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		}
 		mux.HandleFunc(TypeRouterDispatch, routerHandler.Handle)
 
+		// Cron trigger dispatch (scheduled agent conversations).
+		mux.HandleFunc(TypeCronTriggerDispatch,
+			NewCronTriggerDispatchHandler(routerDispatcher, deps.Enqueuer).Handle)
+
 		// Agent conversation creation (sandbox provisioning + Bridge push + first message).
 		mux.HandleFunc(TypeAgentConversationCreate,
 			NewAgentConversationCreateHandler(deps.DB, deps.Orchestrator, deps.Pusher).Handle)
@@ -118,6 +122,11 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		mux.HandleFunc(TypeSubscriptionDispatch,
 			NewSubscriptionDispatchHandler(deps.DB, deps.Orchestrator, catalog.Global()).Handle)
 	}
+
+	// Cron trigger poller (runs even without orchestrator — the dispatch tasks
+	// will fail gracefully if sandbox isn't configured).
+	mux.HandleFunc(TypeCronTriggerPoll,
+		NewCronTriggerPollHandler(deps.DB, deps.Enqueuer).Handle)
 
 	return mux
 }

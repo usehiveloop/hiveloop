@@ -22,6 +22,11 @@ func PeriodicTaskConfigs(cfg *config.Config) []*asynq.PeriodicTaskConfig {
 			Task:     asynq.NewTask(TypeStreamCleanup, nil),
 			Opts:     []asynq.Option{asynq.Queue(QueuePeriodic), asynq.MaxRetry(1), asynq.Timeout(2 * time.Minute)},
 		},
+		{
+			Cronspec: "@every 30s",
+			Task:     asynq.NewTask(TypeCronTriggerPoll, nil),
+			Opts:     []asynq.Option{asynq.Queue(QueuePeriodic), asynq.MaxRetry(1), asynq.Timeout(25 * time.Second)},
+		},
 	}
 
 	// Sandbox tasks only if orchestrator is configured

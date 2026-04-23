@@ -17,13 +17,14 @@ import (
 // PayloadJSON is the raw webhook body as bytes (not parsed) so the worker can
 // log/replay it verbatim. The dispatcher decodes it on demand.
 type TriggerDispatchPayload struct {
-	Provider     string    `json:"provider"`
-	EventType    string    `json:"event_type"`
-	EventAction  string    `json:"event_action"`
-	DeliveryID   string    `json:"delivery_id"`
-	OrgID        uuid.UUID `json:"org_id"`
-	ConnectionID uuid.UUID `json:"connection_id"`
-	PayloadJSON  []byte    `json:"payload"`
+	Provider        string     `json:"provider"`
+	EventType       string     `json:"event_type"`
+	EventAction     string     `json:"event_action"`
+	DeliveryID      string     `json:"delivery_id"`
+	OrgID           uuid.UUID  `json:"org_id"`
+	ConnectionID    uuid.UUID  `json:"connection_id"`
+	PayloadJSON     []byte     `json:"payload"`
+	RouterTriggerID *uuid.UUID `json:"router_trigger_id,omitempty"` // set to bypass trigger matching (http/cron triggers)
 }
 
 // NewTriggerDispatchTask creates a task that runs the dispatcher for a webhook.
@@ -163,5 +164,35 @@ func NewSubscriptionDispatchTask(payload SubscriptionDispatchPayload) (*asynq.Ta
 		asynq.MaxRetry(3),
 		asynq.Timeout(2*time.Minute),
 		asynq.Unique(2*time.Minute),
+	), nil
+}
+
+// ---------------------------------------------------------------------------
+// cron_trigger:dispatch
+// ---------------------------------------------------------------------------
+
+// CronTriggerDispatchPayload carries the trigger ID and scheduled fire time
+// for a cron trigger that is due. The handler loads the trigger from the DB,
+// evaluates its routing rules, and enqueues agent conversation creation.
+type CronTriggerDispatchPayload struct {
+	RouterTriggerID uuid.UUID `json:"router_trigger_id"`
+	OrgID           uuid.UUID `json:"org_id"`
+	ScheduledAt     time.Time `json:"scheduled_at"` // the intended fire time (NextRunAt before advancement)
+}
+
+// NewCronTriggerDispatchTask creates a task that dispatches a single cron trigger.
+// Timeout is 5 minutes to accommodate triage LLM calls. MaxRetry is 1 —
+// duplicate fires are worse than a missed one.
+func NewCronTriggerDispatchTask(payload CronTriggerDispatchPayload) (*asynq.Task, error) {
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshal cron trigger dispatch payload: %w", err)
+	}
+	return asynq.NewTask(
+		TypeCronTriggerDispatch,
+		encoded,
+		asynq.Queue(QueueCritical),
+		asynq.MaxRetry(1),
+		asynq.Timeout(5*time.Minute),
 	), nil
 }

@@ -24,6 +24,20 @@ func NewGormRouterTriggerStore(db *gorm.DB, actionsCatalog *catalog.Catalog) *Go
 	return &GormRouterTriggerStore{db: db, catalog: actionsCatalog}
 }
 
+func (store *GormRouterTriggerStore) FindTriggerByID(ctx context.Context, triggerID uuid.UUID) (*RouterTriggerWithRouter, error) {
+	var trigger model.RouterTrigger
+	if err := store.db.WithContext(ctx).Where("id = ? AND enabled = TRUE", triggerID).First(&trigger).Error; err != nil {
+		return nil, fmt.Errorf("finding trigger by ID: %w", err)
+	}
+
+	var router model.Router
+	if err := store.db.WithContext(ctx).Where("id = ?", trigger.RouterID).First(&router).Error; err != nil {
+		return nil, fmt.Errorf("loading router for trigger: %w", err)
+	}
+
+	return &RouterTriggerWithRouter{Trigger: trigger, Router: router}, nil
+}
+
 func (store *GormRouterTriggerStore) FindMatchingTriggers(ctx context.Context, orgID, connectionID uuid.UUID, triggerKeys []string) ([]RouterTriggerWithRouter, error) {
 	keys := pq.StringArray(triggerKeys)
 	var triggers []model.RouterTrigger
