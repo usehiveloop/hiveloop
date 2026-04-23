@@ -4,14 +4,10 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/rag"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
 
@@ -158,6 +154,15 @@ func TestAutoMigrate_CreatesEveryExpectedIndex(t *testing.T) {
 	checkContains("idx_rag_index_attempt_heartbeat", "'in_progress'")
 }
 
+type fkRow struct {
+	ConstraintName string `gorm:"column:constraint_name"`
+	TableName      string `gorm:"column:table_name"`
+	ColumnName     string `gorm:"column:column_name"`
+	ForeignTable   string `gorm:"column:foreign_table"`
+	ForeignColumn  string `gorm:"column:foreign_column"`
+	DeleteRule     string `gorm:"column:delete_rule"`
+}
+
 func TestAutoMigrate_AllFKConstraintsInPlace(t *testing.T) {
 	db := freshMigrate(t)
 
@@ -192,15 +197,15 @@ func TestAutoMigrate_AllFKConstraintsInPlace(t *testing.T) {
 
 	expected := map[key]val{
 		// Document + hierarchy
-		{"rag_documents", "org_id"}:                              {"orgs", "CASCADE"},
-		{"rag_documents", "parent_hierarchy_node_id"}:            {"rag_hierarchy_nodes", "SET NULL"},
-		{"rag_hierarchy_nodes", "org_id"}:                        {"orgs", "CASCADE"},
-		{"rag_hierarchy_nodes", "document_id"}:                   {"rag_documents", "SET NULL"},
-		{"rag_hierarchy_nodes", "parent_id"}:                     {"rag_hierarchy_nodes", "SET NULL"},
-		{"rag_document_by_sources", "document_id"}:               {"rag_documents", "CASCADE"},
-		{"rag_document_by_sources", "rag_source_id"}:             {"rag_sources", "CASCADE"},
-		{"rag_hierarchy_node_by_sources", "hierarchy_node_id"}:   {"rag_hierarchy_nodes", "CASCADE"},
-		{"rag_hierarchy_node_by_sources", "rag_source_id"}:       {"rag_sources", "CASCADE"},
+		{"rag_documents", "org_id"}:                            {"orgs", "CASCADE"},
+		{"rag_documents", "parent_hierarchy_node_id"}:          {"rag_hierarchy_nodes", "SET NULL"},
+		{"rag_hierarchy_nodes", "org_id"}:                      {"orgs", "CASCADE"},
+		{"rag_hierarchy_nodes", "document_id"}:                 {"rag_documents", "SET NULL"},
+		{"rag_hierarchy_nodes", "parent_id"}:                   {"rag_hierarchy_nodes", "SET NULL"},
+		{"rag_document_by_sources", "document_id"}:             {"rag_documents", "CASCADE"},
+		{"rag_document_by_sources", "rag_source_id"}:           {"rag_sources", "CASCADE"},
+		{"rag_hierarchy_node_by_sources", "hierarchy_node_id"}: {"rag_hierarchy_nodes", "CASCADE"},
+		{"rag_hierarchy_node_by_sources", "rag_source_id"}:     {"rag_sources", "CASCADE"},
 		// Index attempts + sync records
 		{"rag_index_attempts", "org_id"}:                 {"orgs", "CASCADE"},
 		{"rag_index_attempts", "rag_source_id"}:          {"rag_sources", "CASCADE"},
@@ -220,9 +225,9 @@ func TestAutoMigrate_AllFKConstraintsInPlace(t *testing.T) {
 		{"rag_user_external_user_groups", "rag_source_id"}:   {"rag_sources", "CASCADE"},
 		{"rag_public_external_user_groups", "rag_source_id"}: {"rag_sources", "CASCADE"},
 		// External identity
-		{"rag_external_identities", "org_id"}:         {"orgs", "CASCADE"},
-		{"rag_external_identities", "user_id"}:        {"users", "CASCADE"},
-		{"rag_external_identities", "rag_source_id"}:  {"rag_sources", "CASCADE"},
+		{"rag_external_identities", "org_id"}:        {"orgs", "CASCADE"},
+		{"rag_external_identities", "user_id"}:       {"users", "CASCADE"},
+		{"rag_external_identities", "rag_source_id"}: {"rag_sources", "CASCADE"},
 		// RAG sources
 		{"rag_sources", "org_id"}:           {"orgs", "CASCADE"},
 		{"rag_sources", "in_connection_id"}: {"in_connections", "CASCADE"},
@@ -271,4 +276,3 @@ func TestAutoMigrate_Idempotent(t *testing.T) {
 		t.Fatalf("idempotence broken: index count changed %d → %d", before, after)
 	}
 }
-

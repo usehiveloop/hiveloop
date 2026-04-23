@@ -1,7 +1,6 @@
 package rag_test
 
 import (
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -10,7 +9,6 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/rag"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
@@ -218,4 +216,3 @@ func TestAutoMigrate_SeedsEmbeddingRegistry(t *testing.T) {
 		}
 	}
 }
-

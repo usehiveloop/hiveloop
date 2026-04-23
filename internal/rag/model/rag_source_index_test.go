@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 
 	coremodel "github.com/usehiveloop/hiveloop/internal/model"

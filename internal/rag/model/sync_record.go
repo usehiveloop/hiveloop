@@ -51,7 +51,7 @@ type RAGSyncRecord struct {
 	// SyncStartTime / SyncEndTime — wall-clock window.
 	// Onyx models.py:2459-2462. End is nullable for still-running
 	// syncs.
-	SyncStartTime time.Time  `gorm:"not null"`
+	SyncStartTime time.Time `gorm:"not null"`
 	SyncEndTime   *time.Time
 }
 

@@ -12,12 +12,12 @@ package model
 type RAGConnectionStatus string
 
 const (
-	RAGConnectionStatusScheduled        RAGConnectionStatus = "SCHEDULED"
-	RAGConnectionStatusInitialIndexing  RAGConnectionStatus = "INITIAL_INDEXING"
-	RAGConnectionStatusActive           RAGConnectionStatus = "ACTIVE"
-	RAGConnectionStatusPaused           RAGConnectionStatus = "PAUSED"
-	RAGConnectionStatusDeleting         RAGConnectionStatus = "DELETING"
-	RAGConnectionStatusInvalid          RAGConnectionStatus = "INVALID"
+	RAGConnectionStatusScheduled       RAGConnectionStatus = "SCHEDULED"
+	RAGConnectionStatusInitialIndexing RAGConnectionStatus = "INITIAL_INDEXING"
+	RAGConnectionStatusActive          RAGConnectionStatus = "ACTIVE"
+	RAGConnectionStatusPaused          RAGConnectionStatus = "PAUSED"
+	RAGConnectionStatusDeleting        RAGConnectionStatus = "DELETING"
+	RAGConnectionStatusInvalid         RAGConnectionStatus = "INVALID"
 )
 
 // ActiveStatuses — port of Onyx `active_statuses` classmethod at

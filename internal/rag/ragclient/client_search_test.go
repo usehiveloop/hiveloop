@@ -2,7 +2,6 @@ package ragclient
 
 import (
 	"context"
-	"errors"
 	"net"
 	"os"
 	"os/exec"
@@ -17,9 +16,8 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-
-	"github.com/usehiveloop/hiveloop/internal/rag/ragpb"
 )
+
 func TestAuthInterceptor_SetsBearerHeader(t *testing.T) {
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

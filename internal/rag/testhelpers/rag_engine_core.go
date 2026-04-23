@@ -35,8 +35,6 @@ import (
 	"testing"
 	"time"
 
-
-
 	"github.com/usehiveloop/hiveloop/internal/rag/ragclient"
 )
 

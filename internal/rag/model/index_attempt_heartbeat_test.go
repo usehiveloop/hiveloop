@@ -164,4 +164,3 @@ func TestRAGIndexAttemptError_AttemptCascadeDelete(t *testing.T) {
 		t.Fatalf("expected cascade to delete error row; still %d left (id=%s)", after, errRow.ID)
 	}
 }
-

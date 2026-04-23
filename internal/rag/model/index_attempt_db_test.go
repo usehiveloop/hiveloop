@@ -1,17 +1,6 @@
 package model_test
 
-import (
-	"context"
-	"encoding/json"
-	"strings"
-	"testing"
-	"time"
-
-	"gorm.io/gorm"
-
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
-	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
-)
+import ()
 
 // ---------------------------------------------------------------------------
 // Pure-logic tests — no DB, no mocks (nothing to mock).

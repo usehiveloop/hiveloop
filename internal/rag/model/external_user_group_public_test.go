@@ -1,19 +1,6 @@
 package model_test
 
-import (
-	"sort"
-	"strings"
-	"testing"
-	"time"
-
-	"github.com/google/uuid"
-	"github.com/lib/pq"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
-
-	"github.com/usehiveloop/hiveloop/internal/rag/model"
-	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
-)
+import ()
 
 // setupExternalGroupSchema opens the test DB (which migrates the full
 // RAG schema) plus per-test org / user / connection / source fixtures

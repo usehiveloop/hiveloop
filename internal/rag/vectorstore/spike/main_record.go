@@ -45,6 +45,7 @@ const (
 	tableName    = "rag_spike"
 	sampleRows   = 100
 )
+
 func buildSampleRecord(schema *arrow.Schema, count int) (arrow.Record, error) {
 	pool := memory.NewGoAllocator()
 

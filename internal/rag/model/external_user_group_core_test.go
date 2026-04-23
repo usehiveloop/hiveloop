@@ -1,7 +1,6 @@
 package model_test
 
 import (
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -9,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 
 	"github.com/usehiveloop/hiveloop/internal/rag/model"
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"

@@ -1,25 +1,16 @@
 package model_test
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
-	"gorm.io/gorm"
 
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
 
-// bootstrapDocs opens a test DB with the full RAG schema migrated.
-// testhelpers.ConnectTestDB calls rag.AutoMigrate internally, which
-// creates every rag_* table, index, constraint, and FK this package
-// needs.
 func TestRAGHierarchyNode_UniqueRawIDSource(t *testing.T) {
 	db := bootstrapDocs(t)
 	org := testhelpers.NewTestOrg(t, db)
@@ -175,4 +166,3 @@ func TestDocumentSource_IsValid(t *testing.T) {
 		}
 	}
 }
-

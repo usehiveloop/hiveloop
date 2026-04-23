@@ -8,29 +8,29 @@
 // HOW TO RUN
 // ==========
 //
-// 1. Start infra (Postgres + Redis + MinIO with the hiveloop-rag-test
-//    bucket auto-created):
+//  1. Start infra (Postgres + Redis + MinIO with the hiveloop-rag-test
+//     bucket auto-created):
 //
-//        make test-services-up
+//     make test-services-up
 //
 // 2. Run the suite:
 //
-//        go test -race -p 1 -count=1 ./internal/rag -run TestE2E_
+//	    go test -race -p 1 -count=1 ./internal/rag -run TestE2E_
 //
-//    If the Rust rag-engine built from this worktree still has handlers
-//    returning UNIMPLEMENTED, the tests FAIL with `rpc error: code =
-//    Unimplemented` — that is the intended signal. Assertions are
-//    real, there are no skips; shipping a handler flips the matching
-//    test green.
+//	If the Rust rag-engine built from this worktree still has handlers
+//	returning UNIMPLEMENTED, the tests FAIL with `rpc error: code =
+//	Unimplemented` — that is the intended signal. Assertions are
+//	real, there are no skips; shipping a handler flips the matching
+//	test green.
 //
 // 3. Run against a sibling worktree that ships a newer rag-engine:
 //
-//        RAG_ENGINE_BRANCH=/Users/you/code/hiveloop-rag-engine \
-//          go test -race -p 1 -count=1 ./internal/rag -run TestE2E_
+//	    RAG_ENGINE_BRANCH=/Users/you/code/hiveloop-rag-engine \
+//	      go test -race -p 1 -count=1 ./internal/rag -run TestE2E_
 //
-//    RAG_ENGINE_BRANCH may be an absolute path to:
-//        - a worktree root (containing services/rag-engine/Cargo.toml)
-//        - a pre-built rag-engine-server binary
+//	RAG_ENGINE_BRANCH may be an absolute path to:
+//	    - a worktree root (containing services/rag-engine/Cargo.toml)
+//	    - a pre-built rag-engine-server binary
 //
 // NO MOCKS. NO SKIPS. Per TESTING.md Hard Rules #1, #2, #7.
 package rag_test
@@ -39,7 +39,6 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strings"
 	"testing"
 	"time"
 
@@ -92,10 +91,10 @@ func startForTest(t *testing.T) (*testhelpers.RagEngineInstance, string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if _, err := inst.Client.CreateDataset(ctx, &ragpb.CreateDatasetRequest{
-		DatasetName:         ds,
-		VectorDim:           testEmbeddingDim,
-		EmbeddingPrecision:  "float32",
-		IdempotencyKey:      "e2e-" + t.Name(),
+		DatasetName:        ds,
+		VectorDim:          testEmbeddingDim,
+		EmbeddingPrecision: "float32",
+		IdempotencyKey:     "e2e-" + t.Name(),
 	}); err != nil {
 		// The 2J-standalone state is CreateDataset → Unimplemented. The
 		// caller branches on that; we surface the error verbatim.

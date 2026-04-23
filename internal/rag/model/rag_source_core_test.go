@@ -2,15 +2,10 @@ package model_test
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	"gorm.io/gorm"
 
-	coremodel "github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/rag"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
