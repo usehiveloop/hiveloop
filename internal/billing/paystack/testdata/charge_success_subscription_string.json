@@ -1,0 +1,33 @@
+{
+  "event": "charge.success",
+  "data": {
+    "id": 302961,
+    "domain": "live",
+    "status": "success",
+    "reference": "qTPrJoy9Bx",
+    "amount": 5850000,
+    "paid_at": "2026-04-25T21:10:19.000Z",
+    "created_at": "2026-04-25T21:09:56.000Z",
+    "channel": "card",
+    "currency": "NGN",
+    "metadata": 0,
+    "customer": {
+      "id": 902735,
+      "email": "customer@email.com",
+      "customer_code": "CUS_1psu1flkeh1dzm8",
+      "metadata": {
+        "org_id": "ORG_ID_PLACEHOLDER",
+        "org_name": "Test Org"
+      }
+    },
+    "plan": "PLN_pro_ngn_m",
+    "plan_object": {
+      "id": 6743,
+      "name": "Pro (Monthly)",
+      "plan_code": "PLN_pro_ngn_m",
+      "amount": 5850000,
+      "interval": "monthly",
+      "currency": "NGN"
+    }
+  }
+}
