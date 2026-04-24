@@ -39,7 +39,7 @@ type Plan = {
 const PLANS: Plan[] = [
   {
     name: "Starter",
-    tagline: "For solo builders exploring their first agent.",
+    tagline: "For solo builders.",
     monthlyUSD: 9,
     annualUSD: 86,
     credits: 9_000,
@@ -55,7 +55,7 @@ const PLANS: Plan[] = [
   },
   {
     name: "Pro",
-    tagline: "For teams shipping real agents into production.",
+    tagline: "For production teams.",
     monthlyUSD: 39,
     annualUSD: 374,
     credits: 39_000,
@@ -72,7 +72,7 @@ const PLANS: Plan[] = [
   },
   {
     name: "Business",
-    tagline: "For organisations running fleets of agents.",
+    tagline: "For fleets of agents.",
     monthlyUSD: 99,
     annualUSD: 950,
     credits: 99_000,
@@ -80,7 +80,7 @@ const PLANS: Plan[] = [
     heavyRuns: 149,
     features: [
       "Everything in Pro",
-      "All sandbox sizes incl. XL & XXL",
+      "All sandbox sizes",
       "SSO (Google, Okta)",
       "Unlimited audit log",
       "Dedicated Slack channel",
@@ -395,7 +395,7 @@ function PlanCard({
         >
           {plan.name}
         </p>
-        <p className="text-sm text-muted-foreground leading-relaxed min-h-[2.5em]">{plan.tagline}</p>
+        <p className="text-sm text-muted-foreground leading-snug whitespace-nowrap">{plan.tagline}</p>
       </div>
 
       {/* PRICE */}
