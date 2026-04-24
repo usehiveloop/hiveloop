@@ -76,7 +76,7 @@ fn test_build_chain_history_with_journal_and_checkpoint() {
         Message::assistant("Sure, I'll continue."),
     ];
 
-    let history = build_chain_history(&entries, "Checkpoint text here", 0, &carry_forward);
+    let history = build_chain_history(&entries, None, "Checkpoint text here", 0, &carry_forward);
 
     // journal_user + journal_ack + checkpoint_user + checkpoint_ack + 2 carry-forward
     assert_eq!(history.len(), 6);
@@ -87,6 +87,31 @@ fn test_build_chain_history_no_journal() {
     let entries: Vec<JournalEntry> = vec![];
     let carry_forward = vec![Message::user("Continue"), Message::assistant("OK")];
 
-    let history = build_chain_history(&entries, "Checkpoint text", 0, &carry_forward);
+    let history = build_chain_history(&entries, None, "Checkpoint text", 0, &carry_forward);
     assert_eq!(history.len(), 4);
+}
+
+#[test]
+fn test_build_chain_history_with_todos_snapshot() {
+    let entries: Vec<JournalEntry> = vec![];
+    let carry_forward = vec![Message::user("Continue"), Message::assistant("OK")];
+
+    let todos = "1. [in_progress] (high) Implement controller\n2. [pending] (high) Write tests\n";
+    let history = build_chain_history(&entries, Some(todos), "Checkpoint text", 0, &carry_forward);
+
+    // No journal block. Todos block (user + assistant). Checkpoint block
+    // (user + assistant). 2 carry-forward. Total = 6.
+    assert_eq!(history.len(), 6);
+    // Second message is the assistant ack for the todos block.
+    let first_user = &history[0];
+    if let Message::User { content } = first_user {
+        let text = match content.first() {
+            rig::message::UserContent::Text(t) => t.text.clone(),
+            _ => String::new(),
+        };
+        assert!(text.contains("Todo List Snapshot"), "got: {text}");
+        assert!(text.contains("Implement controller"), "got: {text}");
+    } else {
+        panic!("expected first message to be a user todos snapshot");
+    }
 }

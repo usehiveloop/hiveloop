@@ -14,6 +14,7 @@ pub(super) async fn build_layout_text(
     standalone_agent: bool,
     turn_count: usize,
     ping_state: &Option<tools::ping_me_back::PingState>,
+    tool_executors: &std::collections::HashMap<String, std::sync::Arc<dyn tools::ToolExecutor>>,
     system_reminder: &str,
     user_text: &str,
     system_reminder_refresh_turns: Option<u32>,
@@ -35,6 +36,7 @@ pub(super) async fn build_layout_text(
         turn_count,
         per_message_reminder,
         ping_state,
+        tool_executors,
     )
     .await;
 
@@ -97,6 +99,7 @@ pub(super) async fn build_volatile_reminder(
     turn_count: usize,
     per_message_reminder: Option<String>,
     ping_state: &Option<tools::ping_me_back::PingState>,
+    tool_executors: &std::collections::HashMap<String, std::sync::Arc<dyn tools::ToolExecutor>>,
 ) -> String {
     let mut volatile_reminder = String::new();
     let append_volatile = |acc: &mut String, block: String| {
@@ -140,6 +143,29 @@ pub(super) async fn build_volatile_reminder(
         append_volatile(&mut volatile_reminder, pmr);
     }
 
+    // Live todos block — fetched from the registered todo tool every turn so
+    // the model always sees the current list, not a conversation-start
+    // snapshot.
+    match current_todos(tool_executors).await {
+        Some(todos) if !todos.is_empty() => {
+            tracing::info!(todo_count = todos.len(), "volatile_todos_injected");
+            let todos_section = crate::system_reminder::SystemReminder::new()
+                .with_todos(&todos)
+                .build();
+            append_volatile(&mut volatile_reminder, todos_section);
+        }
+        Some(_) => {
+            tracing::debug!("volatile_todos_empty");
+        }
+        None => {
+            tracing::warn!(
+                has_todoread = tool_executors.contains_key("todoread"),
+                has_todowrite = tool_executors.contains_key("todowrite"),
+                "volatile_todos_none — tool downcast failed"
+            );
+        }
+    }
+
     if let Some(ref ps) = ping_state {
         let pings = ps.list().await;
         let ping_reminder = tools::ping_me_back::format_pending_pings_reminder(&pings);
@@ -152,4 +178,46 @@ pub(super) async fn build_volatile_reminder(
     }
 
     volatile_reminder
+}
+
+/// Fetch the current live todo list from the registered `todoread` /
+/// `todowrite` tool (whichever is in the registry — both share the same
+/// `TodoState`). Returns `None` when neither tool is registered, and
+/// `Some(vec![])` when the tool is present but the list is empty.
+///
+/// The downcast pattern mirrors `supervisor::helpers::get_todos_from_registry`
+/// but lives here so `build_volatile_reminder` doesn't need to reach into
+/// the supervisor module.
+async fn current_todos(
+    tool_executors: &std::collections::HashMap<String, std::sync::Arc<dyn tools::ToolExecutor>>,
+) -> Option<Vec<crate::system_reminder::TodoItem>> {
+    // Prefer `todoread` (read-only intent) but fall back to `todowrite` —
+    // both hold the same shared `TodoState` instance.
+    let state = tool_executors
+        .get("todoread")
+        .and_then(|t| {
+            t.as_ref()
+                .as_any()
+                .downcast_ref::<tools::todo::TodoReadTool>()
+                .map(|tool| tool.state().clone())
+        })
+        .or_else(|| {
+            tool_executors.get("todowrite").and_then(|t| {
+                t.as_ref()
+                    .as_any()
+                    .downcast_ref::<tools::todo::TodoWriteTool>()
+                    .map(|tool| tool.state().clone())
+            })
+        })?;
+    let todos = state.get().await;
+    Some(
+        todos
+            .into_iter()
+            .map(|t| crate::system_reminder::TodoItem {
+                content: t.content,
+                status: t.status,
+                priority: t.priority,
+            })
+            .collect(),
+    )
 }

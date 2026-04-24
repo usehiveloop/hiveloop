@@ -202,57 +202,6 @@ pub(super) async fn restore_agent_sessions(
     }
 }
 
-/// Helper function to get todos from the tool registry.
-/// Looks for the TodoReadTool and extracts its state.
-pub(super) async fn get_todos_from_registry(
-    tool_executors: &std::collections::HashMap<String, Arc<dyn tools::ToolExecutor>>,
-) -> Option<Vec<crate::system_reminder::TodoItem>> {
-    // Try to get the todoread tool to access its state
-    if let Some(todo_tool) = tool_executors.get("todoread") {
-        // Downcast to TodoReadTool to get the state
-        if let Some(todo_read_tool) = todo_tool
-            .as_ref()
-            .as_any()
-            .downcast_ref::<tools::todo::TodoReadTool>()
-        {
-            let todos = todo_read_tool.state().get().await;
-            return Some(
-                todos
-                    .into_iter()
-                    .map(|t| crate::system_reminder::TodoItem {
-                        content: t.content,
-                        status: t.status,
-                        priority: t.priority,
-                    })
-                    .collect(),
-            );
-        }
-    }
-
-    // Alternative: try todowrite tool
-    if let Some(todo_tool) = tool_executors.get("todowrite") {
-        if let Some(todo_write_tool) = todo_tool
-            .as_ref()
-            .as_any()
-            .downcast_ref::<tools::todo::TodoWriteTool>()
-        {
-            let todos = todo_write_tool.state().get().await;
-            return Some(
-                todos
-                    .into_iter()
-                    .map(|t| crate::system_reminder::TodoItem {
-                        content: t.content,
-                        status: t.status,
-                        priority: t.priority,
-                    })
-                    .collect(),
-            );
-        }
-    }
-
-    None
-}
-
 /// Extract `PingState` from the tool registry by downcasting the ping_me_back_in tool.
 pub(super) fn get_ping_state_from_registry(
     tool_executors: &std::collections::HashMap<String, Arc<dyn tools::ToolExecutor>>,

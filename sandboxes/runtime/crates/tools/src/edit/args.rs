@@ -21,10 +21,21 @@ pub struct EditArgs {
 }
 
 /// Result returned by the Edit tool.
+///
+/// `path`, `old_content_snippet`, and `new_content_snippet` are intentionally
+/// omitted from the serialized output. The model already sent `file_path`,
+/// `old_string`, and `new_string` in its args; echoing them back costs ~300
+/// bytes per edit × N later turns of carried context. The `diff` field
+/// already captures the meaningful change. Fields kept on the struct with
+/// `#[serde(skip)]` so internal callers that construct/read `EditResult`
+/// in-process aren't broken.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EditResult {
+    #[serde(skip)]
     pub path: String,
+    #[serde(skip)]
     pub old_content_snippet: String,
+    #[serde(skip)]
     pub new_content_snippet: String,
     pub replacements_made: usize,
     pub lines_added: usize,

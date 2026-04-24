@@ -90,7 +90,8 @@ pub async fn execute_chain_handoff(
     history: &[Message],
     config: &ImmortalConfig,
     state: &ImmortalState,
-    journal_state: &JournalState,
+    journal_state: Option<&JournalState>,
+    todos_snapshot: Option<String>,
     trigger: ChainTrigger,
 ) -> Result<ChainHandoffResult, BridgeError> {
     debug!(
@@ -161,36 +162,40 @@ pub async fn execute_chain_handoff(
 
     // Build previous checkpoint context: integrate only the last N prior
     // checkpoints so the prompt doesn't grow unboundedly across chains.
-    let previous_checkpoint_context = if state.current_chain_index > 0 {
-        let max_n = config.max_previous_checkpoints.max(1) as usize;
-        let entries = journal_state.committed_entries().await;
-        let recent_checkpoints: Vec<&JournalEntry> = entries
-            .iter()
-            .rev()
-            .filter(|e| e.entry_type == "checkpoint")
-            .take(max_n)
-            .collect();
+    // When journal is unavailable, no prior checkpoints are stored; the
+    // context is empty for every rotation and the todos snapshot below
+    // carries the cross-chain state.
+    let previous_checkpoint_context = match journal_state {
+        Some(js) if state.current_chain_index > 0 => {
+            let max_n = config.max_previous_checkpoints.max(1) as usize;
+            let entries = js.committed_entries().await;
+            let recent_checkpoints: Vec<&JournalEntry> = entries
+                .iter()
+                .rev()
+                .filter(|e| e.entry_type == "checkpoint")
+                .take(max_n)
+                .collect();
 
-        if recent_checkpoints.is_empty() {
-            String::new()
-        } else {
-            let mut buf = String::from(
-                "Previous checkpoint(s) exist. Integrate all still-relevant \
-                 information, updating with recent events. Do not lose established \
-                 constraints or knowledge, BUT prune items fully superseded by later \
-                 turns.\n\n",
-            );
-            // Iterate newest-first then render oldest-first for chronological reading.
-            for cp in recent_checkpoints.iter().rev() {
-                buf.push_str(&format!(
-                    "<previous_checkpoint chain={}>\n{}\n</previous_checkpoint>\n\n",
-                    cp.chain_index, cp.content
-                ));
+            if recent_checkpoints.is_empty() {
+                String::new()
+            } else {
+                let mut buf = String::from(
+                    "Previous checkpoint(s) exist. Integrate all still-relevant \
+                     information, updating with recent events. Do not lose established \
+                     constraints or knowledge, BUT prune items fully superseded by later \
+                     turns.\n\n",
+                );
+                // Iterate newest-first then render oldest-first for chronological reading.
+                for cp in recent_checkpoints.iter().rev() {
+                    buf.push_str(&format!(
+                        "<previous_checkpoint chain={}>\n{}\n</previous_checkpoint>\n\n",
+                        cp.chain_index, cp.content
+                    ));
+                }
+                buf
             }
-            buf
         }
-    } else {
-        String::new()
+        _ => String::new(),
     };
 
     // Serialize the history to checkpoint
@@ -236,10 +241,17 @@ pub async fn execute_chain_handoff(
         (initial_checkpoint, false)
     };
 
-    // Build the new history
-    let journal_entries = journal_state.committed_entries().await;
+    // Build the new history. Journal entries are injected only when the
+    // journal is available; otherwise the todos_snapshot takes over as the
+    // cross-chain memory carrier.
+    let journal_entries: Vec<JournalEntry> = if let Some(js) = journal_state {
+        js.committed_entries().await
+    } else {
+        Vec::new()
+    };
     let new_history = build_chain_history(
         &journal_entries,
+        todos_snapshot.as_deref(),
         &checkpoint_text,
         state.current_chain_index,
         carry_forward,
@@ -271,7 +283,7 @@ pub async fn maybe_chain(
     let Some(trigger) = chain_needed(history, config) else {
         return Ok(None);
     };
-    execute_chain_handoff(history, config, state, journal_state, trigger)
+    execute_chain_handoff(history, config, state, Some(journal_state), None, trigger)
         .await
         .map(Some)
 }

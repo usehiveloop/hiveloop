@@ -51,6 +51,20 @@ pub struct ImmortalConfig {
     /// checkpoint extraction. Older ones are considered subsumed. Default 2.
     #[serde(default = "default_max_previous_checkpoints")]
     pub max_previous_checkpoints: u32,
+
+    /// When true (default), bridge registers `journal_read` and
+    /// `journal_write` tools with the agent so the model can record durable
+    /// notes that survive chain rotations. When false, journal tools are
+    /// NOT exposed to the model — the immortal engine falls back to using
+    /// the current `todowrite` list as the cross-chain carry-forward state.
+    /// Useful when the agent's task doesn't benefit from free-form notes
+    /// and the todo list is sufficient as persistent context.
+    #[serde(default = "default_expose_journal_tools")]
+    pub expose_journal_tools: bool,
+}
+
+fn default_expose_journal_tools() -> bool {
+    true
 }
 
 fn default_immortal_token_budget() -> u32 {

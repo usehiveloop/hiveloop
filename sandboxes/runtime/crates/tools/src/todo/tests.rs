@@ -13,8 +13,8 @@ async fn test_todowrite_returns_correct_incomplete_count() {
     });
     let result = tool.execute(args).await.unwrap();
     let parsed: TodoWriteResult = serde_json::from_str(&result).unwrap();
+    assert!(parsed.ok);
     assert_eq!(parsed.incomplete_count, 2);
-    assert_eq!(parsed.todos.len(), 3);
 }
 
 #[tokio::test]
@@ -23,8 +23,8 @@ async fn test_todowrite_empty_list() {
     let args = serde_json::json!({ "todos": [] });
     let result = tool.execute(args).await.unwrap();
     let parsed: TodoWriteResult = serde_json::from_str(&result).unwrap();
+    assert!(parsed.ok);
     assert_eq!(parsed.incomplete_count, 0);
-    assert!(parsed.todos.is_empty());
 }
 
 #[tokio::test]

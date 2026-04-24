@@ -156,5 +156,11 @@ fn should_strip_result(tr: &rig::message::ToolResult, config: &HistoryStripConfi
     if tool_result_byte_count(tr) < MIN_STRIPPABLE_BYTES {
         return false;
     }
-    extract_spill_path(tr).is_some()
+    // NOTE: previously required `extract_spill_path(tr).is_some()` — that's
+    // the bug that caused strip to fire zero times over an entire 100-turn
+    // run. Phase 1 (above) was relaxed but this Phase 2 gate silently kept
+    // the old behavior. Now: any tool result meeting the size + exempt
+    // criteria is strippable. When no spill path exists, `build_strip_marker`
+    // emits a "re-call the tool if needed" marker (see helpers.rs).
+    true
 }

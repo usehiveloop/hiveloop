@@ -4,7 +4,6 @@
 use bridge_core::event::{BridgeEvent, BridgeEventType};
 use rig::agent::HookAction;
 use serde_json::json;
-use tools::todo::TodoWriteResult;
 use tracing::info;
 
 use super::result_classify::looks_like_failure;
@@ -66,14 +65,18 @@ impl ToolCallEmitter {
         let args_value = serde_json::from_str(args).unwrap_or(serde_json::Value::Null);
         self.persist_tool_interaction(&effective_name, &id, &args_value, result, false);
 
-        // Emit a structured TodoUpdated event when the todowrite tool completes.
+        // Emit a structured TodoUpdated event when the todowrite tool
+        // completes. Read the todos from the call's *arguments* — the tool
+        // result intentionally no longer echoes the list (see
+        // `TodoWriteResult` doc on why), so the args are the only place
+        // the full list lives at this point.
         if tool_name == "todowrite" {
-            if let Ok(parsed) = serde_json::from_str::<TodoWriteResult>(result) {
+            if let Some(todos) = args_value.get("todos") {
                 self.event_bus.emit(BridgeEvent::new(
                     BridgeEventType::TodoUpdated,
                     &self.agent_id,
                     &self.conversation_id,
-                    json!({"todos": &parsed.todos}),
+                    json!({"todos": todos}),
                 ));
             }
         }

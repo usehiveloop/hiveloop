@@ -32,12 +32,15 @@ pub(super) fn register_journal_tools(
     );
 }
 
-/// Build the stable system reminder for a conversation. When todo tools are
-/// enabled, includes todo state and current date. Otherwise just skills +
-/// subagents.
+/// Build the stable system reminder for a conversation.
+///
+/// Includes skills + subagents + (conditionally) current date. Todos are
+/// intentionally NOT included here — they live in the volatile reminder now
+/// so the model sees a live view every turn rather than a stale snapshot
+/// baked in at conversation start. See `conversation::volatile::current_todos`.
 pub(super) async fn build_system_reminder(
     state: &Arc<AgentState>,
-    tool_executors: &std::collections::HashMap<String, Arc<dyn tools::ToolExecutor>>,
+    _tool_executors: &std::collections::HashMap<String, Arc<dyn tools::ToolExecutor>>,
     has_todo_tools: bool,
 ) -> String {
     // Get skills from the registered SkillTool (includes local discoveries)
@@ -65,12 +68,13 @@ pub(super) async fn build_system_reminder(
         .collect();
 
     if has_todo_tools {
-        // Try to get todo state from the tool registry
-        let todos = super::helpers::get_todos_from_registry(tool_executors).await;
-        crate::system_reminder::create_reminder_with_skills_todos_and_date(
+        // When todo tools are present we still surface the current date
+        // (stable for the conversation's day, rarely drifts) in the stable
+        // reminder. Todos themselves are injected into the volatile tail
+        // on every turn — see `conversation::volatile::current_todos`.
+        crate::system_reminder::create_reminder_with_skills_and_date(
             &skills,
             &subagent_list,
-            todos.as_deref(),
             chrono::Utc::now(),
         )
     } else {

@@ -48,12 +48,22 @@ pub struct TodoItemArg {
 }
 
 /// Result returned by the todowrite tool (serialized as JSON).
+///
+/// Intentionally scalar: we do NOT echo the todos the caller just sent. The
+/// model already has them in its own tool_call arguments, and bridge's
+/// `SystemReminder::with_todos` injects the live list into every user turn
+/// so the model can always see the latest state. Echoing the full list back
+/// on every call was adding ~1 KB per write × N later turns of carried
+/// context — the dominant non-bash cost on long agentic runs.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TodoWriteResult {
-    /// Number of items that are not yet completed.
+    /// Always `true` on success — just an ack so the model sees a positive
+    /// confirmation in the tool-role response rather than an empty object.
+    pub ok: bool,
+    /// Number of items that are not yet completed (status != "completed" /
+    /// "cancelled"). The model usually only needs this scalar to decide
+    /// what to work on next.
     pub incomplete_count: usize,
-    /// The full todo list.
-    pub todos: Vec<TodoItemArg>,
 }
 
 /// Result returned by the todoread tool.
@@ -122,15 +132,17 @@ impl ToolExecutor for TodoWriteTool {
         let incomplete_count = args
             .todos
             .iter()
-            .filter(|t| t.status != "completed")
+            .filter(|t| t.status != "completed" && t.status != "cancelled")
             .count();
 
-        // Update shared state
-        self.state.update(args.todos.clone()).await;
+        // Update shared state — the canonical place the volatile system
+        // reminder reads from when injecting the current list into the next
+        // user turn.
+        self.state.update(args.todos).await;
 
         let result = TodoWriteResult {
+            ok: true,
             incomplete_count,
-            todos: args.todos,
         };
 
         serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))

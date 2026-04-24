@@ -98,9 +98,13 @@ fn test_strip_preserves_recent_outputs() {
 }
 
 #[test]
-fn test_strip_skips_results_without_spill_path() {
-    // A 5KB result without a spill marker is small enough to keep inline
-    // (no file exists to point at).
+fn test_strip_strips_results_even_without_spill_path() {
+    // Previously a 5KB result without a "saved to:" marker was kept inline
+    // on the theory that we had nothing to point the agent at for recovery.
+    // That made strip a no-op for all non-bash tool outputs (Read, RipGrep,
+    // Glob, etc.) and let cumulative context bloat to millions of tokens
+    // on long runs. Strip now drops the body regardless of spill; the
+    // marker tells the agent to re-call the tool if it needs the content.
     let no_spill = "x".repeat(5_000);
     let mut history = vec![
         make_user_with_tool_result("call-1", &no_spill),
@@ -110,8 +114,14 @@ fn test_strip_skips_results_without_spill_path() {
     strip_old_tool_outputs(&mut history, &small_config(0));
 
     let text = get_tool_result_text(&history[0]).expect("tr");
-    assert!(!text.starts_with(STRIP_MARKER_PREFIX));
-    assert_eq!(text.len(), 5_000);
+    assert!(
+        text.starts_with(STRIP_MARKER_PREFIX),
+        "expected strip marker, got: {text}"
+    );
+    assert!(
+        text.contains("original body discarded"),
+        "expected no-spill marker text, got: {text}"
+    );
 }
 
 #[test]

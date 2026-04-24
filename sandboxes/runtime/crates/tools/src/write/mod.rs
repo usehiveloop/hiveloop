@@ -26,8 +26,15 @@ pub struct WriteArgs {
 }
 
 /// Result returned by the Write tool.
+///
+/// `path` is intentionally omitted from the serialized output — the model
+/// just sent the path in `file_path` and re-echoing it on every write
+/// added ~120 bytes per call × N later turns of carried context. Kept on
+/// the struct (skipped in serde) so tests / internal callers that build a
+/// `WriteResult` aren't broken.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WriteResult {
+    #[serde(skip)]
     pub path: String,
     pub bytes_written: usize,
     pub created: bool,

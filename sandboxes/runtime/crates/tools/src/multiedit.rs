@@ -30,8 +30,13 @@ pub struct MultiEditArgs {
 }
 
 /// Result returned by the MultiEdit tool.
+///
+/// `path` is intentionally omitted from the serialized output — it's
+/// already in the caller's `file_path` arg. Kept on the struct (skipped
+/// in serde) for internal callers that build a `MultiEditResult` directly.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MultiEditResult {
+    #[serde(skip)]
     pub path: String,
     pub edits_applied: usize,
     pub total_replacements: usize,

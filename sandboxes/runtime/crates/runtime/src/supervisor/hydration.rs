@@ -178,9 +178,12 @@ impl AgentSupervisor {
             ))
         });
 
-        // Register journal tools if immortal mode is active
-        if let Some(ref js) = journal_state {
-            register_journal_tools(js, &mut tool_names, &mut tool_executors);
+        // Register journal tools only if immortal mode is active AND the
+        // agent hasn't opted out via `expose_journal_tools: false`.
+        if let (Some(ref js), Some(ref imm)) = (&journal_state, &immortal_config) {
+            if imm.expose_journal_tools {
+                register_journal_tools(js, &mut tool_names, &mut tool_executors);
+            }
         }
 
         // Rebuild agent with journal tool when immortal mode is active

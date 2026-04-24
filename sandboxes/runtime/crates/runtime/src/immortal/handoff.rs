@@ -51,13 +51,17 @@ pub fn find_token_bounded_carry_forward(
 /// Build the new history for a chain link.
 pub(super) fn build_chain_history(
     journal_entries: &[JournalEntry],
+    todos_snapshot: Option<&str>,
     checkpoint_text: &str,
     previous_chain_index: u32,
     carry_forward: &[Message],
 ) -> Vec<Message> {
     let mut new_history = Vec::new();
 
-    // 1. Inject journal if non-empty
+    // 1. Inject journal if available. When the agent opted out of journal
+    //    tools (`expose_journal_tools: false`), this slice is empty and we
+    //    rely on the todos snapshot below + the checkpoint text for
+    //    cross-chain continuity.
     if !journal_entries.is_empty() {
         let journal_text = format_journal(journal_entries);
         new_history.push(Message::user(format!(
@@ -71,7 +75,21 @@ pub(super) fn build_chain_history(
         ));
     }
 
-    // 2. Inject checkpoint
+    // 2. Inject the current todowrite list (when provided). Mirrors the
+    //    journal pattern and primes the new chain with the authoritative
+    //    task-state snapshot at rotation time. The list also re-injects
+    //    live every turn via the volatile system reminder.
+    if let Some(todos) = todos_snapshot.filter(|s| !s.trim().is_empty()) {
+        new_history.push(Message::user(format!(
+            "[Todo List Snapshot — carried across chain {}]\n\n{}",
+            previous_chain_index, todos
+        )));
+        new_history.push(Message::assistant(
+            "Got the current todo list; I'll continue from the next in-progress item.",
+        ));
+    }
+
+    // 3. Inject checkpoint
     new_history.push(Message::user(format!(
         "[Context Checkpoint — chain {}]\n\n{}",
         previous_chain_index, checkpoint_text
@@ -80,7 +98,7 @@ pub(super) fn build_chain_history(
         "Understood. I have the checkpoint context and will continue seamlessly.",
     ));
 
-    // 3. Append carried-forward messages verbatim
+    // 4. Append carried-forward messages verbatim
     new_history.extend_from_slice(carry_forward);
 
     new_history

@@ -167,9 +167,16 @@ impl AgentSupervisor {
             ))
         });
 
-        // Register journal tools if immortal mode is active
-        if let Some(ref js) = journal_state {
-            register_journal_tools(js, &mut tool_names, &mut tool_executors);
+        // Register journal tools only if immortal mode is active AND the
+        // agent has not opted out via `expose_journal_tools: false`. When
+        // opted out, `journal_state` still exists internally (for chain
+        // bookkeeping) but the model doesn't see `journal_read` /
+        // `journal_write` tools — the immortal engine carries the current
+        // todowrite list across chains instead.
+        if let (Some(ref js), Some(ref imm)) = (&journal_state, &immortal_config) {
+            if imm.expose_journal_tools {
+                register_journal_tools(js, &mut tool_names, &mut tool_executors);
+            }
         }
 
         // Connect per-conversation MCP servers and merge their tools into the

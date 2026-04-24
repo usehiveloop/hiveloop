@@ -3,6 +3,8 @@ mod agent_config_roundtrip;
 #[cfg(test)]
 mod agent_roundtrip;
 #[cfg(test)]
+mod bench_template;
+#[cfg(test)]
 mod conversation_content_roundtrip;
 #[cfg(test)]
 mod conversation_message_roundtrip;
