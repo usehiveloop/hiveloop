@@ -1,10 +1,28 @@
 name: lint
 
+# Only run on PRs that actually touch Go code or its supporting config.
+# Frontend-only, doc-only, and workflow-only PRs skip this whole suite.
 on:
   push:
     branches: [main]
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - ".golangci.yml"
+      - "scripts/check-go-file-length.sh"
+      - "scripts/file-length-allowlist.txt"
+      - ".github/workflows/lint.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - ".golangci.yml"
+      - "scripts/check-go-file-length.sh"
+      - "scripts/file-length-allowlist.txt"
+      - ".github/workflows/lint.yml"
 
 permissions:
   contents: read
@@ -18,11 +36,18 @@ jobs:
       - name: Check Go file length
         run: ./scripts/check-go-file-length.sh
 
+  # golangci-lint runs the linter suite defined in .golangci.yml. We scope it
+  # to issues NEWLY introduced by the PR (--new-from-rev=origin/main) so
+  # existing pre-CI debt doesn't block unrelated changes. New code is held to
+  # the full standard; old violations can be cleaned up in targeted PRs.
   golangci-lint:
     name: golangci-lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so --new-from-rev can diff against origin/main.
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version: "1.25"
@@ -30,7 +55,7 @@ jobs:
       - uses: golangci/golangci-lint-action@v6
         with:
           version: v1.64
-          args: --timeout=5m
+          args: --timeout=5m --new-from-rev=origin/main
 
   go-vet:
     name: go vet
@@ -42,4 +67,35 @@ jobs:
           go-version: "1.25"
           cache: true
       - name: go vet
-        run: go vet ./...
+        run: go vet ./internal/... ./cmd/server/...
+
+  # govulncheck scans our modules against the official Go vulnerability DB.
+  # Reachability-based, so it only flags CVEs in code paths we actually call.
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Run govulncheck
+        run: govulncheck ./internal/... ./cmd/server/...
+
+  # Secret scanning. Catches committed API keys, private keys, and connection
+  # strings before they hit main. Runs on the full diff range of the PR.
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Fetch full history so gitleaks can scan the PR's diff range.
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

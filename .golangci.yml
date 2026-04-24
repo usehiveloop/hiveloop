@@ -10,6 +10,7 @@ linters:
     - bodyclose
     - noctx
     - copyloopvar
+    - contextcheck
 
 linters-settings:
   gosec:
@@ -19,6 +20,12 @@ linters-settings:
 issues:
   exclude-dirs:
     - vendor
+    # Pre-existing broken entry points — not part of the main server build.
+    - cmd/fetchactions-graphql
+    - cmd/fetchactions-oas2
+    - cmd/fetchactions-oas3
+    - skills/upload
+    - .ignored
 
 run:
   timeout: 5m
