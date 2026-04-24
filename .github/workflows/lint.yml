@@ -54,7 +54,12 @@ jobs:
           cache: true
       - uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.64
+          version: v1.64.8
+          # goinstall builds golangci-lint with the Go toolchain we just set
+          # up, so it matches the 1.25 requirement in our go.mod. The default
+          # "binary" mode uses the prebuilt release which for v1.64 was
+          # compiled with Go 1.24 and rejects our 1.25.9 target.
+          install-mode: goinstall
           args: --timeout=5m --new-from-rev=origin/main
 
   go-vet:
@@ -87,6 +92,11 @@ jobs:
 
   # Secret scanning. Catches committed API keys, private keys, and connection
   # strings before they hit main. Runs on the full diff range of the PR.
+  #
+  # We install the upstream gitleaks CLI directly rather than using
+  # gitleaks-action, because gitleaks-action now requires a paid GITLEAKS_LICENSE
+  # secret for GitHub organizations. The CLI itself is MIT-licensed and has
+  # no such restriction.
   gitleaks:
     name: gitleaks
     runs-on: ubuntu-latest
@@ -95,7 +105,16 @@ jobs:
         with:
           # Fetch full history so gitleaks can scan the PR's diff range.
           fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+      - name: Install gitleaks
+        run: go install github.com/gitleaks/gitleaks/v8@latest
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Scope to commits introduced by this PR so pre-existing test-only
+        # credentials in main (test DB URL, test KMS key, test JWT secret)
+        # don't fail the build. New commits are always scanned; main push
+        # after merge is a no-op range because origin/main has already
+        # caught up to HEAD.
+        run: gitleaks detect --source . --redact --verbose --no-banner --log-opts="origin/main..HEAD"
