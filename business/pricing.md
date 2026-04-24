@@ -1,330 +1,210 @@
-# HiveLoop Pricing Model
+# Hiveloop Pricing Model
+
+**Last updated:** 2026-04-24
+**Status:** Active (replaces the per-agent / per-run Polar-era model)
 
 ## Summary
 
-| Plan | Price | Target |
-|------|-------|--------|
-| Free | $0/month | Exploring & prototyping |
-| Pro | $4.99/agent/month | Teams shipping to production |
-| Dedicated sandbox add-on | +$2/agent/month | Agents needing shell, filesystem, repo cloning |
+Credit-based inference billing with unlimited agent runs. Three subscription tiers plus non-expiring top-up bundles. Platform keys by default; BYOK opt-in per agent or conversation.
 
-## Plan details
+| Plan | Monthly (USD) | Annual (USD) | Credits/month |
+|---|---|---|---|
+| Starter | $9 | $86 (20% off) | 9,000 |
+| Pro | $39 | $374 (20% off) | 39,000 |
+| Business | $99 | $950 (20% off) | 99,000 |
 
-### Free
+| Bundle | Price (USD) | Credits | $/credit |
+|---|---|---|---|
+| Small | $5 | 4,000 | $0.00125 (25% premium) |
+| Medium | $20 | 18,000 | $0.00111 (11% premium) |
+| Large | $50 | 48,000 | $0.00104 (4% premium) |
 
-- 1 agent
-- 100 runs/month
-- 1 concurrent run
-- Shared sandbox only
-- Unlimited AI credentials
-- Unlimited integrations & connections
-- 20+ LLM providers
-- MCP tool support
-- Human-in-the-loop approvals
-- Conversations & streaming
-- TypeScript SDK
-- Community support
+New accounts receive **150 credits** on sign-up as a trial. No "Free" plan is shown on the pricing page — the trial lives behind a "Get started for free" CTA.
 
-### Pro ($4.99/agent/month)
+## Credit economics
 
-Everything in Free, plus:
+### Unit
 
-- Unlimited agents
-- 300 runs/agent/month included
-- $0.01 per extra run (shared sandbox)
-- $0.05 per extra run (dedicated sandbox)
-- 5 concurrent runs per agent
-- Dedicated sandbox (+$2/agent/month add-on)
-- Agent Forge (auto-optimization)
-- Persistent agent memory (1 GB/agent)
-- Custom sandbox templates
-- Identity scoping & isolation
-- Per-identity rate limiting
-- Advanced analytics & audit logs
-- Custom domains
-- API key scopes
-- Priority support
+**1 credit = $0.001** of inference + sandbox cost at list price.
 
-### Dedicated sandbox add-on (+$2/agent/month)
-
-- Ephemeral sandboxes (spin up per run, tear down after)
-- Runs drawn from the Pro plan's 300/agent/month included allocation
-- Additional runs at $0.05/run overage
-- Full system access: shell, filesystem, code execution
-- Repo cloning, build tools, linters
-- 10 GB disk per sandbox instance
-
----
-
-## Infrastructure cost model
-
-### Server: Hetzner AX101 (~$110/month)
-
-- AMD Ryzen 9 5950X: 16 cores / 32 threads
-- 128 GB RAM
-- 2x 1.92 TB NVMe SSD
-
-### Shared agents
-
-Shared agents are stateless API relays. They receive triggers, call LLMs (using the user's own API key), call tools via API, and respond. Minimal compute.
+At a 75% gross-margin target, each credit reserves $0.00025 of COGS budget. The charge for any conversation is:
 
 ```
-Per agent: ~50 MB RAM, ~0.01 CPU idle
-Capacity per box: ~2,000 agents
-Cost per agent: $110 / 2,000 = $0.055/month
+credits = COGS × 4,000
 ```
 
-At $4.99/agent/month, shared agents are ~99% margin before revenue share and payment processing.
+Meaning the user pays 4× what the underlying work cost us.
 
-### Dedicated agents (ephemeral sandboxes)
-
-Dedicated sandboxes are ephemeral — they spin up for each run and tear down after. This is dramatically more efficient than persistent always-on sandboxes.
+### Plan allotment derivation
 
 ```
-Per run lifecycle:
-  Sandbox spin-up (Daytona): ~2s
-  Git clone (layer cached):  ~5-10s
-  Agent does work + LLM:     ~60-120s
-  Teardown:                  instant
-  Average run duration:      ~2 minutes
-  Resources per run:         2 vCPU, 2 GB RAM
+Plan price × (1 − 0.75) / $0.00025 = plan credits
 
-Per box capacity:
-  Max concurrent runs:       16 (32 threads / 2 vCPU)
-  Runs per hour:             480 (16 concurrent x 30 runs/hour)
-  Monthly at 50% util:       ~172,800 runs/month
-  Cost per run:              $110 / 172,800 = ~$0.0006
-
-  With overhead (disk I/O, network, orchestration): ~$0.003/run
+Starter:   $9  × 0.25 / $0.00025 =  9,000 credits
+Pro:       $39 × 0.25 / $0.00025 = 39,000 credits
+Business:  $99 × 0.25 / $0.00025 = 99,000 credits
 ```
 
-### Why ephemeral, not persistent
+### What COGS includes
 
-A persistent always-on sandbox reserves 2 vCPU + 2 GB RAM 24/7 for a single agent. That yields only ~48 agents per box at $6.88/agent/month cost — making a $2 add-on impossible.
+- **Inference**: tokens consumed on the active model (GLM 5.1 by default — $0.437/Mtok in, $4.40/Mtok out).
+- **Sandbox**: bare-metal amortised cost per minute of active sandbox time.
+- **Not included**: platform infra (servers, DB, egress), dev, support. Those live inside the plan margin.
 
-Ephemeral sandboxes share resources across thousands of agents. A box serving 172,800 runs/month can handle thousands of agents averaging 300 runs each. The cost per run drops to fractions of a cent.
+### Sandbox size multiplier
 
-### Cost per run comparison
+Default sandbox time is embedded in the inference credit charge. Larger sandboxes are charged additional per-minute credits only while they're running:
 
-| Model | Agents per box | Cost per agent/month | Notes |
-|-------|---------------|---------------------|-------|
-| Persistent (always-on) | ~48 | $6.88 | Wastes resources when idle |
-| Ephemeral (per-run) | ~576 at 300 runs each | $0.90 | Only uses resources during runs |
-
----
-
-## Payment processing
-
-### Polar (4% + $0.40 per transaction)
-
-All billing runs through [Polar](https://polar.sh), a payment processor built for developer tools and open-source monetization.
-
-```
-Fee structure:
-  Percentage fee:  4% of total charge
-  Flat fee:        $0.40 per transaction (per user per billing cycle)
-
-Example fees:
-  Single shared agent ($4.99):      4% × $4.99 + $0.40 = $0.60
-  Single dedicated agent ($6.99):   4% × $6.99 + $0.40 = $0.68
-  5 agents mixed ($27.96):          4% × $27.96 + $0.40 = $1.52
-```
-
-Polar handles:
-- Subscription billing and invoicing
-- Marketplace payouts to creators (native split support)
-- Usage-based overage charges
-- Tax compliance and receipts
-
-The flat $0.40/transaction fee is per user per billing cycle, not per agent. This means the fee impact decreases as users add more agents — the percentage component scales linearly but the flat fee is amortized.
-
----
-
-## Revenue share model
-
-### Structure
-
-Revenue share applies to **marketplace agents only** (agents built by third-party creators and installed by users). Self-built agents have no revenue share.
-
-- **Creator gets**: 50% of the base agent fee ($4.99) = $2.50/install/month
-- **Platform keeps**: 50% of the base agent fee ($4.99) = $2.50/install/month
-- **Infrastructure add-ons** (dedicated sandbox, overages, extra memory): 100% to platform
-
-Revenue share does NOT apply to:
-- Dedicated sandbox add-on ($2/agent/month)
-- Overage run fees ($0.01/run)
-- Extra memory ($1/GB/month)
-
-### Per-agent economics
-
-Worst-case scenario: single-agent user (maximum Polar flat fee impact).
-
-| | User pays | Creator gets | Polar fee | Infra cost | Profit |
-|---|---|---|---|---|---|
-| Shared (marketplace) | $4.99 | $2.50 | $0.60 | $0.06 | $1.84 |
-| Shared (self-built) | $4.99 | $0 | $0.60 | $0.06 | $4.34 |
-| Dedicated (marketplace) | $6.99 | $2.50 | $0.68 | $0.90 | $2.91 |
-| Dedicated (self-built) | $6.99 | $0 | $0.68 | $0.90 | $5.41 |
-
-### Why 50/50
-
-Unlike app stores where the platform simply distributes software, HiveLoop does the heavy lifting:
-
-- Platform provides infrastructure, sandboxes, observability, memory, connections
-- Platform handles billing, auth, scaling, uptime
-- Platform built the marketplace, SDK, and orchestration layer
-- Creator's work is front-loaded: build the agent once, configure tools, write the prompt
-
-A 50/50 split reflects this equal partnership:
-
-- Creator brings the value (the agent itself + promotion)
-- Platform brings the infrastructure and distribution
-- At 1,000 installs, a creator earns $2,500/month — meaningful income with zero ops burden
-- "You build it, we split it" is a clean, easy-to-communicate story
-
-Comparison to other marketplaces:
-
-- Apple App Store: 70/30 (creator/platform) — but Apple doesn't run the apps
-- Shopify App Store: 80/20 — but merchants run their own stores
-- HiveLoop: 50/50 — platform runs everything, creator just builds and promotes
-
-The key difference: on HiveLoop, the creator has zero ongoing operational cost. No servers, no billing, no support infrastructure. The platform bears 100% of the operational burden. 50/50 is fair for that level of service.
-
----
-
-## Scaling projections
-
-Assumptions:
-- Average 2.5 agents per paying user
-- 80% shared / 20% dedicated agent mix
-- 70% marketplace / 30% self-built
-- 300 included runs/agent/month
-- 40% of agents exceed included runs, averaging 175 extra runs
-- Polar processing: (4% × total revenue) + ($0.40 × number of users)
-
-### Revenue model
-
-Revenue share is 50/50 on base fee ($4.99) for marketplace agents only. Infrastructure add-ons are 100% platform.
-
-| Paying users | Total agents | Shared | Dedicated | Gross revenue | To creators | Polar fees | Infra cost | Net profit |
-|---|---|---|---|---|---|---|---|---|
-| 1,500 | 3,750 | 3,000 | 750 | $24,938 | $6,563 | $1,598 | $330 | $16,447 |
-| 5,000 | 12,500 | 10,000 | 2,500 | $83,125 | $21,875 | $5,325 | $1,100 | $54,825 |
-| 15,000 | 37,500 | 30,000 | 7,500 | $249,375 | $65,625 | $15,975 | $3,080 | $164,695 |
-| 50,000 | 125,000 | 100,000 | 25,000 | $831,250 | $218,750 | $53,250 | $10,200 | $549,050 |
-
-### Infrastructure scaling
-
-| Paying users | Shared agents | Shared boxes | Dedicated agents | Dedicated runs/mo | Dedicated boxes | Total boxes | Monthly infra |
-|---|---|---|---|---|---|---|---|
-| 1,500 | 3,000 | 2 | 750 | 225,000 | 1 | 3 | $330 |
-| 5,000 | 10,000 | 5 | 2,500 | 750,000 | 5 | 10 | $1,100 |
-| 15,000 | 30,000 | 15 | 7,500 | 2,250,000 | 13 | 28 | $3,080 |
-| 50,000 | 100,000 | 50 | 25,000 | 7,500,000 | 43 | 93 | $10,200 |
-
-Infra stays below 3-4% of revenue at every scale. Polar fees are the larger cost center at ~6.4% of gross revenue, but this is competitive for a processor that handles marketplace payouts natively.
-
-### Growth milestones
-
-| Milestone | Paying users needed | Monthly net |
+| Sandbox tier | Resources | Extra credits/minute |
 |---|---|---|
-| $10k/month | ~910 | $10,000 |
-| $50k/month | ~4,560 | $50,000 |
-| $100k/month | ~9,120 | $100,000 |
-| $1M/month | ~91,200 | $1,000,000 |
+| Default | ≤1 vCPU, ≤2 GB RAM | 0 (included) |
+| Large | 2 vCPU, 4 GB RAM | +0.2 |
+| XL | 4 vCPU, 8 GB RAM | +0.5 |
+| XXL | 8 vCPU, 16 GB RAM | +1.2 |
 
----
+Assumes default-sandbox COGS ~$0.0008/min at moderate bare-metal utilisation. Tune after real infrastructure-cost data stabilises.
 
-## Competitive positioning
+### Per-conversation cost (GLM 5.1, no caching, default sandbox)
 
-The $4.99/agent/month price point makes the comparison with individual SaaS tools dramatic:
+| Workload | Input | Output | Inference | Sandbox | Total COGS | Credits |
+|---|---|---|---|---|---|---|
+| Light | 10k | 1k | $0.0088 | $0.0016 | $0.0104 | 42 |
+| Typical | 30k | 4k | $0.0307 | $0.0040 | $0.0347 | 139 |
+| Heavy | 200k | 15k | $0.1534 | $0.0120 | $0.1654 | 662 |
+| Extreme | 500k | 30k | $0.3505 | $0.0240 | $0.3745 | 1,498 |
 
-| Tool | Monthly cost | HiveLoop equivalent |
-|------|-------------|-------------------|
-| CodeRabbit (code review) | $30/month | $4.99/month (shared) or $6.99 (dedicated) |
-| Cursor (AI coding) | $20/month | $4.99/month |
-| Lovable (UI generation) | $25/month | $4.99/month |
-| Devin (autonomous dev) | $500/month | $6.99/month (dedicated) |
-| Jasper (content writing) | $49/month | $4.99/month |
-| Intercom Fin (support) | $99/month | $4.99/month |
-| **Total** | **$723/month** | **$29.94 - $41.94/month** |
+### Runs per plan (typical workload)
 
-Users bring their own LLM API keys, so the biggest variable cost (inference) is not borne by the platform. This is the core of the business model — Hiveloop is an orchestration and infrastructure layer, not a model provider.
+| Plan | Typical conversations | Heavy conversations |
+|---|---|---|
+| Starter | ~64 | ~13 |
+| Pro | ~280 | ~58 |
+| Business | ~712 | ~149 |
 
----
+## BYOK (bring your own keys)
 
-## Key pricing decisions and rationale
+Every plan supports BYOK, toggleable per agent or per conversation.
 
-### Why $4.99 and not $5?
+- **Inference cost**: skipped — zero credits consumed for tokens.
+- **Sandbox cost**: still charged at the active sandbox tier's credit rate.
+- **Plan price**: unchanged.
+- **No tier gating**: BYOK is available on every plan.
 
-Psychological pricing. $4.99 feels like "under $5" and anchors in the $4 range. The $0.01 difference has outsized impact on perception. It's also the sweet spot for per-agent pricing — cheap enough that adding a second or third agent feels effortless, expensive enough to signal quality.
+A BYOK-heavy Pro subscriber's plan stretches roughly **6–10× further** than a platform-keys user, depending on workload weight.
 
-### Why $2 for dedicated and not $5?
+## Free trial (hidden)
 
-At $2, a dedicated code review agent costs $6.99/month total. Compared to CodeRabbit at $30/month, that's a 4x savings that's immediately compelling. The "wow" factor drives conversion.
+- 150 credits on sign-up (~6 typical conversations).
+- Credits expire **30 days after sign-up** if unclaimed.
+- No card required.
+- Marketing message: *"Get started for free. 150 credits on sign-up."*
+- No "Free" column on the pricing page.
+- When credits exhaust, the user can't start new conversations until they subscribe or buy a bundle.
 
-At $5, the total would be $9.99 — still cheaper than competitors, but the gap narrows and the story weakens. Growth > margin at this stage.
+## Annual discount
 
-### Why 300 runs instead of 500?
+Flat **20% off** when billed annually. Revenue is recognised monthly; credits are granted monthly on the anniversary of each billing cycle (not front-loaded for the year) to prevent end-of-year credit dumps.
 
-Most agents use 100-200 runs/month. Including 300 covers the vast majority of users without hitting overages, keeping the pricing simple and predictable. Users who exceed are power users running heavy workloads who understand usage-based billing.
+## Credit rollover
 
-The lower allocation also means tighter unit economics and fewer resources consumed by the included tier. At 300 runs, the math works cleanly — the $0.05/run overage kicks in at a point where users are genuinely heavy users, not just slightly above average.
+- **Subscription credits** (`reason = plan_grant`): expire at end of billing period. Unused credits are forfeited.
+- **Bundle credits** (`reason = topup`): never expire. Persist in ledger until spent.
 
-### Why Polar?
+Balance computation sums both pools. The billing-period renewal process zeroes unconsumed `plan_grant` rows and inserts a fresh grant entry.
 
-Polar is built specifically for developer tools and open-source monetization. Unlike Stripe or Paddle, Polar handles marketplace payouts natively — meaning creator revenue share can be split automatically without building custom payout infrastructure.
+## Mid-conversation exhaustion
 
-At 4% + $0.40, Polar's fees are higher than raw Stripe (2.9% + $0.30), but the native marketplace split support, developer-focused billing UI, and built-in tax compliance eliminate the need for custom billing infrastructure that would cost far more to build and maintain.
+**Hard abort.** The LLM proxy returns 402 Payment Required on the next call when balance would go below zero. The conversation is marked `status=credits_exhausted`. No soft overdraft.
 
-### Why ephemeral sandboxes?
+Users get an automated email at 80% of monthly plan consumption as an early warning.
 
-Persistent sandboxes (always-on) can only fit ~48 per server, costing $6.88/agent/month. That makes any add-on below $7 unprofitable.
+## Currency
 
-Ephemeral sandboxes (spin up per run, tear down after) share resources across thousands of agents. Cost per run drops to ~$0.003. This unlocks the $2 price point with healthy margins.
+Pricing page displays USD and NGN side by side with a currency toggle. Conversion rate: **1 USD = 1,500 NGN** (hardcoded at this version).
 
-Sandbox cold start is ~2 seconds using self-hosted Daytona, making ephemeral sandboxes viable even for latency-sensitive workflows. No trade-off on user experience.
+- Internal accounting is USD.
+- NGN rate is reviewed monthly; plan NGN prices update when the rate diverges ≥10% from the current peg.
 
-### Why revenue share on base fee only?
+## Gross margin
 
-Creators built the agent — they deserve a cut of the agent fee. They didn't build the infrastructure — sandbox compute, storage, and overages are platform costs that the platform should price and retain.
+### By construction at 100% plan consumption: **75% GM**
 
-This keeps the creator incentive simple ($2.50/install/month) while giving the platform full control over infrastructure economics.
+### Blended by utilisation
 
-### Why 50/50 split and not 70/30?
+| Plan utilisation | Effective GM |
+|---|---|
+| 20% | 95% |
+| 40% | 90% |
+| 60% | 85% |
+| 80% | 80% |
+| 100% | 75% |
 
-Traditional app store splits (70/30 creator/platform) don't apply here because those platforms only distribute software — the developer runs their own servers, handles their own billing, manages their own uptime.
+Realistic blended GM for paid subscribers: **80–87%** based on SaaS utilisation norms.
 
-On HiveLoop, the platform does all of that:
-- Runs the agent infrastructure 24/7
-- Provides sandboxes, memory, observability, connections
-- Handles billing, auth, scaling
-- Built the SDK, marketplace, and orchestration layer
+### Bundle margins (always above floor)
 
-The creator's contribution is front-loaded: build the agent, configure it, promote it. The platform's cost is ongoing every month. 50/50 reflects this reality.
+| Bundle | Margin at 100% consumption |
+|---|---|
+| Small ($5) | 80% |
+| Medium ($20) | 77.5% |
+| Large ($50) | 76% |
 
-At 1,000 installs, a creator still earns $2,500/month with zero operational burden — that's compelling enough to attract quality builders.
+### Post-launch margin lever: prompt caching
 
----
+With 80% input cache-hit rate (0.1× read cost, 1.25× one-time write, amortised over ~5 LLM calls/conversation):
 
-## Risks and mitigations
+- Typical COGS drops from $0.0347 → ~$0.0255 (−27%)
+- If user charge is held at 139 credits: margin on that run rises from 75% → ~**82%** (+7 GM points)
 
-### Risk: Heavy users on dedicated sandbox abuse the $2 add-on
+Not currently enabled. Tracked as a margin lever for rollout after GA.
 
-Mitigation: The $0.05/run overage kicks in after 300 runs. An extreme user doing 2,000 runs/month pays $6.99 + (1,700 × $0.05) = $91.99/month. Infra cost: ~$6. Highly profitable. The $0.05/run rate naturally discourages abuse while remaining fair for moderate overages.
+## Sensitivity
 
-### Risk: Revenue share makes marketplace agents unprofitable
+### Model price shift
 
-Mitigation: At 50/50, the platform keeps $2.50/agent on shared marketplace agents — 45x the infra cost. Even after Polar fees ($0.60 worst case), the margin is $1.84/agent. Infra add-ons (100% kept) cover dedicated sandbox costs. Self-built agents (30% of total, no rev share) provide additional margin. Even in a worst-case all-marketplace scenario, margins remain healthy.
+Margins hold at 75% because credit charge scales linearly with COGS. What shifts is user-perceived conversations-per-plan:
 
-### Risk: Polar fees eat into margins at scale
+| Input price change (vs $0.437/Mtok) | Typical runs on Pro |
+|---|---|
+| −50% | ~400 |
+| Baseline | ~280 |
+| +50% | ~215 |
 
-Mitigation: At 6.4% of gross revenue, Polar fees are the largest cost center after creator payouts — but they replace the entire billing, payout, and tax compliance stack. Building this in-house would cost engineering time worth far more than the fee delta vs. raw Stripe. If Polar fees become problematic at very high scale (50K+ users), the option to negotiate volume pricing or migrate to a custom billing stack remains open.
+### Plan-utilisation drift
 
-### Risk: Ephemeral sandbox cold start is too slow
+If real subscriber workloads skew heavier than the "typical" profile (30k in / 4k out), users hit the paywall sooner than modelled. Metrics to monitor:
 
-Mitigation: Self-hosted Daytona achieves ~2 second sandbox spin-up. Combined with layer-cached git clones, most runs are fully operational within 5-10 seconds. This is fast enough for event-driven workflows (PR reviews, ticket handling, deploys) which are the primary dedicated sandbox use case.
+- Median credits consumed per paying subscriber per billing cycle
+- % of subscribers paywalled before period end
+- Top-up bundle conversion rate
+- Upgrade rate from Starter → Pro
 
-### Risk: Users bypass platform by self-hosting
+### Currency risk (NGN)
 
-Mitigation: Self-hosting is supported and encouraged (listed as a feature). It builds trust and community. Revenue comes from the managed platform's convenience — marketplace, observability, one-click deploys. Users who self-host often convert to managed when they scale.
+NGN rate is pegged at 1,500/USD. If the naira weakens to 2,000/USD and we don't re-price, Nigerian subscribers effectively pay ~25% less in USD terms. Review monthly.
+
+## Revenue model (back-of-envelope)
+
+Assumes 65% blended utilisation, 70% of paying customers on Pro, 15% each on Starter and Business:
+
+| | Starter | Pro | Business | Blended |
+|---|---|---|---|---|
+| Price/mo | $9 | $39 | $99 | — |
+| Subscriber share | 15% | 70% | 15% | — |
+| Weighted ARPU | $1.35 | $27.30 | $14.85 | **$43.50/mo** |
+| GM per subscriber | 85% | 85% | 85% | **~$37/mo** |
+
+## Open product decisions
+
+These are **not yet decided** and shape follow-up pricing work:
+
+- **Plan feature differentiation** — do Starter/Pro/Business differ only by credit allotment, or do we stratify BYOK access, team seats, sandbox-size access, SSO, audit-log retention, priority support?
+- **Team / seat billing** — per-seat add-on vs. included count per plan.
+- **Multi-year enterprise contracts** — custom pricing, committed-spend discounts.
+- **Overdraft / grace period** — soft buffer for legacy enterprise accounts.
+- **LLM model mix beyond GLM 5.1** — cost pass-through vs. single credit rate across models.
+
+## Changelog
+
+- **2026-04-24** — Replaced per-agent/per-run Polar model with credit-based inference billing. Three tiers (Starter $9 / Pro $39 / Business $99), unlimited runs, 20% annual discount, NGN + USD currency support, hidden 150-credit trial.
+- **Historical** — See git history for the Polar-era model (per-agent monthly, per-run overage).
