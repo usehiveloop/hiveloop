@@ -36,6 +36,10 @@ type TokenClaims struct {
 	OrgID        string
 	CredentialID string
 	JTI          string
+	// IsSystem is true when the credential behind this token is
+	// platform-owned. The proxy uses it to gate on credit balance and
+	// meter token spend. Mirrored from token.Claims.IsSystem.
+	IsSystem bool
 }
 
 // ClaimsFromContext retrieves the token claims from the request context.

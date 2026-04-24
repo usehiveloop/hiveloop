@@ -11,6 +11,7 @@ const (
 	TypeEmailSend                 = "email:send"
 	TypeEmailSendTemplate         = "email:send_template"
 	TypeAgentCleanup              = "agent:cleanup"
+	TypeBillingTokenSpend         = "billing:token_spend"
 	TypeSandboxTemplateBuild      = "sandbox_template:build"
 	TypeSandboxTemplateRetryBuild = "sandbox_template:retry"
 	TypeSkillHydrate              = "skill:hydrate"
