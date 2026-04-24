@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -29,6 +30,8 @@ func NewBillingHandler(db *gorm.DB, registry *billing.Registry, credits *billing
 type createCheckoutRequest struct {
 	Provider   string `json:"provider"`
 	PlanSlug   string `json:"plan_slug"`
+	Currency   string `json:"currency"` // e.g. "USD", "NGN"
+	Cycle      string `json:"cycle"`    // "monthly" | "annual"
 	SuccessURL string `json:"success_url"`
 	CancelURL  string `json:"cancel_url"`
 }
@@ -69,6 +72,16 @@ func (h *BillingHandler) CreateCheckout(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	cycle := billing.Cycle(body.Cycle)
+	if !cycle.IsValid() {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "cycle must be 'monthly' or 'annual'"})
+		return
+	}
+	if body.Currency == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "currency is required"})
+		return
+	}
+
 	var plan model.Plan
 	if err := h.db.Where("slug = ? AND active = true", body.PlanSlug).First(&plan).Error; err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown plan"})
@@ -93,6 +106,8 @@ func (h *BillingHandler) CreateCheckout(w http.ResponseWriter, r *http.Request) 
 		OrgName:       org.Name,
 		CustomerEmail: email,
 		PlanSlug:      plan.Slug,
+		Currency:      body.Currency,
+		Cycle:         cycle,
 		SuccessURL:    body.SuccessURL,
 		CancelURL:     body.CancelURL,
 		Metadata: map[string]string{
@@ -101,6 +116,14 @@ func (h *BillingHandler) CreateCheckout(w http.ResponseWriter, r *http.Request) 
 		},
 	})
 	if err != nil {
+		switch {
+		case errors.Is(err, billing.ErrUnsupportedCurrency):
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "currency not supported by this provider"})
+			return
+		case errors.Is(err, billing.ErrUnknownPlan):
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "plan not available on this provider"})
+			return
+		}
 		slog.Error("billing: failed to create checkout", "provider", provider.Name(), "org_id", org.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create checkout session"})
 		return
@@ -158,8 +181,16 @@ func (h *BillingHandler) CreatePortal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := provider.CreatePortal(r.Context(), sub.ExternalCustomerID)
+	session, err := provider.CreatePortal(r.Context(), billing.PortalRequest{
+		OrgID:                  org.ID,
+		ExternalCustomerID:     sub.ExternalCustomerID,
+		ExternalSubscriptionID: sub.ExternalSubscriptionID,
+	})
 	if err != nil {
+		if errors.Is(err, billing.ErrNoActiveSubscription) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "no active subscription"})
+			return
+		}
 		slog.Error("billing: failed to create portal", "provider", provider.Name(), "org_id", org.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create portal session"})
 		return

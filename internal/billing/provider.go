@@ -1,7 +1,7 @@
 // Package billing is the provider-agnostic billing layer.
 //
-// Real providers (Stripe, Paddle, Lemon Squeezy, etc.) live in sub-packages
-// and implement the Provider interface. A fake provider for tests lives in
+// Real providers (Stripe, Paystack, Paddle, etc.) live in sub-packages and
+// implement the Provider interface. A fake provider for tests lives in
 // internal/billing/fake. The rest of the codebase only ever talks to the
 // Provider interface and the credit ledger service — never to a concrete
 // provider SDK.
@@ -9,10 +9,37 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
+)
+
+// Cycle is the billing cadence the user chose at checkout.
+type Cycle string
+
+const (
+	CycleMonthly Cycle = "monthly"
+	CycleAnnual  Cycle = "annual"
+)
+
+// IsValid reports whether c is one of the recognised cycles.
+func (c Cycle) IsValid() bool { return c == CycleMonthly || c == CycleAnnual }
+
+// Well-known currency codes. Providers should treat currency as an opaque
+// ISO-4217 string — these constants are purely a convenience.
+const (
+	CurrencyUSD = "USD"
+	CurrencyNGN = "NGN"
+)
+
+// Provider-agnostic errors. Adapters should wrap these with %w so callers can
+// errors.Is them regardless of which provider raised the issue.
+var (
+	ErrUnsupportedCurrency  = errors.New("billing: currency not supported by this provider")
+	ErrUnknownPlan          = errors.New("billing: plan slug not configured for this provider")
+	ErrNoActiveSubscription = errors.New("billing: no active subscription for this org")
 )
 
 // CheckoutIntent describes a user's intent to subscribe to a plan. Providers
@@ -22,6 +49,8 @@ type CheckoutIntent struct {
 	OrgName       string
 	CustomerEmail string
 	PlanSlug      string
+	Currency      string // ISO-4217, e.g. "USD", "NGN"
+	Cycle         Cycle
 	SuccessURL    string
 	CancelURL     string
 	Metadata      map[string]string
@@ -34,7 +63,17 @@ type CheckoutSession struct {
 	ExternalID string
 }
 
-// PortalSession is a URL into the provider's self-serve billing portal.
+// PortalRequest carries everything a provider might need to build a portal
+// URL. Adapters read whichever fields they care about; Stripe uses the
+// customer id, Paystack uses the subscription id, etc.
+type PortalRequest struct {
+	OrgID                  uuid.UUID
+	ExternalCustomerID     string
+	ExternalSubscriptionID string
+}
+
+// PortalSession is a URL into the provider's self-serve billing portal, or an
+// equivalent hosted page when the provider lacks a full portal.
 type PortalSession struct {
 	URL string
 }
@@ -92,14 +131,19 @@ type Provider interface {
 	Name() string
 
 	// EnsureCustomer creates or returns the provider's external customer id
-	// for the org. Implementations should be idempotent.
+	// for the org. Implementations must be idempotent on email or org id.
 	EnsureCustomer(ctx context.Context, orgID uuid.UUID, email, orgName string) (string, error)
 
-	// CreateCheckout returns a URL the browser should redirect to.
+	// CreateCheckout returns a URL the browser should redirect to. Adapters
+	// that can't satisfy the requested currency or plan should return the
+	// matching ErrUnsupportedCurrency / ErrUnknownPlan sentinel.
 	CreateCheckout(ctx context.Context, customerID string, intent CheckoutIntent) (*CheckoutSession, error)
 
-	// CreatePortal returns a URL into the provider's customer portal.
-	CreatePortal(ctx context.Context, customerID string) (*PortalSession, error)
+	// CreatePortal returns a URL into the provider's customer portal — or the
+	// nearest equivalent the provider offers (e.g. Paystack's per-subscription
+	// manage-link). Adapters that require an active subscription should
+	// return ErrNoActiveSubscription when req.ExternalSubscriptionID is empty.
+	CreatePortal(ctx context.Context, req PortalRequest) (*PortalSession, error)
 
 	// VerifyWebhook checks the signature on an incoming webhook request. The
 	// request body is already read into body — implementations must not read
