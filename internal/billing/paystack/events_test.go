@@ -148,7 +148,12 @@ func TestParseEvent_UnknownEvent(t *testing.T) {
 	}
 }
 
-func TestParseEvent_MissingOrgIDIsError(t *testing.T) {
+// TestParseEvent_MissingOrgIDReturnsNilOrg ensures the parser doesn't reject
+// events whose customer.metadata is empty or null. Paystack's real samples
+// often lack metadata (only populated for API-created customers), so the
+// parser hands the problem to the handler via OrgID=uuid.Nil. The handler's
+// resolveOrgID then falls back to subscription_code / customer_code lookup.
+func TestParseEvent_MissingOrgIDReturnsNilOrg(t *testing.T) {
 	p := providerForEvents(t)
 	body := []byte(`{
 		"event": "subscription.create",
@@ -159,7 +164,22 @@ func TestParseEvent_MissingOrgIDIsError(t *testing.T) {
 			"plan": {"plan_code": "PLN_pro_ngn_m"}
 		}
 	}`)
-	if _, err := p.ParseEvent(body); err == nil {
-		t.Fatal("expected error when org_id missing from customer metadata")
+	ev, err := p.ParseEvent(body)
+	if err != nil {
+		t.Fatalf("ParseEvent with missing org_id should not error: %v", err)
+	}
+	if ev.Subscription == nil {
+		t.Fatal("expected subscription state")
+	}
+	if ev.Subscription.OrgID != uuid.Nil {
+		t.Errorf("OrgID = %s, want Nil (handler must resolve)", ev.Subscription.OrgID)
+	}
+	// Correlation identifiers must still be populated so the handler can do
+	// the fallback lookup.
+	if ev.Subscription.ExternalSubscriptionID != "SUB_1" {
+		t.Errorf("SubscriptionID missing: %q", ev.Subscription.ExternalSubscriptionID)
+	}
+	if ev.Subscription.ExternalCustomerID != "CUS_1" {
+		t.Errorf("CustomerID missing: %q", ev.Subscription.ExternalCustomerID)
 	}
 }
