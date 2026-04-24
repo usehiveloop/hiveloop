@@ -26,7 +26,7 @@ func AuthRateLimit(ctx context.Context, rps float64, burst int) func(http.Handle
 	entries := make(map[string]*ipLimiterEntry)
 
 	// Background cleanup of stale entries.
-	goroutine.Go(func() {
+	goroutine.Go(ctx, func(ctx context.Context) {
 		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
 		for {

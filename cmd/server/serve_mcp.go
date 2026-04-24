@@ -67,7 +67,7 @@ func setupMCPServer(
 
 	mcpHandler.ServerCache.StartCleanup(ctx, 5*time.Minute)
 
-	goroutine.Go(func() {
+	goroutine.Go(ctx, func(context.Context) {
 		slog.Info("mcp server starting", "port", cfg.MCPPort)
 		if err := mcpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("mcp server error", "error", err)

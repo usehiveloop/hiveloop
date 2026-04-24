@@ -56,6 +56,7 @@ const maskValue = "***"
 func AdminAudit(db *gorm.DB, enqueuer ...enqueue.TaskEnqueuer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
 			start := time.Now()
 
 			// Capture request body for mutating methods
@@ -89,12 +90,12 @@ func AdminAudit(db *gorm.DB, enqueuer ...enqueue.TaskEnqueuer) func(http.Handler
 			}
 
 			// Admin identity
-			if claims, ok := AuthClaimsFromContext(r.Context()); ok {
+			if claims, ok := AuthClaimsFromContext(ctx); ok {
 				if uid, err := uuid.Parse(claims.UserID); err == nil {
 					entry.AdminID = uid
 				}
 			}
-			if user, ok := UserFromContext(r.Context()); ok {
+			if user, ok := UserFromContext(ctx); ok {
 				entry.AdminEmail = maskEmail(user.Email)
 			}
 

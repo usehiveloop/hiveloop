@@ -48,9 +48,14 @@ func (kw *KeyWrapper) Unwrap(ctx context.Context, ciphertext []byte) ([]byte, er
 // NewAEADWrapper creates a KeyWrapper using local AES-256-GCM encryption.
 // keyBase64 is a base64-encoded 32-byte key. Suitable for dev/test and
 // single-node deployments.
-func NewAEADWrapper(keyBase64, keyID string) (*KeyWrapper, error) {
+//
+// ctx bounds the underlying go-kms-wrapping SetConfig call; local AEAD
+// doesn't use it today but the remote wrappers (AWS KMS, Vault) do, and we
+// keep the signature consistent so callers can't forget to wire cancellation
+// through.
+func NewAEADWrapper(ctx context.Context, keyBase64, keyID string) (*KeyWrapper, error) {
 	w := aead.NewWrapper()
-	_, err := w.SetConfig(context.Background(), wrapping.WithConfigMap(map[string]string{
+	_, err := w.SetConfig(ctx, wrapping.WithConfigMap(map[string]string{
 		"aead_type": "aes-gcm",
 		"key":       keyBase64,
 		"key_id":    keyID,
@@ -64,8 +69,9 @@ func NewAEADWrapper(keyBase64, keyID string) (*KeyWrapper, error) {
 // NewAWSKMSWrapper creates a KeyWrapper backed by AWS KMS.
 // The KMS key ID can be a key ID, key ARN, alias name, or alias ARN.
 // AWS credentials are resolved from the standard chain (env vars, instance
-// profile, shared credentials file, etc.).
-func NewAWSKMSWrapper(kmsKeyID, region string) (*KeyWrapper, error) {
+// profile, shared credentials file, etc.). ctx bounds the initial KMS
+// describe-key round-trip.
+func NewAWSKMSWrapper(ctx context.Context, kmsKeyID, region string) (*KeyWrapper, error) {
 	w := awskms.NewWrapper()
 	cfg := map[string]string{
 		"kms_key_id": kmsKeyID,
@@ -73,7 +79,7 @@ func NewAWSKMSWrapper(kmsKeyID, region string) (*KeyWrapper, error) {
 	if region != "" {
 		cfg["region"] = region
 	}
-	_, err := w.SetConfig(context.Background(), wrapping.WithConfigMap(cfg))
+	_, err := w.SetConfig(ctx, wrapping.WithConfigMap(cfg))
 	if err != nil {
 		return nil, fmt.Errorf("configuring AWS KMS wrapper: %w", err)
 	}
@@ -93,13 +99,14 @@ type VaultConfig struct {
 }
 
 // NewVaultTransitWrapper creates a KeyWrapper backed by HashiCorp Vault Transit engine.
-// The Transit engine must be enabled and the key must exist in Vault.
-func NewVaultTransitWrapper(cfg VaultConfig) (*KeyWrapper, error) {
+// The Transit engine must be enabled and the key must exist in Vault. ctx
+// bounds the initial Vault round-trip.
+func NewVaultTransitWrapper(ctx context.Context, cfg VaultConfig) (*KeyWrapper, error) {
 	w := transit.NewWrapper()
 
 	configMap := map[string]string{
-		"address": cfg.Address,
-		"token":   cfg.Token,
+		"address":  cfg.Address,
+		"token":    cfg.Token,
 		"key_name": cfg.KeyName,
 	}
 
@@ -119,7 +126,7 @@ func NewVaultTransitWrapper(cfg VaultConfig) (*KeyWrapper, error) {
 		configMap["client_key"] = cfg.ClientKey
 	}
 
-	_, err := w.SetConfig(context.Background(), wrapping.WithConfigMap(configMap))
+	_, err := w.SetConfig(ctx, wrapping.WithConfigMap(configMap))
 	if err != nil {
 		return nil, fmt.Errorf("configuring Vault Transit wrapper: %w", err)
 	}

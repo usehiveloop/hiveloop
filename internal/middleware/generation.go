@@ -115,7 +115,7 @@ func (gw *GenerationWriter) Shutdown(ctx context.Context) {
 	close(gw.entries)
 
 	done := make(chan struct{})
-	goroutine.Go(func() {
+	goroutine.Go(ctx, func(context.Context) {
 		gw.wg.Wait()
 		close(done)
 	})
