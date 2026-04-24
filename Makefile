@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down rag-spike rag-engine-build rag-engine-run rag-engine-dev rag-engine-dev-bin rag-engine-test rag-engine-fmt rag-engine-clippy rag-engine-smoke proto-lint
+.PHONY: build test test-e2e test-e2e-vault lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down rag-spike rag-engine-build rag-engine-run rag-engine-dev rag-engine-dev-bin rag-engine-test rag-engine-fmt rag-engine-clippy rag-engine-smoke proto-lint
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -146,12 +146,17 @@ test-integrations:
 lint:
 	golangci-lint run ./...
 
+# Enforce the 300-line ceiling on hand-written Go files. Honours
+# scripts/file-length-allowlist.txt for grandfathered exceptions.
+check-file-length:
+	./scripts/check-go-file-length.sh
+
 # Run go vet
 vet:
 	go vet ./...
 
-# Run all checks: vet, lint, test, build
-check: vet lint test build
+# Run all checks: vet, lint, file-length, test, build
+check: vet lint check-file-length test build
 
 # Start local development stack (infra only, no proxy)
 up:
