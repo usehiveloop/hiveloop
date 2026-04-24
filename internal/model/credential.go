@@ -21,8 +21,14 @@ type Credential struct {
 	LastRefillAt   *time.Time `gorm:"column:last_refill_at"`
 	ProviderID     string     `gorm:"column:provider_id;default:''"`
 	Meta           JSON       `gorm:"type:jsonb;default:'{}'"`
-	RevokedAt      *time.Time
-	CreatedAt      time.Time
+	// IsSystem marks credentials owned by the platform itself rather than by
+	// a customer org. System credentials are used by agents that opted out of
+	// BYOK (agent.credential_id IS NULL), managed via admin-only endpoints,
+	// and hidden from org-scoped APIs. They FK to the platform org (see
+	// internal/credentials.PlatformOrgID).
+	IsSystem  bool `gorm:"not null;default:false;index"`
+	RevokedAt *time.Time
+	CreatedAt time.Time
 }
 
 func (Credential) TableName() string { return "credentials" }

@@ -16,6 +16,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/cache"
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/counter"
+	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/db"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
@@ -93,6 +94,14 @@ func New(ctx context.Context) (*Deps, error) {
 	if err := rag.AutoMigrate(database); err != nil {
 		return nil, fmt.Errorf("running RAG migrations: %w", err)
 	}
+	// Ensure the platform org exists — it owns every system credential
+	// (is_system = true). Idempotent.
+	if err := credentials.SeedPlatformOrg(database); err != nil {
+		return nil, fmt.Errorf("seeding platform org: %w", err)
+	}
+	// Picker resolves system credentials for agents whose credential_id is
+	// nil (platform-keys mode). Shared across handlers and sandbox.Pusher.
+	credentialPicker := credentials.NewPicker(database)
 	slog.Info("database ready")
 
 	// 4. KMS wrapper
@@ -238,7 +247,7 @@ func New(ctx context.Context) (*Deps, error) {
 		}
 
 		orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, tursoProvisioner, sandboxEncKey, cfg)
-		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg)
+		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg, credentialPicker)
 		slog.Info("sandbox orchestrator ready")
 	}
 
