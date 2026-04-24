@@ -1,0 +1,14 @@
+# Allowlist for gitleaks false positives.
+#
+# Each entry is a fingerprint in the form:
+#   <commit-sha>:<file>:<rule>:<line>
+#
+# Fingerprints below are Paystack "email_token" sample strings copied from
+# the public Paystack Subscriptions docs into testdata. They're not real
+# credentials; gitleaks' generic-api-key rule flags them for entropy alone.
+# The next commit removes the fields from the fixtures (the parser never
+# read them), but the intermediate commit still carries them in git history,
+# which origin/main..HEAD scans catch.
+ecf822bd72292431d5d21d3ad5fcebb90468e277:internal/billing/paystack/testdata/subscription_disable_complete.json:generic-api-key:7
+ecf822bd72292431d5d21d3ad5fcebb90468e277:internal/billing/paystack/testdata/invoice_payment_failed.json:generic-api-key:31
+ecf822bd72292431d5d21d3ad5fcebb90468e277:internal/billing/paystack/testdata/subscription_not_renew.json:generic-api-key:8
