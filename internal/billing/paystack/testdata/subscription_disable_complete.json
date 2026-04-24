@@ -4,7 +4,6 @@
     "domain": "test",
     "status": "complete",
     "subscription_code": "SUB_vsyqdmlzble3uii",
-    "email_token": "ctt824k16n34u69",
     "amount": 300000,
     "cron_expression": "0 * * * *",
     "next_payment_date": "2026-05-25T15:00:00.000Z",

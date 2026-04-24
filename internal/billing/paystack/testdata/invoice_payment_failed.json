@@ -28,7 +28,6 @@
     "subscription": {
       "status": "active",
       "subscription_code": "SUB_f7ct8g01mtcjf78",
-      "email_token": "gptk4apuohyyjsg",
       "amount": 5850000,
       "cron_expression": "0 * * * *",
       "next_payment_date": "2026-03-25T00:00:00.000Z",
