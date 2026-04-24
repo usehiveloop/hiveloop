@@ -13,6 +13,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehiveloop/hiveloop/internal/billing/paystack"
 	"github.com/usehiveloop/hiveloop/internal/cache"
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/counter"
@@ -269,6 +270,14 @@ func New(ctx context.Context) (*Deps, error) {
 	// whether any provider is registered.
 	billingRegistry := billing.NewRegistry()
 	credits := billing.NewCreditsService(database)
+	if cfg.PaystackSecretKey != "" {
+		plans := paystack.PlanRegistryFromEnv()
+		billingRegistry.Register(paystack.New(paystack.Config{
+			SecretKey: cfg.PaystackSecretKey,
+			Plans:     plans,
+		}))
+		slog.Info("paystack provider registered", "configured_slugs", len(plans))
+	}
 	slog.Info("billing ready", "providers", billingRegistry.Names())
 
 	// 18. S3 storage (agent drive — optional)
