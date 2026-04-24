@@ -1,3 +1,7 @@
+/// Default turns between stable system-reminder refreshes when an agent
+/// doesn't override `system_reminder_refresh_turns`.
+const DEFAULT_SYSTEM_REMINDER_REFRESH_TURNS: u32 = 10;
+
 /// Wire together per-message reminder extraction, date-change detection,
 /// volatile reminder assembly, and final user-text layout into a single
 /// one-call helper.
@@ -12,6 +16,7 @@ pub(super) async fn build_layout_text(
     ping_state: &Option<tools::ping_me_back::PingState>,
     system_reminder: &str,
     user_text: &str,
+    system_reminder_refresh_turns: Option<u32>,
 ) -> String {
     let per_message_reminder = match incoming {
         super::params::IncomingMessage::User(msg) => msg
@@ -33,9 +38,21 @@ pub(super) async fn build_layout_text(
     )
     .await;
 
+    // The stable system reminder (skills + subagents + todos + date) is
+    // prepended to the user message only on turn 0 and every N turns
+    // thereafter. Re-emitting on every turn makes each user message a
+    // fresh cache miss; never re-emitting lets the reminder go stale.
+    // N comes from `AgentConfig::system_reminder_refresh_turns`, defaulting
+    // to 10. Values <1 are clamped to 1 (every-turn refresh).
+    let refresh_every = system_reminder_refresh_turns
+        .map(|n| n.max(1) as usize)
+        .unwrap_or(DEFAULT_SYSTEM_REMINDER_REFRESH_TURNS as usize);
+    let is_refresh_turn = turn_count == 0 || turn_count.is_multiple_of(refresh_every);
+    let effective_system_reminder = if is_refresh_turn { system_reminder } else { "" };
+
     assemble_final_user_text(
         date_change_reminder,
-        system_reminder,
+        effective_system_reminder,
         user_text,
         volatile_reminder,
     )
@@ -102,8 +119,17 @@ pub(super) async fn build_volatile_reminder(
         append_volatile(&mut volatile_reminder, immortal_section);
     }
 
-    if standalone_agent && turn_count.is_multiple_of(5) {
-        let env_section = crate::environment::EnvironmentSnapshot::collect().format_reminder();
+    // Environment reminder fires on turn 0 (so the agent knows where it is
+    // from the very first turn) and every 5 turns thereafter as a refresh
+    // for memory/CPU/disk which drift. The workspace_dir line is the
+    // load-bearing piece — agents otherwise invent `/tmp`, `/workspace`,
+    // and other phantom paths. Previously gated on `standalone_agent` but
+    // every agent benefits from knowing its CWD, not just sandboxed ones.
+    // The pre-installed-tools section still only makes sense inside the
+    // dev-box sandbox template; `standalone_agent` controls that.
+    if turn_count.is_multiple_of(5) {
+        let env_section = crate::environment::EnvironmentSnapshot::collect()
+            .format_reminder_with_options(standalone_agent);
         append_volatile(
             &mut volatile_reminder,
             format!("<system-reminder>\n{}\n</system-reminder>", env_section),

@@ -72,13 +72,15 @@ pub fn strip_old_tool_outputs(history: &mut [Message], config: &HistoryStripConf
                 protected_bytes += text_bytes;
                 continue;
             }
-            if extract_spill_path(tr).is_none() {
-                // Without a spill path we'd lose the content entirely — leave
-                // inline. Results that have no spill path are by definition
-                // small (<2KB), so keeping them costs little.
-                protected_bytes += text_bytes;
-                continue;
-            }
+            // Spill-path is no longer required. When present, the marker
+            // tells the agent how to recover the full output via RipGrep.
+            // When absent (most Read, RipGrep, Glob, todowrite, etc. results),
+            // we still strip the body and leave a generic marker — the agent
+            // can always re-call the tool if it needs the content again. A
+            // "small" 500B result that's repeated across 60 turns still adds
+            // up to 30KB of cumulative cached input; over a long conversation
+            // these dominate the bill. We'd rather drop and let the model
+            // re-fetch than bloat history.
 
             if protected_bytes + text_bytes <= protection_budget {
                 protected_bytes += text_bytes;

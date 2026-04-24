@@ -19,9 +19,56 @@ use tools::bash::BashArgs;
 use tools::self_agent::AgentToolParams;
 use tracing::{info, warn};
 
+use super::coerce::coerce_args_against_schema;
 use super::permission::PermissionCtx;
 use super::truncate::{truncate_if_needed, validate_tool_args, Truncated};
 use super::ToolCallEmitter;
+
+impl ToolCallEmitter {
+    /// Check the repeat-call guard. Returns `Some(Skip{hint})` when the
+    /// current call is the Nth identical consecutive call and should be
+    /// short-circuited. `None` when the call should proceed normally.
+    fn check_repeat_guard(
+        &self,
+        effective_name: &str,
+        ctx: &CallCtx,
+    ) -> Option<ToolCallHookAction> {
+        let hint = self
+            .repeat_guard
+            .lock()
+            .ok()?
+            .record(effective_name, &ctx.arguments)?;
+        let duration_ms = ctx.call_start.elapsed().as_millis() as u64;
+        // Count as an executor-level failure — the tool did not run and
+        // bridge actively rejected the dispatch. `is_error=true` means
+        // "process-level dispatch failure" per the existing convention
+        // in metrics/tool_hook.
+        self.metrics
+            .record_tool_call_detailed(effective_name, true, false, duration_ms);
+        warn!(
+            agent_id = %self.agent_id,
+            conversation_id = %self.conversation_id,
+            tool_name = %effective_name,
+            tool_call_id = %ctx.id,
+            duration_ms = duration_ms,
+            "tool_call_repeat_guard_tripped"
+        );
+        self.event_bus.emit(BridgeEvent::new(
+            BridgeEventType::ToolCallCompleted,
+            &self.agent_id,
+            &self.conversation_id,
+            json!({
+                "id": &ctx.id,
+                "result": &hint,
+                "is_error": true,
+                "duration_ms": duration_ms,
+                "tool_name": effective_name,
+            }),
+        ));
+        self.persist_tool_interaction(effective_name, &ctx.id, &ctx.arguments, &hint, true);
+        Some(ToolCallHookAction::Skip { reason: hint })
+    }
+}
 
 /// Step-by-step state shared across the `on_tool_call` helpers.
 struct CallCtx {
@@ -79,7 +126,7 @@ impl ToolCallEmitter {
                 let error = self.unknown_tool_error(tool_name);
                 let duration_ms = ctx.call_start.elapsed().as_millis() as u64;
                 self.metrics
-                    .record_tool_call_detailed(tool_name, true, duration_ms);
+                    .record_tool_call_detailed(tool_name, true, false, duration_ms);
                 warn!(
                     agent_id = %self.agent_id,
                     conversation_id = %self.conversation_id,
@@ -102,11 +149,24 @@ impl ToolCallEmitter {
 
     /// Validate tool arguments against the tool's JSON schema. Catches
     /// malformed calls early so the agent can retry immediately.
-    fn validate_args(&self, effective_name: &str, ctx: &CallCtx) -> Result<(), ToolCallHookAction> {
+    ///
+    /// Before validating, runs `coerce_args_against_schema` which converts
+    /// quoted-string primitives (`"300000"` for an integer field) into
+    /// their actual primitive types. Reasoning models commonly emit
+    /// integer/number arguments as strings; this lets validation pass
+    /// without forcing the model to retry. The same coercion runs again
+    /// at the `DynamicTool::call` boundary so the executor receives the
+    /// typed value too.
+    fn validate_args(
+        &self,
+        effective_name: &str,
+        ctx: &mut CallCtx,
+    ) -> Result<(), ToolCallHookAction> {
         let Some(executor) = self.tool_executors.get(effective_name) else {
             return Ok(());
         };
         let schema = executor.parameters_schema();
+        coerce_args_against_schema(&mut ctx.arguments, &schema);
         let Err(validation_error) = validate_tool_args(&ctx.arguments, &schema) else {
             return Ok(());
         };
@@ -116,7 +176,7 @@ impl ToolCallEmitter {
         .to_string();
         let duration_ms = ctx.call_start.elapsed().as_millis() as u64;
         self.metrics
-            .record_tool_call_detailed(effective_name, true, duration_ms);
+            .record_tool_call_detailed(effective_name, true, false, duration_ms);
         info!(
             agent_id = %self.agent_id,
             conversation_id = %self.conversation_id,
@@ -215,7 +275,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
         let arguments = serde_json::from_str(args)
             .unwrap_or_else(|_| serde_json::Value::String(args.to_string()));
 
-        let ctx = CallCtx {
+        let mut ctx = CallCtx {
             call_start,
             id,
             arguments,
@@ -240,8 +300,17 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
             return action;
         }
 
-        // 3. Validate arguments against JSON schema.
-        if let Err(action) = self.validate_args(&effective_name, &ctx) {
+        // 3. Validate arguments against JSON schema (with primitive coercion).
+        if let Err(action) = self.validate_args(&effective_name, &mut ctx) {
+            return action;
+        }
+
+        // 3b. Repeat-call guard — break model loops that fire the same
+        // tool with the same args turn after turn. Fires on the third
+        // identical consecutive call; returns a short-circuited Skip
+        // with a hint so no real dispatch happens and the model sees a
+        // different message next turn.
+        if let Some(action) = self.check_repeat_guard(&effective_name, &ctx) {
             return action;
         }
 

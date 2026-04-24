@@ -115,7 +115,7 @@ async fn test_task_budget_enforced_by_sub_agent_tool() {
     let args = serde_json::json!({
         "description": "test",
         "prompt": "do something",
-        "subagentName": "coder"
+        "subagent_name": "coder"
     });
 
     // First call should succeed

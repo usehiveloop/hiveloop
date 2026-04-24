@@ -106,6 +106,11 @@ pub struct ConversationParams {
     pub mcp_manager: Option<Arc<mcp::McpManager>>,
     /// When true, inject environment system reminder (resource usage, installed tools).
     pub standalone_agent: bool,
+    /// How often (in turns) to re-emit the stable system reminder (skills,
+    /// subagents, todos) at the head of the user message. `None` falls back
+    /// to the bridge default (10). Always emitted on turn 0 regardless.
+    /// See `AgentConfig::system_reminder_refresh_turns`.
+    pub system_reminder_refresh_turns: Option<u32>,
     /// Shared state for ping-me-back timers (non-blocking delayed reminders).
     pub ping_state: Option<tools::ping_me_back::PingState>,
     /// Declarative tool-call requirements evaluated at the end of every

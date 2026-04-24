@@ -33,7 +33,7 @@ impl ToolCallEmitter {
                 let error = "Background bash requires a conversation context".to_string();
                 let duration_ms = call_start.elapsed().as_millis() as u64;
                 self.metrics
-                    .record_tool_call_detailed("bash", true, duration_ms);
+                    .record_tool_call_detailed("bash", true, false, duration_ms);
                 warn!(
                     agent_id = %self.agent_id,
                     conversation_id = %self.conversation_id,
@@ -68,7 +68,7 @@ impl ToolCallEmitter {
         // Record metrics for the background bash spawn (not the actual execution)
         let duration_ms = call_start.elapsed().as_millis() as u64;
         self.metrics
-            .record_tool_call_detailed("bash", false, duration_ms);
+            .record_tool_call_detailed("bash", false, false, duration_ms);
         info!(
             agent_id = %self.agent_id,
             conversation_id = %self.conversation_id,

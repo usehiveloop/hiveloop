@@ -20,7 +20,6 @@ use parser::parse_patch;
 
 /// Arguments for the ApplyPatch tool.
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
 pub struct ApplyPatchArgs {
     /// The full patch text that describes all changes to be made.
     pub patch_text: String,

@@ -119,7 +119,7 @@ fn test_not_retryable_max_turns() {
 #[test]
 fn test_not_retryable_prompt_cancelled() {
     let err = PromptError::PromptCancelled {
-        chat_history: Box::new(vec![]),
+        chat_history: vec![],
         reason: "user cancelled".into(),
     };
     assert!(!is_retryable_error(&err));

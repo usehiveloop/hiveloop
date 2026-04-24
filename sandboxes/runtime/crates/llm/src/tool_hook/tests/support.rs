@@ -48,5 +48,8 @@ pub(super) fn make_emitter_with(
         pressure_threshold_bytes: None,
         pressure_counter: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         pressure_warned: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        repeat_guard: Arc::new(std::sync::Mutex::new(
+            crate::tool_hook::repeat_guard::RepeatGuardState::default(),
+        )),
     }
 }

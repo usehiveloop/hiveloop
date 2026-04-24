@@ -1,13 +1,110 @@
 //! Provider client construction and agent building.
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
+use std::time::Duration;
 
 use bridge_core::provider::{ProviderConfig, ProviderType};
 use bridge_core::BridgeError;
+use bytes::Bytes;
+use reqwest_middleware::{ClientBuilder as MwClientBuilder, ClientWithMiddleware};
+use reqwest_retry::policies::ExponentialBackoff;
+use reqwest_retry::RetryTransientMiddleware;
 use rig::agent::Agent;
 use rig::completion::CompletionModel;
+use rig::http_client::{
+    HttpClientExt, LazyBody, MultipartForm, Result as HttpResult, StreamingResponse,
+};
 use rig::prelude::CompletionClient;
+use rig::wasm_compat::WasmCompatSend;
 use tracing::{info, warn};
+
+/// One process-global `ClientWithMiddleware` carrying the retry middleware.
+/// Cached so each agent build doesn't re-create the connection pool.
+fn shared_retrying_client() -> ClientWithMiddleware {
+    static CELL: OnceLock<ClientWithMiddleware> = OnceLock::new();
+    CELL.get_or_init(|| {
+        // Exponential backoff with jitter, capped at 2 minutes per attempt.
+        // 8 retries with a 500ms floor and 120s ceiling gives the policy room
+        // to actually use the upper bound (with only 5 retries the doubling
+        // sequence tops out around 16s and never reaches the cap). Total
+        // worst-case wait across all retries: ~4 minutes.
+        let policy = ExponentialBackoff::builder()
+            .retry_bounds(Duration::from_millis(500), Duration::from_secs(120))
+            .build_with_max_retries(8);
+        // `read_timeout` is the maximum gap between bytes on an open response.
+        // Some providers (seen in the wild on OpenRouter routing certain
+        // reasoning models) accept a streaming request, return headers, then
+        // never produce a single SSE chunk. Without this guard the connection
+        // sits open until something else times out — eating the conversation's
+        // wall budget on one stuck turn. Set higher than the application-level
+        // guard in `stream_loop.rs` (5 min) so the friendly app-layer timeout
+        // fires first; this is the transport-layer backstop in case the
+        // streaming future itself wedges below the polling layer.
+        let http = reqwest::Client::builder()
+            .read_timeout(Duration::from_secs(360))
+            .pool_idle_timeout(Duration::from_secs(90))
+            .build()
+            .expect("reqwest client builder must not fail with default tls");
+        MwClientBuilder::new(http)
+            .with(RetryTransientMiddleware::new_with_policy(policy))
+            .build()
+    })
+    .clone()
+}
+
+/// Newtype wrapper so we can give the rig client builder a type that
+/// satisfies its `H: Default + HttpClientExt` bound. `Default::default()`
+/// returns a clone of the process-wide retrying middleware client.
+///
+/// This is needed because `reqwest_middleware::ClientWithMiddleware` itself
+/// does not implement `Default`, but rig 0.35's generic `ClientBuilder::build`
+/// requires it. We delegate every `HttpClientExt` method to the inner client
+/// so retry behavior is preserved.
+#[derive(Debug, Clone)]
+pub struct RetryingHttp(ClientWithMiddleware);
+
+impl Default for RetryingHttp {
+    fn default() -> Self {
+        Self(shared_retrying_client())
+    }
+}
+
+impl HttpClientExt for RetryingHttp {
+    fn send<T, U>(
+        &self,
+        req: http::Request<T>,
+    ) -> impl std::future::Future<Output = HttpResult<http::Response<LazyBody<U>>>>
+           + WasmCompatSend
+           + 'static
+    where
+        T: Into<Bytes> + WasmCompatSend,
+        U: From<Bytes> + WasmCompatSend + 'static,
+    {
+        self.0.send(req)
+    }
+
+    fn send_multipart<U>(
+        &self,
+        req: http::Request<MultipartForm>,
+    ) -> impl std::future::Future<Output = HttpResult<http::Response<LazyBody<U>>>>
+           + WasmCompatSend
+           + 'static
+    where
+        U: From<Bytes> + WasmCompatSend + 'static,
+    {
+        self.0.send_multipart(req)
+    }
+
+    fn send_streaming<T>(
+        &self,
+        req: http::Request<T>,
+    ) -> impl std::future::Future<Output = HttpResult<StreamingResponse>> + WasmCompatSend
+    where
+        T: Into<Bytes>,
+    {
+        self.0.send_streaming(req)
+    }
+}
 
 use crate::prefix_hash::{
     prefix_hash_from_definitions, split_hashes_from_definitions, suspected_volatile_markers,
@@ -189,19 +286,22 @@ fn require_base_url(config: &ProviderConfig) -> Result<&str, BridgeError> {
 
 pub(crate) fn build_openai_client(
     config: &ProviderConfig,
-) -> Result<rig::providers::openai::CompletionsClient, BridgeError> {
+) -> Result<rig::providers::openai::CompletionsClient<RetryingHttp>, BridgeError> {
     let base_url = require_base_url(config)?;
     rig::providers::openai::CompletionsClient::builder()
         .api_key(&config.api_key)
         .base_url(base_url)
+        .http_client(RetryingHttp::default())
         .build()
         .map_err(|e| BridgeError::ProviderError(format!("failed to create OpenAI client: {}", e)))
 }
 
 pub(crate) fn build_anthropic_client(
     config: &ProviderConfig,
-) -> Result<rig::providers::anthropic::Client, BridgeError> {
-    let mut builder = rig::providers::anthropic::Client::builder().api_key(&config.api_key);
+) -> Result<rig::providers::anthropic::Client<RetryingHttp>, BridgeError> {
+    let mut builder = rig::providers::anthropic::Client::builder()
+        .api_key(&config.api_key)
+        .http_client(RetryingHttp::default());
     if let Some(ref base_url) = config.base_url {
         builder = builder.base_url(base_url);
     }
@@ -221,6 +321,8 @@ pub(crate) fn build_anthropic_client(
 pub(crate) fn build_gemini_client(
     config: &ProviderConfig,
 ) -> Result<rig::providers::gemini::Client, BridgeError> {
+    // Gemini left on the default `reqwest::Client` (no retry middleware)
+    // because of the rig 0.35 Capabilities-impl bug; see comment in mod.rs.
     let mut builder = rig::providers::gemini::Client::builder().api_key(&config.api_key);
     if let Some(ref base_url) = config.base_url {
         builder = builder.base_url(base_url);
@@ -232,8 +334,10 @@ pub(crate) fn build_gemini_client(
 
 pub(crate) fn build_cohere_client(
     config: &ProviderConfig,
-) -> Result<rig::providers::cohere::Client, BridgeError> {
-    let mut builder = rig::providers::cohere::Client::builder().api_key(&config.api_key);
+) -> Result<rig::providers::cohere::Client<RetryingHttp>, BridgeError> {
+    let mut builder = rig::providers::cohere::Client::builder()
+        .api_key(&config.api_key)
+        .http_client(RetryingHttp::default());
     if let Some(ref base_url) = config.base_url {
         builder = builder.base_url(base_url);
     }

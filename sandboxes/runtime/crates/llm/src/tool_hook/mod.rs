@@ -32,15 +32,20 @@ use webhooks::EventBus;
 use crate::permission_manager::PermissionManager;
 
 mod background;
+pub(crate) mod coerce;
+pub(crate) mod result_classify;
 mod execute;
 mod hook_impl;
 mod name_resolution;
 mod permission;
 mod persist;
+pub mod repeat_guard;
 mod result_hook;
 mod self_agent;
 mod sub_agent;
 mod truncate;
+
+pub use repeat_guard::RepeatGuardState;
 
 #[cfg(test)]
 mod tests;
@@ -99,6 +104,11 @@ pub struct ToolCallEmitter {
     pub pressure_counter: Arc<std::sync::atomic::AtomicUsize>,
     /// Flag so ContextPressureWarning is only emitted once per turn.
     pub pressure_warned: Arc<std::sync::atomic::AtomicBool>,
+    /// Shared across all turns in this conversation. Tracks consecutive
+    /// identical tool calls so we can short-circuit a runaway model loop
+    /// (e.g. Qwen3.6-plus re-emitting the same Read every turn). See
+    /// `repeat_guard.rs` for the policy.
+    pub repeat_guard: Arc<Mutex<RepeatGuardState>>,
 }
 
 impl ToolCallEmitter {

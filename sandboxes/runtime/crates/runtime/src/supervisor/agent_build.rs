@@ -34,9 +34,18 @@ impl AgentSupervisor {
             .connect_agent(&agent_id, &definition.mcp_servers)
             .await?;
 
-        // Extract tool allow-list early — used for both MCP and built-in tool filtering
-        let builtin_tool_names: Vec<String> =
-            definition.tools.iter().map(|t| t.name.clone()).collect();
+        // Extract tool allow-list early — used for both MCP and built-in tool filtering.
+        // Priority: if definition.tools is non-empty, use those names (legacy behavior).
+        // Otherwise, if definition.permissions is non-empty, treat its keys as the
+        // allow-list for built-in tools. Unknown keys (MCP tool names, integration
+        // tool names) are harmlessly ignored by the built-in filter.
+        let builtin_tool_names: Vec<String> = if !definition.tools.is_empty() {
+            definition.tools.iter().map(|t| t.name.clone()).collect()
+        } else if !definition.permissions.is_empty() {
+            definition.permissions.keys().cloned().collect()
+        } else {
+            Vec::new()
+        };
 
         let mut tool_registry = ToolRegistry::new();
         let mut mcp_server_tools: std::collections::HashMap<String, Vec<String>> =

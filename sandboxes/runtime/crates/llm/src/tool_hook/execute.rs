@@ -7,6 +7,7 @@ use rig::agent::ToolCallHookAction;
 use serde_json::json;
 use tracing::{info, warn};
 
+use super::result_classify::looks_like_failure;
 use super::truncate::{truncate_if_needed, Truncated};
 use super::ToolCallEmitter;
 
@@ -32,7 +33,7 @@ impl ToolCallEmitter {
                 );
                 let duration_ms = call_start.elapsed().as_millis() as u64;
                 self.metrics
-                    .record_tool_call_detailed(tool_name, true, duration_ms);
+                    .record_tool_call_detailed(tool_name, true, false, duration_ms);
                 warn!(
                     agent_id = %self.agent_id,
                     conversation_id = %self.conversation_id,
@@ -67,8 +68,9 @@ impl ToolCallEmitter {
         };
 
         let duration_ms = call_start.elapsed().as_millis() as u64;
+        let is_failure = !is_error && looks_like_failure(&result_str);
         self.metrics
-            .record_tool_call_detailed(tool_name, is_error, duration_ms);
+            .record_tool_call_detailed(tool_name, is_error, is_failure, duration_ms);
         if is_error {
             warn!(
                 agent_id = %self.agent_id,
@@ -85,6 +87,7 @@ impl ToolCallEmitter {
                 tool_name = tool_name,
                 duration_ms = duration_ms,
                 is_error = false,
+                is_failure = is_failure,
                 result = %Truncated::new(&result_str, 80),
                 "tool_call_complete"
             );
@@ -94,7 +97,7 @@ impl ToolCallEmitter {
             BridgeEventType::ToolCallCompleted,
             &self.agent_id,
             &self.conversation_id,
-            json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": tool_name}),
+            json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "is_failure": is_failure, "duration_ms": duration_ms, "tool_name": tool_name}),
         ));
         self.persist_tool_interaction(tool_name, &sse_id, &args_value, &result_str, is_error);
 

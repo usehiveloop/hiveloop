@@ -13,7 +13,7 @@ use rig::agent::Agent;
 use rig::message::Message;
 use rig::prelude::CompletionClient;
 
-mod build;
+pub(crate) mod build;
 mod dispatch;
 mod prompt_hooked;
 mod prompt_plain;
@@ -27,10 +27,26 @@ pub use build::create_agent;
 // ---------------------------------------------------------------------------
 // Per-provider completion-model type aliases
 // ---------------------------------------------------------------------------
-type OpenAIModel = <rig::providers::openai::CompletionsClient as CompletionClient>::CompletionModel;
-type AnthropicModel = <rig::providers::anthropic::Client as CompletionClient>::CompletionModel;
+// Most rig clients are parameterised over the HTTP transport, so we pin them
+// to `build::RetryingHttp` — a newtype over `ClientWithMiddleware` that adds
+// `Default` (required by rig's generic builder) and delegates to a process-wide
+// `reqwest_middleware::ClientWithMiddleware` carrying the retry middleware.
+//
+// Gemini is the exception: rig 0.35's `impl<H> Capabilities<H> for GeminiExt`
+// hardcodes `Completion = Capable<CompletionModel>` without threading the H
+// type parameter (other providers correctly write `Capable<CompletionModel<H>>`).
+// As a result, swapping out Gemini's HTTP client doesn't actually swap the
+// completion model, and we get a type mismatch when the model's Client type
+// resolves back to `Client<GeminiExt, reqwest::Client>`. Until rig fixes this
+// upstream, Gemini stays on the default `reqwest::Client` with no retry
+// middleware. The harness retry only applies to OpenAI/Anthropic/Cohere paths.
+type Http = crate::providers::build::RetryingHttp;
+type OpenAIModel =
+    <rig::providers::openai::CompletionsClient<Http> as CompletionClient>::CompletionModel;
+type AnthropicModel =
+    <rig::providers::anthropic::Client<Http> as CompletionClient>::CompletionModel;
 type GeminiModel = <rig::providers::gemini::Client as CompletionClient>::CompletionModel;
-type CohereModel = <rig::providers::cohere::Client as CompletionClient>::CompletionModel;
+type CohereModel = <rig::providers::cohere::Client<Http> as CompletionClient>::CompletionModel;
 
 // ---------------------------------------------------------------------------
 // BridgeAgent — enum over all supported provider agents
@@ -94,6 +110,13 @@ pub enum BridgeStreamItem {
     TextDelta(String),
     /// Incremental reasoning/thinking text from the model.
     ReasoningDelta(String),
+    /// One HTTP call inside rig's multi-turn loop completed and returned its
+    /// per-call usage. Bridge accumulates these so token counts survive even
+    /// when a later HTTP call in the same conversation errors out (otherwise
+    /// rig only surfaces aggregated_usage on the terminal `FinalResponse`,
+    /// which never fires on error). One per LLM HTTP call inside a multi-turn
+    /// streaming response.
+    IntermediateUsage(rig::completion::Usage),
     /// The stream finished. Contains final text, aggregated token usage, and
     /// the enriched conversation history (if history was provided).
     StreamFinished {

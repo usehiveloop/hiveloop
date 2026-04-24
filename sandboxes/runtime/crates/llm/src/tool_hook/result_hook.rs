@@ -7,6 +7,7 @@ use serde_json::json;
 use tools::todo::TodoWriteResult;
 use tracing::info;
 
+use super::result_classify::looks_like_failure;
 use super::truncate::Truncated;
 use super::ToolCallEmitter;
 
@@ -29,9 +30,11 @@ impl ToolCallEmitter {
                 (None, tool_name.to_string())
             };
 
+        let is_failure = looks_like_failure(result);
+
         if let Some(dur) = duration_ms {
             self.metrics
-                .record_tool_call_detailed(&effective_name, false, dur);
+                .record_tool_call_detailed(&effective_name, false, is_failure, dur);
             if let Some(ref cm) = self.conversation_metrics {
                 cm.record_tool_call(dur);
             }
@@ -44,6 +47,7 @@ impl ToolCallEmitter {
             tool_call_id = %id,
             duration_ms = duration_ms.unwrap_or(0),
             is_error = false,
+            is_failure = is_failure,
             result = %Truncated::new(result, 80),
             "tool_call_complete"
         );
@@ -52,7 +56,7 @@ impl ToolCallEmitter {
             BridgeEventType::ToolCallCompleted,
             &self.agent_id,
             &self.conversation_id,
-            json!({"id": &id, "result": result, "is_error": false, "duration_ms": duration_ms, "tool_name": &effective_name}),
+            json!({"id": &id, "result": result, "is_error": false, "is_failure": is_failure, "duration_ms": duration_ms, "tool_name": &effective_name}),
         ));
 
         // Mid-turn context-pressure tracking — counts bytes of tool output

@@ -11,7 +11,6 @@ use crate::ToolExecutor;
 
 /// A single edit operation within a multiedit.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
 pub struct SingleEdit {
     /// The text to find and replace.
     pub old_string: String,
@@ -23,7 +22,6 @@ pub struct SingleEdit {
 
 /// Arguments for the MultiEdit tool.
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
 pub struct MultiEditArgs {
     /// The absolute path to the file to modify.
     pub file_path: String,
@@ -220,10 +218,10 @@ mod tests {
 
         let tool = MultiEditTool::new();
         let args = serde_json::json!({
-            "filePath": tmp.path().to_str().unwrap(),
+            "file_path": tmp.path().to_str().unwrap(),
             "edits": [
-                { "oldString": "aaa", "newString": "AAA" },
-                { "oldString": "ccc", "newString": "CCC" }
+                { "old_string": "aaa", "new_string": "AAA" },
+                { "old_string": "ccc", "new_string": "CCC" }
             ]
         });
 
@@ -247,10 +245,10 @@ mod tests {
 
         let tool = MultiEditTool::new();
         let args = serde_json::json!({
-            "filePath": tmp.path().to_str().unwrap(),
+            "file_path": tmp.path().to_str().unwrap(),
             "edits": [
-                { "oldString": "aaa", "newString": "AAA" },
-                { "oldString": "zzz_not_found", "newString": "ZZZ" }
+                { "old_string": "aaa", "new_string": "AAA" },
+                { "old_string": "zzz_not_found", "new_string": "ZZZ" }
             ]
         });
 
@@ -266,7 +264,7 @@ mod tests {
     async fn test_multiedit_empty_edits() {
         let tool = MultiEditTool::new();
         let args = serde_json::json!({
-            "filePath": "/tmp/whatever.txt",
+            "file_path": "/tmp/whatever.txt",
             "edits": []
         });
 

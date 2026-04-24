@@ -58,9 +58,9 @@ async fn test_edit_tool_execute() {
 
     let tool = EditTool::new();
     let args = serde_json::json!({
-        "filePath": tmp.path().to_str().unwrap(),
-        "oldString": "line two",
-        "newString": "line TWO"
+        "file_path": tmp.path().to_str().unwrap(),
+        "old_string": "line two",
+        "new_string": "line TWO"
     });
 
     let result = tool.execute(args).await.expect("execute");
@@ -78,9 +78,9 @@ async fn test_edit_tool_execute() {
 async fn test_edit_tool_not_found_file() {
     let tool = EditTool::new();
     let args = serde_json::json!({
-        "filePath": "/tmp/nonexistent_edit_test_xyz.txt",
-        "oldString": "foo",
-        "newString": "bar"
+        "file_path": "/tmp/nonexistent_edit_test_xyz.txt",
+        "old_string": "foo",
+        "new_string": "bar"
     });
 
     let err = tool.execute(args).await.unwrap_err();
@@ -103,17 +103,17 @@ async fn test_edit_marks_written_after_success() {
 
     // First edit
     let args = serde_json::json!({
-        "filePath": path_str,
-        "oldString": "aaa",
-        "newString": "AAA"
+        "file_path": path_str,
+        "old_string": "aaa",
+        "new_string": "AAA"
     });
     tool.execute(args).await.expect("first edit should succeed");
 
     // Second edit should work without re-reading (because mark_written was called)
     let args2 = serde_json::json!({
-        "filePath": path_str,
-        "oldString": "bbb",
-        "newString": "BBB"
+        "file_path": path_str,
+        "old_string": "bbb",
+        "new_string": "BBB"
     });
     tool.execute(args2)
         .await
@@ -141,9 +141,9 @@ async fn test_edit_rejects_stale_file() {
 
     let tool = EditTool::new().with_file_tracker(tracker);
     let args = serde_json::json!({
-        "filePath": path_str,
-        "oldString": "original content",
-        "newString": "new content"
+        "file_path": path_str,
+        "old_string": "original content",
+        "new_string": "new content"
     });
 
     let err = tool.execute(args).await.unwrap_err();
@@ -157,9 +157,9 @@ async fn test_edit_empty_old_string_creates_file() {
 
     let tool = EditTool::new();
     let args = serde_json::json!({
-        "filePath": file_path.to_str().unwrap(),
-        "oldString": "",
-        "newString": "new file content\nline two\n"
+        "file_path": file_path.to_str().unwrap(),
+        "old_string": "",
+        "new_string": "new file content\nline two\n"
     });
 
     let result = tool.execute(args).await.expect("execute");
@@ -181,9 +181,9 @@ async fn test_edit_empty_old_string_appends_existing() {
 
     let tool = EditTool::new().with_file_tracker(tracker);
     let args = serde_json::json!({
-        "filePath": file_path.to_str().unwrap(),
-        "oldString": "",
-        "newString": "appended\n"
+        "file_path": file_path.to_str().unwrap(),
+        "old_string": "",
+        "new_string": "appended\n"
     });
 
     let result = tool.execute(args).await.expect("execute");
@@ -203,9 +203,9 @@ async fn test_edit_crlf_normalization() {
 
     let tool = EditTool::new();
     let args = serde_json::json!({
-        "filePath": file_path.to_str().unwrap(),
-        "oldString": "line two",
-        "newString": "line TWO"
+        "file_path": file_path.to_str().unwrap(),
+        "old_string": "line two",
+        "new_string": "line TWO"
     });
 
     let result = tool.execute(args).await.expect("execute");
@@ -223,9 +223,9 @@ async fn test_edit_line_counts_in_output() {
 
     let tool = EditTool::new();
     let args = serde_json::json!({
-        "filePath": tmp.path().to_str().unwrap(),
-        "oldString": "line2",
-        "newString": "line2a\nline2b\nline2c"
+        "file_path": tmp.path().to_str().unwrap(),
+        "old_string": "line2",
+        "new_string": "line2a\nline2b\nline2c"
     });
 
     let result = tool.execute(args).await.expect("execute");

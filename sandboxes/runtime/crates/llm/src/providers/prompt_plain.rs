@@ -43,7 +43,7 @@ impl BridgeAgent {
             macro_rules! dispatch {
                 ($agent:expr) => {{
                     use rig::completion::Prompt;
-                    $agent.prompt(text).with_history(history).await
+                    $agent.prompt(text).with_history(history.clone()).await
                 }};
             }
             let result = match self.inner() {

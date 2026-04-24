@@ -1,6 +1,12 @@
-Executes a given bash command in a persistent shell session with optional timeout, ensuring proper handling and security measures.
+Executes a given bash command with optional timeout.
 
-All commands run in the current working directory by default. Use the `workdir` parameter if you need to run a command in a different directory. AVOID using `cd <directory> && <command>` patterns - use `workdir` instead.
+**Each invocation runs in a fresh shell.** Environment variables, `cd`, exported functions, shell aliases, and any other shell state do NOT carry across calls. `cd app && x` on one call does not put the next call inside `app/`. The next call starts back in the default directory.
+
+Every call starts in the workspace directory unless you say otherwise. Two ways to pick where a command runs:
+- Pass the `workdir` parameter — recommended for one-off changes.
+- Chain `cd <path> && <cmd>` inside the command itself — fine when you want the `cd` to apply only to this single call. Prefix every subsequent command that needs the same cwd the same way, or pass `workdir`.
+
+IMPORTANT: This tool is for terminal operations like git, npm, docker, etc. DO NOT use it for file operations (reading, writing, editing, searching, finding files) - use the specialized tools for this instead.
 
 IMPORTANT: This tool is for terminal operations like git, npm, docker, etc. DO NOT use it for file operations (reading, writing, editing, searching, finding files) - use the specialized tools for this instead.
 
@@ -44,7 +50,7 @@ or deployments where you don't need to block waiting for the result.
     - If the commands depend on each other and must run sequentially, use a single Bash call with '&&' to chain them together (e.g., `git add . && git commit -m "message" && git push`). For instance, if one operation must complete before another starts (like mkdir before cp, Write before Bash for git operations, or git add before git commit), run these operations sequentially instead.
     - Use ';' only when you need to run commands sequentially but don't care if earlier commands fail
     - DO NOT use newlines to separate commands (newlines are ok in quoted strings)
-  - AVOID using `cd <directory> && <command>`. Use the `workdir` parameter to change directories instead.
+  - `cd <directory> && <command>` is fine when you only need the cwd change for this one call. For many calls into the same directory, the `workdir` parameter is cleaner and avoids repeating the `cd` prefix.
 
 # Committing changes with git
 

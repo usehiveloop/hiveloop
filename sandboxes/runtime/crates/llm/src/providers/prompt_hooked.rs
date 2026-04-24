@@ -159,7 +159,7 @@ impl BridgeAgent {
                     use rig::completion::Prompt;
                     $agent
                         .prompt(text)
-                        .with_history(history)
+                        .with_history(history.clone())
                         .with_hook(hook_clone)
                         .await
                 }};

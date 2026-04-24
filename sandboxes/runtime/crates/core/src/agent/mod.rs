@@ -156,6 +156,18 @@ pub struct AgentConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub history_strip: Option<HistoryStripConfig>,
 
+    /// How often (in turns) to re-emit the stable system reminder (skills,
+    /// subagents, todos) at the head of the user message. Always emitted on
+    /// turn 0; thereafter on turns where `turn_count % N == 0`. Lower values
+    /// reinforce the reminders more often at the cost of bigger uncached
+    /// tails on those turns; higher values let the reminder go stale but
+    /// keep prompt sizes lean.
+    ///
+    /// Default: 10. Set to 1 for every-turn refresh; values <1 are clamped
+    /// to 1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub system_reminder_refresh_turns: Option<u32>,
+
     /// Tools to disable for this agent. Takes priority over everything else —
     /// disabled tools are removed from the registry before the agent is built,
     /// so the LLM never sees them. Works for built-in tools, MCP tools,

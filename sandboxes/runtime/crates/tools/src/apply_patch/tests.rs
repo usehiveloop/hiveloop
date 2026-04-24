@@ -125,7 +125,7 @@ async fn test_apply_patch_add_file() {
     );
 
     let tool = ApplyPatchTool::new();
-    let args = serde_json::json!({ "patchText": patch });
+    let args = serde_json::json!({ "patch_text": patch });
 
     let result = tool.execute(args).await.expect("execute");
     let parsed: ApplyPatchResult = serde_json::from_str(&result).expect("parse");
@@ -149,7 +149,7 @@ async fn test_apply_patch_delete_file() {
     );
 
     let tool = ApplyPatchTool::new();
-    let args = serde_json::json!({ "patchText": patch });
+    let args = serde_json::json!({ "patch_text": patch });
 
     let result = tool.execute(args).await.expect("execute");
     let parsed: ApplyPatchResult = serde_json::from_str(&result).expect("parse");
@@ -170,7 +170,7 @@ async fn test_apply_patch_update_file() {
     );
 
     let tool = ApplyPatchTool::new();
-    let args = serde_json::json!({ "patchText": patch });
+    let args = serde_json::json!({ "patch_text": patch });
 
     let result = tool.execute(args).await.expect("execute");
     let parsed: ApplyPatchResult = serde_json::from_str(&result).expect("parse");
@@ -223,7 +223,7 @@ async fn test_apply_patch_crlf_file() {
     );
 
     let tool = ApplyPatchTool::new();
-    let args = serde_json::json!({ "patchText": patch });
+    let args = serde_json::json!({ "patch_text": patch });
 
     let result = tool.execute(args).await.expect("execute");
     let parsed: ApplyPatchResult = serde_json::from_str(&result).expect("parse");

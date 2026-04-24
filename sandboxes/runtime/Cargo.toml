@@ -34,14 +34,16 @@ tower = { version = "0.5", features = ["timeout", "limit"] }
 tower-http = { version = "0.6", features = ["trace", "cors", "request-id"] }
 
 # HTTP client
-reqwest = { version = "0.12", default-features = false, features = [
-    "rustls-tls", "json", "stream"
+reqwest = { version = "0.13", default-features = false, features = [
+    "rustls", "json", "stream"
 ] }
 
 # Agent framework
-rig-core = { version = "0.31", default-features = false, features = [
-    "derive", "rmcp", "reqwest-rustls"
+rig-core = { version = "0.35", default-features = false, features = [
+    "derive", "rmcp", "reqwest-middleware-rustls"
 ] }
+reqwest-middleware = { version = "0.5", features = ["json", "rustls"] }
+reqwest-retry = "0.9"
 
 # MCP
 rmcp = { version = "0.17", default-features = false, features = [

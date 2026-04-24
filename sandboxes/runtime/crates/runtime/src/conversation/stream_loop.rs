@@ -3,9 +3,22 @@ use futures::StreamExt;
 use llm::{BridgeStreamItem, ToolCallEmitter};
 use serde_json::json;
 use std::sync::Arc;
+use std::time::Duration;
 use webhooks::EventBus;
 
 use super::convert::is_retryable_stream_err;
+
+/// Maximum gap between SSE chunks before we declare the upstream stalled
+/// and abort the stream. The retry decision below treats a stall the same
+/// as any retryable provider error — we bail out, the outer loop backs off,
+/// and we send the same prompt again on a fresh connection.
+///
+/// 5 minutes is generous on purpose: heavy reasoning models routed through
+/// busy aggregators (OpenRouter, etc.) can legitimately go silent for
+/// several minutes mid-thought before the next chunk arrives. We'd rather
+/// tolerate a long pause than abort a real call. A connection that's silent
+/// for a full 5 minutes is wedged, not slow.
+const STREAM_CHUNK_TIMEOUT: Duration = Duration::from_secs(300);
 
 /// Accumulator for a single attempt of the streaming LLM call.
 pub(super) struct StreamAttempt {
@@ -49,7 +62,18 @@ pub(super) async fn run_streaming_with_retry(
             any_progress: false,
         };
 
-        while let Some(item) = stream.next().await {
+        loop {
+            let item = match tokio::time::timeout(STREAM_CHUNK_TIMEOUT, stream.next()).await {
+                Ok(Some(item)) => item,
+                Ok(None) => break,
+                Err(_elapsed) => {
+                    out.had_error = Some(format!(
+                        "stream stalled: no chunk received for {}s (timed out)",
+                        STREAM_CHUNK_TIMEOUT.as_secs()
+                    ));
+                    break;
+                }
+            };
             match item {
                 BridgeStreamItem::TextDelta(delta) => {
                     out.any_progress = true;
@@ -76,12 +100,27 @@ pub(super) async fn run_streaming_with_retry(
                         }),
                     ));
                 }
+                BridgeStreamItem::IntermediateUsage(usage) => {
+                    // Per-HTTP-call usage from rig's multi-turn loop. Note:
+                    // rig only yields these for sub-calls that emitted visible
+                    // text (`saw_text_this_turn` is true) — tool-only sub-calls
+                    // are accumulated into rig's internal `aggregated_usage`
+                    // but never surfaced as `Final` items. So this counter is
+                    // a *lower bound* on real usage: useful on the error path
+                    // (where `StreamFinished` never fires) but always
+                    // overwritten by the authoritative aggregated value when
+                    // the multi-turn completes successfully.
+                    out.final_usage += usage;
+                }
                 BridgeStreamItem::StreamFinished {
                     response,
                     usage,
                     history,
                 } => {
                     out.accumulated_text = response;
+                    // Authoritative on success: rig's `aggregated_usage`
+                    // includes tool-only sub-call usage that the per-call
+                    // `IntermediateUsage` events miss (see comment above).
                     out.final_usage = usage;
                     out.final_history = history;
                 }
@@ -92,12 +131,32 @@ pub(super) async fn run_streaming_with_retry(
             }
         }
 
-        // Decide whether to retry.
-        let should_retry = match (&out.had_error, out.any_progress) {
-            (Some(err_msg), false) if attempt_no < MAX_STREAM_PREFLIGHT_RETRIES => {
-                is_retryable_stream_err(err_msg)
+        // Decide whether to retry. Two paths:
+        // 1. Pre-progress retryable error (HTTP 429/5xx, connect reset before
+        //    any chunk arrived): retry the call as-is.
+        // 2. Mid-stream stall (our 60s no-chunk guard fired even though some
+        //    chunks already arrived): retry too. The upstream connection is
+        //    wedged and the partial state is unusable — `final_history` is
+        //    `None` because no `StreamFinished` arrived. Re-prompting with the
+        //    *original* history is the right move; any tool calls that already
+        //    executed during the failed attempt will get re-issued by the
+        //    model on the retry, which is acceptable for the idempotent reads
+        //    that dominate a normal turn (Read, LS, todowrite). Risk for
+        //    non-idempotent writes (bash side-effects) is real but bounded —
+        //    we'd rather re-do a step than abandon the conversation.
+        let stream_stalled = out
+            .had_error
+            .as_deref()
+            .is_some_and(|m| m.starts_with("stream stalled"));
+        let should_retry = if attempt_no >= MAX_STREAM_PREFLIGHT_RETRIES {
+            false
+        } else if stream_stalled {
+            true
+        } else {
+            match (&out.had_error, out.any_progress) {
+                (Some(err_msg), false) => is_retryable_stream_err(err_msg),
+                _ => false,
             }
-            _ => false,
         };
 
         if !should_retry {
@@ -146,9 +205,27 @@ pub(super) fn attempt_into_result(
                 enriched_history,
             )
         } else {
+            // Fatal error path: stash any partial usage we accumulated from
+            // successful sub-calls inside rig's multi-turn loop. The wrapper
+            // error type here is a workaround — rig's `PromptError` doesn't
+            // carry usage, but bridge's error classifier (in `turn_classify`)
+            // looks for the `__bridge_partial_usage__` prefix and extracts
+            // the JSON-encoded usage so the metrics path can record it.
+            let usage = &attempt.final_usage;
+            let wrapped = if usage.input_tokens > 0
+                || usage.cached_input_tokens > 0
+                || usage.output_tokens > 0
+            {
+                format!(
+                    "__bridge_partial_usage__{{\"in\":{},\"cached\":{},\"out\":{}}} {}",
+                    usage.input_tokens, usage.cached_input_tokens, usage.output_tokens, err_msg,
+                )
+            } else {
+                err_msg
+            };
             (
                 Err(rig::completion::PromptError::CompletionError(
-                    rig::completion::CompletionError::ProviderError(err_msg),
+                    rig::completion::CompletionError::ProviderError(wrapped),
                 )),
                 enriched_history,
             )

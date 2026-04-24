@@ -35,7 +35,7 @@ impl ToolCallEmitter {
                 .to_string();
                 let duration_ms = ctx.call_start.elapsed().as_millis() as u64;
                 self.metrics
-                    .record_tool_call_detailed(effective_name, true, duration_ms);
+                    .record_tool_call_detailed(effective_name, true, false, duration_ms);
                 warn!(
                     agent_id = %self.agent_id,
                     conversation_id = %self.conversation_id,
@@ -91,7 +91,7 @@ impl ToolCallEmitter {
                         let error = json!({"error": error_msg}).to_string();
                         let duration_ms = ctx.call_start.elapsed().as_millis() as u64;
                         self.metrics
-                            .record_tool_call_detailed(effective_name, true, duration_ms);
+                            .record_tool_call_detailed(effective_name, true, false, duration_ms);
                         self.event_bus.emit(BridgeEvent::new(
                             BridgeEventType::ToolCallCompleted,
                             &self.agent_id,
@@ -131,7 +131,7 @@ impl ToolCallEmitter {
                         .to_string();
                         let duration_ms = ctx.call_start.elapsed().as_millis() as u64;
                         self.metrics
-                            .record_tool_call_detailed(effective_name, true, duration_ms);
+                            .record_tool_call_detailed(effective_name, true, false, duration_ms);
                         self.persist_tool_interaction(
                             effective_name,
                             ctx.id,

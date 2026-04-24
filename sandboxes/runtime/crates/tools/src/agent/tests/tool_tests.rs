@@ -14,7 +14,7 @@ async fn test_no_context_returns_error() {
     let args = serde_json::json!({
         "description": "test",
         "prompt": "do something",
-        "subagentName": "explorer"
+        "subagent_name": "explorer"
     });
     let result = tool.execute(args).await;
     assert!(result.is_err());
@@ -28,7 +28,7 @@ async fn test_no_subagents_returns_error() {
     let args = serde_json::json!({
         "description": "test",
         "prompt": "do something",
-        "subagentName": "explorer"
+        "subagent_name": "explorer"
     });
     let result = AGENT_CONTEXT
         .scope(ctx, async { tool.execute(args).await })
@@ -44,7 +44,7 @@ async fn test_unknown_subagent_returns_error() {
     let args = serde_json::json!({
         "description": "test",
         "prompt": "do something",
-        "subagentName": "explorer"
+        "subagent_name": "explorer"
     });
     let result = AGENT_CONTEXT
         .scope(ctx, async { tool.execute(args).await })
@@ -71,7 +71,7 @@ async fn test_depth_limit_exceeded() {
     let args = serde_json::json!({
         "description": "test",
         "prompt": "do something",
-        "subagentName": "coder"
+        "subagent_name": "coder"
     });
     let result = AGENT_CONTEXT
         .scope(ctx, async { tool.execute(args).await })
@@ -87,7 +87,7 @@ async fn test_foreground_execution() {
     let args = serde_json::json!({
         "description": "test task",
         "prompt": "write hello world",
-        "subagentName": "coder"
+        "subagent_name": "coder"
     });
     let result = AGENT_CONTEXT
         .scope(ctx, async { tool.execute(args).await })
@@ -106,8 +106,8 @@ async fn test_background_execution() {
     let args = serde_json::json!({
         "description": "test task",
         "prompt": "write hello world",
-        "subagentName": "coder",
-        "runInBackground": true
+        "subagent_name": "coder",
+        "run_in_background": true
     });
     let result = AGENT_CONTEXT
         .scope(ctx, async { tool.execute(args).await })
@@ -189,7 +189,7 @@ async fn test_foreground_blocks_until_complete() {
     let args = serde_json::json!({
         "description": "delayed task",
         "prompt": "do something slow",
-        "subagentName": "coder"
+        "subagent_name": "coder"
     });
 
     let start = Instant::now();
@@ -261,8 +261,8 @@ async fn test_background_returns_immediately() {
     let args = serde_json::json!({
         "description": "background task",
         "prompt": "do something slow in background",
-        "subagentName": "coder",
-        "runInBackground": true
+        "subagent_name": "coder",
+        "run_in_background": true
     });
 
     let start = Instant::now();

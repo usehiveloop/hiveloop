@@ -14,7 +14,6 @@ mod tests;
 
 /// Arguments for the Write tool.
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
 pub struct WriteArgs {
     /// Absolute path to the file to write. Parent directories are created automatically.
     #[schemars(
@@ -92,7 +91,7 @@ async fn do_write(
 
     // Require absolute paths
     if !path.is_absolute() {
-        return Err("filePath must be an absolute path".to_string());
+        return Err("file_path must be an absolute path".to_string());
     }
 
     // Check project boundary

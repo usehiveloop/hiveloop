@@ -123,7 +123,7 @@ fn test_default_impl() {
 #[test]
 fn test_record_tool_call_detailed_success() {
     let m = AgentMetrics::new();
-    m.record_tool_call_detailed("bash", false, 100);
+    m.record_tool_call_detailed("bash", false, false, 100);
 
     assert_eq!(m.tool_calls.load(Ordering::Relaxed), 1);
     let stats = m.tool_metrics.get("bash").unwrap();
@@ -137,7 +137,7 @@ fn test_record_tool_call_detailed_success() {
 #[test]
 fn test_record_tool_call_detailed_failure() {
     let m = AgentMetrics::new();
-    m.record_tool_call_detailed("edit", true, 5);
+    m.record_tool_call_detailed("edit", true, false, 5);
 
     assert_eq!(m.tool_calls.load(Ordering::Relaxed), 1);
     let stats = m.tool_metrics.get("edit").unwrap();
@@ -147,12 +147,39 @@ fn test_record_tool_call_detailed_failure() {
 }
 
 #[test]
+fn test_record_tool_call_detailed_failure_result() {
+    // is_error: false (executor returned Ok), but is_failure: true
+    // (the result content describes a logical failure).
+    let m = AgentMetrics::new();
+    m.record_tool_call_detailed("read", false, true, 7);
+
+    let stats = m.tool_metrics.get("read").unwrap();
+    assert_eq!(stats.total_calls.load(Ordering::Relaxed), 1);
+    assert_eq!(stats.successes.load(Ordering::Relaxed), 0);
+    assert_eq!(stats.failures.load(Ordering::Relaxed), 0);
+    assert_eq!(stats.failure_results.load(Ordering::Relaxed), 1);
+}
+
+#[test]
+fn test_is_error_takes_precedence_over_is_failure() {
+    // When the executor errored, is_failure is moot — the result string
+    // wasn't returned. Count it under failures, not failure_results.
+    let m = AgentMetrics::new();
+    m.record_tool_call_detailed("bash", true, true, 3);
+
+    let stats = m.tool_metrics.get("bash").unwrap();
+    assert_eq!(stats.failures.load(Ordering::Relaxed), 1);
+    assert_eq!(stats.failure_results.load(Ordering::Relaxed), 0);
+    assert_eq!(stats.successes.load(Ordering::Relaxed), 0);
+}
+
+#[test]
 fn test_record_tool_call_detailed_multiple_tools() {
     let m = AgentMetrics::new();
-    m.record_tool_call_detailed("bash", false, 100);
-    m.record_tool_call_detailed("bash", false, 200);
-    m.record_tool_call_detailed("bash", true, 50);
-    m.record_tool_call_detailed("read", false, 10);
+    m.record_tool_call_detailed("bash", false, false, 100);
+    m.record_tool_call_detailed("bash", false, false, 200);
+    m.record_tool_call_detailed("bash", true, false, 50);
+    m.record_tool_call_detailed("read", false, false, 10);
 
     assert_eq!(m.tool_calls.load(Ordering::Relaxed), 4);
 
@@ -171,10 +198,10 @@ fn test_record_tool_call_detailed_multiple_tools() {
 #[test]
 fn test_snapshot_includes_tool_call_details() {
     let m = AgentMetrics::new();
-    m.record_tool_call_detailed("bash", false, 100);
-    m.record_tool_call_detailed("bash", false, 200);
-    m.record_tool_call_detailed("bash", true, 50);
-    m.record_tool_call_detailed("read", false, 10);
+    m.record_tool_call_detailed("bash", false, false, 100);
+    m.record_tool_call_detailed("bash", false, false, 200);
+    m.record_tool_call_detailed("bash", true, false, 50);
+    m.record_tool_call_detailed("read", false, false, 10);
 
     let snap = m.snapshot("a", "A");
     assert_eq!(snap.tool_call_details.len(), 2);

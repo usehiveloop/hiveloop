@@ -139,6 +139,7 @@ pub(super) fn build_stream_inputs(
     msg_id: &str,
     storage: &Option<StorageHandle>,
     persisted_messages: &Arc<std::sync::Mutex<Vec<bridge_core::conversation::Message>>>,
+    repeat_guard: &Arc<std::sync::Mutex<llm::RepeatGuardState>>,
 ) -> StreamTurnInputs {
     StreamTurnInputs {
         agent_clone: prep.agent_clone,
@@ -159,6 +160,7 @@ pub(super) fn build_stream_inputs(
         pressure_threshold_bytes_per_turn: prep.pressure_threshold_bytes_per_turn,
         storage_for_emitter: storage.clone(),
         persisted_messages_for_emitter: persisted_messages.clone(),
+        repeat_guard_for_emitter: repeat_guard.clone(),
     }
 }
 
@@ -184,6 +186,8 @@ pub(super) struct StreamTurnInputs {
     pub(super) storage_for_emitter: Option<StorageHandle>,
     pub(super) persisted_messages_for_emitter:
         Arc<std::sync::Mutex<Vec<bridge_core::conversation::Message>>>,
+    pub(super) repeat_guard_for_emitter:
+        Arc<std::sync::Mutex<llm::RepeatGuardState>>,
 }
 
 /// Run the stream prompt loop — pre-stream retry on retryable errors,
@@ -214,6 +218,7 @@ pub(super) async fn run_stream_turn(
         pressure_threshold_bytes_per_turn,
         storage_for_emitter,
         persisted_messages_for_emitter,
+        repeat_guard_for_emitter,
     } = inputs;
 
     // Extra clones for streaming text delta emission (the originals
@@ -242,6 +247,7 @@ pub(super) async fn run_stream_turn(
         pressure_threshold_bytes: pressure_threshold_bytes_per_turn,
         pressure_counter: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         pressure_warned: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        repeat_guard: repeat_guard_for_emitter,
     };
 
     let fut = async move {

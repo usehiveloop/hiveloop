@@ -153,6 +153,7 @@ impl AgentSupervisor {
         };
         let history_strip_config = def.config.history_strip.clone();
         let tool_calls_only = def.config.tool_calls_only.unwrap_or(false);
+        let system_reminder_refresh_turns = def.config.system_reminder_refresh_turns;
         let tool_requirements = def.config.tool_requirements.clone();
         let llm_semaphore = self.llm_semaphore.clone();
         let storage = self.storage.clone();
@@ -274,6 +275,7 @@ impl AgentSupervisor {
                 per_conversation_mcp_scope: per_conv_mcp_scope,
                 mcp_manager: Some(cleanup_mcp_manager),
                 standalone_agent,
+                system_reminder_refresh_turns,
                 ping_state,
                 tool_requirements,
             })

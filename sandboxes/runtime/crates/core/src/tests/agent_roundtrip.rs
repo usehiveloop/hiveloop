@@ -60,6 +60,7 @@ fn agent_definition_roundtrip_all_fields_present() {
             tool_calls_only: None,
             immortal: None,
             history_strip: None,
+            system_reminder_refresh_turns: None,
             disabled_tools: vec![],
             tool_requirements: vec![],
             subagent_timeout_foreground_secs: None,

@@ -3,21 +3,20 @@ use serde::{Deserialize, Serialize};
 
 /// Arguments for the Edit tool.
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
 pub struct EditArgs {
     /// Absolute path to the file to modify.
     #[schemars(description = "Absolute path to the file to modify")]
     pub file_path: String,
-    /// The exact text to find and replace. Must match uniquely in the file unless replaceAll is true.
+    /// The exact text to find and replace. Must match uniquely in the file unless replace_all is true.
     #[schemars(
-        description = "The exact text to find and replace. Must match uniquely in the file unless replaceAll is true"
+        description = "The exact text to find and replace. Must match uniquely in the file unless replace_all is true"
     )]
     pub old_string: String,
-    /// The replacement text. Must differ from oldString.
-    #[schemars(description = "The replacement text. Must differ from oldString")]
+    /// The replacement text. Must differ from old_string.
+    #[schemars(description = "The replacement text. Must differ from old_string")]
     pub new_string: String,
-    /// If true, replace all occurrences of oldString. Defaults to false.
-    #[schemars(description = "If true, replace all occurrences of oldString. Defaults to false")]
+    /// If true, replace all occurrences of old_string. Defaults to false.
+    #[schemars(description = "If true, replace all occurrences of old_string. Defaults to false")]
     pub replace_all: Option<bool>,
 }
 

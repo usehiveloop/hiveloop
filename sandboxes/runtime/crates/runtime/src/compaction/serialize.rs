@@ -45,6 +45,7 @@ pub(super) fn message_to_text(msg: &Message) -> String {
             })
             .collect::<Vec<_>>()
             .join("\n"),
+        Message::System { content } => content.clone(),
     }
 }
 
@@ -98,6 +99,11 @@ pub fn serialize_history_for_summary(messages: &[Message]) -> String {
                         }
                     }
                 }
+            }
+            Message::System { content } => {
+                output.push_str("[System]: ");
+                output.push_str(content);
+                output.push('\n');
             }
         }
     }

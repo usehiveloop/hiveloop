@@ -29,10 +29,22 @@ pub struct ToolCallStatsSnapshot {
     pub tool_name: String,
     /// Total number of calls to this tool
     pub total_calls: u64,
-    /// Number of successful completions
+    /// Number of completions that succeeded cleanly (executor returned `Ok`
+    /// AND the result content does not look like a failure shape).
     pub successes: u64,
-    /// Number of failed completions
+    /// Number of completions where the executor itself returned `Err` —
+    /// process-level dispatch failure (tool not found, schema validation
+    /// rejected, permission denied, executor panic).
     pub failures: u64,
+    /// Number of completions where the executor returned `Ok(...)` but the
+    /// result string described a failure (e.g. `Read` returned
+    /// `"Toolset error: File not found"`, `bash` returned a non-zero
+    /// `exit_code`, `edit` returned `{"error":"..."}`). The model received
+    /// the result as a normal tool message; only the content signals the
+    /// failure. Tracked separately so operators can distinguish bridge-side
+    /// dispatch errors (`failures`) from in-tool failures (`failure_results`).
+    #[serde(default)]
+    pub failure_results: u64,
     /// Success rate (successes / total_calls)
     pub success_rate: f64,
     /// Average latency in milliseconds

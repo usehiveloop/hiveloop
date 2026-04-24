@@ -58,7 +58,7 @@ async fn test_emitter_intercepts_sub_agent_tool() {
                 "sub_agent",
                 Some("call_sub_agent".to_string()),
                 "int_sub_agent",
-                r#"{"description":"test task","prompt":"write hello world","subagentName":"coder"}"#,
+                r#"{"description":"test task","prompt":"write hello world","subagent_name":"coder"}"#,
             )
             .await
         })

@@ -10,6 +10,8 @@ tools = { workspace = true }
 webhooks = { workspace = true }
 rig-core = { workspace = true }
 reqwest = { workspace = true }
+reqwest-middleware = { workspace = true }
+reqwest-retry = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 schemars = "1"
@@ -24,6 +26,7 @@ tracing = { workspace = true }
 thiserror = { workspace = true }
 strsim = { workspace = true }
 http = { workspace = true }
+bytes = "1"
 futures = { workspace = true }
 sha2 = { workspace = true }
 

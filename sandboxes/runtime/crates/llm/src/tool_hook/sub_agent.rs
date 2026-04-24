@@ -27,7 +27,7 @@ impl ToolCallEmitter {
                 let error = "Sub-agent tool requires a conversation context".to_string();
                 let duration_ms = call_start.elapsed().as_millis() as u64;
                 self.metrics
-                    .record_tool_call_detailed("sub_agent", true, duration_ms);
+                    .record_tool_call_detailed("sub_agent", true, false, duration_ms);
                 warn!(
                     agent_id = %self.agent_id, conversation_id = %self.conversation_id,
                     tool_name = "sub_agent", duration_ms = duration_ms, error = %error, "tool_call_failed"
@@ -54,7 +54,7 @@ impl ToolCallEmitter {
             let error = format!("Maximum subagent depth ({}) reached", ctx.max_depth);
             let duration_ms = call_start.elapsed().as_millis() as u64;
             self.metrics
-                .record_tool_call_detailed("sub_agent", true, duration_ms);
+                .record_tool_call_detailed("sub_agent", true, false, duration_ms);
             warn!(
                 agent_id = %self.agent_id, conversation_id = %self.conversation_id,
                 tool_name = "sub_agent", duration_ms = duration_ms, error = %error, "tool_call_failed"
@@ -93,7 +93,7 @@ impl ToolCallEmitter {
             };
             let duration_ms = call_start.elapsed().as_millis() as u64;
             self.metrics
-                .record_tool_call_detailed("sub_agent", true, duration_ms);
+                .record_tool_call_detailed("sub_agent", true, false, duration_ms);
             warn!(
                 agent_id = %self.agent_id, conversation_id = %self.conversation_id,
                 tool_name = "sub_agent", duration_ms = duration_ms, error = %error, "tool_call_failed"
@@ -135,7 +135,7 @@ impl ToolCallEmitter {
 
             let duration_ms = call_start.elapsed().as_millis() as u64;
             self.metrics
-                .record_tool_call_detailed("sub_agent", is_error, duration_ms);
+                .record_tool_call_detailed("sub_agent", is_error, false, duration_ms);
             info!(
                 agent_id = %self.agent_id, conversation_id = %self.conversation_id,
                 tool_name = "sub_agent", duration_ms = duration_ms, is_error = is_error,
@@ -180,7 +180,7 @@ impl ToolCallEmitter {
 
             let duration_ms = call_start.elapsed().as_millis() as u64;
             self.metrics
-                .record_tool_call_detailed("sub_agent", is_error, duration_ms);
+                .record_tool_call_detailed("sub_agent", is_error, false, duration_ms);
             info!(
                 agent_id = %self.agent_id, conversation_id = %self.conversation_id,
                 tool_name = "sub_agent", duration_ms = duration_ms, is_error = is_error,

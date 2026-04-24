@@ -13,7 +13,6 @@ pub const SELF_AGENT_NAME: &str = "__self__";
 
 /// Parameters for the self-delegation agent tool.
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
 pub struct AgentToolParams {
     /// Short (3-5 word) description of the task.
     #[schemars(description = "Short (3-5 word) description of the task. Example: 'Fix login bug'")]
@@ -207,7 +206,7 @@ mod tests {
         let args = serde_json::json!({
             "description": "test task",
             "prompt": "write hello world",
-            "runInBackground": true
+            "run_in_background": true
         });
         let result = AGENT_CONTEXT
             .scope(ctx, async { tool.execute(args).await })

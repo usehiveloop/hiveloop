@@ -26,6 +26,7 @@ fn agent_config_roundtrip_with_all_fields() {
         tool_calls_only: None,
         immortal: None,
         history_strip: None,
+        system_reminder_refresh_turns: Some(15),
         disabled_tools: vec!["bash".to_string(), "write".to_string()],
         tool_requirements: vec![],
         subagent_timeout_foreground_secs: Some(60),

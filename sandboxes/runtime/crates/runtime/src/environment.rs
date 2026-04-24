@@ -1,9 +1,17 @@
 use std::path::Path;
 
-/// Snapshot of the sandbox environment, collected per-turn when
-/// `standalone_agent` is enabled.
+/// Snapshot of the runtime environment, collected once per conversation
+/// and refreshed periodically. Always injected into conversations so the
+/// agent knows where it is, what OS it's on, and (when applicable) the
+/// resource envelope it's running in.
 #[derive(Debug, Clone)]
 pub struct EnvironmentSnapshot {
+    /// Absolute path the bridge process is rooted in. Every tool (`bash`,
+    /// `Read`, `write`, `edit`, etc.) interprets relative paths against
+    /// this directory. This is the single most important fact in the
+    /// reminder — agents that guess the path end up writing to `/tmp` or
+    /// an invented `/workspace`.
+    pub workspace_dir: String,
     pub os: String,
     pub memory_limit_mb: Option<u64>,
     pub memory_used_mb: Option<u64>,
@@ -24,6 +32,7 @@ chrome-headless-shell, gcc/g++/make, ffmpeg, jq, yq, curl, git, tmux";
 impl EnvironmentSnapshot {
     pub fn collect() -> Self {
         Self {
+            workspace_dir: read_workspace_dir(),
             os: read_os_version(),
             memory_limit_mb: read_memory_limit_mb(),
             memory_used_mb: read_memory_used_mb(),
@@ -45,22 +54,40 @@ impl EnvironmentSnapshot {
         self
     }
 
+    /// Short version — always-safe reminder: workspace directory + OS +
+    /// resources. Skips the sandbox-specific pre-installed-tools block.
     pub fn format_reminder(&self) -> String {
+        self.format_reminder_with_options(false)
+    }
+
+    /// Full reminder. When `include_sandbox_tools` is true, append the
+    /// pre-installed-tools section that only makes sense inside the
+    /// Daytona dev-box template. Otherwise emit just the universally
+    /// useful parts (workspace, OS, resources).
+    pub fn format_reminder_with_options(&self, include_sandbox_tools: bool) -> String {
         let mut out = String::with_capacity(1024);
 
         out.push_str("# Environment\n\n");
+        out.push_str(&format!("Workspace directory: `{}`\n", self.workspace_dir));
+        out.push_str(
+            "All relative paths resolve against this directory. `pwd` in a bash call \
+             returns it. When a tool asks for a `file_path`, either give an absolute path \
+             or a path relative to the workspace directory.\n\n",
+        );
         out.push_str(&format!("OS: {}\n\n", self.os));
 
-        out.push_str("## Pre-installed tools (from sandbox template)\n");
-        out.push_str(DEV_BOX_TOOLS);
-        out.push_str("\n\n");
-        out.push_str(
-            "This list reflects what was pre-installed in the sandbox template. \
-             It does not include anything you may have installed yourself during \
-             this session (e.g. via apt, npm, pip, cargo install, etc.). \
-             If you installed something earlier in this conversation, you already \
-             know it's available — it won't appear here.\n\n",
-        );
+        if include_sandbox_tools {
+            out.push_str("## Pre-installed tools (from sandbox template)\n");
+            out.push_str(DEV_BOX_TOOLS);
+            out.push_str("\n\n");
+            out.push_str(
+                "This list reflects what was pre-installed in the sandbox template. \
+                 It does not include anything you may have installed yourself during \
+                 this session (e.g. via apt, npm, pip, cargo install, etc.). \
+                 If you installed something earlier in this conversation, you already \
+                 know it's available — it won't appear here.\n\n",
+            );
+        }
 
         out.push_str("## Resources\n");
 
@@ -155,6 +182,14 @@ fn read_cpu_cores() -> Option<f64> {
     None
 }
 
+fn read_workspace_dir() -> String {
+    std::env::current_dir()
+        .ok()
+        .and_then(|p| p.canonicalize().ok().or(Some(p)))
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|| "(unknown — current_dir failed)".to_string())
+}
+
 fn read_load_avg() -> f64 {
     std::fs::read_to_string("/proc/loadavg")
         .ok()
@@ -226,6 +261,7 @@ mod tests {
     fn snapshot_collect_does_not_panic() {
         let snap = EnvironmentSnapshot::collect();
         assert!(!snap.os.is_empty());
+        assert!(!snap.workspace_dir.is_empty());
         assert!(snap.load_avg_1m >= 0.0);
     }
 
@@ -234,14 +270,24 @@ mod tests {
         let snap = EnvironmentSnapshot::collect();
         let text = snap.format_reminder();
         assert!(text.contains("# Environment"));
-        assert!(text.contains("## Pre-installed tools"));
+        assert!(text.contains("Workspace directory:"));
         assert!(text.contains("## Resources"));
+        // Pre-installed-tools block is gated on `include_sandbox_tools`.
+        assert!(!text.contains("## Pre-installed tools"));
+    }
+
+    #[test]
+    fn format_reminder_with_sandbox_tools_opts_in() {
+        let snap = EnvironmentSnapshot::collect();
+        let text = snap.format_reminder_with_options(true);
+        assert!(text.contains("## Pre-installed tools"));
         assert!(text.contains("does not include anything you may have installed"));
     }
 
     #[test]
     fn format_reminder_with_known_resources() {
         let snap = EnvironmentSnapshot {
+            workspace_dir: "/workspace/proj".to_string(),
             os: "Ubuntu 24.04".to_string(),
             memory_limit_mb: Some(4096),
             memory_used_mb: Some(1024),
@@ -252,6 +298,7 @@ mod tests {
             disk_available_gb: 14.0,
         };
         let text = snap.format_reminder();
+        assert!(text.contains("Workspace directory: `/workspace/proj`"), "workspace line: {text}");
         assert!(text.contains("1.0 GB / 4.0 GB"), "memory line: {text}");
         assert!(text.contains("2 cores"), "cpu line: {text}");
         assert!(text.contains("6.0 GB / 20.0 GB"), "disk line: {text}");
@@ -260,6 +307,7 @@ mod tests {
     #[test]
     fn format_reminder_handles_missing_cgroup() {
         let snap = EnvironmentSnapshot {
+            workspace_dir: "/tmp/testws".to_string(),
             os: "macOS".to_string(),
             memory_limit_mb: None,
             memory_used_mb: None,

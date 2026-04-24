@@ -8,7 +8,7 @@ async fn test_write_new_file() {
 
     let tool = WriteTool::new();
     let args = serde_json::json!({
-        "filePath": file_path.to_str().unwrap(),
+        "file_path": file_path.to_str().unwrap(),
         "content": "hello world"
     });
 
@@ -31,7 +31,7 @@ async fn test_write_overwrite_existing() {
 
     let tool = WriteTool::new();
     let args = serde_json::json!({
-        "filePath": file_path.to_str().unwrap(),
+        "file_path": file_path.to_str().unwrap(),
         "content": "new content"
     });
 
@@ -52,7 +52,7 @@ async fn test_write_creates_parent_dirs() {
 
     let tool = WriteTool::new();
     let args = serde_json::json!({
-        "filePath": file_path.to_str().unwrap(),
+        "file_path": file_path.to_str().unwrap(),
         "content": "deep content"
     });
 
@@ -68,7 +68,7 @@ async fn test_write_creates_parent_dirs() {
 async fn test_write_requires_absolute_path() {
     let tool = WriteTool::new();
     let args = serde_json::json!({
-        "filePath": "relative/path.txt",
+        "file_path": "relative/path.txt",
         "content": "content"
     });
 
@@ -92,7 +92,7 @@ async fn test_write_marks_written_after_success() {
 
     // First write
     let args = serde_json::json!({
-        "filePath": path_str,
+        "file_path": path_str,
         "content": "first write"
     });
     tool.execute(args)
@@ -101,7 +101,7 @@ async fn test_write_marks_written_after_success() {
 
     // Second write should work without re-reading (because mark_written was called)
     let args2 = serde_json::json!({
-        "filePath": path_str,
+        "file_path": path_str,
         "content": "second write"
     });
     tool.execute(args2)
@@ -129,7 +129,7 @@ async fn test_write_rejects_stale_file() {
 
     let tool = WriteTool::new().with_file_tracker(tracker);
     let args = serde_json::json!({
-        "filePath": path_str,
+        "file_path": path_str,
         "content": "new content"
     });
 
@@ -145,7 +145,7 @@ async fn test_write_includes_diff() {
 
     let tool = WriteTool::new();
     let args = serde_json::json!({
-        "filePath": file_path.to_str().unwrap(),
+        "file_path": file_path.to_str().unwrap(),
         "content": "line one\nline TWO\n"
     });
 
@@ -177,7 +177,7 @@ async fn test_write_file_locking() {
     let h1 = tokio::spawn(async move {
         tool1
             .execute(serde_json::json!({
-                "filePath": path1,
+                "file_path": path1,
                 "content": "write A"
             }))
             .await
@@ -188,7 +188,7 @@ async fn test_write_file_locking() {
     let h2 = tokio::spawn(async move {
         tool2
             .execute(serde_json::json!({
-                "filePath": path2,
+                "file_path": path2,
                 "content": "write B"
             }))
             .await

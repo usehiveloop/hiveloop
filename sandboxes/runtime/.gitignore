@@ -35,3 +35,10 @@ codedb.snapshot
 
 # Message attachments (written at runtime via full_message API)
 .bridge-attachments/
+
+# Local bench harness + archived run logs — not part of the bridge crate.
+scripts/bench/
+benchmarks/
+
+# Local MCP client config
+scripts/.mcp.json

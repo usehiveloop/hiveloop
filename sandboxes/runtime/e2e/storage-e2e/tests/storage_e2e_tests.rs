@@ -77,6 +77,7 @@ fn make_metrics(agent_id: &str) -> MetricsSnapshot {
             total_calls: 15,
             successes: 14,
             failures: 1,
+            failure_results: 0,
             success_rate: 14.0 / 15.0,
             avg_latency_ms: 100.0,
         }],

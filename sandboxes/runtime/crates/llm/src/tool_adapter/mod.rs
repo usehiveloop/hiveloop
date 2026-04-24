@@ -63,7 +63,15 @@ impl Tool for DynamicTool {
         }
     }
 
-    async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+    async fn call(&self, mut args: Self::Args) -> Result<Self::Output, Self::Error> {
+        // Coerce string-encoded primitives ("300000" -> 300000, "3.14" -> 3.14)
+        // when the schema unambiguously requires integer/number. Reasoning
+        // models routinely emit primitives as JSON strings; without this the
+        // executor's serde::Deserialize would reject them after the schema
+        // validator already passed (validation runs the same coercion in
+        // `tool_hook::hook_impl::validate_args`).
+        let schema = self.executor.parameters_schema();
+        crate::tool_hook::coerce::coerce_args_against_schema(&mut args, &schema);
         self.executor.execute(args).await.map_err(DynamicToolError)
     }
 }

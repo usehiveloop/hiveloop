@@ -57,6 +57,7 @@ pub async fn run_conversation(params: ConversationParams) {
         per_conversation_mcp_scope,
         mcp_manager,
         standalone_agent,
+        system_reminder_refresh_turns,
         ping_state,
         tool_requirements,
     } = params;
@@ -69,6 +70,13 @@ pub async fn run_conversation(params: ConversationParams) {
 
     token_tracker::increment_active_conversations(&metrics);
     token_tracker::increment_total_conversations(&metrics);
+
+    // One shared repeat-call guard for the whole conversation. Handed to
+    // every per-turn ToolCallEmitter so identical consecutive calls are
+    // detected across turns, not just within one turn.
+    let repeat_guard = std::sync::Arc::new(std::sync::Mutex::new(
+        llm::RepeatGuardState::default(),
+    ));
 
     let history_strip_config = history_strip_config.unwrap_or_default();
     let LoopState {
@@ -153,6 +161,7 @@ pub async fn run_conversation(params: ConversationParams) {
             &ping_state,
             &system_reminder,
             &user_text,
+            system_reminder_refresh_turns,
         )
         .await;
 
@@ -174,7 +183,7 @@ pub async fn run_conversation(params: ConversationParams) {
         let Some(prep) = prepare_turn(
             &abort_token,
             &agent,
-            &user_text,
+            &final_user_text,
             &mut history,
             &immortal_config,
             &llm_semaphore,
@@ -201,6 +210,7 @@ pub async fn run_conversation(params: ConversationParams) {
             &msg_id,
             &storage,
             &persisted_messages,
+            &repeat_guard,
         );
 
         let result_rx = spawn_streaming_task(

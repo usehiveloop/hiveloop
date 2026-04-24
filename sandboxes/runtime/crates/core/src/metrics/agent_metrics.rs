@@ -8,10 +8,23 @@ use super::{cache_hit_ratio, MetricsSnapshot, ToolCallStatsSnapshot};
 pub struct ToolCallStats {
     /// Total number of calls to this tool
     pub total_calls: AtomicU64,
-    /// Number of successful completions
+    /// Number of completions where the executor returned `Ok` AND the result
+    /// content does not look like a failure shape (`is_error: false` AND
+    /// `is_failure: false`).
     pub successes: AtomicU64,
-    /// Number of failed completions
+    /// Number of completions where the executor returned `Err`. Counts
+    /// process-level errors: tool not found, schema validation rejected,
+    /// permission denied, executor panic. Bridge-side problems.
     pub failures: AtomicU64,
+    /// Number of completions where the executor returned `Ok(...)` (so
+    /// `is_error: false`) but the result content described a failure: e.g.
+    /// `Read` returned `"Toolset error: File not found"`, `bash` returned
+    /// `{"exit_code": 1, ...}`, `edit` returned `{"error": "..."}`. The
+    /// model still received this as a normal tool result; only the content
+    /// signals the failure. Counted separately so operators can distinguish
+    /// "tool dispatch broke" (`failures`) from "tool ran but the action it
+    /// represented didn't succeed" (`failure_results`).
+    pub failure_results: AtomicU64,
     /// Sum of latencies in milliseconds (for computing average)
     pub latency_sum_ms: AtomicU64,
     /// Number of latency measurements
@@ -24,6 +37,7 @@ impl ToolCallStats {
             total_calls: AtomicU64::new(0),
             successes: AtomicU64::new(0),
             failures: AtomicU64::new(0),
+            failure_results: AtomicU64::new(0),
             latency_sum_ms: AtomicU64::new(0),
             latency_count: AtomicU64::new(0),
         }
@@ -80,12 +94,27 @@ impl AgentMetrics {
         }
     }
 
-    /// Record a completed tool call with name, success/failure, and latency.
+    /// Record a completed tool call with name, error/failure status, and latency.
+    ///
+    /// `is_error`: executor returned `Err` (process-level dispatch failure).
+    /// `is_failure`: executor returned `Ok` but the result content describes
+    ///   a logical failure (e.g. `Read` returned "File not found" inside a
+    ///   normal-looking string). Detected via `tool_hook::result_classify`.
+    ///
+    /// A call is counted as `successes` only when both flags are false. When
+    /// `is_error` is true we ignore `is_failure` (the executor never produced
+    /// a result to classify).
     ///
     /// Uses a read-first pattern: the common path (tool already seen) takes
     /// only a DashMap read lock and an Arc clone. The write lock + String
     /// allocation only happens on the first call for a given tool name.
-    pub fn record_tool_call_detailed(&self, tool_name: &str, is_error: bool, latency_ms: u64) {
+    pub fn record_tool_call_detailed(
+        &self,
+        tool_name: &str,
+        is_error: bool,
+        is_failure: bool,
+        latency_ms: u64,
+    ) {
         // Bump the global tool_calls counter
         self.tool_calls.fetch_add(1, Ordering::Relaxed);
 
@@ -103,6 +132,8 @@ impl AgentMetrics {
         stats.total_calls.fetch_add(1, Ordering::Relaxed);
         if is_error {
             stats.failures.fetch_add(1, Ordering::Relaxed);
+        } else if is_failure {
+            stats.failure_results.fetch_add(1, Ordering::Relaxed);
         } else {
             stats.successes.fetch_add(1, Ordering::Relaxed);
         }
@@ -134,6 +165,7 @@ impl AgentMetrics {
                 let total = stats.total_calls.load(Ordering::Relaxed);
                 let successes = stats.successes.load(Ordering::Relaxed);
                 let failures = stats.failures.load(Ordering::Relaxed);
+                let failure_results = stats.failure_results.load(Ordering::Relaxed);
                 let lat_sum = stats.latency_sum_ms.load(Ordering::Relaxed);
                 let lat_count = stats.latency_count.load(Ordering::Relaxed);
                 let success_rate = if total > 0 {
@@ -151,6 +183,7 @@ impl AgentMetrics {
                     total_calls: total,
                     successes,
                     failures,
+                    failure_results,
                     success_rate,
                     avg_latency_ms: avg_lat,
                 }

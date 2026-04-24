@@ -67,5 +67,6 @@ pub(super) fn message_byte_count(msg: &Message) -> usize {
                 other => format!("{:?}", other).len(),
             })
             .sum(),
+        Message::System { content } => content.len(),
     }
 }

@@ -20,12 +20,26 @@ pub(super) const PER_RESULT_SLOT_BYTES: usize = 2048;
 pub(super) const STRIP_MARKER_PREFIX: &str = "[Tool output stripped";
 
 pub(super) fn build_strip_marker(bytes: usize, spill_path: &str) -> String {
-    format!(
-        "{STRIP_MARKER_PREFIX} — {bytes} bytes. Full output at {spill_path}. \
-        Retrieve: call RipGrep with path=\"{spill_path}\" and a regex pattern. \
-        Durable notes: call journal_write — values restated in assistant text \
-        can still be stripped on later turns, journal entries survive.]"
-    )
+    if spill_path.is_empty() {
+        // No on-disk spill (small / non-bash tool result). The original body
+        // is gone; the agent can re-call the tool if it actually needs the
+        // content again. Most stripped results were one-off lookups whose
+        // value is already reflected in the assistant's later actions.
+        format!(
+            "{STRIP_MARKER_PREFIX} — {bytes} bytes, original body discarded. \
+             Re-call the tool if you need this content again. For durable \
+             notes (decisions, paths, IDs) call journal_write — assistant \
+             text restating values can still be stripped, journal entries \
+             survive.]"
+        )
+    } else {
+        format!(
+            "{STRIP_MARKER_PREFIX} — {bytes} bytes. Full output at {spill_path}. \
+             Retrieve: call RipGrep with path=\"{spill_path}\" and a regex pattern. \
+             Durable notes: call journal_write — values restated in assistant text \
+             can still be stripped on later turns, journal entries survive.]"
+        )
+    }
 }
 
 /// Count the total bytes in a ToolResult's text content.

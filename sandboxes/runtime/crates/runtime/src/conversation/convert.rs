@@ -148,6 +148,17 @@ fn convert_from_rig_message(msg: &rig::message::Message) -> Vec<Message> {
                 }]
             }
         }
+        rig::message::Message::System { content } => {
+            // System messages from rig become bridge System-role messages with text content.
+            vec![Message {
+                role: Role::System,
+                content: vec![bridge_core::conversation::ContentBlock::Text {
+                    text: content.clone(),
+                }],
+                timestamp: chrono::Utc::now(),
+                system_reminder: None,
+            }]
+        }
     }
 }
 

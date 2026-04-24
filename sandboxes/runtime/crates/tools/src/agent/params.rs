@@ -3,7 +3,6 @@ use serde::Deserialize;
 
 /// Parameters for the sub_agent tool.
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
 pub struct SubAgentToolParams {
     /// Short (3-5 word) description of the task.
     #[schemars(description = "Short (3-5 word) description of the task. Example: 'Fix login bug'")]

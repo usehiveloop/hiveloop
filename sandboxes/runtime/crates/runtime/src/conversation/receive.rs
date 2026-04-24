@@ -27,7 +27,13 @@ pub(super) fn commit_user_turn(
     agent_id: &str,
     msg_id: &str,
 ) -> usize {
-    history.push(rig::message::Message::user(final_user_text));
+    // Do NOT push the user message onto `history` here. rig will append it
+    // once via the `prompt` argument on the next turn call, and the
+    // returned enriched history includes it. Pushing here caused the LLM
+    // to see the user message twice — the bug that was costing us ~10% of
+    // prompt tokens on every turn. See bench report #2.
+    let _ = history; // still need &mut for the signature; intentional no-op
+    let _ = final_user_text;
     let pre_turn_len = {
         let mut guard = persisted_messages.lock().unwrap();
         let len = guard.len();

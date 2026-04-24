@@ -26,8 +26,14 @@ pub(super) async fn classify_turn_result(
 ) -> Result<ClassifiedResponse, ()> {
     match result {
         Ok(prompt_response) => {
-            let it = prompt_response.total_usage.input_tokens;
+            // rig's `Usage::input_tokens` is the TOTAL prompt token count
+            // (cached + uncached). `metrics::AgentMetrics::input_tokens`
+            // is documented as the non-cached portion only — subtract here
+            // so the agent-level metric and the cache_hit_ratio it computes
+            // are correct (otherwise cached tokens get double-counted).
+            let total_in = prompt_response.total_usage.input_tokens;
             let ct = prompt_response.total_usage.cached_input_tokens;
+            let it = total_in.saturating_sub(ct);
             let ot = prompt_response.total_usage.output_tokens;
             Ok((Some(prompt_response.output), it, ct, ot))
         }
@@ -48,11 +54,30 @@ pub(super) async fn classify_turn_result(
                     .lock()
                     .unwrap()
                     .truncate(pre_turn_len);
+
+                // Pull any partial usage that `attempt_into_result` smuggled
+                // into the error message. This covers conversations that
+                // completed N successful sub-calls inside rig's multi-turn
+                // loop before the (N+1)th errored — without this, those N
+                // calls' tokens wouldn't show up anywhere in bridge metrics.
+                let (partial_in, partial_cached, partial_out, clean_msg) =
+                    extract_partial_usage(&error_msg);
+                if partial_in > 0 || partial_cached > 0 || partial_out > 0 {
+                    let it = partial_in.saturating_sub(partial_cached);
+                    token_tracker::record_request(
+                        ctx.metrics,
+                        Some(ctx.conversation_metrics),
+                        it,
+                        partial_cached,
+                        partial_out,
+                        0,
+                    );
+                }
+
                 error!(
                     agent_id = ctx.agent_id,
                     conversation_id = ctx.conversation_id,
-                    error = %e,
-                    error_debug = ?e,
+                    error = %clean_msg,
                     "agent chat error"
                 );
                 token_tracker::record_error(ctx.metrics);
@@ -64,12 +89,43 @@ pub(super) async fn classify_turn_result(
                     ctx.agent_id,
                     ctx.conversation_id,
                     "agent_error",
-                    format!("agent error: {}", e),
+                    format!("agent error: {}", clean_msg),
                 );
                 Err(())
             }
         }
     }
+}
+
+/// Parse the `__bridge_partial_usage__{json} <real msg>` envelope that
+/// `attempt_into_result` uses to smuggle accumulated per-HTTP-call usage
+/// through rig's `PromptError` (which has no usage field). Returns the
+/// extracted (input_tokens_total, cached_input_tokens, output_tokens) and
+/// the underlying error message with the marker stripped. If no marker is
+/// present, returns zeros and the original message unchanged.
+fn extract_partial_usage(msg: &str) -> (u64, u64, u64, String) {
+    const MARKER: &str = "__bridge_partial_usage__";
+    let Some(start) = msg.find(MARKER) else {
+        return (0, 0, 0, msg.to_string());
+    };
+    let after = &msg[start + MARKER.len()..];
+    let Some(end) = after.find('}') else {
+        return (0, 0, 0, msg.to_string());
+    };
+    let json_part = &after[..=end];
+    #[derive(serde::Deserialize)]
+    struct Partial {
+        #[serde(rename = "in")]
+        input: u64,
+        cached: u64,
+        out: u64,
+    }
+    let Ok(p) = serde_json::from_str::<Partial>(json_part) else {
+        return (0, 0, 0, msg.to_string());
+    };
+    let rest = after[end + 1..].trim_start().to_string();
+    let cleaned = if msg[..start].is_empty() { rest } else { format!("{}{}", &msg[..start], rest) };
+    (p.input, p.cached, p.out, cleaned)
 }
 
 /// Emit the standard "failed turn" event triple (AgentError+Done+TurnCompleted).
