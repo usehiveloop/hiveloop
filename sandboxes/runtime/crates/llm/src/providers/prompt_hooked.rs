@@ -20,7 +20,7 @@ impl BridgeAgent {
     pub async fn prompt_with_hook(
         &self,
         text: &str,
-        history: &mut Vec<Message>,
+        history: &mut [Message],
         hook: ToolCallEmitter,
     ) -> Result<PromptResponse, PromptError> {
         let provider = self.provider_name();
@@ -120,7 +120,7 @@ impl BridgeAgent {
     pub async fn prompt_standard_with_hook(
         &self,
         text: &str,
-        history: &mut Vec<Message>,
+        history: &mut [Message],
         hook: ToolCallEmitter,
     ) -> Result<String, PromptError> {
         let provider = self.provider_name();
@@ -159,7 +159,7 @@ impl BridgeAgent {
                     use rig::completion::Prompt;
                     $agent
                         .prompt(text)
-                        .with_history(history.clone())
+                        .with_history(history.to_vec())
                         .with_hook(hook_clone)
                         .await
                 }};

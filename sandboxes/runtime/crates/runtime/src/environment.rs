@@ -298,7 +298,10 @@ mod tests {
             disk_available_gb: 14.0,
         };
         let text = snap.format_reminder();
-        assert!(text.contains("Workspace directory: `/workspace/proj`"), "workspace line: {text}");
+        assert!(
+            text.contains("Workspace directory: `/workspace/proj`"),
+            "workspace line: {text}"
+        );
         assert!(text.contains("1.0 GB / 4.0 GB"), "memory line: {text}");
         assert!(text.contains("2 cores"), "cpu line: {text}");
         assert!(text.contains("6.0 GB / 20.0 GB"), "disk line: {text}");

@@ -74,9 +74,7 @@ pub async fn run_conversation(params: ConversationParams) {
     // One shared repeat-call guard for the whole conversation. Handed to
     // every per-turn ToolCallEmitter so identical consecutive calls are
     // detected across turns, not just within one turn.
-    let repeat_guard = std::sync::Arc::new(std::sync::Mutex::new(
-        llm::RepeatGuardState::default(),
-    ));
+    let repeat_guard = std::sync::Arc::new(std::sync::Mutex::new(llm::RepeatGuardState::default()));
 
     let history_strip_config = history_strip_config.unwrap_or_default();
     let LoopState {

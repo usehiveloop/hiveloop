@@ -186,8 +186,7 @@ pub(super) struct StreamTurnInputs {
     pub(super) storage_for_emitter: Option<StorageHandle>,
     pub(super) persisted_messages_for_emitter:
         Arc<std::sync::Mutex<Vec<bridge_core::conversation::Message>>>,
-    pub(super) repeat_guard_for_emitter:
-        Arc<std::sync::Mutex<llm::RepeatGuardState>>,
+    pub(super) repeat_guard_for_emitter: Arc<std::sync::Mutex<llm::RepeatGuardState>>,
 }
 
 /// Run the stream prompt loop — pre-stream retry on retryable errors,

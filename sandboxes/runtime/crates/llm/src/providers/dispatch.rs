@@ -24,7 +24,7 @@ macro_rules! dispatch_prompt {
         $agent_variant
             .prompt($text)
             .extended_details()
-            .with_history($history.clone())
+            .with_history($history.to_vec())
             .with_hook($hook)
             .await
             .map(|resp| crate::providers::PromptResponse {
@@ -81,9 +81,9 @@ macro_rules! dispatch_stream {
                 }
                 // Per-HTTP-call usage event inside rig's multi-turn loop.
                 // Capture so partial usage survives a later turn's failure.
-                Ok(MultiTurnStreamItem::StreamAssistantItem(
-                    StreamedAssistantContent::Final(final_resp),
-                )) => {
+                Ok(MultiTurnStreamItem::StreamAssistantItem(StreamedAssistantContent::Final(
+                    final_resp,
+                ))) => {
                     use rig::completion::GetTokenUsage;
                     final_resp
                         .token_usage()

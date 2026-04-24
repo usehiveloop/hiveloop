@@ -32,6 +32,8 @@ similar = { workspace = true }
 dashmap = { workspace = true }
 base64 = { workspace = true }
 libc = { workspace = true }
+dirs = "5"
+anyhow = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

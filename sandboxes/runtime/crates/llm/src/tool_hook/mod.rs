@@ -33,13 +33,13 @@ use crate::permission_manager::PermissionManager;
 
 mod background;
 pub(crate) mod coerce;
-pub(crate) mod result_classify;
 mod execute;
 mod hook_impl;
 mod name_resolution;
 mod permission;
 mod persist;
 pub mod repeat_guard;
+pub(crate) mod result_classify;
 mod result_hook;
 mod self_agent;
 mod sub_agent;

@@ -1,0 +1,2628 @@
+# Laravel / PHP ecosystem — consolidated rtk filter definitions
+# Generated 2026-04-24 by merging outputs from 10 parallel filter-design agents.
+# Tested against fresh Laravel 13.0.0 projects.
+#
+# Covers: composer (install/update/require/remove/dump-autoload/outdated/show/
+#   validate/create-project); php artisan (migrate/db:*/make:*/route:*/cache:*/
+#   config:*/view:*/event:*/optimize*/test/about/inspire/list/help/vendor:publish/
+#   schedule:*/queue:*/key:generate/model:show/down/up/...); vendor/bin/{pest,
+#   phpunit,pint,phpstan,larastan}.
+#
+# CRITICAL: rtk matches filters by ALPHABETICAL filter NAME order (BTreeMap).
+# File order here is cosmetic; runtime order is the sort order of filter names.
+# The fallback `artisan-zz-generic` must sort last (achieved via the zz prefix).
+#
+# Install:
+#   1. Copy this file to `.rtk/filters.toml` in your Laravel project root.
+#   2. Run `rtk trust` (accepts on first use — rehash after every edit).
+#   3. Use as `rtk composer install`, `rtk php artisan migrate`, etc.
+#
+# Verify inline tests: `rtk verify` (should show 100% passing).
+
+schema_version = 1
+
+# =============================================================================
+# AGENT 1 — composer lifecycle
+# =============================================================================
+
+# =============================================================================
+# Composer — Agent 1 (lifecycle filters)
+# Ordering: specific filters before generic. First regex match on match_command wins.
+# =============================================================================
+
+# -- composer require / remove --------------------------------------------------
+[filters.composer-require]
+description = "composer require / remove — keep the install/remove summary, drop noise"
+match_command = '^composer\s+(require|remove)\b'
+strip_ansi = true
+filter_stderr = true
+strip_lines_matching = [
+  '^Loading composer repositories',
+  '^Updating dependencies',
+  '^Running composer update',
+  '^Writing lock file',
+  '^Installing dependencies from lock file',
+  '^\s*- Downloading ',
+  '^\s*- Syncing ',
+  '^\s*- Extracting archive',
+  '^Generating optimized autoload files',
+  '^> Illuminate\\Foundation\\ComposerScripts',
+  '^> @php ',
+  '^\s*INFO\s+Discovering packages',
+  '^\s*INFO\s+No publishable resources',
+  '^\s*[\w/-]+\s+\.+\s*DONE\s*$',
+  '^\d+ packages you are using are looking for funding',
+  '^Use the `composer fund`',
+  '^\d+ package suggestions were added',
+  '^No security vulnerability advisories found',
+  '^\s*$',
+]
+max_lines = 25
+on_empty = "composer: ok"
+
+[[tests.composer-require]]
+name = "require adds one package"
+input = """
+./composer.json has been updated
+Running composer update laravel/pint
+Loading composer repositories with package information
+Updating dependencies
+Lock file operations: 1 install, 0 updates, 0 removals
+  - Locking laravel/pint (v1.29.1)
+Writing lock file
+Installing dependencies from lock file (including require-dev)
+Package operations: 1 install, 0 updates, 0 removals
+  - Installing laravel/pint (v1.29.1): Extracting archive
+Generating optimized autoload files
+> Illuminate\\Foundation\\ComposerScripts::postAutoloadDump
+> @php artisan package:discover --ansi
+
+  INFO  Discovering packages.
+
+  laravel/pail ........ DONE
+  laravel/tinker ........ DONE
+
+77 packages you are using are looking for funding.
+Use the `composer fund` command to find out more!
+> @php artisan vendor:publish --tag=laravel-assets --ansi --force
+
+  INFO  No publishable resources for tag [laravel-assets].
+
+No security vulnerability advisories found.
+Using version ^1.29 for laravel/pint
+"""
+expected = """./composer.json has been updated
+Lock file operations: 1 install, 0 updates, 0 removals
+  - Locking laravel/pint (v1.29.1)
+Package operations: 1 install, 0 updates, 0 removals
+  - Installing laravel/pint (v1.29.1): Extracting archive
+Using version ^1.29 for laravel/pint"""
+
+[[tests.composer-require]]
+name = "remove single package"
+input = """
+./composer.json has been updated
+Running composer update laravel/pint
+Loading composer repositories with package information
+Updating dependencies
+Lock file operations: 0 installs, 0 updates, 1 removal
+  - Removing laravel/pint (v1.29.1)
+Writing lock file
+Installing dependencies from lock file (including require-dev)
+Package operations: 0 installs, 0 updates, 1 removal
+> Illuminate\\Foundation\\ComposerScripts::prePackageUninstall
+  - Removing laravel/pint (v1.29.1)
+Generating optimized autoload files
+> Illuminate\\Foundation\\ComposerScripts::postAutoloadDump
+> @php artisan package:discover --ansi
+
+  INFO  Discovering packages.
+
+  laravel/pail ........ DONE
+
+77 packages you are using are looking for funding.
+Use the `composer fund` command to find out more!
+No security vulnerability advisories found.
+"""
+expected = """./composer.json has been updated
+Lock file operations: 0 installs, 0 updates, 1 removal
+  - Removing laravel/pint (v1.29.1)
+Package operations: 0 installs, 0 updates, 1 removal
+  - Removing laravel/pint (v1.29.1)"""
+
+[[tests.composer-require]]
+name = "require failure preserved"
+input = """
+./composer.json has been updated
+Running composer update nonexistent/package
+Loading composer repositories with package information
+Updating dependencies
+Your requirements could not be resolved to an installable set of packages.
+
+  Problem 1
+    - Root composer.json requires nonexistent/package, it could not be found.
+"""
+expected = """./composer.json has been updated
+Your requirements could not be resolved to an installable set of packages.
+  Problem 1
+    - Root composer.json requires nonexistent/package, it could not be found."""
+
+# -- composer install / update --------------------------------------------------
+[filters.composer-install-update]
+description = "composer install / update / upgrade — collapse clean runs, keep conflicts"
+match_command = '^composer\s+(install|update|upgrade)\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^Nothing to install, update or remove', message = "composer: nothing to do", unless = '(?i)(\berror\b|\bconflict\b|\babandon|\bdeprecat|vulnerability found|\bfail|\bfatal\b|\bexception\b)' },
+  { pattern = '(?m)^Nothing to modify in lock file', message = "composer: nothing to do", unless = '(?i)(\berror\b|\bconflict\b|\babandon|\bdeprecat|vulnerability found|\bfail|\bfatal\b|\bexception\b)' },
+]
+strip_lines_matching = [
+  '^Loading composer repositories',
+  '^Updating dependencies',
+  '^Installing dependencies from lock file',
+  '^Writing lock file',
+  '^Verifying lock file contents',
+  '^\s*- Downloading ',
+  '^\s*- Locking ',
+  '^\s*- Syncing ',
+  '^\s*- Installing .*?: Extracting archive\s*$',
+  '^\s*- Extracting archive',
+  '^Generating optimized autoload files',
+  '^> Illuminate\\Foundation\\ComposerScripts',
+  '^> @php ',
+  '^\s*INFO\s+Discovering packages',
+  '^\s*INFO\s+No publishable resources',
+  '^\s*[\w/-]+\s+\.+\s*DONE\s*$',
+  '^\d+ packages you are using are looking for funding',
+  '^Use the `composer fund`',
+  '^\d+ package suggestions were added',
+  '^No security vulnerability advisories found',
+  '^\s*$',
+]
+max_lines = 60
+on_empty = "composer: ok"
+
+[[tests.composer-install-update]]
+name = "install when already installed"
+input = """
+Installing dependencies from lock file (including require-dev)
+Verifying lock file contents can be installed on current platform.
+Nothing to install, update or remove
+Generating optimized autoload files
+> Illuminate\\Foundation\\ComposerScripts::postAutoloadDump
+> @php artisan package:discover --ansi
+
+  INFO  Discovering packages.
+
+  laravel/pail ........ DONE
+  laravel/tinker ........ DONE
+
+77 packages you are using are looking for funding.
+Use the `composer fund` command to find out more!
+"""
+expected = "composer: nothing to do"
+
+[[tests.composer-install-update]]
+name = "update no changes"
+input = """
+Loading composer repositories with package information
+Updating dependencies
+Nothing to modify in lock file
+Writing lock file
+Installing dependencies from lock file (including require-dev)
+Nothing to install, update or remove
+Generating optimized autoload files
+> Illuminate\\Foundation\\ComposerScripts::postAutoloadDump
+> @php artisan package:discover --ansi
+
+  INFO  Discovering packages.
+
+  laravel/pail ........ DONE
+
+77 packages you are using are looking for funding.
+Use the `composer fund` command to find out more!
+> @php artisan vendor:publish --tag=laravel-assets --ansi --force
+
+  INFO  No publishable resources for tag [laravel-assets].
+
+No security vulnerability advisories found.
+"""
+expected = "composer: nothing to do"
+
+[[tests.composer-install-update]]
+name = "install with actual changes keeps summary"
+input = """
+Loading composer repositories with package information
+Updating dependencies
+Lock file operations: 3 installs, 0 updates, 0 removals
+  - Locking foo/bar (1.0.0)
+  - Locking baz/qux (2.1.0)
+  - Locking hello/world (0.5.0)
+Writing lock file
+Installing dependencies from lock file (including require-dev)
+Package operations: 3 installs, 0 updates, 0 removals
+  - Installing foo/bar (1.0.0): Extracting archive
+  - Installing baz/qux (2.1.0): Extracting archive
+  - Installing hello/world (0.5.0): Extracting archive
+Generating optimized autoload files
+77 packages you are using are looking for funding.
+No security vulnerability advisories found.
+"""
+expected = """Lock file operations: 3 installs, 0 updates, 0 removals
+Package operations: 3 installs, 0 updates, 0 removals"""
+
+[[tests.composer-install-update]]
+name = "conflict preserved"
+input = """
+Loading composer repositories with package information
+Updating dependencies
+Your requirements could not be resolved to an installable set of packages.
+
+  Problem 1
+    - laravel/framework v13.0.0 conflicts with foo/bar 2.0.0
+"""
+expected = """Your requirements could not be resolved to an installable set of packages.
+  Problem 1
+    - laravel/framework v13.0.0 conflicts with foo/bar 2.0.0"""
+
+# -- composer dump-autoload -----------------------------------------------------
+[filters.composer-dump-autoload]
+description = "composer dump-autoload / du — one-line summary"
+match_command = '^composer\s+(dump-autoload|du|dumpautoload)\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^Generated (optimized )?autoload files', message = "composer: autoload regenerated", unless = '(?i)(error|fail|fatal|exception|warning)' },
+]
+max_lines = 20
+on_empty = "composer: autoload regenerated"
+
+[[tests.composer-dump-autoload]]
+name = "regular optimized dump"
+input = """
+Generating optimized autoload files
+> Illuminate\\Foundation\\ComposerScripts::postAutoloadDump
+> @php artisan package:discover --ansi
+
+  INFO  Discovering packages.
+
+  laravel/pail ........ DONE
+
+Generated optimized autoload files containing 6567 classes
+"""
+expected = "composer: autoload regenerated"
+
+[[tests.composer-dump-autoload]]
+name = "non-optimized dump"
+input = """
+Generating autoload files
+Generated autoload files
+"""
+expected = "composer: autoload regenerated"
+
+# -- composer create-project ----------------------------------------------------
+[filters.composer-create-project]
+description = "composer create-project — keep install summary + lock count + errors"
+match_command = '^composer\s+create-project\b'
+strip_ansi = true
+filter_stderr = true
+strip_lines_matching = [
+  '^Loading composer repositories',
+  '^Updating dependencies',
+  '^Installing dependencies from lock file',
+  '^Writing lock file',
+  '^\s*- Downloading ',
+  '^\s*- Locking ',
+  '^\s*- Syncing ',
+  '^\s*- Extracting archive',
+  '^\s*- Installing .+?: Extracting archive\s*$',
+  '^Generating optimized autoload files',
+  '^> Illuminate\\Foundation\\ComposerScripts',
+  '^> @php ',
+  '^\s*INFO\s+Discovering packages',
+  '^\s*INFO\s+No publishable resources',
+  '^\s*INFO\s+Preparing database',
+  '^\s*INFO\s+Running migrations',
+  '^\s*INFO\s+Application key set successfully',
+  '^\s*Creating migration table\s+\.+',
+  '^\s*\d{4}_\d{2}_\d{2}_\d+_[\w_]+\s+\.+',
+  '^\s*[\w/-]+\s+\.+\s*DONE\s*$',
+  '^\s*\d+/\d+\s*\[[=>\- ]+\]\s*\d+%\s*$',
+  '^\s*\d+\s*\[[=>\- ]+\]',
+  '^\d+ packages you are using are looking for funding',
+  '^Use the `composer fund`',
+  '^\d+ package suggestions were added',
+  '^No security vulnerability advisories found',
+  '^\s*$',
+]
+max_lines = 15
+on_empty = "composer: project created"
+
+[[tests.composer-create-project]]
+name = "create-project compresses bulk install"
+input = """
+Creating a "laravel/laravel" project at "./test-app"
+Installing laravel/laravel (v13.3.0)
+  - Installing laravel/laravel (v13.3.0): Extracting archive
+Created project in /private/tmp/rtk-lab-1-cp/test-app
+> @php -r "file_exists('.env') || copy('.env.example', '.env');"
+Loading composer repositories with package information
+Updating dependencies
+Lock file operations: 106 installs, 0 updates, 0 removals
+  - Locking brick/math (0.14.8)
+  - Locking carbonphp/carbon-doctrine-types (3.2.0)
+  - Locking laravel/framework (v13.6.0)
+Writing lock file
+Installing dependencies from lock file (including require-dev)
+Package operations: 106 installs, 0 updates, 0 removals
+  - Installing brick/math (0.14.8): Extracting archive
+  - Installing laravel/framework (v13.6.0): Extracting archive
+Generating optimized autoload files
+> Illuminate\\Foundation\\ComposerScripts::postAutoloadDump
+> @php artisan package:discover --ansi
+
+  INFO  Discovering packages.
+
+  laravel/pail ........ DONE
+
+77 packages you are using are looking for funding.
+Use the `composer fund` command to find out more!
+> @php artisan key:generate --ansi
+
+  INFO  Application key set successfully.
+
+> @php artisan migrate --graceful --ansi
+
+  INFO  Preparing database.
+
+  Creating migration table ......... 2.06ms DONE
+
+  INFO  Running migrations.
+
+  0001_01_01_000000_create_users_table ....... 2.22ms DONE
+  0001_01_01_000001_create_cache_table ....... 1.21ms DONE
+"""
+expected = """Creating a "laravel/laravel" project at "./test-app"
+Installing laravel/laravel (v13.3.0)
+Created project in /private/tmp/rtk-lab-1-cp/test-app
+Lock file operations: 106 installs, 0 updates, 0 removals
+Package operations: 106 installs, 0 updates, 0 removals"""
+
+[[tests.composer-create-project]]
+name = "create-project missing package error"
+input = """
+Creating a "bogus/pkg" project at "./foo"
+[InvalidArgumentException]
+Could not find package bogus/pkg with stability stable.
+"""
+expected = """Creating a "bogus/pkg" project at "./foo"
+[InvalidArgumentException]
+Could not find package bogus/pkg with stability stable."""
+
+# -- composer outdated ----------------------------------------------------------
+[filters.composer-outdated]
+description = "composer outdated — drop legend preamble, keep package list"
+match_command = '^composer\s+(outdated|show\s+(--outdated|-o))\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^\s*$', message = "composer: all dependencies up to date", unless = '(?is)(\w/\w|error|fail|warning)' },
+]
+strip_lines_matching = [
+  '^Legend:\s*$',
+  '^!\s+patch or minor release available',
+  '^~\s+major release available',
+  '^\s*$',
+]
+truncate_lines_at = 160
+max_lines = 80
+on_empty = "composer: all dependencies up to date"
+
+[[tests.composer-outdated]]
+name = "outdated with packages"
+input = """
+Legend:
+! patch or minor release available - update recommended
+~ major release available - update possible
+
+Direct dependencies required in composer.json:
+phpunit/phpunit             12.5.23 ~ 13.1.7 The PHP Unit Testing framework.
+
+Transitive dependencies not required in composer.json:
+brick/math                  0.14.8  ~ 0.17.1 Arbitrary-precision arithmetic ...
+sebastian/diff              7.0.0   ~ 8.1.0  Diff implementation
+"""
+expected = """Direct dependencies required in composer.json:
+phpunit/phpunit             12.5.23 ~ 13.1.7 The PHP Unit Testing framework.
+Transitive dependencies not required in composer.json:
+brick/math                  0.14.8  ~ 0.17.1 Arbitrary-precision arithmetic ...
+sebastian/diff              7.0.0   ~ 8.1.0  Diff implementation"""
+
+[[tests.composer-outdated]]
+name = "outdated all up to date"
+input = """
+Legend:
+! patch or minor release available - update recommended
+~ major release available - update possible
+"""
+expected = "composer: all dependencies up to date"
+
+# -- composer show --------------------------------------------------------------
+[filters.composer-show]
+description = "composer show — truncate descriptions, cap line count"
+match_command = '^composer\s+show\b'
+strip_ansi = true
+filter_stderr = true
+strip_lines_matching = [
+  '^\s*$',
+  '^Legend:\s*$',
+  '^!\s+patch or minor release available',
+  '^~\s+major release available',
+]
+truncate_lines_at = 100
+max_lines = 150
+on_empty = "composer: no packages installed"
+
+[[tests.composer-show]]
+name = "show lists packages"
+input = """
+brick/math                         0.14.8  Arbitrary-precision arithmetic l...
+carbonphp/carbon-doctrine-types    3.2.0   Types to use Carbon in Doctrine
+laravel/framework                  13.6.0  The Laravel Framework.
+"""
+expected = """brick/math                         0.14.8  Arbitrary-precision arithmetic l...
+carbonphp/carbon-doctrine-types    3.2.0   Types to use Carbon in Doctrine
+laravel/framework                  13.6.0  The Laravel Framework."""
+
+[[tests.composer-show]]
+name = "show single package details"
+input = """
+name     : laravel/framework
+descrip. : The Laravel Framework.
+keywords : framework, laravel
+versions : * v13.6.0
+type     : library
+"""
+expected = """name     : laravel/framework
+descrip. : The Laravel Framework.
+keywords : framework, laravel
+versions : * v13.6.0
+type     : library"""
+
+# -- composer validate ----------------------------------------------------------
+[filters.composer-validate]
+description = "composer validate — collapse valid → one line"
+match_command = '^composer\s+validate\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^[^\n]*composer\.json is valid\s*$', message = "composer: composer.json is valid", unless = '(?i)(error|warning|fail|invalid|missing|should|must|required)' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+max_lines = 40
+on_empty = "composer: composer.json is valid"
+
+[[tests.composer-validate]]
+name = "valid composer.json"
+input = """./composer.json is valid
+"""
+expected = "composer: composer.json is valid"
+
+[[tests.composer-validate]]
+name = "validate with warnings preserves output"
+input = """
+./composer.json is valid for simple usage with composer but has
+strict errors that make it unable to be published as a package:
+See https://getcomposer.org/doc/04-schema.md for details on the schema
+name : The property name is required
+description : No description given
+"""
+expected = """./composer.json is valid for simple usage with composer but has
+strict errors that make it unable to be published as a package:
+See https://getcomposer.org/doc/04-schema.md for details on the schema
+name : The property name is required
+description : No description given"""
+
+# =============================================================================
+# AGENT 2 — artisan DB / migrations
+# =============================================================================
+
+# =============================================================================
+# Laravel artisan — database + migration commands
+# Agent 2 (rtk-laravel-lab). Ordering: more-specific match_command patterns FIRST.
+# =============================================================================
+
+# --- migrate:fresh / migrate:refresh / migrate:rollback / migrate:reset -------
+[filters.artisan-migrate-fresh]
+description = "artisan migrate:fresh|refresh|rollback|reset — keep migration names, strip dots + timings"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+migrate:(fresh|refresh|rollback|reset)\b'
+strip_ansi = true
+filter_stderr = true
+replace = [
+  { pattern = '\s*\.{2,}\s*\d+(?:\.\d+)?\s*m?s\s+(DONE|FAIL)', replacement = ' $1' },
+  { pattern = '\s*\.{2,}\s*(DONE|FAIL)', replacement = ' $1' },
+  { pattern = '^\s+INFO\s+', replacement = 'INFO: ' },
+]
+strip_lines_matching = [
+  '^\s*$',
+  '^INFO: Loading stored database schemas',
+  '^\s+database/schema/.*\s(DONE|FAIL)\s*$',
+]
+max_lines = 60
+on_empty = "artisan migrate: nothing to do"
+
+# --- migrate (plain) ---------------------------------------------------------
+[filters.artisan-migrate]
+description = "artisan migrate — keep migration names + DONE/FAIL, preserve SQLSTATE errors"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+migrate(\s|$)'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^\s*INFO[:\s]+Nothing to migrate', message = "artisan migrate: nothing to migrate", unless = '(?i)(error|exception|SQLSTATE|fail)' },
+]
+replace = [
+  { pattern = '\s*\.{2,}\s*\d+(?:\.\d+)?\s*m?s\s+(DONE|FAIL)', replacement = ' $1' },
+  { pattern = '\s*\.{2,}\s*(DONE|FAIL)', replacement = ' $1' },
+  { pattern = '^\s+INFO\s+', replacement = 'INFO: ' },
+]
+strip_lines_matching = [
+  '^\s*$',
+  '^INFO: Preparing database',
+  '^INFO: Loading stored database schemas',
+  '^\s+Creating migration table\s+DONE\s*$',
+  '^\s+database/schema/.*\s(DONE|FAIL)\s*$',
+  '^\s+at vendor/',
+  '^\s+\d+▕',
+  '^\s+➜\s+\d+▕',
+  '^\s+\[2m\+\d+ vendor frames',
+  '^\s+\+\d+ vendor frames',
+  '^\s+\d+\s+vendor/',
+  '^\s+\d+\s+artisan:\d+',
+]
+max_lines = 40
+on_empty = "artisan migrate: ok"
+
+# --- db:seed -----------------------------------------------------------------
+[filters.artisan-db-seed]
+description = "artisan db:seed — collapse clean runs, keep SQLSTATE errors"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+db:seed\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^\s*INFO[:\s]+Seeding database', message = "artisan db:seed: ok", unless = '(?i)(error|exception|SQLSTATE|fail|violation)' },
+]
+replace = [
+  { pattern = '\s*\.{2,}\s*\d+(?:\.\d+)?\s*m?s\s+(DONE|FAIL)', replacement = ' $1' },
+  { pattern = '^\s+INFO\s+', replacement = 'INFO: ' },
+]
+strip_lines_matching = [
+  '^\s*$',
+  '^\s+at vendor/',
+  '^\s+\d+▕',
+  '^\s+➜\s+\d+▕',
+  '^\s+\[2m\+\d+ vendor frames',
+  '^\s+\+\d+ vendor frames',
+]
+max_lines = 40
+on_empty = "artisan db:seed: ok"
+
+# --- db:show -----------------------------------------------------------------
+[filters.artisan-db-show]
+description = "artisan db:show — table with connection info, drop dot padding"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+db:show\b'
+strip_ansi = true
+filter_stderr = true
+replace = [
+  { pattern = '\s*\.{3,}\s*', replacement = ': ' },
+]
+strip_lines_matching = [
+  '^\s*$',
+  '^\s*(Host|Port|Username|URL|Open Connections):\s*$',
+]
+truncate_lines_at = 200
+max_lines = 80
+on_empty = "artisan db:show: no output"
+
+# --- db:table ----------------------------------------------------------------
+[filters.artisan-db-table]
+description = "artisan db:table <name> — compact column/index listing"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+db:table\b'
+strip_ansi = true
+filter_stderr = true
+replace = [
+  { pattern = '\s*\.{3,}\s*', replacement = ': ' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+truncate_lines_at = 200
+max_lines = 80
+on_empty = "artisan db:table: no output"
+
+# --- schema:dump -------------------------------------------------------------
+[filters.artisan-schema-dump]
+description = "artisan schema:dump — one-line confirmation"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+schema:dump\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^\s*INFO[:\s]+Database schema dumped', message = "artisan schema:dump: ok", unless = '(?i)(error|exception|fail)' },
+]
+replace = [
+  { pattern = '^\s+INFO\s+', replacement = 'INFO: ' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+max_lines = 20
+on_empty = "artisan schema:dump: ok"
+
+# --- db:wipe -----------------------------------------------------------------
+[filters.artisan-db-wipe]
+description = "artisan db:wipe — one-line confirmation"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+db:wipe\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^\s*INFO[:\s]+Dropped all tables', message = "artisan db:wipe: ok", unless = '(?i)(error|exception|fail)' },
+]
+replace = [
+  { pattern = '^\s+INFO\s+', replacement = 'INFO: ' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+max_lines = 20
+on_empty = "artisan db:wipe: ok"
+
+# --- migrate:install ---------------------------------------------------------
+[filters.artisan-migrate-install]
+description = "artisan migrate:install — one-line confirmation"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+migrate:install\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^\s*INFO[:\s]+Migration table', message = "artisan migrate:install: ok", unless = '(?i)(error|exception|fail)' },
+]
+replace = [
+  { pattern = '^\s+INFO\s+', replacement = 'INFO: ' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+max_lines = 10
+on_empty = "artisan migrate:install: ok"
+
+# --- migrate:status ----------------------------------------------------------
+[filters.artisan-migrate-status]
+description = "artisan migrate:status — compress dot-padding in table rows"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+migrate:status\b'
+strip_ansi = true
+filter_stderr = true
+replace = [
+  { pattern = '\s*\.{3,}\s*', replacement = ' ' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+truncate_lines_at = 200
+max_lines = 200
+on_empty = "artisan migrate:status: no migrations"
+
+# =============================================================================
+# Inline tests — at least 2 per filter (happy-path + edge-case)
+# =============================================================================
+
+[[tests.artisan-migrate]]
+name = "migrate — nothing to migrate collapses to one line"
+input = """
+   INFO  Nothing to migrate.
+"""
+expected = "artisan migrate: nothing to migrate"
+
+[[tests.artisan-migrate]]
+name = "migrate — clean run keeps names, strips dots + timings"
+input = """
+   INFO  Running migrations.  
+
+  0001_01_01_000000_create_users_table ........................... 3.04ms DONE
+  0001_01_01_000001_create_cache_table ........................... 1.11ms DONE
+  0001_01_01_000002_create_jobs_table ............................ 1.50ms DONE
+  2026_04_24_185327_add_stuff_to_users_table ..................... 0.03ms DONE
+"""
+expected = """
+INFO: Running migrations.  
+  0001_01_01_000000_create_users_table DONE
+  0001_01_01_000001_create_cache_table DONE
+  0001_01_01_000002_create_jobs_table DONE
+  2026_04_24_185327_add_stuff_to_users_table DONE"""
+
+[[tests.artisan-migrate]]
+name = "migrate — error path preserves SQLSTATE + FAIL"
+input = """
+   INFO  Running migrations.  
+
+  2026_04_24_185436_create_bad_table ............................. 2.27ms FAIL
+
+   Illuminate\\Database\\QueryException 
+
+  SQLSTATE[HY000]: General error: 1 table "users" already exists (Connection: sqlite)
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:841
+    837▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+  ➜ 841▕             $exception = new $exceptionType(
+
+      +9 vendor frames
+  10  database/migrations/2026_04_24_185436_create_bad_table.php:12
+      Illuminate\\Support\\Facades\\Facade::__callStatic("create")
+"""
+expected = """
+INFO: Running migrations.  
+  2026_04_24_185436_create_bad_table FAIL
+   Illuminate\\Database\\QueryException 
+  SQLSTATE[HY000]: General error: 1 table \"users\" already exists (Connection: sqlite)
+  10  database/migrations/2026_04_24_185436_create_bad_table.php:12
+      Illuminate\\Support\\Facades\\Facade::__callStatic(\"create\")"""
+
+[[tests.artisan-migrate-fresh]]
+name = "migrate:fresh — clean run compresses"
+input = """
+  Dropping all tables ............................................ 1.77ms DONE
+
+   INFO  Preparing database.  
+
+  Creating migration table ....................................... 1.87ms DONE
+
+   INFO  Running migrations.  
+
+  0001_01_01_000000_create_users_table ........................... 2.56ms DONE
+  2026_04_24_185327_add_stuff_to_users_table ..................... 0.03ms DONE
+"""
+expected = """
+  Dropping all tables DONE
+INFO: Preparing database.  
+  Creating migration table DONE
+INFO: Running migrations.  
+  0001_01_01_000000_create_users_table DONE
+  2026_04_24_185327_add_stuff_to_users_table DONE"""
+
+[[tests.artisan-migrate-fresh]]
+name = "migrate:rollback — keeps names in reverse"
+input = """
+   INFO  Rolling back migrations.  
+
+  2026_04_24_185327_add_stuff_to_users_table ..................... 1.69ms DONE
+  0001_01_01_000002_create_jobs_table ............................ 1.85ms DONE
+"""
+expected = """
+INFO: Rolling back migrations.  
+  2026_04_24_185327_add_stuff_to_users_table DONE
+  0001_01_01_000002_create_jobs_table DONE"""
+
+[[tests.artisan-db-seed]]
+name = "db:seed — clean run collapses to ok"
+input = """
+   INFO  Seeding database.
+"""
+expected = "artisan db:seed: ok"
+
+[[tests.artisan-db-seed]]
+name = "db:seed — SQLSTATE unique violation preserved"
+input = """
+   INFO  Seeding database.  
+
+
+   Illuminate\\Database\\UniqueConstraintViolationException 
+
+  SQLSTATE[23000]: Integrity constraint violation: 19 UNIQUE constraint failed: users.email
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:841
+    841▕             $exception = new $exceptionType(
+
+  18  database/seeders/DatabaseSeeder.php:20
+      Illuminate\\Database\\Eloquent\\Factories\\Factory::create(["Test User"])
+"""
+expected = """
+INFO: Seeding database.  
+   Illuminate\\Database\\UniqueConstraintViolationException 
+  SQLSTATE[23000]: Integrity constraint violation: 19 UNIQUE constraint failed: users.email
+  18  database/seeders/DatabaseSeeder.php:20
+      Illuminate\\Database\\Eloquent\\Factories\\Factory::create([\"Test User\"])"""
+
+[[tests.artisan-db-show]]
+name = "db:show — compress dot-padding, drop empty fields"
+input = """
+  SQLite .............................................................. 3.45.2  
+  Connection .......................................................... sqlite  
+  Database .......................................... database/database.sqlite  
+  Host .......................................................................  
+  Port .......................................................................  
+  Tables ................................................................... 9  
+
+  Schema / Table ........................................................ Size  
+  main / users ............................................................. —  
+"""
+expected = """
+  SQLite: 3.45.2  
+  Connection: sqlite  
+  Database: database/database.sqlite  
+  Tables: 9  
+  Schema / Table: Size  
+  main / users: —  """
+
+[[tests.artisan-db-show]]
+name = "db:show — empty output falls through to on_empty"
+input = ""
+expected = "artisan db:show: no output"
+
+[[tests.artisan-db-table]]
+name = "db:table — compress dots"
+input = """
+  main.users .................................................................  
+  Columns .................................................................. 8  
+
+  Column ................................................................ Type  
+  id integer, autoincrement .......................................... integer  
+  email varchar ...................................................... varchar  
+"""
+expected = """
+  main.users: 
+  Columns: 8  
+  Column: Type  
+  id integer, autoincrement: integer  
+  email varchar: varchar  """
+
+[[tests.artisan-db-table]]
+name = "db:table — empty output"
+input = ""
+expected = "artisan db:table: no output"
+
+[[tests.artisan-schema-dump]]
+name = "schema:dump — clean run collapses to ok"
+input = """
+   INFO  Database schema dumped successfully.
+"""
+expected = "artisan schema:dump: ok"
+
+[[tests.artisan-schema-dump]]
+name = "schema:dump — empty output"
+input = ""
+expected = "artisan schema:dump: ok"
+
+[[tests.artisan-db-wipe]]
+name = "db:wipe — clean run collapses to ok"
+input = """
+   INFO  Dropped all tables successfully.
+"""
+expected = "artisan db:wipe: ok"
+
+[[tests.artisan-db-wipe]]
+name = "db:wipe — empty output"
+input = ""
+expected = "artisan db:wipe: ok"
+
+[[tests.artisan-migrate-install]]
+name = "migrate:install — clean run collapses to ok"
+input = """
+   INFO  Migration table created successfully.
+"""
+expected = "artisan migrate:install: ok"
+
+[[tests.artisan-migrate-install]]
+name = "migrate:install — empty output"
+input = ""
+expected = "artisan migrate:install: ok"
+
+[[tests.artisan-migrate-status]]
+name = "migrate:status — compress dot-padded rows"
+input = """
+  Migration name .............................................. Batch / Status  
+  0001_01_01_000000_create_users_table ............................... [1] Ran  
+  2026_04_24_185327_add_stuff_to_users_table ......................... [1] Ran  
+"""
+expected = """
+  Migration name Batch / Status  
+  0001_01_01_000000_create_users_table [1] Ran  
+  2026_04_24_185327_add_stuff_to_users_table [1] Ran  """
+
+[[tests.artisan-migrate-status]]
+name = "migrate:status — empty output"
+input = ""
+expected = "artisan migrate:status: no migrations"
+
+# =============================================================================
+# AGENT 3 — artisan make:* scaffolds
+# =============================================================================
+
+# =============================================================================
+# Artisan make:* scaffolding commands
+# =============================================================================
+# Every `php artisan make:<thing>` command in Laravel 13 produces 1-N lines of
+# the form:
+#   "   INFO  <Type> [<path>] created successfully.  "
+# separated by blank lines. Errors (already-exists etc.) produce:
+#   "   ERROR  <Type> already exists.  "
+# Composite commands (e.g. `make:model Comment -mfsc`) emit one INFO per file
+# created. `make:component X` emits both a component class and a view line.
+#
+# Strategy: strip ANSI + blank lines + trailing whitespace, keep all INFO /
+# ERROR / WARN lines verbatim. Do NOT use match_output (each invocation has a
+# different path, and we want to preserve all lines from composite commands).
+
+[filters.artisan-make]
+description = "Laravel artisan make:* scaffolding — keep INFO/ERROR lines, drop blank separators"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+make:'
+strip_ansi = true
+filter_stderr = true
+replace = [
+  # Trim trailing whitespace that Laravel pads INFO lines with
+  { pattern = '\s+$', replacement = '' },
+  # Collapse the leading 3-space indent Laravel uses on status lines
+  { pattern = '^\s{1,6}(INFO|ERROR|WARN|WARNING)\b', replacement = '$1' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+max_lines = 40
+on_empty = "artisan make: ok"
+
+# -----------------------------------------------------------------------------
+# Tests
+# -----------------------------------------------------------------------------
+
+[[tests.artisan-make]]
+name = "simple make:model creates one file"
+input = """
+
+   INFO  Model [app/Models/Post.php] created successfully.
+
+"""
+expected = "INFO  Model [app/Models/Post.php] created successfully."
+
+[[tests.artisan-make]]
+name = "make:model -mfsc emits five INFO lines"
+input = """
+
+   INFO  Model [app/Models/Comment.php] created successfully.
+
+   INFO  Factory [database/factories/CommentFactory.php] created successfully.
+
+   INFO  Migration [database/migrations/2026_04_24_185348_create_comments_table.php] created successfully.
+
+   INFO  Seeder [database/seeders/CommentSeeder.php] created successfully.
+
+   INFO  Controller [app/Http/Controllers/CommentController.php] created successfully.
+"""
+expected = """INFO  Model [app/Models/Comment.php] created successfully.
+INFO  Factory [database/factories/CommentFactory.php] created successfully.
+INFO  Migration [database/migrations/2026_04_24_185348_create_comments_table.php] created successfully.
+INFO  Seeder [database/seeders/CommentSeeder.php] created successfully.
+INFO  Controller [app/Http/Controllers/CommentController.php] created successfully."""
+
+[[tests.artisan-make]]
+name = "already-exists error is preserved"
+input = """
+
+   ERROR  Model already exists.
+"""
+expected = "ERROR  Model already exists."
+
+[[tests.artisan-make]]
+name = "make:model full (mix of INFO and ERROR)"
+input = """
+
+   INFO  Model [app/Models/Tag.php] created successfully.
+
+   ERROR  Factory already exists.
+
+   INFO  Migration [database/migrations/2026_04_24_185410_create_tags_table.php] created successfully.
+
+   INFO  Seeder [database/seeders/TagSeeder.php] created successfully.
+
+   INFO  Request [app/Http/Requests/StoreTagRequest.php] created successfully.
+
+   INFO  Request [app/Http/Requests/UpdateTagRequest.php] created successfully.
+
+   INFO  Controller [app/Http/Controllers/TagController.php] created successfully.
+
+   INFO  Policy [app/Policies/TagPolicy.php] created successfully.
+"""
+expected = """INFO  Model [app/Models/Tag.php] created successfully.
+ERROR  Factory already exists.
+INFO  Migration [database/migrations/2026_04_24_185410_create_tags_table.php] created successfully.
+INFO  Seeder [database/seeders/TagSeeder.php] created successfully.
+INFO  Request [app/Http/Requests/StoreTagRequest.php] created successfully.
+INFO  Request [app/Http/Requests/UpdateTagRequest.php] created successfully.
+INFO  Controller [app/Http/Controllers/TagController.php] created successfully.
+INFO  Policy [app/Policies/TagPolicy.php] created successfully."""
+
+[[tests.artisan-make]]
+name = "make:test --unit puts test under tests/Unit"
+input = """
+
+   INFO  Test [tests/Unit/PostTest2.php] created successfully.
+"""
+expected = "INFO  Test [tests/Unit/PostTest2.php] created successfully."
+
+[[tests.artisan-make]]
+name = "make:component emits two INFO lines (class + view)"
+input = """
+
+   INFO  Component [app/View/Components/UserCard.php] created successfully.
+
+   INFO  View [resources/views/components/user-card.blade.php] created successfully.
+"""
+expected = """INFO  Component [app/View/Components/UserCard.php] created successfully.
+INFO  View [resources/views/components/user-card.blade.php] created successfully."""
+
+# =============================================================================
+# AGENT 4 — artisan cache/route/config/optimize
+# =============================================================================
+
+# =============================================================================
+# artisan route:list --json — structured JSON, single line. Do NOT strip lines.
+# Just cap very long JSON with truncate so we don't blow context on huge apps.
+# MUST come before artisan-route-list so --json wins.
+# =============================================================================
+[filters.artisan-route-list-json]
+description = "artisan route:list --json — keep single JSON line, cap length"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+route:list\b.*\s--(?:json|format(?:=|\s+)json)\b'
+strip_ansi = true
+filter_stderr = true
+truncate_lines_at = 8000
+max_lines = 1
+on_empty = "artisan route:list: empty"
+
+[[tests.artisan-route-list-json]]
+name = "json single line preserved"
+input = '[{"domain":null,"method":"GET|HEAD","uri":"\/","name":null,"action":"Closure","middleware":["web"],"path":"routes\/web.php:5"}]'
+expected = '[{"domain":null,"method":"GET|HEAD","uri":"\/","name":null,"action":"Closure","middleware":["web"],"path":"routes\/web.php:5"}]'
+
+[[tests.artisan-route-list-json]]
+name = "empty brackets passthrough"
+input = "[]"
+expected = "[]"
+
+# =============================================================================
+# artisan route:list — drop framework/vendor routes, cap size
+# =============================================================================
+[filters.artisan-route-list]
+description = "artisan route:list — drop framework routes, cap size, preserve user routes"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+route:list\b'
+strip_ansi = true
+filter_stderr = true
+strip_lines_matching = [
+  '_ignition',
+  'sanctum/csrf-cookie',
+  'livewire/',
+  'telescope',
+  'horizon',
+  '^\s*\+[-+]+\+\s*$',
+  '^\s*\|\s*Domain\s*\|',
+  '^\s*Showing \[\d+\] routes\s*$',
+  '^\s*$',
+]
+truncate_lines_at = 200
+max_lines = 80
+on_empty = "artisan route:list: no user routes"
+
+[[tests.artisan-route-list]]
+name = "fresh laravel routes preserved, framework noise dropped"
+input = """
+
+  GET|HEAD  / ............................................... routes/web.php:5
+  GET|HEAD  storage/{path} storage.local › vendor/laravel/framework/src/Illum…
+  PUT       storage/{path} storage.local.upload › vendor/laravel/framework/sr…
+  GET|HEAD  up vendor/laravel/framework/src/Illuminate/Foundation/Configurati…
+
+                                                            Showing [4] routes
+
+"""
+expected = """  GET|HEAD  / ............................................... routes/web.php:5
+  GET|HEAD  storage/{path} storage.local › vendor/laravel/framework/src/Illum…
+  PUT       storage/{path} storage.local.upload › vendor/laravel/framework/sr…
+  GET|HEAD  up vendor/laravel/framework/src/Illuminate/Foundation/Configurati…"""
+
+[[tests.artisan-route-list]]
+name = "drops framework vendor routes (telescope, horizon, livewire)"
+input = """
+  GET|HEAD  / routes/web.php:5
+  GET|HEAD  _ignition/health-check ignition
+  GET|HEAD  sanctum/csrf-cookie sanctum
+  GET|HEAD  livewire/update livewire
+  GET|HEAD  telescope telescope.index
+  GET|HEAD  horizon horizon.index
+  GET|HEAD  api/users UsersController@index
+                                                            Showing [7] routes
+"""
+expected = """  GET|HEAD  / routes/web.php:5
+  GET|HEAD  api/users UsersController@index"""
+
+# =============================================================================
+# artisan config:show — structured dump, preserve structure but cap size
+# =============================================================================
+[filters.artisan-config-show]
+description = "artisan config:show — preserve dotted key dump, cap overly long output"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+config:show\b'
+strip_ansi = true
+filter_stderr = true
+strip_lines_matching = [
+  '^\s*$',
+]
+truncate_lines_at = 240
+max_lines = 120
+on_empty = "artisan config:show: empty"
+
+[[tests.artisan-config-show]]
+name = "config:show database preserved as structured dump"
+input = """
+
+  database ...................................................................
+  default ............................................................. sqlite
+  connections ⇁ sqlite ⇁ driver ....................................... sqlite
+  connections ⇁ sqlite ⇁ database ................... database/database.sqlite
+
+"""
+expected = """  database ...................................................................
+  default ............................................................. sqlite
+  connections ⇁ sqlite ⇁ driver ....................................... sqlite
+  connections ⇁ sqlite ⇁ database ................... database/database.sqlite"""
+
+[[tests.artisan-config-show]]
+name = "empty input yields fallback message"
+input = """
+"""
+expected = "artisan config:show: empty"
+
+# =============================================================================
+# artisan event:list — short dump, just clean blanks
+# =============================================================================
+[filters.artisan-event-list]
+description = "artisan event:list — preserve structure, strip blanks"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+event:list\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^\s*INFO\s+.*no.*event', message = "artisan event:list: no events", unless = '(?i)(error|exception|fail|fatal)' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+truncate_lines_at = 200
+max_lines = 100
+on_empty = "artisan event:list: empty"
+
+[[tests.artisan-event-list]]
+name = "event list preserved, blank lines stripped"
+input = """
+
+  Illuminate\\Auth\\Events\\Registered ..........................................
+  ⇂ Illuminate\\Auth\\Listeners\\SendEmailVerificationNotification
+
+  Illuminate\\Console\\Events\\CommandFinished ..................................
+  ⇂ Closure at: /vendor/laravel/framework/src/Foo.php:215
+
+"""
+expected = """  Illuminate\\Auth\\Events\\Registered ..........................................
+  ⇂ Illuminate\\Auth\\Listeners\\SendEmailVerificationNotification
+  Illuminate\\Console\\Events\\CommandFinished ..................................
+  ⇂ Closure at: /vendor/laravel/framework/src/Foo.php:215"""
+
+[[tests.artisan-event-list]]
+name = "empty event list falls through to fallback"
+input = """
+
+"""
+expected = "artisan event:list: empty"
+
+# =============================================================================
+# artisan optimize:clear — collapse multi-line bootstrap clearing to ok.
+# MUST appear before `artisan-optimize` so `:clear` variant wins (first-match).
+# =============================================================================
+[filters.artisan-optimize-clear]
+description = "artisan optimize:clear — collapse bootstrap clearing to ok"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+optimize:clear\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?mi)clearing cached bootstrap files', message = "artisan: ok", unless = '(?i)(error|exception|fail|fatal|FAIL)' },
+]
+max_lines = 20
+on_empty = "artisan: ok"
+
+[[tests.artisan-optimize-clear]]
+name = "optimize:clear all-DONE collapses to ok"
+input = """
+
+   INFO  Clearing cached bootstrap files.
+
+  config ......................................................... 0.51ms DONE
+  cache .......................................................... 6.18ms DONE
+  compiled ....................................................... 0.32ms DONE
+  events ......................................................... 0.22ms DONE
+  routes ......................................................... 0.22ms DONE
+  views .......................................................... 3.97ms DONE
+"""
+expected = "artisan: ok"
+
+[[tests.artisan-optimize-clear]]
+name = "optimize:clear with FAIL preserves output"
+input = """
+   INFO  Clearing cached bootstrap files.
+
+  config ......................................................... 0.51ms FAIL
+"""
+expected = """   INFO  Clearing cached bootstrap files.
+
+  config ......................................................... 0.51ms FAIL"""
+
+# =============================================================================
+# artisan optimize (without :clear) — collapse multi-line DONE output to one line.
+# MUST come after artisan-optimize-clear (handled above) and before artisan-cache-ops.
+# =============================================================================
+[filters.artisan-optimize]
+description = "artisan optimize — collapse cache-each-thing output"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+optimize(?:\s|$)'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?mi)caching framework bootstrap', message = "artisan: optimized", unless = '(?i)(error|exception|fail|fatal|FAIL)' },
+]
+max_lines = 20
+on_empty = "artisan: optimized"
+
+[[tests.artisan-optimize]]
+name = "optimize all-DONE collapses to one line"
+input = """
+
+   INFO  Caching framework bootstrap, configuration, and metadata.
+
+  config ......................................................... 4.00ms DONE
+  events ......................................................... 0.45ms DONE
+  routes ......................................................... 4.48ms DONE
+  views ......................................................... 28.84ms DONE
+"""
+expected = "artisan: optimized"
+
+[[tests.artisan-optimize]]
+name = "optimize with FAIL preserves output"
+input = """
+   INFO  Caching framework bootstrap, configuration, and metadata.
+
+  config ......................................................... 4.00ms DONE
+  events ......................................................... 0.45ms FAIL
+"""
+expected = """   INFO  Caching framework bootstrap, configuration, and metadata.
+
+  config ......................................................... 4.00ms DONE
+  events ......................................................... 0.45ms FAIL"""
+
+# =============================================================================
+# artisan cache/config/view/route/event clear-ops + storage:link + schedule:list + optimize:clear
+# Collapse the single INFO line to "artisan: ok" UNLESS error (cache:table can fail).
+# =============================================================================
+[filters.artisan-cache-ops]
+description = "artisan cache/config/view/route/event cache+clear, optimize:clear, storage:link, schedule:list, cache:forget/table — collapse to ok, preserve errors"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+(?:config:(?:cache|clear)|cache:(?:clear|forget|table)|view:(?:cache|clear)|route:(?:cache|clear)|event:(?:cache|clear)|storage:link|schedule:(?:clear-cache|list))\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?i)(cached|cleared|linked|removed|connected|flushed) successfully', message = "artisan: ok", unless = '(?i)(error|exception|fail|fatal)' },
+  { pattern = '(?i)(has been removed from the cache|has been connected to)', message = "artisan: ok", unless = '(?i)(error|exception|fail|fatal)' },
+  { pattern = '(?i)no scheduled tasks have been defined', message = "artisan schedule:list: none", unless = '(?i)(error|exception|fail|fatal)' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+truncate_lines_at = 300
+max_lines = 40
+on_empty = "artisan: ok"
+
+[[tests.artisan-cache-ops]]
+name = "config:cache collapses to ok"
+input = """
+
+   INFO  Configuration cached successfully.
+"""
+expected = "artisan: ok"
+
+[[tests.artisan-cache-ops]]
+name = "cache:table ERROR preserved (not swallowed)"
+input = """
+
+   ERROR  Migration already exists.
+"""
+expected = "   ERROR  Migration already exists."
+
+[[tests.artisan-cache-ops]]
+name = "cache:forget foo collapses to ok"
+input = """
+
+   INFO  The [foo] key has been removed from the cache.
+"""
+expected = "artisan: ok"
+
+[[tests.artisan-cache-ops]]
+name = "schedule:list empty collapses to none"
+input = """
+
+   INFO  No scheduled tasks have been defined.
+"""
+expected = "artisan schedule:list: none"
+
+[[tests.artisan-cache-ops]]
+name = "view:cache collapses to ok"
+input = """
+
+   INFO  Blade templates cached successfully.
+"""
+expected = "artisan: ok"
+
+# =============================================================================
+# AGENT 5 — artisan test (wrapper)
+# =============================================================================
+
+# =============================================================================
+# artisan test — Pest/PHPUnit wrapper
+# =============================================================================
+# Design goals:
+#   • Clean run (all passing)         → collapse to "artisan test: ok"  (~95% savings)
+#   • Empty test match (no tests)     → keep "No tests found."
+#   • Failures / errors / exceptions  → keep every FAIL block, the ⨯ line,
+#                                       assertion diff, stack frame, and summary
+#   • Coverage driver errors          → preserved via keep_lines_matching
+#
+# Pest uses unicode glyphs (✓ ⨯). PHPUnit uses ASCII (. × F E S R). We match
+# both. The summary line "Tests: N passed (M assertions)" is emitted by both.
+[filters.artisan-test]
+description = "artisan test (Pest + PHPUnit) — ok-collapse on green, full detail on failure"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+test\b'
+strip_ansi = true
+filter_stderr = true
+
+# Normalize: drop per-test duration suffixes and parallel "dots only" progress
+# lines so downstream regexes can stay tight.
+replace = [
+  # Strip trailing "  0.05s" duration suffix ONLY on per-test bullet lines
+  # (identified by the ✓ / ⨯ / × glyphs).  Leaves the summary "Duration:"
+  # line alone.
+  { pattern = '^(\s*(?:✓|⨯|×).*?)\s+\d+(?:\.\d+)?s\s*$', replacement = '$1' },
+  # Collapse "dots only" parallel progress lines to empty.
+  { pattern = '^\s*[.⨯×FESR]+\s*$', replacement = '' },
+]
+
+# Short-circuit to a 3-word summary ONLY when there are zero failures / errors
+# / risks / incompletes / fatals / exceptions. The `unless` guard is
+# load-bearing — removing it swallows failures.
+match_output = [
+  { pattern = '(?m)^\s*Tests:\s+\d+\s+passed', message = "artisan test: ok", unless = '(?i)(failed|error|risked|incomplete|fatal|exception|FAIL\b|⨯|✗|No tests found)' },
+]
+
+# On the failure / no-tests paths, keep only signal lines.
+keep_lines_matching = [
+  # FAIL / WARN / RISK / SKIP / INFO / ERROR group banners
+  '^\s*(FAIL|WARN|RISK|SKIP|INFO|ERROR)\s+',
+  # FAILED detail header (Pest prints "FAILED Tests\Foo > bar")
+  '^\s*FAILED\s+',
+  # Failure bullet (Pest unicode + PHPUnit ASCII)
+  '^\s*(⨯|×|✗)\s',
+  # Assertion diff
+  '^\s+Failed asserting',
+  # Source location ("at tests/Foo.php:N")
+  '^\s*at\s+.+\.php:\d+',
+  # Pest info lines we care about
+  'No tests (found|executed)',
+  # Plain error / exception prefixes (PHPUnit style & thrown messages)
+  '(?i)^\s*(error|exception|fatal|uncaught)\b',
+  # Summary lines
+  '^\s*Tests:\s+',
+  '^\s*Duration:',
+  '^\s*Parallel:',
+]
+
+# 2 failures ≈ 18 kept lines, 10 failures ≈ 80.  100 is a comfortable ceiling.
+max_lines = 100
+
+# Safety net — match_output already handles the green case.
+on_empty = "artisan test: ok"
+
+# -----------------------------------------------------------------------------
+# Inline tests — inputs use ANSI-stripped output (strip_ansi = true means the
+# filter sees this form).  Triple-single-quote = TOML literal string = no
+# escape interpretation, so brackets / backslashes are safe.
+# -----------------------------------------------------------------------------
+
+[[tests.artisan-test]]
+name = "all passing — collapses to ok"
+input = '''
+
+   PASS  Tests\Unit\ExampleTest
+  ✓ that true is true
+
+   PASS  Tests\Feature\ExampleTest
+  ✓ the application returns a successful response                        0.05s
+
+  Tests:    2 passed (2 assertions)
+  Duration: 0.08s
+'''
+expected = "artisan test: ok"
+
+[[tests.artisan-test]]
+name = "all passing with --filter — collapses to ok"
+input = '''
+
+   PASS  Tests\Feature\ExampleTest
+  ✓ the application returns a successful response                        0.05s
+
+  Tests:    1 passed (1 assertions)
+  Duration: 0.05s
+'''
+expected = "artisan test: ok"
+
+[[tests.artisan-test]]
+name = "one failing test — keep FAIL, assertion diff, stack frame, summary"
+input = '''
+
+   PASS  Tests\Unit\ExampleTest
+  ✓ that true is true
+
+   FAIL  Tests\Feature\FailTest
+  ⨯ it fails comparing values                                            0.01s
+  ────────────────────────────────────────────────────────────────────────────
+   FAILED  Tests\Feature\FailTest > it fails comparing values
+  Failed asserting that 1 is identical to 2.
+
+  at tests/Feature/FailTest.php:4
+      1▕ <?php
+      2▕
+      3▕ it('fails comparing values', function () {
+  ➜   4▕     expect(1)->toBe(2);
+      5▕ });
+      6▕
+
+  1   tests/Feature/FailTest.php:4
+
+
+  Tests:    1 failed, 2 passed (3 assertions)
+  Duration: 0.10s
+'''
+expected = '''   FAIL  Tests\Feature\FailTest
+  ⨯ it fails comparing values
+   FAILED  Tests\Feature\FailTest > it fails comparing values
+  Failed asserting that 1 is identical to 2.
+  at tests/Feature/FailTest.php:4
+  Tests:    1 failed, 2 passed (3 assertions)
+  Duration: 0.10s'''
+
+[[tests.artisan-test]]
+name = "exception thrown — keep FAILED header and source location"
+input = '''
+
+   FAIL  Tests\Feature\ExceptionTest
+  ⨯ it throws an unexpected exception                                    0.01s
+  ────────────────────────────────────────────────────────────────────────────
+   FAILED  Tests\Feature\ExceptionTest > it throws an unex…  RuntimeException
+  Something exploded in production
+
+  at tests/Feature/ExceptionTest.php:4
+      1▕ <?php
+      2▕
+      3▕ it('throws an unexpected exception', function () {
+  ➜   4▕     throw new \RuntimeException('Something exploded in production');
+      5▕ });
+
+  Tests:    1 failed (1 assertions)
+  Duration: 0.05s
+'''
+expected = '''   FAIL  Tests\Feature\ExceptionTest
+  ⨯ it throws an unexpected exception
+   FAILED  Tests\Feature\ExceptionTest > it throws an unex…  RuntimeException
+  at tests/Feature/ExceptionTest.php:4
+  Tests:    1 failed (1 assertions)
+  Duration: 0.05s'''
+
+[[tests.artisan-test]]
+name = "no tests found — keep info line"
+input = '''
+
+   INFO  No tests found.
+'''
+expected = "   INFO  No tests found."
+
+[[tests.artisan-test]]
+name = "coverage driver error — keep error"
+input = '''
+
+   ERROR  Code coverage driver not available. Did you install Xdebug or PCOV?
+'''
+expected = "   ERROR  Code coverage driver not available. Did you install Xdebug or PCOV?"
+
+# =============================================================================
+# AGENT 9 — artisan info/queue/vendor/key:generate/down:up
+# =============================================================================
+
+# =============================================================================
+# Agent 9 — Artisan informational, queue, vendor, and housekeeping commands
+# Ordering note: all of these must appear BEFORE `artisan-generic` (owned by
+# Agent 10) so that the more specific regex wins first-match-wins.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# artisan about — big structured multi-section table. Default format is lots
+# of dotted box art; JSON format is compact and useful — preserve JSON, strip
+# the box dots on table mode.
+# -----------------------------------------------------------------------------
+[filters.artisan-about]
+description = "artisan about — strip dot-leader padding, keep label/value pairs; JSON format preserved"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+about\b'
+strip_ansi = true
+filter_stderr = true
+replace = [
+  # Collapse long dot runs used as leaders into a single separator.
+  { pattern = '\s*\.{4,}\s*', replacement = ' : ' },
+  # Trim trailing whitespace.
+  { pattern = '\s+$', replacement = '' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+max_lines = 80
+on_empty = "artisan about: (empty)"
+
+[[tests.artisan-about]]
+name = "default table output collapses dots"
+input = """
+
+  Environment ................................................................
+  Application Name ................................................... Laravel
+  Laravel Version ..................................................... 13.6.0
+  PHP Version .......................................................... 8.5.0
+  Environment .......................................................... local
+
+  Cache ......................................................................
+  Config .......................................................... NOT CACHED
+"""
+expected = """  Environment :
+  Application Name : Laravel
+  Laravel Version : 13.6.0
+  PHP Version : 8.5.0
+  Environment : local
+  Cache :
+  Config : NOT CACHED"""
+
+[[tests.artisan-about]]
+name = "json format left structurally intact (one line)"
+input = '{"environment":{"application_name":"Laravel","laravel_version":"13.6.0"},"drivers":{"cache":"database"}}'
+expected = '{"environment":{"application_name":"Laravel","laravel_version":"13.6.0"},"drivers":{"cache":"database"}}'
+
+# -----------------------------------------------------------------------------
+# artisan inspire — already 1 line, just strip ANSI / blank lines.
+# -----------------------------------------------------------------------------
+[filters.artisan-inspire]
+description = "artisan inspire — 1-line quote, minimal filtering"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+inspire\b'
+strip_ansi = true
+filter_stderr = true
+strip_lines_matching = [
+  '^\s*$',
+]
+max_lines = 5
+on_empty = "artisan inspire: (empty)"
+
+[[tests.artisan-inspire]]
+name = "inspire quote preserved"
+input = """
+
+  “ We must ship. ”
+  — Taylor Otwell
+
+"""
+expected = """  “ We must ship. ”
+  — Taylor Otwell"""
+
+[[tests.artisan-inspire]]
+name = "empty output falls through to on_empty"
+input = "\n\n\n"
+expected = "artisan inspire: (empty)"
+
+# -----------------------------------------------------------------------------
+# artisan list — short-circuit on bare `list`/`list <namespace>` output to
+# drop the usage/options preamble; keep the command list.
+# -----------------------------------------------------------------------------
+[filters.artisan-list]
+description = "artisan list — drop Usage/Options preamble, keep command list. JSON format passed through as-is."
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+list\b'
+strip_ansi = true
+filter_stderr = true
+# If --format=json, output is a single long JSON line. We cannot easily detect
+# the flag from the output, but JSON starts with `{"application"` — short-
+# circuit to a compact summary.
+match_output = [
+  { pattern = '\{"application":\{"name":"Laravel Framework"', message = "artisan list (json): command catalog JSON — use `rtk proxy` for full output", unless = '(?i)\bfatal\b|Symfony\\\\Component\\\\Console\\\\Exception|PHP Parse error' },
+]
+strip_lines_matching = [
+  '^Laravel Framework ',
+  '^Usage:\s*$',
+  '^\s*command \[options\]',
+  '^Options:\s*$',
+  '^\s*-h, --help',
+  '^\s*--silent',
+  '^\s*-q, --quiet',
+  '^\s*-V, --version',
+  '^\s*--ansi\|--no-ansi',
+  '^\s*-n, --no-interaction',
+  '^\s*--env\[=ENV\]',
+  '^\s*-v\|vv\|vvv',
+  '^Available commands(?:\s+for the .+ namespace)?:\s*$',
+  '^\s*$',
+]
+max_lines = 200
+on_empty = "artisan list: (empty)"
+
+[[tests.artisan-list]]
+name = "drops usage/options preamble, keeps command catalogue"
+input = """Laravel Framework 13.6.0
+
+Usage:
+  command [options] [arguments]
+
+Options:
+  -h, --help            Display help for the given command. When no command is given display help for the list command
+      --silent          Do not output any message
+  -q, --quiet           Only errors are displayed. All other output is suppressed
+  -V, --version         Display this application version
+      --ansi|--no-ansi  Force (or disable --no-ansi) ANSI output
+  -n, --no-interaction  Do not ask any interactive question
+      --env[=ENV]       The environment the command should run under
+  -v|vv|vvv, --verbose  Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug
+
+Available commands:
+  about                     Display basic information about your application
+  down                      Put the application into maintenance / demo mode
+ make
+  make:model                Create a new Eloquent model class
+"""
+expected = """  about                     Display basic information about your application
+  down                      Put the application into maintenance / demo mode
+ make
+  make:model                Create a new Eloquent model class"""
+
+[[tests.artisan-list]]
+name = "json format short-circuits"
+input = '{"application":{"name":"Laravel Framework","version":"13.6.0"},"commands":[{"name":"about"}]}'
+expected = "artisan list (json): command catalog JSON — use `rtk proxy` for full output"
+
+# -----------------------------------------------------------------------------
+# artisan queue:monitor — small dot-leader table (queue name / size / status).
+# Note: Laravel 13 has no `queue:list` command — `queue:monitor` is the
+# inspection command. The brief referenced queue:list but that's a worker
+# command in L13. We own queue:monitor here instead.
+# -----------------------------------------------------------------------------
+[filters.artisan-queue-monitor]
+description = "artisan queue:monitor — collapse dot leaders on the status table"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+queue:monitor\b'
+strip_ansi = true
+filter_stderr = true
+replace = [
+  { pattern = '\s*\.{4,}\s*', replacement = ' : ' },
+  { pattern = '\s+$', replacement = '' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+max_lines = 60
+on_empty = "artisan queue:monitor: ok"
+
+[[tests.artisan-queue-monitor]]
+name = "status table collapses"
+input = """
+  Queue name ................................................... Size / Status
+  [database] default .................................................. [0] OK
+  Pending jobs ............................................................. 0
+"""
+expected = """  Queue name : Size / Status
+  [database] default : [0] OK
+  Pending jobs : 0"""
+
+[[tests.artisan-queue-monitor]]
+name = "empty → on_empty"
+input = ""
+expected = "artisan queue:monitor: ok"
+
+# -----------------------------------------------------------------------------
+# artisan queue:failed — "No failed jobs found" is a very common clean state.
+# -----------------------------------------------------------------------------
+[filters.artisan-queue-failed]
+description = "artisan queue:failed — collapse 'no failed jobs' banner; keep table otherwise"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+queue:failed\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^\s*INFO\s+No failed jobs found', message = "artisan queue:failed: none", unless = '(?i)(error|exception|fatal)' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+max_lines = 80
+on_empty = "artisan queue:failed: none"
+
+[[tests.artisan-queue-failed]]
+name = "clean state"
+input = """
+   INFO  No failed jobs found.
+"""
+expected = "artisan queue:failed: none"
+
+[[tests.artisan-queue-failed]]
+name = "empty output → on_empty"
+input = ""
+expected = "artisan queue:failed: none"
+
+# -----------------------------------------------------------------------------
+# artisan vendor:publish — keep the file paths (they ARE the signal); strip
+# banner lines and blank lines.
+# -----------------------------------------------------------------------------
+[filters.artisan-vendor-publish]
+description = "artisan vendor:publish — keep Copying lines (file paths), strip banners"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+vendor:publish\b'
+strip_ansi = true
+filter_stderr = true
+strip_lines_matching = [
+  '^\s*INFO\s+Publishing',
+  '^\s*$',
+]
+max_lines = 80
+on_empty = "artisan vendor:publish: nothing published"
+
+[[tests.artisan-vendor-publish]]
+name = "keep copy paths, drop INFO banner"
+input = """
+   INFO  Publishing assets.
+
+  Copying directory [vendor/laravel/framework/src/Illuminate/Foundation/Exceptions/views] to [resources/views/errors]  DONE
+  Copying file [vendor/laravel/tinker/config/tinker.php] to [config/tinker.php]  DONE
+
+"""
+expected = """  Copying directory [vendor/laravel/framework/src/Illuminate/Foundation/Exceptions/views] to [resources/views/errors]  DONE
+  Copying file [vendor/laravel/tinker/config/tinker.php] to [config/tinker.php]  DONE"""
+
+[[tests.artisan-vendor-publish]]
+name = "empty publish → on_empty"
+input = "\n"
+expected = "artisan vendor:publish: nothing published"
+
+# -----------------------------------------------------------------------------
+# artisan schedule:list — in a fresh app: "No scheduled tasks have been defined".
+# -----------------------------------------------------------------------------
+[filters.artisan-schedule-list]
+description = "artisan schedule:list — collapse the empty-state banner"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+schedule:list\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^\s*INFO\s+No scheduled tasks have been defined', message = "artisan schedule:list: none", unless = '(?i)(error|exception|fatal)' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+max_lines = 60
+on_empty = "artisan schedule:list: none"
+
+[[tests.artisan-schedule-list]]
+name = "empty schedule collapses"
+input = """
+   INFO  No scheduled tasks have been defined.
+"""
+expected = "artisan schedule:list: none"
+
+[[tests.artisan-schedule-list]]
+name = "with tasks → passthrough"
+input = """
+  0 * * * * App\\Jobs\\DigestJob ........... Next Due: 45 minutes from now
+"""
+expected = "  0 * * * * App\\Jobs\\DigestJob ........... Next Due: 45 minutes from now"
+
+# -----------------------------------------------------------------------------
+# artisan model:show — structured columns/relations output. Preserve mostly;
+# just strip ANSI + blank lines + collapse dot-leaders.
+# -----------------------------------------------------------------------------
+[filters.artisan-model-show]
+description = "artisan model:show — preserve columns/relations, collapse dot leaders"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+model:show\b'
+strip_ansi = true
+filter_stderr = true
+replace = [
+  { pattern = '\s*\.{4,}\s*', replacement = ' : ' },
+  { pattern = '\s+$', replacement = '' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+max_lines = 120
+on_empty = "artisan model:show: (empty)"
+
+[[tests.artisan-model-show]]
+name = "column table compresses"
+input = """
+  App\\Models\\User ............................................................
+  Database ............................................................ sqlite
+  Table ................................................................ users
+
+  Attributes ..................................................... type / cast
+  id increments, unique ........................................ integer / int
+
+  Relations ..................................................................
+  notifications MorphMany ...... Illuminate\\Notifications\\DatabaseNotification
+"""
+expected = """  App\\Models\\User :
+  Database : sqlite
+  Table : users
+  Attributes : type / cast
+  id increments, unique : integer / int
+  Relations :
+  notifications MorphMany : Illuminate\\Notifications\\DatabaseNotification"""
+
+[[tests.artisan-model-show]]
+name = "empty → on_empty"
+input = "\n\n"
+expected = "artisan model:show: (empty)"
+
+# -----------------------------------------------------------------------------
+# artisan down / up — single-line INFO banners. Both collapse cleanly.
+# Ordering note: these must be BEFORE `artisan-generic`.
+# -----------------------------------------------------------------------------
+[filters.artisan-down-up]
+description = "artisan down | up — collapse maintenance-mode banners"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+(down|up)\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^\s*INFO\s+Application is now in maintenance mode', message = "artisan down: maintenance on", unless = '(?i)(error|exception|fatal)' },
+  { pattern = '(?m)^\s*INFO\s+Application is (now live|already up)', message = "artisan up: live", unless = '(?i)(error|exception|fatal)' },
+  { pattern = '(?m)^\s*INFO\s+Application is already down', message = "artisan down: already in maintenance", unless = '(?i)(error|exception|fatal)' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+max_lines = 20
+on_empty = "artisan: ok"
+
+[[tests.artisan-down-up]]
+name = "down → maintenance on"
+input = """
+   INFO  Application is now in maintenance mode.
+"""
+expected = "artisan down: maintenance on"
+
+[[tests.artisan-down-up]]
+name = "up → live"
+input = """
+   INFO  Application is now live.
+"""
+expected = "artisan up: live"
+
+[[tests.artisan-down-up]]
+name = "up when already up"
+input = """
+   INFO  Application is already up.
+"""
+expected = "artisan up: live"
+
+# -----------------------------------------------------------------------------
+# artisan key:generate — `Application key set successfully.` → short-circuit.
+# The `--show` variant just prints the key on one line (pass through).
+# -----------------------------------------------------------------------------
+[filters.artisan-key-generate]
+description = "artisan key:generate — collapse success banner; --show output passes through"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+key:generate\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^\s*INFO\s+Application key set successfully', message = "artisan key:generate: key set", unless = '(?i)(error|exception|fatal)' },
+]
+strip_lines_matching = [
+  '^\s*$',
+]
+max_lines = 10
+on_empty = "artisan key:generate: ok"
+
+[[tests.artisan-key-generate]]
+name = "success collapses"
+input = """
+   INFO  Application key set successfully.
+"""
+expected = "artisan key:generate: key set"
+
+[[tests.artisan-key-generate]]
+name = "--show prints key unchanged"
+input = "base64:z/vi2MULPeut6+cXljpvKKR5KJkC5cZcKJE2MK4bCzU=\n"
+expected = "base64:z/vi2MULPeut6+cXljpvKKR5KJkC5cZcKJE2MK4bCzU="
+
+# =============================================================================
+# AGENT 10 — artisan long-running guards + zz-generic fallback
+# =============================================================================
+
+# =============================================================================
+# SPECIFIC artisan filters come FIRST. Generic fallback is LAST.
+# This ordering is critical — first-match-wins.
+# =============================================================================
+
+# Specific filter to prove precedence — migrate:* must win over artisan-zz-generic.
+[filters.artisan-long-running]
+description = "Long-running streaming commands — cap output + emit warning"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+(?:serve|tinker|queue:work|queue:listen|queue:listen-failed|horizon|horizon:[\w-]+|schedule:work|reverb:start|reverb:restart|reverb:ping|websockets:serve|pail|broadcast:serve|octane:start)\b'
+strip_ansi = true
+filter_stderr = true
+replace = [
+  # Insert a one-shot warning prefix before the first INFO banner.
+  { pattern = '^(\s*INFO\s+)', replacement = """rtk: long-running command — output capped at 100 lines. Prefer raw invocation or `rtk proxy`.
+$1""" },
+]
+strip_lines_matching = [
+  '^\s*$',
+  '^using dumb terminal settings\.$',
+  '^No entry for terminal type ',
+  '^\s*Press Ctrl\+C',
+]
+max_lines = 100
+on_empty = "rtk: long-running command produced no output in buffer window. Prefer raw invocation or `rtk proxy`."
+
+[[tests.artisan-long-running]]
+name = "serve banner gets warning + cap"
+input = """
+
+   INFO  Server running on [http://127.0.0.1:8000].
+
+  Press Ctrl+C to stop the server
+
+"""
+expected = """
+rtk: long-running command — output capped at 100 lines. Prefer raw invocation or `rtk proxy`.
+   INFO  Server running on [http://127.0.0.1:8000]."""
+
+[[tests.artisan-long-running]]
+name = "queue:work empty output emits warning"
+input = ""
+expected = "rtk: long-running command produced no output in buffer window. Prefer raw invocation or `rtk proxy`."
+
+[[tests.artisan-long-running]]
+name = "tinker terminal banner filtered + warning"
+input = """
+No entry for terminal type "xterm-256color";
+using dumb terminal settings.
+Psy Shell v0.12.0 (PHP 8.5.0 — cli) by Justin Hileman
+"""
+expected = """Psy Shell v0.12.0 (PHP 8.5.0 — cli) by Justin Hileman"""
+
+# =============================================================================
+# GENERIC ARTISAN FALLBACK — must be LAST artisan filter
+# Catches anything not covered by specific filters above.
+# Broad match, but specific filters win because of first-match-wins ordering.
+# =============================================================================
+
+[filters.artisan-zz-generic]
+description = "Fallback for any artisan command not covered by a specific filter"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\b'
+strip_ansi = true
+filter_stderr = true
+strip_lines_matching = [
+  '^\s*$',
+  '^\s*INFO\s+$',
+  # Symfony shell-completion boilerplate — not useful to the LLM
+  '^# This file is part of the Symfony package\.$',
+  '^# \(c\) Fabien Potencier',
+  '^# For the full copyright',
+  '^# https://symfony\.com/doc/',
+]
+truncate_lines_at = 240
+max_lines = 60
+on_empty = "artisan: ok"
+
+[[tests.artisan-zz-generic]]
+name = "package:discover collapses"
+input = """
+
+   INFO  Discovering packages.
+
+  laravel/pail .......................................................... DONE
+  laravel/tinker ........................................................ DONE
+"""
+expected = """   INFO  Discovering packages.
+  laravel/pail .......................................................... DONE
+  laravel/tinker ........................................................ DONE"""
+
+[[tests.artisan-zz-generic]]
+name = "stub:publish success"
+input = """
+
+   INFO  Stubs published successfully.
+
+"""
+expected = "   INFO  Stubs published successfully."
+
+[[tests.artisan-zz-generic]]
+name = "error preserved (session:table duplicate)"
+input = """
+
+   ERROR  Migration already exists.
+
+"""
+expected = "   ERROR  Migration already exists."
+
+[[tests.artisan-zz-generic]]
+name = "nonexistent command preserves error"
+input = """
+
+   ERROR  There are no commands defined in the \"nonexistent\" namespace.
+
+"""
+expected = "   ERROR  There are no commands defined in the \"nonexistent\" namespace."
+
+[[tests.artisan-zz-generic]]
+name = "empty output emits ok"
+input = ""
+expected = "artisan: ok"
+
+[[tests.artisan-zz-generic]]
+name = "env:decrypt error preserved"
+input = """
+
+   ERROR  A decryption key is required.
+
+"""
+expected = "   ERROR  A decryption key is required."
+
+# =============================================================================
+# AGENT 6 — pest (direct)
+# =============================================================================
+
+# =============================================================================
+# Pest — direct invocation (vendor/bin/pest, pest, php vendor/bin/pest)
+# Must NOT shadow artisan-test. artisan test has basename "artisan" or "php",
+# so it never matches here. Our anchor is strictly `pest` at start.
+# =============================================================================
+
+[filters.pest]
+description = "Pest — keep failures, skips, exceptions, coverage errors, summary"
+match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/)?pest\b'
+strip_ansi = true
+filter_stderr = true
+
+# Strip the ANSI cursor-move artifact from --parallel runs
+replace = [
+  { pattern = '^\s*\d+A\s+', replacement = '' },
+]
+
+# Short-circuit clean runs. Any failure/error/exception/skip/incomplete
+# disables this so we preserve the real output.
+match_output = [
+  { pattern = '(?m)^\s*Tests:\s+\d+ passed\s', message = "pest: ok", unless = '(?i)(failed|error|exception|fatal|risked|incomplete|skipped|warn|no tests found|no code coverage)' },
+  { pattern = '(?m)^\s*INFO\s+No tests found', message = "pest: no tests matched" },
+  { pattern = '(?m)^\s*ERROR\s+No code coverage driver', message = "pest error: no code coverage driver available (install Xdebug or PCOV)" },
+]
+
+# Drop only known noise. Keep everything else (failure messages, exception
+# text, diff lines all survive).
+strip_lines_matching = [
+  '^\s*$',
+  # The horizontal rule between failures
+  '^\s*─{10,}\s*$',
+  # The code preview lines (numbered source like "   4▕     ..." or "➜  8▕ ...")
+  '^\s*(➜\s+)?\d+▕',
+  # The footer "1   tests/Foo.php:NN" repeater
+  '^\s*\d+\s+tests/\S+\.php:\d+\s*$',
+]
+
+truncate_lines_at = 300
+max_lines = 120
+on_empty = "pest: ok"
+
+# -----------------------------------------------------------------------------
+# Inline tests
+# -----------------------------------------------------------------------------
+
+[[tests.pest]]
+name = "all pass — clean run collapses to ok"
+input = """
+
+  PASS  Tests\\Feature\\ExampleTest
+  ✓ the application returns a successful response                        0.05s
+
+  Tests:    1 passed (1 assertions)
+  Duration: 0.08s
+
+"""
+expected = "pest: ok"
+
+[[tests.pest]]
+name = "no tests matched"
+input = """
+
+  INFO  No tests found.
+
+"""
+expected = "pest: no tests matched"
+
+[[tests.pest]]
+name = "coverage driver error preserved"
+input = """
+
+  ERROR  No code coverage driver is available.
+
+"""
+expected = "pest error: no code coverage driver available (install Xdebug or PCOV)"
+
+[[tests.pest]]
+name = "failing test keeps failure + summary"
+input = """
+
+  PASS  Tests\\Unit\\ExampleTest
+  ✓ that true is true
+
+  FAIL  Tests\\Unit\\FailingTest
+  ✓ math works
+  ⨯ failing assertion
+  ────────────────────────────────────────────────────────────────────────────
+  FAILED  Tests\\Unit\\FailingTest > failing assertion
+  Failed asserting that 2 is identical to 3.
+
+  at tests/Unit/FailingTest.php:8
+      7▕ test('failing assertion', function () {
+  ➜   8▕     expect(1 + 1)->toBe(3);
+      9▕ });
+
+  1   tests/Unit/FailingTest.php:8
+
+
+  Tests:    1 failed, 2 passed (3 assertions)
+  Duration: 0.10s
+
+"""
+expected = """  PASS  Tests\\Unit\\ExampleTest
+  ✓ that true is true
+  FAIL  Tests\\Unit\\FailingTest
+  ✓ math works
+  ⨯ failing assertion
+  FAILED  Tests\\Unit\\FailingTest > failing assertion
+  Failed asserting that 2 is identical to 3.
+  at tests/Unit/FailingTest.php:8
+  Tests:    1 failed, 2 passed (3 assertions)
+  Duration: 0.10s"""
+
+[[tests.pest]]
+name = "skipped + incomplete preserved"
+input = """
+
+  WARN  Tests\\Unit\\SkipTest
+  - this test is skipped → needs feature X
+  … this test is incomplete → todo: implement me
+  ✓ this test passes
+
+  Tests:    1 incomplete, 1 skipped, 1 passed (1 assertions)
+  Duration: 0.01s
+
+"""
+expected = """  WARN  Tests\\Unit\\SkipTest
+  - this test is skipped → needs feature X
+  … this test is incomplete → todo: implement me
+  ✓ this test passes
+  Tests:    1 incomplete, 1 skipped, 1 passed (1 assertions)
+  Duration: 0.01s"""
+
+[[tests.pest]]
+name = "exception preserved with type"
+input = """
+
+  FAIL  Tests\\Unit\\ExceptionTest
+  ⨯ throws an exception
+  ────────────────────────────────────────────────────────────────────────────
+  FAILED  Tests\\Unit\\ExceptionTest > throws an exception   RuntimeException
+  something went wrong at runtime
+
+  at tests/Unit/ExceptionTest.php:4
+
+  Tests:    1 failed (0 assertions)
+  Duration: 0.02s
+
+"""
+expected = """  FAIL  Tests\\Unit\\ExceptionTest
+  ⨯ throws an exception
+  FAILED  Tests\\Unit\\ExceptionTest > throws an exception   RuntimeException
+  something went wrong at runtime
+  at tests/Unit/ExceptionTest.php:4
+  Tests:    1 failed (0 assertions)
+  Duration: 0.02s"""
+
+[[tests.pest]]
+name = "dataset failure keeps both failing entries"
+input = """
+
+  FAIL  Tests\\Unit\\DatasetTest
+  ✓ dataset values match with (1, 1, 2)
+  ⨯ dataset values match with (2, 2, 5)
+  ✓ dataset values match with (3, 3, 6)
+  ⨯ dataset values match with (10, 10, 21)
+
+  Tests:    2 failed, 2 passed (2 assertions)
+  Duration: 0.05s
+
+"""
+expected = """  FAIL  Tests\\Unit\\DatasetTest
+  ✓ dataset values match with (1, 1, 2)
+  ⨯ dataset values match with (2, 2, 5)
+  ✓ dataset values match with (3, 3, 6)
+  ⨯ dataset values match with (10, 10, 21)
+  Tests:    2 failed, 2 passed (2 assertions)
+  Duration: 0.05s"""
+
+# =============================================================================
+# AGENT 7 — phpunit + pint (direct)
+# =============================================================================
+
+# =============================================================================
+# PHPUnit — direct invocation (vendor/bin/phpunit or `phpunit`)
+# =============================================================================
+#
+# Output traits observed on PHPUnit 12.x:
+#   - Banner: `PHPUnit X.Y.Z by Sebastian Bergmann and contributors.`
+#   - Runtime / Configuration header lines.
+#   - Progress dot line: `...F.. 7 / 7 (100%)` (may include ANSI color codes).
+#   - Clean summary: `OK (N tests, M assertions)`.
+#   - Failure summary: `ERRORS!` / `FAILURES!` then
+#     `Tests: N, Assertions: M, Errors: K, Failures: L, Skipped: P, Incomplete: Q.`
+#   - `--testdox` adds readable sentences (keep them — that's the signal).
+#   - `--list-tests` / `--list-groups` emit `Available tests:` / `Available test group:`
+#     followed by `- <name>` lines (keep them).
+
+[filters.phpunit]
+description = "PHPUnit direct — strip banner/progress, keep failures + summary + testdox"
+match_command = '^(?:php\s+)?(?:\./)?vendor/bin/phpunit\b|^phpunit\b'
+strip_ansi = true
+filter_stderr = true
+match_output = [
+  { pattern = '(?m)^OK\s+\(\d+ tests?,\s+\d+ assertions?\)', message = "phpunit: ok", unless = '(?i)(failure|error|risk|incomplete|skip|fatal|exception)' },
+]
+strip_lines_matching = [
+  '^PHPUnit \d+\.\d+\.\d+ by Sebastian Bergmann',
+  '^Runtime:\s',
+  '^Configuration:\s',
+  '^Time:\s.*Memory:',
+  '^\s*\.+\s*\d+\s*/\s*\d+\s*\(\s*\d+%\)\s*$',
+  '^[.FEISR]+\s+\d+\s*/\s*\d+\s*\(\s*\d+%\)\s*$',
+  '^\s*--\s*$',
+  '^\s*$',
+]
+max_lines = 120
+on_empty = "phpunit: ok"
+
+[[tests.phpunit]]
+name = "clean OK run collapses"
+input = """
+PHPUnit 12.5.23 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.5.0
+Configuration: /private/tmp/rtk-lab-7/app/phpunit.xml
+
+..                                                                  2 / 2 (100%)
+
+Time: 00:00.054, Memory: 36.50 MB
+
+OK (2 tests, 2 assertions)
+"""
+expected = "phpunit: ok"
+
+[[tests.phpunit]]
+name = "failing run keeps errors and summary"
+input = """
+PHPUnit 12.5.23 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.5.0
+Configuration: /private/tmp/rtk-lab-7/app/phpunit.xml
+
+.FESI..                                                             7 / 7 (100%)
+
+Time: 00:00.122, Memory: 36.50 MB
+
+There was 1 error:
+
+1) Tests\\Unit\\FailingTest::test_throws
+RuntimeException: boom in test
+
+/private/tmp/rtk-lab-7/app/tests/Unit/FailingTest.php:16
+
+--
+
+There was 1 failure:
+
+1) Tests\\Unit\\FailingTest::test_math_is_wrong
+Failed asserting that 2 is identical to 3.
+
+/private/tmp/rtk-lab-7/app/tests/Unit/FailingTest.php:11
+
+ERRORS!
+Tests: 7, Assertions: 4, Errors: 1, Failures: 1, Skipped: 1, Incomplete: 1.
+"""
+expected = """
+There was 1 error:
+1) Tests\\Unit\\FailingTest::test_throws
+RuntimeException: boom in test
+/private/tmp/rtk-lab-7/app/tests/Unit/FailingTest.php:16
+There was 1 failure:
+1) Tests\\Unit\\FailingTest::test_math_is_wrong
+Failed asserting that 2 is identical to 3.
+/private/tmp/rtk-lab-7/app/tests/Unit/FailingTest.php:11
+ERRORS!
+Tests: 7, Assertions: 4, Errors: 1, Failures: 1, Skipped: 1, Incomplete: 1.
+"""
+
+[[tests.phpunit]]
+name = "list-tests preserves test names"
+input = """
+PHPUnit 12.5.23 by Sebastian Bergmann and contributors.
+
+Available tests:
+ - Tests\\Unit\\ExampleTest::test_that_true_is_true
+ - Tests\\Feature\\ExampleTest::test_the_application_returns_a_successful_response
+"""
+expected = """
+Available tests:
+ - Tests\\Unit\\ExampleTest::test_that_true_is_true
+ - Tests\\Feature\\ExampleTest::test_the_application_returns_a_successful_response
+"""
+
+# =============================================================================
+# Laravel Pint
+# =============================================================================
+#
+# In non-TTY mode Pint emits JSON (single line):
+#   - Clean:  {"tool":"pint","result":"passed"}
+#   - Fail:   {"tool":"pint","result":"fail","files":[{"path":"...","fixers":[...]}]}
+#   - Fixed:  {"tool":"pint","result":"fixed","files":[...]}
+# We collapse the JSON to a human-readable one-liner listing affected files.
+
+[filters.pint]
+description = "Laravel Pint — collapse JSON output to concise file list + status"
+match_command = '^(?:php\s+)?(?:\./)?vendor/bin/pint\b|^pint\b'
+strip_ansi = true
+filter_stderr = true
+replace = [
+  # JSON "passed" -> ok
+  { pattern = '^\{"tool":"pint","result":"passed"\}\s*$', replacement = 'pint: ok' },
+  # Normalize JSON-escaped slashes (\/ -> /).
+  { pattern = '\\/', replacement = '/' },
+  # Collapse each file object to just its path, one per "line" separated by \n.
+  { pattern = '\{"path":"([^"]+)","fixers":\[[^\]]*\]\}', replacement = "PATHSEP  $1" },
+  # Leading status prefix.
+  { pattern = '^\{"tool":"pint","result":"fail","files":\[', replacement = "pint: FAIL" },
+  { pattern = '^\{"tool":"pint","result":"fixed","files":\[', replacement = "pint: FIXED" },
+  # Trailing closers.
+  { pattern = '\]\}\s*$', replacement = '' },
+  # Separator between file entries (comma became bare after collapse).
+  { pattern = ',', replacement = '' },
+  # Finally swap our sentinel for actual newlines.
+  { pattern = 'PATHSEP', replacement = "\n" },
+]
+match_output = [
+  { pattern = '(?m)^pint: ok\s*$', message = "pint: ok", unless = '(?i)(fail|error|fatal|exception)' },
+]
+strip_lines_matching = [
+  '^Laravel Pint \d',
+  '^\s*$',
+  '^\s*[.⨯✓]+\s*\d+ files\s*$',
+  '^\s*PASS\s*$',
+]
+max_lines = 80
+on_empty = "pint: ok"
+
+[[tests.pint]]
+name = "clean passed collapses to ok"
+input = '{"tool":"pint","result":"passed"}'
+expected = "pint: ok"
+
+[[tests.pint]]
+name = "fail lists path"
+input = '{"tool":"pint","result":"fail","files":[{"path":"app\/BadStyle.php","fixers":["class_definition","binary_operator_spaces"]}]}'
+expected = """
+pint: FAIL
+  app/BadStyle.php
+"""
+
+[[tests.pint]]
+name = "fixed lists path"
+input = '{"tool":"pint","result":"fixed","files":[{"path":"app\/BadStyle.php","fixers":["class_definition"]}]}'
+expected = """
+pint: FIXED
+  app/BadStyle.php
+"""
+
+[[tests.pint]]
+name = "fail multiple files"
+input = '{"tool":"pint","result":"fail","files":[{"path":"app\/A.php","fixers":["x"]},{"path":"app\/B.php","fixers":["y"]}]}'
+expected = """
+pint: FAIL
+  app/A.php
+  app/B.php
+"""
+
+# =============================================================================
+# AGENT 8 — phpstan / larastan (direct)
+# =============================================================================
+
+# =============================================================================
+# PHPStan / Larastan (static analysis)
+# =============================================================================
+#
+# Matches both `phpstan` and `larastan` binaries (larastan is phpstan with neon config).
+# Also matches `vendor/bin/phpstan` (basename stripped by rtk).
+#
+# Key things to strip:
+#  - Progress bar: " 0/3 [░░░] 0%" with block/shade chars
+#  - "Instructions for interpreting errors" boilerplate banner (16 lines, emitted
+#    by recent phpstan versions whenever errors exist — pure noise for LLMs)
+#  - Table separators "------ ------" and the "Line   <file>" header row
+#  - "Note: Using configuration file ..." info line
+#
+# Key things to KEEP:
+#  - Final "[ERROR] Found N errors" / "[OK] No errors" status line
+#  - Individual error lines with line numbers and messages
+#  - Identifier tags (🪪 return.type etc)
+#  - JSON blob when --error-format=json
+#  - raw single-line errors when --error-format=raw (/path:line:msg)
+#  - Memory exhausted / fatal errors
+
+[filters.phpstan]
+description = "phpstan / larastan — strip progress bar, instructions banner, table chrome"
+match_command = '(?:^|/)(?:phpstan|larastan)\b'
+strip_ansi = true
+filter_stderr = true
+
+# Short-circuit: clean run collapses to one line.
+# `unless` preserves any error/warning/exception that slips into output.
+match_output = [
+  { pattern = '(?m)^\s*\[OK\] No errors', message = "phpstan: ok", unless = '(?i)(exception|fatal|allowed memory|parse error|uncaught)' },
+]
+
+# Drop known noise lines.
+strip_lines_matching = [
+  # Info header
+  '^Note: Using configuration file',
+  # Progress bar (block/shade chars, percentage, carriage returns handled by regex)
+  '^\s*\d+/\d+\s*\[',
+  '^\s*\[[░▓█▒▓=>\- ]+\]\s*\d+%',
+  # "Instructions for interpreting errors" banner (stable 16-line boilerplate)
+  '^Instructions for interpreting errors$',
+  '^-{3,}$',
+  '^Each error has an associated identifier',
+  '^or `return\.missing`',
+  '^Each error identifier has documentation at URL',
+  '^This page contains code example',
+  '^and instruction how to fix it',
+  '^Before fixing the error, fetch the documentation page',
+  '^The error usually indicates a real bug',
+  '^Do not add `@phpstan-ignore',
+  '^Do not use assert\(\) or inline @var',
+  '^Do not add type casts just to silence',
+  '^Do not widen parameter or return types',
+  # Table separator rows (but NOT the "Line   <file>.php" header — that's
+  # the only per-file attribution in pretty format, must be preserved).
+  '^\s*-{3,}\s*-{3,}\s*$',
+  # Blank lines
+  '^\s*$',
+]
+
+# Per-line safety cap — generous because --error-format=json emits the entire
+# result as a single line. Pretty-format error lines are <200 chars wrapped.
+truncate_lines_at = 20000
+
+# Overall safety cap — typical error runs are small, huge outputs indicate
+# a real problem and we want to surface (not bury) them.
+max_lines = 400
+
+# Safety net: if everything got stripped (e.g. unusual output), emit status hint.
+on_empty = "phpstan: no output"
+
+
+# =============================================================================
+# Inline tests
+# =============================================================================
+
+[[tests.phpstan]]
+name = "clean level-5 run collapses to ok"
+input = """
+Note: Using configuration file /private/tmp/rtk-lab-8/app/phpstan.neon.
+
+ [OK] No errors
+
+"""
+expected = "phpstan: ok"
+
+[[tests.phpstan]]
+name = "errors preserved with file + line + message, banner stripped"
+input = """
+Note: Using configuration file /private/tmp/rtk-lab-8/app/phpstan.neon.
+Instructions for interpreting errors
+---------
+
+Each error has an associated identifier, like `argument.type`
+or `return.missing`.
+
+Each error identifier has documentation at URL https://phpstan.org/error-identifiers/<identifier>
+This page contains code example, explanation why is this an error
+and instruction how to fix it.
+Before fixing the error, fetch the documentation page for its identifier.
+
+The error usually indicates a real bug or incorrect type in the code. Fix the underlying cause, do not just make the error go away.
+Do not add `@phpstan-ignore` comments, `@phpstan-ignore-next-line` comments, or baseline entries to suppress the error.
+Do not use assert() or inline @var PHPDoc tag to override PHPStan's inferred type.
+Do not add type casts just to silence errors.
+Do not widen parameter or return types just to make the error go away.
+ ------ ---------------------------------------------------------------------
+  Line   Http/Controllers/BrokenController.php
+ ------ ---------------------------------------------------------------------
+  9      Method App\\Http\\Controllers\\BrokenController::index() should return
+         int but returns string.
+         🪪  return.type
+  14     Call to an undefined method
+         App\\Http\\Controllers\\BrokenController::doesNotExist().
+         🪪  method.notFound
+ ------ ---------------------------------------------------------------------
+
+ [ERROR] Found 2 errors
+
+"""
+expected = """  Line   Http/Controllers/BrokenController.php
+  9      Method App\\Http\\Controllers\\BrokenController::index() should return
+         int but returns string.
+         🪪  return.type
+  14     Call to an undefined method
+         App\\Http\\Controllers\\BrokenController::doesNotExist().
+         🪪  method.notFound
+ [ERROR] Found 2 errors"""
+
+[[tests.phpstan]]
+name = "raw error format preserved (path:line:msg)"
+input = """
+Note: Using configuration file /tmp/app/phpstan.neon.
+Instructions for interpreting errors
+---------
+
+Each error has an associated identifier, like `argument.type`
+or `return.missing`.
+
+/tmp/app/app/Models/User.php:35:Method App\\Models\\User::getNameLength() should return int but returns string. [identifier=return.type]
+/tmp/app/app/Models/User.php:41:Method App\\Models\\User::broken() should return string but returns int. [identifier=return.type]
+"""
+expected = """/tmp/app/app/Models/User.php:35:Method App\\Models\\User::getNameLength() should return int but returns string. [identifier=return.type]
+/tmp/app/app/Models/User.php:41:Method App\\Models\\User::broken() should return string but returns int. [identifier=return.type]"""
+
+[[tests.phpstan]]
+name = "json format preserved as single line"
+input = '''
+Note: Using configuration file /tmp/app/phpstan.neon.
+{"totals":{"errors":0,"file_errors":2},"files":{"/tmp/app/app/Models/User.php":{"errors":2,"messages":[{"message":"Method App\\Models\\User::getNameLength() should return int but returns string.","line":35,"ignorable":true,"identifier":"return.type"}]}},"errors":[]}
+'''
+expected = '{"totals":{"errors":0,"file_errors":2},"files":{"/tmp/app/app/Models/User.php":{"errors":2,"messages":[{"message":"Method App\\Models\\User::getNameLength() should return int but returns string.","line":35,"ignorable":true,"identifier":"return.type"}]}},"errors":[]}'
+
+[[tests.phpstan]]
+name = "memory exhaustion error preserved (unless guard)"
+input = """
+Note: Using configuration file /tmp/app/phpstan.neon.
+PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 20480 bytes) in /tmp/app/vendor/phpstan/phpstan/phpstan.phar on line 4242
+"""
+expected = "PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 20480 bytes) in /tmp/app/vendor/phpstan/phpstan/phpstan.phar on line 4242"
+
+[[tests.phpstan]]
+name = "progress bar stripped"
+input = """
+Note: Using configuration file /tmp/app/phpstan.neon.
+ 0/3 [░░░░░░░░░░░░░░░░░░░░░░░░░░░░]   0%
+ 3/3 [▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] 100%
+
+
+ [OK] No errors
+"""
+expected = "phpstan: ok"
+

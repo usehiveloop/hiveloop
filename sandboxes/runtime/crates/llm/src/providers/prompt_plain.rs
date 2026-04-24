@@ -17,7 +17,7 @@ impl BridgeAgent {
     pub async fn prompt_with_history(
         &self,
         text: &str,
-        history: &mut Vec<Message>,
+        history: &mut [Message],
     ) -> Result<String, PromptError> {
         let provider = self.provider_name();
 
@@ -43,7 +43,7 @@ impl BridgeAgent {
             macro_rules! dispatch {
                 ($agent:expr) => {{
                     use rig::completion::Prompt;
-                    $agent.prompt(text).with_history(history.clone()).await
+                    $agent.prompt(text).with_history(history.to_vec()).await
                 }};
             }
             let result = match self.inner() {

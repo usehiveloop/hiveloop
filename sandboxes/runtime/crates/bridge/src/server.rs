@@ -27,6 +27,24 @@ pub(crate) async fn run_server() -> anyhow::Result<()> {
 
     info!("bridge starting");
 
+    // Install rtk filter set to the user-global config (macOS:
+    // ~/Library/Application Support/rtk/filters.toml, Linux: ~/.config/rtk/
+    // filters.toml). This is idempotent and fast (~100KB write, skipped if
+    // content is already identical). A failure here must NOT block startup —
+    // rtk integration is opportunistic.
+    match tools::bash::ensure_filters_installed() {
+        Ok(path) => {
+            if tools::bash::is_rtk_available() {
+                info!(path = %path.display(), "rtk integration active: Bash tool will route through `rtk rewrite`");
+            } else {
+                info!(path = %path.display(), "rtk filters written but `rtk` binary not on PATH; Bash tool runs unchanged");
+            }
+        }
+        Err(e) => {
+            tracing::warn!(error = %e, "rtk filter bootstrap skipped — Bash tool runs unchanged");
+        }
+    }
+
     // Create global lifecycle primitives
     let cancel = CancellationToken::new();
 

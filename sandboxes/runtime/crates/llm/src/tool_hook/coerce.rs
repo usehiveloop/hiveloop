@@ -122,10 +122,7 @@ fn resolve_target_type(schema: &serde_json::Map<String, Value>) -> Option<Target
             let mut found: Option<TargetType> = None;
             let mut has_string = false;
             for v in variants {
-                let s = match v.as_str() {
-                    Some(s) => s,
-                    None => return None,
-                };
+                let s = v.as_str()?;
                 match s {
                     "null" => {} // allowed alongside primitive
                     "string" => has_string = true,

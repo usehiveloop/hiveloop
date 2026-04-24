@@ -71,9 +71,7 @@ pub(super) async fn run_foreground(
         pressure_threshold_bytes: None,
         pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        repeat_guard: std::sync::Arc::new(std::sync::Mutex::new(
-            llm::RepeatGuardState::default(),
-        )),
+        repeat_guard: std::sync::Arc::new(std::sync::Mutex::new(llm::RepeatGuardState::default())),
     };
 
     let prompt_owned = prompt.to_string();

@@ -51,11 +51,7 @@ impl RepeatGuardState {
     ///
     /// Non-repeating calls reset the counter, so a single interleaved
     /// different call breaks the streak and lets the model resume.
-    pub(super) fn record(
-        &mut self,
-        tool_name: &str,
-        arguments: &Value,
-    ) -> Option<String> {
+    pub(super) fn record(&mut self, tool_name: &str, arguments: &Value) -> Option<String> {
         let is_same = matches!(&self.last, Some((n, a, _)) if n == tool_name && a == arguments);
 
         if is_same {
@@ -143,7 +139,10 @@ mod tests {
         let b: Value = serde_json::from_str(r#"{"b":2,"a":1}"#).unwrap();
         g.record("t", &a);
         g.record("t", &b);
-        assert!(g.record("t", &a).is_some(), "key-order variants must count as identical");
+        assert!(
+            g.record("t", &a).is_some(),
+            "key-order variants must count as identical"
+        );
     }
 
     #[test]

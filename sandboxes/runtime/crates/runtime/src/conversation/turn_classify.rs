@@ -124,7 +124,11 @@ fn extract_partial_usage(msg: &str) -> (u64, u64, u64, String) {
         return (0, 0, 0, msg.to_string());
     };
     let rest = after[end + 1..].trim_start().to_string();
-    let cleaned = if msg[..start].is_empty() { rest } else { format!("{}{}", &msg[..start], rest) };
+    let cleaned = if msg[..start].is_empty() {
+        rest
+    } else {
+        format!("{}{}", &msg[..start], rest)
+    };
     (p.input, p.cached, p.out, cleaned)
 }
 
