@@ -87,7 +87,7 @@ func (h *AuthHandler) SetPlatformAdminEmails(emails []string) {
 // StartCleanup starts a background goroutine that evicts stale login attempts
 // every 5 minutes. The goroutine stops when ctx is cancelled.
 func (h *AuthHandler) StartCleanup(ctx context.Context) {
-	goroutine.Go(func() {
+	goroutine.Go(ctx, func(ctx context.Context) {
 		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
 		for {

@@ -55,6 +55,8 @@ type webhookEvent struct {
 // Handle processes POST /internal/webhooks/bridge/{sandboxID}.
 // Bridge sends batched webhook events as a JSON array, signed with HMAC-SHA256.
 func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	sandboxID := chi.URLParam(r, "sandboxID")
 	if sandboxID == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "missing sandbox_id"})
@@ -69,7 +71,7 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var sb model.Sandbox
-	if err := h.db.Where("id = ?", sbUUID).First(&sb).Error; err != nil {
+	if err := h.db.WithContext(ctx).Where("id = ?", sbUUID).First(&sb).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "sandbox not found"})
 			return
@@ -121,20 +123,20 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update sandbox last_active_at
-	h.db.Model(&sb).Update("last_active_at", time.Now())
+	h.db.WithContext(ctx).Model(&sb).Update("last_active_at", time.Now())
 
 	// Process each event
 	for _, event := range events {
-		h.processEvent(&sb, &event)
+		h.processEvent(ctx, &sb, &event)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-func (h *BridgeWebhookHandler) processEvent(sb *model.Sandbox, event *webhookEvent) {
+func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandbox, event *webhookEvent) {
 	// Find our conversation record by Bridge conversation ID
 	var conv model.AgentConversation
-	if err := h.db.Where("bridge_conversation_id = ? AND sandbox_id = ?",
+	if err := h.db.WithContext(ctx).Where("bridge_conversation_id = ? AND sandbox_id = ?",
 		event.ConversationID, sb.ID).First(&conv).Error; err != nil {
 		slog.Warn("webhook: conversation not found",
 			"bridge_conversation_id", event.ConversationID,
@@ -166,23 +168,23 @@ func (h *BridgeWebhookHandler) processEvent(sb *model.Sandbox, event *webhookEve
 	// The background flusher will batch-write to Postgres.
 	// If Redis is unavailable, fall back to direct Postgres write.
 	if h.eventBus != nil {
-		_, err := h.eventBus.Publish(context.Background(), conv.ID.String(), event.EventType, redisPayload)
+		_, err := h.eventBus.Publish(ctx, conv.ID.String(), event.EventType, redisPayload)
 		if err != nil {
 			slog.Warn("webhook: Redis publish failed, falling back to direct DB write",
 				"conversation_id", conv.ID,
 				"error", err,
 			)
-			h.writeEventToPostgres(&conv, event)
+			h.writeEventToPostgres(ctx, &conv, event)
 		}
 	} else {
-		h.writeEventToPostgres(&conv, event)
+		h.writeEventToPostgres(ctx, &conv, event)
 	}
 
 	// Update conversation state for terminal events
 	switch event.EventType {
 	case "ConversationEnded":
 		now := time.Now()
-		h.db.Model(&conv).Updates(map[string]any{
+		h.db.WithContext(ctx).Model(&conv).Updates(map[string]any{
 			"status":   "ended",
 			"ended_at": now,
 		})
@@ -191,7 +193,7 @@ func (h *BridgeWebhookHandler) processEvent(sb *model.Sandbox, event *webhookEve
 			"bridge_conversation_id", event.ConversationID,
 		)
 	case "AgentError":
-		h.db.Model(&conv).Update("status", "error")
+		h.db.WithContext(ctx).Model(&conv).Update("status", "error")
 		slog.Warn("webhook: agent error",
 			"conversation_id", conv.ID,
 			"error", string(event.Data),
@@ -230,7 +232,7 @@ func (h *BridgeWebhookHandler) maybeEnqueueConversationNaming(conv *model.AgentC
 	}
 }
 
-func (h *BridgeWebhookHandler) writeEventToPostgres(conv *model.AgentConversation, event *webhookEvent) {
+func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *model.AgentConversation, event *webhookEvent) {
 	if event.EventType == "response_chunk" {
 		return
 	}
@@ -245,7 +247,7 @@ func (h *BridgeWebhookHandler) writeEventToPostgres(conv *model.AgentConversatio
 		SequenceNumber:       event.SequenceNumber,
 		Data:                 model.RawJSON(event.Data),
 	}
-	if err := h.db.Create(&dbEvent).Error; err != nil {
+	if err := h.db.WithContext(ctx).Create(&dbEvent).Error; err != nil {
 		slog.Error("webhook: failed to store event",
 			"event_type", event.EventType,
 			"conversation_id", conv.ID,

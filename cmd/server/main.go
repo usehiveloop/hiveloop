@@ -134,12 +134,12 @@ func dispatch(ctx context.Context, cmd string, deps *bootstrap.Deps) error {
 		defer enqueuer.Close()
 
 		errCh := make(chan error, 2)
-		goroutine.Go(func() {
+		goroutine.Go(ctx, func(ctx context.Context) {
 			if err := runWork(ctx, deps); err != nil {
 				errCh <- fmt.Errorf("worker: %w", err)
 			}
 		})
-		goroutine.Go(func() {
+		goroutine.Go(ctx, func(ctx context.Context) {
 			if err := runServe(ctx, deps, enqueuer); err != nil {
 				errCh <- fmt.Errorf("serve: %w", err)
 			}

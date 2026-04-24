@@ -1,6 +1,6 @@
 module github.com/usehiveloop/hiveloop
 
-go 1.25.4
+go 1.25.9
 
 require (
 	github.com/anthropics/anthropic-sdk-go v1.35.0
@@ -21,6 +21,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/hibiken/asynq v0.26.0
 	github.com/hibiken/asynqmon v0.7.2
+	github.com/jackc/pgx/v5 v5.6.0
 	github.com/kibamail/kibamail/sdks/go v0.1.0
 	github.com/lancedb/lancedb-go v0.1.2
 	github.com/lib/pq v1.11.2
@@ -30,14 +31,17 @@ require (
 	github.com/pb33f/libopenapi v0.34.3
 	github.com/posthog/posthog-go v1.11.3
 	github.com/redis/go-redis/v9 v9.18.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/sashabaranov/go-openai v1.41.2
+	github.com/sony/gobreaker/v2 v2.4.0
 	github.com/sourcegraph/conc v0.3.0
-	github.com/standard-webhooks/standard-webhooks/libraries v0.0.0-20260309172517-425968d811b9
 	github.com/swaggo/swag v1.16.6
+	go.uber.org/goleak v1.3.0
 	golang.org/x/crypto v0.48.0
 	golang.org/x/oauth2 v0.35.0
 	golang.org/x/sync v0.20.0
 	golang.org/x/time v0.14.0
+	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/postgres v1.6.0
@@ -99,7 +103,6 @@ require (
 	github.com/hashicorp/vault/api v1.10.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.6.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -117,13 +120,10 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
-	github.com/sony/gobreaker/v2 v2.4.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
-	github.com/spyzhov/ajson v0.8.0 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
@@ -154,6 +154,5 @@ require (
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260209200024-4cfbd4190f57 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 // indirect
-	google.golang.org/grpc v1.80.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

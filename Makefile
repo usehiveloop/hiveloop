@@ -116,31 +116,31 @@ test-setup:
 # Auth middleware + org e2e tests
 test-auth:
 	go test ./internal/middleware/... -v -race -count=1 -run "Auth|MultiAuth_JWTPath"
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestOrg"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestOrg"
 
 # Nango integration CRUD e2e tests
 test-nango:
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Integration"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Integration"
 
 # LLM proxy e2e tests (OpenRouter, Fireworks, streaming, tool calls)
 test-proxy:
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Proxy|TestE2E_Fireworks"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Proxy|TestE2E_Fireworks"
 
 # Connect widget API e2e tests
 test-connect:
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Connect"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Connect"
 
 # Vault KMS e2e tests
 test-vault:
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestVaultE2E"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestVaultE2E"
 
 # Connection + scoped token e2e tests
 test-connections:
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Connection|TestE2E_ScopedToken"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Connection|TestE2E_ScopedToken"
 
 # All integration e2e tests (nango + connect + proxy + vault)
 test-integrations:
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Integration|TestE2E_Connect|TestE2E_Proxy|TestE2E_Fireworks|TestVaultE2E"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Integration|TestE2E_Connect|TestE2E_Proxy|TestE2E_Fireworks|TestVaultE2E"
 
 # Run linter
 lint:

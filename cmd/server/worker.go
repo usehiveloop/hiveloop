@@ -23,7 +23,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	cfg := deps.Config
 
 	// Seed subagents on startup — idempotent, runs on every worker boot.
-	goroutine.Go(func() {
+	goroutine.Go(ctx, func(context.Context) {
 		if err := subagents.Seed(deps.DB); err != nil {
 			slog.Error("failed to seed subagents", "error", err)
 			return
@@ -33,10 +33,10 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 
 	// Start long-running stream consumers as goroutines
 	// (sub-second ticks, not suitable for Asynq periodic tasks)
-	goroutine.Go(func() { deps.Flusher.Run(ctx) })
+	goroutine.Go(ctx, func(ctx context.Context) { deps.Flusher.Run(ctx) })
 
 	if deps.Retainer != nil {
-		goroutine.Go(func() { deps.Retainer.Run(ctx) })
+		goroutine.Go(ctx, func(ctx context.Context) { deps.Retainer.Run(ctx) })
 		slog.Info("hindsight memory retainer started")
 	}
 
@@ -99,7 +99,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 
 	// Start Asynq server in background
 	errCh := make(chan error, 1)
-	goroutine.Go(func() {
+	goroutine.Go(ctx, func(context.Context) {
 		slog.Info("asynq worker starting", "concurrency", cfg.AsynqConcurrency)
 		if err := srv.Run(mux); err != nil {
 			slog.Error("asynq server error", "error", err)
@@ -117,7 +117,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 			}
 			slog.Info("registered periodic task", "type", pc.Task.Type(), "cron", pc.Cronspec)
 		}
-		goroutine.Go(func() {
+		goroutine.Go(ctx, func(context.Context) {
 			if err := scheduler.Run(); err != nil {
 				slog.Error("asynq scheduler error", "error", err)
 			}
@@ -169,7 +169,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		Handler:  healthMux,
 		ErrorLog: posthogobs.NewStdlogBridge("worker_health_server"),
 	}
-	goroutine.Go(func() {
+	goroutine.Go(ctx, func(context.Context) {
 		slog.Info("worker health server starting", "port", cfg.WorkerHealthPort)
 		if err := healthSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("worker health server error", "error", err)
@@ -185,7 +185,11 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 
 	slog.Info("worker shutting down")
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.AsynqShutdownTimeout)
+	// Shutdown intentionally decouples from the (already-cancelled) parent ctx
+	// but inherits its values so observability tags propagate. context.WithoutCancel
+	// strips cancellation while preserving values; the WithTimeout below bounds
+	// how long shutdown can take.
+	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cfg.AsynqShutdownTimeout)
 	defer cancel()
 
 	srv.Shutdown()

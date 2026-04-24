@@ -111,7 +111,7 @@ func (aw *AuditWriter) Shutdown(ctx context.Context) {
 	close(aw.entries)
 
 	done := make(chan struct{})
-	goroutine.Go(func() {
+	goroutine.Go(ctx, func(context.Context) {
 		aw.wg.Wait()
 		close(done)
 	})

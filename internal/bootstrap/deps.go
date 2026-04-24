@@ -99,15 +99,15 @@ func New(ctx context.Context) (*Deps, error) {
 	var kms *crypto.KeyWrapper
 	switch cfg.KMSType {
 	case "aead":
-		kms, err = crypto.NewAEADWrapper(cfg.KMSKey, "aead-local")
+		kms, err = crypto.NewAEADWrapper(ctx, cfg.KMSKey, "aead-local")
 	case "awskms":
-		kms, err = crypto.NewAWSKMSWrapper(cfg.KMSKey, cfg.AWSRegion)
+		kms, err = crypto.NewAWSKMSWrapper(ctx, cfg.KMSKey, cfg.AWSRegion)
 	case "vault":
 		vaultCfg := cfg.VaultConfig()
 		if vaultCfg == nil {
 			return nil, fmt.Errorf("vault configuration is nil")
 		}
-		kms, err = crypto.NewVaultTransitWrapper(*vaultCfg)
+		kms, err = crypto.NewVaultTransitWrapper(ctx, *vaultCfg)
 	default:
 		return nil, fmt.Errorf("unsupported KMS_TYPE: %q (supported: aead, awskms, vault)", cfg.KMSType)
 	}
@@ -144,7 +144,7 @@ func New(ctx context.Context) (*Deps, error) {
 		redisOpts.PoolTimeout = 4 * time.Second
 	}
 	redisClient := redis.NewClient(redisOpts)
-	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+	if err := redisClient.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("connecting to redis: %w", err)
 	}
 	slog.Info("redis ready",
@@ -188,7 +188,7 @@ func New(ctx context.Context) (*Deps, error) {
 		return nil, fmt.Errorf("NANGO_ENDPOINT and NANGO_SECRET_KEY are required")
 	}
 	nangoClient := nango.NewClient(cfg.NangoEndpoint, cfg.NangoSecretKey)
-	if err := nangoClient.FetchProviders(context.Background()); err != nil {
+	if err := nangoClient.FetchProviders(ctx); err != nil {
 		return nil, fmt.Errorf("fetching Nango provider catalog: %w", err)
 	}
 	slog.Info("nango client ready", "providers", len(nangoClient.GetProviders()))

@@ -43,7 +43,7 @@ func (b *EventBus) Subscribe(ctx context.Context, convID string, cursor string) 
 			closeChannelSafely(userCh)
 		}()
 
-		tap, err := b.getOrCreateTap(convID)
+		tap, err := b.getOrCreateTap(ctx, convID)
 		if err != nil {
 			slog.Error("eventbus.Subscribe: failed to create tap",
 				"conversation_id", convID, "error", err)
@@ -128,7 +128,10 @@ func (b *EventBus) backfill(ctx context.Context, convID, from, upTo string, out 
 	return nil
 }
 
-func (b *EventBus) getOrCreateTap(convID string) (*convTap, error) {
+// getOrCreateTap returns the per-conversation fan-out tap. ctx bounds the
+// cursor lookup at Redis; the tap itself has its own lifetime (stopCtx below)
+// because it survives individual subscribers.
+func (b *EventBus) getOrCreateTap(ctx context.Context, convID string) (*convTap, error) {
 	b.tapsMu.Lock()
 	defer b.tapsMu.Unlock()
 
@@ -139,12 +142,15 @@ func (b *EventBus) getOrCreateTap(convID string) (*convTap, error) {
 	streamKey := b.streamKey(convID)
 
 	startCursor := "0-0"
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	if res, err := b.redis.XRevRangeN(ctx, streamKey, "+", "-", 1).Result(); err == nil && len(res) > 0 {
+	lookupCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	if res, err := b.redis.XRevRangeN(lookupCtx, streamKey, "+", "-", 1).Result(); err == nil && len(res) > 0 {
 		startCursor = res[0].ID
 	}
 	cancel()
 
+	// The tap outlives the request that created it (it's shared across all
+	// subscribers for this conversation), so it gets an independent context.
+	//nolint:contextcheck // tap lifetime is intentionally decoupled from the caller.
 	tapCtx, tapCancel := context.WithCancel(context.Background())
 	tap := &convTap{
 		bus:         b,
