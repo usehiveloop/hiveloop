@@ -1,5 +1,6 @@
 mod args;
 pub mod rtk;
+mod rtk_router;
 mod runner;
 mod tool;
 mod truncate;

@@ -27,7 +27,7 @@ pub async fn run_command(
     // like `git status`, `composer install`, `php artisan test`, etc. get
     // wrapped in the rtk filter pipeline. Falls back to the original command
     // on any failure — the bash tool must never refuse to run because rtk did.
-    let effective = rtk::rewrite(command).await;
+    let effective = rtk::rewrite(command);
     let command_ref: &str = &effective;
 
     let mut cmd = tokio::process::Command::new("sh");

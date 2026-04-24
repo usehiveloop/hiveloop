@@ -1,26 +1,31 @@
 //! RTK (Rust Token Killer) integration for the Bash tool.
 //!
-//! Detects a locally-installed `rtk` binary and routes Bash tool invocations
-//! through `rtk rewrite` so tools like `git`, `cargo`, `composer`, `php artisan`,
-//! etc. emit compressed output. Also writes our embedded Laravel/PHP filter set
-//! to rtk's user-global config directory at bridge startup, so filtering is
-//! available in every project without per-project `rtk trust` calls.
+//! Two responsibilities:
 //!
-//! Global filter path (resolved via the `dirs` crate, matching rtk's own
-//! lookup):
-//!   - macOS:   `~/Library/Application Support/rtk/filters.toml`
-//!   - Linux:   `~/.config/rtk/filters.toml` (or `$XDG_CONFIG_HOME/rtk/`)
+//! 1. **Bootstrap**: at bridge startup, write our embedded Laravel/PHP filter
+//!    set to rtk's user-global config directory so rtk can find it (macOS:
+//!    `~/Library/Application Support/rtk/filters.toml`, Linux:
+//!    `~/.config/rtk/filters.toml` or `$XDG_CONFIG_HOME/rtk/`). The path is
+//!    resolved via the `dirs` crate — the same one rtk uses internally — so
+//!    both sides stay in sync across platforms.
 //!
-//! Escape hatch: setting `BRIDGE_DISABLE_RTK=1` disables both the bootstrap and
-//! the per-call rewrite — useful for debugging or if an rtk update regresses.
+//! 2. **Per-call rewrite**: for every Bash tool invocation, prepend `rtk `
+//!    to command segments whose first word is in a hard-coded allowlist of
+//!    rtk-filterable commands. This replaces the earlier design that
+//!    delegated to `rtk rewrite`, whose hardcoded registry doesn't know
+//!    about Laravel/PHP commands and would let our filter set sit idle.
+//!    The allowlist + segment-aware rewriter lives in `rtk_router`.
+//!
+//! Escape hatch: `BRIDGE_DISABLE_RTK=1` disables both responsibilities —
+//! useful for debugging or if an rtk update regresses.
 
 use std::path::PathBuf;
 use std::sync::OnceLock;
-use std::time::Duration;
 
 use anyhow::{Context, Result};
-use tokio::io::AsyncReadExt;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
+
+use super::rtk_router;
 
 /// Embedded filter set, compiled into the binary. Source of truth lives at
 /// `crates/tools/assets/laravel-filters.toml` — edit there, rebuild, redeploy.
@@ -60,24 +65,20 @@ pub fn is_rtk_available() -> bool {
     })
 }
 
-/// Resolve the global filters.toml path that rtk will read.
-///
-/// rtk uses `dirs::config_dir()` internally (`~/Library/Application Support/`
-/// on macOS, `~/.config/` on Linux). We use the same crate and version so the
-/// resolution matches rtk's exactly — verified empirically against
-/// `RTK_TOML_DEBUG=1`.
+/// Resolve the global filters.toml path that rtk will read. Matches rtk's
+/// own resolution — verified empirically against `RTK_TOML_DEBUG=1`.
 pub fn global_filters_path() -> Result<PathBuf> {
     let config_dir = dirs::config_dir()
         .context("could not resolve user config directory (dirs::config_dir returned None)")?;
     Ok(config_dir.join("rtk").join("filters.toml"))
 }
 
-/// Write the embedded filter set to rtk's global config path, replacing any
-/// existing content. Idempotent — safe to call on every bridge startup.
+/// Write the embedded filter set to rtk's global config path. Idempotent —
+/// skips the write when content is byte-identical.
 ///
-/// Returns the path written. Errors are surfaced to the caller but should be
-/// treated as warnings (bridge must not refuse to start if rtk bootstrap fails;
-/// rtk integration degrades gracefully to no-op).
+/// Errors are surfaced to the caller but should be logged as warnings, not
+/// fatal: bridge must not refuse to start if rtk bootstrap fails. rtk
+/// integration degrades gracefully to a no-op when this fails.
 pub fn ensure_filters_installed() -> Result<PathBuf> {
     if std::env::var(DISABLE_ENV).is_ok_and(|v| v == "1") {
         return Err(anyhow::anyhow!(
@@ -94,8 +95,6 @@ pub fn ensure_filters_installed() -> Result<PathBuf> {
     contents.push_str(MANAGED_HEADER);
     contents.push_str(EMBEDDED_FILTERS);
 
-    // Skip writing when current disk content is byte-identical — avoids
-    // mtime churn that would invalidate any caller's filesystem cache.
     if let Ok(existing) = std::fs::read_to_string(&path) {
         if existing == contents {
             debug!(path = %path.display(), "rtk filters already up to date");
@@ -114,78 +113,19 @@ pub fn ensure_filters_installed() -> Result<PathBuf> {
     Ok(path)
 }
 
-/// Rewrite a shell command through `rtk rewrite` if rtk is available.
+/// Route a shell command through rtk by prepending `rtk ` to every segment
+/// whose first bare word is in our allowlist.
 ///
-/// Exit-code contract (verified against `src/hooks/rewrite_cmd.rs` in the rtk
-/// repo — the protocol is about permission verdicts, not a simple pass/fail):
-///   - exit 0 → Allow; stdout is the (rewritten or unchanged) command. Use it.
-///   - exit 1 → Passthrough; no rewrite rule matched. Use original.
-///   - exit 2 → Deny; rtk's permission rules block this command. We are NOT
-///     a permission-enforcing layer here (that's upstream) — we just return
-///     the original and let the existing tool pipeline decide.
-///   - exit 3 → Ask/Default; rtk rewrote the command but wants the caller to
-///     prompt. In an agent harness we can't prompt, so we use stdout (the
-///     rewrite is still valuable — the "ask" is advisory).
-///   - other  → treat as not-available; use original (fail safe).
+/// Returns the original string when rtk is unavailable, disabled, or when
+/// no segment matches the allowlist. Idempotent: already-rtk commands pass
+/// through unchanged.
 ///
-/// rtk handles compound commands (`&&`, `||`, `;`, `|`), env prefixes
-/// (`FOO=bar sudo cmd`), and heredoc / arithmetic expansion short-circuits
-/// internally — we just hand the whole string over.
-///
-/// Budget: ~5-10ms per call (rtk startup is <10ms, rewrite is pure regex).
-/// A spawn failure (rtk removed between startup check and now) is treated as
-/// "not available" and the original command is returned.
-pub async fn rewrite(command: &str) -> String {
+/// See `rtk_router` for the allowlist and segment-parsing logic.
+pub fn rewrite(command: &str) -> String {
     if !is_rtk_available() {
         return command.to_string();
     }
-
-    match try_rewrite(command).await {
-        Ok(rewritten) => rewritten,
-        Err(e) => {
-            warn!(error = %e, "rtk rewrite failed, passing through original command");
-            command.to_string()
-        }
-    }
-}
-
-async fn try_rewrite(command: &str) -> Result<String> {
-    let mut child = tokio::process::Command::new("rtk")
-        .arg("rewrite")
-        .arg(command)
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .context("failed to spawn rtk rewrite")?;
-
-    let mut stdout = child.stdout.take().context("no stdout on rtk rewrite")?;
-    let mut buf = Vec::new();
-
-    // 2-second hard cap. rewrite should complete in well under 50ms; if
-    // something wedges, we must not stall the bash tool.
-    let read = async {
-        stdout.read_to_end(&mut buf).await?;
-        child.wait().await
-    };
-    let status = tokio::time::timeout(Duration::from_secs(2), read)
-        .await
-        .context("rtk rewrite timed out")??;
-
-    let out = String::from_utf8(buf).context("rtk rewrite emitted non-UTF8 output")?;
-    let trimmed = out.trim_end_matches(['\n', '\r']).to_string();
-
-    // Use rtk's rewrite iff (a) it signalled Allow (0) or Ask (3), AND
-    // (b) stdout is non-empty. All other exit codes (1 passthrough, 2 deny,
-    // anything unexpected) → keep the original command. Deny specifically is
-    // upstream's problem to enforce — we don't want rtk silently turning a
-    // bash call into a no-op.
-    let use_stdout = matches!(status.code(), Some(0) | Some(3)) && !trimmed.is_empty();
-    if use_stdout {
-        Ok(trimmed)
-    } else {
-        Ok(command.to_string())
-    }
+    rtk_router::rewrite(command)
 }
 
 #[cfg(test)]
@@ -200,9 +140,6 @@ mod tests {
             s.ends_with("rtk/filters.toml") || s.ends_with("rtk\\filters.toml"),
             "path should end with rtk/filters.toml, got: {s}"
         );
-
-        // Platform-specific prefix check: surfaces a regression if the
-        // `dirs` crate ever changes its macOS behavior and desyncs from rtk.
         #[cfg(target_os = "macos")]
         assert!(
             s.contains("Library/Application Support"),
@@ -225,26 +162,24 @@ mod tests {
             EMBEDDED_FILTERS.contains("schema_version = 1"),
             "embedded filters should declare schema_version = 1"
         );
-        // Spot-check: our consolidated TOML should include the Laravel
-        // fallback filter. If this breaks, the asset file drifted.
         assert!(
             EMBEDDED_FILTERS.contains("[filters.artisan-zz-generic]"),
             "embedded filters should include artisan-zz-generic fallback"
         );
     }
 
-    #[tokio::test]
-    async fn rewrite_passes_through_when_rtk_disabled() {
-        // Force the "disabled" branch: even if rtk is installed on the host,
-        // setting BRIDGE_DISABLE_RTK=1 must short-circuit to identity.
-        // SAFETY: only this test inspects the envvar; OnceLock caching of
-        // RTK_AVAILABLE means we must not rely on unsetting it to later
-        // re-enable — tests in this module stay disabled-only.
-        // (Using `unsafe` because set_var is marked unsafe in newer Rust.)
+    #[test]
+    fn rewrite_passes_through_when_rtk_disabled() {
+        // SAFETY: set_var is marked unsafe in newer Rust; this test mutates
+        // process-global env for the duration of one test case. Because
+        // is_rtk_available() caches its result in OnceLock, this assertion
+        // holds only if this is the first is_rtk_available() call in the
+        // process — which is why the test explicitly checks the disabled
+        // branch, not the enabled one.
         unsafe {
             std::env::set_var(DISABLE_ENV, "1");
         }
-        let out = rewrite("git status").await;
-        assert_eq!(out, "git status");
+        assert_eq!(rewrite("git status"), "git status");
+        assert_eq!(rewrite("php artisan migrate"), "php artisan migrate");
     }
 }
