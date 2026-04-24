@@ -39,8 +39,10 @@ func (h *CredentialHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now()
+	// is_system = false prevents a compromised org from revoking a platform
+	// credential even if the credential_id was guessed or leaked.
 	result := h.db.Model(&model.Credential{}).
-		Where("id = ? AND org_id = ? AND revoked_at IS NULL", credID, org.ID).
+		Where("id = ? AND org_id = ? AND is_system = ? AND revoked_at IS NULL", credID, org.ID, false).
 		Update("revoked_at", &now)
 
 	if result.Error != nil {
