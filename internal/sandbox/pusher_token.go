@@ -87,6 +87,9 @@ func (p *Pusher) mintAgentToken(agent *model.Agent, cred *model.Credential) (tok
 		(*agent.OrgID).String(),
 		cred.ID.String(),
 		agentTokenTTL,
+		// IsSystem is baked into the JWT so the proxy can distinguish
+		// platform-keys agents from BYOK without an extra DB read.
+		token.MintOptions{IsSystem: cred.IsSystem},
 	)
 	if err != nil {
 		return "", "", err
