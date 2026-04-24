@@ -72,13 +72,21 @@ func (p *Provider) CreateCheckout(_ context.Context, customerID string, intent b
 	return &billing.CheckoutSession{URL: url, ExternalID: "ch_" + uuid.NewString()}, nil
 }
 
-// CreatePortal implements billing.Provider.
-func (p *Provider) CreatePortal(_ context.Context, customerID string) (*billing.PortalSession, error) {
-	url := p.NextPortalURL
-	if url == "" {
-		url = "https://fake-portal.example/" + customerID
+// CreatePortal implements billing.Provider. The fake accepts either a
+// subscription id or a customer id to build the placeholder URL — whichever
+// the caller supplied.
+func (p *Provider) CreatePortal(_ context.Context, req billing.PortalRequest) (*billing.PortalSession, error) {
+	if url := p.NextPortalURL; url != "" {
+		return &billing.PortalSession{URL: url}, nil
 	}
-	return &billing.PortalSession{URL: url}, nil
+	target := req.ExternalSubscriptionID
+	if target == "" {
+		target = req.ExternalCustomerID
+	}
+	if target == "" {
+		target = req.OrgID.String()
+	}
+	return &billing.PortalSession{URL: "https://fake-portal.example/" + target}, nil
 }
 
 // VerifyWebhook implements billing.Provider. Returns nil (accept) when no
