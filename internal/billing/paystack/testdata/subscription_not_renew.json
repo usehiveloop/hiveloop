@@ -5,7 +5,6 @@
     "domain": "test",
     "status": "non-renewing",
     "subscription_code": "SUB_d638sdiWAio7jnl",
-    "email_token": "086x99rmqc4qhcw",
     "amount": 5850000,
     "cron_expression": "0 0 8 10 *",
     "next_payment_date": null,
