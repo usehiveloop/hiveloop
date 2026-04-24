@@ -4,6 +4,7 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/cache"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
@@ -29,6 +30,7 @@ type WorkerDeps struct {
 	SkillFetcher     *skills.GitFetcher    // nil disables git skill hydration
 	NangoClient      *nango.Client         // nil disables deterministic enrichment
 	CacheManager     *cache.Manager        // nil disables tasks that need credential decryption
+	Credits          *billing.CreditsService // required for billing-token-spend deduction
 	Enqueuer         enqueue.TaskEnqueuer  // required for enqueuing sub-tasks
 }
 
@@ -76,6 +78,12 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 	// Skill hydration from git repos
 	if deps.SkillFetcher != nil {
 		mux.HandleFunc(TypeSkillHydrate, NewSkillHydrateHandler(deps.DB, deps.SkillFetcher).Handle)
+	}
+
+	// Billing token-spend: deducts credits for platform-keys LLM calls.
+	// Enqueued by the proxy's Generation middleware; handled here.
+	if deps.Credits != nil {
+		mux.HandleFunc(TypeBillingTokenSpend, NewBillingTokenSpendHandler(deps.Credits).Handle)
 	}
 
 	// Conversation naming (async title generation from the first message).

@@ -114,6 +114,14 @@ func AutoMigrate(db *gorm.DB) error {
 	// Subscriptions: (provider, external_subscription_id) is globally unique.
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_sub_provider_ext ON subscriptions (provider, external_subscription_id)`)
 
+	// Credit ledger idempotency: when an async spend task retries after a
+	// transient failure, the retry must not double-deduct. The unique index
+	// on (org_id, reason, ref_type, ref_id) means the second INSERT fails
+	// with a unique-violation; the task handler treats that as success.
+	// The partial WHERE skips rows that intentionally have no ref_id
+	// (e.g. manual adjustments) — those aren't expected to be idempotent.
+	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_ledger_idempotent ON credit_ledger_entries (org_id, reason, ref_type, ref_id) WHERE ref_id != ''`)
+
 	// RAG schema migrations live in internal/rag.AutoMigrate. Callers
 	// (bootstrap/deps.go, testhelpers.ConnectTestDB) invoke it
 	// immediately after model.AutoMigrate — we can't invoke it from

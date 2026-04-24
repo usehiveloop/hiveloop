@@ -160,7 +160,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	}
 	setupConnectRoutes(r, cfg, rsaPub, database, platformAdminEmails, inIntegrationHandler, inConnectionHandler)
 	setupAdminRoutes(r, cfg, deps, rsaPub, database, platformAdminEmails, enqueuer, marketplaceHandler)
-	setupProxyAndAuxRoutes(r, cfg, deps, signingKey, database, proxyHandler, driveHandler, sandboxEncKey, auditWriter, generationWriter, ctr)
+	setupProxyAndAuxRoutes(r, cfg, deps, signingKey, database, proxyHandler, driveHandler, sandboxEncKey, auditWriter, generationWriter, ctr, enqueuer)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
