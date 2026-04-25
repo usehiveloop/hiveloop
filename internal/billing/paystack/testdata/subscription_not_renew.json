@@ -1,0 +1,57 @@
+{
+  "event": "subscription.not_renew",
+  "data": {
+    "id": 317617,
+    "domain": "test",
+    "status": "non-renewing",
+    "subscription_code": "SUB_d638sdiWAio7jnl",
+    "amount": 5850000,
+    "cron_expression": "0 0 8 10 *",
+    "next_payment_date": null,
+    "open_invoice": null,
+    "integration": 116430,
+    "plan": {
+      "id": 103028,
+      "name": "Pro (Monthly)",
+      "plan_code": "PLN_pro_ngn_m",
+      "description": null,
+      "amount": 5850000,
+      "interval": "monthly",
+      "send_invoices": true,
+      "send_sms": true,
+      "currency": "NGN"
+    },
+    "authorization": {
+      "authorization_code": "AUTH_5ftfl9xrl0",
+      "bin": "424242",
+      "last4": "4081",
+      "exp_month": "06",
+      "exp_year": "2028",
+      "channel": "card",
+      "card_type": "mastercard debit",
+      "bank": "Guaranty Trust Bank",
+      "country_code": "NG",
+      "brand": "mastercard",
+      "reusable": true,
+      "signature": "SIG_biPYZE4PgDCQUJMIT4sE",
+      "account_name": null
+    },
+    "customer": {
+      "id": 57199167,
+      "first_name": null,
+      "last_name": null,
+      "email": "sub@notrenew.com",
+      "customer_code": "CUS_8gbmdpvn12c67ix",
+      "phone": null,
+      "metadata": null,
+      "risk_action": "default",
+      "international_format_phone": null
+    },
+    "invoices": [],
+    "invoices_history": [],
+    "invoice_limit": 0,
+    "split_code": null,
+    "most_recent_invoice": null,
+    "created_at": "2026-04-25T14:50:39.000Z"
+  }
+}

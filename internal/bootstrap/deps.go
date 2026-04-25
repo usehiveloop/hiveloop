@@ -12,9 +12,12 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehiveloop/hiveloop/internal/billing/paystack"
 	"github.com/usehiveloop/hiveloop/internal/cache"
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/counter"
+	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/db"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
@@ -30,8 +33,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/storage"
 	"github.com/usehiveloop/hiveloop/internal/streaming"
 	"github.com/usehiveloop/hiveloop/internal/turso"
-
-	polargo "github.com/polarsource/polar-go"
 
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
 )
@@ -57,12 +58,13 @@ type Deps struct {
 	EventBus       *streaming.EventBus
 	Flusher        *streaming.Flusher
 	Cleanup        *streaming.Cleanup
-	Retainer        *hindsight.Retainer         // nil if Hindsight not configured
-	SpiderClient    *spider.Client             // nil if spider not configured
-	ToolUsageWriter *middleware.ToolUsageWriter // nil if spider not configured
-	PolarClient     *polargo.Polar             // nil if POLAR_ACCESS_TOKEN not set
-	S3Client        *storage.S3Client          // nil if AWS_S3_BUCKET_NAME not set
-	PostHog         ph.Client                  // nil if PostHog disabled
+	Retainer         *hindsight.Retainer         // nil if Hindsight not configured
+	SpiderClient     *spider.Client              // nil if spider not configured
+	ToolUsageWriter  *middleware.ToolUsageWriter // nil if spider not configured
+	BillingRegistry  *billing.Registry           // always non-nil; may have zero providers
+	Credits          *billing.CreditsService     // credit ledger service
+	S3Client         *storage.S3Client           // nil if AWS_S3_BUCKET_NAME not set
+	PostHog          ph.Client                   // nil if PostHog disabled
 }
 
 // New initializes all shared dependencies. The caller is responsible for
@@ -93,21 +95,29 @@ func New(ctx context.Context) (*Deps, error) {
 	if err := rag.AutoMigrate(database); err != nil {
 		return nil, fmt.Errorf("running RAG migrations: %w", err)
 	}
+	// Ensure the platform org exists — it owns every system credential
+	// (is_system = true). Idempotent.
+	if err := credentials.SeedPlatformOrg(database); err != nil {
+		return nil, fmt.Errorf("seeding platform org: %w", err)
+	}
+	// Picker resolves system credentials for agents whose credential_id is
+	// nil (platform-keys mode). Shared across handlers and sandbox.Pusher.
+	credentialPicker := credentials.NewPicker(database)
 	slog.Info("database ready")
 
 	// 4. KMS wrapper
 	var kms *crypto.KeyWrapper
 	switch cfg.KMSType {
 	case "aead":
-		kms, err = crypto.NewAEADWrapper(cfg.KMSKey, "aead-local")
+		kms, err = crypto.NewAEADWrapper(ctx, cfg.KMSKey, "aead-local")
 	case "awskms":
-		kms, err = crypto.NewAWSKMSWrapper(cfg.KMSKey, cfg.AWSRegion)
+		kms, err = crypto.NewAWSKMSWrapper(ctx, cfg.KMSKey, cfg.AWSRegion)
 	case "vault":
 		vaultCfg := cfg.VaultConfig()
 		if vaultCfg == nil {
 			return nil, fmt.Errorf("vault configuration is nil")
 		}
-		kms, err = crypto.NewVaultTransitWrapper(*vaultCfg)
+		kms, err = crypto.NewVaultTransitWrapper(ctx, *vaultCfg)
 	default:
 		return nil, fmt.Errorf("unsupported KMS_TYPE: %q (supported: aead, awskms, vault)", cfg.KMSType)
 	}
@@ -144,7 +154,7 @@ func New(ctx context.Context) (*Deps, error) {
 		redisOpts.PoolTimeout = 4 * time.Second
 	}
 	redisClient := redis.NewClient(redisOpts)
-	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+	if err := redisClient.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("connecting to redis: %w", err)
 	}
 	slog.Info("redis ready",
@@ -188,7 +198,7 @@ func New(ctx context.Context) (*Deps, error) {
 		return nil, fmt.Errorf("NANGO_ENDPOINT and NANGO_SECRET_KEY are required")
 	}
 	nangoClient := nango.NewClient(cfg.NangoEndpoint, cfg.NangoSecretKey)
-	if err := nangoClient.FetchProviders(context.Background()); err != nil {
+	if err := nangoClient.FetchProviders(ctx); err != nil {
 		return nil, fmt.Errorf("fetching Nango provider catalog: %w", err)
 	}
 	slog.Info("nango client ready", "providers", len(nangoClient.GetProviders()))
@@ -238,7 +248,7 @@ func New(ctx context.Context) (*Deps, error) {
 		}
 
 		orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, tursoProvisioner, sandboxEncKey, cfg)
-		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg)
+		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg, credentialPicker)
 		slog.Info("sandbox orchestrator ready")
 	}
 
@@ -254,19 +264,21 @@ func New(ctx context.Context) (*Deps, error) {
 		retainer = hindsight.NewRetainer(eventBus, database, hClient)
 	}
 
-	// 17. Polar billing client (optional)
-	var polarClient *polargo.Polar
-	if cfg.PolarAccessToken != "" {
-		server := polargo.ServerSandbox
-		if cfg.PolarServer == "production" {
-			server = polargo.ServerProduction
-		}
-		polarClient = polargo.New(
-			polargo.WithSecurity(cfg.PolarAccessToken),
-			polargo.WithServer(server),
-		)
-		slog.Info("polar billing client initialized", "server", cfg.PolarServer)
+	// 17. Billing — provider-agnostic. The registry starts empty; individual
+	// providers (Stripe, Paddle, Polar, etc.) register themselves when their
+	// env vars are present. The credit ledger service works regardless of
+	// whether any provider is registered.
+	billingRegistry := billing.NewRegistry()
+	credits := billing.NewCreditsService(database)
+	if cfg.PaystackSecretKey != "" {
+		plans := paystack.PlanRegistryFromEnv()
+		billingRegistry.Register(paystack.New(paystack.Config{
+			SecretKey: cfg.PaystackSecretKey,
+			Plans:     plans,
+		}))
+		slog.Info("paystack provider registered", "configured_slugs", len(plans))
 	}
+	slog.Info("billing ready", "providers", billingRegistry.Names())
 
 	// 18. S3 storage (agent drive — optional)
 	var s3Client *storage.S3Client
@@ -315,7 +327,8 @@ func New(ctx context.Context) (*Deps, error) {
 		Retainer:        retainer,
 		SpiderClient:    spiderClient,
 		ToolUsageWriter: toolUsageWriter,
-		PolarClient:     polarClient,
+		BillingRegistry: billingRegistry,
+		Credits:         credits,
 		S3Client:        s3Client,
 		PostHog:         postHogClient,
 	}, nil

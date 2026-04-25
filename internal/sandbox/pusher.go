@@ -11,6 +11,7 @@ import (
 
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -38,15 +39,20 @@ type Pusher struct {
 	orchestrator *Orchestrator
 	signingKey   []byte
 	cfg          *config.Config
-	pushed       sync.Map
+	// picker resolves a system credential for any agent whose credential_id
+	// is nil (platform-keys mode). Only used via credentials.Resolve, never
+	// called directly.
+	picker credentials.Picker
+	pushed sync.Map
 }
 
-func NewPusher(db *gorm.DB, orchestrator *Orchestrator, signingKey []byte, cfg *config.Config) *Pusher {
+func NewPusher(db *gorm.DB, orchestrator *Orchestrator, signingKey []byte, cfg *config.Config, picker credentials.Picker) *Pusher {
 	return &Pusher{
 		db:           db,
 		orchestrator: orchestrator,
 		signingKey:   signingKey,
 		cfg:          cfg,
+		picker:       picker,
 	}
 }
 

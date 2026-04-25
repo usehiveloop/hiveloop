@@ -30,12 +30,19 @@ func setupAdminRoutes(
 	if cfg.AdminAPIEnabled {
 		adminHandler := handler.NewAdminHandler(database, deps.Orchestrator, deps.NangoClient, deps.ActionsCatalog,
 			deps.RSAKey, deps.SigningKey, cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL, enqueuer)
+		sysCredsHandler := handler.NewAdminSystemCredentialsHandler(database, deps.KMS, deps.CacheManager)
 		r.Route("/admin/v1", func(r chi.Router) {
 			r.Use(middleware.RequireAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience))
 			r.Use(middleware.RequireEmailConfirmed(database))
 			r.Use(middleware.ResolveUser(database))
 			r.Use(middleware.RequirePlatformAdmin(platformAdminEmails))
 			r.Use(middleware.AdminAudit(database, enqueuer))
+
+			// System credentials — platform-owned, used by agents that
+			// opted out of BYOK. Only reachable via the admin surface.
+			r.Post("/system-credentials", sysCredsHandler.Create)
+			r.Get("/system-credentials", sysCredsHandler.List)
+			r.Post("/system-credentials/{id}/revoke", sysCredsHandler.Revoke)
 
 			r.Get("/stats", adminHandler.Stats)
 			r.Get("/users", adminHandler.ListUsers)
@@ -120,12 +127,14 @@ func setupProxyAndAuxRoutes(
 	auditWriter *middleware.AuditWriter,
 	generationWriter *middleware.GenerationWriter,
 	ctr *counter.Counter,
+	enqueuer enqueue.TaskEnqueuer,
 ) {
 	r.Route("/v1/proxy", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, database))
+		r.Use(middleware.RequireCredits(deps.Credits))
 		r.Use(middleware.RemainingCheck(ctr))
 		r.Use(middleware.Audit(auditWriter, "proxy.request"))
-		r.Use(middleware.Generation(generationWriter, database))
+		r.Use(middleware.Generation(generationWriter, database, enqueuer))
 		r.Handle("/*", proxyHandler)
 	})
 

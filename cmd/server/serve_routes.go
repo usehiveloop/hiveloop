@@ -29,6 +29,7 @@ func setupPublicRoutes(
 	bridgeWebhookHandler *handler.BridgeWebhookHandler,
 	nangoWebhookHandler *handler.NangoWebhookHandler,
 	incomingWebhookHandler *handler.IncomingWebhookHandler,
+	billingWebhookHandler *handler.BillingWebhookHandler,
 	nangoClient *nango.Client,
 	sandboxEncKey *crypto.SymmetricKey,
 ) {
@@ -61,10 +62,9 @@ func setupPublicRoutes(
 	// Webhook receivers (HMAC-verified, no auth middleware)
 	r.Post("/internal/webhooks/bridge/{sandboxID}", bridgeWebhookHandler.Handle)
 	r.Post("/internal/webhooks/nango", nangoWebhookHandler.Handle)
-	if cfg.PolarWebhookSecret != "" {
-		polarWebhookHandler := handler.NewPolarWebhookHandler(database, cfg.PolarWebhookSecret, cfg.PolarProductFreeID)
-		r.Post("/internal/webhooks/polar", polarWebhookHandler.Handle)
-	}
+	// Billing webhooks — per-provider. The `{provider}` path param selects which
+	// implementation verifies the signature and parses the payload.
+	r.Post("/internal/webhooks/billing/{provider}", billingWebhookHandler.Handle)
 
 	// Sandbox proxy endpoints (bearer-token auth, no middleware)
 	if nangoClient != nil && sandboxEncKey != nil {

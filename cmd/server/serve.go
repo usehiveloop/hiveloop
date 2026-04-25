@@ -44,7 +44,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	logger := slog.Default()
 
 	// Start cache invalidation subscriber (per-instance, real-time pub/sub)
-	goroutine.Go(func() {
+	goroutine.Go(ctx, func(ctx context.Context) {
 		if err := cacheManager.Invalidator().Subscribe(ctx); err != nil {
 			slog.Error("invalidation subscriber stopped", "error", err)
 		}
@@ -104,6 +104,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		if enqueuer != nil {
 			conversationHandler.SetEnqueuer(enqueuer)
 		}
+		conversationHandler.SetCredits(deps.Credits)
 		systemConvHandler = handler.NewSystemConversationHandler(database, orchestrator, agentPusher, eventBus, signingKey, cfg)
 	}
 
@@ -133,10 +134,8 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		driveHandler = handler.NewDriveHandler(database, deps.S3Client)
 	}
 
-	var billingHandler *handler.BillingHandler
-	if deps.PolarClient != nil {
-		billingHandler = handler.NewBillingHandler(database, deps.PolarClient, cfg)
-	}
+	billingHandler := handler.NewBillingHandler(database, deps.BillingRegistry, deps.Credits)
+	billingWebhookHandler := handler.NewBillingWebhookHandler(database, deps.BillingRegistry, deps.Credits)
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -148,7 +147,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, bridgeWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey)
+	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, bridgeWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, billingWebhookHandler, nangoClient, sandboxEncKey)
 
 	// HTTP triggers: unauthenticated endpoint, trigger UUID acts as bearer token.
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)
@@ -161,7 +160,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	}
 	setupConnectRoutes(r, cfg, rsaPub, database, platformAdminEmails, inIntegrationHandler, inConnectionHandler)
 	setupAdminRoutes(r, cfg, deps, rsaPub, database, platformAdminEmails, enqueuer, marketplaceHandler)
-	setupProxyAndAuxRoutes(r, cfg, deps, signingKey, database, proxyHandler, driveHandler, sandboxEncKey, auditWriter, generationWriter, ctr)
+	setupProxyAndAuxRoutes(r, cfg, deps, signingKey, database, proxyHandler, driveHandler, sandboxEncKey, auditWriter, generationWriter, ctr, enqueuer)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
@@ -172,7 +171,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		ErrorLog:     posthogobs.NewStdlogBridge("api_server"),
 	}
 
-	goroutine.Go(func() {
+	goroutine.Go(ctx, func(context.Context) {
 		slog.Info("server starting", "port", cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("server error", "error", err)
@@ -184,7 +183,11 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	<-ctx.Done()
 	slog.Info("shutting down")
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// Shutdown intentionally decouples from the (already-cancelled) parent ctx
+	// but inherits its values so observability tags propagate. context.WithoutCancel
+	// strips cancellation while preserving values; the WithTimeout below bounds
+	// how long shutdown can take.
+	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {

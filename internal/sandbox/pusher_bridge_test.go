@@ -107,7 +107,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		ProxyHost:  "proxy.test.com",
 		MCPBaseURL: "https://mcp.test.com",
 	}
-	pusher := NewPusher(db, nil, signingKey, cfg)
+	pusher := NewPusher(db, nil, signingKey, cfg, nil)
 
 	proxyToken := "ptok_test_token"
 	jti := uuid.New().String()

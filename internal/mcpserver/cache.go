@@ -68,7 +68,7 @@ func (c *ServerCache) Evict(jti string) {
 
 // StartCleanup runs a background goroutine that removes expired entries periodically.
 func (c *ServerCache) StartCleanup(ctx context.Context, interval time.Duration) {
-	goroutine.Go(func() {
+	goroutine.Go(ctx, func(ctx context.Context) {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 

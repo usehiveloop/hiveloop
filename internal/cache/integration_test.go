@@ -59,7 +59,7 @@ func connectTestRedis(t *testing.T) *redis.Client {
 
 func createTestKMS(t *testing.T) *crypto.KeyWrapper {
 	t.Helper()
-	kms, err := crypto.NewAEADWrapper("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "test-key")
+	kms, err := crypto.NewAEADWrapper(t.Context(), "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "test-key")
 	if err != nil {
 		t.Fatalf("cannot create AEAD wrapper: %v", err)
 	}
