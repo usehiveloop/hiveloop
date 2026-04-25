@@ -1,7 +1,5 @@
 use rig::message::AssistantContent;
-use rig::message::{
-    Message, ToolCall, ToolFunction, ToolResult, ToolResultContent, UserContent,
-};
+use rig::message::{Message, ToolCall, ToolFunction, ToolResult, ToolResultContent, UserContent};
 use rig::OneOrMany;
 use serde_json::json;
 
@@ -105,7 +103,10 @@ fn tool_results_link_success_status() {
         .collect();
     assert_eq!(calls.len(), 2);
     assert!(calls[0].is_success);
-    assert!(!calls[1].is_success, "error result should mark is_success=false");
+    assert!(
+        !calls[1].is_success,
+        "error result should mark is_success=false"
+    );
 }
 
 #[test]
@@ -135,7 +136,9 @@ fn tool_extraction_per_known_tool() {
     assert!(matches!(calls[2], SummaryTool::FileUpdate { path } if path == "x.rs"));
     assert!(matches!(calls[3], SummaryTool::Shell { command } if command == "cargo test"));
     assert!(matches!(calls[4], SummaryTool::Glob { pattern } if pattern == "**/*.rs"));
-    assert!(matches!(calls[5], SummaryTool::Search { pattern, path: Some(p) } if pattern == "TODO" && p == "src/"));
+    assert!(
+        matches!(calls[5], SummaryTool::Search { pattern, path: Some(p) } if pattern == "TODO" && p == "src/")
+    );
     assert!(matches!(calls[6], SummaryTool::List { path } if path == "."));
     assert!(matches!(calls[7], SummaryTool::TodoRead));
     // unknown tool falls through to Mcp{name}

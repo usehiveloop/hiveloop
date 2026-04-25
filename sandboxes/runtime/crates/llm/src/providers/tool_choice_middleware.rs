@@ -8,10 +8,10 @@
 //!
 //! Controlled by env var `BRIDGE_TOOL_CHOICE`:
 //!   * unset (default) → no injection; rig's request goes through unchanged.
-//!   * `"required"`     → inject `tool_choice: "required"` whenever `tools`
-//!                         is non-empty.
-//!   * `"auto"`         → inject `tool_choice: "auto"` (explicit hint;
-//!                         most providers default to this).
+//!   * `"required"` → inject `tool_choice: "required"` whenever `tools`
+//!     is non-empty.
+//!   * `"auto"` → inject `tool_choice: "auto"` (explicit hint; most providers
+//!     default to this).
 //!
 //! Like the cache_control middleware, this only mutates POST bodies to
 //! `/chat/completions`. Anthropic's `/v1/messages` endpoint uses a
@@ -42,7 +42,9 @@ impl ToolChoiceMiddleware {
             .map(str::trim)
         {
             Some("required") | Some("REQUIRED") => {
-                info!("tool_choice middleware ENABLED — injecting `required` on requests with tools");
+                info!(
+                    "tool_choice middleware ENABLED — injecting `required` on requests with tools"
+                );
                 Self {
                     choice: Some(Value::String("required".to_string())),
                 }
@@ -83,8 +85,8 @@ impl Middleware for ToolChoiceMiddleware {
             return next.run(req, extensions).await;
         };
 
-        let target = req.method() == Method::POST
-            && req.url().path().ends_with("/chat/completions");
+        let target =
+            req.method() == Method::POST && req.url().path().ends_with("/chat/completions");
         if !target {
             return next.run(req, extensions).await;
         }
@@ -100,7 +102,10 @@ impl Middleware for ToolChoiceMiddleware {
     }
 }
 
-async fn try_apply(req: Request, choice: &Value) -> std::result::Result<Request, (Request, String)> {
+async fn try_apply(
+    req: Request,
+    choice: &Value,
+) -> std::result::Result<Request, (Request, String)> {
     let method = req.method().clone();
     let url = req.url().clone();
     let headers = req.headers().clone();

@@ -89,7 +89,16 @@ fn same_op(a: &SummaryTool, b: &SummaryTool) -> bool {
         ) => p1 == p2 && pa1 == pa2,
         (List { path: p1 }, List { path: p2 }) => p1 == p2,
         (TodoRead, TodoRead) => true,
-        (Lsp { action: a1, target: t1 }, Lsp { action: a2, target: t2 }) => a1 == a2 && t1 == t2,
+        (
+            Lsp {
+                action: a1,
+                target: t1,
+            },
+            Lsp {
+                action: a2,
+                target: t2,
+            },
+        ) => a1 == a2 && t1 == t2,
         (Mcp { name: n1 }, Mcp { name: n2 }) => n1 == n2,
         // TodoWrite is never deduped — every write is meaningful (it's
         // a state change, not a query).

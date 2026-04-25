@@ -243,7 +243,9 @@ fn extract_tool(tc: &ToolCall, current_todos: &[(String, TodoStatus)]) -> Summar
 }
 
 fn arg_str(args: &Value, key: &str) -> Option<String> {
-    args.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
+    args.get(key)
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
 }
 
 fn arg_path(args: &Value) -> Option<String> {
@@ -311,20 +313,14 @@ fn parse_todo_status(item: &Value) -> TodoStatus {
     }
 }
 
-fn apply_todo_changes(
-    current_todos: &mut Vec<(String, TodoStatus)>,
-    changes: &[TodoChange],
-) {
+fn apply_todo_changes(current_todos: &mut Vec<(String, TodoStatus)>, changes: &[TodoChange]) {
     for change in changes {
         match change.kind {
             TodoChangeKind::Added => {
                 current_todos.push((change.content.clone(), change.status));
             }
             TodoChangeKind::Updated => {
-                if let Some(slot) = current_todos
-                    .iter_mut()
-                    .find(|(c, _)| c == &change.content)
-                {
+                if let Some(slot) = current_todos.iter_mut().find(|(c, _)| c == &change.content) {
                     slot.1 = change.status;
                 }
             }

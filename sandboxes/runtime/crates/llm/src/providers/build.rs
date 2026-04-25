@@ -45,8 +45,8 @@ fn shared_retrying_client() -> ClientWithMiddleware {
             .pool_idle_timeout(Duration::from_secs(90))
             .build()
             .expect("reqwest client builder must not fail with default tls");
-        let chain = MwClientBuilder::new(http)
-            .with(RetryTransientMiddleware::new_with_policy(policy));
+        let chain =
+            MwClientBuilder::new(http).with(RetryTransientMiddleware::new_with_policy(policy));
         // Cache-control middleware is opt-OUT-able via env so we can
         // bisect issues during benchmarks. Set BRIDGE_DISABLE_CACHE_CONTROL=1
         // to skip injecting cache_control markers entirely.

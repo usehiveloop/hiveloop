@@ -1,7 +1,5 @@
 use rig::message::AssistantContent;
-use rig::message::{
-    Message, ToolCall, ToolFunction, ToolResult, ToolResultContent, UserContent,
-};
+use rig::message::{Message, ToolCall, ToolFunction, ToolResult, ToolResultContent, UserContent};
 use rig::OneOrMany;
 use serde_json::json;
 

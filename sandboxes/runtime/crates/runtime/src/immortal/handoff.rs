@@ -17,8 +17,8 @@
 use rig::message::{AssistantContent, Message, UserContent};
 use rig::OneOrMany;
 
-use crate::compaction;
 use super::render::{FOOTER, HEADER, SUMMARY_BODY_CLOSE, SUMMARY_BODY_OPEN};
+use crate::compaction;
 
 /// Result of choosing a contiguous compaction range.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -89,7 +89,10 @@ pub fn find_compaction_range(
     }
     // Cap eviction to whichever is stricter: retention window OR
     // eviction-fraction-derived message count.
-    let max_compactable = std::cmp::min(len.saturating_sub(retention), eviction_cap.saturating_add(1));
+    let max_compactable = std::cmp::min(
+        len.saturating_sub(retention),
+        eviction_cap.saturating_add(1),
+    );
     if max_compactable == 0 || max_compactable <= start {
         return None;
     }
@@ -129,11 +132,7 @@ fn walk_back_to_safe_boundary(history: &[Message], start: usize, mut end: usize)
         // Case B: `end` is a tool_result and `end+1` is also a
         // tool_result. We're mid-batch. Walk back through the whole
         // batch.
-        if user_is_tool_result(here)
-            && history
-                .get(end + 1)
-                .is_some_and(user_is_tool_result)
-        {
+        if user_is_tool_result(here) && history.get(end + 1).is_some_and(user_is_tool_result) {
             // Walk back through the run of tool_results to the assistant
             // that issued them, then one more to land BEFORE the
             // assistant tool_call message.
@@ -171,7 +170,6 @@ fn user_is_tool_result(msg: &Message) -> bool {
         false
     }
 }
-
 
 /// Replace the chosen range in place with one user message containing the
 /// rendered summary frame. Returns the new history.
@@ -350,9 +348,8 @@ pub fn maybe_merge_summary_head(
     }
 
     let merged = render_merged_frame(&bodies);
-    let after_tokens = compaction::estimate_tokens(std::slice::from_ref(&Message::user(
-        merged.clone(),
-    )));
+    let after_tokens =
+        compaction::estimate_tokens(std::slice::from_ref(&Message::user(merged.clone())));
 
     let first = merge_indices[0];
     let last = *merge_indices.last().unwrap();

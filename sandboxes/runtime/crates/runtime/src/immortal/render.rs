@@ -61,12 +61,7 @@ fn render_content(out: &mut String, content: &SummaryMessage) {
                 }
                 SummaryTool::Shell { command } => {
                     if command.contains('\n') || command.len() > 80 {
-                        let _ = write!(
-                            out,
-                            "**Execute:**{}\n```\n{}\n```",
-                            marker,
-                            command.trim()
-                        );
+                        let _ = write!(out, "**Execute:**{}\n```\n{}\n```", marker, command.trim());
                     } else {
                         let _ = write!(out, "**Execute:** `{}`{}", command.trim(), marker);
                     }

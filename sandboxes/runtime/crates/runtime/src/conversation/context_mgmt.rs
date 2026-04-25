@@ -90,8 +90,15 @@ pub(super) async fn run_chain_handoff(
         }),
     ));
 
-    match crate::immortal::execute_chain_handoff(history, immortal_cfg, imm_state, None, None, trigger)
-        .await
+    match crate::immortal::execute_chain_handoff(
+        history,
+        immortal_cfg,
+        imm_state,
+        None,
+        None,
+        trigger,
+    )
+    .await
     {
         Ok(result) => {
             info!(

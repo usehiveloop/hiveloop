@@ -42,3 +42,4 @@ benchmarks/
 
 # Local MCP client config
 scripts/.mcp.json
+.mcp.json

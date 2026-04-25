@@ -17,8 +17,14 @@ fn places_breakpoints_on_system_and_last_two() {
 
     let messages = body.get("messages").unwrap().as_array().unwrap();
     assert!(messages[0].get("cache_control").is_some(), "system marked");
-    assert!(messages[3].get("cache_control").is_some(), "second-last user marked");
-    assert!(messages[4].get("cache_control").is_some(), "last assistant marked");
+    assert!(
+        messages[3].get("cache_control").is_some(),
+        "second-last user marked"
+    );
+    assert!(
+        messages[4].get("cache_control").is_some(),
+        "last assistant marked"
+    );
     // Middle messages NOT marked
     assert!(messages[1].get("cache_control").is_none());
     assert!(messages[2].get("cache_control").is_none());
@@ -97,12 +103,6 @@ fn does_not_double_mark_when_system_is_in_tail() {
     assert_eq!(n, 2);
     let messages = body.get("messages").unwrap().as_array().unwrap();
     // Each message has exactly one cache_control field
-    assert_eq!(
-        messages[0]["cache_control"],
-        json!({"type": "ephemeral"})
-    );
-    assert_eq!(
-        messages[1]["cache_control"],
-        json!({"type": "ephemeral"})
-    );
+    assert_eq!(messages[0]["cache_control"], json!({"type": "ephemeral"}));
+    assert_eq!(messages[1]["cache_control"], json!({"type": "ephemeral"}));
 }

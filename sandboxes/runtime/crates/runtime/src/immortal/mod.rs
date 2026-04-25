@@ -33,9 +33,9 @@ mod extractor;
 mod handoff;
 mod render;
 mod summary;
-mod transformers;
 #[cfg(test)]
 mod tests;
+mod transformers;
 
 pub use handoff::{
     evict_msg_count, extract_latest_reasoning, find_compaction_range,

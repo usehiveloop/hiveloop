@@ -327,10 +327,7 @@ pub async fn run_conversation(params: ConversationParams) {
                     // to run — the top-of-turn call at run.rs:181 fires
                     // exactly once when history is empty. Without this
                     // call, `history_strip` is silently a no-op.
-                    crate::masking::strip_old_tool_outputs(
-                        &mut history,
-                        &history_strip_config,
-                    );
+                    crate::masking::strip_old_tool_outputs(&mut history, &history_strip_config);
                     {
                         let mut g = persisted_messages.lock().unwrap();
                         *g = super::convert::convert_from_rig_messages(&history);
@@ -342,8 +339,7 @@ pub async fn run_conversation(params: ConversationParams) {
                     // disagree near the boundary, which would deadlock the
                     // resume loop). The hook has already decided we need
                     // to handoff; trust it.
-                    let pre_chain_tokens =
-                        crate::compaction::estimate_tokens(&history);
+                    let pre_chain_tokens = crate::compaction::estimate_tokens(&history);
                     let trigger = crate::immortal::ChainTrigger { pre_chain_tokens };
                     run_chain_handoff(
                         &mut history,

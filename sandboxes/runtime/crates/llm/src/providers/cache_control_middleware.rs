@@ -35,11 +35,11 @@
 use std::str::FromStr;
 
 use bytes::Bytes;
+use http::Extensions;
 use http::Method;
 use reqwest::{Body, Request};
 use reqwest_middleware::{Middleware, Next, Result};
 use serde_json::Value;
-use http::Extensions;
 use tracing::info;
 
 /// Drop-in middleware for `reqwest_middleware::ClientBuilder::with`. Forwards
@@ -57,10 +57,7 @@ impl Middleware for CacheControlMiddleware {
     ) -> Result<reqwest::Response> {
         // Fast path: only POSTs to known chat-completion paths get touched.
         let is_target = req.method() == Method::POST
-            && (req
-                .url()
-                .path()
-                .ends_with("/chat/completions")
+            && (req.url().path().ends_with("/chat/completions")
                 || req.url().path().ends_with("/messages")
                 || req.url().path().ends_with("/v1/messages"));
         if !is_target {
@@ -91,12 +88,7 @@ async fn try_apply(req: Request) -> std::result::Result<Request, (Request, Strin
 
     let mut json: Value = match serde_json::from_slice(&body_bytes) {
         Ok(v) => v,
-        Err(e) => {
-            return Err((
-                rebuild(parts, Some(body_bytes)),
-                format!("not json: {}", e),
-            ))
-        }
+        Err(e) => return Err((rebuild(parts, Some(body_bytes)), format!("not json: {}", e))),
     };
 
     let breakpoints = apply_breakpoints(&mut json);
@@ -138,7 +130,9 @@ fn split_request(req: Request) -> (RequestParts, Option<Bytes>) {
     let method = req.method().clone();
     let url = req.url().clone();
     let headers = req.headers().clone();
-    let body_bytes = req.body().and_then(|b| b.as_bytes().map(Bytes::copy_from_slice));
+    let body_bytes = req
+        .body()
+        .and_then(|b| b.as_bytes().map(Bytes::copy_from_slice));
     (
         RequestParts {
             method,
