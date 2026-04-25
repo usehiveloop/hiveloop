@@ -6,22 +6,22 @@ import (
 	"log/slog"
 	"time"
 
-
+	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/token"
 )
 
 func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
-	if agent.CredentialID == nil || agent.OrgID == nil {
-		return fmt.Errorf("cannot rotate token for agent without credential and org")
+	if agent.OrgID == nil {
+		return fmt.Errorf("cannot rotate token for agent without org")
 	}
 
-	var cred model.Credential
-	if err := p.db.Where("id = ?", *agent.CredentialID).First(&cred).Error; err != nil {
-		return fmt.Errorf("loading credential: %w", err)
+	cred, err := credentials.Resolve(ctx, p.db, p.picker, agent)
+	if err != nil {
+		return fmt.Errorf("resolving agent credential: %w", err)
 	}
 
-	proxyToken, jti, err := p.mintAgentToken(agent, &cred)
+	proxyToken, jti, err := p.mintAgentToken(agent, cred)
 	if err != nil {
 		return fmt.Errorf("minting new token: %w", err)
 	}
@@ -87,6 +87,9 @@ func (p *Pusher) mintAgentToken(agent *model.Agent, cred *model.Credential) (tok
 		(*agent.OrgID).String(),
 		cred.ID.String(),
 		agentTokenTTL,
+		// IsSystem is baked into the JWT so the proxy can distinguish
+		// platform-keys agents from BYOK without an extra DB read.
+		token.MintOptions{IsSystem: cred.IsSystem},
 	)
 	if err != nil {
 		return "", "", err

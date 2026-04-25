@@ -54,3 +54,4 @@ go.work.sum
 # workspaces write a single lock at the workspace root.
 services/rag-engine/target/
 services/rag-engine/**/target/
+apps/web/.mcp.json

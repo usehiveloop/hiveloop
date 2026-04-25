@@ -1,52 +1,48 @@
 package handler
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"gorm.io/gorm"
 
-	polargo "github.com/polarsource/polar-go"
-	"github.com/polarsource/polar-go/models/components"
-	"github.com/polarsource/polar-go/models/operations"
-
-	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// BillingHandler manages checkout, subscription status, and customer portal.
+// BillingHandler exposes checkout, portal, and subscription endpoints against
+// whatever billing provider the caller picks. The handler has no knowledge of
+// any specific provider — it goes through billing.Registry.
 type BillingHandler struct {
-	db     *gorm.DB
-	polar  *polargo.Polar
-	config *config.Config
+	db       *gorm.DB
+	registry *billing.Registry
+	credits  *billing.CreditsService
 }
 
-// NewBillingHandler creates a billing handler.
-func NewBillingHandler(db *gorm.DB, polar *polargo.Polar, cfg *config.Config) *BillingHandler {
-	return &BillingHandler{
-		db:     db,
-		polar:  polar,
-		config: cfg,
-	}
+// NewBillingHandler creates a provider-agnostic billing handler.
+func NewBillingHandler(db *gorm.DB, registry *billing.Registry, credits *billing.CreditsService) *BillingHandler {
+	return &BillingHandler{db: db, registry: registry, credits: credits}
 }
 
-// createCheckoutRequest is the request body for POST /v1/billing/checkout.
 type createCheckoutRequest struct {
-	ProductType string `json:"product_type"` // "pro_shared" or "pro_dedicated"
-	SuccessURL  string `json:"success_url"`
+	Provider   string `json:"provider"`
+	PlanSlug   string `json:"plan_slug"`
+	Currency   string `json:"currency"` // e.g. "USD", "NGN"
+	Cycle      string `json:"cycle"`    // "monthly" | "annual"
+	SuccessURL string `json:"success_url"`
+	CancelURL  string `json:"cancel_url"`
 }
 
 type createCheckoutResponse struct {
 	CheckoutURL string `json:"checkout_url"`
 }
 
-// CreateCheckout creates a Polar checkout session for the org.
+// CreateCheckout creates a checkout session with the requested provider.
 // @Summary Create checkout session
-// @Description Creates a Polar checkout session for upgrading to a Pro plan. Returns a checkout URL to redirect the user to.
+// @Description Creates a checkout session for subscribing to a plan. The client chooses the provider.
 // @Tags billing
 // @Accept json
 // @Produce json
@@ -57,67 +53,163 @@ type createCheckoutResponse struct {
 // @Failure 500 {object} errorResponse
 // @Security BearerAuth
 // @Router /v1/billing/checkout [post]
-func (handler *BillingHandler) CreateCheckout(writer http.ResponseWriter, request *http.Request) {
-	org, ok := middleware.OrgFromContext(request.Context())
+func (h *BillingHandler) CreateCheckout(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
-		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
 		return
 	}
 
 	var body createCheckoutRequest
-	if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
-		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 		return
 	}
 
-	productID := handler.resolveProductID(body.ProductType)
-	if productID == "" {
-		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid product_type"})
-		return
-	}
-
-	ctx := request.Context()
-
-	// Ensure org has a Polar customer
-	polarCustomerID, err := handler.ensurePolarCustomer(ctx, org)
+	provider, err := h.registry.Get(body.Provider)
 	if err != nil {
-		slog.Error("billing: failed to ensure polar customer", "org_id", org.ID, "error", err)
-		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to create billing customer"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown provider"})
 		return
 	}
 
-	// Create checkout session
-	checkoutResp, err := handler.polar.Checkouts.Create(ctx, components.CheckoutCreate{
-		Products:   []string{productID},
-		CustomerID: &polarCustomerID,
-		SuccessURL: &body.SuccessURL,
-		Metadata: map[string]components.CheckoutCreateMetadata{
-			"org_id":       components.CreateCheckoutCreateMetadataStr(org.ID.String()),
-			"product_type": components.CreateCheckoutCreateMetadataStr(body.ProductType),
+	cycle := billing.Cycle(body.Cycle)
+	if !cycle.IsValid() {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "cycle must be 'monthly' or 'annual'"})
+		return
+	}
+	if body.Currency == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "currency is required"})
+		return
+	}
+
+	var plan model.Plan
+	if err := h.db.Where("slug = ? AND active = true", body.PlanSlug).First(&plan).Error; err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown plan"})
+		return
+	}
+
+	email, err := h.lookupOrgOwnerEmail(org.ID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to resolve org owner"})
+		return
+	}
+
+	customerID, err := provider.EnsureCustomer(r.Context(), org.ID, email, org.Name)
+	if err != nil {
+		slog.Error("billing: failed to ensure customer", "provider", provider.Name(), "org_id", org.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create billing customer"})
+		return
+	}
+
+	session, err := provider.CreateCheckout(r.Context(), customerID, billing.CheckoutIntent{
+		OrgID:         org.ID,
+		OrgName:       org.Name,
+		CustomerEmail: email,
+		PlanSlug:      plan.Slug,
+		Currency:      body.Currency,
+		Cycle:         cycle,
+		SuccessURL:    body.SuccessURL,
+		CancelURL:     body.CancelURL,
+		Metadata: map[string]string{
+			"org_id":    org.ID.String(),
+			"plan_slug": plan.Slug,
 		},
 	})
 	if err != nil {
-		slog.Error("billing: failed to create checkout", "org_id", org.ID, "error", err)
-		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to create checkout session"})
+		switch {
+		case errors.Is(err, billing.ErrUnsupportedCurrency):
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "currency not supported by this provider"})
+			return
+		case errors.Is(err, billing.ErrUnknownPlan):
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "plan not available on this provider"})
+			return
+		}
+		slog.Error("billing: failed to create checkout", "provider", provider.Name(), "org_id", org.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create checkout session"})
 		return
 	}
 
-	slog.Info("billing: checkout created", "org_id", org.ID, "checkout_id", checkoutResp.Checkout.ID)
+	writeJSON(w, http.StatusOK, createCheckoutResponse{CheckoutURL: session.URL})
+}
 
-	writeJSON(writer, http.StatusOK, createCheckoutResponse{
-		CheckoutURL: checkoutResp.Checkout.URL,
+type createPortalRequest struct {
+	Provider string `json:"provider"`
+}
+
+type portalResponse struct {
+	PortalURL string `json:"portal_url"`
+}
+
+// CreatePortal creates a provider customer portal session for the org.
+// @Summary Create billing portal session
+// @Description Creates a customer portal session where the user can manage their subscription, payment methods, and invoices.
+// @Tags billing
+// @Accept json
+// @Produce json
+// @Param body body createPortalRequest true "Portal request"
+// @Success 200 {object} portalResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/billing/portal [post]
+func (h *BillingHandler) CreatePortal(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	var body createPortalRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	provider, err := h.registry.Get(body.Provider)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown provider"})
+		return
+	}
+
+	// The customer must already exist with this provider, which means there's
+	// at least one subscription row for (org, provider).
+	var sub model.Subscription
+	if err := h.db.Where("org_id = ? AND provider = ?", org.ID, provider.Name()).
+		Order("created_at DESC").First(&sub).Error; err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "no billing account with this provider"})
+		return
+	}
+
+	session, err := provider.CreatePortal(r.Context(), billing.PortalRequest{
+		OrgID:                  org.ID,
+		ExternalCustomerID:     sub.ExternalCustomerID,
+		ExternalSubscriptionID: sub.ExternalSubscriptionID,
 	})
+	if err != nil {
+		if errors.Is(err, billing.ErrNoActiveSubscription) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "no active subscription"})
+			return
+		}
+		slog.Error("billing: failed to create portal", "provider", provider.Name(), "org_id", org.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create portal session"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, portalResponse{PortalURL: session.URL})
 }
 
 type subscriptionResponse struct {
-	Plan        string  `json:"plan"`
-	Status      string  `json:"status"`
-	ProductType *string `json:"product_type,omitempty"`
+	PlanSlug        string `json:"plan_slug"`
+	Status          string `json:"status"`
+	Provider        string `json:"provider,omitempty"`
+	CreditsBalance  int64  `json:"credits_balance"`
+	CurrentPeriodEnd string `json:"current_period_end,omitempty"`
 }
 
-// GetSubscription returns the org's current subscription status.
+// GetSubscription returns the org's current subscription and credit balance.
 // @Summary Get subscription status
-// @Description Returns the current billing plan and subscription status for the org.
+// @Description Returns the org's active plan, provider, and credit balance.
 // @Tags billing
 // @Produce json
 // @Success 200 {object} subscriptionResponse
@@ -125,135 +217,52 @@ type subscriptionResponse struct {
 // @Failure 500 {object} errorResponse
 // @Security BearerAuth
 // @Router /v1/billing/subscription [get]
-func (handler *BillingHandler) GetSubscription(writer http.ResponseWriter, request *http.Request) {
-	org, ok := middleware.OrgFromContext(request.Context())
+func (h *BillingHandler) GetSubscription(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
-		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
 		return
 	}
 
-	var subscription model.Subscription
-	err := handler.db.Where("org_id = ? AND status = 'active'", org.ID).
-		Order("created_at DESC").
-		First(&subscription).Error
-
-	if err == gorm.ErrRecordNotFound {
-		writeJSON(writer, http.StatusOK, subscriptionResponse{
-			Plan:   "free",
-			Status: "active",
-		})
-		return
-	}
+	balance, err := h.credits.Balance(org.ID)
 	if err != nil {
-		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to load subscription"})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load balance"})
 		return
 	}
 
-	writeJSON(writer, http.StatusOK, subscriptionResponse{
-		Plan:        "pro",
-		Status:      subscription.Status,
-		ProductType: &subscription.ProductType,
-	})
+	resp := subscriptionResponse{
+		PlanSlug:       org.PlanSlug,
+		Status:         "active",
+		CreditsBalance: balance,
+	}
+
+	var sub model.Subscription
+	err = h.db.Where("org_id = ? AND status = ?", org.ID, string(billing.StatusActive)).
+		Order("created_at DESC").First(&sub).Error
+	if err == nil {
+		resp.Provider = sub.Provider
+		resp.Status = sub.Status
+		if !sub.CurrentPeriodEnd.IsZero() {
+			resp.CurrentPeriodEnd = sub.CurrentPeriodEnd.Format("2006-01-02T15:04:05Z07:00")
+		}
+	} else if err != gorm.ErrRecordNotFound {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load subscription"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, resp)
 }
 
-type portalResponse struct {
-	PortalURL string `json:"portal_url"`
-}
-
-// CreatePortal creates a Polar customer portal session.
-// @Summary Create billing portal session
-// @Description Creates a Polar customer portal session where the user can manage their subscription, payment methods, and invoices.
-// @Tags billing
-// @Produce json
-// @Success 200 {object} portalResponse
-// @Failure 400 {object} errorResponse
-// @Failure 401 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Security BearerAuth
-// @Router /v1/billing/portal [post]
-func (handler *BillingHandler) CreatePortal(writer http.ResponseWriter, request *http.Request) {
-	org, ok := middleware.OrgFromContext(request.Context())
-	if !ok {
-		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
-		return
-	}
-
-	if org.PolarCustomerID == nil {
-		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "no billing account found"})
-		return
-	}
-
-	ctx := request.Context()
-
-	sessionResp, err := handler.polar.CustomerSessions.Create(ctx,
-		operations.CreateCustomerSessionsCreateCustomerSessionCreateCustomerSessionCustomerIDCreate(
-			components.CustomerSessionCustomerIDCreate{
-				CustomerID: *org.PolarCustomerID,
-			},
-		),
-	)
-	if err != nil {
-		slog.Error("billing: failed to create portal session", "org_id", org.ID, "error", err)
-		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to create portal session"})
-		return
-	}
-
-	writeJSON(writer, http.StatusOK, portalResponse{
-		PortalURL: sessionResp.CustomerSession.CustomerPortalURL,
-	})
-}
-
-// ensurePolarCustomer creates a Polar customer for the org if one doesn't exist.
-func (handler *BillingHandler) ensurePolarCustomer(ctx context.Context, org *model.Org) (string, error) {
-	if org.PolarCustomerID != nil {
-		return *org.PolarCustomerID, nil
-	}
-
-	// Look up the org owner's email for the customer record
+// lookupOrgOwnerEmail returns the email of the earliest-joined member of the
+// org. Used as the customer record email when provisioning a billing account.
+func (h *BillingHandler) lookupOrgOwnerEmail(orgID any) (string, error) {
 	var membership model.OrgMembership
-	if err := handler.db.Where("org_id = ?", org.ID).Order("created_at ASC").First(&membership).Error; err != nil {
+	if err := h.db.Where("org_id = ?", orgID).Order("created_at ASC").First(&membership).Error; err != nil {
 		return "", err
 	}
 	var user model.User
-	if err := handler.db.Where("id = ?", membership.UserID).First(&user).Error; err != nil {
+	if err := h.db.Where("id = ?", membership.UserID).First(&user).Error; err != nil {
 		return "", err
 	}
-
-	externalID := org.ID.String()
-	customerResp, err := handler.polar.Customers.Create(ctx,
-		components.CreateCustomerCreateCustomerIndividualCreate(
-			components.CustomerIndividualCreate{
-				Email:      user.Email,
-				Name:       &org.Name,
-				ExternalID: &externalID,
-			},
-		),
-	)
-	if err != nil {
-		return "", err
-	}
-
-	individual := customerResp.GetCustomerIndividual()
-	if individual == nil {
-		return "", fmt.Errorf("unexpected customer type returned from Polar")
-	}
-	customerID := individual.ID
-	handler.db.Model(org).Update("polar_customer_id", customerID)
-	org.PolarCustomerID = &customerID
-
-	slog.Info("billing: polar customer created", "org_id", org.ID, "customer_id", customerID)
-
-	return customerID, nil
-}
-
-// resolveProductID maps a product type to the configured Polar product ID.
-func (handler *BillingHandler) resolveProductID(productType string) string {
-	switch productType {
-	case "pro_shared":
-		return handler.config.PolarProductProSharedID
-	case "pro_dedicated":
-		return handler.config.PolarProductProDedicatedID
-	default:
-		return ""
-	}
+	return user.Email, nil
 }

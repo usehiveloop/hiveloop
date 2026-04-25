@@ -2,9 +2,9 @@ package tasks
 
 import (
 	"github.com/hibiken/asynq"
-	polargo "github.com/polarsource/polar-go"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/cache"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
@@ -26,11 +26,11 @@ type WorkerDeps struct {
 	EncKey           *crypto.SymmetricKey  // nil if not configured
 	EmailSend         EmailSenderFunc         // nil if email not configured
 	EmailSendTemplate EmailTemplateSenderFunc // nil if template email not configured
-	PolarClient      *polargo.Polar        // nil if billing not configured
 	EventBus         *streaming.EventBus   // nil if streaming not configured
 	SkillFetcher     *skills.GitFetcher    // nil disables git skill hydration
 	NangoClient      *nango.Client         // nil disables deterministic enrichment
 	CacheManager     *cache.Manager        // nil disables tasks that need credential decryption
+	Credits          *billing.CreditsService // required for billing-token-spend deduction
 	Enqueuer         enqueue.TaskEnqueuer  // required for enqueuing sub-tasks
 }
 
@@ -75,14 +75,15 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		mux.HandleFunc(TypeSandboxTemplateRetryBuild, handler.HandleRetry)
 	}
 
-	// Billing usage event
-	if deps.PolarClient != nil {
-		mux.HandleFunc(TypeBillingUsageEvent, NewBillingUsageEventHandler(deps.DB, deps.PolarClient).Handle)
-	}
-
 	// Skill hydration from git repos
 	if deps.SkillFetcher != nil {
 		mux.HandleFunc(TypeSkillHydrate, NewSkillHydrateHandler(deps.DB, deps.SkillFetcher).Handle)
+	}
+
+	// Billing token-spend: deducts credits for platform-keys LLM calls.
+	// Enqueued by the proxy's Generation middleware; handled here.
+	if deps.Credits != nil {
+		mux.HandleFunc(TypeBillingTokenSpend, NewBillingTokenSpendHandler(deps.Credits).Handle)
 	}
 
 	// Conversation naming (async title generation from the first message).

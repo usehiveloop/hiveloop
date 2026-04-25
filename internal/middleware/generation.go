@@ -13,6 +13,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/observe"
@@ -115,7 +116,7 @@ func (gw *GenerationWriter) Shutdown(ctx context.Context) {
 	close(gw.entries)
 
 	done := make(chan struct{})
-	goroutine.Go(func() {
+	goroutine.Go(ctx, func(context.Context) {
 		gw.wg.Wait()
 		close(done)
 	})
@@ -127,33 +128,46 @@ func (gw *GenerationWriter) Shutdown(ctx context.Context) {
 	}
 }
 
-// Generation returns middleware that captures observability data for proxy requests.
-// It sets up the CapturedData on the request context before the proxy runs,
-// then after the response, builds a Generation record and queues it for writing.
-func Generation(gw *GenerationWriter, db *gorm.DB) func(http.Handler) http.Handler {
+// Generation returns middleware that captures observability data for proxy
+// requests. It sets up the CapturedData on the request context before the
+// proxy runs, then after the response builds a Generation record and queues
+// it for writing.
+//
+// When enqueuer is non-nil AND the token's credential is a system credential
+// (claims.IsSystem), it ALSO enqueues a BillingTokenSpend task after the
+// response so the async worker deducts credits from the org's ledger. BYOK
+// calls skip the task — they don't consume credits for inference.
+func Generation(gw *GenerationWriter, db *gorm.DB, enqueuer enqueue.TaskEnqueuer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims, ok := ClaimsFromContext(r.Context())
+			ctx := r.Context()
+			claims, ok := ClaimsFromContext(ctx)
 			if !ok {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Look up credential's provider_id
+			// Look up credential's provider_id.
 			providerID := lookupProviderID(db, claims.CredentialID)
 
-			// Set up captured data on context for the CaptureTransport to fill
+			// Set up captured data on context for the CaptureTransport to fill.
 			captured := &observe.CapturedData{
 				ProviderID: providerID,
 			}
-			ctx := observe.WithCapturedData(r.Context(), captured)
-			r = r.WithContext(ctx)
+			r = r.WithContext(observe.WithCapturedData(ctx, captured))
 
 			next.ServeHTTP(w, r)
 
-			// After response: build and queue generation record
+			// After response: build and queue generation record.
 			gen := buildGeneration(r, claims, captured, providerID, gw.reg, db)
 			gw.Write(gen)
+
+			// Platform-keys metering: deduct credits asynchronously when
+			// this call was backed by a system credential and actually
+			// consumed tokens. BYOK calls skip entirely.
+			if enqueuer != nil && claims.IsSystem && (gen.InputTokens > 0 || gen.OutputTokens > 0) {
+				enqueueBillingTokenSpend(ctx, enqueuer, claims.OrgID, gen)
+			}
 		})
 	}
 }
@@ -205,76 +219,6 @@ func buildGeneration(r *http.Request, claims *TokenClaims, captured *observe.Cap
 	}
 
 	return gen
-}
-
-// calculateCost computes cost using the registry, wrapping the observe.UsageData.
-func calculateCost(reg *registry.Registry, providerID, modelID string, usage observe.UsageData) float64 {
-	if reg == nil || providerID == "" || modelID == "" {
-		return 0
-	}
-
-	provider, ok := reg.GetProvider(providerID)
-	if !ok {
-		return 0
-	}
-
-	model, ok := provider.Models[modelID]
-	if !ok {
-		return 0
-	}
-
-	if model.Cost == nil {
-		return 0
-	}
-
-	inputPrice := model.Cost.Input
-	outputPrice := model.Cost.Output
-
-	nonCachedInput := usage.InputTokens - usage.CachedTokens
-	if nonCachedInput < 0 {
-		nonCachedInput = 0
-	}
-	inputCost := float64(nonCachedInput) * inputPrice / 1_000_000
-
-	discount := cachedTokenDiscount[providerID]
-	if discount == 0 && usage.CachedTokens > 0 {
-		discount = 1.0
-	}
-	cachedCost := float64(usage.CachedTokens) * inputPrice * discount / 1_000_000
-	outputCost := float64(usage.OutputTokens) * outputPrice / 1_000_000
-
-	return inputCost + cachedCost + outputCost
-}
-
-var cachedTokenDiscount = map[string]float64{
-	"anthropic":     0.10,
-	"openai":        0.50,
-	"google":        0.25,
-	"google-vertex": 0.25,
-}
-
-// extractAttribution reads token.meta to extract user_id and tags.
-func extractAttribution(db *gorm.DB, jti string, gen *model.Generation) {
-	var token model.Token
-	if err := db.Select("meta").Where("jti = ?", jti).First(&token).Error; err != nil {
-		return
-	}
-
-	if token.Meta == nil {
-		return
-	}
-
-	if user, ok := token.Meta["user"].(string); ok {
-		gen.UserID = user
-	}
-
-	if tags, ok := token.Meta["tags"].([]any); ok {
-		for _, t := range tags {
-			if s, ok := t.(string); ok {
-				gen.Tags = append(gen.Tags, s)
-			}
-		}
-	}
 }
 
 // lookupProviderID fetches the credential's provider_id from the database.

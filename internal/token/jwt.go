@@ -64,12 +64,18 @@ type Claims struct {
 	OrgID        string `json:"org_id"`
 	CredentialID string `json:"cred_id"`
 	ScopeHash    string `json:"scope_hash,omitempty"`
+	// IsSystem is true when the referenced credential is platform-owned
+	// (credentials.is_system = true). Baked into the JWT at mint time so
+	// the proxy can decide whether to gate on credit balance and meter
+	// token spend without a DB round-trip.
+	IsSystem bool `json:"is_system,omitempty"`
 	jwt.RegisteredClaims
 }
 
 // MintOptions holds optional parameters for token minting.
 type MintOptions struct {
 	ScopeHash string // SHA-256 hash of scope rules, if scopes are present
+	IsSystem  bool   // true when the credential is platform-owned
 }
 
 // Mint creates a signed JWT with the given claims and TTL.
@@ -88,8 +94,11 @@ func Mint(signingKey []byte, orgID, credentialID string, ttl time.Duration, opts
 		},
 	}
 
-	if len(opts) > 0 && opts[0].ScopeHash != "" {
-		claims.ScopeHash = opts[0].ScopeHash
+	if len(opts) > 0 {
+		if opts[0].ScopeHash != "" {
+			claims.ScopeHash = opts[0].ScopeHash
+		}
+		claims.IsSystem = opts[0].IsSystem
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

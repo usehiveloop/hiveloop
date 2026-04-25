@@ -114,7 +114,7 @@ func newHarness(t *testing.T) *testHarness {
 	t.Cleanup(func() { rc.Close() })
 
 	// KMS (AEAD wrapper for tests)
-	kms, err := crypto.NewAEADWrapper("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "e2e-test-key")
+	kms, err := crypto.NewAEADWrapper(t.Context(), "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "e2e-test-key")
 	if err != nil {
 		t.Fatalf("cannot create AEAD wrapper: %v", err)
 	}

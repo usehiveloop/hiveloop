@@ -1,6 +1,7 @@
 package posthog
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -20,7 +21,12 @@ import (
 func Recoverer(client ph.Client) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-			defer func() {
+			// Capture the request context eagerly — once the panic fires the
+			// request object is still valid, but passing ctx to the deferred
+			// function makes the propagation explicit and keeps contextcheck
+			// happy.
+			ctx := request.Context()
+			defer func(ctx context.Context, method, path string) {
 				recovered := recover()
 				if recovered == nil {
 					return
@@ -34,22 +40,22 @@ func Recoverer(client ph.Client) func(http.Handler) http.Handler {
 				stack := debug.Stack()
 				description := fmt.Sprintf("%v\n\n%s", recovered, stack)
 
-				slog.Error("panic recovered in HTTP handler",
+				slog.ErrorContext(ctx, "panic recovered in HTTP handler",
 					"panic", recovered,
-					"method", request.Method,
-					"path", request.URL.Path,
+					"method", method,
+					"path", path,
 					"stack", string(stack),
 				)
 
 				if client != nil {
-					CaptureException(client, request.Context(),
+					CaptureException(client, ctx,
 						fmt.Sprintf("panic: %v", recovered),
 						description,
 					)
 				}
 
 				writer.WriteHeader(http.StatusInternalServerError)
-			}()
+			}(ctx, request.Method, request.URL.Path)
 
 			next.ServeHTTP(writer, request)
 		})

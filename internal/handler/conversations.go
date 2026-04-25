@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,12 +11,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 	"github.com/usehiveloop/hiveloop/internal/streaming"
-	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
 // ConversationHandler proxies conversation operations to Bridge.
@@ -25,6 +26,7 @@ type ConversationHandler struct {
 	pusher       *sandbox.Pusher
 	eventBus     *streaming.EventBus // nil = use legacy Bridge SSE proxy
 	enqueuer     enqueue.TaskEnqueuer
+	credits      *billing.CreditsService // nil disables credit gating (useful in tests)
 }
 
 func NewConversationHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, pusher *sandbox.Pusher, eventBus *streaming.EventBus) *ConversationHandler {
@@ -33,6 +35,12 @@ func NewConversationHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, pus
 
 func (h *ConversationHandler) SetEnqueuer(enqueuer enqueue.TaskEnqueuer) {
 	h.enqueuer = enqueuer
+}
+
+// SetCredits wires the credit ledger. When set, Create deducts one credit per
+// conversation and rejects with 402 when the balance is exhausted.
+func (h *ConversationHandler) SetCredits(credits *billing.CreditsService) {
+	h.credits = credits
 }
 
 type createConversationRequest struct {
@@ -93,17 +101,18 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enforce free plan run limit (100 runs/month)
-	if org.BillingPlan == "free" {
-		startOfMonth := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.UTC)
-		var runCount int64
-		h.db.Model(&model.AgentConversation{}).
-			Where("org_id = ? AND created_at >= ?", org.ID, startOfMonth).
-			Count(&runCount)
-		if runCount >= 100 {
-			writeJSON(w, http.StatusPaymentRequired, map[string]string{
-				"error": "free plan limit reached (100 runs/month). Upgrade to Pro for more.",
-			})
+	// Credit gate. One conversation = one credit. Token-based accounting
+	// happens downstream at the LLM proxy layer — out of scope here.
+	if h.credits != nil {
+		if err := h.credits.Spend(org.ID, 1, billing.ReasonAgentRun, "conversation", ""); err != nil {
+			if errors.Is(err, billing.ErrInsufficientCredits) {
+				writeJSON(w, http.StatusPaymentRequired, map[string]string{
+					"error": "insufficient credits — add credits or upgrade your plan",
+				})
+				return
+			}
+			slog.Error("credits: spend failed", "org_id", org.ID, "error", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to check credits"})
 			return
 		}
 	}
@@ -209,16 +218,6 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.db.Model(sb).Update("last_active_at", time.Now())
-
-	// Enqueue billing usage event (best-effort, don't block the response)
-	if h.enqueuer != nil {
-		usageTask, taskErr := tasks.NewBillingUsageEventTask(org.ID, agent.ID, conv.ID, agent.SandboxType)
-		if taskErr == nil {
-			if _, enqErr := h.enqueuer.Enqueue(usageTask); enqErr != nil {
-				slog.Warn("failed to enqueue billing usage event", "run_id", conv.ID, "error", enqErr)
-			}
-		}
-	}
 
 	slog.Info("conversation created",
 		"conversation_id", conv.ID,

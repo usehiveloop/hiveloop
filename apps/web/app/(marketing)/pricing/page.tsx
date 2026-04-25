@@ -1,373 +1,728 @@
+"use client"
+
+import { useMemo, useState } from "react"
 import Link from "next/link"
+import { motion } from "motion/react"
 import { Button } from "@/components/ui/button"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Tick02Icon, Cancel01Icon } from "@hugeicons/core-free-icons"
+import {
+  Tick02Icon,
+  ArrowRight01Icon,
+  KeyframeIcon,
+  CpuIcon,
+  PlusSignIcon,
+} from "@hugeicons/core-free-icons"
 
-function Check() {
-  return <HugeiconsIcon icon={Tick02Icon} size={16} className="text-green-500 shrink-0" />
+// ──────────────────────────────────────────────────────────────────────────
+// DATA
+// Prices are authored in USD. NGN is derived at a hardcoded rate.
+// Credits are derived from plan $ × (1 − 0.75) / $0.00025.
+// ──────────────────────────────────────────────────────────────────────────
+
+const NGN_PER_USD = 1500
+
+type Currency = "USD" | "NGN"
+type Cycle = "monthly" | "annual"
+
+type Plan = {
+  name: string
+  tagline: string
+  monthlyUSD: number
+  annualUSD: number // total billed upfront for the year (20% off 12×monthly)
+  credits: number
+  typicalRuns: number
+  heavyRuns: number
+  featured?: boolean
+  features: string[]
 }
 
-function Dash() {
-  return <HugeiconsIcon icon={Cancel01Icon} size={14} className="text-muted-foreground/30 shrink-0" />
+const PLANS: Plan[] = [
+  {
+    name: "Starter",
+    tagline: "For solo builders.",
+    monthlyUSD: 9,
+    annualUSD: 86,
+    credits: 9_000,
+    typicalRuns: 64,
+    heavyRuns: 13,
+    features: [
+      "Platform keys included",
+      "BYOK on any agent",
+      "Default sandbox size",
+      "1 workspace",
+      "Community support",
+    ],
+  },
+  {
+    name: "Pro",
+    tagline: "For production teams.",
+    monthlyUSD: 39,
+    annualUSD: 374,
+    credits: 39_000,
+    typicalRuns: 280,
+    heavyRuns: 58,
+    featured: true,
+    features: [
+      "Everything in Starter",
+      "Default + Large sandboxes",
+      "Unlimited workspaces",
+      "Priority email support",
+      "30-day audit log",
+    ],
+  },
+  {
+    name: "Business",
+    tagline: "For fleets of agents.",
+    monthlyUSD: 99,
+    annualUSD: 950,
+    credits: 99_000,
+    typicalRuns: 712,
+    heavyRuns: 149,
+    features: [
+      "Everything in Pro",
+      "All sandbox sizes",
+      "SSO (Google, Okta)",
+      "Unlimited audit log",
+      "Dedicated Slack channel",
+    ],
+  },
+]
+
+const BUNDLES = [
+  { priceUSD: 5, credits: 4_000, note: "25% premium" },
+  { priceUSD: 20, credits: 18_000, note: "11% premium" },
+  { priceUSD: 50, credits: 48_000, note: "4% premium" },
+]
+
+const FAQ: { q: string; a: string }[] = [
+  {
+    q: "What exactly is a credit?",
+    a: "Credits are how we meter inference and sandbox time. One credit = $0.001 of underlying cost. A typical agent conversation on our default model consumes around 140 credits; a heavier, long-context analysis can run 600+.",
+  },
+  {
+    q: "What happens when I run out of credits?",
+    a: "New conversations can't start and the running one gracefully aborts on its next LLM call. You can either top up with a non-expiring credit bundle or upgrade to a plan with a higher allowance. We email you at 80% consumption so it's never a surprise.",
+  },
+  {
+    q: "Can I use my own API keys?",
+    a: "Yes — BYOK is available on every plan, toggleable per agent or per conversation. When BYOK is on, credits aren't deducted for inference. You still pay credits for sandbox time, which keeps our infrastructure cost covered.",
+  },
+  {
+    q: "Do unused credits roll over?",
+    a: "Plan credits reset at the start of each billing period. Top-up bundle credits never expire and stack on top of your plan balance. Bundles spend after plan credits, so you never lose bundle credits to a reset.",
+  },
+  {
+    q: "Can I change plans anytime?",
+    a: "Yes. Upgrading is immediate and pro-rated; downgrading takes effect at the end of your current billing period. Annual plans can switch tier; the discount carries to the new tier.",
+  },
+  {
+    q: "What happens if I cancel?",
+    a: "Your plan stays active through the end of the current period, then your account reverts to a read-only state. Bundle credits are preserved — you can resubscribe and keep using them.",
+  },
+]
+
+// ──────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ──────────────────────────────────────────────────────────────────────────
+
+function formatCurrency(usd: number, currency: Currency, options: { compact?: boolean; decimals?: number } = {}) {
+  const amount = currency === "USD" ? usd : usd * NGN_PER_USD
+  const symbol = currency === "USD" ? "$" : "₦"
+  const decimals = options.decimals ?? 0
+  const rounded =
+    decimals > 0
+      ? amount.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+      : Math.round(amount).toLocaleString("en-US")
+  return `${symbol}${rounded}`
 }
+
+// ──────────────────────────────────────────────────────────────────────────
+// PAGE
+// ──────────────────────────────────────────────────────────────────────────
 
 export default function PricingPage() {
+  const [currency, setCurrency] = useState<Currency>("USD")
+  const [cycle, setCycle] = useState<Cycle>("monthly")
+
   return (
-    <div className="w-full bg-background flex flex-col relative">
-      {/* Hero */}
-      <div className="flex flex-col items-center gap-4 pt-16 sm:pt-24 pb-12 px-4">
-        <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">Pricing</p>
-        <h1 className="font-heading text-[28px] sm:text-[40px] lg:text-[48px] font-bold text-foreground text-center leading-[1.15] -tracking-[0.5px]">
-          Simple, transparent pricing
-        </h1>
-        <p className="text-base sm:text-lg text-muted-foreground text-center max-w-lg">
-          Start free with one agent. Pay per agent as you scale. Bring your own LLM keys — you only pay us for the platform.
-        </p>
+    <main className="w-full bg-background text-foreground relative overflow-hidden">
+      {/* Ambient wash — single warm primary glow anchoring the hero. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[720px] opacity-60"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 50% at 50% 0%, color-mix(in oklch, var(--primary) 10%, transparent) 0%, transparent 70%)",
+        }}
+      />
+      {/* Tick grid — subtle ledger motif behind the page. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.015] dark:opacity-[0.025]"
+        style={{
+          backgroundImage: "linear-gradient(to right, currentColor 1px, transparent 1px)",
+          backgroundSize: "48px 100%",
+        }}
+      />
+
+      <Hero />
+
+      <Toolbar currency={currency} setCurrency={setCurrency} cycle={cycle} setCycle={setCycle} />
+
+      <section className="relative max-w-6xl mx-auto w-full px-4 pb-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+          {PLANS.map((plan, i) => (
+            <PlanCard key={plan.name} plan={plan} currency={currency} cycle={cycle} index={i} />
+          ))}
+        </div>
+
+        <TrialNote />
+      </section>
+
+      <BundlesSection currency={currency} />
+
+      <ByokSection />
+
+      <FaqSection />
+
+      <FinalCta />
+    </main>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// HERO
+// ──────────────────────────────────────────────────────────────────────────
+
+function Hero() {
+  return (
+    <section className="relative pt-20 sm:pt-28 pb-10 px-4">
+      <div className="max-w-4xl mx-auto flex flex-col items-center gap-6 text-center">
+        <motion.p
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.2, 0, 0, 1] }}
+          className="font-mono text-[11px] font-medium uppercase tracking-[2.5px] text-primary"
+        >
+          Pricing · Credits-based
+        </motion.p>
+        <motion.h1
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.2, 0, 0, 1], delay: 0.08 }}
+          className="font-heading text-[40px] sm:text-[60px] lg:text-[76px] font-bold leading-[1.02] -tracking-[1.5px]"
+        >
+          Pay for what your
+          <br />
+          <span className="italic font-medium text-primary">agents think.</span>
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.2, 0, 0, 1], delay: 0.2 }}
+          className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed"
+        >
+          Inference credits, unlimited runs. Platform keys by default — bring your own when you want to stretch your plan further.
+        </motion.p>
       </div>
+    </section>
+  )
+}
 
-      {/* Plan cards */}
-      <div className="max-w-4xl mx-auto w-full px-4 pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Free Plan */}
-          <div className="flex flex-col rounded-2xl border border-border p-8 gap-8">
-            <div className="flex flex-col gap-4">
-              <span className="font-mono text-[11px] font-medium uppercase tracking-[1px] text-muted-foreground">Free forever</span>
-              <div className="flex items-baseline gap-1">
-                <span className="font-heading text-[48px] font-bold text-foreground leading-none">$0</span>
-              </div>
-              <p className="text-sm text-muted-foreground">For exploring and prototyping</p>
-              <Link href="/auth">
-                <Button variant="outline" size="lg" className="w-full">Get started</Button>
-              </Link>
-            </div>
+// ──────────────────────────────────────────────────────────────────────────
+// TOOLBAR — currency + cycle toggles
+// ──────────────────────────────────────────────────────────────────────────
 
-            <div className="flex flex-col gap-3">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground">What&apos;s included</span>
-              <div className="flex flex-col gap-2.5">
-                <div className="flex items-center gap-2.5 text-sm"><Check /> 1 agent</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> 100 runs/month</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> 1 concurrent run</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> Shared sandbox only</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> Unlimited AI credentials</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> Unlimited integrations</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> 20+ LLM providers</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> MCP tool support</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> TypeScript SDK</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> Community support</div>
-              </div>
-            </div>
-          </div>
+function Toolbar({
+  currency,
+  setCurrency,
+  cycle,
+  setCycle,
+}: {
+  currency: Currency
+  setCurrency: (c: Currency) => void
+  cycle: Cycle
+  setCycle: (c: Cycle) => void
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.2, 0, 0, 1], delay: 0.3 }}
+      className="relative max-w-6xl mx-auto w-full px-4"
+    >
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 py-6 mb-10 sm:mb-14 border-y border-border/60">
+        <Segmented
+          label="Currency"
+          value={currency}
+          onChange={(v) => setCurrency(v as Currency)}
+          options={[
+            { value: "USD", label: "USD" },
+            { value: "NGN", label: "NGN" },
+          ]}
+        />
+        <div className="hidden sm:block w-px h-6 bg-border/60" />
+        <Segmented
+          label="Billing"
+          value={cycle}
+          onChange={(v) => setCycle(v as Cycle)}
+          options={[
+            { value: "monthly", label: "Monthly" },
+            { value: "annual", label: "Annual", trailing: "−20%" },
+          ]}
+        />
+      </div>
+    </motion.div>
+  )
+}
 
-          {/* Pro Plan */}
-          <div className="flex flex-col rounded-2xl border-2 border-primary/30 p-8 gap-8 relative overflow-hidden">
-            <div
-              className="absolute inset-0 pointer-events-none"
+function Segmented({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  options: { value: string; label: string; trailing?: string }[]
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="font-mono text-[10px] font-medium uppercase tracking-[1.8px] text-muted-foreground hidden md:inline">
+        {label}
+      </span>
+      <div className="relative inline-flex p-1 bg-muted/60 rounded-full border border-border/80">
+        {options.map((opt) => {
+          const isActive = value === opt.value
+          return (
+            <button
+              key={opt.value}
+              onClick={() => onChange(opt.value)}
+              className="relative z-10 px-4 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
               style={{
-                background: "radial-gradient(circle at 50% 0%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
+                color: isActive ? "var(--foreground)" : "var(--muted-foreground)",
               }}
-            />
-            <div className="flex flex-col gap-4 relative">
-              <span className="font-mono text-[11px] font-medium uppercase tracking-[1px] text-primary">Pro</span>
-              <div className="flex items-baseline gap-1">
-                <span className="font-heading text-[48px] font-bold text-foreground leading-none">$4.99</span>
-                <span className="text-sm text-muted-foreground">/mo per agent</span>
-              </div>
-              <p className="text-sm text-muted-foreground">For teams shipping agents to production</p>
-              <Link href="/auth">
-                <Button size="lg" className="w-full">Start building</Button>
-              </Link>
-            </div>
-
-            <div className="flex flex-col gap-3 relative">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground">Everything in Free, plus</span>
-              <div className="flex flex-col gap-2.5">
-                <div className="flex items-center gap-2.5 text-sm"><Check /> Unlimited agents</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> 300 runs/agent/month</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> 5 concurrent runs per agent</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> Shared sandbox included</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> $0.01/run shared overage</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> Agent Forge</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> Persistent memory (1 GB/agent)</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> Advanced analytics & audit logs</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> Priority support</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Dedicated sandbox add-on */}
-      <div className="max-w-4xl mx-auto w-full px-4 pb-20">
-        <div className="rounded-2xl border border-border p-8 sm:p-10 relative overflow-hidden">
-          <div className="flex flex-col md:flex-row md:items-start gap-8 md:gap-12">
-            <div className="flex flex-col gap-4 md:flex-1">
-              <span className="font-mono text-[11px] font-medium uppercase tracking-[1px] text-muted-foreground">Add-on for Pro agents</span>
-              <div className="flex items-baseline gap-2">
-                <span className="font-heading text-[36px] sm:text-[48px] font-bold text-foreground leading-none">+$2</span>
-                <span className="text-sm text-muted-foreground">/mo per agent</span>
-              </div>
-              <h3 className="font-heading text-lg font-semibold text-foreground">Dedicated sandbox</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                For agents that need full system access — code review, security scanning, builds, or anything requiring shell, filesystem, and repo cloning. Each run gets an isolated sandbox that spins up in ~2 seconds.
-              </p>
-              <Link href="/auth">
-                <Button variant="outline" size="lg">Add to any Pro agent</Button>
-              </Link>
-            </div>
-            <div className="flex flex-col gap-2.5 md:flex-1">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground mb-1">Everything in Pro, plus</span>
-              <div className="flex items-center gap-2.5 text-sm"><Check /> Isolated sandbox per run</div>
-              <div className="flex items-center gap-2.5 text-sm"><Check /> Full shell & filesystem access</div>
-              <div className="flex items-center gap-2.5 text-sm"><Check /> Git clone, build tools, linters</div>
-              <div className="flex items-center gap-2.5 text-sm"><Check /> Code execution & interpreters</div>
-              <div className="flex items-center gap-2.5 text-sm"><Check /> 10 GB disk per sandbox</div>
-              <div className="flex items-center gap-2.5 text-sm"><Check /> $0.05/run dedicated overage</div>
-              <div className="flex items-center gap-2.5 text-sm"><Check /> ~2s sandbox cold start</div>
-              <div className="flex items-center gap-2.5 text-sm"><Check /> Custom sandbox templates</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Usage & overage breakdown */}
-      <div className="max-w-5xl mx-auto w-full px-4 pb-20">
-        <div className="flex flex-col gap-8">
-          <div className="flex flex-col gap-2">
-            <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">Usage-based pricing</p>
-            <h2 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Runs, overages, and what they cost</h2>
-            <p className="text-sm text-muted-foreground max-w-2xl">
-              A run is a single agent execution — a PR review, a support ticket response, a deploy check. Each plan includes runs. If you go over, you pay per extra run.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="rounded-2xl border border-border p-6 flex flex-col gap-4">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground">Free</span>
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Included runs</span>
-                  <span className="text-sm font-medium text-foreground">100/month</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Overage</span>
-                  <span className="text-sm font-medium text-foreground">Not available</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Concurrent runs</span>
-                  <span className="text-sm font-medium text-foreground">1</span>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">Agent pauses at 100 runs. Upgrade to Pro for more.</p>
-            </div>
-
-            <div className="rounded-2xl border-2 border-primary/30 p-6 flex flex-col gap-4 relative overflow-hidden">
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background: "radial-gradient(circle at 50% 0%, color-mix(in oklch, var(--primary) 6%, transparent) 0%, transparent 60%)",
-                }}
-              />
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-primary relative">Pro (shared sandbox)</span>
-              <div className="flex flex-col gap-2 relative">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Included runs</span>
-                  <span className="text-sm font-medium text-foreground">300/agent/month</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Overage rate</span>
-                  <span className="text-sm font-medium text-foreground">$0.01/run</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Concurrent runs</span>
-                  <span className="text-sm font-medium text-foreground">5/agent</span>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground relative">Example: 500 runs = $4.99 + (200 x $0.01) = $6.99/month</p>
-            </div>
-
-            <div className="rounded-2xl border border-border p-6 flex flex-col gap-4">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground">Pro + Dedicated sandbox</span>
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Included runs</span>
-                  <span className="text-sm font-medium text-foreground">300/agent/month</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Overage rate</span>
-                  <span className="text-sm font-medium text-foreground">$0.05/run</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Concurrent runs</span>
-                  <span className="text-sm font-medium text-foreground">5/agent</span>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">Example: 500 runs = $6.99 + (200 x $0.05) = $16.99/month</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Example scenarios */}
-      <div className="max-w-5xl mx-auto w-full px-4 pb-20">
-        <div className="flex flex-col gap-8">
-          <div className="flex flex-col gap-2">
-            <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">Real-world examples</p>
-            <h2 className="font-heading text-xl sm:text-2xl font-bold text-foreground">What will you actually pay?</h2>
-          </div>
-
-          <div className="flex flex-col">
-            <div className="grid grid-cols-[1fr_80px_80px_100px] sm:grid-cols-[1fr_120px_120px_120px] items-center py-3 border-b border-border">
-              <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Agent</span>
-              <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground text-center">Sandbox</span>
-              <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground text-center">Runs/mo</span>
-              <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground text-center">Monthly cost</span>
-            </div>
-            {[
-              { agent: "Support bot", sandbox: "Shared", runs: "~200", cost: "$4.99" },
-              { agent: "Content writer", sandbox: "Shared", runs: "~100", cost: "$4.99" },
-              { agent: "Deploy monitor", sandbox: "Shared", runs: "~150", cost: "$4.99" },
-              { agent: "Code review agent", sandbox: "Shared", runs: "~300", cost: "$4.99" },
-              { agent: "Code review agent", sandbox: "Dedicated", runs: "~300", cost: "$6.99" },
-              { agent: "Code review agent", sandbox: "Dedicated", runs: "~500", cost: "$16.99" },
-              { agent: "Security scanner", sandbox: "Dedicated", runs: "~60", cost: "$6.99" },
-            ].map((row, index) => (
-              <div key={index} className="grid grid-cols-[1fr_80px_80px_100px] sm:grid-cols-[1fr_120px_120px_120px] items-center py-3 border-b border-border/50">
-                <span className="text-sm text-foreground">{row.agent}</span>
-                <span className="text-sm text-muted-foreground text-center">{row.sandbox}</span>
-                <span className="text-sm text-muted-foreground text-center">{row.runs}</span>
-                <span className="text-sm font-medium text-foreground text-center">{row.cost}</span>
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            All agents include 300 runs/month. Shared agents overage at $0.01/run. Dedicated agents overage at $0.05/run. You bring your own LLM API keys — inference costs are not included.
-          </p>
-        </div>
-      </div>
-
-      {/* Feature comparison table */}
-      <div className="max-w-5xl mx-auto w-full px-4 pb-24">
-        <div className="flex flex-col gap-8">
-          <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">Compare plans</p>
-
-          {/* Agents & Limits */}
-          <div className="flex flex-col">
-            <h3 className="font-heading text-sm font-semibold text-foreground pb-3 border-b border-border">Agents & Limits</h3>
-            <CompareRow label="Number of agents" free="1" pro="Unlimited" />
-            <CompareRow label="Runs per month" free="100" pro="300/agent" />
-            <CompareRow label="Overage (shared sandbox)" free={false} pro="$0.01/run" />
-            <CompareRow label="Overage (dedicated sandbox)" free={false} pro="$0.05/run" />
-            <CompareRow label="Concurrent runs" free="1" pro="5/agent" />
-            <CompareRow label="Agent memory storage" free={false} pro="1 GB/agent" />
-            <CompareRow label="Agent Forge (auto-optimization)" free={false} pro={true} />
-          </div>
-
-          {/* Sandboxes */}
-          <div className="flex flex-col">
-            <h3 className="font-heading text-sm font-semibold text-foreground pb-3 border-b border-border">Sandboxes</h3>
-            <CompareRow label="Shared sandbox" free={true} pro={true} />
-            <CompareRow label="Dedicated sandbox" free={false} pro="+$2/agent/mo" />
-            <CompareRow label="Custom sandbox templates" free={false} pro={true} />
-            <CompareRow label="Shell & filesystem access" free={false} pro="Dedicated only" />
-            <CompareRow label="Code execution & interpreters" free={false} pro="Dedicated only" />
-            <CompareRow label="Disk per sandbox" free={false} pro="10 GB" />
-            <CompareRow label="Sandbox cold start" free={false} pro="~2 seconds" />
-          </div>
-
-          {/* Integrations */}
-          <div className="flex flex-col">
-            <h3 className="font-heading text-sm font-semibold text-foreground pb-3 border-b border-border">Integrations & Connections</h3>
-            <CompareRow label="OAuth integrations" free="Unlimited" pro="Unlimited" />
-            <CompareRow label="Connections" free="Unlimited" pro="Unlimited" />
-            <CompareRow label="Integration action scoping" free={true} pro={true} />
-            <CompareRow label="Resource-level scoping" free={false} pro={true} />
-          </div>
-
-          {/* Credentials */}
-          <div className="flex flex-col">
-            <h3 className="font-heading text-sm font-semibold text-foreground pb-3 border-b border-border">Credentials & Tokens</h3>
-            <CompareRow label="AI credentials" free="Unlimited" pro="Unlimited" />
-            <CompareRow label="Proxy tokens" free="Unlimited" pro="Unlimited" />
-            <CompareRow label="Envelope encryption (AES-256-GCM)" free={true} pro={true} />
-            <CompareRow label="Credential rotation" free={true} pro={true} />
-            <CompareRow label="Token rate limiting" free={false} pro={true} />
-            <CompareRow label="20+ LLM providers" free={true} pro={true} />
-          </div>
-
-          {/* Observability */}
-          <div className="flex flex-col">
-            <h3 className="font-heading text-sm font-semibold text-foreground pb-3 border-b border-border">Observability</h3>
-            <CompareRow label="Generation tracking" free={true} pro={true} />
-            <CompareRow label="Cost tracking & attribution" free={true} pro={true} />
-            <CompareRow label="Advanced analytics & grouping" free={false} pro={true} />
-            <CompareRow label="Audit logs" free={false} pro={true} />
-            <CompareRow label="Usage statistics dashboard" free={false} pro={true} />
-          </div>
-
-          {/* Security */}
-          <div className="flex flex-col">
-            <h3 className="font-heading text-sm font-semibold text-foreground pb-3 border-b border-border">Security & Access Control</h3>
-            <CompareRow label="Encryption at rest" free={true} pro={true} />
-            <CompareRow label="Identity scoping & isolation" free={false} pro={true} />
-            <CompareRow label="Per-identity rate limiting" free={false} pro={true} />
-            <CompareRow label="API key scopes" free={false} pro={true} />
-            <CompareRow label="Tool-level permissions" free={true} pro={true} />
-            <CompareRow label="Custom domains" free={false} pro={true} />
-          </div>
-
-          {/* Developer */}
-          <div className="flex flex-col">
-            <h3 className="font-heading text-sm font-semibold text-foreground pb-3 border-b border-border">Developer Experience</h3>
-            <CompareRow label="TypeScript SDK" free={true} pro={true} />
-            <CompareRow label="OpenAPI specification" free={true} pro={true} />
-            <CompareRow label="Webhook integrations" free={true} pro={true} />
-            <CompareRow label="Self-hosting" free={true} pro={true} />
-            <CompareRow label="Support" free="Community" pro="Priority" />
-          </div>
-        </div>
-      </div>
-
-      {/* CTA */}
-      <div className="max-w-5xl mx-auto w-full px-4 pb-24">
-        <div className="flex flex-col items-center gap-6 rounded-2xl border border-border p-12 text-center relative overflow-hidden">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: "radial-gradient(circle at 50% 100%, color-mix(in oklch, var(--primary) 6%, transparent) 0%, transparent 60%)",
-            }}
-          />
-          <h2 className="font-heading text-2xl sm:text-3xl font-bold text-foreground relative">Ready to build?</h2>
-          <p className="text-muted-foreground max-w-md relative">
-            Start with the free plan and upgrade when you need production features.
-          </p>
-          <div className="flex gap-3 relative">
-            <Link href="/auth"><Button size="lg">Get started free</Button></Link>
-            <Link href="/docs"><Button variant="outline" size="lg">Read the docs</Button></Link>
-          </div>
-        </div>
+            >
+              {isActive && (
+                <motion.span
+                  layoutId={`seg-${label}`}
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.45 }}
+                  className="absolute inset-0 bg-background border border-border rounded-full -z-10 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                  aria-hidden
+                />
+              )}
+              <span>{opt.label}</span>
+              {opt.trailing && (
+                <span
+                  className={`font-mono text-[10px] tracking-wide ${
+                    isActive ? "text-primary" : "text-muted-foreground/60"
+                  }`}
+                >
+                  {opt.trailing}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
 }
 
-function CompareRow({
+// ──────────────────────────────────────────────────────────────────────────
+// PLAN CARD — credits treated as the hero currency
+// ──────────────────────────────────────────────────────────────────────────
+
+function PlanCard({
+  plan,
+  currency,
+  cycle,
+  index,
+}: {
+  plan: Plan
+  currency: Currency
+  cycle: Cycle
+  index: number
+}) {
+  const perMonthUSD = useMemo(
+    () => (cycle === "annual" ? plan.annualUSD / 12 : plan.monthlyUSD),
+    [cycle, plan],
+  )
+  const priceDisplay = useMemo(
+    () => formatCurrency(perMonthUSD, currency, { decimals: cycle === "annual" ? 2 : 0 }),
+    [perMonthUSD, currency, cycle],
+  )
+  const billedDisplay = useMemo(() => {
+    if (cycle === "monthly") return "Billed monthly. Cancel anytime."
+    return `${formatCurrency(plan.annualUSD, currency)} billed once per year`
+  }, [cycle, plan, currency])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.55, ease: [0.2, 0, 0, 1], delay: 0.35 + index * 0.09 }}
+      className={`
+        relative flex flex-col rounded-2xl p-7 gap-6
+        ${plan.featured
+          ? "border border-primary/50 bg-card shadow-[0_30px_60px_-30px_color-mix(in_oklch,var(--primary)_40%,transparent)]"
+          : "border border-border/70 bg-card/70"
+        }
+      `}
+    >
+      {plan.featured && (
+        <>
+          <div
+            aria-hidden
+            className="absolute inset-0 rounded-2xl pointer-events-none opacity-70"
+            style={{
+              background:
+                "radial-gradient(ellipse 90% 50% at 50% 0%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
+            }}
+          />
+          <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary text-primary-foreground text-[10px] font-mono font-medium uppercase tracking-[1.8px]">
+            Most popular
+          </div>
+        </>
+      )}
+
+      <div className="relative flex flex-col gap-1.5">
+        <p
+          className={`font-mono text-[11px] font-medium uppercase tracking-[2px] ${
+            plan.featured ? "text-primary" : "text-muted-foreground"
+          }`}
+        >
+          {plan.name}
+        </p>
+        <p className="text-sm text-muted-foreground leading-snug whitespace-nowrap">{plan.tagline}</p>
+      </div>
+
+      {/* PRICE */}
+      <div className="relative flex flex-col gap-1.5">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <motion.span
+            key={`${currency}-${cycle}-${plan.name}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="font-heading font-bold text-[52px] leading-none -tracking-[1.5px] text-foreground"
+          >
+            {priceDisplay}
+          </motion.span>
+          <span className="text-sm text-muted-foreground">/month</span>
+        </div>
+        <p className="font-mono text-[11px] text-muted-foreground tracking-wide">{billedDisplay}</p>
+      </div>
+
+      {/* CREDITS — the hero number */}
+      <CreditsPanel plan={plan} />
+
+      {/* CTA */}
+      <Link href="/auth" className="block">
+        <Button
+          size="lg"
+          variant={plan.featured ? "default" : "outline"}
+          className="w-full group cursor-pointer"
+        >
+          Start with {plan.name}
+          <HugeiconsIcon
+            icon={ArrowRight01Icon}
+            size={15}
+            className="ml-1.5 opacity-80 group-hover:translate-x-0.5 transition-transform"
+          />
+        </Button>
+      </Link>
+
+      {/* FEATURES */}
+      <ul className="relative flex flex-col gap-2.5 pt-1">
+        {plan.features.map((feature) => (
+          <li key={feature} className="flex items-start gap-2.5 text-sm text-foreground leading-snug">
+            <HugeiconsIcon
+              icon={Tick02Icon}
+              size={14}
+              className={`mt-1 shrink-0 ${plan.featured ? "text-primary" : "text-foreground/60"}`}
+            />
+            <span>{feature}</span>
+          </li>
+        ))}
+      </ul>
+    </motion.div>
+  )
+}
+
+function CreditsPanel({ plan }: { plan: Plan }) {
+  return (
+    <div
+      className={`
+        relative -mx-7 px-7 py-5 border-y flex flex-col gap-1.5
+        ${plan.featured ? "border-primary/15" : "border-border/60"}
+      `}
+    >
+      <span className="font-mono text-[10px] font-medium uppercase tracking-[1.8px] text-muted-foreground">
+        Monthly credits
+      </span>
+      <div className="flex items-baseline gap-2">
+        <span className="font-mono font-medium text-[36px] leading-none text-foreground tabular-nums">
+          {plan.credits.toLocaleString("en-US")}
+        </span>
+      </div>
+      <p className="font-mono text-[11px] text-muted-foreground tracking-wide">
+        ≈ <span className="text-foreground">{plan.typicalRuns}</span> typical runs
+        {" · "}
+        <span className="text-foreground">{plan.heavyRuns}</span> heavy runs
+      </p>
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// TRIAL NOTE
+// ──────────────────────────────────────────────────────────────────────────
+
+function TrialNote() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5, delay: 0.75 }}
+      className="mt-10 flex flex-col items-center gap-2 text-center"
+    >
+      <p className="font-mono text-[11px] uppercase tracking-[2px] text-primary">Every new account</p>
+      <p className="text-sm sm:text-base text-muted-foreground max-w-md">
+        Get{" "}
+        <span className="font-mono font-medium text-foreground">150 credits</span>{" "}
+        free on sign-up. No card required.
+      </p>
+    </motion.div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// BUNDLES
+// ──────────────────────────────────────────────────────────────────────────
+
+function BundlesSection({ currency }: { currency: Currency }) {
+  return (
+    <section className="relative border-t border-border/60">
+      <div className="max-w-6xl mx-auto w-full px-4 py-20 sm:py-24 grid md:grid-cols-[1fr_auto] gap-12 md:gap-20 items-start">
+        <div className="flex flex-col gap-4 max-w-xl">
+          <p className="font-mono text-[11px] font-medium uppercase tracking-[2px] text-primary">
+            Top-ups
+          </p>
+          <h2 className="font-heading text-[32px] sm:text-[44px] font-bold leading-[1.05] -tracking-[1px]">
+            Run out mid-month? Keep going.
+          </h2>
+          <p className="text-muted-foreground text-base leading-relaxed">
+            Top-up bundles never expire and stack on top of your plan balance. Buy any time,
+            from the dashboard. Cheaper per credit the more you buy.
+          </p>
+        </div>
+
+        <div className="w-full md:w-auto md:min-w-[420px] flex flex-col gap-2">
+          {BUNDLES.map((bundle, i) => (
+            <motion.div
+              key={bundle.priceUSD}
+              initial={{ opacity: 0, x: 12 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={{ duration: 0.5, ease: [0.2, 0, 0, 1], delay: i * 0.08 }}
+              className="group relative flex items-center justify-between gap-4 px-5 py-4 rounded-xl border border-border/70 bg-card/70 hover:border-primary/50 hover:bg-card transition-colors"
+            >
+              <div className="flex items-baseline gap-3">
+                <span className="font-heading text-[28px] font-bold text-foreground leading-none -tracking-[0.5px]">
+                  {formatCurrency(bundle.priceUSD, currency)}
+                </span>
+                <HugeiconsIcon icon={PlusSignIcon} size={12} className="text-muted-foreground/40" />
+                <span className="font-mono text-[15px] text-foreground tabular-nums">
+                  {bundle.credits.toLocaleString()} <span className="text-muted-foreground">credits</span>
+                </span>
+              </div>
+              <span className="font-mono text-[10px] uppercase tracking-[1.5px] text-muted-foreground/80">
+                {bundle.note}
+              </span>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// BYOK EXPLAINER
+// ──────────────────────────────────────────────────────────────────────────
+
+function ByokSection() {
+  return (
+    <section className="relative border-t border-border/60 bg-muted/30">
+      <div className="max-w-6xl mx-auto w-full px-4 py-20 sm:py-24">
+        <div className="grid md:grid-cols-[auto_1fr] gap-10 md:gap-16 items-start">
+          <div className="flex md:flex-col items-start gap-4">
+            <div className="w-14 h-14 rounded-xl border border-primary/40 bg-primary/5 flex items-center justify-center">
+              <HugeiconsIcon icon={KeyframeIcon} size={22} className="text-primary" />
+            </div>
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[2px] text-primary">
+              BYOK
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-6 max-w-3xl">
+            <h2 className="font-heading text-[32px] sm:text-[44px] font-bold leading-[1.05] -tracking-[1px]">
+              Your own keys.{" "}
+              <span className="italic font-medium text-primary">Up to 8× more runs</span>{" "}
+              on the same plan.
+            </h2>
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Toggle BYOK per agent or per conversation. When it&apos;s on, we don&apos;t charge credits
+              for inference — only for sandbox time. Every plan supports BYOK; nothing extra to unlock.
+            </p>
+
+            <div className="grid sm:grid-cols-3 gap-4 pt-3">
+              <ByokRow
+                label="Platform keys"
+                runs="~280"
+                subtext="typical runs on Pro"
+              />
+              <ByokRow
+                label="BYOK · default sandbox"
+                runs="~2,400"
+                subtext="typical runs on Pro"
+                highlight
+              />
+              <ByokRow
+                label="BYOK · XL sandbox"
+                runs="~600"
+                subtext="typical runs on Pro"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ByokRow({
   label,
-  free,
-  pro,
+  runs,
+  subtext,
+  highlight,
 }: {
   label: string
-  free: boolean | string
-  pro: boolean | string
+  runs: string
+  subtext: string
+  highlight?: boolean
 }) {
   return (
-    <div className="grid grid-cols-[1fr_100px_100px] sm:grid-cols-[1fr_140px_140px] items-center py-3 border-b border-border/50">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm text-center">
-        {free === true ? <span className="inline-flex justify-center w-full"><Check /></span> : free === false ? <span className="inline-flex justify-center w-full"><Dash /></span> : <span className="text-foreground">{free}</span>}
+    <div
+      className={`
+        flex flex-col gap-1.5 p-4 rounded-lg border
+        ${highlight ? "border-primary/40 bg-primary/[0.03]" : "border-border/60 bg-background/70"}
+      `}
+    >
+      <span className="font-mono text-[10px] uppercase tracking-[1.6px] text-muted-foreground">
+        {label}
       </span>
-      <span className="text-sm text-center">
-        {pro === true ? <span className="inline-flex justify-center w-full"><Check /></span> : pro === false ? <span className="inline-flex justify-center w-full"><Dash /></span> : <span className="text-foreground">{pro}</span>}
+      <span
+        className={`font-mono font-medium text-2xl leading-tight tabular-nums ${
+          highlight ? "text-primary" : "text-foreground"
+        }`}
+      >
+        {runs}
       </span>
+      <span className="text-xs text-muted-foreground">{subtext}</span>
     </div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// FAQ
+// ──────────────────────────────────────────────────────────────────────────
+
+function FaqSection() {
+  return (
+    <section className="relative border-t border-border/60">
+      <div className="max-w-4xl mx-auto w-full px-4 py-20 sm:py-24">
+        <div className="flex flex-col gap-2 mb-10">
+          <p className="font-mono text-[11px] font-medium uppercase tracking-[2px] text-primary">
+            Questions
+          </p>
+          <h2 className="font-heading text-[32px] sm:text-[44px] font-bold leading-[1.05] -tracking-[1px]">
+            Everything you&apos;ll ask in the first five minutes.
+          </h2>
+        </div>
+
+        <div className="flex flex-col divide-y divide-border/70 border-y border-border/70">
+          {FAQ.map((item, i) => (
+            <FaqItem key={i} q={item.q} a={item.a} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  return (
+    <details className="group py-5">
+      <summary className="flex items-center justify-between gap-4 cursor-pointer list-none">
+        <span className="font-heading text-base sm:text-lg font-medium text-foreground -tracking-[0.3px]">
+          {q}
+        </span>
+        <span
+          className="w-6 h-6 rounded-full border border-border/80 flex items-center justify-center text-muted-foreground group-open:border-primary group-open:text-primary group-open:rotate-45 transition-all"
+          aria-hidden
+        >
+          <HugeiconsIcon icon={PlusSignIcon} size={12} />
+        </span>
+      </summary>
+      <p className="mt-3 text-sm sm:text-[15px] text-muted-foreground leading-relaxed max-w-3xl pr-10">
+        {a}
+      </p>
+    </details>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// FINAL CTA
+// ──────────────────────────────────────────────────────────────────────────
+
+function FinalCta() {
+  return (
+    <section className="relative border-t border-border/60">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[400px] opacity-60"
+        style={{
+          background:
+            "radial-gradient(ellipse 50% 80% at 50% 100%, color-mix(in oklch, var(--primary) 10%, transparent) 0%, transparent 70%)",
+        }}
+      />
+      <div className="relative max-w-4xl mx-auto w-full px-4 py-24 sm:py-32 flex flex-col items-center gap-6 text-center">
+        <HugeiconsIcon icon={CpuIcon} size={22} className="text-primary" />
+        <h2 className="font-heading text-[40px] sm:text-[56px] font-bold leading-[1.03] -tracking-[1.2px]">
+          Start with{" "}
+          <span className="italic font-medium text-primary">150 free credits.</span>
+        </h2>
+        <p className="text-muted-foreground max-w-lg leading-relaxed">
+          Enough to build your first agent, watch it run, and decide whether this is the
+          platform for you — before you spend a dollar.
+        </p>
+        <Link href="/auth">
+          <Button size="lg" className="group cursor-pointer">
+            Get started free
+            <HugeiconsIcon
+              icon={ArrowRight01Icon}
+              size={15}
+              className="ml-1.5 opacity-80 group-hover:translate-x-0.5 transition-transform"
+            />
+          </Button>
+        </Link>
+        <p className="font-mono text-[10px] uppercase tracking-[1.8px] text-muted-foreground/70">
+          No card required · Free trial expires after 30 days
+        </p>
+      </div>
+    </section>
   )
 }

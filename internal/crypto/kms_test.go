@@ -15,7 +15,7 @@ func testWrapper(t *testing.T) *KeyWrapper {
 		t.Fatal(err)
 	}
 	b64 := base64.StdEncoding.EncodeToString(key)
-	w, err := NewAEADWrapper(b64, "test-key")
+	w, err := NewAEADWrapper(context.Background(), b64, "test-key")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestNewAEADWrapper_Base64(t *testing.T) {
 	rand.Read(key)
 	b64 := base64.StdEncoding.EncodeToString(key)
 
-	w, err := NewAEADWrapper(b64, "b64-key")
+	w, err := NewAEADWrapper(context.Background(), b64, "b64-key")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestNewAEADWrapper_Base64(t *testing.T) {
 
 func TestNewAEADWrapper_BadKeySize(t *testing.T) {
 	b64 := base64.StdEncoding.EncodeToString([]byte("too-short"))
-	_, err := NewAEADWrapper(b64, "bad")
+	_, err := NewAEADWrapper(context.Background(), b64, "bad")
 	if err == nil {
 		t.Fatal("expected error for wrong key size")
 	}
