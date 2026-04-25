@@ -1,13 +1,5 @@
 use rig::message::{AssistantContent, Message, UserContent};
 
-/// Check if a rig message is a user text message (not a tool result).
-pub(super) fn is_user_message(msg: &Message) -> bool {
-    match msg {
-        Message::User { content } => content.iter().any(|c| matches!(c, UserContent::Text(_))),
-        _ => false,
-    }
-}
-
 /// Convert a single rig message to its text representation for token counting.
 pub(super) fn message_to_text(msg: &Message) -> String {
     match msg {

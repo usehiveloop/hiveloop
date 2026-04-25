@@ -32,10 +32,13 @@ use helpers::{
 ///   6. Results whose bytes fit within the protection window.
 pub fn strip_old_tool_outputs(history: &mut [Message], config: &HistoryStripConfig) {
     if !config.enabled {
+        tracing::info!("strip: disabled by config");
         return;
     }
 
     let protection_budget = config.age_threshold.saturating_mul(PER_RESULT_SLOT_BYTES);
+    let mut tool_result_count: usize = 0;
+    let mut total_tool_bytes: usize = 0;
 
     // Phase 1: Walk backward, identify which message indices to strip.
     let mut protected_bytes: usize = 0;
@@ -54,6 +57,8 @@ pub fn strip_old_tool_outputs(history: &mut [Message], config: &HistoryStripConf
             };
 
             let text_bytes = tool_result_byte_count(tr);
+            tool_result_count += 1;
+            total_tool_bytes += text_bytes;
 
             if text_bytes < MIN_STRIPPABLE_BYTES {
                 continue;
@@ -89,6 +94,15 @@ pub fn strip_old_tool_outputs(history: &mut [Message], config: &HistoryStripConf
             }
         }
     }
+
+    tracing::info!(
+        history_len = history.len(),
+        tool_results_seen = tool_result_count,
+        tool_bytes_seen = total_tool_bytes,
+        protection_budget,
+        will_strip = should_strip.len(),
+        "strip_phase1_done"
+    );
 
     // Phase 2: Rewrite stripped messages.
     for msg_idx in &should_strip {

@@ -20,7 +20,6 @@ fn agent_config_roundtrip_with_all_fields() {
         temperature: Some(0.9),
         json_schema: Some(serde_json::json!({"type": "string"})),
         rate_limit_rpm: Some(120),
-        compaction: None,
         max_tasks_per_conversation: Some(100),
         max_concurrent_conversations: Some(50),
         tool_calls_only: None,

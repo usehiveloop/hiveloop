@@ -348,4 +348,47 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
         self.handle_tool_result(tool_name, tool_call_id, internal_call_id, args, result)
             .await
     }
+
+    /// Mid-rig-loop immortal trigger.
+    ///
+    /// Fires before every LLM call inside rig's multi-turn loop with the
+    /// full history at that moment. When `immortal_threshold_tokens` is
+    /// configured and the history's approximate token count exceeds it, we
+    /// return `Terminate` with reason `"bridge:immortal"`. Rig responds by
+    /// yielding `PromptError::PromptCancelled { chat_history, reason }`,
+    /// which `stream_loop.rs` catches: it runs an immortal chain handoff and
+    /// re-invokes `stream_prompt_with_hook` with the post-handoff history so
+    /// the model continues from where it stopped — same conversation,
+    /// freshly-checkpointed context.
+    ///
+    /// Approximate token count uses `bytes / 4`, matching the fast estimate
+    /// used elsewhere in bridge. Cheap; no tokenizer call on the hot path.
+    async fn on_completion_call(
+        &self,
+        _prompt: &rig::message::Message,
+        history: &[rig::message::Message],
+    ) -> HookAction {
+        let Some(threshold) = self.immortal_threshold_tokens else {
+            return HookAction::cont();
+        };
+        let bytes: usize = history
+            .iter()
+            .map(|m| serde_json::to_string(m).map(|s| s.len()).unwrap_or(0))
+            .sum();
+        let est_tokens = bytes / 4;
+        if est_tokens >= threshold {
+            info!(
+                agent_id = %self.agent_id,
+                conversation_id = %self.conversation_id,
+                history_len = history.len(),
+                est_tokens,
+                threshold,
+                "immortal_threshold_hit_terminating_for_resume"
+            );
+            return HookAction::Terminate {
+                reason: "bridge:immortal".to_string(),
+            };
+        }
+        HookAction::cont()
+    }
 }

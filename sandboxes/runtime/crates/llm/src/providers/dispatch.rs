@@ -109,7 +109,23 @@ macro_rules! dispatch_stream {
                         Some(BridgeStreamItem::ReasoningDelta(text))
                     }
                 }
-                Err(e) => Some(BridgeStreamItem::StreamError(format!("{}", e))),
+                Err(e) => {
+                    use rig::agent::StreamingError;
+                    use rig::completion::PromptError;
+                    match e {
+                        StreamingError::Prompt(boxed) => match *boxed {
+                            PromptError::PromptCancelled {
+                                chat_history,
+                                reason,
+                            } => Some(BridgeStreamItem::HookCancelled {
+                                history: chat_history,
+                                reason,
+                            }),
+                            other => Some(BridgeStreamItem::StreamError(format!("{}", other))),
+                        },
+                        other => Some(BridgeStreamItem::StreamError(format!("{}", other))),
+                    }
+                }
                 _ => None, // tool events — handled by ToolCallEmitter hook
             }
         });

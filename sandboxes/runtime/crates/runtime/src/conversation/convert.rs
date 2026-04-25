@@ -166,25 +166,6 @@ pub(super) fn convert_from_rig_messages(messages: &[rig::message::Message]) -> V
     messages.iter().flat_map(convert_from_rig_message).collect()
 }
 
-pub(super) fn apply_compaction_to_persisted_history(
-    history: &mut Vec<Message>,
-    summary_text: &str,
-    messages_compacted: usize,
-) {
-    let split_at = messages_compacted.min(history.len());
-    if split_at == 0 {
-        return;
-    }
-
-    let mut compacted = Vec::with_capacity(1 + history.len().saturating_sub(split_at));
-    compacted.push(text_message(
-        Role::User,
-        format!("[Conversation Summary]\n{}", summary_text),
-    ));
-    compacted.extend(history.drain(split_at..));
-    *history = compacted;
-}
-
 pub fn normalize_messages_for_persistence(messages: &[Message]) -> Vec<Message> {
     let mut normalized = Vec::with_capacity(messages.len());
 

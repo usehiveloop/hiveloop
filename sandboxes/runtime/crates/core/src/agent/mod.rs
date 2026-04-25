@@ -15,7 +15,7 @@ mod runtime;
 pub use requirements::{
     RequirementCadence, RequirementEnforcement, RequirementPosition, ToolRequirement,
 };
-pub use runtime::{CompactionConfig, HistoryStripConfig, ImmortalConfig};
+pub use runtime::{HistoryStripConfig, ImmortalConfig};
 
 /// Type alias for agent identifiers.
 pub type AgentId = String;
@@ -122,9 +122,6 @@ pub struct AgentConfig {
     /// Rate limit in requests per minute
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rate_limit_rpm: Option<u32>,
-    /// Conversation compaction configuration
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub compaction: Option<CompactionConfig>,
 
     /// Maximum total subagent tasks per conversation. Limits resource consumption
     /// from recursive/parallel subagent spawning. Default: 50.
@@ -143,7 +140,7 @@ pub struct AgentConfig {
     pub tool_calls_only: Option<bool>,
 
     /// Immortal conversation configuration (chain-based context management).
-    /// When set, replaces compaction — the conversation chains into fresh context
+    /// When set, the conversation chains into fresh context
     /// windows transparently while maintaining a living journal.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub immortal: Option<ImmortalConfig>,

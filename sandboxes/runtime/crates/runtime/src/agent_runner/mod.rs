@@ -57,7 +57,6 @@ pub struct ConversationSubAgentRunner {
     pub(super) conversation_id: String,
     pub(super) depth: usize,
     pub(super) max_depth: usize,
-    pub(super) compaction_config: Option<bridge_core::agent::CompactionConfig>,
     pub(super) task_budget: Arc<TaskBudget>,
     pub(super) metrics: Arc<bridge_core::AgentMetrics>,
     /// Agent ID for event payloads.
@@ -86,7 +85,6 @@ impl ConversationSubAgentRunner {
             conversation_id,
             depth,
             max_depth,
-            compaction_config: None,
             task_budget: Arc::new(TaskBudget::new(50)),
             metrics,
             agent_id: String::new(),
@@ -96,12 +94,6 @@ impl ConversationSubAgentRunner {
     /// Set the agent ID for subagent trace events.
     pub fn with_agent_id(mut self, agent_id: String) -> Self {
         self.agent_id = agent_id;
-        self
-    }
-
-    /// Set the compaction configuration for subagent sessions.
-    pub fn with_compaction(mut self, config: Option<bridge_core::agent::CompactionConfig>) -> Self {
-        self.compaction_config = config;
         self
     }
 

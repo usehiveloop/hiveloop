@@ -124,6 +124,16 @@ pub enum BridgeStreamItem {
         usage: rig::completion::Usage,
         history: Option<Vec<Message>>,
     },
+    /// The agent loop was cancelled by a `PromptHook` returning
+    /// `HookAction::Terminate`. Carries the history at the moment of
+    /// cancellation (including all tool calls + results from the most recent
+    /// LLM response) and the hook's reason string. Bridge uses this to
+    /// trigger an immortal chain handoff mid-rig-loop and resume with the
+    /// post-handoff history — the agent's last tool batch is preserved.
+    HookCancelled {
+        history: Vec<Message>,
+        reason: String,
+    },
     /// A streaming error occurred.
     StreamError(String),
 }

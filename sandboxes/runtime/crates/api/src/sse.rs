@@ -17,7 +17,6 @@ pub fn to_sse_event(event: &BridgeEvent) -> Result<Event, serde_json::Error> {
         BridgeEventType::TurnCompleted => "turn_completed",
         BridgeEventType::ToolApprovalRequired => "tool_approval_required",
         BridgeEventType::ToolApprovalResolved => "tool_approval_resolved",
-        BridgeEventType::ConversationCompacted => "conversation_compacted",
         BridgeEventType::BackgroundTaskCompleted => "background_task_completed",
         BridgeEventType::ReasoningDelta => "reasoning_delta",
         BridgeEventType::Done => "done",

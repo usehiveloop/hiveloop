@@ -45,14 +45,6 @@ pub(super) async fn run_foreground(
 
     let mut history = runner.session_store.get_or_create(&task_id);
 
-    // Compact subagent history if configured
-    if let Some(ref config) = runner.compaction_config {
-        if let Ok(Some(result)) = crate::compaction::maybe_compact(&history, config).await {
-            history = result.compacted_history;
-            runner.session_store.save(task_id.clone(), history.clone());
-        }
-    }
-
     let cancel = runner.cancel.clone();
     let emitter = ToolCallEmitter {
         event_bus: runner.event_bus.clone(),
@@ -72,6 +64,7 @@ pub(super) async fn run_foreground(
         pressure_counter: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         pressure_warned: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         repeat_guard: std::sync::Arc::new(std::sync::Mutex::new(llm::RepeatGuardState::default())),
+        immortal_threshold_tokens: None,
     };
 
     let prompt_owned = prompt.to_string();

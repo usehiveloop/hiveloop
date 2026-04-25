@@ -1,117 +1,139 @@
-use super::handoff::build_chain_history;
+use rig::message::AssistantContent;
+use rig::message::{
+    Message, ToolCall, ToolFunction, ToolResult, ToolResultContent, UserContent,
+};
+use rig::OneOrMany;
+use serde_json::json;
+
+use super::handoff::{find_compaction_range, splice_summary, CompactionRange};
 use super::*;
 
-#[test]
-fn test_find_carry_forward_empty() {
-    let history: Vec<Message> = vec![];
-    let (start, toks) = find_token_bounded_carry_forward(&history, 2, 10_000);
-    assert_eq!(start, 0);
-    assert_eq!(toks, 0);
+fn user(text: &str) -> Message {
+    Message::user(text)
 }
 
-#[test]
-fn test_find_carry_forward_respects_turn_ceiling() {
-    let history = vec![
-        Message::user("a"),
-        Message::assistant("b"),
-        Message::user("c"),
-        Message::assistant("d"),
-        Message::user("e"),
-        Message::assistant("f"),
-    ];
-    // 1 user turn → start at "e"
-    let (start, _) = find_token_bounded_carry_forward(&history, 1, 10_000);
-    assert_eq!(start, 4);
-    // 2 user turns → start at "c"
-    let (start, _) = find_token_bounded_carry_forward(&history, 2, 10_000);
-    assert_eq!(start, 2);
-    // 10 requested but only 3 exist → all of it
-    let (start, _) = find_token_bounded_carry_forward(&history, 10, 10_000);
-    assert_eq!(start, 0);
+fn assistant_text(text: &str) -> Message {
+    Message::assistant(text)
 }
 
-#[test]
-fn test_find_carry_forward_respects_token_cap() {
-    // Each message is roughly "x" (tiny). 2 turns would be ~5 messages.
-    let history = vec![
-        Message::user("a"),
-        Message::assistant("b"),
-        Message::user("c"),
-        Message::assistant("d"),
-        Message::user("e"),
-        Message::assistant("f"),
-    ];
-    // Cap far below any turn's tokens → should still take at least 1 turn.
-    let (start, _) = find_token_bounded_carry_forward(&history, 5, 1);
-    assert!(start >= 4, "token cap must not evict the last user turn");
-}
-
-#[test]
-fn test_format_journal_entries() {
-    let entries = vec![JournalEntry {
-        id: "1".to_string(),
-        chain_index: 0,
-        entry_type: "agent_note".to_string(),
-        content: "decision".to_string(),
-        category: Some("decision".to_string()),
-        timestamp: chrono::Utc::now(),
-    }];
-    let formatted = format_journal(&entries);
-    assert!(formatted.contains("[decision] [chain 0]"));
-}
-
-#[test]
-fn test_build_chain_history_with_journal_and_checkpoint() {
-    let entries = vec![JournalEntry {
-        id: "1".to_string(),
-        chain_index: 0,
-        entry_type: "agent_note".to_string(),
-        content: "Important decision".to_string(),
-        category: Some("decision".to_string()),
-        timestamp: chrono::Utc::now(),
-    }];
-
-    let carry_forward = vec![
-        Message::user("Continue working on X"),
-        Message::assistant("Sure, I'll continue."),
-    ];
-
-    let history = build_chain_history(&entries, None, "Checkpoint text here", 0, &carry_forward);
-
-    // journal_user + journal_ack + checkpoint_user + checkpoint_ack + 2 carry-forward
-    assert_eq!(history.len(), 6);
-}
-
-#[test]
-fn test_build_chain_history_no_journal() {
-    let entries: Vec<JournalEntry> = vec![];
-    let carry_forward = vec![Message::user("Continue"), Message::assistant("OK")];
-
-    let history = build_chain_history(&entries, None, "Checkpoint text", 0, &carry_forward);
-    assert_eq!(history.len(), 4);
-}
-
-#[test]
-fn test_build_chain_history_with_todos_snapshot() {
-    let entries: Vec<JournalEntry> = vec![];
-    let carry_forward = vec![Message::user("Continue"), Message::assistant("OK")];
-
-    let todos = "1. [in_progress] (high) Implement controller\n2. [pending] (high) Write tests\n";
-    let history = build_chain_history(&entries, Some(todos), "Checkpoint text", 0, &carry_forward);
-
-    // No journal block. Todos block (user + assistant). Checkpoint block
-    // (user + assistant). 2 carry-forward. Total = 6.
-    assert_eq!(history.len(), 6);
-    // Second message is the assistant ack for the todos block.
-    let first_user = &history[0];
-    if let Message::User { content } = first_user {
-        let text = match content.first() {
-            rig::message::UserContent::Text(t) => t.text.clone(),
-            _ => String::new(),
-        };
-        assert!(text.contains("Todo List Snapshot"), "got: {text}");
-        assert!(text.contains("Implement controller"), "got: {text}");
-    } else {
-        panic!("expected first message to be a user todos snapshot");
+fn assistant_tool(id: &str, name: &str, args: serde_json::Value) -> Message {
+    Message::Assistant {
+        id: None,
+        content: OneOrMany::one(AssistantContent::ToolCall(ToolCall {
+            id: id.to_string(),
+            call_id: None,
+            function: ToolFunction {
+                name: name.to_string(),
+                arguments: args,
+            },
+            signature: None,
+            additional_params: None,
+        })),
     }
+}
+
+fn tool_result(id: &str, body: &str) -> Message {
+    Message::User {
+        content: OneOrMany::one(UserContent::ToolResult(ToolResult {
+            id: id.to_string(),
+            call_id: Some(id.to_string()),
+            content: OneOrMany::one(ToolResultContent::Text(rig::message::Text {
+                text: body.to_string(),
+            })),
+        })),
+    }
+}
+
+#[test]
+fn find_compaction_range_skips_when_no_assistant() {
+    let history = vec![user("hi")];
+    assert!(find_compaction_range(&history, 0, 100).is_none());
+}
+
+#[test]
+fn find_compaction_range_anchors_at_first_assistant() {
+    let history = vec![
+        user("user prompt"),   // 0 — preserved before
+        assistant_text("ack"), // 1 — start
+        user("more"),          // 2
+        assistant_text("ok"),  // 3
+        assistant_text("ok2"), // 4
+    ];
+    // retention=1 → end candidate = 5 - 1 - 1 = 3
+    let r = find_compaction_range(&history, 1, 100).unwrap();
+    assert_eq!(r.start, 1);
+    assert_eq!(r.end, 3);
+}
+
+#[test]
+fn find_compaction_range_respects_retention() {
+    let history = vec![
+        user("u"),
+        assistant_text("a"),
+        assistant_text("b"),
+        assistant_text("c"),
+    ];
+    assert!(find_compaction_range(&history, 10, 100).is_none());
+}
+
+#[test]
+fn find_compaction_range_walks_back_around_tool_call() {
+    // The proposed `end` is an assistant message with a pending tool_call
+    // whose result lives at end+1. Algorithm must walk back so we don't
+    // orphan the call.
+    let history = vec![
+        user("u"),                                          // 0
+        assistant_text("ok"),                               // 1 — start
+        assistant_tool("t1", "Read", json!({"path": "a"})), // 2 — would-be end
+        tool_result("t1", "ok"),                            // 3
+        assistant_text("done"),                             // 4
+    ];
+    // retention=2 → end candidate = 5 - 2 - 1 = 2 (a tool_call). Walk back to 1.
+    let r = find_compaction_range(&history, 2, 100).unwrap();
+    assert_eq!(r.start, 1);
+    assert_eq!(r.end, 1);
+}
+
+#[test]
+fn splice_summary_replaces_range_with_one_user_message() {
+    let history = vec![
+        user("user prompt"), // 0 — preserved
+        assistant_text("a"), // 1 — compacted
+        user("u2"),          // 2 — compacted
+        assistant_text("b"), // 3 — compacted
+        user("u3"),          // 4 — preserved
+        assistant_text("c"), // 5 — preserved
+    ];
+    let new_history = splice_summary(
+        history,
+        CompactionRange { start: 1, end: 3 },
+        "SUMMARY HERE".to_string(),
+    );
+    assert_eq!(new_history.len(), 4);
+    if let Message::User { content } = &new_history[1] {
+        match content.first() {
+            UserContent::Text(t) => assert_eq!(t.text, "SUMMARY HERE"),
+            _ => panic!("expected user-text"),
+        }
+    } else {
+        panic!("spliced message should be user-text");
+    }
+}
+
+#[test]
+fn evict_msg_count_zero_for_zero_fraction() {
+    let history = vec![user("u"), assistant_text("a")];
+    assert_eq!(evict_msg_count(&history, 0.0), 0);
+}
+
+#[test]
+fn evict_msg_count_returns_index_for_full_fraction() {
+    let history = vec![
+        user("u"),
+        assistant_text("a"),
+        user("u2"),
+        assistant_text("a2"),
+    ];
+    let idx = evict_msg_count(&history, 1.0);
+    assert!(idx > 0);
 }

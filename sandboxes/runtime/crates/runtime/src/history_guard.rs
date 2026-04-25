@@ -5,9 +5,9 @@
 //! serialized bytes NEVER change. The provider caches by byte-prefix;
 //! mutating any prior message invalidates everything after it.
 //!
-//! Bridge has two mechanisms that legitimately rewrite history in place —
-//! compaction (`crates/runtime/src/compaction.rs`) and immortal chain reset
-//! (`crates/runtime/src/immortal.rs`). Both are expected cache-bust events.
+//! Bridge has one mechanism that legitimately rewrites history in place —
+//! immortal chain reset (`crates/runtime/src/immortal.rs`). It is an
+//! expected cache-bust event.
 //!
 //! What this module guards against is **unintentional** drift: tool hooks
 //! that accidentally mutate a prior turn's message, serializers that emit

@@ -74,8 +74,6 @@ pub struct ConversationParams {
     pub permission_manager: Arc<PermissionManager>,
     /// Per-tool permission overrides for this agent.
     pub agent_permissions: HashMap<String, ToolPermission>,
-    /// Optional compaction configuration for history summarization.
-    pub compaction_config: Option<bridge_core::agent::CompactionConfig>,
     /// Optional tool-result stripping configuration. When `None`, defaults
     /// are applied (stripping enabled, standard thresholds).
     pub history_strip_config: Option<bridge_core::agent::HistoryStripConfig>,
@@ -93,7 +91,7 @@ pub struct ConversationParams {
     pub tool_calls_only: bool,
     /// Per-conversation metrics for token/tool tracking.
     pub conversation_metrics: Arc<ConversationMetrics>,
-    /// Optional immortal conversation configuration (replaces compaction when set).
+    /// Optional immortal conversation configuration for chain-based context handoff.
     pub immortal_config: Option<bridge_core::agent::ImmortalConfig>,
     /// Journal state shared with the journal_write tool (only set in immortal mode).
     pub journal_state: Option<Arc<tools::journal::JournalState>>,

@@ -37,8 +37,6 @@ pub enum BridgeEventType {
     ToolApprovalRequired,
     /// A tool approval request was resolved (approved or denied)
     ToolApprovalResolved,
-    /// The conversation history was compacted (summarized)
-    ConversationCompacted,
     /// A background task (bash or subagent) completed.
     BackgroundTaskCompleted,
     /// A reasoning/thinking text chunk from the model

@@ -27,6 +27,12 @@ pub(super) struct StreamAttempt {
     pub(super) final_history: Option<Vec<rig::message::Message>>,
     pub(super) had_error: Option<String>,
     pub(super) any_progress: bool,
+    /// Set when the agent loop was terminated by a `PromptHook` returning
+    /// `HookAction::Terminate` (e.g. mid-rig-loop immortal trigger). The
+    /// caller is expected to inspect the reason, run the corresponding
+    /// recovery (chain handoff, etc.), and re-invoke the streaming call
+    /// with the post-recovery history.
+    pub(super) hook_cancellation: Option<(Vec<rig::message::Message>, String)>,
 }
 
 /// Run the inner retry loop that stream-prompts the agent, emitting SSE
@@ -60,6 +66,7 @@ pub(super) async fn run_streaming_with_retry(
             final_history: None,
             had_error: None,
             any_progress: false,
+            hook_cancellation: None,
         };
 
         loop {
@@ -128,6 +135,15 @@ pub(super) async fn run_streaming_with_retry(
                     out.had_error = Some(err);
                     break;
                 }
+                BridgeStreamItem::HookCancelled { history, reason } => {
+                    // Hook-driven cancellation. Capture history + reason so
+                    // the caller can run the corresponding recovery (e.g.
+                    // mid-rig-loop immortal handoff) and re-invoke streaming
+                    // with the post-recovery history. Treated as success
+                    // from the retry policy's perspective.
+                    out.hook_cancellation = Some((history, reason));
+                    break;
+                }
             }
         }
 
@@ -148,7 +164,11 @@ pub(super) async fn run_streaming_with_retry(
             .had_error
             .as_deref()
             .is_some_and(|m| m.starts_with("stream stalled"));
-        let should_retry = if attempt_no >= MAX_STREAM_PREFLIGHT_RETRIES {
+        let should_retry = if out.hook_cancellation.is_some() {
+            // Hook-driven cancellation is not a transport error; the caller
+            // owns the recovery + resume.
+            false
+        } else if attempt_no >= MAX_STREAM_PREFLIGHT_RETRIES {
             false
         } else if stream_stalled {
             true
@@ -183,12 +203,26 @@ pub(super) async fn run_streaming_with_retry(
 /// Convert a [`StreamAttempt`] into the final `(Result, history)` tuple
 /// returned by the streaming wrapper. Recognises the parse-error recovery
 /// pattern and flattens stream errors into `PromptError::ProviderError`.
+///
+/// Hook-driven cancellations (immortal mid-rig-loop trigger) are surfaced
+/// as `PromptError::PromptCancelled` carrying the cancellation history and
+/// the hook's reason marker, so the outer loop can run the appropriate
+/// recovery (chain handoff) and re-invoke streaming with the new history.
 pub(super) fn attempt_into_result(
     attempt: StreamAttempt,
 ) -> (
     Result<llm::PromptResponse, rig::completion::PromptError>,
     Vec<rig::message::Message>,
 ) {
+    if let Some((history, reason)) = attempt.hook_cancellation {
+        return (
+            Err(rig::completion::PromptError::PromptCancelled {
+                chat_history: history.clone(),
+                reason,
+            }),
+            history,
+        );
+    }
     let enriched_history = attempt.final_history.unwrap_or_default();
 
     if let Some(err_msg) = attempt.had_error {

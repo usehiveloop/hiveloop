@@ -109,6 +109,18 @@ pub struct ToolCallEmitter {
     /// (e.g. Qwen3.6-plus re-emitting the same Read every turn). See
     /// `repeat_guard.rs` for the policy.
     pub repeat_guard: Arc<Mutex<RepeatGuardState>>,
+    /// Optional token-budget threshold (approximate tokens, byte_count / 4)
+    /// above which the hook returns `HookAction::Terminate` from
+    /// `on_completion_call`. The outer streaming loop catches the termination
+    /// and runs an immortal chain handoff before resuming, so context-window
+    /// management can fire mid-rig-loop instead of only at user-turn
+    /// boundaries. `None` disables the check.
+    ///
+    /// The terminate `reason` uses the marker `"bridge:immortal"` so
+    /// `stream_loop.rs` can distinguish an immortal-driven termination from
+    /// a user-driven cancellation and resume the conversation transparently
+    /// with the post-handoff history.
+    pub immortal_threshold_tokens: Option<usize>,
 }
 
 impl ToolCallEmitter {

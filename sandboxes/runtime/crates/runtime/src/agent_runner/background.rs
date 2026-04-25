@@ -41,16 +41,7 @@ pub(super) async fn run_background(
     let task_id = runner.generate_task_id();
     let task_id_clone = task_id.clone();
 
-    let mut history = runner.session_store.get_or_create(&task_id);
-    let compaction_config = runner.compaction_config.clone();
-
-    // Compact subagent history if configured
-    if let Some(ref config) = compaction_config {
-        if let Ok(Some(result)) = crate::compaction::maybe_compact(&history, config).await {
-            history = result.compacted_history;
-            runner.session_store.save(task_id.clone(), history.clone());
-        }
-    }
+    let history = runner.session_store.get_or_create(&task_id);
 
     let session_store = runner.session_store.clone();
     let notification_tx = runner.notification_tx.clone();
@@ -115,6 +106,7 @@ pub(super) async fn run_background(
             repeat_guard: std::sync::Arc::new(std::sync::Mutex::new(
                 llm::RepeatGuardState::default(),
             )),
+            immortal_threshold_tokens: None,
         };
 
         let result = AGENT_CONTEXT

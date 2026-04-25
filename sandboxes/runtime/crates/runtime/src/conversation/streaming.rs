@@ -56,6 +56,12 @@ pub(super) async fn prepare_turn(
     let pressure_threshold_bytes_per_turn: Option<usize> = immortal_config
         .as_ref()
         .map(|cfg| ((cfg.token_budget as f32) * 1.5 * 4.0) as usize);
+    // Mid-rig-loop immortal trigger: when the rig agent's inner history
+    // hits the immortal token budget, we terminate the in-flight call so
+    // the outer loop can run a chain handoff before resuming.
+    let immortal_threshold_tokens: Option<usize> = immortal_config
+        .as_ref()
+        .map(|cfg| cfg.token_budget as usize);
     let llm_permit = match llm_semaphore.clone().acquire_owned().await {
         Ok(p) => p,
         Err(_) => {
@@ -74,6 +80,7 @@ pub(super) async fn prepare_turn(
             history_for_task,
             user_text_clone,
             pressure_threshold_bytes_per_turn,
+            immortal_threshold_tokens,
         },
     })
 }
@@ -118,6 +125,7 @@ pub(super) struct StreamTurnPrep {
     pub(super) history_for_task: Vec<rig::message::Message>,
     pub(super) user_text_clone: String,
     pub(super) pressure_threshold_bytes_per_turn: Option<usize>,
+    pub(super) immortal_threshold_tokens: Option<usize>,
 }
 
 /// Combine per-turn prep with conversation-wide clones to produce the full
@@ -158,6 +166,7 @@ pub(super) fn build_stream_inputs(
         conversation_metrics_for_task: conversation_metrics.clone(),
         msg_id_clone: msg_id.to_string(),
         pressure_threshold_bytes_per_turn: prep.pressure_threshold_bytes_per_turn,
+        immortal_threshold_tokens: prep.immortal_threshold_tokens,
         storage_for_emitter: storage.clone(),
         persisted_messages_for_emitter: persisted_messages.clone(),
         repeat_guard_for_emitter: repeat_guard.clone(),
@@ -183,6 +192,7 @@ pub(super) struct StreamTurnInputs {
     pub(super) conversation_metrics_for_task: Arc<ConversationMetrics>,
     pub(super) msg_id_clone: String,
     pub(super) pressure_threshold_bytes_per_turn: Option<usize>,
+    pub(super) immortal_threshold_tokens: Option<usize>,
     pub(super) storage_for_emitter: Option<StorageHandle>,
     pub(super) persisted_messages_for_emitter:
         Arc<std::sync::Mutex<Vec<bridge_core::conversation::Message>>>,
@@ -215,6 +225,7 @@ pub(super) async fn run_stream_turn(
         conversation_metrics_for_task,
         msg_id_clone,
         pressure_threshold_bytes_per_turn,
+        immortal_threshold_tokens,
         storage_for_emitter,
         persisted_messages_for_emitter,
         repeat_guard_for_emitter,
@@ -247,6 +258,7 @@ pub(super) async fn run_stream_turn(
         pressure_counter: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         pressure_warned: Arc::new(std::sync::atomic::AtomicBool::new(false)),
         repeat_guard: repeat_guard_for_emitter,
+        immortal_threshold_tokens,
     };
 
     let fut = async move {

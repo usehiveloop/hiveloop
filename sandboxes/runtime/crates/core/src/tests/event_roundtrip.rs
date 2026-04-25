@@ -31,10 +31,6 @@ fn bridge_event_type_all_variants_roundtrip() {
             "\"tool_approval_resolved\"",
         ),
         (
-            BridgeEventType::ConversationCompacted,
-            "\"conversation_compacted\"",
-        ),
-        (
             BridgeEventType::BackgroundTaskCompleted,
             "\"background_task_completed\"",
         ),

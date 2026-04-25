@@ -108,6 +108,7 @@ pub(super) async fn attempt_empty_response_recovery(
                 pressure_counter: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
                 pressure_warned: Arc::new(std::sync::atomic::AtomicBool::new(false)),
                 repeat_guard: Arc::new(std::sync::Mutex::new(llm::RepeatGuardState::default())),
+                immortal_threshold_tokens: None,
             };
             let fut = async {
                 agent_clone

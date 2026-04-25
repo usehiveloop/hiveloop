@@ -51,5 +51,6 @@ pub(super) fn make_emitter_with(
         repeat_guard: Arc::new(std::sync::Mutex::new(
             crate::tool_hook::repeat_guard::RepeatGuardState::default(),
         )),
+        immortal_threshold_tokens: None,
     }
 }

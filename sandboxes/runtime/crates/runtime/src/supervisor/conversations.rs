@@ -88,7 +88,6 @@ impl AgentSupervisor {
 
         // Build agent context for subagent tool
         let (notification_tx, notification_rx) = mpsc::channel::<AgentTaskNotification>(64);
-        let subagent_compaction = def.config.compaction.clone();
         // Create task budget for this conversation (before runner so runner can share it)
         let max_tasks = def.config.max_tasks_per_conversation.unwrap_or(50) as usize;
         let task_budget = Arc::new(tools::TaskBudget::new(max_tasks));
@@ -109,7 +108,6 @@ impl AgentSupervisor {
                 3, // max_depth
                 metrics.clone(),
             )
-            .with_compaction(subagent_compaction)
             .with_task_budget(task_budget.clone())
             .with_agent_id(agent_id.to_string()),
         );
@@ -145,12 +143,6 @@ impl AgentSupervisor {
         let permission_manager = self.permission_manager.clone();
         let agent_permissions = def.permissions.clone();
         let immortal_config = def.config.immortal.clone();
-        // When immortal mode is active, compaction is disabled
-        let compaction_config = if immortal_config.is_some() {
-            None
-        } else {
-            def.config.compaction.clone()
-        };
         let history_strip_config = def.config.history_strip.clone();
         let tool_calls_only = def.config.tool_calls_only.unwrap_or(false);
         let system_reminder_refresh_turns = def.config.system_reminder_refresh_turns;
@@ -268,7 +260,6 @@ impl AgentSupervisor {
                 abort_token,
                 permission_manager,
                 agent_permissions,
-                compaction_config,
                 history_strip_config,
                 system_reminder,
                 conversation_date: chrono::Utc::now(),

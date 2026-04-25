@@ -1,129 +1,260 @@
-//! History construction and carry-forward helpers for chain handoffs.
+//! History compaction primitives — sequence selection + in-place splice.
+//!
+//! Mirrors forgecode 1:1:
+//!   - `find_sequence_preserving_last_n` chooses a `(start, end)` inclusive
+//!     range to compact, anchored at the first assistant message and
+//!     respecting tool-call/result atomicity.
+//!   - `to_fixed` converts an "evict X% of tokens" budget into a concrete
+//!     message-count cap.
+//!   - `splice_summary` replaces the chosen range in place with ONE user
+//!     message holding the rendered summary frame. No fake assistant acks.
+//!     No journal scaffolding. The messages before `start` and after `end`
+//!     are kept verbatim.
+//!
+//! Token usage and the most-recent reasoning chain are carried forward by
+//! the caller (`mod.rs::execute_chain_handoff`).
 
-use rig::message::{Message, UserContent};
-use tools::journal::JournalEntry;
+use rig::message::{AssistantContent, Message};
+use rig::OneOrMany;
 
 use crate::compaction;
 
-/// Find the carry-forward start index, respecting BOTH:
-///   - a hard ceiling on the number of user-text turns carried (`max_turns`)
-///   - a token-budget cap on the carried tail (`token_cap`)
+/// Result of choosing a contiguous compaction range.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CompactionRange {
+    /// Inclusive lower bound. Always points at the first assistant message
+    /// in the eligible region — earlier messages (system + initial user
+    /// prompt) are preserved verbatim.
+    pub start: usize,
+    /// Inclusive upper bound. Adjusted to never split a tool_call from
+    /// its tool_result.
+    pub end: usize,
+}
+
+/// Convert "evict X fraction of total tokens" into a message-count cap.
+/// Walks forward from index 0 (skipping system messages), accumulating
+/// approximate per-message token counts until the budget is exhausted.
+/// Returns the message index where the budget ran out — that's the
+/// maximum number of messages eligible for eviction.
 ///
-/// Walks backward from the end of history. At each user-text message we stop
-/// and check whether including this turn would exceed the token cap. If yes
-/// and we already have at least one turn, we stop at the previous boundary.
-/// Returns `(start_index, tokens_in_tail)`.
-pub fn find_token_bounded_carry_forward(
-    history: &[Message],
-    max_turns: usize,
-    token_cap: usize,
-) -> (usize, usize) {
-    if history.is_empty() || max_turns == 0 {
-        return (history.len(), 0);
+/// Mirrors forgecode's `CompactionStrategy::Evict.to_fixed`.
+pub fn evict_msg_count(history: &[Message], fraction: f64) -> usize {
+    if history.is_empty() || fraction <= 0.0 {
+        return 0;
     }
+    let fraction = fraction.min(1.0);
+    let total_tokens = compaction::estimate_tokens(history);
+    let mut budget = (fraction * total_tokens as f64).ceil() as usize;
+    if budget == 0 {
+        return 0;
+    }
+    for (idx, msg) in history.iter().enumerate() {
+        let cost = compaction::estimate_tokens(std::slice::from_ref(msg));
+        budget = budget.saturating_sub(cost);
+        if budget == 0 {
+            return idx;
+        }
+    }
+    history.len().saturating_sub(1)
+}
 
-    // Walk backward and find successive user-text boundaries. Stop when
-    // adding the next turn would break the token cap or exceed max_turns.
-    let mut best_start = history.len();
-    let mut best_tokens = 0usize;
-    let mut user_turns_found = 0usize;
+/// Pick the eligible compaction range. Mirrors forgecode's
+/// `find_sequence_preserving_last_n` algorithm exactly:
+///
+/// 1. Start = index of the first assistant message (so system + early
+///    user messages are always preserved).
+/// 2. End   = `len - retention - 1` (preserves the last `retention`
+///    messages verbatim).
+/// 3. If `end` would split a tool_call/tool_result pair, walk it back to
+///    the previous safe boundary.
+///
+/// Returns `None` when there's nothing safe to compact (no assistant
+/// messages yet, retention covers everything, or the safe-boundary walk
+/// pushes `end` below `start`).
+pub fn find_compaction_range(
+    history: &[Message],
+    retention: usize,
+    eviction_cap: usize,
+) -> Option<CompactionRange> {
+    if history.is_empty() {
+        return None;
+    }
+    let len = history.len();
+    let start = history
+        .iter()
+        .position(|m| matches!(m, Message::Assistant { .. }))?;
+    if start >= len {
+        return None;
+    }
+    // Cap eviction to whichever is stricter: retention window OR
+    // eviction-fraction-derived message count.
+    let max_compactable = std::cmp::min(len.saturating_sub(retention), eviction_cap.saturating_add(1));
+    if max_compactable == 0 || max_compactable <= start {
+        return None;
+    }
+    let mut end = max_compactable.saturating_sub(1);
+    // Don't split tool_call ↔ tool_result pairs.
+    end = walk_back_to_safe_boundary(history, start, end)?;
+    if end < start {
+        return None;
+    }
+    Some(CompactionRange { start, end })
+}
 
-    for i in (0..history.len()).rev() {
-        if is_user_text_message(&history[i]) {
-            // Tokens of the tail if we start here.
-            let tail_tokens = compaction::estimate_tokens(&history[i..]);
-            if tail_tokens > token_cap && user_turns_found > 0 {
-                // Don't cross this boundary — keep the previous `best_start`.
-                break;
+/// Walk `end` backward until cutting between `messages[end]` and
+/// `messages[end+1]` doesn't split a tool batch.
+///
+/// Unsafe cuts:
+///   - `messages[end]` is an assistant with pending tool_calls and the
+///     next message would be the matching tool_result.
+///   - `messages[end]` is a tool_result and `messages[end+1]` is also a
+///     tool_result (mid-batch).
+fn walk_back_to_safe_boundary(history: &[Message], start: usize, mut end: usize) -> Option<usize> {
+    loop {
+        if end < start {
+            return None;
+        }
+        let here = history.get(end)?;
+        // Case A: `end` is an assistant with at least one tool_call.
+        // Cutting here orphans the call — its result lives in `end+1`.
+        // Walk back past the tool_call.
+        if assistant_has_tool_call(here) {
+            if end == 0 {
+                return None;
             }
-            best_start = i;
-            best_tokens = tail_tokens;
-            user_turns_found += 1;
-            if user_turns_found >= max_turns {
-                break;
+            end -= 1;
+            continue;
+        }
+        // Case B: `end` is a tool_result and `end+1` is also a
+        // tool_result. We're mid-batch. Walk back through the whole
+        // batch.
+        if user_is_tool_result(here)
+            && history
+                .get(end + 1)
+                .is_some_and(user_is_tool_result)
+        {
+            // Walk back through the run of tool_results to the assistant
+            // that issued them, then one more to land BEFORE the
+            // assistant tool_call message.
+            while end > start && user_is_tool_result(history.get(end)?) {
+                end -= 1;
+            }
+            // `end` now points at the assistant tool_call — back one
+            // more so we cut BEFORE the call.
+            if end == 0 {
+                return None;
+            }
+            end -= 1;
+            continue;
+        }
+        return Some(end);
+    }
+}
+
+fn assistant_has_tool_call(msg: &Message) -> bool {
+    if let Message::Assistant { content, .. } = msg {
+        content
+            .iter()
+            .any(|c| matches!(c, AssistantContent::ToolCall(_)))
+    } else {
+        false
+    }
+}
+
+fn user_is_tool_result(msg: &Message) -> bool {
+    if let Message::User { content } = msg {
+        content
+            .iter()
+            .any(|c| matches!(c, rig::message::UserContent::ToolResult(_)))
+    } else {
+        false
+    }
+}
+
+
+/// Replace the chosen range in place with one user message containing the
+/// rendered summary frame. Returns the new history.
+///
+/// Forgecode-equivalent: `splice(start..=end, summary_user_message)`. No
+/// scaffolding pairs, no fake assistant acks. The messages before `start`
+/// and after `end` are kept verbatim — alternation is naturally maintained
+/// because `start` is always an assistant message (so the message before
+/// is non-assistant), the spliced summary is user, and `messages[end+1]`
+/// is naturally the assistant turn that follows.
+pub fn splice_summary(
+    history: Vec<Message>,
+    range: CompactionRange,
+    summary_text: String,
+) -> Vec<Message> {
+    let mut out: Vec<Message> = Vec::with_capacity(history.len() - (range.end - range.start));
+    let mut iter = history.into_iter().enumerate().peekable();
+    while let Some((idx, msg)) = iter.next() {
+        if idx < range.start {
+            out.push(msg);
+            continue;
+        }
+        if idx == range.start {
+            // Insert the summary as a single user-text message.
+            out.push(Message::user(summary_text.clone()));
+            // Drop everything else in the range.
+            while let Some((next_idx, _)) = iter.peek() {
+                if *next_idx <= range.end {
+                    iter.next();
+                } else {
+                    break;
+                }
+            }
+            continue;
+        }
+        out.push(msg);
+    }
+    out
+}
+
+/// Locate the most-recent non-empty reasoning block within a slice.
+/// Walks backward; returns the first one found. Used to carry the
+/// extended-thinking chain across a compaction so the next assistant
+/// turn doesn't lose its reasoning context.
+pub fn extract_latest_reasoning(messages: &[Message]) -> Option<rig::message::Reasoning> {
+    for msg in messages.iter().rev() {
+        if let Message::Assistant { content, .. } = msg {
+            for part in content.iter() {
+                if let AssistantContent::Reasoning(r) = part {
+                    if !r.content.is_empty() {
+                        return Some(r.clone());
+                    }
+                }
             }
         }
     }
-
-    (best_start, best_tokens)
+    None
 }
 
-/// Build the new history for a chain link.
-pub(super) fn build_chain_history(
-    journal_entries: &[JournalEntry],
-    todos_snapshot: Option<&str>,
-    checkpoint_text: &str,
-    previous_chain_index: u32,
-    carry_forward: &[Message],
-) -> Vec<Message> {
-    let mut new_history = Vec::new();
-
-    // 1. Inject journal if available. When the agent opted out of journal
-    //    tools (`expose_journal_tools: false`), this slice is empty and we
-    //    rely on the todos snapshot below + the checkpoint text for
-    //    cross-chain continuity.
-    if !journal_entries.is_empty() {
-        let journal_text = format_journal(journal_entries);
-        new_history.push(Message::user(format!(
-            "[Conversation Journal — {} entries across {} chain(s)]\n\n{}",
-            journal_entries.len(),
-            previous_chain_index + 1,
-            journal_text
-        )));
-        new_history.push(Message::assistant(
-            "I've reviewed the journal entries and have full context. Ready to continue.",
-        ));
-    }
-
-    // 2. Inject the current todowrite list (when provided). Mirrors the
-    //    journal pattern and primes the new chain with the authoritative
-    //    task-state snapshot at rotation time. The list also re-injects
-    //    live every turn via the volatile system reminder.
-    if let Some(todos) = todos_snapshot.filter(|s| !s.trim().is_empty()) {
-        new_history.push(Message::user(format!(
-            "[Todo List Snapshot — carried across chain {}]\n\n{}",
-            previous_chain_index, todos
-        )));
-        new_history.push(Message::assistant(
-            "Got the current todo list; I'll continue from the next in-progress item.",
-        ));
-    }
-
-    // 3. Inject checkpoint
-    new_history.push(Message::user(format!(
-        "[Context Checkpoint — chain {}]\n\n{}",
-        previous_chain_index, checkpoint_text
-    )));
-    new_history.push(Message::assistant(
-        "Understood. I have the checkpoint context and will continue seamlessly.",
-    ));
-
-    // 4. Append carried-forward messages verbatim
-    new_history.extend_from_slice(carry_forward);
-
-    new_history
-}
-
-/// Format journal entries as readable text for LLM context injection.
-pub fn format_journal(entries: &[JournalEntry]) -> String {
-    let mut output = String::new();
-    for entry in entries {
-        let category = entry
-            .category
-            .as_deref()
-            .unwrap_or(entry.entry_type.as_str());
-        output.push_str(&format!(
-            "- [{}] [chain {}] {}\n",
-            category, entry.chain_index, entry.content
-        ));
-    }
-    output
-}
-
-/// Check if a rig message is a user message containing actual text (not a tool result).
-fn is_user_text_message(msg: &Message) -> bool {
-    match msg {
-        Message::User { content } => content.iter().any(|c| matches!(c, UserContent::Text(_))),
-        _ => false,
+/// Inject `reasoning` into the first assistant message after the spliced
+/// summary, but only if that message has no reasoning of its own. Mirrors
+/// forgecode's reasoning-preservation step. This prevents extended-thinking
+/// chains from breaking when a compaction lands between the LLM's reasoning
+/// and the next call that depends on it.
+pub fn inject_reasoning_into_first_assistant(
+    history: &mut [Message],
+    splice_index: usize,
+    reasoning: rig::message::Reasoning,
+) {
+    for msg in history.iter_mut().skip(splice_index + 1) {
+        if let Message::Assistant { content, .. } = msg {
+            // Only inject if no reasoning is already present.
+            let has_reasoning = content
+                .iter()
+                .any(|c| matches!(c, AssistantContent::Reasoning(_)));
+            if has_reasoning {
+                return;
+            }
+            let mut parts: Vec<AssistantContent> = content.iter().cloned().collect();
+            parts.insert(0, AssistantContent::Reasoning(reasoning));
+            if let Ok(new_content) = OneOrMany::many(parts) {
+                *content = new_content;
+            }
+            return;
+        }
     }
 }
