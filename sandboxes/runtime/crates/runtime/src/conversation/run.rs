@@ -318,6 +318,19 @@ pub async fn run_conversation(params: ConversationParams) {
                 let cancel_history = take_cancellation_history(&chat_result);
                 if let Some(new_hist) = cancel_history {
                     history = new_hist;
+                    // Strip-then-handoff. The strip pass replaces old
+                    // tool-result bodies with markers (the bodies are
+                    // already on disk via the spill pipeline; the agent
+                    // can `RipGrep` them if needed). On bench scenarios
+                    // where the entire conversation is a single bridge
+                    // turn, this is the ONLY chance the strip pass gets
+                    // to run — the top-of-turn call at run.rs:181 fires
+                    // exactly once when history is empty. Without this
+                    // call, `history_strip` is silently a no-op.
+                    crate::masking::strip_old_tool_outputs(
+                        &mut history,
+                        &history_strip_config,
+                    );
                     {
                         let mut g = persisted_messages.lock().unwrap();
                         *g = super::convert::convert_from_rig_messages(&history);

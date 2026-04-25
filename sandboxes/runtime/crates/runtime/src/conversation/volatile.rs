@@ -114,10 +114,22 @@ pub(super) async fn build_volatile_reminder(
         }
     };
 
-    if let (Some(ref imm_state), Some(ref js)) = (immortal_state, journal_state) {
-        let journal_count = js.entries().await.len();
+    if let Some(ref imm_state) = immortal_state {
+        // Detect "are journal tools actually registered?" by looking in the
+        // executor map. When the agent set `expose_journal_tools: false`,
+        // bridge skips registering them — and the reminder shouldn't
+        // describe tools the agent can't call.
+        let journal_tools_exposed = tool_executors.contains_key("journal_write");
+        let journal_count = match journal_state {
+            Some(js) if journal_tools_exposed => js.entries().await.len(),
+            _ => 0,
+        };
         let immortal_section = crate::system_reminder::SystemReminder::new()
-            .with_immortal_context(imm_state.current_chain_index, journal_count)
+            .with_immortal_context(
+                imm_state.current_chain_index,
+                journal_count,
+                journal_tools_exposed,
+            )
             .build();
         append_volatile(&mut volatile_reminder, immortal_section);
     }

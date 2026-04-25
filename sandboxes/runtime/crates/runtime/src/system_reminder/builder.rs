@@ -197,44 +197,64 @@ impl SystemReminder {
 
     /// Add immortal conversation context to the reminder.
     ///
-    /// Informs the agent about the journal tools and current chain state so it
-    /// knows to journal important information and understands context resets.
-    pub fn with_immortal_context(mut self, chain_index: u32, journal_entry_count: usize) -> Self {
+    /// Informs the agent about the immortal-conversation flow and (optionally)
+    /// the journal tools. When `journal_tools_exposed` is `false`, the journal
+    /// block is omitted entirely — it was previously emitted unconditionally,
+    /// which caused agents that didn't have the tools registered to read about
+    /// non-existent commands and burned ~250 bytes/request for no reason.
+    ///
+    /// Once `chain_index == 0` AND the journal block is omitted, this whole
+    /// section is skipped — the model already knows nothing about the
+    /// conversation has been refreshed yet, and the rest of the immortal
+    /// preamble is generic agent intuition that the system prompt covers.
+    pub fn with_immortal_context(
+        mut self,
+        chain_index: u32,
+        journal_entry_count: usize,
+        journal_tools_exposed: bool,
+    ) -> Self {
+        // Suppress the entire section when nothing has happened yet AND there
+        // are no journal tools to advertise. Saves ~500 bytes on every early
+        // turn before the first chain rotation.
+        if chain_index == 0 && !journal_tools_exposed {
+            return self;
+        }
+
         let mut content = String::new();
 
         content.push_str(
             "This is an **immortal conversation** — your context window may be refreshed \
-             to keep the conversation going indefinitely. When that happens, your journal \
-             entries and a structured checkpoint carry forward into the fresh context.\n\n",
+             to keep the conversation going indefinitely. When that happens, a structured \
+             summary of the compacted history is spliced in place so you continue seamlessly.\n\n",
         );
 
-        content.push_str(
-            "You have two journal tools available:\n\
-             - `journal_write`: Record key decisions, discoveries, user preferences, or \
-               constraints. Only write high-signal entries — not routine actions.\n\
-             - `journal_read`: Review your journal entries at any time.\n\n",
-        );
+        if journal_tools_exposed {
+            content.push_str(
+                "You have two journal tools available:\n\
+                 - `journal_write`: Record key decisions, discoveries, user preferences, or \
+                   constraints. Only write high-signal entries — not routine actions.\n\
+                 - `journal_read`: Review your journal entries at any time.\n\n",
+            );
+        }
 
         if chain_index > 0 {
             content.push_str(&format!(
-                "**Current chain**: {} (context has been refreshed {} time{}). ",
+                "**Current chain**: {} (context has been refreshed {} time{}).",
                 chain_index,
                 chain_index,
                 if chain_index == 1 { "" } else { "s" }
             ));
-        }
-
-        if journal_entry_count > 0 {
-            content.push_str(&format!("**Journal entries**: {}.\n", journal_entry_count));
-        } else {
-            content.push_str("Your journal is empty — consider writing key decisions as you go.\n");
+            if journal_tools_exposed && journal_entry_count > 0 {
+                content.push_str(&format!(" **Journal entries**: {}.", journal_entry_count));
+            }
+            content.push('\n');
         }
 
         self.sections.push(Section {
             title: "Immortal Conversation".to_string(),
             content,
-            // chain_index and journal_entry_count grow over the conversation,
-            // so the block is not byte-stable — must go in the volatile tail.
+            // chain_index grows across the conversation so the block is not
+            // byte-stable — must go in the volatile tail.
             stability: SectionStability::Volatile,
         });
 

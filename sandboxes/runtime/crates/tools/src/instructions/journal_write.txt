@@ -1,35 +1,17 @@
-Write an entry to the conversation journal. The journal is a persistent log that survives context resets (chain handoffs). When the conversation's context window fills up, the history is reset but the journal carries forward into the new context.
+Append an entry to the conversation journal — a persistent log that survives history stripping and context resets.
 
-## Why journaling matters
+## Why
+Old tool results get stripped after a protection window. Old assistant text can also disappear across chain resets. If you'll need a specific value later (a path, a count, a decision rationale), journal it NOW. Restating it in your own text is not enough.
 
-Tool-result bodies in older messages are automatically STRIPPED from context once a protection window's worth of newer tool output accumulates (default roughly the last 10 tool calls). The stripped message is replaced with a pointer to the on-disk spill file. This keeps input tokens low but means values you merely *saw* in an old tool result will not be in your context on future turns.
+## When to use
+Record high-signal items only:
+- Decisions ("we use PostgreSQL because…")
+- Discoveries ("auth module has a race in session refresh")
+- User preferences and blockers
+- Specific values from tool output you'll reference later
 
-Restating those values in your own assistant text is NOT enough — assistant text from old turns can also be evicted during chain handoffs. The journal is the only place that durably survives across stripping, compaction, and chain resets. If you expect to need a specific value (a file path, a key finding, a decision) on a later turn, write it to the journal now.
+## When NOT to use
+Skip routine progress, large code snippets (use file paths instead), and anything only relevant to the current turn.
 
-## When to Use This Tool
-
-Use this tool to record high-signal information that should survive stripping and context resets:
-
-1. **Key decisions** — "We decided to use PostgreSQL because of its JSON support"
-2. **Important discoveries** — "The auth module has a race condition in session refresh"
-3. **User preferences** — "User wants terse responses, no trailing summaries"
-4. **Architectural choices** — "Chose event sourcing over CRUD for the order service"
-5. **Blockers or constraints** — "Cannot use Redis in this environment due to firewall rules"
-6. **Milestones** — "Completed migration of all API endpoints to v2"
-7. **Specific values from tool output you'll need later** — exact file paths, test counts, error messages, numeric thresholds. These live in tool-result bodies that will be stripped from context; journal them now.
-
-## When NOT to Use This Tool
-
-Do NOT journal routine information:
-
-- Intermediate steps or progress updates
-- Information the user just told you (they'll repeat it if needed)
-- Large code snippets or file contents (reference file paths instead — the file itself is durable)
-- Anything that's only relevant to the current turn
-
-## Guidelines
-
-- Keep entries concise (1-3 sentences)
-- Use the `category` field to tag entries: "decision", "discovery", "blocker", "progress", "preference"
-- Write 2-5 entries per conversation session, not every turn
-- Focus on the "why" not the "what" — decisions and rationale are more valuable than actions
+## Format
+Keep entries 1-3 sentences. Use `category` to tag: `decision` / `discovery` / `blocker` / `progress` / `preference`. Aim for ~2-5 entries per session, not every turn — focus on the "why" not the "what".

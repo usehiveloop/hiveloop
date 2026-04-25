@@ -1,34 +1,19 @@
-Perform code intelligence operations using Language Server Protocol (LSP) servers.
-
-This tool provides access to LSP operations like go-to-definition, hover, find-references, diagnostics, and more. LSP servers are started automatically when you first access a file they support.
+Code intelligence via the Language Server Protocol. Use after editing to check for compile errors, and before editing to understand structure.
 
 ## Operations
-
-- **goToDefinition**: Jump to where a symbol is defined. Returns the file path and position of the definition.
-- **findReferences**: Find all places where a symbol is used. Returns a list of file paths and positions.
-- **hover**: Get type information and documentation for a symbol at a position.
-- **documentSymbol**: List all symbols (functions, classes, variables, etc.) in a file. No line/character needed.
-- **workspaceSymbol**: Search for symbols across the entire workspace by name. Provide search query in the `query` parameter. Returns up to 10 results filtered to relevant kinds (classes, functions, methods, interfaces, variables, constants, structs, enums).
-- **goToImplementation**: Find implementations of an interface/trait/abstract class.
-- **prepareCallHierarchy**: Get the call hierarchy item at a position (used as input for incoming/outgoing calls).
-- **incomingCalls**: Find all callers of a function/method at the given position.
-- **outgoingCalls**: Find all functions/methods called from the function at the given position.
-- **diagnostics**: Get compiler errors, warnings, and hints for a file. No line/character needed. Use after editing a file to check for errors.
+- `goToDefinition` (line, character): jump to symbol definition
+- `findReferences` (line, character): list all usages
+- `hover` (line, character): type info and docs at position
+- `documentSymbol`: list symbols in `file_path` (no position)
+- `workspaceSymbol` (query): search symbols project-wide; up to 10 results
+- `goToImplementation` (line, character): find impls of interface/trait
+- `prepareCallHierarchy` / `incomingCalls` / `outgoingCalls` (line, character): callers/callees
+- `diagnostics`: errors/warnings for `file_path` (no position)
 
 ## Parameters
-
-- `operation` (required): One of the operation names listed above.
-- `file_path` (required): Path to the file. Both absolute and relative paths are accepted (relative paths are resolved against the project root).
-- `line` (optional): 1-based line number. Required for position-based operations.
-- `character` (optional): 1-based character/column number. Required for position-based operations.
-- `query` (optional): Search query for workspaceSymbol operation.
+- `operation` (required), `file_path` (required, abs or relative)
+- `line`, `character`: 1-based; required for position-based ops
+- `query`: only for `workspaceSymbol`
 
 ## Notes
-
-- Line and character numbers are **1-based** (first line is 1, first column is 1).
-- The tool automatically opens the file in the LSP server if needed. On subsequent opens, it re-reads from disk and sends an update to the server, keeping it in sync with file edits.
-- Built-in server support for 30+ languages including: TypeScript/JavaScript, Rust, Go, Python, C/C++, Java, Ruby, PHP, Dart, Haskell, Elixir, and many more.
-- If no LSP server binary is found for a file type, the tool returns an error gracefully.
-- When multiple LSP servers match a file type, operations are fanned out to all servers and results are merged.
-- Use the **diagnostics** operation after editing files to check for compilation errors before proceeding.
-- Use this tool to understand code structure before making edits — it's faster and more accurate than text search for finding definitions and references.
+Files are opened/refreshed automatically. If no server matches the file type, returns an error gracefully. Use `diagnostics` after edits to verify; use `goToDefinition` / `findReferences` instead of grep when navigating typed code.

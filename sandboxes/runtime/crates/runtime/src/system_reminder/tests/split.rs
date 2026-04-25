@@ -10,7 +10,7 @@ fn test_build_split_places_skills_in_stable_half() {
         .with_skills(&skills)
         .with_subagents(&subagents)
         .with_current_date(Utc::now())
-        .with_immortal_context(3, 5);
+        .with_immortal_context(3, 5, true);
 
     let (stable, volatile) = reminder.build_split();
     // Skills & subagents are stable
@@ -41,7 +41,7 @@ fn test_build_split_places_date_in_volatile_half() {
 fn test_build_split_immortal_is_volatile() {
     let reminder = SystemReminder::new()
         .with_skills(&make_test_skills())
-        .with_immortal_context(7, 42);
+        .with_immortal_context(7, 42, true);
     let (stable, volatile) = reminder.build_split();
     assert!(stable.contains("Available skills"));
     assert!(!stable.contains("Immortal Conversation"));

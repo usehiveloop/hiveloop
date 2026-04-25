@@ -1369,16 +1369,24 @@ expected = "artisan: ok"
 # artisan test — Pest/PHPUnit wrapper
 # =============================================================================
 # Design goals:
-#   • Clean run (all passing)         → collapse to "artisan test: ok"  (~95% savings)
+#   • Clean run (all passing)         → strip banner/progress, keep `Tests: N passed`
+#                                       and `Duration:` lines verbatim
 #   • Empty test match (no tests)     → keep "No tests found."
 #   • Failures / errors / exceptions  → keep every FAIL block, the ⨯ line,
 #                                       assertion diff, stack frame, and summary
 #   • Coverage driver errors          → preserved via keep_lines_matching
 #
+# IMPORTANT: test-runner output is never silently rewritten. The runner's own
+# summary line (`Tests: N passed (M assertions)` / `OK (N tests, M assertions)`)
+# is the single most important signal — rewriting it to a synthetic string
+# previously caused a 20-turn debugging dead end. If aggressive compression is
+# wanted in future, expose it as an explicit opt-in mode (e.g. RTK_TERSE=1)
+# documented in the system prompt — never as the default.
+#
 # Pest uses unicode glyphs (✓ ⨯). PHPUnit uses ASCII (. × F E S R). We match
 # both. The summary line "Tests: N passed (M assertions)" is emitted by both.
 [filters.artisan-test]
-description = "artisan test (Pest + PHPUnit) — ok-collapse on green, full detail on failure"
+description = "artisan test (Pest + PHPUnit) — strip noise, keep the runner's own PASS/FAIL summary verbatim"
 match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+test\b'
 strip_ansi = true
 filter_stderr = true
@@ -1394,12 +1402,11 @@ replace = [
   { pattern = '^\s*[.⨯×FESR]+\s*$', replacement = '' },
 ]
 
-# Short-circuit to a 3-word summary ONLY when there are zero failures / errors
-# / risks / incompletes / fatals / exceptions. The `unless` guard is
-# load-bearing — removing it swallows failures.
-match_output = [
-  { pattern = '(?m)^\s*Tests:\s+\d+\s+passed', message = "artisan test: ok", unless = '(?i)(failed|error|risked|incomplete|fatal|exception|FAIL\b|⨯|✗|No tests found)' },
-]
+# NOTE: no match_output shortcut. The runner's own `Tests: N passed (M assertions)`
+# / `Duration:` / `Parallel:` / `FAIL ...` lines must reach the agent verbatim.
+# A previous synthetic `artisan test: ok` collapse caused a 20-turn debugging
+# dead end because the agent could not see assertion counts or the real
+# pass/fail signal. Test-runner output is never silently rewritten.
 
 # On the failure / no-tests paths, keep only signal lines.
 keep_lines_matching = [
@@ -1426,8 +1433,9 @@ keep_lines_matching = [
 # 2 failures ≈ 18 kept lines, 10 failures ≈ 80.  100 is a comfortable ceiling.
 max_lines = 100
 
-# Safety net — match_output already handles the green case.
-on_empty = "artisan test: ok"
+# Defensive fallback for the genuinely-empty case (no Tests: line, nothing
+# survived stripping). Worded so it's not mistaken for a real "ok".
+on_empty = "[rtk] artisan test produced no output after stripping noise — re-run with NO_RTK=1 to see raw output"
 
 # -----------------------------------------------------------------------------
 # Inline tests — inputs use ANSI-stripped output (strip_ansi = true means the
@@ -1436,7 +1444,7 @@ on_empty = "artisan test: ok"
 # -----------------------------------------------------------------------------
 
 [[tests.artisan-test]]
-name = "all passing — collapses to ok"
+name = "all passing — runner's own summary kept verbatim"
 input = '''
 
    PASS  Tests\Unit\ExampleTest
@@ -1448,10 +1456,11 @@ input = '''
   Tests:    2 passed (2 assertions)
   Duration: 0.08s
 '''
-expected = "artisan test: ok"
+expected = '''  Tests:    2 passed (2 assertions)
+  Duration: 0.08s'''
 
 [[tests.artisan-test]]
-name = "all passing with --filter — collapses to ok"
+name = "all passing with --filter — runner's own summary kept verbatim"
 input = '''
 
    PASS  Tests\Feature\ExampleTest
@@ -1460,7 +1469,8 @@ input = '''
   Tests:    1 passed (1 assertions)
   Duration: 0.05s
 '''
-expected = "artisan test: ok"
+expected = '''  Tests:    1 passed (1 assertions)
+  Duration: 0.05s'''
 
 [[tests.artisan-test]]
 name = "one failing test — keep FAIL, assertion diff, stack frame, summary"
@@ -2086,7 +2096,7 @@ expected = "   ERROR  A decryption key is required."
 # =============================================================================
 
 [filters.pest]
-description = "Pest — keep failures, skips, exceptions, coverage errors, summary"
+description = "Pest — strip noise, keep Pest's own PASS/FAIL/Tests/Duration lines verbatim"
 match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/)?pest\b'
 strip_ansi = true
 filter_stderr = true
@@ -2096,13 +2106,11 @@ replace = [
   { pattern = '^\s*\d+A\s+', replacement = '' },
 ]
 
-# Short-circuit clean runs. Any failure/error/exception/skip/incomplete
-# disables this so we preserve the real output.
-match_output = [
-  { pattern = '(?m)^\s*Tests:\s+\d+ passed\s', message = "pest: ok", unless = '(?i)(failed|error|exception|fatal|risked|incomplete|skipped|warn|no tests found|no code coverage)' },
-  { pattern = '(?m)^\s*INFO\s+No tests found', message = "pest: no tests matched" },
-  { pattern = '(?m)^\s*ERROR\s+No code coverage driver', message = "pest error: no code coverage driver available (install Xdebug or PCOV)" },
-]
+# NOTE: no match_output shortcuts. Pest's real output (`Tests: N passed`,
+# `Duration:`, `INFO No tests found`, `ERROR No code coverage driver`...) is
+# the signal agents need — collapsing it to `pest: ok` etc. silently rewrites
+# test-runner output and has previously sent agents into multi-turn dead ends.
+# Failures already pass through; passes must too.
 
 # Drop only known noise. Keep everything else (failure messages, exception
 # text, diff lines all survive).
@@ -2118,14 +2126,14 @@ strip_lines_matching = [
 
 truncate_lines_at = 300
 max_lines = 120
-on_empty = "pest: ok"
+on_empty = "[rtk] pest produced no output after stripping noise — re-run with NO_RTK=1 to see raw output"
 
 # -----------------------------------------------------------------------------
 # Inline tests
 # -----------------------------------------------------------------------------
 
 [[tests.pest]]
-name = "all pass — clean run collapses to ok"
+name = "all pass — Pest's own summary kept verbatim"
 input = """
 
   PASS  Tests\\Feature\\ExampleTest
@@ -2135,25 +2143,28 @@ input = """
   Duration: 0.08s
 
 """
-expected = "pest: ok"
+expected = """  PASS  Tests\\Feature\\ExampleTest
+  ✓ the application returns a successful response                        0.05s
+  Tests:    1 passed (1 assertions)
+  Duration: 0.08s"""
 
 [[tests.pest]]
-name = "no tests matched"
+name = "no tests matched — INFO line passes through"
 input = """
 
   INFO  No tests found.
 
 """
-expected = "pest: no tests matched"
+expected = "  INFO  No tests found."
 
 [[tests.pest]]
-name = "coverage driver error preserved"
+name = "coverage driver error passes through"
 input = """
 
   ERROR  No code coverage driver is available.
 
 """
-expected = "pest error: no code coverage driver available (install Xdebug or PCOV)"
+expected = "  ERROR  No code coverage driver is available."
 
 [[tests.pest]]
 name = "failing test keeps failure + summary"
@@ -2278,13 +2289,14 @@ expected = """  FAIL  Tests\\Unit\\DatasetTest
 #     followed by `- <name>` lines (keep them).
 
 [filters.phpunit]
-description = "PHPUnit direct — strip banner/progress, keep failures + summary + testdox"
+description = "PHPUnit direct — strip banner/progress, keep PHPUnit's own PASS/FAIL summary verbatim"
 match_command = '^(?:php\s+)?(?:\./)?vendor/bin/phpunit\b|^phpunit\b'
 strip_ansi = true
 filter_stderr = true
-match_output = [
-  { pattern = '(?m)^OK\s+\(\d+ tests?,\s+\d+ assertions?\)', message = "phpunit: ok", unless = '(?i)(failure|error|risk|incomplete|skip|fatal|exception)' },
-]
+# NOTE: no match_output shortcut. The agent must see PHPUnit's real summary
+# line (e.g. `OK (2 tests, 2 assertions)` or `ERRORS! Tests: 7, ...`) verbatim.
+# Silently rewriting test-runner output to a synthetic "phpunit: ok" hides
+# assertion counts and confuses agents debugging real failures.
 strip_lines_matching = [
   '^PHPUnit \d+\.\d+\.\d+ by Sebastian Bergmann',
   '^Runtime:\s',
@@ -2296,10 +2308,10 @@ strip_lines_matching = [
   '^\s*$',
 ]
 max_lines = 120
-on_empty = "phpunit: ok"
+on_empty = "[rtk] phpunit produced no output after stripping banner/progress noise — re-run with NO_RTK=1 to see raw output"
 
 [[tests.phpunit]]
-name = "clean OK run collapses"
+name = "clean OK run keeps PHPUnit's own summary verbatim"
 input = """
 PHPUnit 12.5.23 by Sebastian Bergmann and contributors.
 
@@ -2312,7 +2324,7 @@ Time: 00:00.054, Memory: 36.50 MB
 
 OK (2 tests, 2 assertions)
 """
-expected = "phpunit: ok"
+expected = "OK (2 tests, 2 assertions)"
 
 [[tests.phpunit]]
 name = "failing run keeps errors and summary"
