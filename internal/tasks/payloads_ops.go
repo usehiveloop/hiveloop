@@ -9,34 +9,6 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-// BillingUsageEventPayload is the payload for TypeBillingUsageEvent tasks.
-type BillingUsageEventPayload struct {
-	OrgID       uuid.UUID `json:"org_id"`
-	AgentID     uuid.UUID `json:"agent_id"`
-	SandboxType string    `json:"sandbox_type"`
-	RunID       uuid.UUID `json:"run_id"`
-}
-
-// NewBillingUsageEventTask creates a task that sends a usage event to Polar.
-func NewBillingUsageEventTask(orgID, agentID, runID uuid.UUID, sandboxType string) (*asynq.Task, error) {
-	payload, err := json.Marshal(BillingUsageEventPayload{
-		OrgID:       orgID,
-		AgentID:     agentID,
-		SandboxType: sandboxType,
-		RunID:       runID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("marshal billing usage event payload: %w", err)
-	}
-	return asynq.NewTask(
-		TypeBillingUsageEvent,
-		payload,
-		asynq.Queue(QueueDefault),
-		asynq.MaxRetry(5),
-		asynq.Timeout(15*time.Second),
-	), nil
-}
-
 // AgentCleanupPayload is the payload for TypeAgentCleanup tasks.
 type AgentCleanupPayload struct {
 	AgentID uuid.UUID `json:"agent_id"`

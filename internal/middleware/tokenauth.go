@@ -56,6 +56,7 @@ func TokenAuth(signingKey []byte, db *gorm.DB) func(http.Handler) http.Handler {
 				OrgID:        claims.OrgID,
 				CredentialID: claims.CredentialID,
 				JTI:          claims.ID,
+				IsSystem:     claims.IsSystem,
 			}
 
 			next.ServeHTTP(w, WithClaims(r, tc))

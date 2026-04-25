@@ -6,22 +6,23 @@ import (
 	"log/slog"
 
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
+	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	subagents "github.com/usehiveloop/hiveloop/internal/sub-agents"
 	"time"
 )
 
 func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
-	if agent.CredentialID == nil || agent.OrgID == nil {
-		return fmt.Errorf("cannot push agent without credential and org")
+	if agent.OrgID == nil {
+		return fmt.Errorf("cannot push agent without org")
 	}
 
-	var cred model.Credential
-	if err := p.db.Where("id = ?", *agent.CredentialID).First(&cred).Error; err != nil {
-		return fmt.Errorf("loading credential: %w", err)
+	cred, err := credentials.Resolve(ctx, p.db, p.picker, agent)
+	if err != nil {
+		return fmt.Errorf("resolving agent credential: %w", err)
 	}
 
-	proxyToken, jti, err := p.mintAgentToken(agent, &cred)
+	proxyToken, jti, err := p.mintAgentToken(agent, cred)
 	if err != nil {
 		return fmt.Errorf("minting proxy token: %w", err)
 	}
@@ -46,9 +47,9 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		return fmt.Errorf("storing proxy token: %w", err)
 	}
 
-	def := p.buildAgentDefinition(agent, &cred, proxyToken, jti)
+	def := p.buildAgentDefinition(agent, cred, proxyToken, jti)
 
-	subagentDefs, err := p.buildSubagentDefinitions(agent, &cred)
+	subagentDefs, err := p.buildSubagentDefinitions(agent, cred)
 	if err != nil {
 		return fmt.Errorf("building subagent definitions: %w", err)
 	}

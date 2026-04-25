@@ -106,7 +106,7 @@ func (writer *ToolUsageWriter) Shutdown(ctx context.Context) {
 	})
 
 	done := make(chan struct{})
-	goroutine.Go(func() {
+	goroutine.Go(ctx, func(context.Context) {
 		writer.wg.Wait()
 		close(done)
 	})

@@ -1,0 +1,133 @@
+name: lint
+
+# Only run on PRs that actually touch Go code or its supporting config.
+# Frontend-only, doc-only, and workflow-only PRs skip this whole suite.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - ".golangci.yml"
+      - "scripts/check-go-file-length.sh"
+      - "scripts/file-length-allowlist.txt"
+      - ".github/workflows/lint.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - ".golangci.yml"
+      - "scripts/check-go-file-length.sh"
+      - "scripts/file-length-allowlist.txt"
+      - ".github/workflows/lint.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  go-file-length:
+    name: Go file length (≤300 lines)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Go file length
+        run: ./scripts/check-go-file-length.sh
+
+  # golangci-lint runs the linter suite defined in .golangci.yml. We scope it
+  # to issues NEWLY introduced by the PR (--new-from-rev=origin/main) so
+  # existing pre-CI debt doesn't block unrelated changes. New code is held to
+  # the full standard; old violations can be cleaned up in targeted PRs.
+  golangci-lint:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so --new-from-rev can diff against origin/main.
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64.8
+          # goinstall builds golangci-lint with the Go toolchain we just set
+          # up, so it matches the 1.25 requirement in our go.mod. The default
+          # "binary" mode uses the prebuilt release which for v1.64 was
+          # compiled with Go 1.24 and rejects our 1.25.9 target.
+          install-mode: goinstall
+          # Scope to the maintained packages. cmd/fetchactions-* and
+          # skills/upload have pre-existing typecheck failures unrelated to
+          # the server build; linting them blocks everything else.
+          args: --timeout=5m --new-from-rev=origin/main ./internal/... ./cmd/server/...
+
+  go-vet:
+    name: go vet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+      - name: go vet
+        run: go vet ./internal/... ./cmd/server/...
+
+  # govulncheck scans our modules against the official Go vulnerability DB.
+  # Reachability-based, so it only flags CVEs in code paths we actually call.
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Run govulncheck
+        run: govulncheck ./internal/... ./cmd/server/...
+
+  # Secret scanning. Catches committed API keys, private keys, and connection
+  # strings before they hit main. Runs on the full diff range of the PR.
+  #
+  # We install the upstream gitleaks CLI directly rather than using
+  # gitleaks-action, because gitleaks-action now requires a paid GITLEAKS_LICENSE
+  # secret for GitHub organizations. The CLI itself is MIT-licensed and has
+  # no such restriction.
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Fetch full history so gitleaks can scan the PR's diff range.
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+      - name: Install gitleaks
+        # Pinned prebuilt binary from the official release.
+        # `go install` doesn't work because the Go module path is still the
+        # legacy github.com/zricethezav/gitleaks/v8; the prebuilt binary
+        # sidesteps that quirk and is faster to install too.
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+        run: |
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+      - name: Run gitleaks
+        # Scope to commits introduced by this PR so pre-existing test-only
+        # credentials in main (test DB URL, test KMS key, test JWT secret)
+        # don't fail the build. New commits are always scanned; main push
+        # after merge is a no-op range because origin/main has already
+        # caught up to HEAD.
+        run: gitleaks detect --source . --redact --verbose --no-banner --log-opts="origin/main..HEAD"

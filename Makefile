@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down rag-spike rag-engine-build rag-engine-run rag-engine-dev rag-engine-dev-bin rag-engine-test rag-engine-fmt rag-engine-clippy rag-engine-smoke proto-lint
+.PHONY: build test test-e2e test-e2e-vault lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down rag-spike rag-engine-build rag-engine-run rag-engine-dev rag-engine-dev-bin rag-engine-test rag-engine-fmt rag-engine-clippy rag-engine-smoke proto-lint setup-paystack
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -116,42 +116,59 @@ test-setup:
 # Auth middleware + org e2e tests
 test-auth:
 	go test ./internal/middleware/... -v -race -count=1 -run "Auth|MultiAuth_JWTPath"
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestOrg"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestOrg"
 
 # Nango integration CRUD e2e tests
 test-nango:
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Integration"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Integration"
 
 # LLM proxy e2e tests (OpenRouter, Fireworks, streaming, tool calls)
 test-proxy:
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Proxy|TestE2E_Fireworks"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Proxy|TestE2E_Fireworks"
 
 # Connect widget API e2e tests
 test-connect:
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Connect"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Connect"
 
 # Vault KMS e2e tests
 test-vault:
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestVaultE2E"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestVaultE2E"
 
 # Connection + scoped token e2e tests
 test-connections:
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Connection|TestE2E_ScopedToken"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Connection|TestE2E_ScopedToken"
 
 # All integration e2e tests (nango + connect + proxy + vault)
 test-integrations:
-	go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Integration|TestE2E_Connect|TestE2E_Proxy|TestE2E_Fireworks|TestVaultE2E"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Integration|TestE2E_Connect|TestE2E_Proxy|TestE2E_Fireworks|TestVaultE2E"
+
+# Reconcile Hiveloop's canonical plans with a payment provider. Idempotent —
+# safe to run against any environment, multiple times. Dry-run by default;
+# pass `MUTATE=1` to actually create/update plans.
+#
+# Requires PAYSTACK_SECRET_KEY in the environment (test or live key).
+setup-paystack:
+ifdef MUTATE
+	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/setup-billing --provider=paystack --currencies=NGN
+else
+	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/setup-billing --provider=paystack --currencies=NGN --dry-run
+endif
 
 # Run linter
 lint:
 	golangci-lint run ./...
 
+# Enforce the 300-line ceiling on hand-written Go files. Honours
+# scripts/file-length-allowlist.txt for grandfathered exceptions.
+check-file-length:
+	./scripts/check-go-file-length.sh
+
 # Run go vet
 vet:
 	go vet ./...
 
-# Run all checks: vet, lint, test, build
-check: vet lint test build
+# Run all checks: vet, lint, file-length, test, build
+check: vet lint check-file-length test build
 
 # Start local development stack (infra only, no proxy)
 up:

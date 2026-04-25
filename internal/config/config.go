@@ -131,14 +131,6 @@ type Config struct {
 	SpiderAPIKey  string `env:"SPIDER_CLOUD_API_KEY"`                                  // empty = spider disabled
 	SpiderBaseURL string `env:"SPIDER_BASE_URL" envDefault:"https://api.spider.cloud"` // Spider.cloud API endpoint
 
-	// Polar billing (empty = billing disabled, e.g. self-hosted)
-	PolarAccessToken           string `env:"POLAR_ACCESS_TOKEN"`
-	PolarWebhookSecret         string `env:"POLAR_WEBHOOK_SECRET"`
-	PolarServer                string `env:"POLAR_SERVER" envDefault:"sandbox"`                // "sandbox" or "production"
-	PolarProductFreeID         string `env:"POLAR_PRODUCT_FREE_ID"`
-	PolarProductProSharedID    string `env:"POLAR_PRODUCT_PRO_SHARED_ID"`
-	PolarProductProDedicatedID string `env:"POLAR_PRODUCT_PRO_DEDICATED_ID"`
-
 	// S3 (agent drive storage — empty AWS_S3_BUCKET_NAME disables the drive)
 	S3Bucket    string `env:"AWS_S3_BUCKET_NAME"`
 	S3Region    string `env:"AWS_DEFAULT_REGION" envDefault:"us-east-1"`
@@ -167,6 +159,14 @@ type Config struct {
 	PostHogAPIKey   string `env:"POSTHOG_API_KEY"`
 	PostHogEndpoint string `env:"POSTHOG_ENDPOINT" envDefault:"https://us.i.posthog.com"`
 	PostHogEnabled  bool   `env:"POSTHOG_ENABLED" envDefault:"false"`
+
+	// Paystack (billing provider). Empty PaystackSecretKey disables the
+	// provider — the billing registry simply won't include it and checkout
+	// for NGN plans will fail fast with ErrUnknownProvider. Per-plan
+	// PAYSTACK_PLAN_<SLUG>_<CURRENCY>_<CYCLE> vars are read directly out of
+	// the environment by paystack.PlanRegistryFromEnv; run
+	// `make setup-paystack` to generate them.
+	PaystackSecretKey string `env:"PAYSTACK_SECRET_KEY"`
 }
 
 func Load() (*Config, error) {
