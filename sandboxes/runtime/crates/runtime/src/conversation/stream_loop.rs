@@ -208,8 +208,17 @@ pub(super) async fn run_streaming_with_retry(
 /// as `PromptError::PromptCancelled` carrying the cancellation history and
 /// the hook's reason marker, so the outer loop can run the appropriate
 /// recovery (chain handoff) and re-invoke streaming with the new history.
+///
+/// `history_for_task` and `user_text` are the inputs that were sent to rig.
+/// When the stream terminates without a `StreamFinished` event (stall, parse
+/// error, transient transport error), `attempt.final_history` is `None` —
+/// we synthesize a fallback history (`history_for_task + user message`) so
+/// the empty-response recovery path receives the full conversation context
+/// instead of an empty Vec.
 pub(super) fn attempt_into_result(
     attempt: StreamAttempt,
+    history_for_task: &[rig::message::Message],
+    user_text: &str,
 ) -> (
     Result<llm::PromptResponse, rig::completion::PromptError>,
     Vec<rig::message::Message>,
@@ -223,7 +232,11 @@ pub(super) fn attempt_into_result(
             history,
         );
     }
-    let enriched_history = attempt.final_history.unwrap_or_default();
+    let enriched_history = attempt.final_history.unwrap_or_else(|| {
+        let mut h = history_for_task.to_vec();
+        h.push(rig::message::Message::user(user_text));
+        h
+    });
 
     if let Some(err_msg) = attempt.had_error {
         // Check if it's a parse error that allows recovery

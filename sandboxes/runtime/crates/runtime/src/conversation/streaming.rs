@@ -273,7 +273,7 @@ pub(super) async fn run_stream_turn(
             &msg_id_clone,
         )
         .await;
-        attempt_into_result(attempt)
+        attempt_into_result(attempt, &history_for_task, &user_text_clone)
     };
 
     // Wrap in AGENT_CONTEXT scope if available

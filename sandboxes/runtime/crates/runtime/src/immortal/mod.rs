@@ -39,7 +39,8 @@ mod tests;
 
 pub use handoff::{
     evict_msg_count, extract_latest_reasoning, find_compaction_range,
-    inject_reasoning_into_first_assistant, splice_summary, CompactionRange,
+    inject_reasoning_into_first_assistant, maybe_merge_summary_head, splice_summary,
+    CompactionRange, HeadMergeStats,
 };
 pub use render::render as render_summary;
 pub use summary::ContextSummary;
@@ -160,6 +161,27 @@ pub async fn execute_chain_handoff(
     // Carry the extended-thinking chain forward.
     if let Some(reasoning) = reasoning {
         inject_reasoning_into_first_assistant(&mut new_history, range.start, reasoning);
+    }
+
+    // After splicing, the head may now hold many accumulated summary
+    // frames from prior chains. Without compaction at the head they pile
+    // up to ~5-10K tokens by chain 8 and start tripping the budget on
+    // every LLM iteration (rapid-fire hook fires, no room for new work).
+    // Merge OLDEST summaries when the cumulative head exceeds half the
+    // budget, keeping only the most recent few intact.
+    const KEEP_RECENT_SUMMARIES: usize = 2;
+    if let Some(merge_stats) = maybe_merge_summary_head(
+        &mut new_history,
+        config.token_budget as usize,
+        KEEP_RECENT_SUMMARIES,
+    ) {
+        info!(
+            chain_index = new_chain_index,
+            merged_frames = merge_stats.merged_count,
+            head_tokens_before = merge_stats.before_tokens,
+            head_tokens_after = merge_stats.after_tokens,
+            "summary_head_merged"
+        );
     }
 
     let messages_after = new_history.len().saturating_sub(range.start + 1);

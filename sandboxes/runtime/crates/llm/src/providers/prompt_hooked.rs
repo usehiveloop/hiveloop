@@ -72,7 +72,9 @@ impl BridgeAgent {
                         input_tokens = resp.total_usage.input_tokens,
                         cached_input_tokens = resp.total_usage.cached_input_tokens,
                         cache_hit_ratio = bridge_core::metrics::cache_hit_ratio(
-                            resp.total_usage.input_tokens,
+                            resp.total_usage
+                                .input_tokens
+                                .saturating_sub(resp.total_usage.cached_input_tokens),
                             resp.total_usage.cached_input_tokens
                         ),
                         output_tokens = resp.total_usage.output_tokens,

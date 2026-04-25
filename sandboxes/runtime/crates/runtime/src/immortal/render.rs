@@ -14,16 +14,22 @@ use super::summary::{
 /// Header directive injected at the top of every summary frame. Tells the
 /// receiving agent to treat the summary as authoritative and stop
 /// re-exploring. Word-for-word equivalent of forgecode's preamble.
-const HEADER: &str = "Use the following summary frames as the authoritative reference for all coding suggestions and decisions. Do not re-explain or revisit it unless I ask. Additional summary frames will be added as the conversation progresses.";
+pub(crate) const HEADER: &str = "Use the following summary frames as the authoritative reference for all coding suggestions and decisions. Do not re-explain or revisit it unless I ask. Additional summary frames will be added as the conversation progresses.";
 
 /// Footer that nudges the agent to take its next concrete action.
-const FOOTER: &str = "Proceed with implementation based on this context.";
+pub(crate) const FOOTER: &str = "Proceed with implementation based on this context.";
+
+/// Body separator between header and the per-message blocks in every frame.
+pub(crate) const SUMMARY_BODY_OPEN: &str = "\n\n## Summary\n\n";
+
+/// Separator between the body and the footer.
+pub(crate) const SUMMARY_BODY_CLOSE: &str = "---\n\n";
 
 /// Render a `ContextSummary` into a single markdown string.
 pub fn render(summary: &ContextSummary) -> String {
     let mut out = String::new();
     out.push_str(HEADER);
-    out.push_str("\n\n## Summary\n\n");
+    out.push_str(SUMMARY_BODY_OPEN);
     for (idx, block) in summary.messages.iter().enumerate() {
         let _ = write!(out, "### {}. {}\n\n", idx + 1, block.role.label());
         for content in &block.contents {
@@ -32,7 +38,7 @@ pub fn render(summary: &ContextSummary) -> String {
         }
         out.push('\n');
     }
-    out.push_str("---\n\n");
+    out.push_str(SUMMARY_BODY_CLOSE);
     out.push_str(FOOTER);
     out
 }

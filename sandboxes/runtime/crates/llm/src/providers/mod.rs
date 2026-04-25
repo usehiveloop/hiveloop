@@ -14,10 +14,12 @@ use rig::message::Message;
 use rig::prelude::CompletionClient;
 
 pub(crate) mod build;
+mod cache_control_middleware;
 mod dispatch;
 mod prompt_hooked;
 mod prompt_plain;
 mod retry;
+mod tool_choice_middleware;
 
 #[cfg(test)]
 mod tests;

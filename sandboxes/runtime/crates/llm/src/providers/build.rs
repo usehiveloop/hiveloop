@@ -45,9 +45,24 @@ fn shared_retrying_client() -> ClientWithMiddleware {
             .pool_idle_timeout(Duration::from_secs(90))
             .build()
             .expect("reqwest client builder must not fail with default tls");
-        MwClientBuilder::new(http)
-            .with(RetryTransientMiddleware::new_with_policy(policy))
-            .build()
+        let chain = MwClientBuilder::new(http)
+            .with(RetryTransientMiddleware::new_with_policy(policy));
+        // Cache-control middleware is opt-OUT-able via env so we can
+        // bisect issues during benchmarks. Set BRIDGE_DISABLE_CACHE_CONTROL=1
+        // to skip injecting cache_control markers entirely.
+        let chain = if std::env::var("BRIDGE_DISABLE_CACHE_CONTROL")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false)
+        {
+            tracing::info!("cache_control middleware DISABLED (BRIDGE_DISABLE_CACHE_CONTROL=1)");
+            chain
+        } else {
+            chain.with(super::cache_control_middleware::CacheControlMiddleware)
+        };
+        // tool_choice middleware: env-controlled, off unless BRIDGE_TOOL_CHOICE
+        // is set to "required" / "auto" / "none". See module docs.
+        let chain = chain.with(super::tool_choice_middleware::ToolChoiceMiddleware::from_env());
+        chain.build()
     })
     .clone()
 }

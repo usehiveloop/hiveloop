@@ -14,10 +14,11 @@
 //! Token usage and the most-recent reasoning chain are carried forward by
 //! the caller (`mod.rs::execute_chain_handoff`).
 
-use rig::message::{AssistantContent, Message};
+use rig::message::{AssistantContent, Message, UserContent};
 use rig::OneOrMany;
 
 use crate::compaction;
+use super::render::{FOOTER, HEADER, SUMMARY_BODY_CLOSE, SUMMARY_BODY_OPEN};
 
 /// Result of choosing a contiguous compaction range.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -257,4 +258,173 @@ pub fn inject_reasoning_into_first_assistant(
             return;
         }
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Summary head merging — addresses the accumulating-summaries problem.
+//
+// Every successful chain handoff splices ONE summary user-message in place.
+// `find_compaction_range` anchors at the first `Message::Assistant`, so any
+// user-text messages BEFORE that anchor live there forever — including all
+// prior summary frames. After 6-8 chains the head fills with stacked
+// summaries that exceed `token_budget` by themselves, leaving no room for
+// new work.
+//
+// `maybe_merge_summary_head` detects this and condenses the OLDEST summaries
+// into a single combined frame, deterministically (no LLM call). Mirrors
+// forgecode's behavior of letting subsequent compactions absorb prior
+// summaries rather than letting them pile up.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Result returned when a head-merge actually fired.
+#[derive(Debug, Clone, Copy)]
+pub struct HeadMergeStats {
+    /// Number of frames merged into one.
+    pub merged_count: usize,
+    /// Approximate tokens in the merged frames before merging.
+    pub before_tokens: usize,
+    /// Approximate tokens after merging.
+    pub after_tokens: usize,
+}
+
+/// True if `msg` looks like a summary-frame user-text message bridge wrote
+/// during a prior chain handoff. Detection is by header-prefix match on the
+/// first text part — bridge guarantees every spliced summary starts with
+/// `HEADER` and is wrapped in a single `Message::user(text)`.
+pub fn is_summary_frame(msg: &Message) -> bool {
+    if let Message::User { content } = msg {
+        for part in content.iter() {
+            if let UserContent::Text(t) = part {
+                return t.text.starts_with(HEADER);
+            }
+        }
+    }
+    false
+}
+
+/// If accumulated summary frames at the head of `history` exceed
+/// `budget_tokens / 2` cumulatively, merge ALL but the most recent
+/// `keep_recent` frames into a single combined frame.
+///
+/// Returns `Some(stats)` when a merge fired, `None` when the head is fine.
+///
+/// Algorithm:
+/// 1. Walk forward from index 0, collecting indices of summary-frame
+///    messages. Stop on the first non-user-text or non-summary message
+///    (the head is contiguous: summary frames always live BEFORE the
+///    first Assistant message because every chain inserts them at the
+///    splice point).
+/// 2. If fewer than `keep_recent + 2` summaries exist, no work to do.
+/// 3. Sum tokens; bail if under the threshold.
+/// 4. Take the OLDEST `summaries.len() - keep_recent` and concatenate
+///    their `## Summary` body sections into one frame. Replace those
+///    indices in `history` with a single new merged user message.
+pub fn maybe_merge_summary_head(
+    history: &mut Vec<Message>,
+    budget_tokens: usize,
+    keep_recent: usize,
+) -> Option<HeadMergeStats> {
+    let summary_indices: Vec<usize> = head_summary_indices(history);
+    if summary_indices.len() <= keep_recent + 1 {
+        return None;
+    }
+
+    let total_tokens: usize = summary_indices
+        .iter()
+        .map(|&i| compaction::estimate_tokens(std::slice::from_ref(&history[i])))
+        .sum();
+    let threshold = budget_tokens / 2;
+    if total_tokens < threshold {
+        return None;
+    }
+
+    let to_merge_count = summary_indices.len() - keep_recent;
+    let merge_indices = &summary_indices[..to_merge_count];
+
+    let bodies: Vec<String> = merge_indices
+        .iter()
+        .filter_map(|&i| extract_summary_body(&history[i]))
+        .collect();
+    if bodies.is_empty() {
+        return None;
+    }
+
+    let merged = render_merged_frame(&bodies);
+    let after_tokens = compaction::estimate_tokens(std::slice::from_ref(&Message::user(
+        merged.clone(),
+    )));
+
+    let first = merge_indices[0];
+    let last = *merge_indices.last().unwrap();
+    history.splice(first..=last, std::iter::once(Message::user(merged)));
+
+    Some(HeadMergeStats {
+        merged_count: to_merge_count,
+        before_tokens: total_tokens,
+        after_tokens,
+    })
+}
+
+/// Walk forward from index 0 collecting indices of user-text messages that
+/// look like summary frames. Stops at the first non-summary message.
+///
+/// We do NOT walk into the body of the conversation — once a non-summary
+/// (system, assistant, tool result, regular user message) appears, the
+/// head is over. Summary frames spliced in subsequent chains land at the
+/// new "first assistant" anchor, which by definition pushes them in front
+/// of the assistant. Result: every summary frame ever spliced ends up at
+/// the head, in chronological order.
+fn head_summary_indices(history: &[Message]) -> Vec<usize> {
+    let mut out = Vec::new();
+    for (idx, msg) in history.iter().enumerate() {
+        if is_summary_frame(msg) {
+            out.push(idx);
+            continue;
+        }
+        // Allow the original user-prompt message at index 0 to NOT be a
+        // summary — it's the conversation seed and lives forever before
+        // the summaries.
+        if matches!(msg, Message::User { .. }) && idx == 0 {
+            continue;
+        }
+        break;
+    }
+    out
+}
+
+/// Pull the inner `## Summary\n\n…\n\n---\n\n` body out of a summary frame
+/// user-message. Returns `None` if the message doesn't have the expected
+/// shape (defensive — `is_summary_frame` already gates the caller).
+fn extract_summary_body(msg: &Message) -> Option<String> {
+    let Message::User { content } = msg else {
+        return None;
+    };
+    let text = content.iter().find_map(|c| match c {
+        UserContent::Text(t) => Some(t.text.clone()),
+        _ => None,
+    })?;
+    let body_start = text.find(SUMMARY_BODY_OPEN)?;
+    let after_open = &text[body_start + SUMMARY_BODY_OPEN.len()..];
+    let close = after_open.find(&format!("\n\n{}", SUMMARY_BODY_CLOSE))?;
+    Some(after_open[..close].to_string())
+}
+
+/// Concatenate body snippets into one full summary frame with the same
+/// header/footer scaffold as a single-chain frame. The receiving agent
+/// can't tell the difference between "one frame summarising a wide range"
+/// and "merged frame combining several prior chains".
+fn render_merged_frame(bodies: &[String]) -> String {
+    let mut out = String::new();
+    out.push_str(HEADER);
+    out.push_str(SUMMARY_BODY_OPEN);
+    for (i, body) in bodies.iter().enumerate() {
+        if i > 0 {
+            out.push_str("\n\n");
+        }
+        out.push_str(body);
+    }
+    out.push_str("\n\n");
+    out.push_str(SUMMARY_BODY_CLOSE);
+    out.push_str(FOOTER);
+    out
 }
