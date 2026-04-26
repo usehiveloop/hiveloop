@@ -12,21 +12,13 @@ import (
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
 
-// Deps holds the dependencies the periodic scan handlers need. The
-// asynq mux receives one Handle method per scan task type from this
-// struct; the per-source ingest/perm_sync/prune handlers live in the
-// internal/rag/tasks package.
 type Deps struct {
 	DB       *gorm.DB
 	Enq      enqueue.TaskEnqueuer
 	Cfg      Config
-	Supports CapabilityCheck // optional; nil falls back to HasPermSyncCapability / HasSlimCapability per loop
+	Supports CapabilityCheck
 }
 
-// Configs returns the periodic-task registrations for the four scan
-// loops. Cronspecs use the @every form so we can drive them at sub-minute
-// cadences. The caller appends these to the existing
-// internal/tasks.PeriodicTaskConfigs() slice.
 func (d *Deps) Configs() []*asynq.PeriodicTaskConfig {
 	cfg := d.Cfg
 	return []*asynq.PeriodicTaskConfig{
@@ -69,8 +61,6 @@ func (d *Deps) Configs() []*asynq.PeriodicTaskConfig {
 	}
 }
 
-// Register wires the four scan-task handlers onto the supplied asynq
-// mux. Mounted from internal/tasks/registry.go.
 func (d *Deps) Register(mux *asynq.ServeMux) {
 	mux.HandleFunc(ragtasks.TypeRagScanIngestDue, d.handleScanIngest)
 	mux.HandleFunc(ragtasks.TypeRagScanPermSyncDue, d.handleScanPermSync)

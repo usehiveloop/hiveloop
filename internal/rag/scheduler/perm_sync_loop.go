@@ -14,25 +14,8 @@ import (
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
 
-// CapabilityCheck reports whether the connector kind supports a given
-// capability (perm sync, slim listing, …). Injected so tests can
-// register stub kinds without touching the global connector registry.
-//
-// The default production implementation looks up the factory in the
-// connector registry, instantiates a throwaway connector with a
-// minimal Source view, and type-asserts for the desired capability.
 type CapabilityCheck func(kind string) bool
 
-// HasPermSyncCapability is the default CapabilityCheck for perm-sync
-// scanning. It looks up the registered factory for kind and checks
-// whether the produced Connector additionally satisfies
-// interfaces.PermSyncConnector. Sources whose connector kind is not
-// registered (or doesn't support perm sync) are skipped.
-//
-// We pass nil for the Source argument because capability detection is
-// an interface-level concern and connectors that need to inspect the
-// source for capability are misuse — a perm-sync-capable kind is
-// perm-sync-capable for every source of that kind.
 func HasPermSyncCapability(kind string) bool {
 	factory, err := interfaces.Lookup(kind)
 	if err != nil {
@@ -46,8 +29,6 @@ func HasPermSyncCapability(kind string) bool {
 	return ok
 }
 
-// HasSlimCapability is the default CapabilityCheck used by the prune
-// loop. Same shape as HasPermSyncCapability but checks for SlimConnector.
 func HasSlimCapability(kind string) bool {
 	factory, err := interfaces.Lookup(kind)
 	if err != nil {
@@ -61,20 +42,13 @@ func HasSlimCapability(kind string) bool {
 	return ok
 }
 
-// nilSource is a minimal interfaces.Source for capability probes.
-// Production capability detection uses only the kind; UUIDs and config
-// are immaterial to the type assertion.
 type nilSource struct{ kind string }
 
-func (s nilSource) SourceID() string         { return "" }
-func (s nilSource) OrgID() string            { return "" }
-func (s nilSource) SourceKind() string       { return s.kind }
-func (s nilSource) Config() json.RawMessage  { return json.RawMessage(`{}`) }
+func (s nilSource) SourceID() string        { return "" }
+func (s nilSource) OrgID() string           { return "" }
+func (s nilSource) SourceKind() string      { return s.kind }
+func (s nilSource) Config() json.RawMessage { return json.RawMessage(`{}`) }
 
-// ScanPermSyncDue scans rag_sources whose perm_sync_freq_seconds has
-// elapsed since the last sync and whose connector kind supports
-// PermSyncConnector. Mirrors check_for_doc_permissions_sync at
-// backend/ee/onyx/background/celery/tasks/doc_permission_syncing/tasks.py:188-288.
 func ScanPermSyncDue(
 	ctx context.Context,
 	db *gorm.DB,
@@ -128,16 +102,11 @@ func ScanPermSyncDue(
 	return enqueued, firstErr
 }
 
-// permSyncCandidate is the minimal projection the scan needs.
 type permSyncCandidate struct {
 	ID   uuid.UUID
 	Kind string
 }
 
-// selectPermSyncDueSources runs the gating predicate. It does not
-// filter by connector capability — that's done in Go because the set
-// of kinds with perm-sync support is small and changes only when a new
-// connector lands.
 func selectPermSyncDueSources(ctx context.Context, db *gorm.DB, limit int) ([]permSyncCandidate, error) {
 	const q = `
 		SELECT id, kind

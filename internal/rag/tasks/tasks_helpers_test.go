@@ -16,9 +16,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
 
-// taskFixture bundles per-test infrastructure for the per-source
-// handler tests: a real DB, a real rag-engine binary, and a freshly
-// inserted org / in-connection / source / dataset.
 type taskFixture struct {
 	DB     *gorm.DB
 	Org    *model.Org
@@ -27,17 +24,12 @@ type taskFixture struct {
 	Deps   *ragtasks.Deps
 }
 
-// nextStubKind returns a unique kind string per call because the
-// global connector registry rejects duplicate Register calls within
-// the test binary lifetime.
+// nextStubKind returns a unique kind because the global connector
+// registry rejects duplicate Register calls within a test binary.
 func nextStubKind() string {
 	return "stub-" + uuid.New().String()[:8]
 }
 
-// setupTask spins up the full per-source handler stack:
-// real Postgres + real rag-engine + a configured Deps bundle.
-// The dataset is created server-side so IngestBatch / UpdateACL /
-// Prune calls succeed.
 func setupTask(t *testing.T) *taskFixture {
 	t.Helper()
 	db := testhelpers.ConnectTestDB(t)
@@ -70,9 +62,6 @@ func setupTask(t *testing.T) *taskFixture {
 		DeclaredVectorDim: dim,
 	}
 
-	// Make sure the embedding-model registry is migrated. Already
-	// done by ConnectTestDB through rag.AutoMigrate, but we depend
-	// on it directly so a missing migration fails loudly.
 	if err := embedder.SeedRegistry(db); err != nil {
 		t.Fatalf("seed embedding-model registry: %v", err)
 	}
@@ -86,10 +75,8 @@ func setupTask(t *testing.T) *taskFixture {
 	}
 }
 
-// datasetName returns the canonical fake-embedder dataset.
 func datasetName() string { return "rag_chunks__fake__2560" }
 
-// makeSource inserts a RAGSource with the given kind, returning the row.
 func (f *taskFixture) makeSource(t *testing.T, kind string) *ragmodel.RAGSource {
 	t.Helper()
 	connID := f.Conn.ID
@@ -102,10 +89,7 @@ func (f *taskFixture) makeSource(t *testing.T, kind string) *ragmodel.RAGSource 
 		InConnectionID: &connID,
 		AccessType:     ragmodel.AccessTypePrivate,
 	}
-	// Per the integration<->in_connection check constraint, only
-	// INTEGRATION-kind rows may carry an in_connection_id. Our stub
-	// kinds (e.g. "stub-…") aren't INTEGRATION at the SQL level, so
-	// we drop the FK to make the insert legal.
+	// Non-INTEGRATION kinds must have a null in_connection_id (CHECK).
 	if !ragmodel.RAGSourceKind(kind).IsValid() ||
 		ragmodel.RAGSourceKind(kind) != ragmodel.RAGSourceKindIntegration {
 		src.InConnectionID = nil
@@ -119,8 +103,6 @@ func (f *taskFixture) makeSource(t *testing.T, kind string) *ragmodel.RAGSource 
 	return src
 }
 
-// runIngestNow synthesises an asynq.Task for TypeRagIngest and invokes
-// the handler synchronously. Returns the handler's error, if any.
 func (f *taskFixture) runIngestNow(ctx context.Context, t *testing.T, sourceID uuid.UUID) error {
 	t.Helper()
 	task, err := ragtasks.NewIngestTask(ragtasks.IngestPayload{RAGSourceID: sourceID})
@@ -130,8 +112,6 @@ func (f *taskFixture) runIngestNow(ctx context.Context, t *testing.T, sourceID u
 	return f.Deps.HandleIngest(ctx, task)
 }
 
-// reloadAttempt fetches the most recent rag_index_attempts row for
-// the given source, ordered by time_created DESC.
 func reloadAttempt(t *testing.T, db *gorm.DB, sourceID uuid.UUID) *ragmodel.RAGIndexAttempt {
 	t.Helper()
 	var a ragmodel.RAGIndexAttempt
@@ -143,7 +123,6 @@ func reloadAttempt(t *testing.T, db *gorm.DB, sourceID uuid.UUID) *ragmodel.RAGI
 	return &a
 }
 
-// reloadSource fetches the rag_sources row by ID.
 func reloadSource(t *testing.T, db *gorm.DB, id uuid.UUID) *ragmodel.RAGSource {
 	t.Helper()
 	var s ragmodel.RAGSource

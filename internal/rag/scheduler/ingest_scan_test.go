@@ -8,9 +8,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 )
 
-// TestIngestScan_EnqueuesWhenDue exercises the happy path: a source
-// with a refresh frequency older than its last index time should
-// produce one rag:ingest task on the work queue.
 func TestIngestScan_EnqueuesWhenDue(t *testing.T) {
 	f := setupScheduler(t)
 	refresh := 60
@@ -31,8 +28,6 @@ func TestIngestScan_EnqueuesWhenDue(t *testing.T) {
 	}
 }
 
-// TestIngestScan_SkipsNotDue: last index time is recent enough to be
-// inside the refresh window — no enqueue.
 func TestIngestScan_SkipsNotDue(t *testing.T) {
 	f := setupScheduler(t)
 	refresh := 3600
@@ -50,8 +45,6 @@ func TestIngestScan_SkipsNotDue(t *testing.T) {
 	}
 }
 
-// TestIngestScan_SkipsDisabled: an admin-disabled source must not be
-// scheduled, regardless of how overdue it is.
 func TestIngestScan_SkipsDisabled(t *testing.T) {
 	f := setupScheduler(t)
 	refresh := 60
@@ -70,8 +63,6 @@ func TestIngestScan_SkipsDisabled(t *testing.T) {
 	}
 }
 
-// TestIngestScan_SkipsPaused: a PAUSED source is parked — admin took
-// it out of rotation, scheduler must respect that.
 func TestIngestScan_SkipsPaused(t *testing.T) {
 	f := setupScheduler(t)
 	refresh := 60
@@ -90,9 +81,8 @@ func TestIngestScan_SkipsPaused(t *testing.T) {
 	}
 }
 
-// TestIngestScan_SkipsInProgress: an in-flight RAGIndexAttempt
-// suppresses re-scheduling. Without this gate, a duplicate ingest task
-// would race the live one through the same checkpoint.
+// Without this gate, a duplicate ingest task would race the live one
+// through the same checkpoint.
 func TestIngestScan_SkipsInProgress(t *testing.T) {
 	f := setupScheduler(t)
 	refresh := 60
@@ -121,9 +111,8 @@ func TestIngestScan_SkipsInProgress(t *testing.T) {
 	}
 }
 
-// TestIngestScan_NullRefreshFreqSkips: a source with refresh_freq IS
-// NULL is on-demand only; the periodic loop must not schedule it.
-// Mirrors Onyx's should_index() returning False.
+// refresh_freq IS NULL means on-demand only; the periodic loop must
+// not schedule it.
 func TestIngestScan_NullRefreshFreqSkips(t *testing.T) {
 	f := setupScheduler(t)
 	f.makeSource(t,
@@ -140,10 +129,8 @@ func TestIngestScan_NullRefreshFreqSkips(t *testing.T) {
 	}
 }
 
-// TestUniqueEnqueue_DedupesRepeatedScans: firing the scan five times
-// in rapid succession must produce exactly one task on the queue.
-// Asynq's Unique option keys on (typename, payload) — the source ID
-// is in the payload, so identical scans collapse server-side.
+// Asynq's Unique option keys on (typename, payload), so identical
+// scans collapse to a single task on the queue.
 func TestUniqueEnqueue_DedupesRepeatedScans(t *testing.T) {
 	f := setupScheduler(t)
 	refresh := 60

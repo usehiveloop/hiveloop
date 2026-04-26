@@ -12,35 +12,19 @@ import (
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
 
-// stubConnector is a parametrised connector used by every handler test
-// in this package. It implements:
-//
-//   - interfaces.Connector
-//   - ragtasks.RunnableCheckpointed (so HandleIngest can drive it)
-//   - interfaces.PermSyncConnector
-//   - interfaces.SlimConnector
-//
-// One stubConnector instance handles all three handler shapes — tests
-// configure which channels are populated.
 type stubConnector struct {
 	kind string
 
-	// Ingest controls
-	docs           []interfaces.Document
-	failures       map[int]*interfaces.ConnectorFailure
-	delayBetween   time.Duration
-	openErr        error
+	docs            []interfaces.Document
+	failures        map[int]*interfaces.ConnectorFailure
+	delayBetween    time.Duration
+	openErr         error
 	finalCheckpoint json.RawMessage
 
-	// PermSync controls
 	permSet []interfaces.DocExternalAccess
 
-	// Slim controls
 	slimIDs []string
 
-	// emittedCount records how many docs the connector actually sent
-	// before the channel closed (≤ len(docs)). Used by checkpoint /
-	// resume tests.
 	emittedCount atomic.Int32
 }
 
@@ -146,17 +130,12 @@ func (s *stubConnector) ListAllSlim(
 	return out, nil
 }
 
-// stubRegistry holds the per-test stub instance so the registered
-// factory can return the SAME object each test registered. Tests must
-// provide a unique kind per stub (the connector registry rejects
-// duplicates package-globally).
+// stubRegistry must use a unique kind per test — the connector
+// registry rejects duplicates package-globally and has no reset helper.
 var stubRegistry = struct {
 	stubs map[string]*stubConnector
 }{stubs: map[string]*stubConnector{}}
 
-// registerStub installs s at kind for the duration of the test process.
-// The connector registry has no public reset helper, so each test must
-// pick a fresh kind. Tests typically derive the kind from t.Name().
 func registerStub(kind string, s *stubConnector) {
 	s.kind = kind
 	stubRegistry.stubs[kind] = s
@@ -169,12 +148,9 @@ func registerStub(kind string, s *stubConnector) {
 	})
 }
 
-// Compile-time assertions: stubConnector implements every interface
-// the handler suite needs. Failing here means the handler can't
-// type-assert it back to its non-generic adapter.
 var (
-	_ interfaces.Connector            = (*stubConnector)(nil)
-	_ ragtasks.RunnableCheckpointed   = (*stubConnector)(nil)
-	_ interfaces.PermSyncConnector    = (*stubConnector)(nil)
-	_ interfaces.SlimConnector        = (*stubConnector)(nil)
+	_ interfaces.Connector          = (*stubConnector)(nil)
+	_ ragtasks.RunnableCheckpointed = (*stubConnector)(nil)
+	_ interfaces.PermSyncConnector  = (*stubConnector)(nil)
+	_ interfaces.SlimConnector      = (*stubConnector)(nil)
 )

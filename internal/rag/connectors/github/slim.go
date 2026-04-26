@@ -1,11 +1,3 @@
-// SlimDocs: cheap doc-ID-only listing for the prune diff.
-//
-// The scheduler diffs SlimDocument IDs against the locally-indexed set
-// to detect source-side deletions. We don't need bodies or metadata
-// here — just the IDs and (cheaply) the per-repo ExternalAccess so the
-// prune side can short-circuit a perm-sync pass for unchanged docs.
-//
-// Onyx analog: connector.py:837-889 (`retrieve_all_slim_documents`).
 package github
 
 import (
@@ -14,10 +6,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
 )
 
-// ListAllSlim implements interfaces.SlimConnector. Walks each configured
-// repo, lists every PR + Issue (state=all), emits a SlimDocument with
-// the repo-level ExternalAccess. Same pagination as the ingest path,
-// but no document conversion or section emission.
 func (c *GithubConnector) ListAllSlim(
 	ctx context.Context, _ interfaces.Source,
 ) (<-chan interfaces.SlimDocOrFailure, error) {
@@ -37,10 +25,8 @@ func (c *GithubConnector) ListAllSlim(
 	return out, nil
 }
 
-// streamRepoSlim drains every PR + Issue in a repo as SlimDocument.
-// Reuses the listing endpoints (vs. building a separate slim API) so
-// the prune diff sees the exact same doc-id alphabet as the ingest
-// path.
+// Reuses the same listing endpoints as ingest so the prune diff sees
+// the exact same doc-id alphabet.
 func (c *GithubConnector) streamRepoSlim(
 	ctx context.Context, fullName string, access *interfaces.ExternalAccess,
 	out chan<- interfaces.SlimDocOrFailure,

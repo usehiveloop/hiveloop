@@ -14,7 +14,6 @@ func TestSlimDocs_ReturnsIDsOnly(t *testing.T) {
 	}
 	c, fp := buildConnector(t, cfg, "public")
 
-	// Same shape as TestFetchPRs_PaginatesUntilExhausted: 25 PRs across 3 pages.
 	base := time.Date(2026, 4, 25, 12, 0, 0, 0, time.UTC)
 	page1 := make([]GithubPR, 10)
 	page2 := make([]GithubPR, 10)
@@ -44,14 +43,10 @@ func TestSlimDocs_ReturnsIDsOnly(t *testing.T) {
 	if len(slims) != 25 {
 		t.Fatalf("expected 25 slim docs, got %d", len(slims))
 	}
-	// The slim contract is "IDs only" — no body/sections come through
-	// because SlimDocument has no such fields. This is implicit from
-	// the type but the test asserts it via shape.
 	for _, s := range slims {
 		if s.DocID == "" {
 			t.Fatalf("slim doc with empty DocID: %+v", s)
 		}
-		// External access populated for short-circuit perm-sync.
 		if s.ExternalAccess == nil {
 			t.Fatalf("expected ExternalAccess on slim, got nil")
 		}

@@ -12,7 +12,6 @@ import (
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
-// genDocs builds n synthetic Documents with deterministic IDs / content.
 func genDocs(prefix string, n int) []interfaces.Document {
 	out := make([]interfaces.Document, 0, n)
 	for i := 0; i < n; i++ {
@@ -27,10 +26,6 @@ func genDocs(prefix string, n int) []interfaces.Document {
 	return out
 }
 
-// TestIngest_HappyPath_StubConnector: 5 docs, no failures, no
-// configured delay. The handler should drive the connector to
-// completion, produce a SUCCESS attempt, and advance the source's
-// last_successful_index_time.
 func TestIngest_HappyPath_StubConnector(t *testing.T) {
 	f := setupTask(t)
 	kind := nextStubKind()
@@ -62,10 +57,8 @@ func TestIngest_HappyPath_StubConnector(t *testing.T) {
 	}
 }
 
-// TestIngest_HeartbeatTicksDuringWork: a slow connector (200ms between
-// docs) must produce visible heartbeat counter advances during the
-// run, not just at the end. The handler's heartbeat tick is set to
-// 150ms in the fixture so we expect at least one tick mid-run.
+// Verifies heartbeat advances mid-run, not just at finalisation —
+// fixture heartbeat tick is 150ms, stub yields every 200ms.
 func TestIngest_HeartbeatTicksDuringWork(t *testing.T) {
 	f := setupTask(t)
 	kind := nextStubKind()
@@ -77,12 +70,10 @@ func TestIngest_HeartbeatTicksDuringWork(t *testing.T) {
 
 	src := f.makeSource(t, kind)
 
-	// Sample the heartbeat counter mid-flight via a goroutine.
 	var midCounter int
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
-		// Sleep enough for the connector to emit one or two docs.
 		time.Sleep(400 * time.Millisecond)
 		var att ragmodel.RAGIndexAttempt
 		_ = f.DB.Where("rag_source_id = ?", src.ID).
@@ -101,10 +92,6 @@ func TestIngest_HeartbeatTicksDuringWork(t *testing.T) {
 	}
 }
 
-// TestIngest_PerDocFailureDoesNotAbortBatch: failures at indices 1
-// and 3 are wrapped in DocumentFailure; the handler must continue,
-// finalise as COMPLETED_WITH_ERRORS, and write two
-// rag_index_attempt_errors rows.
 func TestIngest_PerDocFailureDoesNotAbortBatch(t *testing.T) {
 	f := setupTask(t)
 	kind := nextStubKind()
@@ -136,9 +123,7 @@ func TestIngest_PerDocFailureDoesNotAbortBatch(t *testing.T) {
 	}
 }
 
-// TestIngest_FatalConnectorErrorMarksFailed: a connector that fails
-// before emitting anything (Run returns an error) must result in a
-// FAILED attempt; the source's status is unchanged so the next scan
+// Source status must stay unchanged on FAILED so the next scan tick
 // re-eligibilities it.
 func TestIngest_FatalConnectorErrorMarksFailed(t *testing.T) {
 	f := setupTask(t)
@@ -168,14 +153,8 @@ func TestIngest_FatalConnectorErrorMarksFailed(t *testing.T) {
 	}
 }
 
-// TestIngest_CheckpointResumesAfterRestart: first run cancels mid-stream
-// (3 of 10 docs emitted, ctx cancelled); second run starts from the
-// persisted checkpoint and emits the remaining 7. We verify the doc
-// count converges to 10.
-//
-// The stub's checkpoint mechanism is a single counter encoded as JSON
-// so we can prove the persistence round-trips. The "resume" stub
-// replaces its docs slice based on which checkpoint it received.
+// Verifies that a crashed mid-stream attempt resumes from the
+// persisted checkpoint and converges to the full doc count.
 func TestIngest_CheckpointResumesAfterRestart(t *testing.T) {
 	f := setupTask(t)
 	kind := nextStubKind()
@@ -195,9 +174,6 @@ func TestIngest_CheckpointResumesAfterRestart(t *testing.T) {
 		t.Fatalf("checkpoint_pointer not persisted after first run")
 	}
 
-	// Second run: same kind, replace the stub's docs with the
-	// "remaining 7". registerStub overwrites the entry under the
-	// same kind via the package-private map.
 	second := &stubConnector{
 		docs: genDocs("cp-r", 7),
 	}

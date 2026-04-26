@@ -35,12 +35,8 @@ type WorkerDeps struct {
 	Credits          *billing.CreditsService // required for billing-token-spend deduction
 	Enqueuer         enqueue.TaskEnqueuer  // required for enqueuing sub-tasks
 
-	// Rag bundles the RAG-side handler dependencies (db, ragclient,
-	// dataset name, etc.). Nil disables the four-loop scheduler and
-	// the per-source RAG handlers — useful in tests and in deployments
-	// without RAG enabled.
-	Rag           *ragtasks.Deps
-	RagScheduler  *scheduler.Deps
+	Rag          *ragtasks.Deps
+	RagScheduler *scheduler.Deps
 }
 
 // NewServeMux creates an Asynq ServeMux with all task handlers registered.
@@ -138,9 +134,6 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 	mux.HandleFunc(TypeCronTriggerPoll,
 		NewCronTriggerPollHandler(deps.DB, deps.Enqueuer).Handle)
 
-	// RAG four-loop scheduler + per-source handlers. Wired only when
-	// the worker was constructed with a configured Rag dependency
-	// bundle (see cmd/server/worker.go).
 	if deps.Rag != nil {
 		ragtasks.RegisterHandlers(mux, deps.Rag)
 	}

@@ -13,23 +13,17 @@ import (
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
 
-// TestPermSync_PushesAclWithoutReembed: pre-seed three docs into Lance
-// (via direct IngestBatch), run perm-sync; assert the local
-// rag_documents row's external_user_emails is updated and the
-// last_time_perm_sync column on the source is advanced. We do NOT
-// re-run IngestBatch — only the ACL must change.
+// Verifies that perm-sync updates ACLs without re-running IngestBatch
+// (no re-embed, no chunk rewrite).
 func TestPermSync_PushesAclWithoutReembed(t *testing.T) {
 	f := setupTask(t)
 
-	// Pre-seed 3 docs straight through IngestBatch + the local
-	// rag_documents table, with the original ACL.
 	origACL := []string{"user:original@example.com"}
 	docs := genDocs("perm", 3)
 	if err := preseedDocs(t, f, docs, origACL); err != nil {
 		t.Fatalf("preseed docs: %v", err)
 	}
 
-	// Build a stub that emits one ACL update per doc with the new ACL.
 	kind := nextStubKind()
 	newACL := []string{"user:new@example.com", "user:second@example.com"}
 	access := make([]interfaces.DocExternalAccess, 0, len(docs))
@@ -53,7 +47,6 @@ func TestPermSync_PushesAclWithoutReembed(t *testing.T) {
 		t.Fatalf("HandlePermSync: %v", err)
 	}
 
-	// Assert local ACL columns updated.
 	for _, d := range docs {
 		var row ragmodel.RAGDocument
 		if err := f.DB.First(&row, "id = ?", d.DocID).Error; err != nil {
@@ -70,8 +63,6 @@ func TestPermSync_PushesAclWithoutReembed(t *testing.T) {
 	}
 }
 
-// preseedDocs IngestBatches docs into Lance and inserts matching
-// rag_documents rows so the perm-sync test has something to update.
 func preseedDocs(t *testing.T, f *taskFixture, docs []interfaces.Document, acl []string) error {
 	t.Helper()
 	pbDocs := make([]*ragpb.DocumentToIngest, 0, len(docs))
@@ -108,8 +99,6 @@ func preseedDocs(t *testing.T, f *taskFixture, docs []interfaces.Document, acl [
 	return nil
 }
 
-// equalSlices is a tiny order-sensitive slice comparator for tests
-// that don't want to import a comparison library.
 func equalSlices[T comparable](a []T, b []T) bool {
 	if len(a) != len(b) {
 		return false
@@ -122,5 +111,4 @@ func equalSlices[T comparable](a []T, b []T) bool {
 	return true
 }
 
-// silence unused-import warning when running just one test
 var _ = json.Marshal

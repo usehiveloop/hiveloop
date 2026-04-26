@@ -9,14 +9,9 @@ import (
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
 
-// TestPrune_DeletesDocsMissingUpstream: pre-seed 10 docs, the slim
-// connector reports only 7 — after pruning, rag_documents and
-// rag_document_by_sources must each contain 7 rows (the 3 dropped IDs
-// are gone), and the source's last_pruned column is advanced.
 func TestPrune_DeletesDocsMissingUpstream(t *testing.T) {
 	f := setupTask(t)
 
-	// Pre-seed: 10 docs, all under one source.
 	kind := nextStubKind()
 	src := f.makeSource(t, kind)
 
@@ -34,7 +29,6 @@ func TestPrune_DeletesDocsMissingUpstream(t *testing.T) {
 		}
 	}
 
-	// Slim connector returns the FIRST 7 of those doc IDs.
 	keepIDs := make([]string, 0, 7)
 	for i := 0; i < 7; i++ {
 		keepIDs = append(keepIDs, docs[i].DocID)
@@ -50,7 +44,6 @@ func TestPrune_DeletesDocsMissingUpstream(t *testing.T) {
 		t.Fatalf("HandlePrune: %v", err)
 	}
 
-	// Junction rows: 7 left.
 	var junctionCount int64
 	f.DB.Model(&ragmodel.RAGDocumentBySource{}).
 		Where("rag_source_id = ?", src.ID).
@@ -58,7 +51,6 @@ func TestPrune_DeletesDocsMissingUpstream(t *testing.T) {
 	if junctionCount != 7 {
 		t.Fatalf("rag_document_by_sources count = %d, want 7", junctionCount)
 	}
-	// rag_documents: orphans removed (the 3 dropped ones had no other source).
 	var docCount int64
 	f.DB.Model(&ragmodel.RAGDocument{}).
 		Where("org_id = ?", src.OrgIDValue).
@@ -66,7 +58,6 @@ func TestPrune_DeletesDocsMissingUpstream(t *testing.T) {
 	if docCount != 7 {
 		t.Fatalf("rag_documents count = %d, want 7", docCount)
 	}
-	// Verify the dropped IDs are gone.
 	for i := 7; i < 10; i++ {
 		var row ragmodel.RAGDocument
 		err := f.DB.First(&row, "id = ?", docs[i].DocID).Error
@@ -79,5 +70,5 @@ func TestPrune_DeletesDocsMissingUpstream(t *testing.T) {
 	if got.LastPruned == nil {
 		t.Fatalf("last_pruned not advanced after prune")
 	}
-	_ = interfaces.SlimDocument{} // keep import alive in case we expand
+	_ = interfaces.SlimDocument{}
 }

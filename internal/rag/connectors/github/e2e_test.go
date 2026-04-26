@@ -7,20 +7,9 @@ import (
 	"time"
 )
 
-// TestEndToEndIngestion_Through3CScheduler exercises the full connector
-// trait surface — CheckpointedConnector + PermSyncConnector +
-// SlimConnector — against a single fixture repo with 25 PRs across 3
-// pages. It plays the role the 3C scheduler will play in production:
-// drive the connector to completion, observe the emitted artifacts,
-// confirm no fatal errors.
-//
-// Plan deviation note: the 3C scheduler stack (internal/rag/scheduler,
-// internal/rag/tasks/ingest.go) is not yet present on this branch.
-// Once those land, this test will be extended to call into
-// scheduler.HandleIngest directly. The current shape verifies every
-// connector responsibility called from 3C — checkpoint advance, doc
-// emission, perm-sync, slim listing — so the seams that 3C will
-// consume are already pinned.
+// Drives the full connector surface (CheckpointedConnector +
+// PermSyncConnector + SlimConnector) against a 25-PR fixture across 3
+// pages.
 func TestEndToEndIngestion_Through3CScheduler(t *testing.T) {
 	cfg := GithubConfig{
 		RepoOwner: "acme", Repositories: []string{"widget"},
@@ -45,11 +34,10 @@ func TestEndToEndIngestion_Through3CScheduler(t *testing.T) {
 	fp.addPage("GET", "/repos/"+repoFullName+"/pulls", 2, mustMarshal(t, prsP2), 3)
 	fp.addPage("GET", "/repos/"+repoFullName+"/pulls", 3, mustMarshal(t, prsP3), 0)
 
-	// Issues: empty page, but the orchestrator must still walk into the
+	// Empty issues page; the orchestrator must still walk into the
 	// stage so the checkpoint reaches DONE.
 	fp.addPage("GET", "/repos/"+repoFullName+"/issues", 1, []byte(`[]`), 0)
 
-	// Permission sync fixtures (private branch).
 	fp.handleCollaborators = func(affiliation string) []byte {
 		if affiliation == "direct" {
 			return mustMarshal(t, []GithubUser{
@@ -70,9 +58,6 @@ func TestEndToEndIngestion_Through3CScheduler(t *testing.T) {
 
 	src := &fixtureSource{cfg: json.RawMessage(`{"repo_owner":"acme","repositories":["widget"]}`)}
 
-	// 1. Ingest pass — analogous to a 3C scheduler invocation of
-	//    HandleIngest. We expect 25 PR documents, 0 issues, 0 fatal
-	//    failures, and the orchestrator to terminate cleanly.
 	ch, err := c.LoadFromCheckpoint(context.Background(), src, c.DummyCheckpoint(), time.Time{}, time.Time{})
 	if err != nil {
 		t.Fatalf("LoadFromCheckpoint: %v", err)
@@ -84,8 +69,6 @@ func TestEndToEndIngestion_Through3CScheduler(t *testing.T) {
 	if len(docs) != 25 {
 		t.Fatalf("ingest: expected 25 PR documents, got %d", len(docs))
 	}
-	// Every doc should carry the private repo's group ACL — proves the
-	// connector resolved visibility once + applied it across the batch.
 	for _, d := range docs {
 		if d.IsPublic {
 			t.Fatalf("private repo doc unexpectedly IsPublic: %s", d.DocID)
@@ -95,8 +78,6 @@ func TestEndToEndIngestion_Through3CScheduler(t *testing.T) {
 		}
 	}
 
-	// 2. Permission sync — emits 25 DocExternalAccess entries (one per
-	//    PR) plus the four group rows for a private repo.
 	docPermCh, err := c.SyncDocPermissions(context.Background(), src)
 	if err != nil {
 		t.Fatalf("SyncDocPermissions: %v", err)
@@ -108,7 +89,6 @@ func TestEndToEndIngestion_Through3CScheduler(t *testing.T) {
 		}
 		accessCount++
 	}
-	// 25 PRs + 0 issues from the private repo.
 	if accessCount != 25 {
 		t.Fatalf("expected 25 perm-sync rows, got %d", accessCount)
 	}
@@ -125,8 +105,6 @@ func TestEndToEndIngestion_Through3CScheduler(t *testing.T) {
 		t.Fatalf("expected 3 groups (collab + outside + 1 team), got %d", len(groups))
 	}
 
-	// 3. Slim listing — the prune loop's input. 25 SlimDocuments, all
-	//    carrying the same ExternalAccess.
 	slimCh, err := c.ListAllSlim(context.Background(), src)
 	if err != nil {
 		t.Fatalf("ListAllSlim: %v", err)

@@ -14,23 +14,11 @@ import (
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
-// pollOverlap is how far the next poll's window-start is rewound past
-// the previous run's last_successful_index_time, so updates that
-// landed in the upstream just before our last fetch are still picked
-// up. Mirrors Onyx's POLL_CONNECTOR_OFFSET
-// (backend/onyx/background/indexing/run_docfetching.py:445).
+// pollOverlap rewinds the window-start past the previous run's
+// last_successful_index_time so updates that landed in the upstream
+// just before our last fetch are still picked up.
 const pollOverlap = 5 * time.Minute
 
-// computeIngestWindow returns the [start, end] time range the
-// connector should fetch updates within. Port of Onyx's window
-// computation at run_docfetching.py:419-451.
-//
-//	earliest = src.IndexingStart ?? epoch
-//	if fromBeginning OR src.LastSuccessfulIndexTime IS NULL:
-//	    start = earliest
-//	else:
-//	    start = max(earliest, src.LastSuccessfulIndexTime - 5min)
-//	end = now
 func computeIngestWindow(src *ragmodel.RAGSource, fromBeginning bool) (time.Time, time.Time) {
 	var earliest time.Time
 	if src.IndexingStart != nil {
@@ -47,34 +35,11 @@ func computeIngestWindow(src *ragmodel.RAGSource, fromBeginning bool) (time.Time
 	return start, end
 }
 
-// errFatalConnector wraps a fatal connector-level failure (e.g. bad
-// credentials, missing repo). The ingest handler unwraps it to mark the
-// attempt FAILED with the underlying message.
 type errFatalConnector struct{ inner error }
 
 func (e *errFatalConnector) Error() string { return e.inner.Error() }
 func (e *errFatalConnector) Unwrap() error { return e.inner }
 
-// HandleIngest is the asynq handler for TypeRagIngest. End-to-end:
-//
-//	1. Load the rag_sources row by ID.
-//	2. Look up + build the connector via the registry; type-assert
-//	   for RunnableCheckpointed.
-//	3. Open a fresh rag_index_attempts row in IN_PROGRESS state.
-//	4. Start the heartbeat goroutine; defer its stop.
-//	5. Drive Run() — drain documents into batches, push each batch
-//	   through ragclient.IngestBatch, upsert per-doc rows in Postgres,
-//	   record per-doc failures.
-//	6. On clean completion, mark the attempt SUCCESS or
-//	   COMPLETED_WITH_ERRORS, persist the final checkpoint, advance the
-//	   source's last_successful_index_time + flip
-//	   INITIAL_INDEXING → ACTIVE.
-//
-// Port of Onyx's docfetching_task at
-// backend/onyx/background/celery/tasks/docfetching/tasks.py:103-258
-// plus the docprocessing pipeline that follows it; we collapse the two
-// into one handler because the gRPC IngestBatch combines the two
-// operations server-side.
 func (d *Deps) HandleIngest(ctx context.Context, t *asynq.Task) error {
 	deps := d.withDefaults()
 	payload, err := UnmarshalIngest(t.Payload())
@@ -114,8 +79,8 @@ func (d *Deps) HandleIngest(ctx context.Context, t *asynq.Task) error {
 	return finalErr
 }
 
-// loadSource fetches the rag_sources row by ID. A missing row returns
-// asynq.SkipRetry so the worker doesn't loop on a tombstoned source.
+// A missing source returns asynq.SkipRetry so the worker doesn't loop
+// on a tombstoned row.
 func loadSource(ctx context.Context, db *gorm.DB, id uuid.UUID) (*ragmodel.RAGSource, error) {
 	var src ragmodel.RAGSource
 	if err := db.WithContext(ctx).First(&src, "id = ?", id).Error; err != nil {
@@ -127,8 +92,6 @@ func loadSource(ctx context.Context, db *gorm.DB, id uuid.UUID) (*ragmodel.RAGSo
 	return &src, nil
 }
 
-// buildConnector resolves the registered factory for the source's kind
-// and constructs the per-source connector instance.
 func buildConnector(src *ragmodel.RAGSource, deps *Deps) (interfaces.Connector, error) {
 	factory, err := interfaces.Lookup(src.SourceKind())
 	if err != nil {
@@ -141,21 +104,17 @@ func buildConnector(src *ragmodel.RAGSource, deps *Deps) (interfaces.Connector, 
 	return c, nil
 }
 
-// ingestStats accumulates counters drained from the connector channel.
-// Persisted onto the attempt row at finalisation time.
 type ingestStats struct {
-	docsSeen     int
-	docsBatched  int
-	failures     int
-	pollStart    time.Time
-	pollEnd      time.Time
+	docsSeen    int
+	docsBatched int
+	failures    int
+	pollStart   time.Time
+	pollEnd     time.Time
 }
 
-// runIngest drains the connector's document stream into batches,
-// flushes each batch through ragclient.IngestBatch, and records
-// per-doc failures into rag_index_attempt_errors. Returns a
-// non-nil error only on fatal stream-open failure or context
-// cancellation; per-doc errors are accumulated in stats.failures.
+// runIngest returns a non-nil error only on fatal stream-open failure
+// or context cancellation; per-doc errors are accumulated in
+// stats.failures.
 func runIngest(
 	ctx context.Context,
 	deps *Deps,
@@ -206,8 +165,6 @@ func runIngest(
 	return stats, nil
 }
 
-// loadCheckpointBytes returns the raw checkpoint bytes persisted on a
-// previous attempt (or empty for the first run).
 func loadCheckpointBytes(a *ragmodel.RAGIndexAttempt) []byte {
 	if a.CheckpointPointer == nil || *a.CheckpointPointer == "" {
 		return nil
@@ -215,9 +172,6 @@ func loadCheckpointBytes(a *ragmodel.RAGIndexAttempt) []byte {
 	return []byte(*a.CheckpointPointer)
 }
 
-// fatal returns the underlying error if err is an errFatalConnector
-// wrapper, otherwise nil. Used by finalizeAttempt to distinguish
-// "stream open failed" from "context cancelled".
 func fatal(err error) error {
 	if err == nil {
 		return nil

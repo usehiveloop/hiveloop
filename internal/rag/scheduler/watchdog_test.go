@@ -8,15 +8,12 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 )
 
-// TestWatchdog_FailsStaleAttempts: an in-progress attempt with a
-// last_progress_time older than the watchdog timeout must be flipped
-// to FAILED with the watchdog's error message. This is the only
-// crash-recovery path — if it doesn't fire, the source's ingest scan
-// is permanently blocked.
+// Without crash-recovery, the source's ingest scan is permanently
+// blocked by the in-flight predicate.
 func TestWatchdog_FailsStaleAttempts(t *testing.T) {
 	f := setupScheduler(t)
 	src := f.makeSource(t)
-	stale := time.Now().Add(-31 * time.Minute) // > 30 min default timeout
+	stale := time.Now().Add(-31 * time.Minute)
 	att := &ragmodel.RAGIndexAttempt{
 		OrgID:            src.OrgIDValue,
 		RAGSourceID:      src.ID,
@@ -48,8 +45,6 @@ func TestWatchdog_FailsStaleAttempts(t *testing.T) {
 	}
 }
 
-// TestWatchdog_LeavesFreshAttemptsAlone: an attempt whose heartbeat
-// was a minute ago is healthy — watchdog must not touch it.
 func TestWatchdog_LeavesFreshAttemptsAlone(t *testing.T) {
 	f := setupScheduler(t)
 	src := f.makeSource(t)

@@ -23,7 +23,7 @@ func samplePR() GithubPR {
 		User:      &GithubUser{Login: "alice", Email: "alice@example.com"},
 		Assignees: []GithubUser{
 			{Login: "bob", Email: "bob@example.com"},
-			{Login: "carol"}, // hidden email — falls back to login.
+			{Login: "carol"},
 		},
 		Labels: []GithubLabel{{Name: "bug"}, {Name: "p1"}},
 	}
@@ -119,7 +119,7 @@ func TestIssueConvertedToDocument_FieldsMatch(t *testing.T) {
 
 func TestPRConvertedToDocument_HiddenEmailFallsBackToLogin(t *testing.T) {
 	pr := samplePR()
-	pr.User = &GithubUser{Login: "alice"} // no email
+	pr.User = &GithubUser{Login: "alice"}
 	doc := prToDocument("acme/widget", pr, nil)
 	if !reflect.DeepEqual(doc.PrimaryOwners, []string{"alice"}) {
 		t.Fatalf("expected login fallback; got %v", doc.PrimaryOwners)

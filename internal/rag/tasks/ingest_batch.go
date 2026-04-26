@@ -14,10 +14,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/ragpb"
 )
 
-// flushBatch ships one batch of Documents to the rag-engine via gRPC
-// IngestBatch and upserts the local rag_documents metadata + the
-// rag_document_by_sources junction rows. Any error returned aborts the
-// run — IngestBatch failures aren't recoverable mid-run because the
+// IngestBatch failures aren't recoverable mid-run because the
 // idempotency key is per-batch and a partial server-side write can't
 // be safely re-tried in-place.
 func flushBatch(
@@ -37,11 +34,9 @@ func flushBatch(
 	return upsertDocsLocal(ctx, deps.DB, src, docs)
 }
 
-// buildIngestRequest converts the Document slice into the gRPC request.
-// The idempotency key embeds attempt ID + the first doc ID + batch
-// size so the same batch retried within the same attempt collapses
-// server-side, while a different attempt for the same docs gets its
-// own idempotency space.
+// The idempotency key embeds attempt ID + first doc ID + batch size so
+// retries within the same attempt collapse server-side while a
+// different attempt gets its own idempotency space.
 func buildIngestRequest(
 	deps *Deps,
 	src *ragmodel.RAGSource,
@@ -62,7 +57,6 @@ func buildIngestRequest(
 	}
 }
 
-// toPBDocument converts a connector-side Document to the gRPC shape.
 func toPBDocument(d *interfaces.Document) *ragpb.DocumentToIngest {
 	pb := &ragpb.DocumentToIngest{
 		DocId:           d.DocID,
@@ -87,10 +81,7 @@ func toPBDocument(d *interfaces.Document) *ragpb.DocumentToIngest {
 	return pb
 }
 
-// upsertDocsLocal writes the local rag_documents rows + the
-// rag_document_by_sources junction rows. Mirrors what Onyx's
-// upsert_documents() does at backend/onyx/db/document.py — without it
-// the prune loop has nothing to diff against.
+// Without these local rows the prune loop has nothing to diff against.
 func upsertDocsLocal(
 	ctx context.Context,
 	db *gorm.DB,
@@ -106,7 +97,7 @@ func upsertDocsLocal(
 				OrgID:                src.OrgIDValue,
 				SemanticID:           d.SemanticID,
 				Link:                 strPtr(d.Link),
-				ExternalUserEmails:   pq.StringArray(d.ACL), // opaque tokens stored as emails
+				ExternalUserEmails:   pq.StringArray(d.ACL),
 				ExternalUserGroupIDs: nil,
 				IsPublic:             d.IsPublic,
 				LastModified:         now,

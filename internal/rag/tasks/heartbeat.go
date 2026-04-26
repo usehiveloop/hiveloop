@@ -12,32 +12,17 @@ import (
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
-// startHeartbeat launches a goroutine that periodically updates the
-// last_heartbeat_time / heartbeat_counter columns on the supplied
-// RAGIndexAttempt, plus last_progress_time when the caller reports any
-// new completed work via touchProgress(). Returns a stop function that
-// blocks until the goroutine has exited so callers can guarantee no
-// further writes after they finalise the row.
-//
-// Direct port of the heartbeat loop in Onyx's docfetching_proxy_task at
-// backend/onyx/background/celery/tasks/docfetching/tasks.py:312-682.
-// Onyx uses Redis fencing for the same role; we use the columns
-// already on the row (the watchdog reads last_progress_time directly).
-//
-// The stop function is idempotent — safe to call from defer plus an
-// explicit success path.
+// stop is idempotent — safe to call from defer plus an explicit
+// success path. It blocks until the goroutine exits so callers can
+// guarantee no further writes after they finalise the row.
 type heartbeatHandle struct {
 	progress  atomic.Bool
 	stopFn    func()
 	stoppedCh chan struct{}
 }
 
-// touchProgress signals that some forward progress was made (a batch
-// completed, a document was upserted). The next heartbeat tick will
-// include `last_progress_time = NOW()` in its UPDATE.
 func (h *heartbeatHandle) touchProgress() { h.progress.Store(true) }
 
-// stop terminates the heartbeat goroutine and waits for it to exit.
 func (h *heartbeatHandle) stop() {
 	if h == nil || h.stopFn == nil {
 		return
@@ -75,12 +60,9 @@ func startHeartbeat(
 	return h
 }
 
-// writeHeartbeat issues the UPDATE that bumps the heartbeat columns.
-// When progress is true, last_progress_time is also bumped — that's
-// the column the watchdog reads. The two are decoupled so a
-// long-running fetch with no per-doc progress still surfaces as
-// "alive" via heartbeat_counter, and the operator can distinguish
-// "stalled producer" from "dead worker".
+// last_heartbeat_time and last_progress_time are decoupled so a
+// long-running fetch with no per-doc progress still surfaces as alive
+// via heartbeat_counter; the watchdog reads last_progress_time only.
 func writeHeartbeat(ctx context.Context, db *gorm.DB, attemptID uuid.UUID, progress bool) {
 	now := time.Now()
 	updates := map[string]any{

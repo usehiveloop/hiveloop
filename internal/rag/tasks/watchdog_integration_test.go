@@ -9,15 +9,9 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 )
 
-// TestWatchdogIntegration_PicksUpDeadWorker exercises the full
-// crash-recovery path: an ingest run starts, the goroutine driving it
-// is cancelled mid-stream, the attempt is left IN_PROGRESS with a
-// stale last_progress_time, and the watchdog scan converts it to
-// FAILED so the next ingest scan can re-eligibility the source.
-//
-// We forge the staleness by manually backdating last_progress_time to
-// before the watchdog timeout — exercising the same SQL path the real
-// watchdog uses without sleeping for 30 minutes.
+// Verifies the full crash-recovery path: a cancelled run leaves the
+// attempt IN_PROGRESS with a stale last_progress_time, and the
+// watchdog flips it to FAILED so the next ingest scan can re-enqueue.
 func TestWatchdogIntegration_PicksUpDeadWorker(t *testing.T) {
 	f := setupTask(t)
 	kind := nextStubKind()
@@ -28,23 +22,18 @@ func TestWatchdogIntegration_PicksUpDeadWorker(t *testing.T) {
 	registerStub(kind, stub)
 	src := f.makeSource(t, kind)
 
-	// Start the handler with a context we can cancel mid-flight.
 	ctx, cancel := context.WithCancel(context.Background())
 	doneCh := make(chan error, 1)
 	go func() {
 		doneCh <- f.runIngestNow(ctx, t, src.ID)
 	}()
-	// Give the connector enough time to emit a few docs and create
-	// the attempt row.
 	time.Sleep(120 * time.Millisecond)
 	cancel()
 	<-doneCh
 
-	// Find the attempt the cancelled run opened, force its progress
-	// timestamp to "stale", and re-mark it as in_progress (the cancel
-	// path may have left it in a finalised state — we want to test
-	// the watchdog's behaviour against an attempt that the worker
-	// never finalised, which is the real-world crash signature).
+	// Re-mark in_progress: the cancel path may have finalised the
+	// attempt, but we want to assert the watchdog's behaviour against
+	// the real-world crash signature where no finalisation ran.
 	att := reloadAttempt(t, f.DB, src.ID)
 	stale := time.Now().Add(-90 * time.Minute)
 	if err := f.DB.Model(&ragmodel.RAGIndexAttempt{}).
