@@ -11964,6 +11964,9 @@
               "$ref": "#/components/schemas/agentSkillSummary"
             }
           },
+          "avatar_url": {
+            "type": "string"
+          },
           "created_at": {
             "type": "string"
           },
@@ -12425,6 +12428,9 @@
         "properties": {
           "agent_config": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "avatar_url": {
+            "type": "string"
           },
           "credential_id": {
             "type": "string"
@@ -14707,6 +14713,9 @@
         "properties": {
           "agent_config": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "avatar_url": {
+            "type": "string"
           },
           "credential_id": {
             "type": "string"

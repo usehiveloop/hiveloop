@@ -64,6 +64,7 @@ type agentTriggerResponse struct {
 type createAgentRequest struct {
 	Name              string              `json:"name"`
 	Description       *string             `json:"description,omitempty"`
+	AvatarURL         *string             `json:"avatar_url,omitempty"`
 	CredentialID      string              `json:"credential_id"`
 	SandboxTemplateID *string             `json:"sandbox_template_id,omitempty"`
 	SystemPrompt      string              `json:"system_prompt"`
@@ -88,6 +89,7 @@ type createAgentRequest struct {
 type updateAgentRequest struct {
 	Name              *string              `json:"name,omitempty"`
 	Description       *string              `json:"description,omitempty"`
+	AvatarURL         *string              `json:"avatar_url,omitempty"`
 	CredentialID      *string              `json:"credential_id,omitempty"`
 	SandboxTemplateID *string              `json:"sandbox_template_id,omitempty"`
 	SystemPrompt      *string              `json:"system_prompt,omitempty"`
@@ -136,6 +138,7 @@ type agentResponse struct {
 	ID                string                 `json:"id"`
 	Name              string                 `json:"name"`
 	Description       *string                `json:"description,omitempty"`
+	AvatarURL         *string                `json:"avatar_url,omitempty"`
 	CredentialID      string                 `json:"credential_id"`
 	ProviderID        string                 `json:"provider_id"`
 	SandboxTemplateID *string                `json:"sandbox_template_id,omitempty"`
@@ -166,6 +169,7 @@ func toAgentResponse(a model.Agent) agentResponse {
 		ID:           a.ID.String(),
 		Name:         a.Name,
 		Description:  a.Description,
+		AvatarURL:    a.AvatarURL,
 		SystemPrompt:    a.SystemPrompt,
 		ProviderPrompts: a.ProviderPrompts,
 		Instructions:    a.Instructions,

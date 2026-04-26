@@ -16,6 +16,33 @@ type ProviderPromptConfig struct {
 // driver.Valuer and sql.Scanner so GORM can read/write it directly.
 type ProviderPromptsMap map[string]ProviderPromptConfig
 
+// validProviderGroups mirrors the groups returned by
+// subagents.MapProviderToGroup. Kept here to avoid an import cycle into
+// internal/sub-agents from internal/model.
+var validProviderGroups = map[string]bool{
+	"anthropic": true,
+	"openai":    true,
+	"gemini":    true,
+	"kimi":      true,
+	"minimax":   true,
+	"glm":       true,
+}
+
+// Validate reports the first problem with the map: an unknown provider group
+// key, or an entry with an empty system_prompt. Returns "" when the map is
+// nil/empty or every entry is well-formed.
+func (m ProviderPromptsMap) Validate() string {
+	for group, config := range m {
+		if !validProviderGroups[group] {
+			return fmt.Sprintf("unknown provider group %q in provider_prompts", group)
+		}
+		if config.SystemPrompt == "" {
+			return fmt.Sprintf("provider_prompts[%q]: system_prompt is required", group)
+		}
+	}
+	return ""
+}
+
 func (m ProviderPromptsMap) Value() (driver.Value, error) {
 	if m == nil {
 		return "{}", nil
