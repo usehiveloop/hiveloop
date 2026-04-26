@@ -14,6 +14,8 @@ import (
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
+const defaultRefreshFreqSeconds = 600
+
 type createRAGSourceRequest struct {
 	Kind                string     `json:"kind"`
 	Name                string     `json:"name"`
@@ -70,6 +72,14 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	refresh := req.RefreshFreqSeconds
+	if refresh == nil {
+		// Default cadence keeps the source on the scheduler; the
+		// selector skips sources with refresh_freq_seconds = NULL.
+		d := defaultRefreshFreqSeconds
+		refresh = &d
+	}
+
 	src := &ragmodel.RAGSource{
 		ID:                  uuid.New(),
 		OrgIDValue:          org.ID,
@@ -79,7 +89,7 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Enabled:             true,
 		ConfigValue:         req.Config,
 		AccessType:          access,
-		RefreshFreqSeconds:  req.RefreshFreqSeconds,
+		RefreshFreqSeconds:  refresh,
 		PruneFreqSeconds:    req.PruneFreqSeconds,
 		PermSyncFreqSeconds: req.PermSyncFreqSeconds,
 		CreatorID:           &user.ID,
