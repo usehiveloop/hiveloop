@@ -30,8 +30,6 @@ func TestCheckpoint_MarshalRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unmarshalCheckpoint: %v", err)
 	}
-	// Time round-trip is byte-exact when both ends use UTC; the JSON
-	// tag on the field uses RFC3339Nano so this holds.
 	if !reflect.DeepEqual(got, original) {
 		t.Fatalf("round-trip mismatch:\n got = %+v\n want = %+v", got, original)
 	}

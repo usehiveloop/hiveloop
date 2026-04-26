@@ -87,9 +87,6 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		Credits:      deps.Credits,
 		Enqueuer:     enqueuer,
 		RagScheduler: ragSched,
-		// Rag is left nil when no rag-engine endpoint is configured;
-		// the four scan handlers run on their own and enqueue tasks
-		// for whatever per-source handlers are registered.
 	}
 
 	mux := tasks.NewServeMux(workerDeps)

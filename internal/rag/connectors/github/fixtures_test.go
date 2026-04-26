@@ -16,14 +16,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
 )
 
-// fakeProxy is the test-side implementation of proxyClient. It serves
-// pre-recorded JSON keyed on (method, path, page) and supports two
-// deliberately-injected failure modes used by the failure tests:
-//
-//   - injectRateLimit(n): the next n calls return 403 with the
-//     X-RateLimit-* headers populated.
-//   - injectMalformed(method, path, page): the next matching call
-//     returns invalid JSON, exercising per-page failure paths.
 type fakeProxy struct {
 	mu          sync.Mutex
 	pages       map[string][]byte
@@ -34,12 +26,9 @@ type fakeProxy struct {
 	malformed   map[string]bool
 	calls       []string
 
-	// handleCollaborators, when set, is used to dispatch
-	// /collaborators?affiliation=... on a per-affiliation basis. The
-	// connector calls the same URL twice with different `affiliation`
-	// values and the fake proxy needs to return different bodies. Tests
-	// that don't care about this distinction leave it nil and use
-	// addPage/addDefault.
+	// handleCollaborators dispatches /collaborators?affiliation=… per
+	// affiliation. The connector hits the same URL with different
+	// affiliation values and the fake needs to return distinct bodies.
 	handleCollaborators func(affiliation string) []byte
 }
 
@@ -52,8 +41,6 @@ func newFakeProxy() *fakeProxy {
 	}
 }
 
-// addPage registers a response for a paginated endpoint. nextPage > 0
-// populates a Link header advertising rel="next".
 func (f *fakeProxy) addPage(method, path string, pageNumber int, body []byte, nextPage int) {
 	key := pageKey(method, path, pageNumber)
 	f.pages[key] = body
@@ -64,24 +51,19 @@ func (f *fakeProxy) addPage(method, path string, pageNumber int, body []byte, ne
 	f.headers[key] = hdr
 }
 
-// addDefault registers a non-paginated response.
 func (f *fakeProxy) addDefault(method, path string, body []byte) {
 	f.defaults[method+" "+path] = body
 }
 
-// injectRateLimit sets the next n calls to return 403 + RateLimit headers.
 func (f *fakeProxy) injectRateLimit(n int) {
 	f.rateLimitN = n
 	f.rateLimitAt = time.Now().Add(50 * time.Millisecond)
 }
 
-// injectMalformed marks the next hit on (method, path, page) to return
-// invalid JSON.
 func (f *fakeProxy) injectMalformed(method, path string, pageNumber int) {
 	f.malformed[pageKey(method, path, pageNumber)] = true
 }
 
-// Do implements proxyClient.
 func (f *fakeProxy) Do(
 	_ context.Context, method, path string, query url.Values,
 ) (int, http.Header, []byte, error) {
@@ -136,7 +118,6 @@ func cloneHeader(h http.Header) http.Header {
 	return clone
 }
 
-// fixtureSource implements interfaces.Source for a config map.
 type fixtureSource struct {
 	cfg json.RawMessage
 }
@@ -146,7 +127,6 @@ func (s *fixtureSource) OrgID() string           { return "org-fixture" }
 func (s *fixtureSource) SourceKind() string      { return Kind }
 func (s *fixtureSource) Config() json.RawMessage { return s.cfg }
 
-// makePR / makeIssue / makeRepo build minimal fixture entities.
 func makePR(num int, state string, updated time.Time) GithubPR {
 	return GithubPR{
 		ID:        int64(num) * 100,
@@ -189,8 +169,6 @@ func makeRepo(visibility string) GithubRepo {
 	}
 }
 
-// mustMarshal is a fixture-builder convenience. JSON failures here are
-// programming errors — tests fail fast.
 func mustMarshal(t *testing.T, v any) []byte {
 	t.Helper()
 	b, err := json.Marshal(v)
@@ -200,9 +178,6 @@ func mustMarshal(t *testing.T, v any) []byte {
 	return b
 }
 
-// drainIngest collects every DocumentOrFailure from a connector channel
-// with a 5s timeout — long enough for any retry path, short enough that
-// a hung test still finishes.
 func drainIngest(t *testing.T, ch <-chan interfaces.DocumentOrFailure,
 ) (docs []*interfaces.Document, fails []*interfaces.ConnectorFailure) {
 	t.Helper()
@@ -224,7 +199,6 @@ func drainIngest(t *testing.T, ch <-chan interfaces.DocumentOrFailure,
 	}
 }
 
-// drainSlim is the SlimDocOrFailure twin of drainIngest.
 func drainSlim(t *testing.T, ch <-chan interfaces.SlimDocOrFailure,
 ) (slims []*interfaces.SlimDocument, fails []*interfaces.ConnectorFailure) {
 	t.Helper()
@@ -246,7 +220,6 @@ func drainSlim(t *testing.T, ch <-chan interfaces.SlimDocOrFailure,
 	}
 }
 
-// drainGroups is the ExternalGroupOrFailure twin.
 func drainGroups(t *testing.T, ch <-chan interfaces.ExternalGroupOrFailure,
 ) (groups []*interfaces.ExternalGroup, fails []*interfaces.ConnectorFailure) {
 	t.Helper()
@@ -268,10 +241,8 @@ func drainGroups(t *testing.T, ch <-chan interfaces.ExternalGroupOrFailure,
 	}
 }
 
-// hasSubstring is a small convenience used by failure-message asserts.
 func hasSubstring(haystack, needle string) bool {
 	return strings.Contains(haystack, needle)
 }
 
-// repoFullName is the canonical fixture under test.
 const repoFullName = "acme/widget"

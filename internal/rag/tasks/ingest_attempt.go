@@ -13,11 +13,6 @@ import (
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
-// openAttempt inserts a fresh rag_index_attempts row in IN_PROGRESS
-// state. The HeartbeatCounter / LastHeartbeatTime fields stay zero/null
-// until the heartbeat goroutine ticks for the first time. CheckpointPointer
-// is copied from the latest non-terminal attempt for the same source so
-// the connector can resume mid-stream.
 func openAttempt(
 	ctx context.Context,
 	db *gorm.DB,
@@ -34,9 +29,8 @@ func openAttempt(
 		TimeStarted:      &now,
 	}
 	if !fromBeginning {
-		// Inherit checkpoint from the most recent terminal attempt for
-		// this source, if any. Without this, a crashed attempt cannot
-		// resume from where it left off.
+		// Without inheriting the prior attempt's checkpoint a crashed
+		// run cannot resume from where it left off.
 		if cp := lastCheckpointPointer(ctx, db, src.ID); cp != "" {
 			a.CheckpointPointer = &cp
 		}
@@ -47,9 +41,6 @@ func openAttempt(
 	return a, nil
 }
 
-// lastCheckpointPointer returns the CheckpointPointer of the most
-// recent terminal attempt for the source, or "" if none exists. Used
-// by openAttempt to seed the checkpoint resume.
 func lastCheckpointPointer(ctx context.Context, db *gorm.DB, sourceID uuid.UUID) string {
 	var cp *string
 	if err := db.WithContext(ctx).
@@ -66,18 +57,6 @@ func lastCheckpointPointer(ctx context.Context, db *gorm.DB, sourceID uuid.UUID)
 	return *cp
 }
 
-// finalizeAttempt closes out the attempt row and (on success) advances
-// the source's bookkeeping columns. Called exactly once per HandleIngest
-// invocation, after the heartbeat goroutine has been signalled to stop.
-//
-// Decision matrix:
-//
-//	runErr is fatal       → status=FAILED,   error_msg=runErr
-//	stats.failures > 0    → status=COMPLETED_WITH_ERRORS
-//	otherwise             → status=SUCCESS
-//
-// On non-failure, advances source.LastSuccessfulIndexTime and flips
-// INITIAL_INDEXING → ACTIVE per Onyx parity.
 func finalizeAttempt(
 	ctx context.Context,
 	db *gorm.DB,
@@ -107,9 +86,7 @@ func finalizeAttempt(
 	}
 	updates["status"] = terminal
 
-	// Persist the connector's final checkpoint, if it produced one and
-	// the run did not fail outright. A failed run keeps the previous
-	// checkpoint so the next attempt can resume.
+	// A failed run keeps the previous checkpoint so the next attempt can resume.
 	if runErr == nil && runnable != nil {
 		if cp, err := runnable.FinalCheckpoint(); err == nil && len(cp) > 0 {
 			s := string(cp)
@@ -125,8 +102,8 @@ func finalizeAttempt(
 	}
 
 	if terminal == ragmodel.IndexingStatusFailed {
-		// Source's status is unchanged so the next scan tick can pick
-		// it up. Onyx parity: a failed attempt does not pause the source.
+		// A failed attempt does not pause the source; the next scan
+		// tick can pick it up.
 		return runErr
 	}
 
@@ -146,10 +123,8 @@ func finalizeAttempt(
 	return nil
 }
 
-// recordAttemptError persists a per-doc / per-entity failure into
-// rag_index_attempt_errors. Errors writing the error row are logged
-// (we don't fail the whole attempt over an error-log INSERT failure,
-// but we make the failure visible).
+// We don't fail the whole attempt over an error-log INSERT failure,
+// but we surface it via Warn.
 func recordAttemptError(
 	ctx context.Context,
 	db *gorm.DB,

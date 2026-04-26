@@ -7,10 +7,6 @@ import (
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
-// computeIngestWindow ports Onyx's run_docfetching.py:419-451 window
-// logic. These tests pin the four interesting cases that cover the
-// per-source ingest cadence.
-
 func TestComputeIngestWindow_NoIndexingStartNoLastSuccess(t *testing.T) {
 	src := &ragmodel.RAGSource{}
 	start, end := computeIngestWindow(src, false)
@@ -34,7 +30,7 @@ func TestComputeIngestWindow_LastSuccessRewindsByOverlap(t *testing.T) {
 
 func TestComputeIngestWindow_IndexingStartFloorsTheRewind(t *testing.T) {
 	indexingStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	last := time.Date(2026, 1, 1, 0, 1, 0, 0, time.UTC) // last - 5min would land before indexingStart
+	last := time.Date(2026, 1, 1, 0, 1, 0, 0, time.UTC)
 	src := &ragmodel.RAGSource{
 		IndexingStart:           &indexingStart,
 		LastSuccessfulIndexTime: &last,

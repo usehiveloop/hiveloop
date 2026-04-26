@@ -16,21 +16,15 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
 
-// schedulerFixture bundles the per-test infrastructure: a real DB
-// connection, a real Asynq client, and a real Inspector. The org and
-// in-connection rows are set up so the source can FK-resolve.
 type schedulerFixture struct {
-	DB    *gorm.DB
-	Org   *model.Org
-	Conn  *model.InConnection
-	Cfg   scheduler.Config
-	Enq   *enqueueClient
-	Insp  *asynq.Inspector
+	DB   *gorm.DB
+	Org  *model.Org
+	Conn *model.InConnection
+	Cfg  scheduler.Config
+	Enq  *enqueueClient
+	Insp *asynq.Inspector
 }
 
-// enqueueClient is a thin wrapper used by tests so we can both feed
-// the scheduler an enqueue.TaskEnqueuer and reach into the underlying
-// asynq Inspector for assertions.
 type enqueueClient struct {
 	*asynq.Client
 }
@@ -72,13 +66,10 @@ func setupScheduler(t *testing.T) *schedulerFixture {
 	}
 }
 
-// makeSource inserts a RAGSource with the supplied overrides applied.
-// Returns the row so tests can refer back to its ID. Cleanup is hooked
-// to the org cleanup via the cascade.
 func (f *schedulerFixture) makeSource(t *testing.T, opts ...sourceOpt) *ragmodel.RAGSource {
 	t.Helper()
 	// Each call gets a fresh InConnection so sources don't collide on
-	// the partial unique index uq_rag_sources_in_connection.
+	// uq_rag_sources_in_connection.
 	conn := freshInConnection(t, f.DB, f.Org.ID, f.Conn.UserID, f.Conn.InIntegrationID)
 	connID := conn.ID
 	src := &ragmodel.RAGSource{
@@ -90,15 +81,12 @@ func (f *schedulerFixture) makeSource(t *testing.T, opts ...sourceOpt) *ragmodel
 		InConnectionID: &connID,
 		AccessType:     ragmodel.AccessTypePrivate,
 	}
-	// Default: refresh every 60s; null disables ingest. Tests override
-	// where needed.
 	defaultRefresh := 60
 	src.RefreshFreqSeconds = &defaultRefresh
 	for _, o := range opts {
 		o(src)
 	}
-	// Enforce the integration<->in_connection check constraint: a
-	// non-INTEGRATION kind must have a null in_connection_id.
+	// Non-INTEGRATION kinds must have a null in_connection_id (CHECK).
 	if src.KindValue != ragmodel.RAGSourceKindIntegration {
 		src.InConnectionID = nil
 	}
@@ -106,9 +94,8 @@ func (f *schedulerFixture) makeSource(t *testing.T, opts ...sourceOpt) *ragmodel
 	if err := f.DB.Create(src).Error; err != nil {
 		t.Fatalf("create rag source: %v", err)
 	}
-	// gorm's "not null;default:true" causes Enabled=false to be skipped
-	// from the INSERT, so the column default wins. Force the desired
-	// value with an explicit UPDATE post-insert.
+	// gorm's "not null;default:true" skips Enabled=false from the
+	// INSERT, so the column default wins; force-update post-insert.
 	if !wantEnabled {
 		if err := f.DB.Model(&ragmodel.RAGSource{}).
 			Where("id = ?", src.ID).
@@ -138,9 +125,6 @@ func withEnabled(b bool) sourceOpt {
 	return func(s *ragmodel.RAGSource) { s.Enabled = b }
 }
 func withKind(k string) sourceOpt {
-	// The model column is a typed RAGSourceKind enum. For tests where
-	// we want to associate a stub-connector kind, we override the
-	// in-DB string directly via a hook below.
 	return func(s *ragmodel.RAGSource) { s.KindValue = ragmodel.RAGSourceKind(k) }
 }
 func withAccessType(a ragmodel.AccessType) sourceOpt {
@@ -159,21 +143,15 @@ func withLastPruned(t time.Time) sourceOpt {
 	return func(s *ragmodel.RAGSource) { s.LastPruned = &t }
 }
 
-// queueDepth returns Pending + Active for the rag work queue. Asynq's
-// Unique blocks on Pending only, so a duplicate scan tick that lands
-// on a still-Pending task is what these tests exercise.
 func (f *schedulerFixture) queueDepth(t *testing.T) int {
 	t.Helper()
 	info, err := f.Insp.GetQueueInfo(ragtasks.QueueRagWork)
 	if err != nil {
-		// Empty queue is reported as not-found; treat as 0.
 		return 0
 	}
 	return info.Pending + info.Active + info.Scheduled
 }
 
-// pendingTaskTypes returns the type strings of every pending task in
-// the rag work queue.
 func (f *schedulerFixture) pendingTaskTypes(t *testing.T) []string {
 	t.Helper()
 	tasks, err := f.Insp.ListPendingTasks(ragtasks.QueueRagWork)
@@ -187,12 +165,8 @@ func (f *schedulerFixture) pendingTaskTypes(t *testing.T) []string {
 	return out
 }
 
-// minutesAgo is a tiny helper for "now - N minutes".
 func minutesAgo(n int) time.Time { return time.Now().Add(-time.Duration(n) * time.Minute) }
 
-// freshInConnection creates a new InConnection for the given org/user/integration
-// so each makeSource call gets a unique target for the partial unique
-// index uq_rag_sources_in_connection.
 func freshInConnection(t *testing.T, db *gorm.DB, orgID, userID, integID uuid.UUID) *model.InConnection {
 	t.Helper()
 	suffix := uuid.New().String()[:8]
@@ -209,5 +183,4 @@ func freshInConnection(t *testing.T, db *gorm.DB, orgID, userID, integID uuid.UU
 	return conn
 }
 
-// ctxBg is a one-liner for tests that don't care about cancellation.
 func ctxBg() context.Context { return context.Background() }

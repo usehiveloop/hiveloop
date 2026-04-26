@@ -22,14 +22,11 @@ func makePermFixture(t *testing.T, visibility string) (*GithubConnector, *fakePr
 func TestPermSync_PublicRepoIsPublic(t *testing.T) {
 	c, fp := makePermFixture(t, "public")
 
-	// Need an empty PR + Issue page for SyncDocPermissions to terminate.
 	fp.addPage("GET", "/repos/"+repoFullName+"/pulls", 1, []byte(`[]`), 0)
 	fp.addPage("GET", "/repos/"+repoFullName+"/issues", 1, []byte(`[]`), 0)
 
 	src := &fixtureSource{cfg: json.RawMessage(`{"repo_owner":"acme"}`)}
 
-	// Per-doc ACL: public repo means IsPublic=true on every doc — so
-	// "no PRs/issues" still produces no failures.
 	docCh, err := c.SyncDocPermissions(context.Background(), src)
 	if err != nil {
 		t.Fatalf("SyncDocPermissions: %v", err)
@@ -40,7 +37,6 @@ func TestPermSync_PublicRepoIsPublic(t *testing.T) {
 		}
 	}
 
-	// Group enumeration: public repo emits zero groups.
 	groupCh, err := c.SyncExternalGroups(context.Background(), src)
 	if err != nil {
 		t.Fatalf("SyncExternalGroups: %v", err)
@@ -57,7 +53,6 @@ func TestPermSync_PublicRepoIsPublic(t *testing.T) {
 func TestPermSync_PrivateRepoEnumeratesGroups(t *testing.T) {
 	c, fp := makePermFixture(t, "private")
 
-	// 3 direct collaborators, 1 outside, 2 teams.
 	directs := []GithubUser{
 		{ID: 11, Login: "alice", Email: "alice@example.com"},
 		{ID: 12, Login: "bob", Email: "bob@example.com"},
@@ -71,17 +66,9 @@ func TestPermSync_PrivateRepoEnumeratesGroups(t *testing.T) {
 	teamMembers := []GithubUser{{ID: 21, Login: "eve", Email: "eve@example.com"}}
 
 	fp.addPage("GET", "/repos/"+repoFullName+"/collaborators", 1, mustMarshal(t, directs), 0)
-	// The connector calls /collaborators twice with different affiliation
-	// values; both share the same path key in the fake. Override the
-	// second call with the outside list by re-registering — works
-	// because we drain in order.
-	// Simpler: register both via a tiny dispatcher map keyed on
-	// affiliation. The fakeProxy doesn't key on query; for this test we
-	// inline a lightweight middleware that picks the right slice based
-	// on the current call counter.
 	calls := 0
 	fp.addDefault("GET", "/repos/"+repoFullName+"/collaborators",
-		mustMarshal(t, directs)) // initial registration; overridden below.
+		mustMarshal(t, directs))
 	fp.handleCollaborators = func(affiliation string) []byte {
 		calls++
 		if affiliation == "direct" {
@@ -104,8 +91,6 @@ func TestPermSync_PrivateRepoEnumeratesGroups(t *testing.T) {
 		t.Fatalf("unexpected failures: %+v", fails)
 	}
 
-	// Private branch emits 4 groups: collaborators, outside-collaborators,
-	// + 2 teams. (utils.py:249-277)
 	if len(groups) != 4 {
 		t.Fatalf("expected 4 private-repo groups, got %d (%+v)", len(groups), groups)
 	}

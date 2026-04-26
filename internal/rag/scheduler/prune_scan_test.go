@@ -7,24 +7,17 @@ import (
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
 
-// TestPruneScan_GatedByLastPruned: a source whose last_pruned +
-// prune_freq_seconds is in the past gets a rag:prune task; one that
-// was just pruned does not. CapabilityCheck is bypassed via an
-// always-true probe so we exercise only the timing predicate.
 func TestPruneScan_GatedByLastPruned(t *testing.T) {
 	f := setupScheduler(t)
 	freq := 60
-	// Due: last_pruned 10m ago.
 	due := f.makeSource(t,
 		withPruneFreq(&freq),
 		withLastPruned(minutesAgo(10)),
 	)
-	// Not due: last_pruned just now-ish.
 	_ = f.makeSource(t,
 		withPruneFreq(&freq),
 		withLastPruned(minutesAgo(0)),
 	)
-	// No prune freq: must be skipped regardless.
 	_ = f.makeSource(t,
 		withPruneFreq(nil),
 		withLastPruned(minutesAgo(120)),
