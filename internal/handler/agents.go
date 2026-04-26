@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"time"
 
 	"gorm.io/gorm"
@@ -11,25 +10,18 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/registry"
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
-
-type AgentPusher interface {
-	PushAgent(ctx context.Context, agent *model.Agent) error
-	RemoveAgent(ctx context.Context, agent *model.Agent) error
-}
 
 type AgentHandler struct {
 	db             *gorm.DB
 	registry       *registry.Registry
-	pusher         AgentPusher
 	encKey         *crypto.SymmetricKey
 	enqueuer       enqueue.TaskEnqueuer
 	actionsCatalog *catalog.Catalog
 }
 
-func NewAgentHandler(db *gorm.DB, reg *registry.Registry, pusher AgentPusher, encKey *crypto.SymmetricKey, enqueuer ...enqueue.TaskEnqueuer) *AgentHandler {
-	h := &AgentHandler{db: db, registry: reg, pusher: pusher, encKey: encKey}
+func NewAgentHandler(db *gorm.DB, reg *registry.Registry, encKey *crypto.SymmetricKey, enqueuer ...enqueue.TaskEnqueuer) *AgentHandler {
+	h := &AgentHandler{db: db, registry: reg, encKey: encKey}
 	if len(enqueuer) > 0 {
 		h.enqueuer = enqueuer[0]
 	}
@@ -39,8 +31,6 @@ func NewAgentHandler(db *gorm.DB, reg *registry.Registry, pusher AgentPusher, en
 func (h *AgentHandler) SetCatalog(c *catalog.Catalog) {
 	h.actionsCatalog = c
 }
-
-var _ AgentPusher = (*sandbox.Pusher)(nil)
 
 // agentTriggerInput defines a trigger to create alongside the agent.
 // Each entry creates a RouterTrigger + RoutingRule that automatically invokes
@@ -75,7 +65,6 @@ type createAgentRequest struct {
 	Name              string              `json:"name"`
 	Description       *string             `json:"description,omitempty"`
 	CredentialID      string              `json:"credential_id"`
-	SandboxType       string              `json:"sandbox_type"`
 	SandboxTemplateID *string             `json:"sandbox_template_id,omitempty"`
 	SystemPrompt      string              `json:"system_prompt"`
 	ProviderPrompts   model.ProviderPromptsMap `json:"provider_prompts,omitempty"`
@@ -100,7 +89,6 @@ type updateAgentRequest struct {
 	Name              *string              `json:"name,omitempty"`
 	Description       *string              `json:"description,omitempty"`
 	CredentialID      *string              `json:"credential_id,omitempty"`
-	SandboxType       *string              `json:"sandbox_type,omitempty"`
 	SandboxTemplateID *string              `json:"sandbox_template_id,omitempty"`
 	SystemPrompt      *string              `json:"system_prompt,omitempty"`
 	ProviderPrompts   model.ProviderPromptsMap  `json:"provider_prompts,omitempty"`
@@ -150,8 +138,6 @@ type agentResponse struct {
 	Description       *string                `json:"description,omitempty"`
 	CredentialID      string                 `json:"credential_id"`
 	ProviderID        string                 `json:"provider_id"`
-	SandboxType       string                 `json:"sandbox_type"`
-	SandboxID         *string                `json:"sandbox_id,omitempty"`
 	SandboxTemplateID *string                `json:"sandbox_template_id,omitempty"`
 	SystemPrompt      string                 `json:"system_prompt"`
 	ProviderPrompts   model.ProviderPromptsMap    `json:"provider_prompts"`
@@ -180,7 +166,6 @@ func toAgentResponse(a model.Agent) agentResponse {
 		ID:           a.ID.String(),
 		Name:         a.Name,
 		Description:  a.Description,
-		SandboxType:  a.SandboxType,
 		SystemPrompt:    a.SystemPrompt,
 		ProviderPrompts: a.ProviderPrompts,
 		Instructions:    a.Instructions,
@@ -202,10 +187,6 @@ func toAgentResponse(a model.Agent) agentResponse {
 	if a.CredentialID != nil {
 		resp.CredentialID = a.CredentialID.String()
 	}
-	if a.SandboxID != nil {
-		s := a.SandboxID.String()
-		resp.SandboxID = &s
-	}
 	if a.SandboxTemplateID != nil {
 		s := a.SandboxTemplateID.String()
 		resp.SandboxTemplateID = &s
@@ -214,9 +195,4 @@ func toAgentResponse(a model.Agent) agentResponse {
 		resp.ProviderID = a.Credential.ProviderID
 	}
 	return resp
-}
-
-var validSandboxTypes = map[string]bool{
-	"dedicated": true,
-	"shared":    true,
 }

@@ -113,7 +113,6 @@ func (h *AdminHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		Name              *string    `json:"name,omitempty"`
 		Description       *string    `json:"description,omitempty"`
 		CredentialID      *string    `json:"credential_id,omitempty"`
-		SandboxType       *string    `json:"sandbox_type,omitempty"`
 		SandboxTemplateID *string    `json:"sandbox_template_id,omitempty"`
 		SystemPrompt      *string    `json:"system_prompt,omitempty"`
 		Model             *string    `json:"model,omitempty"`
@@ -157,14 +156,6 @@ func (h *AdminHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		updates["status"] = *req.Status
-	}
-
-	if req.SandboxType != nil {
-		if *req.SandboxType != "dedicated" && *req.SandboxType != "shared" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "sandbox_type must be 'dedicated' or 'shared'"})
-			return
-		}
-		updates["sandbox_type"] = *req.SandboxType
 	}
 
 	// Validate credential if changing
@@ -237,7 +228,7 @@ func (h *AdminHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 
 	old := map[string]any{
 		"name": agent.Name, "description": agent.Description, "model": agent.Model,
-		"system_prompt": agent.SystemPrompt, "sandbox_type": agent.SandboxType, "status": agent.Status,
+		"system_prompt": agent.SystemPrompt, "status": agent.Status,
 		"credential_id": agent.CredentialID.String(), "team": agent.Team, "shared_memory": agent.SharedMemory,
 	}
 	setAuditDiff(r, old, updates)

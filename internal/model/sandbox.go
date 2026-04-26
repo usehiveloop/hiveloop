@@ -8,9 +8,8 @@ import (
 
 type Sandbox struct {
 	ID                uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID             *uuid.UUID       `gorm:"type:uuid;index"`                          // nil for pool sandboxes
+	OrgID             *uuid.UUID       `gorm:"type:uuid;index"`
 	Org               *Org             `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	SandboxType       string           `gorm:"not null;index"` // "shared" or "dedicated"
 	AgentID           *uuid.UUID       `gorm:"type:uuid;index"`
 	Agent             *Agent           `gorm:"foreignKey:AgentID;constraint:OnDelete:SET NULL"`
 	SandboxTemplateID *uuid.UUID       `gorm:"type:uuid"`

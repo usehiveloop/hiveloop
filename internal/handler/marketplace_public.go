@@ -23,7 +23,6 @@ type marketplaceAgentResponse struct {
 	SystemPrompt         string     `json:"system_prompt"`
 	Instructions         *string    `json:"instructions,omitempty"`
 	Model                string     `json:"model"`
-	SandboxType          string     `json:"sandbox_type"`
 	Tools                model.JSON `json:"tools"`
 	McpServers           model.JSON `json:"mcp_servers"`
 	Skills               model.JSON `json:"skills"`
