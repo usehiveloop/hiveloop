@@ -125,6 +125,23 @@ impl AgentSupervisor {
             }
         }
 
+        // Register the upload_to_workspace tool when the agent declares an
+        // artifacts config. The tool streams chunks to the control plane via
+        // tus.io and persists in-flight state to sqlite for crash-resume.
+        if let Some(artifacts_cfg) = definition.artifacts.clone() {
+            let bearer = std::env::var("BRIDGE_CONTROL_PLANE_API_KEY")
+                .ok()
+                .filter(|s| !s.is_empty());
+            let boundary = Some(tools::ProjectBoundary::new(self.resolve_working_dir()));
+            tool_registry.register(Arc::new(tools::artifacts::UploadToWorkspaceTool::new(
+                artifacts_cfg,
+                agent_id.clone(),
+                bearer,
+                boundary,
+                self.storage_backend.clone(),
+            )));
+        }
+
         // Remove disabled tools — takes priority over everything else.
         // The LLM will never see these tools.
         for name in &definition.config.disabled_tools {

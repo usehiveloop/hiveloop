@@ -40,8 +40,8 @@ Complete index of all tools available to Bridge agents.
 |------|-------------|
 | `todowrite` | Create or replace the task list. Each task has content, status (pending/in_progress/completed/cancelled), and priority (high/medium/low). |
 | `todoread` | Read the current task list. Returns all tasks with status and priority. |
-| `journal_write` | Write an entry to the conversation journal. Persists across context resets during chain handoffs. Supports optional category. |
-| `journal_read` | Read all journal entries including notes and checkpoint summaries from previous context chains. |
+| `journal_write` | Write an entry to the conversation journal. Persists across context resets during chain handoffs. Supports optional category. *Registered only when the agent has `config.immortal` set AND `immortal.expose_journal_tools` is `true` (default).* |
+| `journal_read` | Read all journal entries including notes and checkpoint summaries from previous context chains. *Same registration condition as `journal_write`.* |
 
 ## Code Intelligence
 
@@ -69,6 +69,12 @@ Complete index of all tools available to Bridge agents.
 |------|-------------|
 | `{integration}__{action}` | Dynamically registered per-agent. Each integration action becomes a tool (e.g. `github__create_pull_request`). Execution is proxied through the control plane to the external service. Schema and description defined per-action. |
 
+## Workspace Artifacts
+
+| Name | Description |
+|------|-------------|
+| `upload_to_workspace` | Stream a file from the agent's sandbox to the control plane via tus.io v1.0.0 resumable chunks. Bridge handles transient retry, server offset realign, and crash-resume from sqlite. Returns `artifact_id`, `upload_url`, `download_url`, `size`, `content_type`, and `sha256`. Auto-registered when the agent has `artifacts` set on its definition. |
+
 ## MCP Tools
 
 | Name | Description |
@@ -86,10 +92,11 @@ Complete index of all tools available to Bridge agents.
 | web_fetch | Yes | Yes | Always |
 | web_search, web_crawl, web_get_links, web_screenshot, web_transform | Yes | Yes | `BRIDGE_WEB_URL` set |
 | todowrite, todoread | Yes | Yes | Always |
-| journal_write, journal_read | Yes | Yes | Always |
+| journal_write, journal_read | Yes | Yes | Agent has `config.immortal` set AND `immortal.expose_journal_tools = true` (default) |
 | lsp | Yes | No | LSP configured |
 | agent, sub_agent | Yes | No | Always (prevents recursion) |
 | batch | Yes | Yes | Always |
 | skill | Yes | Yes | Agent/subagent has `skills` defined |
 | Integration tools | Yes | Inherited from parent | Agent has `integrations` defined |
+| `upload_to_workspace` | Yes | Yes | Agent has `artifacts` configured |
 | MCP tools | Yes | Yes (own servers) | Agent/subagent has `mcp_servers` defined |

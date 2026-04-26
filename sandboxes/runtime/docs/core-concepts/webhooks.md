@@ -68,9 +68,12 @@ Bridge sends these event types:
 | Event | Event Type (JSON) | When it fires | Data Fields |
 |-------|-------------------|---------------|-------------|
 | Conversation Created | `conversation_created` | New conversation started | `{}` |
-| Message Received | `message_received` | User message received | `content` |
+| Message Received | `message_received` | User message received | `content`, `attachment_path` (null when no attachment) |
 | Conversation Ended | `conversation_ended` | Conversation ended | `{}` |
-| Conversation Compacted | `conversation_compacted` | History was summarized | `summary`, `messages_compacted`, `pre_compaction_tokens`, `post_compaction_tokens` |
+| Chain Started | `chain_started` | Just before an immortal-mode chain handoff begins | `chain_index`, `trigger_token_count` |
+| Chain Completed | `chain_completed` | Chain handoff finished successfully | `chain_index`, `duration_ms`, `carry_forward_tokens`, `verified` |
+| Chain Failed | `chain_failed` | Chain handoff attempt errored | `chain_index`, `error` |
+| Context Pressure Warning | `context_pressure_warning` | Cumulative tool-output bytes exceed ~1.5× immortal `token_budget` (once per turn) | `turn_count`, `cumulative_tool_bytes`, `token_budget` |
 
 ### Response Events
 

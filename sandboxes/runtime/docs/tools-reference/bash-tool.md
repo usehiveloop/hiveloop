@@ -97,6 +97,20 @@ Commands run with `/bin/sh -c`. This provides POSIX-compliant shell behavior. Ba
 
 ---
 
+## RTK Filter Pipeline
+
+By default, bash output is routed through the **rtk filter pipeline** for token-efficient compression of common commands' output (e.g. `npm install`, `cargo build`, `pytest`, framework test runners). An in-process allowlist router decides which commands get filtered; everything else passes through verbatim.
+
+Test-runner output is **never silently rewritten**. The runner's own summary line (`Tests: N passed`, `OK (N tests)`, etc.) is preserved verbatim — synthetic collapses like "artisan test: ok" caused multi-turn debugging dead-ends and have been removed.
+
+To disable the pipeline entirely (diagnostic only — significantly increases output tokens):
+
+```bash
+export BRIDGE_DISABLE_RTK="true"
+```
+
+---
+
 ## Exit Codes
 
 | Code | Meaning |

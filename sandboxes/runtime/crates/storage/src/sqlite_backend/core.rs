@@ -3,8 +3,10 @@ use bridge_core::{AgentDefinition, BridgeEvent, ConversationRecord, Message, Met
 use tokio_rusqlite::Connection;
 use tracing::info;
 
-use super::{agents, chain, conversations, events, journal, messages, metrics, sessions};
-use crate::backend::{ChainLinkRow, JournalEntryRow, StorageBackend};
+use super::{
+    agents, artifacts, chain, conversations, events, journal, messages, metrics, sessions,
+};
+use crate::backend::{ArtifactUploadRow, ChainLinkRow, JournalEntryRow, StorageBackend};
 use crate::config::StorageConfig;
 use crate::error::StorageError;
 use crate::schema;
@@ -235,6 +237,47 @@ impl StorageBackend for SqliteBackend {
         conversation_id: &str,
     ) -> Result<Vec<ChainLinkRow>, StorageError> {
         chain::load_chain_links(&self.conn, conversation_id).await
+    }
+
+    // ── Artifact uploads ────────────────────────────────────
+
+    async fn get_artifact_upload(
+        &self,
+        idempotency_key: &str,
+    ) -> Result<Option<ArtifactUploadRow>, StorageError> {
+        artifacts::get_artifact_upload(&self.conn, idempotency_key).await
+    }
+
+    async fn upsert_artifact_upload_in_progress(
+        &self,
+        row: ArtifactUploadRow,
+    ) -> Result<(), StorageError> {
+        artifacts::upsert_in_progress(&self.conn, row).await
+    }
+
+    async fn update_artifact_upload_offset(
+        &self,
+        idempotency_key: &str,
+        bytes_sent: u64,
+    ) -> Result<(), StorageError> {
+        artifacts::update_offset(&self.conn, idempotency_key, bytes_sent).await
+    }
+
+    async fn mark_artifact_upload_completed(
+        &self,
+        idempotency_key: &str,
+        bytes_sent: u64,
+        response_json: &str,
+    ) -> Result<(), StorageError> {
+        artifacts::mark_completed(&self.conn, idempotency_key, bytes_sent, response_json).await
+    }
+
+    async fn mark_artifact_upload_failed(
+        &self,
+        idempotency_key: &str,
+        error: &str,
+    ) -> Result<(), StorageError> {
+        artifacts::mark_failed(&self.conn, idempotency_key, error).await
     }
 
     // ── Lifecycle ───────────────────────────────────────────

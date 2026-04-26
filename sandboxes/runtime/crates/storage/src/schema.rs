@@ -107,6 +107,32 @@ CREATE TABLE IF NOT EXISTS chain_links (
 
 CREATE INDEX IF NOT EXISTS idx_chain_links_conv
     ON chain_links(conversation_id);
+
+-- Resumable artifact uploads (tus.io-style). Each row tracks an in-progress
+-- or completed upload from an agent's sandbox to the control plane. The
+-- idempotency key is derived from (agent_id, conversation_id, abs_path,
+-- file_sha256) so a re-call of the same upload after a crash resumes from
+-- the persisted offset.
+CREATE TABLE IF NOT EXISTS artifact_uploads (
+    idempotency_key TEXT PRIMARY KEY,
+    agent_id        TEXT NOT NULL,
+    conversation_id TEXT NOT NULL,
+    location        TEXT NOT NULL,
+    total_size      INTEGER NOT NULL,
+    file_sha256     TEXT NOT NULL,
+    bytes_sent      INTEGER NOT NULL DEFAULT 0,
+    status          TEXT NOT NULL,
+    response_json   TEXT,
+    last_error      TEXT,
+    created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+    updated_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_artifact_uploads_status
+    ON artifact_uploads(status);
+
+CREATE INDEX IF NOT EXISTS idx_artifact_uploads_agent
+    ON artifact_uploads(agent_id);
 "#;
 
 /// Run all schema migrations on the given connection.

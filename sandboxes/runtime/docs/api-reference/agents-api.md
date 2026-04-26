@@ -18,32 +18,31 @@ No authentication required.
 
 ### Response
 
-**200 OK**
+**200 OK** — returns a JSON array of `AgentResponse` objects (the same shape as `GET /agents/{agent_id}`, with `system_prompt` truncated to 100 characters):
+
 ```json
-{
-  "agents": [
-    {
-      "id": "code-reviewer",
-      "name": "Code Reviewer",
-      "version": "3"
-    },
-    {
-      "id": "support-agent",
-      "name": "Customer Support",
-      "version": "12"
-    }
-  ]
-}
+[
+  {
+    "id": "code-reviewer",
+    "name": "Code Reviewer",
+    "system_prompt": "You are a senior engineer who reviews PRs against …",
+    "provider": { "provider_type": "anthropic", "model": "claude-sonnet-4-20250514", "base_url": null },
+    "tools": [],
+    "mcp_servers": [],
+    "skills": [],
+    "integrations": [],
+    "config": { "...": "..." },
+    "subagents": [],
+    "permissions": {},
+    "version": "3",
+    "active_conversations": 5,
+    "metrics": { "...": "..." },
+    "registered_tools": [{ "name": "Read", "description": "..." }]
+  }
+]
 ```
 
-### Response Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `agents` | array | List of agent summaries |
-| `agents[].id` | string | Agent ID |
-| `agents[].name` | string | Human-readable name |
-| `agents[].version` | string \| null | Current version (if set) |
+See [Get Agent Details](#get-agent-details) below for the full field reference. The list endpoint returns the same `AgentResponse` shape; only `system_prompt` (and each subagent's `system_prompt`) is truncated to 100 characters. The `artifacts` field is included when the agent has it set.
 
 ### Example
 
@@ -70,9 +69,34 @@ GET /agents/{agent_id}
 {
   "id": "code-reviewer",
   "name": "Code Reviewer",
+  "description": "Reviews PRs against project conventions",
   "system_prompt": "You are a senior engineer...",
+  "provider": {
+    "provider_type": "anthropic",
+    "model": "claude-sonnet-4-20250514",
+    "base_url": null
+  },
+  "tools": [],
+  "mcp_servers": [],
+  "skills": [],
+  "integrations": [],
+  "artifacts": {
+    "upload_url": "https://control-plane.example.com/uploads",
+    "max_size_bytes": 524288000,
+    "accepted_file_types": ["csv", "md", "video/*"]
+  },
+  "config": { "...": "..." },
+  "subagents": [],
+  "permissions": { "bash": "require_approval" },
+  "webhook_url": "https://...",
   "version": "3",
-  "active_conversations": 5
+  "updated_at": "2026-04-25T10:00:34Z",
+  "active_conversations": 5,
+  "metrics": { "...": "..." },
+  "registered_tools": [
+    { "name": "Read", "description": "Read a file..." },
+    { "name": "upload_to_workspace", "description": "Upload a file..." }
+  ]
 }
 ```
 
@@ -82,9 +106,23 @@ GET /agents/{agent_id}
 |-------|------|-------------|
 | `id` | string | Agent identifier |
 | `name` | string | Human-readable name |
-| `system_prompt` | string | System prompt for the agent |
+| `description` | string \| null | Optional human-readable description |
+| `system_prompt` | string | System prompt for the agent (may be truncated to 100 chars on the list endpoint) |
+| `provider` | object | LLM provider summary (`provider_type`, `model`, `base_url`); `api_key` is intentionally omitted |
+| `tools` | array | Agent-defined tool overrides (empty when the agent uses bridge's full built-in toolset) |
+| `mcp_servers` | array | MCP server connections configured on the agent |
+| `skills` | array | Skill definitions registered on the agent |
+| `integrations` | array | Integration definitions exposed to the agent |
+| `artifacts` | object \| absent | Workspace artifact upload configuration. Omitted from the JSON when not set on the definition. |
+| `config` | object | Agent configuration (`max_tokens`, `immortal`, `history_strip`, `tool_requirements`, etc. — see [Agent Configuration](../core-concepts/agents.md#configuration)) |
+| `subagents` | array | Subagent summaries (`name`, `description`, truncated `system_prompt`, `provider`, `config`, `tools`, `mcp_servers`, `registered_tools`) |
+| `permissions` | object | Per-tool permission overrides (`tool_name → "allow" | "deny" | "require_approval"`) |
+| `webhook_url` | string \| null | Webhook URL for event delivery if configured |
 | `version` | string \| null | Current version (if set) |
-| `active_conversations` | number | Number of active conversations for this agent |
+| `updated_at` | string \| null | Last-updated timestamp for change detection |
+| `active_conversations` | number | Number of currently active conversations for this agent |
+| `metrics` | object | Live `MetricsSnapshot` for this agent |
+| `registered_tools` | array | All tools the agent currently sees (built-in + MCP + integrations + `upload_to_workspace`), sorted by name. Each entry is `{ name, description }`. |
 
 ### Error Responses
 

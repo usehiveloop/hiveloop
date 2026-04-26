@@ -109,16 +109,41 @@ Use `sequence_number` with `conversation_id` for deduplication and ordering.
 }
 ```
 
-#### `conversation_compacted`
-Sent when conversation history is summarized to reduce token usage.
+#### `chain_started` / `chain_completed` / `chain_failed`
+Immortal-mode (`config.immortal`) compacts conversation history in place. The previous `conversation_compacted` event has been removed; subscribe to the chain events instead. See [SSE Events → Conversation / Chain Events](../api-reference/sse-events.md#conversation--chain-events) for full payloads.
+
 ```json
 {
-  "event_type": "conversation_compacted",
+  "event_type": "chain_started",
   "data": {
-    "summary": "User asked about authentication...",
-    "messages_compacted": 35,
-    "pre_compaction_tokens": 120000,
-    "post_compaction_tokens": 15000
+    "chain_index": 1,
+    "trigger_token_count": 105432
+  }
+}
+```
+
+```json
+{
+  "event_type": "chain_completed",
+  "data": {
+    "chain_index": 1,
+    "duration_ms": 8123,
+    "carry_forward_tokens": 24576,
+    "verified": false
+  }
+}
+```
+
+#### `context_pressure_warning`
+Fires once per turn when cumulative tool-output bytes exceed ~1.5× `immortal.token_budget`.
+
+```json
+{
+  "event_type": "context_pressure_warning",
+  "data": {
+    "turn_count": 42,
+    "cumulative_tool_bytes": 1572864,
+    "token_budget": 100000
   }
 }
 ```

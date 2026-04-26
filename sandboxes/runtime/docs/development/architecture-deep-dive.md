@@ -87,14 +87,18 @@ Agent and conversation management.
 
 | Module | Purpose |
 |--------|---------|
-| `supervisor.rs` | Central `AgentSupervisor` for agent lifecycle |
+| `supervisor/` | Central `AgentSupervisor` for agent lifecycle. Submodules: `agent_build.rs`, `agent_loading.rs`, `conversations.rs`, `conversations_helpers.rs`, `conv_mcp.rs`, `helpers.rs`, `hydration.rs`, `messaging.rs`. Entry point: `supervisor/mod.rs`. |
 | `agent_map.rs` | `AgentMap` — concurrent DashMap of agents |
-| `agent_runner.rs` | Per-agent event loop, subagent support, `AgentSessionStore` |
+| `agent_runner/` | Per-agent event loop and subagent support. Submodules: `runner_impl.rs` (core driver), `foreground.rs`, `background.rs`, `session_store.rs`. Entry point: `agent_runner/mod.rs`. |
 | `agent_state.rs` | `AgentState` — complete state for one agent |
-| `conversation.rs` | `ConversationParams`, `run_conversation()` event loop |
-| `compaction.rs` | History summarization when token limits reached |
+| `conversation/` | `ConversationParams`, `run_conversation()` event loop. Submodules: `init.rs`, `params.rs`, `run.rs`, `stream_loop.rs`, `streaming.rs`, `receive.rs`, `recovery.rs`, `convert.rs`, `context_mgmt.rs`, `turn_classify.rs`, `turn_result.rs`, `turn_success.rs`, `turn_wait.rs`, `finalize.rs`, `volatile.rs`. Entry point: `conversation/mod.rs`. |
+| `compaction/` | In-place forgecode-style summarization when token limits reached (immortal mode). |
+| `immortal/` | Immortal-mode prompt rendering, history extraction, handoff hooks. |
+| `masking/` | Tool-result strip pass that removes old bodies from history before they reach the LLM (`HistoryStripConfig`). |
+| `history_guard.rs` | Guards against rig-loop history loss between provider invocations. |
+| `environment.rs` | Sandbox environment system reminder (resource limits, installed tools) injected when `BRIDGE_STANDALONE_AGENT=true`. |
 | `drain.rs` | Graceful agent drain for zero-downtime updates |
-| `system_reminder.rs` | Periodic system reminder injection |
+| `system_reminder/` | Periodic system reminder injection (skills, subagents, todos). |
 | `token_tracker.rs` | Token usage tracking per agent |
 | `permission_manager.rs` | Runtime permission manager integration |
 
@@ -121,8 +125,8 @@ Agent and conversation management.
 
 ### Conversation Flow
 
-1. `supervisor.create_conversation()` creates `ConversationHandle`
-2. `conversation.rs` spawns async task running `run_conversation()`
+1. `supervisor::conversations::create_conversation()` creates a `ConversationHandle`
+2. `conversation/run.rs` spawns an async task running `run_conversation()`
 3. Message loop waits on `message_rx` channel
 4. On message: `process_turn()` executes LLM interaction
 5. Tool calls execute within `AGENT_CONTEXT.scope()`
@@ -231,7 +235,7 @@ Used by:
 - `agent.rs` / `self_agent.rs` — spawns subagents (foreground and background)
 - `bash.rs` — streams background command output notifications
 
-Background subagent and `bash` completions are delivered to the parent via `notification_tx`. The conversation loop (`crates/runtime/src/conversation.rs`) races the user-message channel against `notification_rx` in a `tokio::select!`; when a completion arrives it's injected as a user-role message (`[Background Agent Task Completed]` / `[Background Bash Task Completed]`) into the parent's next turn. No explicit wait/join tool is registered — the protocol requirement that every `tool_use` have exactly one paired `tool_result` is preserved (the fire-and-forget call returns a task-id placeholder immediately, and the real output is delivered as a subsequent user turn).
+Background subagent and `bash` completions are delivered to the parent via `notification_tx`. The conversation loop (`crates/runtime/src/conversation/run.rs`, with `receive.rs` / `turn_wait.rs` driving the message-vs-notification race) races the user-message channel against `notification_rx` in a `tokio::select!`; when a completion arrives it's injected as a user-role message (`[Background Agent Task Completed]` / `[Background Bash Task Completed]`) into the parent's next turn. No explicit wait/join tool is registered — the protocol requirement that every `tool_use` have exactly one paired `tool_result` is preserved (the fire-and-forget call returns a task-id placeholder immediately, and the real output is delivered as a subsequent user turn).
 
 ---
 
@@ -319,13 +323,15 @@ Domain models and shared types.
 
 | Module | Types |
 |--------|-------|
-| `agent.rs` | `AgentDefinition`, `AgentConfig`, `AgentId`, `AgentSummary` |
-| `config.rs` | `RuntimeConfig`, `LspConfig`, `LogFormat` |
+| `agent/` | `AgentDefinition`, `AgentConfig`, `AgentId`, `AgentSummary`, `ImmortalConfig`, `HistoryStripConfig`, `ToolRequirement`, `RequirementCadence`, `RequirementPosition`, `RequirementEnforcement` |
+| `artifacts.rs` | `ArtifactsConfig` (workspace artifact upload configuration) |
+| `config/` | `RuntimeConfig`, `LspConfig`, `LogFormat`, `WebhookConfig` |
 | `conversation.rs` | `Message`, `Role`, `ContentBlock`, `ToolCall`, `ToolResult` |
 | `error.rs` | `BridgeError`, `Result` |
+| `event.rs` | `BridgeEvent`, `BridgeEventType` |
 | `integration.rs` | `IntegrationDefinition`, `IntegrationAction` |
 | `mcp.rs` | `McpServerDefinition`, `McpTransport` |
-| `metrics.rs` | `AgentMetrics`, `GlobalMetrics`, `MetricsResponse` |
+| `metrics/` | `AgentMetrics`, `GlobalMetrics`, `MetricsResponse`, `MetricsSnapshot`, `ToolCallStats` |
 | `permission.rs` | `ApprovalRequest`, `ApprovalDecision`, `ToolPermission` |
 | `provider.rs` | `ProviderConfig`, `ProviderType` |
 | `skill.rs` | `SkillDefinition`, `SkillId` |

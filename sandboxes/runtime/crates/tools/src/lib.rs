@@ -1,5 +1,6 @@
 pub mod agent;
 pub mod apply_patch;
+pub mod artifacts;
 pub mod ast_grep;
 pub mod bash;
 pub mod batch;

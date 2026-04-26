@@ -20,14 +20,25 @@ An agent is a complete AI configuration. Think of it as a job description for an
   "mcp_servers": [...],
   "skills": [...],
   "integrations": [...],
+  "artifacts": {
+    "upload_url": "https://control-plane.example.com/workspaces/ws_42/uploads",
+    "max_size_bytes": 524288000,
+    "accepted_file_types": ["csv", "md", "video/*"]
+  },
   "config": {
     "max_tokens": 4096,
     "max_turns": 50,
     "temperature": 0.2,
-    "compaction": {
+    "immortal": {
       "token_budget": 100000,
-      "tail_messages": 10,
-      "summary_provider": { ... }
+      "retention_window": 10,
+      "expose_journal_tools": true
+    },
+    "history_strip": {
+      "enabled": true,
+      "age_threshold": 10,
+      "pin_recent_count": 3,
+      "pin_errors": true
     }
   },
   "subagents": [...],
@@ -86,6 +97,7 @@ The `provider` object is required and has the following fields:
 | `mcp_servers` | No | array | External MCP servers to connect to |
 | `skills` | No | array | Reusable prompt templates the agent can invoke |
 | `integrations` | No | array | External service integrations |
+| `artifacts` | No | object | Workspace artifact upload configuration. When present, bridge auto-registers an `upload_to_workspace` tool. See [Artifacts Definition](#artifacts-definition). |
 | `subagents` | No | array | Child agents this agent can spawn |
 
 #### Tool Definition
@@ -149,6 +161,24 @@ Each action in `actions` requires:
 | `parameters_schema` | **Yes** | object | JSON Schema for the action's parameters |
 | `permission` | **Yes** | string | Permission level: `allow`, `deny`, or `require_approval` |
 
+#### Artifacts Definition
+
+Set `artifacts` to enable workspace file uploads. When present, bridge auto-registers a single tool — `upload_to_workspace` — backed by a tus.io v1.0.0 resumable upload client.
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `upload_url` | **Yes** | string | tus.io creation endpoint on the control plane. Must be `http`/`https`. |
+| `download_url` | No | string | Optional canonical download URL surfaced back to the agent in the tool response. |
+| `max_size_bytes` | **Yes** | integer | Hard ceiling enforced before any network I/O. Must be `> 0`. |
+| `accepted_file_types` | **Yes** | string[] | Each entry is either a bare extension (`csv`) or a MIME type (`text/csv`, `video/*`). Must be non-empty. |
+| `max_concurrent_uploads` | No | integer | Per-agent concurrency cap. Default `4`. Must be `> 0`. |
+| `chunk_size_bytes` | No | integer | PATCH chunk size. Default `8 MiB` (8388608). Must be `> 0`. |
+| `headers` | No | object | Extra `string → string` headers forwarded on every TUS request (creation + chunks). |
+
+The `upload_to_workspace` tool takes `path` (absolute, inside the sandbox), optional `content_type` MIME override, and optional free-form `metadata` (`string → string` map; ASCII keys without spaces or commas). Bridge persists in-flight upload state to the local sqlite (when `BRIDGE_STORAGE_PATH` is set) so a re-call after a process restart resumes from the last server-acknowledged offset. Companion tools like `search_workspace` and `download_from_workspace` are out of scope for bridge — the control plane wires them in via `mcp_servers` if needed.
+
+See the [Workspace Artifacts](../../README.md#workspace-artifacts) section in the README for the full configuration table, response shape, and resilience guarantees.
+
 ### Configuration
 
 The `config` object supports the following optional fields:
@@ -160,12 +190,16 @@ The `config` object supports the following optional fields:
 | `temperature` | number | Randomness (0 = deterministic, 1 = creative) | No explicit range |
 | `json_schema` | object | JSON schema for structured output | Valid JSON Schema |
 | `rate_limit_rpm` | integer | Rate limit in requests per minute | `>= 0` |
-| `compaction` | object | Conversation compaction configuration | See below |
+| `immortal` | object | Immortal-conversation configuration (in-place forgecode-style compaction). When set, conversations chain into fresh context windows transparently. | See [Immortal Mode](#immortal-mode) |
+| `history_strip` | object | Strip tool-result bodies from old messages before sending history to the LLM. Independent of immortal mode; applied at every send. | See [History Stripping](#history-stripping). Default: enabled. |
+| `system_reminder_refresh_turns` | integer | Re-emit the stable system reminder (skills, subagents, todos) every N turns at the head of the user message. Always emitted on turn 0; thereafter on turns where `turn_count % N == 0`. | Default: `10`. Values `<1` clamp to `1`. |
 | `tool_calls_only` | boolean | Accept tool-only turns as success | Default: `false` |
 | `max_tasks_per_conversation` | integer | Max subagent tasks per conversation | Default: `50` |
 | `max_concurrent_conversations` | integer | Per-agent concurrent conversation limit | Overrides global setting |
 | `disabled_tools` | string[] | Tools to completely remove from the agent | Default: `[]` |
 | `tool_requirements` | object[] | Declarative per-turn tool-call requirements | See [Tool Requirements](#tool-requirements) |
+| `subagent_timeout_foreground_secs` | integer | Wall-clock timeout (seconds) when this agent is invoked as a foreground subagent. | Default: `300` |
+| `subagent_timeout_background_secs` | integer | Wall-clock timeout (seconds) when this agent is invoked as a background subagent. | Default: `300` |
 
 #### `tool_calls_only`
 
@@ -386,49 +420,35 @@ Every violation fires an event (SSE + webhook + WebSocket, via the unified event
 
 Clients that want to display a UI indicator or short-circuit a workflow should listen for this event. If you set `enforcement: "warn"`, this event is the only signal you get — no reminder attaches to the next turn.
 
-#### Compaction Configuration
+### Immortal Mode
 
-When `compaction` is specified, it controls how conversation history is summarized:
+Long conversations accumulate tokens. Immortal mode keeps them running indefinitely by compacting the eligible head of history **in place** — no LLM summarization call, no separate summary message. The compactor replaces the eligible slice with a single user message containing a structured summary derived from the messages it replaced (forgecode-style). This is pure code, deterministic, and free.
 
-| Field | Required | Type | Description | Default |
-|-------|----------|------|-------------|---------|
-| `token_budget` | No | integer | Token threshold to trigger compaction | `100000` |
-| `tail_messages` | No | integer | Recent messages to preserve after compaction | `10` |
-| `summary_prompt` | No | string | Custom system prompt for summarization | Built-in default |
-| `summary_provider` | **Yes** | object | Provider config for the summarization model | - |
-
-### History Compaction
-
-Long conversations accumulate tokens. Compaction keeps them manageable by summarizing older messages while preserving recent context.
+When set, bridge also exposes `journal_read` / `journal_write` tools so the agent can record durable notes across context resets — opt out with `expose_journal_tools: false`.
 
 #### What Triggers Compaction
 
-Before each LLM call, Bridge estimates the total token count of the conversation. If the estimated tokens exceed the `compaction.token_budget` (default: 100,000), compaction runs automatically.
-
-Token estimation uses the tiktoken `cl100k_base` tokenizer. A fast heuristic check runs first, and the full tokenizer is only invoked when the heuristic is close to the budget.
+Before each LLM call, bridge estimates total history tokens with the tiktoken `cl100k_base` tokenizer. If the estimate exceeds `immortal.token_budget`, compaction runs immediately. A second hook runs mid–rig-loop so single-bridge-turn agents (which spend most of their wall-clock inside the LLM provider's tool loop) compact too.
 
 #### How It Works
 
-1. Messages are split into two groups:
-   - **Head** — all messages except the most recent N. These are summarized by a separate LLM call.
-   - **Tail** — the most recent N messages (default: 10), preserved verbatim.
-2. The summary LLM condenses the head into a single system message.
-3. The conversation continues with the summary + tail messages, significantly reducing token count.
+1. The history is split:
+   - **Retention tail** — the most recent `retention_window` messages, preserved verbatim.
+   - **Eligible head** — everything between the initial user message and the retention tail. Up to `eviction_window` (fraction) of that range is the compactable slice.
+2. The compactable slice is replaced in place with one user message containing a structured summary of what it carried (tool calls, decisions, file edits, etc.). The system prompt and the very first user message are never touched.
 
-The summary LLM call uses the `summary_provider` configuration, which can be a different (cheaper/faster) model than the agent's main provider.
-
-#### CompactionConfig Fields
+#### `ImmortalConfig` Fields
 
 | Field | Required | Type | Description | Default |
 |-------|----------|------|-------------|---------|
-| `token_budget` | No | integer | Token threshold that triggers compaction | `100000` |
-| `tail_messages` | No | integer | Number of recent messages preserved verbatim | `10` |
-| `summary_prompt` | No | string | Custom system prompt for the summarization LLM call | Built-in default |
-| `summary_provider` | **Yes** | object | Provider configuration for the summarization model (same shape as agent `provider`) | - |
+| `token_budget` | No | integer | Token threshold that triggers compaction. | `100000` |
+| `retention_window` | No | integer | Number of most-recent messages preserved verbatim. Higher values keep more recent context pristine but shrink the eligible compaction range. | `0` |
+| `eviction_window` | No | number | Maximum fraction (0.0–1.0) of total tokens eligible for compaction in any single pass. Lower values keep the head more stable across compactions; each pass takes a smaller slice. | `1.0` |
+| `expose_journal_tools` | No | boolean | When true, registers `journal_read` / `journal_write` for the agent. The journal is the agent's own scratchpad — no longer read or written by the compaction engine itself. | `true` |
 
 #### Events
 
-When compaction occurs, Bridge fires a `ConversationCompacted` event. This can be observed via webhooks or the streaming API.
+Compaction fires a `ConversationCompacted` event observable via webhooks or the streaming API.
 
 #### Recommended Configuration
 
@@ -436,37 +456,33 @@ When compaction occurs, Bridge fires a `ConversationCompacted` event. This can b
 
 ```json
 {
-  "compaction": {
+  "immortal": {
     "token_budget": 80000,
-    "tail_messages": 15,
-    "summary_provider": {
-      "provider_type": "anthropic",
-      "model": "claude-haiku-4-20250514",
-      "api_key": "<anthropic-api-key>"
-    }
+    "retention_window": 20,
+    "eviction_window": 0.5,
+    "expose_journal_tools": true
   }
 }
 ```
 
-Lower the budget to compact earlier, preserve more tail messages to retain recent context. Use a fast, cheap model for summarization.
+Lower the budget to compact earlier, raise `retention_window` to keep more recent context pristine, and lower `eviction_window` to trim the head more gradually.
 
-**Short conversations** (single-task agents, Q&A bots):
+**Short conversations** (single-task agents, Q&A bots): omit `immortal` entirely.
 
-Compaction is usually unnecessary. Either omit the `compaction` config entirely, or set a high budget:
+### History Stripping
 
-```json
-{
-  "compaction": {
-    "token_budget": 200000,
-    "tail_messages": 5,
-    "summary_provider": {
-      "provider_type": "open_ai",
-      "model": "gpt-4o-mini",
-      "api_key": "<provider-api-key>"
-    }
-  }
-}
-```
+Independent of immortal mode and applied at every send. Replaces the bodies of old tool results with markers (`<stripped>`) before the messages reach the LLM, while leaving everything else intact. The full bytes still live on disk via the spill pipeline; the agent can `RipGrep` the spill to recover the original content. Default: enabled.
+
+#### `HistoryStripConfig` Fields
+
+| Field | Required | Type | Description | Default |
+|-------|----------|------|-------------|---------|
+| `enabled` | No | boolean | Master switch. When false, strip is a no-op. | `true` |
+| `age_threshold` | No | integer | Number of assistant messages that must follow a tool result before it becomes eligible for stripping. | `10` |
+| `pin_recent_count` | No | integer | Always keep the most recent N tool results regardless of age. | `3` |
+| `pin_errors` | No | boolean | When true, tool results with `is_error: true` are never stripped. | `true` |
+
+To disable: `"history_strip": { "enabled": false }`. To turn off pinning of errors: `"pin_errors": false`. To keep all results indefinitely: raise `pin_recent_count`.
 
 ---
 

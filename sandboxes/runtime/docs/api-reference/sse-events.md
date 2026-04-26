@@ -407,35 +407,63 @@ A chunk of reasoning/thinking text from the model. Fired when using extended thi
 
 ---
 
-## Conversation Events
+## Conversation / Chain Events
 
-### `conversation_compacted`
+Immortal-mode (`config.immortal`) compacts conversation history in place — pure code, no LLM call. Around each compaction, bridge emits the following events. The previous `conversation_compacted` event has been removed; subscribe to `chain_started` / `chain_completed` instead.
 
-Fires when the conversation history is summarized to reduce token count. This happens automatically when the context window is getting full.
+### `chain_started`
+
+Fires just before an immortal-mode chain handoff begins.
 
 ```json
 {
   "event_id": "evt-030",
-  "event_type": "conversation_compacted",
+  "event_type": "chain_started",
   "agent_id": "my-agent",
   "conversation_id": "conv-abc123",
   "timestamp": "2026-01-15T10:31:00Z",
   "sequence_number": 30,
   "data": {
-    "summary": "The user asked about deploying a Rust web service. We discussed Docker configs and CI pipelines.",
-    "messages_compacted": 12,
-    "pre_compaction_tokens": 5000,
-    "post_compaction_tokens": 1200
+    "chain_index": 1,
+    "trigger_token_count": 105432
   }
 }
 ```
 
 | Data Field | Type | Description |
 |------------|------|-------------|
-| `summary` | string | The generated summary that replaces compacted messages |
-| `messages_compacted` | number | Number of messages that were summarized |
-| `pre_compaction_tokens` | number | Token count before compaction |
-| `post_compaction_tokens` | number | Token count after compaction |
+| `chain_index` | number | Zero-based index of the chain being started |
+| `trigger_token_count` | number | Estimated history tokens that triggered the handoff |
+
+### `chain_completed`
+
+Fires after a successful chain handoff.
+
+| Data Field | Type | Description |
+|------------|------|-------------|
+| `chain_index` | number | Index of the completed chain |
+| `duration_ms` | number | Wall-clock duration of the handoff |
+| `carry_forward_tokens` | number | Tokens preserved verbatim into the next chain |
+| `verified` | boolean | Whether the optional verification pass ran |
+
+### `chain_failed`
+
+Fires when a chain handoff attempt errored. The conversation continues with oversized history.
+
+| Data Field | Type | Description |
+|------------|------|-------------|
+| `chain_index` | number | Index of the failed chain attempt |
+| `error` | string | Human-readable failure description |
+
+### `context_pressure_warning`
+
+Fires once per turn when cumulative tool-output bytes exceed ~1.5× the immortal `token_budget`.
+
+| Data Field | Type | Description |
+|------------|------|-------------|
+| `turn_count` | number | Current turn count |
+| `cumulative_tool_bytes` | number | Total bytes of tool output emitted this conversation |
+| `token_budget` | number | The configured `immortal.token_budget` |
 
 ---
 

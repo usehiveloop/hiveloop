@@ -1,4 +1,5 @@
 mod agents;
+mod artifacts;
 mod chain;
 mod conversations;
 mod core;

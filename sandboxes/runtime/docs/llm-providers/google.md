@@ -127,25 +127,24 @@ Fix: Wait before retrying or upgrade your Google AI Studio plan.
 
 ---
 
-## Compaction with Gemini
+## Long-running conversations with Gemini
 
-For long conversations, use a cheaper model for compaction:
+Bridge's immortal mode keeps history bounded with **in-place forgecode-style compaction** — pure code, no extra LLM call. Set `config.immortal` and choose a budget appropriate for the model context.
 
 ```json
 {
   "config": {
-    "compaction": {
-      "token_budget": 80000,
-      "tail_messages": 10,
-      "summary_provider": {
-        "provider_type": "google",
-        "model": "gemini-2.0-flash",
-        "api_key": "<gemini-api-key>"
-      }
+    "immortal": {
+      "token_budget": 800000,
+      "retention_window": 20,
+      "eviction_window": 0.5,
+      "expose_journal_tools": true
     }
   }
 }
 ```
+
+See [Immortal Mode](../core-concepts/agents.md#immortal-mode) for the full configuration.
 
 ---
 

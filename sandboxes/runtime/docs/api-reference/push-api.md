@@ -56,13 +56,21 @@ POST /push/agents
 | `mcp_servers[].transport` | object | Yes | Transport configuration |
 | `skills` | array | No | Available skills (default: `[]`) |
 | `integrations` | array | No | External integrations (default: `[]`) |
+| `artifacts` | object | No | Workspace artifact upload configuration. When present, bridge auto-registers an `upload_to_workspace` tool. See [Artifacts Definition](../core-concepts/agents.md#artifacts-definition). |
 | `config` | object | No | Agent configuration |
 | `config.max_tokens` | number | No | Maximum tokens for LLM response |
 | `config.max_turns` | number | No | Maximum conversation turns |
 | `config.temperature` | number | No | Temperature for LLM sampling (0-1) |
 | `config.json_schema` | object | No | JSON schema for structured output |
 | `config.rate_limit_rpm` | number | No | Rate limit in requests per minute |
-| `config.compaction` | object | No | Conversation compaction config |
+| `config.immortal` | object | No | In-place forgecode-style history compaction (replaces the previous `compaction` field). See [Immortal Mode](../core-concepts/agents.md#immortal-mode). |
+| `config.history_strip` | object | No | Strip old tool-result bodies from history before sending to the LLM. See [History Stripping](../core-concepts/agents.md#history-stripping). |
+| `config.system_reminder_refresh_turns` | number | No | Re-emit the stable system reminder every N turns (default `10`; values `<1` clamp to `1`) |
+| `config.subagent_timeout_foreground_secs` | number | No | Foreground subagent timeout in seconds (default `300`) |
+| `config.subagent_timeout_background_secs` | number | No | Background subagent timeout in seconds (default `300`) |
+| `config.tool_calls_only` | boolean | No | Accept tool-only turns as success (default `false`) |
+| `config.tool_requirements` | array | No | Declarative per-turn tool-call requirements |
+| `config.disabled_tools` | string[] | No | Tools to remove from the agent (default `[]`) |
 | `permissions` | object | No | Per-tool permission overrides (default: `{}`) |
 | `webhook_url` | string | No | Webhook URL for event delivery |
 | `webhook_secret` | string | No | Webhook secret for HMAC signing |

@@ -1,4 +1,5 @@
 pub mod agent;
+pub mod artifacts;
 pub mod config;
 pub mod conversation;
 pub mod error;
@@ -16,6 +17,7 @@ mod tests;
 
 // Re-exports for convenience
 pub use agent::{AgentConfig, AgentDefinition, AgentId, AgentSummary};
+pub use artifacts::ArtifactsConfig;
 pub use config::{LogFormat, LspConfig, RuntimeConfig, WebhookConfig};
 pub use conversation::{
     ContentBlock, ConversationId, ConversationRecord, Message, PaginatedConversations, Role,

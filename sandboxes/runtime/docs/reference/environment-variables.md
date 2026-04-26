@@ -219,6 +219,53 @@ Service name reported in OpenTelemetry traces. Only relevant when `BRIDGE_OTEL_E
 export BRIDGE_OTEL_SERVICE_NAME="bridge-production"
 ```
 
+### `BRIDGE_WEB_URL`
+
+Base URL of an external web tools service. When set, bridge registers `web_search`, `web_crawl`, `web_get_links`, `web_screenshot`, and `web_transform` and routes them to this URL. Without it, only `web_fetch` (in-process) is available.
+
+- **Default:** (not set — only `web_fetch` is registered)
+- **Format:** URL (string)
+- **Example:** `http://localhost:7100`
+
+```bash
+export BRIDGE_WEB_URL="http://web-tools.internal"
+```
+
+### `BRIDGE_DISABLE_CACHE_CONTROL`
+
+When `true`, disables the `cache_control` middleware on the LLM provider stack. Diagnostic only — leaving caching off costs significant tokens against providers that support prompt caching (Anthropic, etc.). Leave unset in production.
+
+- **Default:** `false`
+- **Format:** `true` / `false`
+- **Example:** `true`
+
+```bash
+export BRIDGE_DISABLE_CACHE_CONTROL="true"
+```
+
+### `BRIDGE_DISABLE_RTK`
+
+When `true`, disables the rtk filter pipeline that the `bash` tool routes its output through. Without rtk, bash returns raw command output (much larger). Diagnostic only.
+
+- **Default:** `false`
+- **Format:** `true` / `false`
+
+```bash
+export BRIDGE_DISABLE_RTK="true"
+```
+
+### `BRIDGE_TOOL_CHOICE`
+
+Optional global override for the LLM `tool_choice` parameter passed to providers. Routed through the `tool_choice` middleware on the provider stack.
+
+- **Default:** provider default (typically `auto`)
+- **Format:** one of `auto`, `any`, `none`
+- **Example:** `auto`
+
+```bash
+export BRIDGE_TOOL_CHOICE="auto"
+```
+
 ---
 
 ## Configuration File (config.toml)

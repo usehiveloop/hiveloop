@@ -34,6 +34,7 @@ pub(super) fn make_test_definition(id: &str) -> AgentDefinition {
         mcp_servers: vec![],
         skills: vec![],
         integrations: vec![],
+        artifacts: None,
         config: bridge_core::agent::AgentConfig::default(),
         subagents: vec![],
         permissions: std::collections::HashMap::new(),

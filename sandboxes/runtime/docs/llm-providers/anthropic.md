@@ -138,25 +138,24 @@ This is handled automatically and requires no configuration.
 
 ---
 
-## Compaction with Anthropic
+## Long-running conversations with Anthropic
 
-For long conversations, use a cheaper model for compaction:
+Bridge's immortal mode keeps history bounded with **in-place forgecode-style compaction** — pure code, no extra LLM call. There is no `summary_provider` to configure. Set `config.immortal` and pick a budget appropriate for the model context size.
 
 ```json
 {
   "config": {
-    "compaction": {
-      "token_budget": 80000,
-      "tail_messages": 10,
-      "summary_provider": {
-        "provider_type": "anthropic",
-        "model": "claude-haiku-4-5-20251001",
-        "api_key": "<anthropic-api-key>"
-      }
+    "immortal": {
+      "token_budget": 150000,
+      "retention_window": 20,
+      "eviction_window": 0.5,
+      "expose_journal_tools": true
     }
   }
 }
 ```
+
+See [Immortal Mode](../core-concepts/agents.md#immortal-mode) for the full configuration.
 
 ---
 

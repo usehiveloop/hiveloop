@@ -74,6 +74,8 @@ pub struct AgentResponse {
     pub mcp_servers: Vec<McpServerDefinition>,
     pub skills: Vec<SkillDefinition>,
     pub integrations: Vec<IntegrationDefinition>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artifacts: Option<bridge_core::ArtifactsConfig>,
     pub config: AgentConfig,
     pub subagents: Vec<SubAgentSummary>,
     pub permissions: HashMap<String, ToolPermission>,
@@ -166,6 +168,7 @@ async fn build_agent_response(
         mcp_servers: def.mcp_servers.clone(),
         skills: def.skills.clone(),
         integrations: def.integrations.clone(),
+        artifacts: def.artifacts.clone(),
         config: def.config.clone(),
         subagents,
         permissions: def.permissions.clone(),

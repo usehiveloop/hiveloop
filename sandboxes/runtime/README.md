@@ -46,6 +46,12 @@ Bridge loads configuration in this order (later sources override earlier ones):
 | `BRIDGE_STANDALONE_AGENT` | No | `false` | Inject sandbox environment system reminder (resource limits, installed tools) |
 | `BRIDGE_OTEL_ENDPOINT` | No | — | OpenTelemetry OTLP gRPC endpoint for trace export (e.g. `http://localhost:4317`) |
 | `BRIDGE_OTEL_SERVICE_NAME` | No | `bridge` | OpenTelemetry service name |
+| `BRIDGE_STORAGE_PATH` | No | — | Path to the local sqlite DB. When set, bridge persists agent state, conversations, the webhook outbox, journal entries, and the `artifact_uploads` resume table. When unset, the system runs in-memory only. |
+| `BRIDGE_ATTACHMENTS_DIR` | No | `./.bridge-attachments` | Root directory for `full_message` attachments (large per-message payloads offloaded to disk). Cleaned up when the conversation ends. |
+| `BRIDGE_WEB_URL` | No | — | Base URL of an external web tools service. When set, bridge registers `web_search`, `web_crawl`, `web_get_links`, `web_screenshot`, `web_transform` and routes them to this URL. |
+| `BRIDGE_DISABLE_CACHE_CONTROL` | No | `false` | When `true`, disables the `cache_control` middleware on the LLM provider stack. Diagnostic only — leave off in production. |
+| `BRIDGE_DISABLE_RTK` | No | `false` | When `true`, disables the rtk filter pipeline that bash output is routed through (token-efficient command output). |
+| `BRIDGE_TOOL_CHOICE` | No | provider default | Optional override for the LLM `tool_choice` parameter (`auto`, `any`, `none`). Routed through the `tool_choice` middleware. |
 
 #### config.toml
 
@@ -186,29 +192,32 @@ make openapi
 
 The `/conversations/{conv_id}/stream` endpoint emits these Server-Sent Events:
 
-| Event | Description |
-|-------|-------------|
-| `conversation_created` | Conversation initialized |
-| `message_received` | User message received |
-| `message_start` | New assistant message begins |
-| `content_delta` | Text content chunk |
-| `reasoning_delta` | Extended thinking / reasoning chunk |
-| `tool_call_start` | Tool call initiated |
-| `tool_call_result` | Tool execution result |
-| `tool_approval_required` | Tool call waiting for user approval |
-| `tool_approval_resolved` | Approval decision made |
-| `todo_updated` | Task list update (see [Todo Tools](#todo-tools)) |
-| `background_task_completed` | Background bash/subagent task finished |
-| `sub_agent_started` | Sub-agent conversation spawned |
-| `sub_agent_completed` | Sub-agent conversation finished |
-| `chain_started` | Multi-step chain began |
-| `chain_completed` | Multi-step chain finished |
-| `conversation_compacted` | Conversation context was compacted |
-| `turn_completed` | Agent turn finished (all tool calls resolved) |
-| `message_end` | Message complete |
-| `conversation_ended` | Conversation terminated |
-| `error` | Error occurred |
-| `done` | Stream terminated |
+SSE uses legacy wire-level event names that map to bridge's internal `event_type` field. The mapping is fixed in `crates/api/src/sse.rs`. WebSocket and webhook channels use the JSON `event_type` (snake_case enum) instead — see [docs/api-reference/sse-events.md](docs/api-reference/sse-events.md#sse-event-name-mapping) for the full table.
+
+| SSE Event Name | Internal `event_type` | Description |
+|----------------|------------------------|-------------|
+| `conversation_created` | `conversation_created` | Conversation initialized |
+| `message_received` | `message_received` | User message received (carries `attachment_path` when `full_message` was supplied) |
+| `message_start` | `response_started` | Assistant began generating a response |
+| `content_delta` | `response_chunk` | Streaming response text chunk |
+| `message_end` | `response_completed` | Assistant finished its response |
+| `reasoning_delta` | `reasoning_delta` | Extended thinking / reasoning chunk |
+| `tool_call_start` | `tool_call_started` | Tool call initiated |
+| `tool_call_result` | `tool_call_completed` | Tool call finished (result or error in payload) |
+| `tool_approval_required` | `tool_approval_required` | Tool call waiting for user approval |
+| `tool_approval_resolved` | `tool_approval_resolved` | Approval decision made |
+| `todo_updated` | `todo_updated` | Task list update (see [Todo Tools](#todo-tools)) |
+| `background_task_completed` | `background_task_completed` | Background bash/subagent task finished |
+| `sub_agent_started` | `sub_agent_started` | Sub-agent conversation spawned |
+| `sub_agent_completed` | `sub_agent_completed` | Sub-agent conversation finished |
+| `chain_started` | `chain_started` | Immortal-mode chain handoff begun |
+| `chain_completed` | `chain_completed` | Immortal-mode chain handoff finished successfully |
+| `chain_failed` | `chain_failed` | Immortal-mode chain handoff attempt errored (conversation continues with oversized history) |
+| `context_pressure_warning` | `context_pressure_warning` | Cumulative tool-output bytes exceeded ~1.5× immortal `token_budget` (once per turn) |
+| `turn_completed` | `turn_completed` | Agent turn finished (all tool calls resolved) |
+| `conversation_ended` | `conversation_ended` | Conversation terminated |
+| `error` | `agent_error` | Error occurred during agent execution |
+| `done` | `done` | Stream terminated |
 
 ## Todo Tools
 
@@ -259,6 +268,83 @@ Takes no parameters. Returns the current todo list with `content`, `status`, and
   "incomplete_count": 2
 }
 ```
+
+## Workspace Artifacts
+
+Agents can stream files (CSVs, videos, audio, markdown, etc.) from their sandbox up to the control plane by setting an `artifacts` block on the agent definition. When present, bridge auto-registers a single tool — `upload_to_workspace` — backed by a tus.io v1.0.0 resumable upload client.
+
+### Configuration
+
+```json
+{
+  "id": "agent_demo",
+  "name": "Demo",
+  "system_prompt": "...",
+  "provider": { "...": "..." },
+  "artifacts": {
+    "upload_url": "https://control-plane.example.com/workspaces/ws_42/uploads",
+    "download_url": "https://control-plane.example.com/workspaces/ws_42/files",
+    "max_size_bytes": 524288000,
+    "accepted_file_types": ["csv", "md", "video/*", "audio/mpeg"],
+    "max_concurrent_uploads": 4,
+    "chunk_size_bytes": 8388608,
+    "headers": { "X-Workspace-Id": "ws_42" }
+  }
+}
+```
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `upload_url` | string | yes | tus.io creation endpoint. Must be `http`/`https`. |
+| `download_url` | string | no | Surfaced back to the agent in the tool response. |
+| `max_size_bytes` | number | yes | Hard ceiling enforced before any network I/O. |
+| `accepted_file_types` | string[] | yes | Each entry is either a bare extension (`csv`) or a MIME type (`text/csv`, `video/*`). |
+| `max_concurrent_uploads` | number | no | Per-agent concurrency cap. Default `4`. |
+| `chunk_size_bytes` | number | no | PATCH chunk size. Default `8 MiB`. |
+| `headers` | object | no | Forwarded on every TUS request (creation + chunks). |
+
+### Tool: `upload_to_workspace`
+
+Arguments:
+
+```json
+{
+  "path": "/workspace/output/report.csv",
+  "content_type": "text/csv",
+  "metadata": { "run_id": "r_123", "label": "weekly" }
+}
+```
+
+| Arg | Required | Notes |
+|-----|----------|-------|
+| `path` | yes | Absolute path inside the agent's sandbox. Refuses missing, non-regular, or empty files. |
+| `content_type` | no | MIME override; bridge guesses from the extension via `mime_guess` otherwise. |
+| `metadata` | no | Free-form `string → string` map. Keys must be ASCII and contain no spaces or commas (TUS Creation extension constraint); invalid keys are dropped. The map is encoded into the `Upload-Metadata` header alongside auto-injected `filename` and `sha256` entries. |
+
+Result (returned as a JSON string):
+
+```json
+{
+  "artifact_id": "<sha256-derived idempotency key>",
+  "upload_url": "<tus location URL>",
+  "download_url": "<value of artifacts.download_url, or null>",
+  "size": 12345,
+  "content_type": "text/csv",
+  "sha256": "<hex-encoded SHA-256 of the file>"
+}
+```
+
+### Resilience
+
+- **Streaming**: chunks are read into a buffer of size `chunk_size_bytes` and PATCH'd as they go — never the whole file in memory.
+- **Retry**: transient `5xx` and network errors are retried with jittered exponential backoff (up to 6 retries — 7 attempts total — with delays from 250 ms to 30 s). `4xx` responses other than `409` are fatal; `409 Conflict` is handled separately as an offset realign.
+- **Resume**: when `BRIDGE_STORAGE_PATH` is set, in-flight uploads persist `(idempotency_key, location, bytes_sent)` to the local sqlite. If bridge restarts, a re-call of the tool with the same file (`agent_id + abs_path + file SHA-256` match) re-`HEAD`s the server, realigns to the authoritative `Upload-Offset`, and continues from there. Without a storage backend, the same recovery still happens within a single tool call but does not survive a process restart.
+- **Idempotency**: completing the same upload twice is a no-op — the cached control-plane response is returned without re-uploading.
+- **Integrity**: every PATCH carries an `Upload-Checksum: sha256 …` header; the full-file SHA-256 is computed pre-upload and included in the tool result for downstream verification.
+- **Auth**: when `BRIDGE_CONTROL_PLANE_API_KEY` is set, every TUS request (creation, HEAD, PATCH) carries `Authorization: Bearer <key>`.
+- **Concurrency**: a per-agent semaphore caps concurrent uploads at `max_concurrent_uploads` across all of that agent's conversations.
+
+`search_workspace`, `download_from_workspace`, and any other companion tools are out of scope for bridge — the control plane wires them in per agent via the standard `mcp_servers` field on `AgentDefinition`.
 
 ## Supported LLM Providers
 

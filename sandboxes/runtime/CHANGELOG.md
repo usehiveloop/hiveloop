@@ -1,5 +1,33 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **Workspace artifacts (`AgentDefinition.artifacts`).** New optional config block (`upload_url`, `download_url`, `max_size_bytes`, `accepted_file_types`, `max_concurrent_uploads`, `chunk_size_bytes`, `headers`) that auto-registers an `upload_to_workspace` tool on the agent. The tool streams files from the agent's sandbox to the control plane via a tus.io v1.0.0 resumable upload protocol. Bridge handles per-chunk SHA-256 integrity checks, jittered exponential retry on 5xx/network errors (6 retries / 7 attempts), `409 Conflict` server-offset realignment, and crash-resume from a new `artifact_uploads` sqlite table when `BRIDGE_STORAGE_PATH` is set. Idempotency key is `sha256(agent_id || abs_path || file_sha256)` — re-calling the tool with the same file returns the cached control-plane response. The tool result is a JSON object (`artifact_id`, `upload_url`, `download_url`, `size`, `content_type`, `sha256`). Agent push-time validation (`AgentDefinition::validate()`) rejects empty `accepted_file_types`, zero `max_size_bytes`, malformed URLs, and zero `max_concurrent_uploads` / `chunk_size_bytes`. The `artifacts` field is also exposed on the `GET /agents/{id}` response.
+- **`ArtifactsConfig` core type and `ArtifactUploadRow` storage row.** New module `bridge_core::artifacts`; new sqlite table `artifact_uploads` with `(idempotency_key, agent_id, conversation_id, location, total_size, file_sha256, bytes_sent, status, response_json, last_error, created_at, updated_at)`.
+- **`config.system_reminder_refresh_turns`** — controls how often the stable system reminder (skills, subagents, todos) is re-emitted at the head of the user message. Default `10`; values `<1` clamp to `1`; always emitted on turn 0 and on turns where `turn_count % N == 0`.
+- **Sandbox environment system reminder.** When `BRIDGE_STANDALONE_AGENT=true`, bridge injects a system reminder describing the sandbox's resource limits and installed tools (`crates/runtime/src/environment.rs`).
+- **Stall timeout + repeat-call guard.** Resilience pass on the runtime: a per-turn stall timeout aborts hung LLM calls, and a repeat-call guard suppresses agents that re-fire the same tool with the same arguments back-to-back. (`feat(runtime): resilience pass — stall timeout, repeat-call guard, env reminder, strip fixes`)
+- **`cache_control` + `tool_choice` middleware** for the LLM provider stack, with head-merge behavior to avoid history loss between provider invocations. Adds `crates/llm/src/providers/cache_control_middleware.rs` and `crates/llm/src/providers/tool_choice_middleware.rs`.
+
+### Changed
+
+- **Immortal mode rewritten as in-place forgecode-style compaction.** The previous LLM-driven checkpoint extractor has been removed. Compaction now replaces the eligible head of the conversation in place with one user message containing a structured summary derived from the messages it replaced — pure code, deterministic, no LLM call. `ImmortalConfig` is now `{ token_budget, retention_window, eviction_window, expose_journal_tools }`; the previous LLM-checkpoint fields (`checkpoint_prompt`, `verify_checkpoint`, `checkpoint_max_tokens`, `checkpoint_timeout_secs`, `max_previous_checkpoints`, `carry_forward_budget_fraction`) are gone. (`feat(immortal): replace LLM checkpoint with forgecode-style in-place compaction`)
+- **Optional journal tools.** `journal_read` / `journal_write` are now registered only when `config.immortal` is set AND `immortal.expose_journal_tools` is true (default). Agents without immortal mode no longer see journal tools. (`feat(runtime): optional journal tools + todos-snapshot carry-forward`)
+- **Bash routed through rtk.** `bash` tool invocations are routed through the rtk filter pipeline for token-efficient output. An in-process allowlist router (replacing the earlier `rtk-rewrite` dispatch) decides which commands get routed. Test-runner output (PHPUnit / Pest summary lines) is preserved verbatim — no synthetic `artisan test: ok` collapse. (`feat(bash): route tool invocations through rtk for token-efficient output`, `fix(bash): replace rtk-rewrite dispatch with in-process allowlist router`)
+- **Trimmed verbose tool descriptions.** `lsp` (2862 → 1129 bytes), `todowrite` (2685 → 578), `multiedit` (2179 → 650), `journal_write` (2528 → 976). Removed tutorial-style "when to use / when not to use" sections, duplicated language lists, redundant "CRITICAL REQUIREMENTS" / "WARNING" blocks. (`fix(immortal,prompt): plug strip leak; trim system-reminder + tool descriptions`)
+
+### Fixed
+
+- **`history_strip` leak inside rig's loop.** Strip previously fired only at the top of each bridge turn, so single-bridge-turn agents (where everything happens inside rig's loop) saw old `Read` results, PHPUnit dumps, etc. accumulate unchecked. Strip now fires inside `conversation/run.rs`'s resume loop too, after the immortal hook's cancellation history is promoted. (`fix(immortal,prompt): plug strip leak; …`)
+- **Refactor: split `supervisor`, `conversation`, `agent_runner` into sub-modules.** `crates/runtime/src/supervisor.rs`, `conversation.rs`, and `agent_runner.rs` are now directories with focused submodules (each file under ~300 lines). Public API is unchanged; references to the old single-file paths in docs have been updated. (`refactor(runtime): split supervisor/conversation/agent_runner below 300 lines`)
+
+### Infrastructure
+
+- New sqlite migration adds the `artifact_uploads` table with indexes on `status` and `agent_id`. Migrations remain idempotent (`IF NOT EXISTS`).
+- Workspace deps: `tokio-util` features extended to `["rt", "io"]`; new entries `hex`, `mime_guess`, `bytes` (in `tools` crate). `tools` dev-deps add `axum` for the in-process TUS test server.
+
 ## [0.21.1] - 2026-04-19
 
 ### Changed

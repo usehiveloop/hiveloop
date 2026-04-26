@@ -304,42 +304,50 @@ Accept: text/event-stream
 
 Server-Sent Events stream with the following event types:
 
+SSE event names are the legacy wire names (see [SSE Event Name Mapping](sse-events.md#sse-event-name-mapping)). The JSON `event_type` field carries the canonical snake_case enum name.
+
 ```
 event: message_start
-data: {"type":"message_start","conversation_id":"conv-abc","message_id":"msg-001"}
+data: {"event_type":"response_started","conversation_id":"conv-abc","data":{"message_id":"msg-001"}}
 
 event: content_delta
-data: {"type":"content_delta","delta":"Hello","message_id":"msg-001"}
+data: {"event_type":"response_chunk","conversation_id":"conv-abc","data":{"delta":"Hello","message_id":"msg-001"}}
 
-event: content_delta  
-data: {"type":"content_delta","delta":" there","message_id":"msg-001"}
+event: content_delta
+data: {"event_type":"response_chunk","conversation_id":"conv-abc","data":{"delta":" there","message_id":"msg-001"}}
 
 event: tool_call_start
-data: {"type":"tool_call_start","id":"call-123","name":"read","arguments":{"path":"file.txt"}}
+data: {"event_type":"tool_call_started","conversation_id":"conv-abc","data":{"id":"call-123","name":"Read","arguments":{"file_path":"/tmp/file.txt"}}}
 
 event: tool_call_result
-data: {"type":"tool_call_result","id":"call-123","result":"...","is_error":false}
+data: {"event_type":"tool_call_completed","conversation_id":"conv-abc","data":{"id":"call-123","result":"...","is_error":false}}
 
 event: message_end
-data: {"type":"message_end","message_id":"msg-001","usage":{"input_tokens":50,"output_tokens":10}}
+data: {"event_type":"response_completed","conversation_id":"conv-abc","data":{"message_id":"msg-001","input_tokens":50,"output_tokens":10}}
+
+event: turn_completed
+data: {"event_type":"turn_completed","conversation_id":"conv-abc","data":{}}
 
 event: done
-data: {"type":"done"}
+data: {"event_type":"done","conversation_id":"conv-abc","data":{}}
 ```
 
 ### Event Types
 
 See [SSE Events](sse-events.md) for the complete list of event types and their payloads.
 
-Key events:
-- `message_start` — Agent started responding
-- `content_delta` — Text chunk (stream these to the user)
-- `tool_call_start` — Agent invoked a tool
-- `tool_call_result` — Tool execution completed
+Key SSE events (legacy wire names — internal `event_type` shown in parens):
+
+- `message_start` (`response_started`) — Agent started responding
+- `content_delta` (`response_chunk`) — Text chunk (stream these to the user)
+- `reasoning_delta` — Extended-thinking chunk (when supported by the provider)
+- `tool_call_start` (`tool_call_started`) — Agent invoked a tool
+- `tool_call_result` (`tool_call_completed`) — Tool execution completed
 - `tool_approval_required` — Tool needs user approval (if permissions require it)
-- `message_end` — Response complete with token usage
-- `done` — Turn finished (stream stays open for next message)
-- `error` — Something went wrong
+- `message_end` (`response_completed`) — Response complete with token usage
+- `turn_completed` — All tool calls resolved; turn ended
+- `done` — Stream terminator (the connection stays open for the next message)
+- `error` (`agent_error`) — Something went wrong during execution
 
 ### Stream Behavior
 
@@ -486,7 +494,7 @@ When the agent chat times out:
 3. POST /conversations/{conv_id}/messages
    → Message queued
 
-4. ← SSE events: message_start, content_delta, ..., message_end, done
+4. ← SSE events: message_start, content_delta, ..., message_end, turn_completed, done
 
 5. (Repeat steps 3-4 for each turn)
 

@@ -115,25 +115,24 @@ Fix: Check that you're using a valid Cohere model ID from their documentation.
 
 ---
 
-## Compaction with Cohere
+## Long-running conversations with Cohere
 
-For long conversations, use a cheaper model for compaction:
+Bridge's immortal mode keeps history bounded with **in-place forgecode-style compaction** — pure code, no extra LLM call. Set `config.immortal` and choose a budget appropriate for the model.
 
 ```json
 {
   "config": {
-    "compaction": {
+    "immortal": {
       "token_budget": 80000,
-      "tail_messages": 10,
-      "summary_provider": {
-        "provider_type": "cohere",
-        "model": "command-light",
-        "api_key": "<cohere-api-key>"
-      }
+      "retention_window": 15,
+      "eviction_window": 0.5,
+      "expose_journal_tools": true
     }
   }
 }
 ```
+
+See [Immortal Mode](../core-concepts/agents.md#immortal-mode) for the full configuration.
 
 ---
 

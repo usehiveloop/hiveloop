@@ -153,14 +153,18 @@ The runtime is the heart of Bridge. It manages:
 
 | Module | Purpose |
 |--------|---------|
-| `supervisor.rs` | Central agent lifecycle management |
+| `supervisor/` | Central agent lifecycle management (split into `agent_build.rs`, `agent_loading.rs`, `conversations.rs`, `conv_mcp.rs`, `helpers.rs`, `hydration.rs`, `messaging.rs`) |
 | `agent_map.rs` | Concurrent agent storage (DashMap) |
-| `agent_runner.rs` | Per-agent event loop and subagent support |
+| `agent_runner/` | Per-agent event loop and subagent support (`runner_impl.rs`, `foreground.rs`, `background.rs`, `session_store.rs`) |
 | `agent_state.rs` | Complete runtime state for a single agent |
-| `conversation.rs` | Conversation event loop and turn processing |
-| `compaction.rs` | History summarization |
+| `conversation/` | Conversation event loop and turn processing (`run.rs`, `stream_loop.rs`, `streaming.rs`, `receive.rs`, `recovery.rs`, `turn_classify.rs`, `turn_result.rs`, `turn_success.rs`, `turn_wait.rs`, `finalize.rs`, `volatile.rs`, …) |
+| `compaction/` | In-place forgecode-style history compaction (replaces the previous LLM-based summarizer) |
+| `immortal/` | Immortal-mode prompt rendering, history extraction, handoff hooks |
+| `masking/` | Tool-result strip pass that removes old result bodies before sending to the LLM |
+| `history_guard.rs` | Guards against rig-loop history loss between provider invocations |
+| `environment.rs` | Sandbox environment system reminder (resource limits, tools) injected when `BRIDGE_STANDALONE_AGENT=true` |
 | `drain.rs` | Graceful shutdown with in-flight request draining |
-| `system_reminder.rs` | Periodic system message injection |
+| `system_reminder/` | Periodic system message injection (skills, subagents, todos) |
 | `token_tracker.rs` | Token usage tracking |
 | `permission_manager.rs` | Runtime-side permission handling |
 

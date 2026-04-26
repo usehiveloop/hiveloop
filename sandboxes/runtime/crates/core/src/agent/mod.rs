@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::artifacts::ArtifactsConfig;
 use crate::integration::IntegrationDefinition;
 use crate::mcp::McpServerDefinition;
 use crate::permission::ToolPermission;
@@ -50,6 +51,11 @@ pub struct AgentDefinition {
     /// Each integration's actions become individual tools for the agent.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub integrations: Vec<IntegrationDefinition>,
+    /// Workspace artifact upload configuration. When present, bridge
+    /// auto-registers an `upload_to_workspace` tool that streams files
+    /// from the agent's sandbox to the control plane with resume support.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifacts: Option<ArtifactsConfig>,
     /// Agent configuration options
     #[serde(default)]
     pub config: AgentConfig,
@@ -99,6 +105,11 @@ impl AgentDefinition {
                 ));
             }
         }
+
+        if let Some(artifacts) = &self.artifacts {
+            artifacts.validate()?;
+        }
+
         Ok(())
     }
 }

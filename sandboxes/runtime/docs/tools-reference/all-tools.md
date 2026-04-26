@@ -83,6 +83,16 @@ Defined per-agent in the `integrations` array. Each integration action becomes a
 
 Example: An integration named `github` with action `create_pull_request` becomes a tool called `github_create_pull_request`.
 
+## Workspace Artifacts
+
+Auto-registered when the agent has `artifacts` set on its definition.
+
+| Tool | Description | Requires |
+|------|-------------|----------|
+| `upload_to_workspace` | Stream a file from the agent's sandbox to the control plane via tus.io v1.0.0 resumable chunks. Bridge handles transient retry, server offset realign, and crash-resume from sqlite. Returns `artifact_id`, `upload_url`, `download_url`, `size`, `content_type`, and `sha256`. | Agent has `artifacts` configured |
+
+See [Workspace Artifacts in the README](../../README.md#workspace-artifacts) for the full configuration and the `upload_to_workspace` argument schema.
+
 ## MCP Server Tools
 
 Any MCP server connected to the agent exposes its tools. Tool names and descriptions are defined by the MCP server. Configure via the agent's `mcp_servers` array.

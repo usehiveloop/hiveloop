@@ -149,14 +149,11 @@ curl -X POST https://bridge.yourapp.com/push/agents \
           "max_tokens": 8192,
           "max_turns": 100,
           "temperature": 0.2,
-          "compaction": {
+          "immortal": {
             "token_budget": 80000,
-            "tail_messages": 10,
-            "summary_provider": {
-              "provider_type": "anthropic",
-              "model": "claude-haiku-4-5-20251001",
-              "api_key": "<anthropic-api-key>"
-            }
+            "retention_window": 20,
+            "eviction_window": 0.5,
+            "expose_journal_tools": true
           }
         },
         "subagents": [],
@@ -584,7 +581,10 @@ app.post('/webhooks/bridge', (req, res) => {
 | `turn_completed` | `{}` | Mark turn done, update billing |
 | `agent_error` | `{"code": "...", "message": "..."}` | Alert on failures |
 | `conversation_ended` | `{}` | Mark conversation closed |
-| `conversation_compacted` | `{"summary": "...", "messages_compacted": 35, "pre_compaction_tokens": 120000, "post_compaction_tokens": 15000}` | Log compaction events |
+| `chain_started` | `{"chain_index": 1, "trigger_token_count": 105432}` | Log immortal-mode chain handoff start |
+| `chain_completed` | `{"chain_index": 1, "duration_ms": 8123, "carry_forward_tokens": 24576, "verified": false}` | Log successful chain handoff |
+| `chain_failed` | `{"chain_index": 1, "error": "..."}` | Alert; conversation continues with oversized history |
+| `context_pressure_warning` | `{"turn_count": 42, "cumulative_tool_bytes": 1572864, "token_budget": 100000}` | Once per turn when tool output exceeds ~1.5× immortal budget |
 
 ### Example: Persisting history from webhooks
 

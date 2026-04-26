@@ -48,6 +48,7 @@ fn agent_definition_roundtrip_all_fields_present() {
             ..Default::default()
         }],
         integrations: vec![],
+        artifacts: None,
         config: AgentConfig {
             max_tokens: Some(4096),
             max_turns: Some(10),
@@ -84,6 +85,7 @@ fn agent_definition_roundtrip_all_fields_present() {
             config: AgentConfig::default(),
             subagents: vec![],
             integrations: vec![],
+            artifacts: None,
             permissions: HashMap::new(),
             webhook_url: None,
             webhook_secret: None,
@@ -155,6 +157,7 @@ fn agent_definition_skip_serializing_none_optional_fields() {
         mcp_servers: vec![],
         skills: vec![],
         integrations: vec![],
+        artifacts: None,
         config: AgentConfig::default(),
         subagents: vec![],
         permissions: HashMap::new(),

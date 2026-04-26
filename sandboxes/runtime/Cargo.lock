@@ -1407,6 +1407,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc0fef456e4baa96da950455cd02c081ca953b141298e41db3fc7e36b1da849c"
 
 [[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
 name = "hmac"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4223,8 +4229,10 @@ version = "0.3.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "axum",
  "backon",
  "base64 0.22.1",
+ "bytes",
  "chrono",
  "core",
  "dashmap",
@@ -4232,24 +4240,28 @@ dependencies = [
  "dom_smoothie",
  "futures",
  "globset",
+ "hex",
  "htmd",
  "ignore",
  "libc",
  "lsp",
  "lsp-types",
  "mime",
+ "mime_guess",
  "pretty_assertions",
  "regex",
  "reqwest 0.13.2",
  "schemars 0.8.22",
  "serde",
  "serde_json",
+ "sha2",
  "similar",
  "storage",
  "strsim 0.11.1",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
+ "tokio-util",
  "tracing",
  "unicode-normalization",
  "uuid",

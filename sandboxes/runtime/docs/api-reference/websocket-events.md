@@ -125,9 +125,12 @@ The WebSocket delivers the same event types as webhooks:
 | Event Type | When it fires | Data Fields |
 |------------|---------------|-------------|
 | `conversation_created` | New conversation started | `{}` |
-| `message_received` | User message received | `content` |
+| `message_received` | User message received | `content`, `attachment_path` (null when no attachment) |
 | `conversation_ended` | Conversation ended | `{}` |
-| `conversation_compacted` | History was summarized | `summary`, `messages_compacted`, `pre_compaction_tokens`, `post_compaction_tokens` |
+| `chain_started` | Just before an immortal-mode chain handoff begins | `chain_index`, `trigger_token_count` |
+| `chain_completed` | Chain handoff finished successfully | `chain_index`, `duration_ms`, `carry_forward_tokens`, `verified` |
+| `chain_failed` | Chain handoff attempt errored (conversation continues with oversized history) | `chain_index`, `error` |
+| `context_pressure_warning` | Cumulative tool-output bytes exceeded ~1.5× immortal `token_budget` (once per turn) | `turn_count`, `cumulative_tool_bytes`, `token_budget` |
 
 ### Response Events
 

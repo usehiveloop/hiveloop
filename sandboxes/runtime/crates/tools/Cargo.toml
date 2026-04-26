@@ -31,6 +31,11 @@ strsim = { workspace = true }
 similar = { workspace = true }
 dashmap = { workspace = true }
 base64 = { workspace = true }
+hex = { workspace = true }
+sha2 = { workspace = true }
+mime_guess = { workspace = true }
+tokio-util = { workspace = true }
+bytes = "1"
 libc = { workspace = true }
 dirs = "5"
 anyhow = { workspace = true }
@@ -40,3 +45,4 @@ pretty_assertions = { workspace = true }
 tempfile = { workspace = true }
 tokio = { workspace = true }
 wiremock = { workspace = true }
+axum = { workspace = true }

@@ -6,7 +6,7 @@ pub mod schema;
 pub mod sqlite_backend;
 pub mod writer;
 
-pub use backend::{ChainLinkRow, JournalEntryRow, StorageBackend};
+pub use backend::{ArtifactUploadRow, ChainLinkRow, JournalEntryRow, StorageBackend};
 pub use config::StorageConfig;
 pub use error::StorageError;
 pub use sqlite_backend::SqliteBackend;

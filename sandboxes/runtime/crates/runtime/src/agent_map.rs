@@ -102,6 +102,7 @@ mod tests {
             mcp_servers: vec![],
             skills: vec![],
             integrations: vec![],
+            artifacts: None,
             config: AgentConfig::default(),
             subagents: vec![],
             permissions: std::collections::HashMap::new(),

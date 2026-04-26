@@ -151,6 +151,44 @@ pub trait StorageBackend: Send + Sync + 'static {
         conversation_id: &str,
     ) -> Result<Vec<ChainLinkRow>, StorageError>;
 
+    // ── Artifact uploads ────────────────────────────────────
+
+    /// Look up an in-progress or completed artifact upload by idempotency key.
+    async fn get_artifact_upload(
+        &self,
+        idempotency_key: &str,
+    ) -> Result<Option<ArtifactUploadRow>, StorageError>;
+
+    /// Insert (or refresh) an in-progress upload row. The supplied
+    /// `bytes_sent` is treated as a floor — callers may seed it from a
+    /// fresh creation (`0`) or from a resumed `HEAD` response.
+    async fn upsert_artifact_upload_in_progress(
+        &self,
+        row: ArtifactUploadRow,
+    ) -> Result<(), StorageError>;
+
+    /// Persist a new offset after a successful chunk PATCH.
+    async fn update_artifact_upload_offset(
+        &self,
+        idempotency_key: &str,
+        bytes_sent: u64,
+    ) -> Result<(), StorageError>;
+
+    /// Mark an upload as completed and cache the control plane response.
+    async fn mark_artifact_upload_completed(
+        &self,
+        idempotency_key: &str,
+        bytes_sent: u64,
+        response_json: &str,
+    ) -> Result<(), StorageError>;
+
+    /// Mark an upload as failed with a terminal error message.
+    async fn mark_artifact_upload_failed(
+        &self,
+        idempotency_key: &str,
+        error: &str,
+    ) -> Result<(), StorageError>;
+
     // ── Lifecycle ───────────────────────────────────────────
 
     /// Force a sync with the remote replica.
@@ -166,6 +204,23 @@ pub struct JournalEntryRow {
     pub entry_type: String,
     pub content: String,
     pub created_at: String,
+}
+
+/// A row from the `artifact_uploads` table.
+#[derive(Debug, Clone)]
+pub struct ArtifactUploadRow {
+    pub idempotency_key: String,
+    pub agent_id: String,
+    pub conversation_id: String,
+    pub location: String,
+    pub total_size: u64,
+    pub file_sha256: String,
+    pub bytes_sent: u64,
+    pub status: String,
+    pub response_json: Option<String>,
+    pub last_error: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 /// A chain link row as returned from storage.

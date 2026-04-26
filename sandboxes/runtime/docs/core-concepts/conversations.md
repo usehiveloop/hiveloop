@@ -265,44 +265,43 @@ Bridge maintains the full message history for each conversation. This history:
 - Includes user messages and assistant responses
 - Can include tool results (shown to the AI as context)
 
-### History Compaction
+### Immortal Mode (In-Place Compaction)
 
-Long conversations get expensive (more tokens = more cost, more latency). Compaction summarizes old history to save tokens:
+Long conversations get expensive (more tokens = more cost, more latency). Bridge's **immortal mode** keeps them running indefinitely by compacting the eligible head of history *in place* — replacing it with a single user message containing a structured summary derived from the messages it replaced. There is no separate LLM summarization call: compaction is pure code, deterministic, and free.
 
 ```
-Before compaction (100 messages):
-[user, assistant, user, assistant, ... 100 times]
+Before compaction (history above token budget):
+[user, assistant, user, assistant, ... up to retention_window before tail]
 
 After compaction:
-[summary of first 90 messages, user, assistant, user, assistant]
+[<structured summary of compacted slice>, retention tail (verbatim)]
 ```
 
-Configure compaction per agent:
+Configure per agent:
 
 ```json
 {
   "config": {
-    "compaction": {
+    "immortal": {
       "token_budget": 100000,
-      "tail_messages": 10,
-      "summary_provider": {
-        "provider_type": "anthropic",
-        "model": "claude-haiku-4-5-20251001",
-        "api_key": "<anthropic-api-key>"
-      }
+      "retention_window": 10,
+      "eviction_window": 1.0,
+      "expose_journal_tools": true
     }
   }
 }
 ```
 
-### Compaction Configuration
+### `ImmortalConfig` Reference
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `token_budget` | `u32` | 100,000 | Trigger compaction when estimated tokens exceed this |
-| `tail_messages` | `u32` | 10 | Keep this many recent messages untouched after compaction |
-| `summary_provider` | `ProviderConfig` | **required** | Cheaper model to create the summary |
-| `summary_prompt` | `Option<String>` | built-in | Custom system prompt for summarization |
+| `token_budget` | `u32` | 100,000 | Trigger compaction when estimated history tokens exceed this |
+| `retention_window` | `u32` | 0 | Number of most-recent messages preserved verbatim (never compacted) |
+| `eviction_window` | `f64` | 1.0 | Maximum fraction (0.0–1.0) of total tokens eligible for compaction in any single pass |
+| `expose_journal_tools` | `bool` | true | When true, register `journal_read` / `journal_write` for the agent's own use |
+
+The system prompt and the very first user message are always preserved.
 
 ### Token Estimation
 
@@ -311,22 +310,20 @@ Tokens are estimated using:
 - **Overhead**: +4 tokens per message for framing
 - **Content**: All message text, tool calls, and tool results
 
-### Split Boundary Alignment
+### Compaction Hooks
 
-When compacting, the split point is adjusted so the tail starts at a **user message**, not in the middle of an assistant/tool-result exchange. This preserves conversation coherence.
+A second compaction pass runs *inside* rig's tool loop (not just at the top of each bridge turn) so single-bridge-turn agents — where most wall-clock time is spent inside the LLM provider's tool loop — also compact when they cross the budget.
 
-### Compaction Webhook Event
+### Chain Events
 
-When compaction occurs, a `conversation_compacted` webhook is dispatched with:
+Immortal-mode compaction emits webhook / SSE events on chain handoff:
 
-```json
-{
-  "summary": "User asked to refactor auth module...",
-  "messages_compacted": 35,
-  "pre_compaction_tokens": 120000,
-  "post_compaction_tokens": 15000
-}
-```
+| Event | When | Payload (selection) |
+|-------|------|---------------------|
+| `chain_started` | Just before a chain handoff begins | `chain_index`, `trigger_token_count` |
+| `chain_completed` | After successful handoff | `chain_index`, `duration_ms`, `carry_forward_tokens`, `verified` |
+| `chain_failed` | A chain-handoff attempt errored | `chain_index`, `error` (the conversation continues with oversized history) |
+| `context_pressure_warning` | Once per turn when cumulative tool-output bytes exceed ~1.5× `token_budget` | `turn_count`, `cumulative_tool_bytes`, `token_budget` |
 
 ---
 

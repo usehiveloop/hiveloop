@@ -63,7 +63,7 @@
 
 **Previous state:** Vague description of SIGTERM handling
 
-**Actual implementation (`crates/bridge/src/main.rs`, `crates/runtime/src/supervisor.rs`):**
+**Actual implementation (`crates/bridge/src/main.rs`, `crates/runtime/src/supervisor/mod.rs`):**
 1. Handles SIGINT and SIGTERM signals
 2. Uses `CancellationToken` for coordination
 3. On shutdown:
