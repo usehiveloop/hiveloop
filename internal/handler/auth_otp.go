@@ -122,7 +122,7 @@ func (h *AuthHandler) OTPVerify(w http.ResponseWriter, r *http.Request) {
 	var user model.User
 	err = h.db.Where("email = ?", req.Email).First(&user).Error
 	if err != nil {
-		// New user — create account with org in a transaction
+		// New user — create account with org and welcome credit grant in one tx.
 		var org model.Org
 		txErr := h.db.Transaction(func(tx *gorm.DB) error {
 			user = model.User{
@@ -134,23 +134,9 @@ func (h *AuthHandler) OTPVerify(w http.ResponseWriter, r *http.Request) {
 				return fmt.Errorf("creating user: %w", err)
 			}
 
-			org = model.Org{
-				Name: fmt.Sprintf("%s's Workspace", user.Name),
-			}
-			if err := tx.Create(&org).Error; err != nil {
-				return fmt.Errorf("creating org: %w", err)
-			}
-
-			membership := model.OrgMembership{
-				UserID: user.ID,
-				OrgID:  org.ID,
-				Role:   "owner",
-			}
-			if err := tx.Create(&membership).Error; err != nil {
-				return fmt.Errorf("creating membership: %w", err)
-			}
-
-			return nil
+			var orgErr error
+			org, orgErr = createUserDefaultOrg(tx, h.credits, &user)
+			return orgErr
 		})
 		if txErr != nil {
 			slog.Error("failed to create user via OTP", "error", txErr)

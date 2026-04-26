@@ -50,7 +50,7 @@ func TestIntegration_TokenSpend_DeductsFromLedger(t *testing.T) {
 	credits := billing.NewCreditsService(db)
 	orgID := seedTaskTestOrg(t, db)
 
-	if err := credits.Grant(orgID, 10_000, billing.ReasonPlanGrant, "plan", "pro"); err != nil {
+	if err := credits.Grant(orgID, 10_000, billing.ReasonPlanGrant, "plan", "pro", nil); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
 
@@ -83,7 +83,7 @@ func TestIntegration_TokenSpend_IdempotentOnRetry(t *testing.T) {
 	credits := billing.NewCreditsService(db)
 	orgID := seedTaskTestOrg(t, db)
 
-	if err := credits.Grant(orgID, 10_000, billing.ReasonPlanGrant, "plan", "pro"); err != nil {
+	if err := credits.Grant(orgID, 10_000, billing.ReasonPlanGrant, "plan", "pro", nil); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
 
@@ -118,7 +118,7 @@ func TestIntegration_TokenSpend_ZeroTokensSkipsDeduction(t *testing.T) {
 	credits := billing.NewCreditsService(db)
 	orgID := seedTaskTestOrg(t, db)
 
-	if err := credits.Grant(orgID, 1_000, billing.ReasonPlanGrant, "plan", "starter"); err != nil {
+	if err := credits.Grant(orgID, 1_000, billing.ReasonPlanGrant, "plan", "starter", nil); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
 	handler := tasks.NewBillingTokenSpendHandler(credits)
@@ -143,7 +143,7 @@ func TestIntegration_TokenSpend_UnknownModelSkipRetries(t *testing.T) {
 	db := connectDB(t)
 	credits := billing.NewCreditsService(db)
 	orgID := seedTaskTestOrg(t, db)
-	if err := credits.Grant(orgID, 1_000, billing.ReasonPlanGrant, "plan", "starter"); err != nil {
+	if err := credits.Grant(orgID, 1_000, billing.ReasonPlanGrant, "plan", "starter", nil); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
 
@@ -179,7 +179,7 @@ func TestIntegration_TokenSpend_InsufficientBalanceSkipRetries(t *testing.T) {
 	orgID := seedTaskTestOrg(t, db)
 
 	// Grant far less than the call costs.
-	if err := credits.Grant(orgID, 10, billing.ReasonPlanGrant, "plan", "starter"); err != nil {
+	if err := credits.Grant(orgID, 10, billing.ReasonPlanGrant, "plan", "starter", nil); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
 
