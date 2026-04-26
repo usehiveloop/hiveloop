@@ -66,12 +66,16 @@ for (const [pathKey, methods] of Object.entries(spec.paths ?? {})) {
   }
 }
 
-// Write cleaned spec to a permanent location (referenced at runtime by APIPage)
-const cleanedSpecPath = path.resolve(process.cwd(), 'lib/openapi-spec.json');
-fs.writeFileSync(cleanedSpecPath, JSON.stringify(spec, null, 2));
+// Write cleaned spec to a permanent location (referenced at runtime by APIPage).
+// Use the project-relative path so generated MDX files reference it the same
+// way `lib/openapi.ts` does at runtime — otherwise CI bakes in a local absolute
+// path that does not exist on the runner.
+const cleanedSpecRelPath = 'lib/openapi-spec.json';
+const cleanedSpecAbsPath = path.resolve(process.cwd(), cleanedSpecRelPath);
+fs.writeFileSync(cleanedSpecAbsPath, JSON.stringify(spec, null, 2));
 
 const openapi = createOpenAPI({
-  input: [cleanedSpecPath],
+  input: [cleanedSpecRelPath],
 });
 
 await generateFiles({

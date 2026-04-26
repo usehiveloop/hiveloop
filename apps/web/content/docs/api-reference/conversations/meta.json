@@ -10,7 +10,6 @@
     "v1/conversations/convid/approvals/get",
     "v1/conversations/convid/approvals/requestid/post",
     "v1/conversations/convid/events/get",
-    "v1/conversations/convid/history/get",
     "v1/conversations/convid/messages/post",
     "v1/conversations/convid/stream/get"
   ]

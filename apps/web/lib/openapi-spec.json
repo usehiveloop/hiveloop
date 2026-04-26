@@ -64,6 +64,142 @@
         }
       }
     },
+    "/auth/confirm-email": {
+      "post": {
+        "description": "Confirms a user's email address using a verification token.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirm email address",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/confirmEmailRequest"
+              }
+            }
+          },
+          "description": "Confirmation token",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/statusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "description": "Sends a password reset link to the email address if an account exists.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Request password reset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/forgotPasswordRequest"
+              }
+            }
+          },
+          "description": "Email address",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/statusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "description": "Authenticates a user with email and password.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Log in",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/loginRequest"
+              }
+            }
+          },
+          "description": "Login parameters",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/authResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/logout": {
       "post": {
         "security": [
@@ -94,6 +230,42 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/statusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns the current user and their organization memberships.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get current user",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/meResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
                 }
               }
             }
@@ -208,6 +380,110 @@
         }
       }
     },
+    "/auth/refresh": {
+      "post": {
+        "description": "Exchanges a refresh token for new access and refresh tokens.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Refresh tokens",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/refreshRequest"
+              }
+            }
+          },
+          "description": "Refresh parameters",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/authResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "description": "Creates a new user account, organization, and sends a confirmation email.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register a new user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/registerRequest"
+              }
+            }
+          },
+          "description": "Registration parameters",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/authResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/resend-confirmation": {
       "post": {
         "description": "Sends a new email confirmation link. Rate limited to 1 per 60 seconds.",
@@ -291,76 +567,6 @@
           },
           "400": {
             "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/incoming/triggers/{triggerID}": {
-      "post": {
-        "description": "Receives an HTTP request and dispatches it through the router pipeline for the specified trigger. The trigger UUID acts as a bearer token. If the trigger has a secret key configured, the request must include a valid HMAC-SHA256 signature in the X-Signature-256 header.",
-        "tags": [
-          "triggers"
-        ],
-        "summary": "Receive HTTP trigger request",
-        "parameters": [
-          {
-            "description": "Trigger UUID",
-            "name": "triggerID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "HMAC-SHA256 signature (sha256=hex). Required when the trigger has a secret key configured.",
-            "name": "X-Signature-256",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/statusResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing HMAC signature",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -494,6 +700,64 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/oauth/github": {
+      "get": {
+        "description": "Redirects the browser to GitHub's authorization page. Sets a state cookie for CSRF protection.",
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Start GitHub OAuth login",
+        "responses": {
+          "307": {
+            "description": "Redirect to GitHub"
+          },
+          "404": {
+            "description": "Provider not configured",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/github/callback": {
+      "get": {
+        "description": "Handles the redirect from GitHub after authorization. Exchanges the code for a token, creates or links the user account, and redirects to the frontend with a short-lived exchange token.",
+        "tags": [
+          "oauth"
+        ],
+        "summary": "GitHub OAuth callback",
+        "parameters": [
+          {
+            "description": "Authorization code from GitHub",
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "CSRF state parameter",
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect to frontend with error"
           }
         }
       }
@@ -752,6 +1016,64 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/built-in-tools": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns the complete list of built-in tools that can be granted to agents via permissions. Each tool includes its category and whether it is locked (cannot be toggled off).",
+        "tags": [
+          "agents"
+        ],
+        "summary": "List all built-in tools",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BuiltInToolDefinition"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/sandbox-tools": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns the fixed list of tools and services that can be enabled in a dedicated agent sandbox.",
+        "tags": [
+          "agents"
+        ],
+        "summary": "List available sandbox tools",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SandboxToolDefinition"
+                  }
                 }
               }
             }
@@ -1823,7 +2145,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Creates a checkout session for subscribing to a plan. The client chooses the provider.",
+        "description": "Creates a Polar checkout session for upgrading to a Pro plan. Returns a checkout URL to redirect the user to.",
         "tags": [
           "billing"
         ],
@@ -1890,22 +2212,11 @@
             "BearerAuth": []
           }
         ],
-        "description": "Creates a customer portal session where the user can manage their subscription, payment methods, and invoices.",
+        "description": "Creates a Polar customer portal session where the user can manage their subscription, payment methods, and invoices.",
         "tags": [
           "billing"
         ],
         "summary": "Create billing portal session",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/createPortalRequest"
-              }
-            }
-          },
-          "description": "Portal request",
-          "required": true
-        },
         "responses": {
           "200": {
             "description": "OK",
@@ -1957,7 +2268,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Returns the org's active plan, provider, and credit balance.",
+        "description": "Returns the current billing plan and subscription status for the org.",
         "tags": [
           "billing"
         ],
@@ -2561,69 +2872,6 @@
         }
       }
     },
-    "/v1/conversations/{convID}/history": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns persisted conversation events in chronological order, intended for hydrating a UI before opening the SSE stream. Paginated via since=<event_id>. Unlike GET /events, this endpoint sorts events ASC by sequence_number so the caller can render in order.",
-        "tags": [
-          "conversations"
-        ],
-        "summary": "Hydrate conversation history",
-        "parameters": [
-          {
-            "description": "Conversation ID",
-            "name": "convID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Return events with sequence_number greater than this event_id",
-            "name": "since",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page size (default 200, max 1000)",
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/conversationHistoryResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/conversations/{convID}/messages": {
       "post": {
         "security": [
@@ -2707,7 +2955,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Opens a Server-Sent Events stream for real-time agent responses. Defaults to live-only (cursor \"$\"); clients that want history should hydrate via GET /v1/conversations/{convID}/history first. Resumes from Last-Event-ID when provided.",
+        "description": "Opens a Server-Sent Events stream for real-time agent responses. Events include message_start, content_delta, tool_call_start, tool_call_result, message_end, done.",
         "tags": [
           "conversations"
         ],
@@ -4924,549 +5172,6 @@
         }
       }
     },
-    "/v1/router": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns the organization's router, creating one automatically if it doesn't exist yet.",
-        "tags": [
-          "router"
-        ],
-        "summary": "Get or create router",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Router"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Updates the organization's router settings such as persona, default agent, and memory team.",
-        "tags": [
-          "router"
-        ],
-        "summary": "Update router",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/updateRouterRequest"
-              }
-            }
-          },
-          "description": "Router update fields",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Router"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/router/decisions": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns the most recent routing decisions for the organization, useful for auditing and debugging trigger routing.",
-        "tags": [
-          "router"
-        ],
-        "summary": "List routing decisions",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/RoutingDecision"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/router/triggers": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns all triggers configured on the organization's router.",
-        "tags": [
-          "router"
-        ],
-        "summary": "List router triggers",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/RouterTrigger"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Creates a new trigger on the organization's router. Webhook triggers require a connection_id and trigger_keys. HTTP triggers generate a unique URL. Cron triggers require a cron_schedule expression.",
-        "tags": [
-          "router"
-        ],
-        "summary": "Create a router trigger",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/createTriggerRequest"
-              }
-            }
-          },
-          "description": "Trigger definition",
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RouterTrigger"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/router/triggers/{id}": {
-      "delete": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Removes a trigger from the organization's router.",
-        "tags": [
-          "router"
-        ],
-        "summary": "Delete a router trigger",
-        "parameters": [
-          {
-            "description": "Trigger ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/statusResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/router/triggers/{id}/rules": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns all routing rules for a specific trigger, ordered by priority.",
-        "tags": [
-          "router"
-        ],
-        "summary": "List routing rules",
-        "parameters": [
-          {
-            "description": "Trigger ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/RoutingRule"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Adds a routing rule to a trigger. Rules determine which agent handles events that match the trigger.",
-        "tags": [
-          "router"
-        ],
-        "summary": "Create a routing rule",
-        "parameters": [
-          {
-            "description": "Trigger ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/createRuleRequest"
-              }
-            }
-          },
-          "description": "Rule definition",
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RoutingRule"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/router/triggers/{id}/rules/{ruleID}": {
-      "delete": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Removes a routing rule from a trigger.",
-        "tags": [
-          "router"
-        ],
-        "summary": "Delete a routing rule",
-        "parameters": [
-          {
-            "description": "Trigger ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Rule ID",
-            "name": "ruleID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/statusResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/sandbox-templates": {
       "get": {
         "security": [
@@ -7130,6 +6835,243 @@
         }
       }
     },
+    "/v1/tokens": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns tokens for the organization with cursor pagination. Supports filtering by credential_id.",
+        "tags": [
+          "tokens"
+        ],
+        "summary": "List tokens",
+        "parameters": [
+          {
+            "description": "Max items per page (1-100, default 50)",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination cursor from previous response",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by credential ID",
+            "name": "credential_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedResponse-tokenListItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a short-lived JWT proxy token scoped to a credential.",
+        "tags": [
+          "tokens"
+        ],
+        "summary": "Mint a proxy token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/mintTokenRequest"
+              }
+            }
+          },
+          "description": "Token minting parameters",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mintTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tokens/{jti}": {
+      "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Revokes a proxy token by its JTI and propagates through cache tiers.",
+        "tags": [
+          "tokens"
+        ],
+        "summary": "Revoke a proxy token",
+        "parameters": [
+          {
+            "description": "Token JTI",
+            "name": "jti",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/usage": {
       "get": {
         "security": [
@@ -7182,6 +7124,29 @@
       }
     },
     "schemas": {
+      "github_com_usehiveloop_hiveloop_internal_mcp.TokenScope": {
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "connection_id": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
       "ConfigurableResourceSummary": {
         "type": "object",
         "properties": {
@@ -7257,158 +7222,23 @@
           }
         }
       },
-      "Agent": {
+      "BuiltInToolDefinition": {
         "type": "object",
         "properties": {
-          "agentConfig": {
-            "description": "max_tokens, max_turns, temperature, etc.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/JSON"
-              }
-            ]
-          },
-          "agentType": {
-            "description": "\"agent\" or \"subagent\"",
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "credential": {
-            "$ref": "#/components/schemas/Credential"
-          },
-          "credentialID": {
-            "description": "nil for system agents",
-            "type": "string"
-          },
-          "deletedAt": {
+          "category": {
             "type": "string"
           },
           "description": {
             "type": "string"
           },
-          "encryptedEnvVars": {
-            "description": "AES-256-GCM encrypted JSON map of env vars",
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
           "id": {
             "type": "string"
           },
-          "instructions": {
-            "description": "optional markdown instructions for auto-starting runs",
-            "type": "string"
-          },
-          "integrations": {
-            "description": "selected integration IDs/configs",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/JSON"
-              }
-            ]
-          },
-          "isSystem": {
+          "locked": {
+            "description": "true = cannot be toggled off by the user",
             "type": "boolean"
-          },
-          "mcpServers": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "model": {
-            "description": "must match credential's provider",
-            "type": "string"
           },
           "name": {
-            "type": "string"
-          },
-          "org": {
-            "$ref": "#/components/schemas/Org"
-          },
-          "orgID": {
-            "description": "nil for system agents",
-            "type": "string"
-          },
-          "permissions": {
-            "description": "tool permission overrides",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/JSON"
-              }
-            ]
-          },
-          "providerGroup": {
-            "description": "e.g. \"anthropic\", \"openai\", \"gemini\" — set for system agents",
-            "type": "string"
-          },
-          "providerPrompts": {
-            "description": "map[provider_group] -> {system_prompt, model}",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ProviderPromptsMap"
-              }
-            ]
-          },
-          "resources": {
-            "description": "per-connection resource scoping: {connID: {resourceKey: [{id, name}]}}",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/JSON"
-              }
-            ]
-          },
-          "sandboxID": {
-            "description": "set for shared agents (points to pool sandbox)",
-            "type": "string"
-          },
-          "sandboxTemplate": {
-            "$ref": "#/components/schemas/SandboxTemplate"
-          },
-          "sandboxTemplateID": {
-            "type": "string"
-          },
-          "sandboxTools": {
-            "description": "Sandbox setup (dedicated agents only — ignored for shared agents)",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "sandboxType": {
-            "description": "\"dedicated\" or \"shared\"",
-            "type": "string"
-          },
-          "setupCommands": {
-            "description": "shell commands run on dedicated sandbox creation",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "sharedMemory": {
-            "description": "can store shared memories visible to all agents in identity",
-            "type": "boolean"
-          },
-          "skills": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "status": {
-            "description": "active, archived",
-            "type": "string"
-          },
-          "systemPrompt": {
-            "description": "Bridge AgentDefinition fields",
-            "type": "string"
-          },
-          "team": {
-            "description": "team tag for memory scoping (e.g. \"engineering\", \"sales\")",
-            "type": "string"
-          },
-          "tools": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "updatedAt": {
             "type": "string"
           }
         }
@@ -7441,149 +7271,6 @@
             "type": "string"
           },
           "type": {
-            "type": "string"
-          }
-        }
-      },
-      "Credential": {
-        "type": "object",
-        "properties": {
-          "authScheme": {
-            "type": "string"
-          },
-          "baseURL": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "encryptedKey": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "id": {
-            "type": "string"
-          },
-          "isSystem": {
-            "description": "IsSystem marks credentials owned by the platform itself rather than by\na customer org. System credentials are used by agents that opted out of\nBYOK (agent.credential_id IS NULL), managed via admin-only endpoints,\nand hidden from org-scoped APIs. They FK to the platform org (see\ninternal/credentials.PlatformOrgID).",
-            "type": "boolean"
-          },
-          "label": {
-            "type": "string"
-          },
-          "lastRefillAt": {
-            "type": "string"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "org": {
-            "$ref": "#/components/schemas/Org"
-          },
-          "orgID": {
-            "type": "string"
-          },
-          "providerID": {
-            "type": "string"
-          },
-          "refillAmount": {
-            "type": "integer"
-          },
-          "refillInterval": {
-            "type": "string"
-          },
-          "remaining": {
-            "type": "integer"
-          },
-          "revokedAt": {
-            "type": "string"
-          },
-          "wrappedDEK": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          }
-        }
-      },
-      "InConnection": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "inIntegration": {
-            "$ref": "#/components/schemas/InIntegration"
-          },
-          "inIntegrationID": {
-            "type": "string"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "nangoConnectionID": {
-            "type": "string"
-          },
-          "org": {
-            "$ref": "#/components/schemas/Org"
-          },
-          "orgID": {
-            "type": "string"
-          },
-          "revokedAt": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          },
-          "user": {
-            "$ref": "#/components/schemas/User"
-          },
-          "userID": {
-            "type": "string"
-          },
-          "webhookConfigured": {
-            "type": "boolean"
-          }
-        }
-      },
-      "InIntegration": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "type": "string"
-          },
-          "deletedAt": {
-            "type": "string"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "nango_config": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "provider": {
-            "type": "string"
-          },
-          "supports_rag_source": {
-            "description": "SupportsRAGSource is the admin-UI picker gate: only integrations\nwith this flag true appear in \"Add RAG source\". Seeded true for\nthe known-good providers (github, notion, slack, confluence,\njira, linear, google_drive) by the RAG model package's Migrate\nentry point; anything else defaults false.",
-            "type": "boolean"
-          },
-          "uniqueKey": {
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         }
@@ -7652,39 +7339,6 @@
           }
         }
       },
-      "Org": {
-        "type": "object",
-        "properties": {
-          "active": {
-            "type": "boolean"
-          },
-          "allowedOrigins": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "planSlug": {
-            "description": "Denormalised slug of the org's active plan (\"free\" when no active sub).\nSource of truth lives in the subscriptions table; this is cached on\nthe org row so request-path checks don't need a join.",
-            "type": "string"
-          },
-          "rateLimit": {
-            "type": "integer"
-          },
-          "updatedAt": {
-            "type": "string"
-          }
-        }
-      },
       "ProviderPromptConfig": {
         "type": "object",
         "properties": {
@@ -7702,275 +7356,16 @@
           "$ref": "#/components/schemas/ProviderPromptConfig"
         }
       },
-      "Router": {
+      "SandboxToolDefinition": {
         "type": "object",
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
-          "defaultAgent": {
-            "$ref": "#/components/schemas/Agent"
-          },
-          "defaultAgentID": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "memoryTeam": {
-            "description": "Hindsight namespace all specialists share",
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "org": {
-            "$ref": "#/components/schemas/Org"
-          },
-          "orgID": {
-            "type": "string"
-          },
-          "persona": {
-            "description": "shared voice injected into every specialist's instructions",
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          }
-        }
-      },
-      "RouterTrigger": {
-        "type": "object",
-        "properties": {
-          "connectionID": {
-            "description": "nil for http/cron triggers",
-            "type": "string"
-          },
-          "contextActions": {
-            "description": "base context actions run before routing",
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "cronSchedule": {
-            "description": "Cron-specific fields (only used when TriggerType = \"cron\").",
-            "type": "string"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "enrichCrossReferences": {
-            "description": "enable LLM cross-connection enrichment",
-            "type": "boolean"
-          },
-          "id": {
-            "type": "string"
-          },
-          "inConnection": {
-            "$ref": "#/components/schemas/InConnection"
-          },
-          "instructions": {
-            "description": "Instructions sent to the agent when the trigger fires (cron/http only).\nFor webhook triggers, instructions come from enrichment. For cron/http,\nthis field provides the base prompt template. Supports $refs.x substitution.",
-            "type": "string"
-          },
-          "lastRunAt": {
-            "description": "last successful fire",
-            "type": "string"
-          },
-          "nextRunAt": {
-            "description": "pre-computed next fire time; poller queries this",
-            "type": "string"
-          },
-          "orgID": {
-            "type": "string"
-          },
-          "router": {
-            "$ref": "#/components/schemas/Router"
-          },
-          "routerID": {
-            "type": "string"
-          },
-          "routingMode": {
-            "description": "\"rule\" or \"triage\"",
-            "type": "string"
-          },
-          "secretKey": {
-            "description": "HTTP-specific fields (only used when TriggerType = \"http\").\nIf empty, the trigger relies on the unguessable UUID for security.",
-            "type": "string"
-          },
-          "triggerKeys": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "triggerType": {
-            "description": "\"webhook\", \"http\", \"cron\"",
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          }
-        }
-      },
-      "RoutingDecision": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "type": "string"
-          },
-          "enrichmentSteps": {
-            "type": "integer"
-          },
-          "eventType": {
-            "description": "e.g. \"app_mention\", \"pull_request.opened\"",
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "intentSummary": {
-            "description": "LLM-generated summary of intent (triage only)",
-            "type": "string"
-          },
-          "latencyMs": {
-            "type": "integer"
-          },
-          "orgID": {
-            "type": "string"
-          },
-          "resourceKey": {
-            "type": "string"
-          },
-          "routerTriggerID": {
-            "type": "string"
-          },
-          "routingMode": {
-            "description": "\"rule\" or \"triage\"",
-            "type": "string"
-          },
-          "selectedAgents": {
-            "description": "agent IDs that were dispatched",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "turnCount": {
-            "description": "LLM turns used (triage only)",
-            "type": "integer"
-          }
-        }
-      },
-      "RoutingRule": {
-        "type": "object",
-        "properties": {
-          "agent": {
-            "$ref": "#/components/schemas/Agent"
-          },
-          "agentID": {
-            "type": "string"
-          },
-          "conditions": {
-            "description": "nil = always matches (catch-all)",
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "priority": {
-            "description": "1 = highest priority",
-            "type": "integer"
-          },
-          "routerTrigger": {
-            "$ref": "#/components/schemas/RouterTrigger"
-          },
-          "routerTriggerID": {
-            "type": "string"
-          }
-        }
-      },
-      "SandboxTemplate": {
-        "type": "object",
-        "properties": {
-          "baseTemplate": {
-            "$ref": "#/components/schemas/SandboxTemplate"
-          },
-          "baseTemplateID": {
-            "description": "optional FK to public template used as base",
-            "type": "string"
-          },
-          "buildCommands": {
-            "description": "user's commands to run on base image",
-            "type": "string"
-          },
-          "buildError": {
-            "type": "string"
-          },
-          "buildLogs": {
-            "description": "accumulated build logs (newline separated)",
-            "type": "string"
-          },
-          "buildStatus": {
-            "description": "pending, building, ready, failed",
-            "type": "string"
-          },
-          "config": {
-            "description": "resources, env vars, etc.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/JSON"
-              }
-            ]
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "externalID": {
-            "description": "provider's template/snapshot ID once built",
+          "description": {
             "type": "string"
           },
           "id": {
             "type": "string"
           },
           "name": {
-            "description": "display name for users",
-            "type": "string"
-          },
-          "org": {
-            "$ref": "#/components/schemas/Org"
-          },
-          "orgID": {
-            "description": "nil = public/platform-wide template",
-            "type": "string"
-          },
-          "size": {
-            "description": "small, medium, large, xlarge",
-            "type": "string"
-          },
-          "slug": {
-            "description": "Daytona snapshot name",
-            "type": "string"
-          },
-          "tags": {
-            "description": "user-facing tags, e.g. [\"python\",\"ml\"]",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/JSON"
-              }
-            ]
-          },
-          "updatedAt": {
             "type": "string"
           }
         }
@@ -8002,38 +7397,6 @@
           },
           "mode": {
             "description": "\"all\" (AND) or \"any\" (OR)",
-            "type": "string"
-          }
-        }
-      },
-      "User": {
-        "type": "object",
-        "properties": {
-          "banReason": {
-            "type": "string"
-          },
-          "bannedAt": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "emailConfirmedAt": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "passwordHash": {
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         }
@@ -8349,12 +7712,15 @@
             "type": "string"
           },
           "size": {
+            "description": "small, medium, large, xlarge",
             "type": "string"
           },
           "slug": {
+            "description": "Daytona snapshot name (built via make build-templates)",
             "type": "string"
           },
           "tags": {
+            "description": "user-facing tags, e.g. [\"python\",\"ml\"]",
             "type": "array",
             "items": {
               "type": "string"
@@ -8366,7 +7732,12 @@
         "type": "object",
         "properties": {
           "bundle": {
-            "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_skills.Bundle"
+            "description": "Inline source",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_skills.Bundle"
+              }
+            ]
           },
           "description": {
             "type": "string"
@@ -8384,12 +7755,15 @@
             "type": "string"
           },
           "repo_url": {
+            "description": "Git source",
             "type": "string"
           },
           "source_type": {
+            "description": "\"inline\" or \"git\"",
             "type": "string"
           },
           "status": {
+            "description": "defaults to \"published\" for global skills",
             "type": "string"
           },
           "tags": {
@@ -8941,9 +8315,11 @@
             "type": "string"
           },
           "slug": {
+            "description": "Daytona snapshot name",
             "type": "string"
           },
           "tags": {
+            "description": "user-facing tags",
             "type": "array",
             "items": {
               "type": "string"
@@ -9192,21 +8568,11 @@
           "connection_id": {
             "type": "string"
           },
-          "cron_schedule": {
-            "type": "string"
-          },
-          "instructions": {
-            "type": "string"
-          },
           "trigger_keys": {
             "type": "array",
             "items": {
               "type": "string"
             }
-          },
-          "trigger_type": {
-            "description": "\"webhook\" (default), \"http\", \"cron\"",
-            "type": "string"
           }
         }
       },
@@ -9217,16 +8583,10 @@
           "connection_id": {
             "type": "string"
           },
-          "cron_schedule": {
-            "type": "string"
-          },
           "enabled": {
             "type": "boolean"
           },
           "id": {
-            "type": "string"
-          },
-          "instructions": {
             "type": "string"
           },
           "provider": {
@@ -9237,9 +8597,6 @@
             "items": {
               "type": "string"
             }
-          },
-          "trigger_type": {
-            "type": "string"
           }
         }
       },
@@ -9392,6 +8749,14 @@
           }
         }
       },
+      "confirmEmailRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        }
+      },
       "conversationEventResponse": {
         "type": "object",
         "properties": {
@@ -9423,27 +8788,6 @@
             "type": "integer"
           },
           "timestamp": {
-            "type": "string"
-          }
-        }
-      },
-      "conversationHistoryResponse": {
-        "type": "object",
-        "properties": {
-          "conversation_id": {
-            "type": "string"
-          },
-          "events": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/conversationEventResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "last_event_id": {
-            "description": "LastEventID is the event_id of the last event in this page. Clients\ncan pass it as the `Last-Event-ID` header when opening the SSE stream\nto resume from exactly where history ended.",
             "type": "string"
           }
         }
@@ -9557,6 +8901,7 @@
             "type": "string"
           },
           "sandbox_tools": {
+            "description": "tools to enable in dedicated sandbox (e.g. \"chrome\")",
             "type": "array",
             "items": {
               "type": "string"
@@ -9569,6 +8914,7 @@
             "type": "boolean"
           },
           "skill_ids": {
+            "description": "skills from /v1/skills to attach on create",
             "type": "array",
             "items": {
               "type": "string"
@@ -9578,6 +8924,7 @@
             "$ref": "#/components/schemas/JSON"
           },
           "subagent_ids": {
+            "description": "subagents from /v1/subagents to attach on create",
             "type": "array",
             "items": {
               "type": "string"
@@ -9593,6 +8940,7 @@
             "$ref": "#/components/schemas/JSON"
           },
           "triggers": {
+            "description": "webhook triggers to create",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/agentTriggerInput"
@@ -9603,21 +8951,8 @@
       "createCheckoutRequest": {
         "type": "object",
         "properties": {
-          "cancel_url": {
-            "type": "string"
-          },
-          "currency": {
-            "description": "e.g. \"USD\", \"NGN\"",
-            "type": "string"
-          },
-          "cycle": {
-            "description": "\"monthly\" | \"annual\"",
-            "type": "string"
-          },
-          "plan_slug": {
-            "type": "string"
-          },
-          "provider": {
+          "product_type": {
+            "description": "\"pro_shared\" or \"pro_dedicated\"",
             "type": "string"
           },
           "success_url": {
@@ -9752,35 +9087,11 @@
           }
         }
       },
-      "createPortalRequest": {
-        "type": "object",
-        "properties": {
-          "provider": {
-            "type": "string"
-          }
-        }
-      },
-      "createRuleRequest": {
-        "type": "object",
-        "properties": {
-          "agent_id": {
-            "type": "string"
-          },
-          "conditions": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "priority": {
-            "type": "integer"
-          }
-        }
-      },
       "createSandboxTemplateRequest": {
         "type": "object",
         "properties": {
           "base_template_id": {
+            "description": "UUID of a public template to use as base",
             "type": "string"
           },
           "build_commands": {
@@ -9871,60 +9182,6 @@
           },
           "tools": {
             "$ref": "#/components/schemas/JSON"
-          }
-        }
-      },
-      "createSystemCredentialRequest": {
-        "type": "object",
-        "properties": {
-          "api_key": {
-            "type": "string"
-          },
-          "auth_scheme": {
-            "type": "string"
-          },
-          "base_url": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "provider_id": {
-            "type": "string"
-          }
-        }
-      },
-      "createTriggerRequest": {
-        "type": "object",
-        "properties": {
-          "connection_id": {
-            "description": "required for webhook",
-            "type": "string"
-          },
-          "cron_schedule": {
-            "description": "required for cron",
-            "type": "string"
-          },
-          "enrich_cross_references": {
-            "type": "boolean"
-          },
-          "instructions": {
-            "type": "string"
-          },
-          "routing_mode": {
-            "description": "\"rule\" (default) or \"triage\"",
-            "type": "string"
-          },
-          "trigger_keys": {
-            "description": "required for webhook",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "trigger_type": {
-            "description": "\"webhook\" (default), \"http\", \"cron\"",
-            "type": "string"
           }
         }
       },
@@ -10063,6 +9320,14 @@
           },
           "success": {
             "type": "boolean"
+          }
+        }
+      },
+      "forgotPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
           }
         }
       },
@@ -10312,6 +9577,21 @@
           }
         }
       },
+      "loginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "org_id": {
+            "description": "optional: scope token to a specific org",
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
       "logoutRequest": {
         "type": "object",
         "properties": {
@@ -10421,6 +9701,70 @@
           },
           "verified": {
             "type": "boolean"
+          }
+        }
+      },
+      "meResponse": {
+        "type": "object",
+        "properties": {
+          "is_platform_admin": {
+            "type": "boolean"
+          },
+          "orgs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/orgMemberDTO"
+            }
+          },
+          "user": {
+            "$ref": "#/components/schemas/userResponse"
+          }
+        }
+      },
+      "mintTokenRequest": {
+        "type": "object",
+        "properties": {
+          "credential_id": {
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "refill_amount": {
+            "type": "integer"
+          },
+          "refill_interval": {
+            "type": "string"
+          },
+          "remaining": {
+            "type": "integer"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_mcp.TokenScope"
+            }
+          },
+          "ttl": {
+            "description": "e.g. \"1h\", \"24h\"",
+            "type": "string"
+          }
+        }
+      },
+      "mintTokenResponse": {
+        "type": "object",
+        "properties": {
+          "expires_at": {
+            "type": "string"
+          },
+          "jti": {
+            "type": "string"
+          },
+          "mcp_endpoint": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
           }
         }
       },
@@ -10546,16 +9890,10 @@
       "orgMemberDTO": {
         "type": "object",
         "properties": {
-          "credits": {
-            "type": "integer"
-          },
           "id": {
             "type": "string"
           },
           "name": {
-            "type": "string"
-          },
-          "plan_slug": {
             "type": "string"
           },
           "role": {
@@ -11030,6 +10368,23 @@
           }
         }
       },
+      "paginatedResponse-tokenListItem": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/tokenListItem"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
       "portalResponse": {
         "type": "object",
         "properties": {
@@ -11098,6 +10453,32 @@
           },
           "tags": {
             "$ref": "#/components/schemas/JSON"
+          }
+        }
+      },
+      "refreshRequest": {
+        "type": "object",
+        "properties": {
+          "org_id": {
+            "description": "optional: switch org",
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          }
+        }
+      },
+      "registerRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
           }
         }
       },
@@ -11586,16 +10967,10 @@
       "subscriptionResponse": {
         "type": "object",
         "properties": {
-          "credits_balance": {
-            "type": "integer"
-          },
-          "current_period_end": {
+          "plan": {
             "type": "string"
           },
-          "plan_slug": {
-            "type": "string"
-          },
-          "provider": {
+          "product_type": {
             "type": "string"
           },
           "status": {
@@ -11603,29 +10978,41 @@
           }
         }
       },
-      "systemCredentialResponse": {
+      "tokenListItem": {
         "type": "object",
         "properties": {
-          "auth_scheme": {
-            "type": "string"
-          },
-          "base_url": {
-            "type": "string"
-          },
           "created_at": {
+            "type": "string"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "expires_at": {
             "type": "string"
           },
           "id": {
             "type": "string"
           },
-          "label": {
+          "jti": {
             "type": "string"
           },
-          "provider_id": {
+          "meta": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "refill_amount": {
+            "type": "integer"
+          },
+          "refill_interval": {
             "type": "string"
+          },
+          "remaining": {
+            "type": "integer"
           },
           "revoked_at": {
             "type": "string"
+          },
+          "scopes": {
+            "$ref": "#/components/schemas/JSON"
           }
         }
       },
@@ -11727,6 +11114,7 @@
             "type": "string"
           },
           "refs": {
+            "description": "ref_name → dot-path into payload",
             "type": "object",
             "additionalProperties": {
               "type": "string"
@@ -11791,6 +11179,7 @@
             "type": "string"
           },
           "sandbox_tools": {
+            "description": "tools to enable in dedicated sandbox",
             "type": "array",
             "items": {
               "type": "string"
@@ -11803,6 +11192,7 @@
             "type": "boolean"
           },
           "skill_ids": {
+            "description": "nil=don't touch, []=detach all, [ids]=sync to these",
             "type": "array",
             "items": {
               "type": "string"
@@ -11821,6 +11211,7 @@
             "$ref": "#/components/schemas/JSON"
           },
           "triggers": {
+            "description": "nil=don't touch, []=remove all",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/agentTriggerInput"
@@ -11859,20 +11250,6 @@
             "items": {
               "type": "string"
             }
-          }
-        }
-      },
-      "updateRouterRequest": {
-        "type": "object",
-        "properties": {
-          "default_agent_id": {
-            "type": "string"
-          },
-          "memory_team": {
-            "type": "string"
-          },
-          "persona": {
-            "type": "string"
           }
         }
       },
@@ -11982,6 +11359,7 @@
             "$ref": "#/components/schemas/requestStats"
           },
           "spend_over_time": {
+            "description": "Generation-based analytics",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/spendOverTime"
@@ -12050,10 +11428,6 @@
     {
       "name": "auth",
       "description": "Authentication"
-    },
-    {
-      "name": "triggers",
-      "description": "triggers"
     },
     {
       "name": "webhooks",
@@ -12136,16 +11510,16 @@
       "description": "Reporting"
     },
     {
-      "name": "router",
-      "description": "router"
-    },
-    {
       "name": "sandbox-templates",
       "description": "Sandbox Templates"
     },
     {
       "name": "sandboxes",
       "description": "Sandboxes"
+    },
+    {
+      "name": "tokens",
+      "description": "Tokens"
     },
     {
       "name": "usage",
