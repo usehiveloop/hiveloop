@@ -175,6 +175,15 @@ type RAGSource struct {
 	// (ACLs kept fresh via perm_sync).
 	AccessType AccessType `gorm:"type:varchar(16);not null"`
 
+	// IndexingStart — optional floor on the poll-window start. Port of
+	// Onyx Connector.indexing_start at backend/onyx/db/models.py. Admins
+	// of pathological repos (golang/go, rust-lang/rust, kernel mirrors)
+	// set this to cap the initial-index window; default NULL = "since
+	// the start of time" (matches Onyx's run_docfetching.py:419-451
+	// fallback). The scheduler's window-start logic reads this when
+	// computing the LoadFromCheckpoint window.
+	IndexingStart *time.Time `gorm:"type:timestamptz"`
+
 	// LastSuccessfulIndexTime — port of Onyx models.py:776-778. Finish
 	// time (not start time) of the most recent successful ingest attempt.
 	LastSuccessfulIndexTime *time.Time `gorm:"type:timestamptz"`
