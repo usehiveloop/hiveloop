@@ -1754,6 +1754,25 @@ definitions:
       provider:
         type: string
     type: object
+  internal_handler.createRAGSourceRequest:
+    properties:
+      access_type:
+        type: string
+      config:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      in_connection_id:
+        type: string
+      kind:
+        type: string
+      name:
+        type: string
+      perm_sync_freq_seconds:
+        type: integer
+      prune_freq_seconds:
+        type: integer
+      refresh_freq_seconds:
+        type: integer
+    type: object
   internal_handler.createRuleRequest:
     properties:
       agent_id:
@@ -2632,6 +2651,229 @@ definitions:
       tags:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
+  internal_handler.ragAttemptDetailResponse:
+    properties:
+      docs_removed_from_index:
+        type: integer
+      error_count:
+        type: integer
+      error_msg:
+        type: string
+      errors:
+        items:
+          $ref: '#/definitions/internal_handler.ragAttemptErrorPayload'
+        type: array
+      from_beginning:
+        type: boolean
+      full_exception_trace:
+        type: string
+      id:
+        type: string
+      new_docs_indexed:
+        type: integer
+      poll_range_end:
+        type: string
+      poll_range_start:
+        type: string
+      status:
+        type: string
+      time_created:
+        type: string
+      time_started:
+        type: string
+      time_updated:
+        type: string
+      total_docs_indexed:
+        type: integer
+    type: object
+  internal_handler.ragAttemptErrorPayload:
+    properties:
+      document_id:
+        type: string
+      document_link:
+        type: string
+      entity_id:
+        type: string
+      error_type:
+        type: string
+      failed_time_range_end:
+        type: string
+      failed_time_range_start:
+        type: string
+      failure_message:
+        type: string
+      id:
+        type: string
+      is_resolved:
+        type: boolean
+      time_created:
+        type: string
+    type: object
+  internal_handler.ragAttemptsListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.ragIndexAttemptResponse'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
+  internal_handler.ragIndexAttemptResponse:
+    properties:
+      docs_removed_from_index:
+        type: integer
+      error_msg:
+        type: string
+      from_beginning:
+        type: boolean
+      id:
+        type: string
+      new_docs_indexed:
+        type: integer
+      poll_range_end:
+        type: string
+      poll_range_start:
+        type: string
+      status:
+        type: string
+      time_created:
+        type: string
+      time_started:
+        type: string
+      time_updated:
+        type: string
+      total_docs_indexed:
+        type: integer
+    type: object
+  internal_handler.ragIntegrationResponse:
+    properties:
+      display_name:
+        type: string
+      id:
+        type: string
+      provider:
+        type: string
+      unique_key:
+        type: string
+    type: object
+  internal_handler.ragIntegrationsListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.ragIntegrationResponse'
+        type: array
+    type: object
+  internal_handler.ragListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.ragSourceResponse'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
+  internal_handler.ragSourceDetailResponse:
+    properties:
+      access_type:
+        type: string
+      config:
+        items:
+          type: integer
+        type: array
+      created_at:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: string
+      in_connection_id:
+        type: string
+      in_repeated_error_state:
+        type: boolean
+      indexing_start:
+        type: string
+      kind:
+        type: string
+      last_pruned:
+        type: string
+      last_successful_index_time:
+        type: string
+      last_time_perm_sync:
+        type: string
+      name:
+        type: string
+      org_id:
+        type: string
+      perm_sync_freq_seconds:
+        type: integer
+      prune_freq_seconds:
+        type: integer
+      recent_attempts:
+        items:
+          $ref: '#/definitions/internal_handler.ragIndexAttemptResponse'
+        type: array
+      refresh_freq_seconds:
+        type: integer
+      status:
+        type: string
+      total_docs_indexed:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  internal_handler.ragSourceResponse:
+    properties:
+      access_type:
+        type: string
+      config:
+        items:
+          type: integer
+        type: array
+      created_at:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: string
+      in_connection_id:
+        type: string
+      in_repeated_error_state:
+        type: boolean
+      indexing_start:
+        type: string
+      kind:
+        type: string
+      last_pruned:
+        type: string
+      last_successful_index_time:
+        type: string
+      last_time_perm_sync:
+        type: string
+      name:
+        type: string
+      org_id:
+        type: string
+      perm_sync_freq_seconds:
+        type: integer
+      prune_freq_seconds:
+        type: integer
+      refresh_freq_seconds:
+        type: integer
+      status:
+        type: string
+      total_docs_indexed:
+        type: integer
+      updated_at:
+        type: string
+    type: object
   internal_handler.reportRow:
     properties:
       avg_ttfb_ms:
@@ -2959,6 +3201,11 @@ definitions:
       status:
         type: string
     type: object
+  internal_handler.syncTriggerRequest:
+    properties:
+      from_beginning:
+        type: boolean
+    type: object
   internal_handler.systemCredentialResponse:
     properties:
       auth_scheme:
@@ -3027,6 +3274,15 @@ definitions:
       total_cost:
         type: number
       user_id:
+        type: string
+    type: object
+  internal_handler.triggerResponse:
+    properties:
+      deduplicated:
+        type: boolean
+      source_id:
+        type: string
+      task_type:
         type: string
     type: object
   internal_handler.triggerSummary:
@@ -3135,6 +3391,25 @@ definitions:
       logo_url:
         type: string
       name:
+        type: string
+    type: object
+  internal_handler.updateRAGSourceRequest:
+    properties:
+      config:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      enabled:
+        type: boolean
+      indexing_start:
+        type: string
+      name:
+        type: string
+      perm_sync_freq_seconds:
+        type: integer
+      prune_freq_seconds:
+        type: integer
+      refresh_freq_seconds:
+        type: integer
+      status:
         type: string
     type: object
   internal_handler.updateRouterRequest:
@@ -7893,6 +8168,289 @@ paths:
       summary: List models for a provider
       tags:
       - providers
+  /v1/rag/integrations:
+    get:
+      description: Returns the platform integrations that can be used as RAG sources
+        (i.e. their `supports_rag_source` flag is true). The admin UI uses this to
+        filter the connection picker for the Knowledge Base.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.ragIntegrationsListResponse'
+      security:
+      - BearerAuth: []
+      summary: List RAG-supported integrations
+      tags:
+      - rag
+  /v1/rag/sources:
+    get:
+      description: Returns the org's RAG sources. Supports pagination and optional
+        status / kind filters.
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by kind
+        in: query
+        name: kind
+        type: string
+      - description: Page number (0-indexed)
+        in: query
+        name: page
+        type: integer
+      - description: Page size, max 100
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.ragListResponse'
+      security:
+      - BearerAuth: []
+      summary: List RAG sources
+      tags:
+      - rag
+    post:
+      consumes:
+      - application/json
+      description: Creates a new RAG source that the scheduler will pick up on the
+        next tick. Kind=integration requires a valid in_connection_id pointing at
+        an integration whose supports_rag_source flag is true. Refresh / prune / perm-sync
+        frequencies are validated against per-org minimums.
+      parameters:
+      - description: Source definition
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createRAGSourceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.ragSourceResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a RAG source
+      tags:
+      - rag
+  /v1/rag/sources/{id}:
+    delete:
+      description: Soft-tombstones the source (Status → DELETING). The scheduler stops
+        enqueuing work immediately; row + document teardown happens asynchronously
+        via a cleanup loop.
+      parameters:
+      - description: Source ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/internal_handler.triggerResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a RAG source
+      tags:
+      - rag
+    get:
+      description: Returns one RAG source by ID with the last 5 index attempts inlined.
+        404 on cross-org access by design.
+      parameters:
+      - description: Source ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.ragSourceDetailResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a RAG source
+      tags:
+      - rag
+    patch:
+      consumes:
+      - application/json
+      description: Patches mutable fields (name, status pause/resume, refresh / prune
+        / perm-sync frequencies, indexing_start floor). Only ACTIVE ↔ PAUSED transitions
+        are client-settable; DELETING is server-managed.
+      parameters:
+      - description: Source ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Patch payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.updateRAGSourceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.ragSourceResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a RAG source
+      tags:
+      - rag
+  /v1/rag/sources/{id}/attempts:
+    get:
+      description: Paginated, most-recent-first. Each row covers one ingest / perm-sync
+        / prune attempt with status, doc counts, and error summary.
+      parameters:
+      - description: Source ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Page number (0-indexed)
+        in: query
+        name: page
+        type: integer
+      - description: Page size, max 100
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.ragAttemptsListResponse'
+      security:
+      - BearerAuth: []
+      summary: List index attempts for a RAG source
+      tags:
+      - rag
+  /v1/rag/sources/{id}/attempts/{attempt_id}:
+    get:
+      description: Returns the attempt's status / counts / window plus the first page
+        of per-doc failure rows. The dedicated errors page can be used to walk later
+        pages if needed.
+      parameters:
+      - description: Source ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Attempt ID
+        in: path
+        name: attempt_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.ragAttemptDetailResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an index-attempt with per-doc errors
+      tags:
+      - rag
+  /v1/rag/sources/{id}/perm-sync:
+    post:
+      description: Enqueues a one-off permission-sync job. Returns 422 if the source's
+        connector does not implement PermSyncConnector (i.e. has no external ACL model
+        worth syncing).
+      parameters:
+      - description: Source ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/internal_handler.triggerResponse'
+      security:
+      - BearerAuth: []
+      summary: Trigger an immediate permission sync
+      tags:
+      - rag
+  /v1/rag/sources/{id}/prune:
+    post:
+      description: 'Enqueues a one-off prune job: the connector enumerates upstream
+        IDs and the worker deletes any documents we have that no longer exist upstream.'
+      parameters:
+      - description: Source ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/internal_handler.triggerResponse'
+      security:
+      - BearerAuth: []
+      summary: Trigger an immediate prune
+      tags:
+      - rag
+  /v1/rag/sources/{id}/sync:
+    post:
+      consumes:
+      - application/json
+      description: Enqueues a one-off ingest job for the source. Set from_beginning=true
+        to override the time-window floor and re-walk from the source's IndexingStart
+        (or epoch).
+      parameters:
+      - description: Source ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Trigger options
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_handler.syncTriggerRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/internal_handler.triggerResponse'
+      security:
+      - BearerAuth: []
+      summary: Trigger an immediate ingest
+      tags:
+      - rag
   /v1/reporting:
     get:
       description: Returns aggregated analytics from generations with flexible grouping

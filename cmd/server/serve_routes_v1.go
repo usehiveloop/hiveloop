@@ -223,7 +223,9 @@ func setupV1Routes(
 
 			if ragSourceHandler != nil {
 				r.Route("/rag", func(r chi.Router) {
-					r.Use(middleware.RequireOrgAdmin(database))
+					// TODO: tighten back to RequireOrgAdmin once the RAG
+					// admin UI is admin-gated.
+					r.Use(middleware.ResolveUser(database))
 					r.Get("/integrations", ragSourceHandler.ListIntegrations)
 					r.Post("/sources", ragSourceHandler.Create)
 					r.Get("/sources", ragSourceHandler.List)
