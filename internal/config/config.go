@@ -143,6 +143,17 @@ type Config struct {
 	S3AccessKey string `env:"AWS_ACCESS_KEY_ID"`
 	S3SecretKey string `env:"AWS_SECRET_ACCESS_KEY"`
 
+	// Public assets (avatars, org logos, generic public uploads). Empty
+	// PUBLIC_ASSETS_S3_BUCKET disables the /v1/uploads/sign endpoint.
+	PublicAssetsBucket    string        `env:"PUBLIC_ASSETS_S3_BUCKET"`
+	PublicAssetsRegion    string        `env:"PUBLIC_ASSETS_S3_REGION" envDefault:"auto"`
+	PublicAssetsEndpoint  string        `env:"PUBLIC_ASSETS_S3_ENDPOINT"`
+	PublicAssetsAccessKey string        `env:"PUBLIC_ASSETS_ACCESS_KEY_ID"`
+	PublicAssetsSecretKey string        `env:"PUBLIC_ASSETS_SECRET_ACCESS_KEY"`
+	PublicAssetsBaseURL   string        `env:"PUBLIC_ASSETS_BASE_URL"`
+	PublicAssetsSignTTL   time.Duration `env:"PUBLIC_ASSETS_SIGN_TTL" envDefault:"15m"`
+	PublicAssetsUseACL    bool          `env:"PUBLIC_ASSETS_USE_ACL" envDefault:"false"`
+
 	// Admin API (disabled by default — deploy a separate private instance with ADMIN_API_ENABLED=true)
 	AdminAPIEnabled bool `env:"ADMIN_API_ENABLED" envDefault:"false"`
 

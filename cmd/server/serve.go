@@ -22,6 +22,7 @@ import (
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
 	"github.com/usehiveloop/hiveloop/internal/proxy"
 	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
+	"github.com/usehiveloop/hiveloop/internal/storage"
 	"github.com/usehiveloop/hiveloop/internal/subscriptions"
 )
 
@@ -130,6 +131,26 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		driveHandler = handler.NewDriveHandler(database, deps.S3Client)
 	}
 
+	var uploadsHandler *handler.UploadsHandler
+	if cfg.PublicAssetsBucket != "" {
+		presigner, err := storage.NewS3Presigner(storage.PublicAssetsConfig{
+			Bucket:       cfg.PublicAssetsBucket,
+			Region:       cfg.PublicAssetsRegion,
+			Endpoint:     cfg.PublicAssetsEndpoint,
+			AccessKey:    cfg.PublicAssetsAccessKey,
+			SecretKey:    cfg.PublicAssetsSecretKey,
+			PublicBase:   cfg.PublicAssetsBaseURL,
+			SignTTL:      cfg.PublicAssetsSignTTL,
+			UsePublicACL: cfg.PublicAssetsUseACL,
+		})
+		if err != nil {
+			slog.Error("public assets presigner init failed; /v1/uploads/sign disabled", "error", err)
+		} else {
+			uploadsHandler = handler.NewUploadsHandler(database, presigner)
+			slog.Info("public assets uploads ready", "bucket", cfg.PublicAssetsBucket)
+		}
+	}
+
 	billingHandler := handler.NewBillingHandler(database, deps.BillingRegistry, deps.Credits)
 	billingWebhookHandler := handler.NewBillingWebhookHandler(database, deps.BillingRegistry, deps.Credits)
 
@@ -149,7 +170,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
 	ragSourceHandler := handler.NewRAGSourceHandler(database, enqueuer, ragscheduler.HasPermSyncCapability)
-	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, subagentHandler, agentHandler, marketplaceHandler, conversationHandler, routerHandler, customDomainHandler, ragSourceHandler, orchestrator, auditWriter)
+	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, subagentHandler, agentHandler, marketplaceHandler, conversationHandler, routerHandler, customDomainHandler, ragSourceHandler, uploadsHandler, orchestrator, auditWriter)
 
 	var platformAdminEmails []string
 	if cfg.PlatformAdminEmails != "" {
