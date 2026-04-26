@@ -68,6 +68,17 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 			updates["avatar_url"] = *req.AvatarURL
 		}
 	}
+	if req.Category != nil {
+		if *req.Category == "" {
+			updates["category"] = nil
+		} else {
+			if !isValidAgentCategory(*req.Category) {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid category %q", *req.Category)})
+				return
+			}
+			updates["category"] = *req.Category
+		}
+	}
 	if req.SystemPrompt != nil {
 		updates["system_prompt"] = *req.SystemPrompt
 	}
