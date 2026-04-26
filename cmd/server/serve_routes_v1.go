@@ -149,6 +149,7 @@ func setupV1Routes(
 				})
 				r.Get("/agents/sandbox-tools", agentHandler.ListSandboxTools)
 				r.Get("/agents/built-in-tools", agentHandler.ListBuiltInTools)
+				r.Get("/agents/categories", agentHandler.ListCategories)
 				r.Route("/agents", func(r chi.Router) {
 					r.Post("/", agentHandler.Create)
 					r.Get("/", agentHandler.List)
