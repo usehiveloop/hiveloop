@@ -25,10 +25,15 @@ type createRAGSourceRequest struct {
 	PermSyncFreqSeconds *int       `json:"perm_sync_freq_seconds,omitempty"`
 }
 
-// Port of backend/onyx/server/documents/connector.py:1550 create flow,
-// collapsed with cc_pair.py:540 (associate-credential) into a single
-// request because the Hiveloop RAGSource row already references
-// InConnection directly.
+// @Summary Create a RAG source
+// @Description Creates a new RAG source that the scheduler will pick up on the next tick. Kind=integration requires a valid in_connection_id pointing at an integration whose supports_rag_source flag is true. Refresh / prune / perm-sync frequencies are validated against per-org minimums.
+// @Tags rag
+// @Accept json
+// @Produce json
+// @Param body body createRAGSourceRequest true "Source definition"
+// @Success 201 {object} ragSourceResponse
+// @Security BearerAuth
+// @Router /v1/rag/sources [post]
 func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {

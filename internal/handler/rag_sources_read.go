@@ -13,6 +13,17 @@ import (
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
+// @Summary List RAG sources
+// @Description Returns the org's RAG sources. Supports pagination and optional status / kind filters.
+// @Tags rag
+// @Produce json
+// @Param status query string false "Filter by status"
+// @Param kind query string false "Filter by kind"
+// @Param page query int false "Page number (0-indexed)"
+// @Param page_size query int false "Page size, max 100"
+// @Success 200 {object} ragListResponse
+// @Security BearerAuth
+// @Router /v1/rag/sources [get]
 func (h *RAGSourceHandler) List(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -53,6 +64,14 @@ func (h *RAGSourceHandler) List(w http.ResponseWriter, r *http.Request) {
 // Port of backend/onyx/server/documents/cc_pair.py:156 detail endpoint.
 // Inlines the most-recent attempts so the admin UI doesn't need a
 // second round-trip.
+// @Summary Get a RAG source
+// @Description Returns one RAG source by ID with the last 5 index attempts inlined. 404 on cross-org access by design.
+// @Tags rag
+// @Produce json
+// @Param id path string true "Source ID"
+// @Success 200 {object} ragSourceDetailResponse
+// @Security BearerAuth
+// @Router /v1/rag/sources/{id} [get]
 func (h *RAGSourceHandler) Get(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {

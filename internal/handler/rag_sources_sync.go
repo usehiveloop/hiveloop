@@ -32,7 +32,16 @@ type triggerResponse struct {
 	Deduplicated bool   `json:"deduplicated"`
 }
 
-// Port of connector.py:1741 (`POST /admin/connector/run-once`).
+// @Summary Trigger an immediate ingest
+// @Description Enqueues a one-off ingest job for the source. Set from_beginning=true to override the time-window floor and re-walk from the source's IndexingStart (or epoch).
+// @Tags rag
+// @Accept json
+// @Produce json
+// @Param id path string true "Source ID"
+// @Param body body syncTriggerRequest false "Trigger options"
+// @Success 202 {object} triggerResponse
+// @Security BearerAuth
+// @Router /v1/rag/sources/{id}/sync [post]
 func (h *RAGSourceHandler) TriggerSync(w http.ResponseWriter, r *http.Request) {
 	src, status := h.loadSourceForTrigger(w, r)
 	if status != 0 {
@@ -53,7 +62,14 @@ func (h *RAGSourceHandler) TriggerSync(w http.ResponseWriter, r *http.Request) {
 	h.dispatchTrigger(w, src, task, ragtasks.TypeRagIngest)
 }
 
-// Port of cc_pair.py:433 (`POST /admin/cc-pair/{id}/prune`).
+// @Summary Trigger an immediate prune
+// @Description Enqueues a one-off prune job: the connector enumerates upstream IDs and the worker deletes any documents we have that no longer exist upstream.
+// @Tags rag
+// @Produce json
+// @Param id path string true "Source ID"
+// @Success 202 {object} triggerResponse
+// @Security BearerAuth
+// @Router /v1/rag/sources/{id}/prune [post]
 func (h *RAGSourceHandler) TriggerPrune(w http.ResponseWriter, r *http.Request) {
 	src, status := h.loadSourceForTrigger(w, r)
 	if status != 0 {
@@ -68,8 +84,14 @@ func (h *RAGSourceHandler) TriggerPrune(w http.ResponseWriter, r *http.Request) 
 	h.dispatchTrigger(w, src, task, ragtasks.TypeRagPrune)
 }
 
-// Port of ee/cc_pair.py:53 (`POST /admin/cc-pair/{id}/sync-permissions`).
-// Capability gate mirrors scheduler.HasPermSyncCapability.
+// @Summary Trigger an immediate permission sync
+// @Description Enqueues a one-off permission-sync job. Returns 422 if the source's connector does not implement PermSyncConnector (i.e. has no external ACL model worth syncing).
+// @Tags rag
+// @Produce json
+// @Param id path string true "Source ID"
+// @Success 202 {object} triggerResponse
+// @Security BearerAuth
+// @Router /v1/rag/sources/{id}/perm-sync [post]
 func (h *RAGSourceHandler) TriggerPermSync(w http.ResponseWriter, r *http.Request) {
 	src, status := h.loadSourceForTrigger(w, r)
 	if status != 0 {

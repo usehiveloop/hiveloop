@@ -112,6 +112,10 @@ type ragAttemptsListResponse struct {
 	Size  int                       `json:"page_size"`
 }
 
+type ragIntegrationsListResponse struct {
+	Data []ragIntegrationResponse `json:"data"`
+}
+
 func toRAGSourceResponse(s *ragmodel.RAGSource) ragSourceResponse {
 	resp := ragSourceResponse{
 		ID:                      s.ID.String(),

@@ -13,10 +13,14 @@ import (
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
-// Port of cc_pair.py:625 — but soft, not hard. Setting status=DELETING
-// drops the source from the scheduler's eligible-for-ingest predicate
-// (`status IN ('ACTIVE','INITIAL_INDEXING')`). The actual row+document
-// teardown is a separate cleanup loop, intentionally out of scope here.
+// @Summary Delete a RAG source
+// @Description Soft-tombstones the source (Status → DELETING). The scheduler stops enqueuing work immediately; row + document teardown happens asynchronously via a cleanup loop.
+// @Tags rag
+// @Produce json
+// @Param id path string true "Source ID"
+// @Success 202 {object} triggerResponse
+// @Security BearerAuth
+// @Router /v1/rag/sources/{id} [delete]
 func (h *RAGSourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
