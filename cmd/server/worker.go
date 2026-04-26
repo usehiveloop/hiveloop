@@ -51,8 +51,8 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	// enqueue, the worker drains with built-in retries.
 	var workerSender email.Sender = &email.LogSender{}
 	if cfg.KibamailAPIKey != "" {
-		workerSender = email.NewKibamailSender(cfg.KibamailAPIKey, cfg.KibamailFromAddress)
-		slog.Info("kibamail sender configured", "from", cfg.KibamailFromAddress)
+		workerSender = email.NewKibamailSender(cfg.KibamailAPIKey, cfg.KibamailFromAddress, cfg.KibamailFromName)
+		slog.Info("kibamail sender configured", "from", cfg.KibamailFromAddress, "from_name", cfg.KibamailFromName)
 	} else {
 		slog.Warn("KIBAMAIL_API_KEY not set — emails will be logged only")
 	}
