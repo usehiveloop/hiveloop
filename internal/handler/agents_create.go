@@ -153,26 +153,10 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		agent.SandboxTemplateID = &tmpl.ID
 	}
 
-	// Parse skill IDs up front so a bad input fails the whole create cleanly.
-	// Validate trigger inputs. Connection IDs are in_connections IDs from the frontend.
-	for triggerIndex, triggerInput := range req.Triggers {
-		if triggerInput.ConnectionID == "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: connection_id is required", triggerIndex)})
-			return
-		}
-		if _, parseErr := uuid.Parse(triggerInput.ConnectionID); parseErr != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: invalid connection_id", triggerIndex)})
-			return
-		}
-		if len(triggerInput.TriggerKeys) == 0 {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: trigger_keys is required", triggerIndex)})
-			return
-		}
-		var inConn model.InConnection
-		if err := h.db.Where("id = ? AND org_id = ?", triggerInput.ConnectionID, org.ID).First(&inConn).Error; err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: connection not found", triggerIndex)})
-			return
-		}
+	// Validate trigger inputs per trigger_type (webhook | http | cron).
+	if errMsg := validateAgentTriggers(h.db, org.ID, req.Triggers); errMsg != "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
+		return
 	}
 
 	var skillUUIDs []uuid.UUID
