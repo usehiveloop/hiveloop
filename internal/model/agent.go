@@ -14,6 +14,7 @@ type Agent struct {
 	Name              string           `gorm:"not null"`
 	Description       *string          `gorm:"type:text"`
 	AvatarURL         *string          `gorm:"type:text"`
+	Category          *string          `gorm:"type:text;index"`
 	CredentialID      *uuid.UUID       `gorm:"type:uuid;index"` // nil for system agents
 	Credential        *Credential      `gorm:"foreignKey:CredentialID;constraint:OnDelete:SET NULL"`
 	SandboxTemplateID *uuid.UUID       `gorm:"type:uuid"`

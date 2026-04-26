@@ -37,6 +37,21 @@ var agentCategories = []agentCategory{
 	{ID: "other", Name: "Other", Description: "General-purpose agents that do not fit the categories above."},
 }
 
+// validAgentCategoryIDs is a set for fast membership lookups during
+// create/update validation.
+var validAgentCategoryIDs = func() map[string]bool {
+	result := make(map[string]bool, len(agentCategories))
+	for _, category := range agentCategories {
+		result[category.ID] = true
+	}
+	return result
+}()
+
+// isValidAgentCategory reports whether id refers to a known agent category.
+func isValidAgentCategory(id string) bool {
+	return validAgentCategoryIDs[id]
+}
+
 // ListCategories handles GET /v1/agents/categories.
 // @Summary List agent categories
 // @Description Returns the static catalog of work categories an agent can be tagged with.
