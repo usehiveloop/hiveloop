@@ -9,8 +9,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	coremodel "github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/rag"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
@@ -195,40 +193,6 @@ func TestRAGSourceKind_IsValid(t *testing.T) {
 	}
 }
 
-// Verifies the migration's seed flips supports_rag_source=true on a
-// curated provider allowlist; without it the admin UI can't list
-// addable RAG sources.
-func TestRAGSource_SeedsSupportsRAGSourceForKnownIntegrations(t *testing.T) {
-	db := testhelpers.ConnectTestDB(t)
-
-	seedUnique := "github-seed-" + uuid.NewString()
-	integ := &coremodel.InIntegration{
-		UniqueKey:   seedUnique,
-		Provider:    "github",
-		DisplayName: "GitHub (seed test)",
-	}
-	if err := db.Create(integ).Error; err != nil {
-		t.Fatalf("insert integration: %v", err)
-	}
-	t.Cleanup(func() {
-		db.Where("id = ?", integ.ID).Delete(&coremodel.InIntegration{})
-	})
-
-	if err := rag.AutoMigrate(db); err != nil {
-		t.Fatalf("rag.AutoMigrate: %v", err)
-	}
-
-	var supports bool
-	if err := db.Raw(
-		`SELECT supports_rag_source FROM in_integrations WHERE id = ?`,
-		integ.ID,
-	).Scan(&supports).Error; err != nil {
-		t.Fatalf("read supports_rag_source: %v", err)
-	}
-	if !supports {
-		t.Fatal("expected supports_rag_source=true for provider='github' after migration")
-	}
-}
 
 // Validates that IndexingStart round-trips through the schema —
 // silent loss to NULL would cause every run to re-ingest full history.

@@ -26,9 +26,16 @@ type updateRAGSourceRequest struct {
 	PermSyncFreqSeconds *int        `json:"perm_sync_freq_seconds,omitempty"`
 }
 
-// Port of cc_pair.py:259 (status flip), :343 (rename), :372 (freq) —
-// collapsed into one PATCH because Hiveloop has no separate
-// status/property endpoints.
+// @Summary Update a RAG source
+// @Description Patches mutable fields (name, status pause/resume, refresh / prune / perm-sync frequencies, indexing_start floor). Only ACTIVE ↔ PAUSED transitions are client-settable; DELETING is server-managed.
+// @Tags rag
+// @Accept json
+// @Produce json
+// @Param id path string true "Source ID"
+// @Param body body updateRAGSourceRequest true "Patch payload"
+// @Success 200 {object} ragSourceResponse
+// @Security BearerAuth
+// @Router /v1/rag/sources/{id} [patch]
 func (h *RAGSourceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {

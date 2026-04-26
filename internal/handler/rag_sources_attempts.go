@@ -13,7 +13,16 @@ import (
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
-// Port of cc_pair.py:82 paginated index-attempts endpoint.
+// @Summary List index attempts for a RAG source
+// @Description Paginated, most-recent-first. Each row covers one ingest / perm-sync / prune attempt with status, doc counts, and error summary.
+// @Tags rag
+// @Produce json
+// @Param id path string true "Source ID"
+// @Param page query int false "Page number (0-indexed)"
+// @Param page_size query int false "Page size, max 100"
+// @Success 200 {object} ragAttemptsListResponse
+// @Security BearerAuth
+// @Router /v1/rag/sources/{id}/attempts [get]
 func (h *RAGSourceHandler) ListAttempts(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -61,9 +70,15 @@ func (h *RAGSourceHandler) ListAttempts(w http.ResponseWriter, r *http.Request) 
 }
 
 // Port of cc_pair.py:499 (errors) folded into the per-attempt detail.
-// Limits errors to a single page (cheap admin glance) — the dedicated
-// errors endpoint can return successive pages if a connector fails
-// against thousands of docs in one attempt.
+// @Summary Get an index-attempt with per-doc errors
+// @Description Returns the attempt's status / counts / window plus the first page of per-doc failure rows. The dedicated errors page can be used to walk later pages if needed.
+// @Tags rag
+// @Produce json
+// @Param id path string true "Source ID"
+// @Param attempt_id path string true "Attempt ID"
+// @Success 200 {object} ragAttemptDetailResponse
+// @Security BearerAuth
+// @Router /v1/rag/sources/{id}/attempts/{attempt_id} [get]
 func (h *RAGSourceHandler) GetAttempt(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
