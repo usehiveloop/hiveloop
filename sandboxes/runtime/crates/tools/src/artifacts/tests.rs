@@ -134,7 +134,11 @@ mod test_server {
     ) -> impl IntoResponse {
         let id = state.next_id.fetch_add(1, Ordering::SeqCst);
         let id = format!("u{id}");
-        state.uploads.lock().unwrap().insert(id.clone(), Upload::default());
+        state
+            .uploads
+            .lock()
+            .unwrap()
+            .insert(id.clone(), Upload::default());
         (
             StatusCode::CREATED,
             [
@@ -190,7 +194,9 @@ mod test_server {
 
         // Programmable forced 409 — once.
         if state.force_offset_mismatch_once.load(Ordering::SeqCst) > 0 {
-            state.force_offset_mismatch_once.fetch_sub(1, Ordering::SeqCst);
+            state
+                .force_offset_mismatch_once
+                .fetch_sub(1, Ordering::SeqCst);
             return (
                 StatusCode::CONFLICT,
                 [
@@ -283,7 +289,10 @@ async fn retries_transient_500s() {
         None,
     );
     let args = serde_json::json!({ "path": path.to_string_lossy() });
-    let result = tool.execute(args).await.expect("upload should succeed after retry");
+    let result = tool
+        .execute(args)
+        .await
+        .expect("upload should succeed after retry");
     assert!(!result.is_empty());
 
     let uploads = state.uploads.lock().unwrap();
@@ -309,7 +318,9 @@ async fn realigns_after_offset_mismatch() {
         None,
     );
     let args = serde_json::json!({ "path": path.to_string_lossy() });
-    tool.execute(args).await.expect("upload should succeed after realign");
+    tool.execute(args)
+        .await
+        .expect("upload should succeed after realign");
 
     let uploads = state.uploads.lock().unwrap();
     let stored = uploads.values().next().unwrap();

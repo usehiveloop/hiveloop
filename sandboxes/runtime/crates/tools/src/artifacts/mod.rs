@@ -71,7 +71,7 @@ impl UploadToWorkspaceTool {
         storage: Option<Arc<dyn StorageBackend>>,
     ) -> Self {
         let semaphore = Arc::new(Semaphore::new(
-            config.effective_max_concurrent_uploads() as usize,
+            config.effective_max_concurrent_uploads() as usize
         ));
         let tus = TusClient::new(config.headers.clone(), bearer_token);
         let description = build_description(&config);
@@ -172,10 +172,7 @@ impl UploadToWorkspaceTool {
                 .unwrap_or("application/octet-stream")
                 .to_string()
         });
-        if !self
-            .config
-            .is_accepted(&content_type, extension.as_deref())
-        {
+        if !self.config.is_accepted(&content_type, extension.as_deref()) {
             return Err(format!(
                 "File type rejected: content_type='{}', extension={:?}, accepted={:?}",
                 content_type, extension, self.config.accepted_file_types
@@ -290,7 +287,8 @@ impl UploadToWorkspaceTool {
             "sha256": file_sha256,
         });
         let result_str = result.to_string();
-        self.persist_completion(&idempotency_key, bytes_sent, &result_str).await;
+        self.persist_completion(&idempotency_key, bytes_sent, &result_str)
+            .await;
         Ok(result_str)
     }
 
@@ -455,4 +453,3 @@ fn file_name_from_path(abs_path: &str) -> String {
         .map(str::to_string)
         .unwrap_or_else(|| "artifact".to_string())
 }
-

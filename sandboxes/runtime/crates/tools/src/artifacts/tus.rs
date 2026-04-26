@@ -323,7 +323,10 @@ mod tests {
     #[test]
     fn resolves_absolute_location() {
         assert_eq!(
-            resolve_location("https://cp.example.com/uploads", "https://cdn.example.com/u/abc"),
+            resolve_location(
+                "https://cp.example.com/uploads",
+                "https://cdn.example.com/u/abc"
+            ),
             "https://cdn.example.com/u/abc"
         );
     }
