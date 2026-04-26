@@ -66,7 +66,7 @@ func (h *UploadsHandler) Sign(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
-		if err := h.requireOrgAdmin(r, user.ID, orgID); err != nil {
+		if err := h.requireOrgMembership(r, user.ID, orgID); err != nil {
 			writeJSON(w, http.StatusForbidden, map[string]string{"error": err.Error()})
 			return
 		}
@@ -105,20 +105,17 @@ func resolveOrgLogoOrg(reqOrgID *string, ctxOrg *model.Org) (uuid.UUID, error) {
 	return uuid.Nil, errors.New("org_id is required for org_logo")
 }
 
-// requireOrgAdmin asserts the user is an admin/owner of the target org. We
-// re-check at the handler layer rather than relying on a route-level guard so
-// callers can request a logo for any org they administer in a single endpoint.
-func (h *UploadsHandler) requireOrgAdmin(r *http.Request, userID, orgID uuid.UUID) error {
+// requireOrgMembership asserts the user belongs to the target org. Any
+// authenticated member may upload org-scoped public assets — we don't
+// gate on owner/admin role. Cross-org probes are still rejected.
+func (h *UploadsHandler) requireOrgMembership(r *http.Request, userID, orgID uuid.UUID) error {
 	db := dbFromHandler(h)
 	if db == nil {
-		return errors.New("admin role required")
+		return errors.New("not a member of the requested organization")
 	}
 	var m model.OrgMembership
 	if err := db.Where("user_id = ? AND org_id = ?", userID, orgID).First(&m).Error; err != nil {
 		return errors.New("not a member of the requested organization")
-	}
-	if m.Role != "owner" && m.Role != "admin" {
-		return errors.New("admin role required")
 	}
 	return nil
 }

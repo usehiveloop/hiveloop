@@ -165,30 +165,19 @@ func TestUploadsSign_Avatar_HappyPath(t *testing.T) {
 	}
 }
 
-func TestUploadsSign_OrgLogo_RequiresAdmin(t *testing.T) {
+func TestUploadsSign_OrgLogo_AnyMemberAllowed(t *testing.T) {
 	h := newUploadsHarness(t)
-	user := createTestUser(t, h.db, fmt.Sprintf("upmemb-%s@test.com", uuid.New().String()[:8]))
+	member := createTestUser(t, h.db, fmt.Sprintf("upmemb-%s@test.com", uuid.New().String()[:8]))
 	org := createTestOrg(t, h.db)
-	addOrgMembership(t, h.db, user.ID, org.ID, "member")
+	addOrgMembership(t, h.db, member.ID, org.ID, "member")
 
 	rr := h.doSign(t, map[string]any{
 		"asset_type":   "org_logo",
 		"content_type": "image/png",
 		"size_bytes":   2048,
-	}, &user, &org)
-	if rr.Code != http.StatusForbidden {
-		t.Fatalf("non-admin: expected 403, got %d: %s", rr.Code, rr.Body.String())
-	}
-
-	admin := createTestUser(t, h.db, fmt.Sprintf("upadmin-%s@test.com", uuid.New().String()[:8]))
-	addOrgMembership(t, h.db, admin.ID, org.ID, "admin")
-	rr = h.doSign(t, map[string]any{
-		"asset_type":   "org_logo",
-		"content_type": "image/png",
-		"size_bytes":   2048,
-	}, &admin, &org)
+	}, &member, &org)
 	if rr.Code != http.StatusOK {
-		t.Fatalf("admin: expected 200, got %d: %s", rr.Code, rr.Body.String())
+		t.Fatalf("plain member: expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 	var resp map[string]any
 	json.NewDecoder(rr.Body).Decode(&resp)
@@ -196,6 +185,16 @@ func TestUploadsSign_OrgLogo_RequiresAdmin(t *testing.T) {
 	want := "pub/o/" + org.ID.String() + "/"
 	if !bytesHasPrefix(key, want) {
 		t.Fatalf("expected key prefix %q, got %q", want, key)
+	}
+
+	outsider := createTestUser(t, h.db, fmt.Sprintf("upout-%s@test.com", uuid.New().String()[:8]))
+	rr = h.doSign(t, map[string]any{
+		"asset_type":   "org_logo",
+		"content_type": "image/png",
+		"size_bytes":   2048,
+	}, &outsider, &org)
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("non-member: expected 403, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
 
