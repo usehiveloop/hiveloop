@@ -8,7 +8,7 @@
 # the `proto/` directory (the `.proto` file is the build input to
 # `rag-engine-proto`'s build.rs) and the `services/rag-engine/` tree.
 
-ARG RUST_VERSION=1.89
+ARG RUST_VERSION=1.91
 
 # --- stage 1: chef -----------------------------------------------------
 FROM rust:${RUST_VERSION}-slim AS chef
