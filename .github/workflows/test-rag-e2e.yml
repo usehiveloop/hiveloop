@@ -151,9 +151,9 @@ jobs:
           fi
 
           # ------------ Go tests ---------------------------------------
-          # Enumerate test names across the three infra-dependent
-          # packages, partition alphabetically by NR mod TOTAL.
-          PKGS="./internal/rag ./internal/rag/ragclient ./internal/rag/testhelpers"
+          # Enumerate test names across the infra-dependent packages,
+          # partition alphabetically by NR mod TOTAL.
+          PKGS="./internal/rag ./internal/rag/ragclient ./internal/rag/testhelpers ./internal/rag/connectors/github"
           ALL=$(for p in $PKGS; do
                   go test -list '^Test' $p 2>/dev/null | grep -E '^Test'
                 done | sort -u)
