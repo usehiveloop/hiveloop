@@ -49,6 +49,7 @@ type orgMemberDTO struct {
 	PlanSlug string `json:"plan_slug,omitempty"`
 	Credits  *int64 `json:"credits,omitempty"`
 	BYOK     bool   `json:"byok"`
+	LogoURL  string `json:"logo_url,omitempty"`
 }
 
 type meResponse struct {
