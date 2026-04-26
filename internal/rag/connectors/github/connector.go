@@ -20,6 +20,7 @@ var (
 	_ interfaces.CheckpointedConnector[GithubCheckpoint] = (*GithubConnector)(nil)
 	_ interfaces.PermSyncConnector                       = (*GithubConnector)(nil)
 	_ interfaces.SlimConnector                           = (*GithubConnector)(nil)
+	_ interfaces.EstimatingConnector                     = (*GithubConnector)(nil)
 )
 
 type GithubConnector struct {

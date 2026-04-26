@@ -29,26 +29,40 @@ func NewRAGSourceHandler(db *gorm.DB, enq enqueue.TaskEnqueuer, caps RAGCapabili
 }
 
 type ragSourceResponse struct {
-	ID                      string          `json:"id"`
-	OrgID                   string          `json:"org_id"`
-	Kind                    string          `json:"kind"`
-	Name                    string          `json:"name"`
-	Status                  string          `json:"status"`
-	Enabled                 bool            `json:"enabled"`
-	InConnectionID          *string         `json:"in_connection_id,omitempty"`
-	AccessType              string          `json:"access_type"`
-	Config                  json.RawMessage `json:"config"`
-	IndexingStart           *time.Time      `json:"indexing_start,omitempty"`
-	LastSuccessfulIndexTime *time.Time      `json:"last_successful_index_time,omitempty"`
-	LastTimePermSync        *time.Time      `json:"last_time_perm_sync,omitempty"`
-	LastPruned              *time.Time      `json:"last_pruned,omitempty"`
-	RefreshFreqSeconds      *int            `json:"refresh_freq_seconds,omitempty"`
-	PruneFreqSeconds        *int            `json:"prune_freq_seconds,omitempty"`
-	PermSyncFreqSeconds     *int            `json:"perm_sync_freq_seconds,omitempty"`
-	TotalDocsIndexed        int             `json:"total_docs_indexed"`
-	InRepeatedErrorState    bool            `json:"in_repeated_error_state"`
-	CreatedAt               time.Time       `json:"created_at"`
-	UpdatedAt               time.Time       `json:"updated_at"`
+	ID                      string                  `json:"id"`
+	OrgID                   string                  `json:"org_id"`
+	Kind                    string                  `json:"kind"`
+	Name                    string                  `json:"name"`
+	Status                  string                  `json:"status"`
+	Enabled                 bool                    `json:"enabled"`
+	InConnectionID          *string                 `json:"in_connection_id,omitempty"`
+	AccessType              string                  `json:"access_type"`
+	Config                  json.RawMessage         `json:"config"`
+	IndexingStart           *time.Time              `json:"indexing_start,omitempty"`
+	LastSuccessfulIndexTime *time.Time              `json:"last_successful_index_time,omitempty"`
+	LastTimePermSync        *time.Time              `json:"last_time_perm_sync,omitempty"`
+	LastPruned              *time.Time              `json:"last_pruned,omitempty"`
+	RefreshFreqSeconds      *int                    `json:"refresh_freq_seconds,omitempty"`
+	PruneFreqSeconds        *int                    `json:"prune_freq_seconds,omitempty"`
+	PermSyncFreqSeconds     *int                    `json:"perm_sync_freq_seconds,omitempty"`
+	TotalDocsIndexed        int                     `json:"total_docs_indexed"`
+	InRepeatedErrorState    bool                    `json:"in_repeated_error_state"`
+	LatestAttempt           *ragLatestAttemptStatus `json:"latest_attempt,omitempty"`
+	CreatedAt               time.Time               `json:"created_at"`
+	UpdatedAt               time.Time               `json:"updated_at"`
+}
+
+// ragLatestAttemptStatus is the per-source progress slice rendered on
+// dashboards: counts + status + timestamps without the full attempt
+// payload.
+type ragLatestAttemptStatus struct {
+	ID               string     `json:"id"`
+	Status           string     `json:"status"`
+	NewDocsIndexed   *int       `json:"new_docs_indexed,omitempty"`
+	TotalDocsIndexed *int       `json:"total_docs_indexed,omitempty"`
+	DocsEstimated    *int       `json:"docs_estimated,omitempty"`
+	TimeStarted      *time.Time `json:"time_started,omitempty"`
+	TimeUpdated      time.Time  `json:"time_updated"`
 }
 
 type ragSourceDetailResponse struct {
@@ -63,6 +77,7 @@ type ragIndexAttemptResponse struct {
 	NewDocsIndexed       *int       `json:"new_docs_indexed,omitempty"`
 	TotalDocsIndexed     *int       `json:"total_docs_indexed,omitempty"`
 	DocsRemovedFromIndex *int       `json:"docs_removed_from_index,omitempty"`
+	DocsEstimated        *int       `json:"docs_estimated,omitempty"`
 	ErrorMsg             *string    `json:"error_msg,omitempty"`
 	PollRangeStart       *time.Time `json:"poll_range_start,omitempty"`
 	PollRangeEnd         *time.Time `json:"poll_range_end,omitempty"`
@@ -153,12 +168,28 @@ func toRAGAttemptResponse(a *ragmodel.RAGIndexAttempt) ragIndexAttemptResponse {
 		NewDocsIndexed:       a.NewDocsIndexed,
 		TotalDocsIndexed:     a.TotalDocsIndexed,
 		DocsRemovedFromIndex: a.DocsRemovedFromIndex,
+		DocsEstimated:        a.DocsEstimated,
 		ErrorMsg:             a.ErrorMsg,
 		PollRangeStart:       a.PollRangeStart,
 		PollRangeEnd:         a.PollRangeEnd,
 		TimeStarted:          a.TimeStarted,
 		TimeCreated:          a.TimeCreated,
 		TimeUpdated:          a.TimeUpdated,
+	}
+}
+
+func toRAGLatestAttemptStatus(a *ragmodel.RAGIndexAttempt) *ragLatestAttemptStatus {
+	if a == nil {
+		return nil
+	}
+	return &ragLatestAttemptStatus{
+		ID:               a.ID.String(),
+		Status:           string(a.Status),
+		NewDocsIndexed:   a.NewDocsIndexed,
+		TotalDocsIndexed: a.TotalDocsIndexed,
+		DocsEstimated:    a.DocsEstimated,
+		TimeStarted:      a.TimeStarted,
+		TimeUpdated:      a.TimeUpdated,
 	}
 }
 
