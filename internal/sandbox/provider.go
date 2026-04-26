@@ -20,7 +20,7 @@ type CreateSandboxOpts struct {
 	Name       string            // human-readable name
 	SnapshotID string            // provider's snapshot/template ID (empty = base image)
 	EnvVars    map[string]string // environment variables (e.g. BRIDGE_* config)
-	Labels     map[string]string // metadata labels (org_id, sandbox_type, agent_id)
+	Labels     map[string]string // metadata labels (org_id, sandbox_id, agent_id)
 }
 
 // SandboxInfo is returned after creating a sandbox.

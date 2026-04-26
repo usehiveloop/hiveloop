@@ -70,7 +70,7 @@ type agentSubagentResponse struct {
 
 // Create handles POST /v1/subagents.
 // @Summary Create a subagent
-// @Description Creates a reusable subagent that parent agents can invoke. Does not require sandbox_type or credential.
+// @Description Creates a reusable subagent that parent agents can invoke. Does not require a credential.
 // @Tags subagents
 // @Accept json
 // @Produce json
@@ -108,7 +108,6 @@ func (h *SubagentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Description:  req.Description,
 		SystemPrompt: req.SystemPrompt,
 		Model:        req.Model,
-		SandboxType:  "",
 		Tools:        defaultJSON(req.Tools),
 		McpServers:   defaultJSON(req.McpServers),
 		Skills:       defaultJSON(req.Skills),

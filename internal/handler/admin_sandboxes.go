@@ -18,7 +18,6 @@ import (
 // @Produce json
 // @Param org_id query string false "Filter by org ID"
 // @Param status query string false "Filter by status (running, stopped, error)"
-// @Param sandbox_type query string false "Filter by type (shared, dedicated)"
 // @Param limit query int false "Page size"
 // @Param cursor query string false "Pagination cursor"
 // @Success 200 {object} paginatedResponse[adminSandboxResponse]
@@ -37,9 +36,6 @@ func (h *AdminHandler) ListSandboxes(w http.ResponseWriter, r *http.Request) {
 	}
 	if status := r.URL.Query().Get("status"); status != "" {
 		q = q.Where("status = ?", status)
-	}
-	if stype := r.URL.Query().Get("sandbox_type"); stype != "" {
-		q = q.Where("sandbox_type = ?", stype)
 	}
 
 	q = applyPagination(q, cursor, limit)

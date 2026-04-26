@@ -84,7 +84,7 @@ type conversationHistoryResponse struct {
 
 // Create handles POST /v1/agents/{agentID}/conversations.
 // @Summary Create a conversation
-// @Description Creates a new conversation for an agent. For shared agents, reuses the existing sandbox. For dedicated agents, spins up a new sandbox.
+// @Description Creates a new conversation for an agent by spinning up a dedicated sandbox.
 // @Tags conversations
 // @Produce json
 // @Param agentID path string true "Agent ID"
@@ -138,58 +138,16 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	var sb *model.Sandbox
-	var err error
-
-	if agent.SandboxType == "shared" {
-		// Agent should already have a pool sandbox assigned from PushAgent at creation.
-		// If not, reassign now.
-		if agent.SandboxID == nil {
-			if pushErr := h.pusher.PushAgent(ctx, &agent); pushErr != nil {
-				slog.Error("failed to assign pool sandbox", "agent_id", agent.ID, "error", pushErr)
-				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
-				return
-			}
-			// Reload agent to get updated SandboxID
-			h.db.Where("id = ?", agent.ID).First(&agent)
-		}
-
-		var existing model.Sandbox
-		if err := h.db.Where("id = ?", *agent.SandboxID).First(&existing).Error; err != nil {
-			slog.Error("failed to load assigned sandbox", "agent_id", agent.ID, "sandbox_id", *agent.SandboxID, "error", err)
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load sandbox"})
-			return
-		}
-		sb = &existing
-
-		if sb.Status == "stopped" {
-			woken, wakeErr := h.orchestrator.WakeSandbox(ctx, sb)
-			if wakeErr != nil {
-				slog.Error("failed to wake sandbox", "sandbox_id", sb.ID, "error", wakeErr)
-				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to wake sandbox"})
-				return
-			}
-			sb = woken
-		}
-
-		// Ensure agent is pushed to Bridge (idempotent)
-		if err := h.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
-			slog.Error("failed to push shared agent to sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to initialize agent in sandbox"})
-			return
-		}
-	} else {
-		sb, err = h.orchestrator.CreateDedicatedSandbox(ctx, &agent)
-		if err != nil {
-			slog.Error("failed to create dedicated sandbox", "agent_id", agent.ID, "error", err)
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
-			return
-		}
-		if err := h.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
-			slog.Error("failed to push agent to dedicated sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to initialize agent in sandbox"})
-			return
-		}
+	sb, err := h.orchestrator.CreateDedicatedSandbox(ctx, &agent)
+	if err != nil {
+		slog.Error("failed to create dedicated sandbox", "agent_id", agent.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
+		return
+	}
+	if err := h.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
+		slog.Error("failed to push agent to dedicated sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to initialize agent in sandbox"})
+		return
 	}
 
 	client, err := h.orchestrator.GetBridgeClient(ctx, sb)

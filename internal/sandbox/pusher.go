@@ -2,8 +2,6 @@ package sandbox
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
 	"sync"
 	"time"
 
@@ -65,27 +63,7 @@ func (p *Pusher) markPushed(sandboxID, agentID string) {
 	p.pushed.Store(sandboxID+":"+agentID, true)
 }
 
-func (p *Pusher) PushAgent(ctx context.Context, agent *model.Agent) error {
-	if agent.IsSystem {
-		return nil
-	}
-	if agent.SandboxType != "shared" {
-		return nil
-	}
-
-	sb, err := p.orchestrator.AssignPoolSandbox(ctx, agent)
-	if err != nil {
-		return fmt.Errorf("assigning pool sandbox: %w", err)
-	}
-
-	return p.pushAgentToSandbox(ctx, agent, sb)
-}
-
 func (p *Pusher) PushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
-	if agent.IsSystem {
-		return nil
-	}
-
 	sandboxID := sb.ID.String()
 	agentID := agent.ID.String()
 
@@ -106,33 +84,4 @@ func (p *Pusher) PushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 	}
 	p.markPushed(sandboxID, agentID)
 	return nil
-}
-
-func (p *Pusher) RemoveAgent(ctx context.Context, agent *model.Agent) error {
-	if agent.SandboxType != "shared" {
-		return nil
-	}
-
-	if agent.SandboxID == nil {
-		return nil
-	}
-
-	var sb model.Sandbox
-	if err := p.db.Where("id = ? AND status = 'running'", *agent.SandboxID).First(&sb).Error; err != nil {
-		_ = p.orchestrator.ReleasePoolSandbox(ctx, agent)
-		return nil
-	}
-
-	client, err := p.orchestrator.GetBridgeClient(ctx, &sb)
-	if err != nil {
-		slog.Warn("failed to get bridge client for agent removal", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
-	} else {
-		if err := client.RemoveAgentDefinition(ctx, agent.ID.String()); err != nil {
-			slog.Warn("failed to remove agent from bridge", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
-		}
-	}
-
-	p.pushed.Delete(sb.ID.String() + ":" + agent.ID.String())
-
-	return p.orchestrator.ReleasePoolSandbox(ctx, agent)
 }

@@ -20,14 +20,6 @@ func ensureStringSlice(s []string) []string {
 	return s
 }
 
-var sharedAgentTools = []string{
-	"web_fetch", "web_search", "web_crawl", "web_get_links", "web_screenshot", "web_transform",
-	"agent", "sub_agent", "batch",
-	"todowrite", "todoread",
-	"journal_write", "journal_read",
-	"skill",
-}
-
 var dedicatedAgentTools = []string{
 	"Read", "write", "edit", "multiedit", "apply_patch", "Glob", "RipGrep", "AstGrep", "LS",
 	"bash",
@@ -38,13 +30,9 @@ var dedicatedAgentTools = []string{
 	"lsp", "skill",
 }
 
-func defaultToolPermissions(sandboxType string) model.JSON {
-	tools := dedicatedAgentTools
-	if sandboxType == "shared" {
-		tools = sharedAgentTools
-	}
+func defaultToolPermissions() model.JSON {
 	perms := model.JSON{}
-	for _, tool := range tools {
+	for _, tool := range dedicatedAgentTools {
 		perms[tool] = "allow"
 	}
 	return perms
