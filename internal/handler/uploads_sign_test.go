@@ -2,12 +2,11 @@ package handler_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"sync"
+	"os"
 	"testing"
 	"time"
 
@@ -21,86 +20,50 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/storage"
 )
 
-type fakePresigner struct {
-	mu       sync.Mutex
-	calls    []storage.SignRequest
-	policies map[storage.AssetType]storage.AssetPolicy
-}
+const (
+	testMinioEndpoint = "http://localhost:9000"
+	testMinioAccess   = "minioadmin"
+	testMinioSecret   = "minioadmin"
+	testMinioBucket   = "public-files-test"
+)
 
-func newFakePresigner() *fakePresigner {
-	imageTypes := map[string]string{"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif"}
-	genericTypes := map[string]string{"image/png": "png", "application/pdf": "pdf", "text/plain": "txt"}
-	return &fakePresigner{
-		policies: map[storage.AssetType]storage.AssetPolicy{
-			storage.AssetTypeAvatar: {
-				MaxBytes:     5 * 1024 * 1024,
-				AllowedTypes: imageTypes,
-				KeyPrefix: func(r storage.SignRequest) (string, error) {
-					return fmt.Sprintf("avatars/%s/", r.UserID), nil
-				},
-			},
-			storage.AssetTypeOrgLogo: {
-				MaxBytes:     5 * 1024 * 1024,
-				AllowedTypes: imageTypes,
-				KeyPrefix: func(r storage.SignRequest) (string, error) {
-					if r.OrgID == nil {
-						return "", fmt.Errorf("org_id required")
-					}
-					return fmt.Sprintf("pub/o/%s/", *r.OrgID), nil
-				},
-			},
-			storage.AssetTypeGeneric: {
-				MaxBytes:     25 * 1024 * 1024,
-				AllowedTypes: genericTypes,
-				KeyPrefix: func(r storage.SignRequest) (string, error) {
-					return fmt.Sprintf("pub/u/%s/", r.UserID), nil
-				},
-			},
-		},
+func newRealPresigner(t *testing.T) *storage.S3Presigner {
+	t.Helper()
+	endpoint := os.Getenv("PUBLIC_ASSETS_S3_ENDPOINT")
+	if endpoint == "" {
+		endpoint = testMinioEndpoint
 	}
-}
-
-func (f *fakePresigner) Policy(t storage.AssetType) (storage.AssetPolicy, bool) {
-	p, ok := f.policies[t]
-	return p, ok
-}
-
-func (f *fakePresigner) Sign(_ context.Context, req storage.SignRequest) (*storage.SignedUpload, error) {
-	f.mu.Lock()
-	f.calls = append(f.calls, req)
-	f.mu.Unlock()
-	pol := f.policies[req.AssetType]
-	prefix, err := pol.KeyPrefix(req)
+	if resp, err := http.Get(endpoint + "/minio/health/ready"); err != nil || resp.StatusCode >= 400 {
+		t.Skipf("MinIO not reachable at %s: %v", endpoint, err)
+	}
+	p, err := storage.NewS3Presigner(storage.PublicAssetsConfig{
+		Bucket:     testMinioBucket,
+		Region:     "auto",
+		Endpoint:   endpoint,
+		AccessKey:  testMinioAccess,
+		SecretKey:  testMinioSecret,
+		PublicBase: endpoint + "/" + testMinioBucket,
+		SignTTL:    15 * time.Minute,
+	})
 	if err != nil {
-		return nil, err
+		t.Fatalf("create presigner: %v", err)
 	}
-	key := prefix + uuid.New().String() + ".bin"
-	return &storage.SignedUpload{
-		UploadURL:       "https://example.com/" + key + "?sig=test",
-		UploadMethod:    "PUT",
-		RequiredHeaders: map[string]string{"Content-Type": req.ContentType},
-		Key:             key,
-		PublicURL:       "https://public.example.com/" + key,
-		ExpiresAt:       time.Now().Add(15 * time.Minute).UTC(),
-		MaxSizeBytes:    pol.MaxBytes,
-	}, nil
+	return p
 }
 
 type uploadsTestHarness struct {
-	db        *gorm.DB
-	presigner *fakePresigner
-	handler   *handler.UploadsHandler
-	router    *chi.Mux
+	db      *gorm.DB
+	handler *handler.UploadsHandler
+	router  *chi.Mux
 }
 
 func newUploadsHarness(t *testing.T) *uploadsTestHarness {
 	t.Helper()
 	db := connectTestDB(t)
-	fp := newFakePresigner()
-	h := handler.NewUploadsHandler(db, fp)
+	h := handler.NewUploadsHandler(db, newRealPresigner(t))
 	r := chi.NewRouter()
 	r.Post("/v1/uploads/sign", h.Sign)
-	return &uploadsTestHarness{db: db, presigner: fp, handler: h, router: r}
+	return &uploadsTestHarness{db: db, handler: h, router: r}
 }
 
 func (h *uploadsTestHarness) doSign(t *testing.T, body any, user *model.User, org *model.Org) *httptest.ResponseRecorder {
