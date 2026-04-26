@@ -14,6 +14,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
+	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 	"github.com/usehiveloop/hiveloop/internal/skills"
 	subagents "github.com/usehiveloop/hiveloop/internal/sub-agents"
 	"github.com/usehiveloop/hiveloop/internal/tasks"
@@ -57,6 +58,13 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		slog.Warn("KIBAMAIL_API_KEY not set — emails will be logged only")
 	}
 
+	enqueuer := enqueue.NewClient(redisOpt)
+	ragSched := &ragscheduler.Deps{
+		DB:  deps.DB,
+		Enq: enqueuer,
+		Cfg: ragscheduler.NewConfig(),
+	}
+
 	workerDeps := &tasks.WorkerDeps{
 		DB:           deps.DB,
 		Cleanup:      deps.Cleanup,
@@ -77,7 +85,8 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		NangoClient:  deps.NangoClient,
 		CacheManager: deps.CacheManager,
 		Credits:      deps.Credits,
-		Enqueuer:     enqueue.NewClient(redisOpt),
+		Enqueuer:     enqueuer,
+		RagScheduler: ragSched,
 	}
 
 	mux := tasks.NewServeMux(workerDeps)
@@ -109,7 +118,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	})
 
 	// Asynq periodic task scheduler
-	periodicConfigs := tasks.PeriodicTaskConfigs(cfg)
+	periodicConfigs := tasks.PeriodicTaskConfigs(cfg, ragSched)
 	if len(periodicConfigs) > 0 {
 		scheduler := asynq.NewScheduler(redisOpt, nil)
 		for _, pc := range periodicConfigs {
