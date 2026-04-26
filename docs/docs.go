@@ -6839,6 +6839,61 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates name and/or logo_url on the current organization. Admins\nand owners only. Pass an empty string for logo_url to clear it.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orgs"
+                ],
+                "summary": "Update current organization",
+                "parameters": [
+                    {
+                        "description": "Fields to patch",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.updateOrgRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.orgResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
             }
         },
         "/v1/orgs/current/invites": {
@@ -9593,6 +9648,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "logoURL": {
+                    "description": "LogoURL is a CDN-served URL to the org's square logo. Stored as the\npublic_url returned from POST /v1/uploads/sign with asset_type=org_logo.\nEmpty string when no logo is set.",
                     "type": "string"
                 },
                 "name": {
@@ -12490,6 +12549,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "logo_url": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -12531,6 +12593,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "logo_url": {
                     "type": "string"
                 },
                 "name": {
@@ -13797,6 +13862,17 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "internal_handler.updateOrgRequest": {
+            "type": "object",
+            "properties": {
+                "logo_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },

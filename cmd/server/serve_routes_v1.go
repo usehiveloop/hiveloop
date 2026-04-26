@@ -65,6 +65,7 @@ func setupV1Routes(
 			// Admin-only org invite management.
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireOrgAdmin(database))
+				r.Patch("/orgs/current", orgHandler.Update)
 				r.Post("/orgs/current/invites", orgInviteHandler.Create)
 				r.Get("/orgs/current/invites", orgInviteHandler.List)
 				r.Delete("/orgs/current/invites/{id}", orgInviteHandler.Revoke)

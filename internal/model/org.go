@@ -24,6 +24,11 @@ type Org struct {
 	// When false, agents fall back to platform-owned system credentials.
 	BYOK bool `gorm:"not null;default:false"`
 
+	// LogoURL is a CDN-served URL to the org's square logo. Stored as the
+	// public_url returned from POST /v1/uploads/sign with asset_type=org_logo.
+	// Empty string when no logo is set.
+	LogoURL string `gorm:"not null;default:''"`
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
