@@ -7105,6 +7105,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/plans": {
+            "get": {
+                "description": "Returns the public catalog of billing plans, ordered by price\nascending (free first). Public — no authentication required.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "plans"
+                ],
+                "summary": "List all active plans",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/internal_handler.planDTO"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/providers": {
             "get": {
                 "description": "Returns every provider in the catalog with a model count.",
@@ -13007,8 +13036,8 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "plan_slug": {
-                    "type": "string"
+                "plan": {
+                    "$ref": "#/definitions/internal_handler.planDTO"
                 },
                 "role": {
                     "type": "string"
@@ -13052,6 +13081,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "plan": {
+                    "$ref": "#/definitions/internal_handler.planDTO"
                 },
                 "rate_limit": {
                     "type": "integer"
@@ -13482,6 +13514,29 @@ const docTemplate = `{
                 },
                 "next_cursor": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handler.planDTO": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "monthly_credits": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price_cents": {
+                    "type": "integer"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "welcome_credits": {
+                    "type": "integer"
                 }
             }
         },

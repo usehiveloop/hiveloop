@@ -8,10 +8,59 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+
+// planFromModel projects an internal Plan row into the public DTO shape.
+func planFromModel(p model.Plan) *planDTO {
+	return &planDTO{
+		Slug:           p.Slug,
+		Name:           p.Name,
+		MonthlyCredits: p.MonthlyCredits,
+		WelcomeCredits: p.WelcomeCredits,
+		PriceCents:     p.PriceCents,
+		Currency:       p.Currency,
+	}
+}
+
+// loadPlans returns a slug -> *planDTO map for every plan slug referenced by
+// the given memberships. One bulk query, no N+1. Slugs without a matching
+// plan row are absent from the map (callers fall back to nil).
+func loadPlans(db *gorm.DB, memberships []model.OrgMembership) map[string]*planDTO {
+	if len(memberships) == 0 {
+		return map[string]*planDTO{}
+	}
+	seen := make(map[string]struct{}, len(memberships))
+	slugs := make([]string, 0, len(memberships))
+	for _, m := range memberships {
+		slug := m.Org.PlanSlug
+		if slug == "" {
+			continue
+		}
+		if _, ok := seen[slug]; ok {
+			continue
+		}
+		seen[slug] = struct{}{}
+		slugs = append(slugs, slug)
+	}
+	if len(slugs) == 0 {
+		return map[string]*planDTO{}
+	}
+
+	var rows []model.Plan
+	if err := db.Where("slug IN ?", slugs).Find(&rows).Error; err != nil {
+		slog.Warn("loadPlans: failed to load plans", "error", err)
+		return map[string]*planDTO{}
+	}
+	out := make(map[string]*planDTO, len(rows))
+	for _, p := range rows {
+		out[p.Slug] = planFromModel(p)
+	}
+	return out
+}
 func (h *AuthHandler) isLoginLocked(email string) bool {
 	h.loginMu.Lock()
 	defer h.loginMu.Unlock()
@@ -111,13 +160,16 @@ func (h *AuthHandler) issueTokensAndRespond(w http.ResponseWriter, status int, u
 	var memberships []model.OrgMembership
 	h.db.Preload("Org").Where("user_id = ?", user.ID).Find(&memberships)
 
+	plans := loadPlans(h.db, memberships)
 	orgs := make([]orgMemberDTO, 0, len(memberships))
 	for _, m := range memberships {
 		orgs = append(orgs, orgMemberDTO{
-			ID:   m.OrgID.String(),
-			Name: m.Org.Name,
-			Role: m.Role,
-			BYOK: m.Org.BYOK,
+			ID:      m.OrgID.String(),
+			Name:    m.Org.Name,
+			Role:    m.Role,
+			BYOK:    m.Org.BYOK,
+			LogoURL: m.Org.LogoURL,
+			Plan:    plans[m.Org.PlanSlug],
 		})
 	}
 

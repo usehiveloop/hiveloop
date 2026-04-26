@@ -2296,8 +2296,8 @@ definitions:
         type: string
       name:
         type: string
-      plan_slug:
-        type: string
+      plan:
+        $ref: '#/definitions/internal_handler.planDTO'
       role:
         type: string
     type: object
@@ -2326,6 +2326,8 @@ definitions:
         type: string
       name:
         type: string
+      plan:
+        $ref: '#/definitions/internal_handler.planDTO'
       rate_limit:
         type: integer
     type: object
@@ -2604,6 +2606,21 @@ definitions:
         type: boolean
       next_cursor:
         type: string
+    type: object
+  internal_handler.planDTO:
+    properties:
+      currency:
+        type: string
+      monthly_credits:
+        type: integer
+      name:
+        type: string
+      price_cents:
+        type: integer
+      slug:
+        type: string
+      welcome_credits:
+        type: integer
     type: object
   internal_handler.portalResponse:
     properties:
@@ -8105,6 +8122,27 @@ paths:
       summary: List members of the current organization
       tags:
       - org-invites
+  /v1/plans:
+    get:
+      description: |-
+        Returns the public catalog of billing plans, ordered by price
+        ascending (free first). Public — no authentication required.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.planDTO'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: List all active plans
+      tags:
+      - plans
   /v1/providers:
     get:
       description: Returns every provider in the catalog with a model count.

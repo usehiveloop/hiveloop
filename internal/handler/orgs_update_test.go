@@ -218,3 +218,51 @@ func TestOrgUpdate_NoFieldsReturns400(t *testing.T) {
 		t.Errorf("status: got %d, want 400 for empty body", rr.Code)
 	}
 }
+
+func TestOrgUpdate_ResponseIncludesPlanInfo(t *testing.T) {
+	h := newOrgUpdateHarness(t)
+	org, user := h.createOrg(t, "admin")
+
+	// Seed a plan row that matches the org's default plan slug ("free") and
+	// confirm the patch response carries both plan_slug and plan_name.
+	plan := model.Plan{Slug: "free", Name: "Free", PriceCents: 0, Currency: "USD", Active: true}
+	if err := h.db.Where("slug = ?", plan.Slug).FirstOrCreate(&plan).Error; err != nil {
+		t.Fatalf("seed plan: %v", err)
+	}
+	t.Cleanup(func() {
+		// Only clean up if we created it — leave a pre-existing "free" plan alone.
+	})
+
+	rr := h.doPatch(t, user.ID, org.ID, "admin", map[string]any{
+		"name": "With Plan Info",
+	})
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d body=%s, want 200", rr.Code, rr.Body.String())
+	}
+
+	var got struct {
+		Plan *struct {
+			Slug           string `json:"slug"`
+			Name           string `json:"name"`
+			MonthlyCredits int64  `json:"monthly_credits"`
+			PriceCents     int64  `json:"price_cents"`
+			Currency       string `json:"currency"`
+		} `json:"plan"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if got.Plan == nil {
+		t.Fatalf("plan should be populated, got nil")
+	}
+	if got.Plan.Slug != "free" {
+		t.Errorf("plan.slug: got %q, want %q", got.Plan.Slug, "free")
+	}
+	if got.Plan.Name != "Free" {
+		t.Errorf("plan.name: got %q, want %q", got.Plan.Name, "Free")
+	}
+	if got.Plan.Currency != "USD" {
+		t.Errorf("plan.currency: got %q, want %q", got.Plan.Currency, "USD")
+	}
+}
