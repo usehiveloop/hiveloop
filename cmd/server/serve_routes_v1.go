@@ -40,6 +40,7 @@ func setupV1Routes(
 	routerHandler *handler.RouterHandler,
 	customDomainHandler *handler.CustomDomainHandler,
 	ragSourceHandler *handler.RAGSourceHandler,
+	uploadsHandler *handler.UploadsHandler,
 	orchestrator *sandbox.Orchestrator,
 	auditWriter *middleware.AuditWriter,
 ) {
@@ -243,6 +244,13 @@ func setupV1Routes(
 				r.Post("/custom-domains/{id}/verify", customDomainHandler.Verify)
 				r.Delete("/custom-domains/{id}", customDomainHandler.Delete)
 			})
+
+			if uploadsHandler != nil {
+				r.Route("/uploads", func(r chi.Router) {
+					r.Use(middleware.ResolveUser(database))
+					r.Post("/sign", uploadsHandler.Sign)
+				})
+			}
 		})
 	})
 }
