@@ -17,7 +17,7 @@ import (
 
 // Update handles PUT /v1/agents/{id}.
 // @Summary Update an agent
-// @Description Updates an agent. Re-validates credential/model compatibility. Shared agents are re-pushed to Bridge.
+// @Description Updates an agent. Re-validates credential/model compatibility.
 // @Tags agents
 // @Accept json
 // @Produce json
@@ -60,13 +60,6 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Description != nil {
 		updates["description"] = *req.Description
-	}
-	if req.SandboxType != nil {
-		if !validSandboxTypes[*req.SandboxType] {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "sandbox_type must be 'dedicated' or 'shared'"})
-			return
-		}
-		updates["sandbox_type"] = *req.SandboxType
 	}
 	if req.SystemPrompt != nil {
 		updates["system_prompt"] = *req.SystemPrompt
@@ -193,18 +186,6 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	oldSandboxType := agent.SandboxType
-	newSandboxType := oldSandboxType
-	if v, ok := updates["sandbox_type"]; ok {
-		newSandboxType = v.(string)
-	}
-
-	if h.pusher != nil && oldSandboxType == "shared" && newSandboxType == "dedicated" {
-		if err := h.pusher.RemoveAgent(r.Context(), &agent); err != nil {
-			slog.Error("failed to remove agent from pool sandbox during type transition", "agent_id", agent.ID, "error", err)
-		}
-	}
-
 	if len(updates) > 0 {
 		if err := h.db.Model(&agent).Updates(updates).Error; err != nil {
 			if isDuplicateKeyError(err) {
@@ -217,12 +198,6 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.db.Preload("Credential").Where("id = ?", agent.ID).First(&agent)
-
-	if h.pusher != nil && agent.SandboxType == "shared" && len(updates) > 0 {
-		if err := h.pusher.PushAgent(r.Context(), &agent); err != nil {
-			slog.Error("failed to push agent update to bridge", "agent_id", agent.ID, "error", err)
-		}
-	}
 
 	if req.Triggers != nil {
 		if err := deleteAgentTriggers(h.db, agent.ID); err != nil {

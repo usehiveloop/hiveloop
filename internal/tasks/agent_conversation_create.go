@@ -46,7 +46,7 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		return fmt.Errorf("loading agent %s: %w", payload.AgentID, err)
 	}
 
-	logger = logger.With("agent_name", agent.Name, "sandbox_type", agent.SandboxType)
+	logger = logger.With("agent_name", agent.Name)
 	logger.Info("step 1: agent loaded",
 		"model", agent.Model,
 		"has_credential", agent.CredentialID != nil,
@@ -56,58 +56,38 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		"sandbox_template_id", agent.SandboxTemplateID,
 	)
 
-	// 2. Get or create sandbox.
-	var sb *model.Sandbox
-	if agent.SandboxType == "shared" && agent.SandboxID != nil {
-		logger.Info("step 2: loading existing shared sandbox", "sandbox_id", *agent.SandboxID)
-		var existing model.Sandbox
-		if err := handler.db.Where("id = ?", *agent.SandboxID).First(&existing).Error; err != nil {
-			return fmt.Errorf("loading shared sandbox: %w", err)
-		}
-		sb = &existing
-		logger.Info("step 2: shared sandbox loaded", "sandbox_id", sb.ID, "status", sb.Status)
-
-		// Ensure agent is pushed (idempotent).
-		logger.Info("step 2: pushing agent to shared sandbox")
-		if err := handler.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
-			return fmt.Errorf("pushing shared agent to sandbox: %w", err)
-		}
-		logger.Info("step 2: agent pushed to shared sandbox")
-	} else {
-		// Dedicated agent: create a new sandbox.
-		logger.Info("step 2: creating dedicated sandbox",
-			"setup_commands", agent.SetupCommands,
-			"has_encrypted_env_vars", len(agent.EncryptedEnvVars) > 0,
-			"sandbox_template_id", agent.SandboxTemplateID,
+	// 2. Create a dedicated sandbox.
+	logger.Info("step 2: creating dedicated sandbox",
+		"setup_commands", agent.SetupCommands,
+		"has_encrypted_env_vars", len(agent.EncryptedEnvVars) > 0,
+		"sandbox_template_id", agent.SandboxTemplateID,
+	)
+	sb, err := handler.orchestrator.CreateDedicatedSandbox(ctx, &agent)
+	if err != nil {
+		logger.Error("step 2: FAILED to create dedicated sandbox",
+			"error", err.Error(),
 		)
-		var err error
-		sb, err = handler.orchestrator.CreateDedicatedSandbox(ctx, &agent)
-		if err != nil {
-			logger.Error("step 2: FAILED to create dedicated sandbox",
-				"error", err.Error(),
-			)
-			return fmt.Errorf("creating dedicated sandbox: %w", err)
-		}
-		logger.Info("step 2: dedicated sandbox created",
-			"sandbox_id", sb.ID,
-			"external_id", sb.ExternalID,
-			"bridge_url", sb.BridgeURL,
-			"status", sb.Status,
-		)
-
-		// Push agent to the new sandbox.
-		logger.Info("step 3: pushing agent to dedicated sandbox")
-		if err := handler.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
-			logger.Error("step 3: FAILED to push agent to sandbox",
-				"error", err.Error(),
-				"sandbox_id", sb.ID,
-			)
-			return fmt.Errorf("pushing agent to dedicated sandbox: %w", err)
-		}
-		logger.Info("step 3: agent pushed to dedicated sandbox",
-			"sandbox_id", sb.ID,
-		)
+		return fmt.Errorf("creating dedicated sandbox: %w", err)
 	}
+	logger.Info("step 2: dedicated sandbox created",
+		"sandbox_id", sb.ID,
+		"external_id", sb.ExternalID,
+		"bridge_url", sb.BridgeURL,
+		"status", sb.Status,
+	)
+
+	// 3. Push agent to the new sandbox.
+	logger.Info("step 3: pushing agent to dedicated sandbox")
+	if err := handler.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
+		logger.Error("step 3: FAILED to push agent to sandbox",
+			"error", err.Error(),
+			"sandbox_id", sb.ID,
+		)
+		return fmt.Errorf("pushing agent to dedicated sandbox: %w", err)
+	}
+	logger.Info("step 3: agent pushed to dedicated sandbox",
+		"sandbox_id", sb.ID,
+	)
 
 	// 4. Get Bridge client.
 	logger.Info("step 4: getting bridge client", "sandbox_id", sb.ID)

@@ -98,14 +98,12 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	proxyHandler := handler.NewProxyHandler(cacheManager, &proxy.CaptureTransport{Inner: proxy.NewTransport()})
 
 	var conversationHandler *handler.ConversationHandler
-	var systemConvHandler *handler.SystemConversationHandler
 	if orchestrator != nil && agentPusher != nil {
 		conversationHandler = handler.NewConversationHandler(database, orchestrator, agentPusher, eventBus)
 		if enqueuer != nil {
 			conversationHandler.SetEnqueuer(enqueuer)
 		}
 		conversationHandler.SetCredits(deps.Credits)
-		systemConvHandler = handler.NewSystemConversationHandler(database, orchestrator, agentPusher, eventBus, signingKey, cfg)
 	}
 
 	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus, enqueuer)
@@ -121,11 +119,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	skillHandler := handler.NewSkillHandler(database, enqueuer)
 	subagentHandler := handler.NewSubagentHandler(database)
 
-	var pusherForHandler handler.AgentPusher
-	if agentPusher != nil {
-		pusherForHandler = agentPusher
-	}
-	agentHandler := handler.NewAgentHandler(database, reg, pusherForHandler, sandboxEncKey, enqueuer)
+	agentHandler := handler.NewAgentHandler(database, reg, sandboxEncKey, enqueuer)
 	agentHandler.SetCatalog(actionsCatalog)
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
 
@@ -152,7 +146,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	// HTTP triggers: unauthenticated endpoint, trigger UUID acts as bearer token.
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
-	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, subagentHandler, agentHandler, marketplaceHandler, conversationHandler, systemConvHandler, routerHandler, customDomainHandler, orchestrator, auditWriter)
+	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, subagentHandler, agentHandler, marketplaceHandler, conversationHandler, routerHandler, customDomainHandler, orchestrator, auditWriter)
 
 	var platformAdminEmails []string
 	if cfg.PlatformAdminEmails != "" {
