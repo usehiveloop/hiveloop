@@ -8,6 +8,7 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 	"github.com/usehiveloop/hiveloop/internal/streaming"
@@ -79,6 +80,23 @@ func NewSandboxResourceCheckHandler(orchestrator *sandbox.Orchestrator) *Sandbox
 func (h *SandboxResourceCheckHandler) Handle(ctx context.Context, _ *asynq.Task) error {
 	h.orchestrator.RunResourceCheck(ctx)
 	return nil
+}
+
+// --- Credits Expire ---
+
+// CreditsExpireHandler runs the credit ledger sweep: forfeits the unused
+// portion of any plan-grant whose ExpiresAt is in the past, materialised as
+// a visible negative ledger entry (reason="expiry").
+type CreditsExpireHandler struct {
+	credits *billing.CreditsService
+}
+
+func NewCreditsExpireHandler(credits *billing.CreditsService) *CreditsExpireHandler {
+	return &CreditsExpireHandler{credits: credits}
+}
+
+func (h *CreditsExpireHandler) Handle(ctx context.Context, _ *asynq.Task) error {
+	return h.credits.SweepAllExpiredGrants(ctx)
 }
 
 // --- Sandbox Lifecycle ---

@@ -1,0 +1,14 @@
+{
+  "title": "Subagents",
+  "description": "subagents",
+  "pages": [
+    "v1/agents/agentid/subagents/get",
+    "v1/agents/agentid/subagents/post",
+    "v1/agents/agentid/subagents/subagentid/delete",
+    "v1/subagents/get",
+    "v1/subagents/post",
+    "v1/subagents/id/get",
+    "v1/subagents/id/patch",
+    "v1/subagents/id/delete"
+  ]
+}

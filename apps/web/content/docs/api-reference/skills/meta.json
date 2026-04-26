@@ -1,0 +1,19 @@
+{
+  "title": "Skills",
+  "description": "skills",
+  "pages": [
+    "v1/agents/agentid/skills/get",
+    "v1/agents/agentid/skills/post",
+    "v1/agents/agentid/skills/skillid/delete",
+    "v1/skills/get",
+    "v1/skills/post",
+    "v1/skills/id/get",
+    "v1/skills/id/patch",
+    "v1/skills/id/delete",
+    "v1/skills/id/content/put",
+    "v1/skills/id/hydrate/post",
+    "v1/skills/id/publish/post",
+    "v1/skills/id/publish/delete",
+    "v1/skills/id/versions/get"
+  ]
+}

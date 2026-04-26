@@ -1,0 +1,11 @@
+{
+  "title": "Integrations",
+  "description": "Integrations",
+  "pages": [
+    "v1/catalog/integrations/get",
+    "v1/catalog/integrations/id/get",
+    "v1/catalog/integrations/id/actions/get",
+    "v1/catalog/integrations/id/schema-paths/get",
+    "v1/catalog/integrations/id/triggers/get"
+  ]
+}

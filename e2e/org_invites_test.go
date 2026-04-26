@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/email"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
@@ -46,7 +47,7 @@ func newInviteHarness(t *testing.T) *inviteHarness {
 
 	authHandler := handler.NewAuthHandler(h.db, privKey, []byte("invite-e2e-hmac"),
 		inviteTestIssuer, inviteTestAudience, 15*time.Minute, 24*time.Hour,
-		&email.LogSender{}, "http://localhost:3000", true)
+		&email.LogSender{}, "http://localhost:3000", true, billing.NewCreditsService(h.db))
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	authHandler.StartCleanup(ctx)
