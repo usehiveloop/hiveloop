@@ -7,10 +7,12 @@ import (
 	"github.com/hibiken/asynq"
 
 	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 )
 
 // PeriodicTaskConfigs returns the periodic task configurations for the Asynq scheduler.
-func PeriodicTaskConfigs(cfg *config.Config) []*asynq.PeriodicTaskConfig {
+// Optional ragSched, when non-nil, contributes the RAG four-loop scheduler tasks.
+func PeriodicTaskConfigs(cfg *config.Config, ragSched *scheduler.Deps) []*asynq.PeriodicTaskConfig {
 	configs := []*asynq.PeriodicTaskConfig{
 		{
 			Cronspec: "0 */6 * * *", // every 6 hours
@@ -56,5 +58,8 @@ func PeriodicTaskConfigs(cfg *config.Config) []*asynq.PeriodicTaskConfig {
 		})
 	}
 
+	if ragSched != nil {
+		configs = append(configs, ragSched.Configs()...)
+	}
 	return configs
 }
