@@ -103,10 +103,7 @@ func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 	cfg := &config.Config{
 		BridgeBaseImagePrefix:           "hiveloop-bridge-0-10-0",
 		BridgeHost:                      "test.hiveloop.com",
-		SharedSandboxIdleTimeoutMins:    30,
 		DedicatedSandboxGracePeriodMins: 5,
-		PoolSandboxResourceThreshold:    80.0,
-		PoolSandboxIdleTimeoutMins:      30,
 	}
 
 	orch := NewOrchestrator(db, provider, tursoProvisioner, testEncKey(t), cfg)
@@ -122,12 +119,12 @@ func createTestOrg(t *testing.T, db *gorm.DB) model.Org {
 	return org
 }
 
-func createTestAgent(t *testing.T, db *gorm.DB, orgID, credID uuid.UUID, sandboxType string) model.Agent {
+func createTestAgent(t *testing.T, db *gorm.DB, orgID, credID uuid.UUID) model.Agent {
 	t.Helper()
 	suffix := uuid.New().String()[:8]
 	agent := model.Agent{
 		OrgID: &orgID, Name: "agent-" + suffix,
-		CredentialID: &credID, SandboxType: sandboxType,
+		CredentialID: &credID,
 		SystemPrompt: "test", Model: "gpt-4o",
 	}
 	db.Create(&agent)
@@ -146,24 +143,3 @@ func createTestCred(t *testing.T, db *gorm.DB, orgID uuid.UUID) model.Credential
 	return cred
 }
 
-func seedSharedSandbox(t *testing.T, db *gorm.DB, memUsed, memLimit int64) model.Sandbox {
-	t.Helper()
-	encKey := testEncKey(t)
-	apiKey, _ := generateRandomHex(32)
-	encrypted, _ := encKey.EncryptString(apiKey)
-
-	sb := model.Sandbox{
-		SandboxType:           "shared",
-		ExternalID:            "seed-" + uuid.New().String()[:8],
-		BridgeURL:             "https://mock:25434",
-		EncryptedBridgeAPIKey: encrypted,
-		Status:                "running",
-		MemoryUsedBytes:       memUsed,
-		MemoryLimitBytes:      memLimit,
-	}
-	if err := db.Create(&sb).Error; err != nil {
-		t.Fatalf("seed sandbox: %v", err)
-	}
-	t.Cleanup(func() { db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
-	return sb
-}

@@ -31,7 +31,6 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 
 	sb := model.Sandbox{
 		OrgID:                 &org.ID,
-		SandboxType:           "dedicated",
 		EncryptedBridgeAPIKey: encryptedKey,
 		Status:                "creating",
 	}
@@ -63,9 +62,8 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	name := o.buildSandboxName(agent)
 
 	labels := map[string]string{
-		"org_id":       org.ID.String(),
-		"sandbox_type": "dedicated",
-		"sandbox_id":   sb.ID.String(),
+		"org_id":     org.ID.String(),
+		"sandbox_id": sb.ID.String(),
 	}
 	if agent != nil {
 		labels["agent_id"] = agent.ID.String()
@@ -153,7 +151,6 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	slog.Info("sandbox created",
 		"sandbox_id", sb.ID,
 		"external_id", info.ExternalID,
-		"type", "dedicated",
 	)
 
 	return &sb, nil

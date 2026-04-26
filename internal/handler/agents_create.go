@@ -16,7 +16,7 @@ import (
 
 // Create handles POST /v1/agents.
 // @Summary Create an agent
-// @Description Creates a new agent tied to a credential. Shared agents are pushed to Bridge immediately.
+// @Description Creates a new agent tied to a credential. A dedicated sandbox is provisioned lazily on conversation create.
 // @Tags agents
 // @Accept json
 // @Produce json
@@ -48,10 +48,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.SystemPrompt == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "system_prompt is required"})
-		return
-	}
-	if !validSandboxTypes[req.SandboxType] {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "sandbox_type must be 'dedicated' or 'shared'"})
 		return
 	}
 
@@ -114,7 +110,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Name:         req.Name,
 		Description:  req.Description,
 		CredentialID: &cred.ID,
-		SandboxType:  req.SandboxType,
 		SystemPrompt:    req.SystemPrompt,
 		ProviderPrompts: req.ProviderPrompts,
 		Instructions:    req.Instructions,
@@ -132,7 +127,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Status:       "active",
 	}
 	if len(agent.Permissions) == 0 {
-		agent.Permissions = defaultToolPermissions(agent.SandboxType)
+		agent.Permissions = defaultToolPermissions()
 	}
 
 	if req.SandboxTemplateID != nil && *req.SandboxTemplateID != "" {
@@ -283,15 +278,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.db.Preload("Credential").Where("id = ?", agent.ID).First(&agent)
-
-	// Push shared agents to Bridge (dedicated agents are pushed lazily on conversation create)
-	if h.pusher != nil && agent.SandboxType == "shared" {
-		if err := h.pusher.PushAgent(r.Context(), &agent); err != nil {
-			slog.Error("failed to push agent to bridge", "agent_id", agent.ID, "error", err)
-			// Agent is created in DB — return it but log the push failure.
-			// The agent can be re-pushed on next update or via retry.
-		}
-	}
 
 	resp := toAgentResponse(agent)
 	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]

@@ -25,7 +25,6 @@ type MarketplaceAgent struct {
 	SystemPrompt string  `gorm:"type:text;not null"`
 	Instructions *string `gorm:"type:text"`
 	Model        string  `gorm:"not null"`
-	SandboxType  string  `gorm:"not null"`
 	Tools        JSON    `gorm:"type:jsonb;not null;default:'{}'"`
 	McpServers   JSON    `gorm:"type:jsonb;not null;default:'{}'"`
 	Skills       JSON    `gorm:"type:jsonb;not null;default:'{}'"`

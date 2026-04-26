@@ -24,7 +24,6 @@ func NewSandboxHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator) *Sandbox
 
 type sandboxResponse struct {
 	ID           string  `json:"id"`
-	SandboxType  string  `json:"sandbox_type"`
 	Status       string  `json:"status"`
 	ExternalID   string  `json:"external_id"`
 	AgentID      *string `json:"agent_id,omitempty"`
@@ -36,7 +35,6 @@ type sandboxResponse struct {
 func toSandboxResponse(s model.Sandbox) sandboxResponse {
 	resp := sandboxResponse{
 		ID:           s.ID.String(),
-		SandboxType:  s.SandboxType,
 		Status:       s.Status,
 		ExternalID:   s.ExternalID,
 		ErrorMessage: s.ErrorMessage,

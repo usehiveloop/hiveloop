@@ -88,31 +88,24 @@ func toAdminTokenResponse(t model.Token) adminTokenResponse {
 }
 
 type adminAgentResponse struct {
-	ID          string  `json:"id"`
-	OrgID       string  `json:"org_id"`
-	Name        string  `json:"name"`
-	Model       string  `json:"model"`
-	SandboxType string  `json:"sandbox_type"`
-	Status      string  `json:"status"`
-	SandboxID   *string `json:"sandbox_id,omitempty"`
-	CreatedAt   string  `json:"created_at"`
+	ID        string `json:"id"`
+	OrgID     string `json:"org_id"`
+	Name      string `json:"name"`
+	Model     string `json:"model"`
+	Status    string `json:"status"`
+	CreatedAt string `json:"created_at"`
 }
 
 func toAdminAgentResponse(a model.Agent) adminAgentResponse {
 	resp := adminAgentResponse{
-		ID:          a.ID.String(),
-		Name:        a.Name,
-		Model:       a.Model,
-		SandboxType: a.SandboxType,
-		Status:      a.Status,
-		CreatedAt:   a.CreatedAt.Format(time.RFC3339),
+		ID:        a.ID.String(),
+		Name:      a.Name,
+		Model:     a.Model,
+		Status:    a.Status,
+		CreatedAt: a.CreatedAt.Format(time.RFC3339),
 	}
 	if a.OrgID != nil {
 		resp.OrgID = a.OrgID.String()
-	}
-	if a.SandboxID != nil {
-		id := a.SandboxID.String()
-		resp.SandboxID = &id
 	}
 	return resp
 }
@@ -120,7 +113,6 @@ func toAdminAgentResponse(a model.Agent) adminAgentResponse {
 type adminSandboxResponse struct {
 	ID               string  `json:"id"`
 	OrgID            *string `json:"org_id,omitempty"`
-	SandboxType      string  `json:"sandbox_type"`
 	Status           string  `json:"status"`
 	ExternalID       string  `json:"external_id"`
 	AgentID          *string `json:"agent_id,omitempty"`
@@ -135,7 +127,6 @@ type adminSandboxResponse struct {
 func toAdminSandboxResponse(s model.Sandbox) adminSandboxResponse {
 	resp := adminSandboxResponse{
 		ID:               s.ID.String(),
-		SandboxType:      s.SandboxType,
 		Status:           s.Status,
 		ExternalID:       s.ExternalID,
 		ErrorMessage:     s.ErrorMessage,

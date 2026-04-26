@@ -60,7 +60,7 @@ func TestAgentModels_CRUD(t *testing.T) {
 		desc := "A test agent"
 		agent := model.Agent{
 			OrgID: &org.ID, Name: "test-agent-" + suffix,
-			Description: &desc, CredentialID: &cred.ID, SandboxType: "shared",
+			Description: &desc, CredentialID: &cred.ID,
 			SystemPrompt: "You are a helpful assistant.", Model: "gpt-4o",
 			Tools: model.JSON{"0": map[string]any{"name": "read"}},
 			AgentConfig: model.JSON{"max_tokens": float64(4096), "temperature": 0.3},
@@ -85,7 +85,7 @@ func TestAgentModels_CRUD(t *testing.T) {
 		// Unique constraint
 		dup := model.Agent{
 			OrgID: &org.ID, Name: agent.Name,
-			CredentialID: &cred.ID, SandboxType: "dedicated", SystemPrompt: "dup", Model: "gpt-4o",
+			CredentialID: &cred.ID, SystemPrompt: "dup", Model: "gpt-4o",
 		}
 		if err := h.db.Create(&dup).Error; err == nil {
 			h.db.Where("id = ?", dup.ID).Delete(&model.Agent{})
@@ -95,7 +95,7 @@ func TestAgentModels_CRUD(t *testing.T) {
 	// === Sandbox ===
 	t.Run("Sandbox_CRUD", func(t *testing.T) {
 		sandbox := model.Sandbox{
-			OrgID: &org.ID, SandboxType: "shared",
+			OrgID: &org.ID,
 			ExternalID: "daytona-ws-" + suffix, BridgeURL: "https://sandbox.test:8080",
 			EncryptedBridgeAPIKey: []byte("encrypted-bridge-key"), Status: "creating",
 		}
@@ -144,13 +144,13 @@ func TestAgentModels_CRUD(t *testing.T) {
 	t.Run("AgentConversation_and_Events", func(t *testing.T) {
 		agent := model.Agent{
 			OrgID: &org.ID, Name: "conv-agent-" + suffix,
-			CredentialID: &cred.ID, SandboxType: "shared", SystemPrompt: "test", Model: "gpt-4o",
+			CredentialID: &cred.ID, SystemPrompt: "test", Model: "gpt-4o",
 		}
 		h.db.Create(&agent)
 		t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
 
 		sandbox := model.Sandbox{
-			OrgID: &org.ID, SandboxType: "shared",
+			OrgID: &org.ID,
 			ExternalID: "conv-ws-" + suffix, BridgeURL: "https://conv.test:8080",
 			EncryptedBridgeAPIKey: []byte("encrypted-bridge-key"), Status: "running",
 		}
@@ -211,12 +211,12 @@ func TestAgentModels_CascadeDelete(t *testing.T) {
 
 	agent := model.Agent{
 		OrgID: &org.ID, Name: "cascade-agent-" + suffix,
-		CredentialID: &cred.ID, SandboxType: "shared", SystemPrompt: "test", Model: "gpt-4o",
+		CredentialID: &cred.ID, SystemPrompt: "test", Model: "gpt-4o",
 	}
 	h.db.Create(&agent)
 
 	sandbox := model.Sandbox{
-		OrgID: &org.ID, SandboxType: "shared",
+		OrgID: &org.ID,
 		ExternalID: "cascade-ws-" + suffix, BridgeURL: "https://test:8080",
 		EncryptedBridgeAPIKey: []byte("encrypted-bridge-key"), Status: "running",
 	}
