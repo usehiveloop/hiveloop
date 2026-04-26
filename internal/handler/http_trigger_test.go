@@ -2,9 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -92,15 +90,23 @@ func newHTTPTriggerHarness(t *testing.T) *httpTriggerHarness {
 	}
 }
 
-func (harness *httpTriggerHarness) createTrigger(t *testing.T, triggerType, secretKey string) model.RouterTrigger {
+func (harness *httpTriggerHarness) createTrigger(t *testing.T, triggerType, plaintextSecret string) model.RouterTrigger {
 	t.Helper()
+	storedSecret := ""
+	if plaintextSecret != "" {
+		hash, err := bcrypt.GenerateFromPassword([]byte(plaintextSecret), bcrypt.MinCost)
+		if err != nil {
+			t.Fatalf("hash trigger secret: %v", err)
+		}
+		storedSecret = string(hash)
+	}
 	trigger := model.RouterTrigger{
 		OrgID:       harness.orgID,
 		RouterID:    harness.routerID,
 		TriggerType: triggerType,
 		RoutingMode: "rule",
 		Enabled:     true,
-		SecretKey:   secretKey,
+		SecretKey:   storedSecret,
 	}
 	if err := harness.db.Create(&trigger).Error; err != nil {
 		t.Fatalf("create trigger: %v", err)
@@ -112,9 +118,13 @@ func (harness *httpTriggerHarness) createTrigger(t *testing.T, triggerType, secr
 }
 
 func (harness *httpTriggerHarness) doPost(t *testing.T, triggerID string, body []byte, headers map[string]string) *httptest.ResponseRecorder {
+	return harness.doPostWithQuery(t, triggerID, "", body, headers)
+}
+
+func (harness *httpTriggerHarness) doPostWithQuery(t *testing.T, triggerID, query string, body []byte, headers map[string]string) *httptest.ResponseRecorder {
 	t.Helper()
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/incoming/triggers/"+triggerID, bytes.NewReader(body))
+	request := httptest.NewRequest(http.MethodPost, "/incoming/triggers/"+triggerID+query, bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	for key, value := range headers {
 		request.Header.Set(key, value)
@@ -229,48 +239,79 @@ func TestHTTPTrigger_DisabledTrigger_Returns404(t *testing.T) {
 	}
 }
 
-func TestHTTPTrigger_ValidHMAC_Returns200(t *testing.T) {
+func TestHTTPTrigger_ValidBearer_Returns200(t *testing.T) {
 	secret := "test-webhook-secret-key"
 	harness := newHTTPTriggerHarness(t)
 	trigger := harness.createTrigger(t, "http", secret)
 
-	body := []byte(`{"event":"test"}`)
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write(body)
-	signature := "sha256=" + hex.EncodeToString(mac.Sum(nil))
-
-	recorder := harness.doPost(t, trigger.ID.String(), body, map[string]string{
-		"X-Signature-256": signature,
+	recorder := harness.doPost(t, trigger.ID.String(), []byte(`{"event":"test"}`), map[string]string{
+		"Authorization": "Bearer " + secret,
 	})
 
 	if recorder.Code != http.StatusOK {
-		t.Fatalf("status: got %d, want 200 with valid HMAC", recorder.Code)
+		t.Fatalf("status: got %d, want 200 with valid Bearer token", recorder.Code)
 	}
-
 	harness.mock.AssertEnqueued(t, tasks.TypeRouterDispatch)
 }
 
-func TestHTTPTrigger_InvalidHMAC_Returns401(t *testing.T) {
+func TestHTTPTrigger_ValidApiKeyHeader_Returns200(t *testing.T) {
 	secret := "test-webhook-secret-key"
 	harness := newHTTPTriggerHarness(t)
 	trigger := harness.createTrigger(t, "http", secret)
 
-	body := []byte(`{"event":"test"}`)
-
-	recorder := harness.doPost(t, trigger.ID.String(), body, map[string]string{
-		"X-Signature-256": "sha256=0000000000000000000000000000000000000000000000000000000000000000",
+	recorder := harness.doPost(t, trigger.ID.String(), []byte(`{}`), map[string]string{
+		"X-Api-Key": secret,
 	})
 
-	if recorder.Code != http.StatusUnauthorized {
-		t.Errorf("status: got %d, want 401 with invalid HMAC", recorder.Code)
-	}
-
-	if len(harness.mock.Tasks()) != 0 {
-		t.Error("should not enqueue any tasks with invalid HMAC")
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200 with X-Api-Key", recorder.Code)
 	}
 }
 
-func TestHTTPTrigger_MissingSignature_Returns401(t *testing.T) {
+func TestHTTPTrigger_ValidWebhookSecretHeader_Returns200(t *testing.T) {
+	secret := "test-webhook-secret-key"
+	harness := newHTTPTriggerHarness(t)
+	trigger := harness.createTrigger(t, "http", secret)
+
+	recorder := harness.doPost(t, trigger.ID.String(), []byte(`{}`), map[string]string{
+		"X-Webhook-Secret": secret,
+	})
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200 with X-Webhook-Secret", recorder.Code)
+	}
+}
+
+func TestHTTPTrigger_ValidQuerySecret_Returns200(t *testing.T) {
+	secret := "test-webhook-secret-key"
+	harness := newHTTPTriggerHarness(t)
+	trigger := harness.createTrigger(t, "http", secret)
+
+	recorder := harness.doPostWithQuery(t, trigger.ID.String(), "?secret="+secret, []byte(`{}`), nil)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200 with ?secret query", recorder.Code)
+	}
+}
+
+func TestHTTPTrigger_InvalidSecret_Returns401(t *testing.T) {
+	secret := "test-webhook-secret-key"
+	harness := newHTTPTriggerHarness(t)
+	trigger := harness.createTrigger(t, "http", secret)
+
+	recorder := harness.doPost(t, trigger.ID.String(), []byte(`{"event":"test"}`), map[string]string{
+		"Authorization": "Bearer wrong-secret",
+	})
+
+	if recorder.Code != http.StatusUnauthorized {
+		t.Errorf("status: got %d, want 401 with invalid secret", recorder.Code)
+	}
+	if len(harness.mock.Tasks()) != 0 {
+		t.Error("should not enqueue any tasks with invalid secret")
+	}
+}
+
+func TestHTTPTrigger_MissingSecret_Returns401(t *testing.T) {
 	secret := "test-webhook-secret-key"
 	harness := newHTTPTriggerHarness(t)
 	trigger := harness.createTrigger(t, "http", secret)
@@ -278,13 +319,12 @@ func TestHTTPTrigger_MissingSignature_Returns401(t *testing.T) {
 	recorder := harness.doPost(t, trigger.ID.String(), []byte(`{}`), nil)
 
 	if recorder.Code != http.StatusUnauthorized {
-		t.Errorf("status: got %d, want 401 with missing signature", recorder.Code)
+		t.Errorf("status: got %d, want 401 with missing secret", recorder.Code)
 	}
 }
 
-func TestHTTPTrigger_NoSecret_AcceptsWithoutSignature(t *testing.T) {
+func TestHTTPTrigger_NoSecret_AcceptsAnyRequest(t *testing.T) {
 	harness := newHTTPTriggerHarness(t)
-	// No secret key configured — should accept without signature.
 	trigger := harness.createTrigger(t, "http", "")
 
 	recorder := harness.doPost(t, trigger.ID.String(), []byte(`{"ok":true}`), nil)
@@ -296,49 +336,53 @@ func TestHTTPTrigger_NoSecret_AcceptsWithoutSignature(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// verifyHMAC unit tests
+// extractTriggerSecret unit tests
 // --------------------------------------------------------------------------
 
-func TestVerifyHMAC_ValidWithPrefix(t *testing.T) {
-	secret := "my-secret"
-	body := []byte("hello world")
-
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write(body)
-	signature := "sha256=" + hex.EncodeToString(mac.Sum(nil))
-
-	if !verifyHMAC(body, secret, signature) {
-		t.Error("expected valid HMAC to pass")
+func TestExtractTriggerSecret_BearerHeader(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/incoming/triggers/x", nil)
+	req.Header.Set("Authorization", "Bearer the-secret")
+	if got := extractTriggerSecret(req); got != "the-secret" {
+		t.Errorf("got %q, want %q", got, "the-secret")
 	}
 }
 
-func TestVerifyHMAC_ValidWithoutPrefix(t *testing.T) {
-	secret := "my-secret"
-	body := []byte("hello world")
-
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write(body)
-	signature := hex.EncodeToString(mac.Sum(nil))
-
-	if !verifyHMAC(body, secret, signature) {
-		t.Error("expected valid HMAC without prefix to pass")
+func TestExtractTriggerSecret_ApiKeyHeader(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/incoming/triggers/x", nil)
+	req.Header.Set("X-Api-Key", "the-secret")
+	if got := extractTriggerSecret(req); got != "the-secret" {
+		t.Errorf("got %q, want %q", got, "the-secret")
 	}
 }
 
-func TestVerifyHMAC_InvalidSignature(t *testing.T) {
-	if verifyHMAC([]byte("body"), "secret", "sha256=deadbeef") {
-		t.Error("expected invalid HMAC to fail")
+func TestExtractTriggerSecret_WebhookSecretHeader(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/incoming/triggers/x", nil)
+	req.Header.Set("X-Webhook-Secret", "the-secret")
+	if got := extractTriggerSecret(req); got != "the-secret" {
+		t.Errorf("got %q, want %q", got, "the-secret")
 	}
 }
 
-func TestVerifyHMAC_WrongBody(t *testing.T) {
-	secret := "my-secret"
+func TestExtractTriggerSecret_QueryParam(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/incoming/triggers/x?secret=the-secret", nil)
+	if got := extractTriggerSecret(req); got != "the-secret" {
+		t.Errorf("got %q, want %q", got, "the-secret")
+	}
+}
 
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write([]byte("original body"))
-	signature := "sha256=" + hex.EncodeToString(mac.Sum(nil))
+func TestExtractTriggerSecret_None(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/incoming/triggers/x", nil)
+	if got := extractTriggerSecret(req); got != "" {
+		t.Errorf("got %q, want empty", got)
+	}
+}
 
-	if verifyHMAC([]byte("different body"), secret, signature) {
-		t.Error("expected HMAC to fail for different body")
+func TestExtractTriggerSecret_BearerWins(t *testing.T) {
+	// Bearer takes precedence over other transports when multiple are set.
+	req := httptest.NewRequest(http.MethodPost, "/incoming/triggers/x?secret=from-query", nil)
+	req.Header.Set("Authorization", "Bearer from-bearer")
+	req.Header.Set("X-Api-Key", "from-api-key")
+	if got := extractTriggerSecret(req); got != "from-bearer" {
+		t.Errorf("got %q, want %q", got, "from-bearer")
 	}
 }

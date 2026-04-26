@@ -1,15 +1,14 @@
 package handler
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
@@ -22,8 +21,9 @@ import (
 // these bypass connection/event-key matching — the trigger is already known.
 //
 // Security: the trigger's unguessable UUID acts as a bearer token. If a
-// SecretKey is configured, the handler also verifies HMAC-SHA256 via the
-// X-Signature-256 header.
+// shared secret is configured (SecretKey stores its bcrypt hash), the handler
+// also requires the plaintext secret in any of:
+//   Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, ?secret=<secret>
 type HTTPTriggerHandler struct {
 	db       *gorm.DB
 	enqueuer enqueue.TaskEnqueuer
@@ -36,15 +36,18 @@ func NewHTTPTriggerHandler(db *gorm.DB, enqueuer enqueue.TaskEnqueuer) *HTTPTrig
 
 // Handle processes POST /incoming/triggers/{triggerID}.
 // @Summary Receive HTTP trigger request
-// @Description Receives an HTTP request and dispatches it through the router pipeline for the specified trigger. The trigger UUID acts as a bearer token. If the trigger has a secret key configured, the request must include a valid HMAC-SHA256 signature in the X-Signature-256 header.
+// @Description Receives an HTTP request and dispatches it through the router pipeline for the specified trigger. The trigger UUID acts as a bearer token. If the trigger has a shared secret configured, the request must include the plaintext secret in any of: Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, or ?secret=<secret>.
 // @Tags triggers
 // @Accept json
 // @Produce json
 // @Param triggerID path string true "Trigger UUID"
-// @Param X-Signature-256 header string false "HMAC-SHA256 signature (sha256=hex). Required when the trigger has a secret key configured."
+// @Param Authorization header string false "Bearer <secret>. One of the accepted ways to send the trigger's shared secret."
+// @Param X-Api-Key header string false "Plaintext shared secret. One of the accepted auth header names."
+// @Param X-Webhook-Secret header string false "Plaintext shared secret. One of the accepted auth header names."
+// @Param secret query string false "Plaintext shared secret as a query param. Last-resort transport when headers can't be customized."
 // @Success 200 {object} statusResponse
 // @Failure 400 {object} errorResponse
-// @Failure 401 {object} errorResponse "Invalid or missing HMAC signature"
+// @Failure 401 {object} errorResponse "Missing or invalid shared secret"
 // @Failure 404 {object} errorResponse
 // @Router /incoming/triggers/{triggerID} [post]
 func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *http.Request) {
@@ -57,7 +60,6 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 		return
 	}
 
-	// Load the trigger and verify it's an HTTP trigger.
 	var trigger model.RouterTrigger
 	if err := handler.db.Where("id = ? AND enabled = TRUE", triggerID).First(&trigger).Error; err != nil {
 		slog.Warn("http trigger: trigger not found",
@@ -77,7 +79,26 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 		return
 	}
 
-	// Read the request body.
+	// Verify shared secret if configured. SecretKey stores a bcrypt hash; the
+	// caller sends plaintext via one of the accepted transports.
+	if trigger.SecretKey != "" {
+		provided := extractTriggerSecret(request)
+		if provided == "" {
+			slog.Warn("http trigger: missing secret",
+				"trigger_id", triggerID,
+			)
+			writeJSON(writer, http.StatusUnauthorized, errorResponse{Error: "missing shared secret"})
+			return
+		}
+		if err := bcrypt.CompareHashAndPassword([]byte(trigger.SecretKey), []byte(provided)); err != nil {
+			slog.Warn("http trigger: invalid secret",
+				"trigger_id", triggerID,
+			)
+			writeJSON(writer, http.StatusUnauthorized, errorResponse{Error: "invalid shared secret"})
+			return
+		}
+	}
+
 	body, err := io.ReadAll(request.Body)
 	if err != nil {
 		slog.Error("http trigger: failed to read body",
@@ -92,25 +113,6 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 	// can still extract refs and evaluate conditions.
 	if len(body) == 0 {
 		body = []byte("{}")
-	}
-
-	// Verify HMAC signature if SecretKey is configured.
-	if trigger.SecretKey != "" {
-		signature := request.Header.Get("X-Signature-256")
-		if signature == "" {
-			slog.Warn("http trigger: missing signature",
-				"trigger_id", triggerID,
-			)
-			writeJSON(writer, http.StatusUnauthorized, errorResponse{Error: "missing X-Signature-256 header"})
-			return
-		}
-		if !verifyHMAC(body, trigger.SecretKey, signature) {
-			slog.Warn("http trigger: invalid signature",
-				"trigger_id", triggerID,
-			)
-			writeJSON(writer, http.StatusUnauthorized, errorResponse{Error: "invalid signature"})
-			return
-		}
 	}
 
 	slog.Info("http trigger: received",
@@ -154,18 +156,25 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 	)
 }
 
-// verifyHMAC checks an HMAC-SHA256 signature. The expected format is
-// "sha256=<hex>" (GitHub-style) or just the raw hex digest.
-func verifyHMAC(body []byte, secret, signature string) bool {
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write(body)
-	expected := hex.EncodeToString(mac.Sum(nil))
-
-	// Strip "sha256=" prefix if present.
-	cleaned := signature
-	if len(cleaned) > 7 && cleaned[:7] == "sha256=" {
-		cleaned = cleaned[7:]
+// extractTriggerSecret pulls the plaintext shared secret from the first place
+// it finds it. Order: Authorization: Bearer, X-Api-Key, X-Webhook-Secret,
+// ?secret= query param. Returns "" when none are set.
+func extractTriggerSecret(request *http.Request) string {
+	if auth := request.Header.Get("Authorization"); auth != "" {
+		if token, ok := strings.CutPrefix(auth, "Bearer "); ok {
+			if trimmed := strings.TrimSpace(token); trimmed != "" {
+				return trimmed
+			}
+		}
 	}
-
-	return hmac.Equal([]byte(expected), []byte(cleaned))
+	if value := strings.TrimSpace(request.Header.Get("X-Api-Key")); value != "" {
+		return value
+	}
+	if value := strings.TrimSpace(request.Header.Get("X-Webhook-Secret")); value != "" {
+		return value
+	}
+	if value := strings.TrimSpace(request.URL.Query().Get("secret")); value != "" {
+		return value
+	}
+	return ""
 }

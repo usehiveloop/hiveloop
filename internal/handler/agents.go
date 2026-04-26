@@ -47,6 +47,10 @@ type agentTriggerInput struct {
 	Conditions   *model.TriggerMatch `json:"conditions,omitempty"`
 	CronSchedule string              `json:"cron_schedule,omitempty"`
 	Instructions string              `json:"instructions,omitempty"`
+	// SecretKey is the optional plaintext shared secret for HTTP triggers.
+	// When provided, the server bcrypt-hashes it before storing. Never returned
+	// in any response — see agentTriggerResponse.SecretSet for visibility.
+	SecretKey string `json:"secret_key,omitempty"`
 }
 
 type agentTriggerResponse struct {
@@ -59,6 +63,10 @@ type agentTriggerResponse struct {
 	Conditions   any      `json:"conditions,omitempty"`
 	CronSchedule string   `json:"cron_schedule,omitempty"`
 	Instructions string   `json:"instructions,omitempty"`
+	// SecretSet indicates whether an HTTP trigger has a shared secret configured.
+	// True when the trigger requires auth on incoming requests. The secret value
+	// is never returned.
+	SecretSet bool `json:"secret_set"`
 }
 
 type createAgentRequest struct {

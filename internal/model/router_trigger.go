@@ -41,7 +41,11 @@ type RouterTrigger struct {
 
 	// HTTP-specific fields (only used when TriggerType = "http").
 	// If empty, the trigger relies on the unguessable UUID for security.
-	SecretKey string `gorm:"not null;default:''"` // optional HMAC-SHA256 secret for verifying requests
+	// When set, stores a bcrypt hash of the user-supplied shared secret. The
+	// HTTP handler accepts the plaintext secret in any of:
+	//   Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, ?secret=
+	// and verifies via bcrypt.CompareHashAndPassword.
+	SecretKey string `gorm:"not null;default:''"`
 
 	// Instructions sent to the agent when the trigger fires (cron/http only).
 	// For webhook triggers, instructions come from enrichment. For cron/http,
