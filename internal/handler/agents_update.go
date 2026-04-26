@@ -174,26 +174,11 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		updates["sandbox_tools"] = pq.StringArray(req.SandboxTools)
 	}
 
-	// Validate trigger inputs if provided. Connection IDs are in_connections IDs.
+	// Validate trigger inputs per trigger_type (webhook | http | cron).
 	if req.Triggers != nil {
-		for triggerIndex, triggerInput := range *req.Triggers {
-			if triggerInput.ConnectionID == "" {
-				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: connection_id is required", triggerIndex)})
-				return
-			}
-			if _, parseErr := uuid.Parse(triggerInput.ConnectionID); parseErr != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: invalid connection_id", triggerIndex)})
-				return
-			}
-			if len(triggerInput.TriggerKeys) == 0 {
-				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: trigger_keys is required", triggerIndex)})
-				return
-			}
-			var inConn model.InConnection
-			if err := h.db.Where("id = ? AND org_id = ?", triggerInput.ConnectionID, org.ID).First(&inConn).Error; err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: connection not found", triggerIndex)})
-				return
-			}
+		if errMsg := validateAgentTriggers(h.db, org.ID, *req.Triggers); errMsg != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
+			return
 		}
 	}
 
