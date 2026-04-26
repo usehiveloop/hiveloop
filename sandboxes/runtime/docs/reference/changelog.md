@@ -4,7 +4,7 @@ Changes to Bridge.
 
 ---
 
-## Unreleased
+## v0.22.0 (2026-04-26)
 
 ### Added
 
