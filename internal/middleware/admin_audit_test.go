@@ -79,10 +79,10 @@ func TestSanitizePayload(t *testing.T) {
 }
 
 func TestSanitizePayload_NonSensitiveFieldsPreserved(t *testing.T) {
-	raw := `{"name":"Bob","description":"A test agent","model":"gpt-4","sandbox_type":"dedicated","status":"active"}`
+	raw := `{"name":"Bob","description":"A test agent","model":"gpt-4","status":"active"}`
 	result := sanitizePayload([]byte(raw))
 
-	for _, field := range []string{"name", "description", "model", "sandbox_type", "status"} {
+	for _, field := range []string{"name", "description", "model", "status"} {
 		if result[field] == maskValue {
 			t.Errorf("field %q should NOT be masked, but was", field)
 		}

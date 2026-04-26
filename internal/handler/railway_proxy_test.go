@@ -77,11 +77,10 @@ func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler h
 	// Create test agent
 	agentID := uuid.New()
 	agent := model.Agent{
-		ID:          agentID,
-		OrgID:       &orgID,
-		Name:        "test-railway-agent",
-		Status:      "active",
-		SandboxType: "dedicated",
+		ID:     agentID,
+		OrgID:  &orgID,
+		Name:   "test-railway-agent",
+		Status: "active",
 	}
 	if err := database.Create(&agent).Error; err != nil {
 		t.Fatalf("create test agent: %v", err)
@@ -99,7 +98,6 @@ func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler h
 		ID:                    sandboxID,
 		OrgID:                 &orgID,
 		AgentID:               &agentID,
-		SandboxType:           "dedicated",
 		EncryptedBridgeAPIKey: encryptedKey,
 		Status:                "running",
 		ExternalID:            "mock-external-id",

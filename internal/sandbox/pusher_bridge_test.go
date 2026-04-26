@@ -52,7 +52,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	agent := model.Agent{
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
 		Name: "Test Railway Agent", Model: "kimi-k2",
-		SystemPrompt: "You are a DevOps engineer.", SandboxType: "dedicated",
+		SystemPrompt: "You are a DevOps engineer.",
 		Status: "active", AgentType: "agent", SharedMemory: false,
 		Permissions: permissions, Resources: resources,
 		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
