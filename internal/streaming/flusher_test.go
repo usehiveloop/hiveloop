@@ -60,7 +60,7 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 	sandboxID := uuid.New()
 
 	sandbox := model.Sandbox{
-		ID: sandboxID, SandboxType: "shared", Status: "running",
+		ID: sandboxID, Status: "running",
 		ExternalID: "ext-" + suffix, BridgeURL: "https://test.local",
 		EncryptedBridgeAPIKey: []byte("test"),
 	}
@@ -73,7 +73,7 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 		ID: agentID, OrgID: &orgID,
 		Name: "test-agent-" + suffix, Model: "test",
 		CredentialID: &credID,
-		SystemPrompt: "test", SandboxType: "shared", Status: "active",
+		SystemPrompt: "test", Status: "active",
 		Tools: emptyJSON, McpServers: emptyJSON, Skills: emptyJSON,
 		Integrations: emptyJSON, AgentConfig: emptyJSON,
 		Permissions: emptyJSON,

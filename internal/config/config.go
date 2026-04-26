@@ -147,13 +147,8 @@ type Config struct {
 	AdminAPIEnabled bool `env:"ADMIN_API_ENABLED" envDefault:"false"`
 
 	// Sandbox defaults
-	SharedSandboxIdleTimeoutMins    int           `env:"SHARED_SANDBOX_IDLE_TIMEOUT_MINS" envDefault:"30"`
 	DedicatedSandboxGracePeriodMins int           `env:"DEDICATED_SANDBOX_GRACE_PERIOD_MINS" envDefault:"5"`
 	SandboxResourceCheckInterval    time.Duration `env:"SANDBOX_RESOURCE_CHECK_INTERVAL" envDefault:"30m"`
-
-	// Sandbox pool
-	PoolSandboxResourceThreshold float64 `env:"POOL_SANDBOX_RESOURCE_THRESHOLD" envDefault:"80.0"` // max CPU/RAM % before sandbox considered full
-	PoolSandboxIdleTimeoutMins   int     `env:"POOL_SANDBOX_IDLE_TIMEOUT_MINS" envDefault:"30"`    // auto-stop pool sandboxes with 0 agents after this
 
 	// Asynq worker
 	WorkerHealthPort      int           `env:"WORKER_HEALTH_PORT" envDefault:"8090"`
