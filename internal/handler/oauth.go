@@ -11,6 +11,7 @@ import (
 	googleOAuth "golang.org/x/oauth2/google"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 )
 
 // oauthProfile holds the normalised user info fetched from an OAuth provider.
@@ -40,6 +41,7 @@ type OAuthHandler struct {
 	refreshTTL   time.Duration
 	frontendURL  string
 	secure       bool // true when cookies should be Secure (HTTPS)
+	credits      *billing.CreditsService
 	githubConfig *oauth2.Config
 	googleConfig *oauth2.Config
 	xConfig      *oauth2.Config
@@ -58,6 +60,7 @@ func NewOAuthHandler(
 	githubClientID, githubClientSecret string,
 	googleClientID, googleClientSecret string,
 	xClientID, xClientSecret string,
+	credits *billing.CreditsService,
 ) *OAuthHandler {
 	h := &OAuthHandler{
 		db:          db,
@@ -69,6 +72,7 @@ func NewOAuthHandler(
 		refreshTTL:  refreshTTL,
 		frontendURL: strings.TrimRight(frontendURL, "/"),
 		secure:      strings.HasPrefix(audience, "https://"),
+		credits:     credits,
 	}
 
 	base := strings.TrimRight(audience, "/")

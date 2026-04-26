@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/email"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -126,6 +127,7 @@ func TestOTP_AdminModeRejectsNonAdmin(t *testing.T) {
 		&email.LogSender{},
 		"http://localhost:3000",
 		true,
+		billing.NewCreditsService(db),
 	)
 	authHandler.SetAdminMode([]string{"admin@hiveloop.com"})
 

@@ -1,0 +1,7 @@
+{
+  "title": "Webhooks",
+  "description": "webhooks",
+  "pages": [
+    "incoming/webhooks/provider/connectionid/post"
+  ]
+}

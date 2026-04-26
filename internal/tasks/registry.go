@@ -84,6 +84,7 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 	// Enqueued by the proxy's Generation middleware; handled here.
 	if deps.Credits != nil {
 		mux.HandleFunc(TypeBillingTokenSpend, NewBillingTokenSpendHandler(deps.Credits).Handle)
+		mux.HandleFunc(TypeCreditsExpire, NewCreditsExpireHandler(deps.Credits).Handle)
 	}
 
 	// Conversation naming (async title generation from the first message).
