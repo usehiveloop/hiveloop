@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_imports, unused_mut, unused_variables)]
 use bridge_e2e::{SseStream, TestHarness};
 use std::time::Duration;
 
@@ -29,8 +30,6 @@ async fn test_create_conversation_no_body_backward_compat() {
     assert!(body["stream_url"].is_string());
 }
 
-// ── Backward compatibility: empty JSON body ───────────────────────────────
-
 #[tokio::test]
 async fn test_create_conversation_empty_json_body_backward_compat() {
     let harness = TestHarness::start()
@@ -51,8 +50,6 @@ async fn test_create_conversation_empty_json_body_backward_compat() {
 
     assert_eq!(resp.status().as_u16(), 201);
 }
-
-// ── Tool name filtering: valid tools ──────────────────────────────────────
 
 #[tokio::test]
 async fn test_create_conversation_with_valid_tool_filter() {
@@ -85,8 +82,6 @@ async fn test_create_conversation_with_valid_tool_filter() {
     let body: serde_json::Value = resp.json().await.unwrap();
     assert!(body["conversation_id"].is_string());
 }
-
-// ── Tool name filtering: conversation actually works with filtered tools ──
 
 #[tokio::test]
 async fn test_scoped_conversation_responds_to_messages() {
@@ -141,8 +136,6 @@ async fn test_scoped_conversation_responds_to_messages() {
     );
 }
 
-// ── Tool name filtering: invalid tool returns 400 ─────────────────────────
-
 #[tokio::test]
 async fn test_create_conversation_invalid_tool_name_returns_400() {
     let harness = TestHarness::start()
@@ -179,8 +172,6 @@ async fn test_create_conversation_invalid_tool_name_returns_400() {
         "error should name the invalid tool"
     );
 }
-
-// ── MCP server filtering: invalid server returns 400 ──────────────────────
 
 #[tokio::test]
 async fn test_create_conversation_invalid_mcp_server_returns_400() {
@@ -219,8 +210,6 @@ async fn test_create_conversation_invalid_mcp_server_returns_400() {
     );
 }
 
-// ── Empty tool_names array: zero tools ────────────────────────────────────
-
 #[tokio::test]
 async fn test_create_conversation_empty_tool_names_succeeds() {
     let harness = TestHarness::start()
@@ -249,8 +238,6 @@ async fn test_create_conversation_empty_tool_names_succeeds() {
     );
 }
 
-// ── Empty mcp_server_names array: no MCP tools ───────────────────────────
-
 #[tokio::test]
 async fn test_create_conversation_empty_mcp_server_names_succeeds() {
     let harness = TestHarness::start()
@@ -276,227 +263,5 @@ async fn test_create_conversation_empty_mcp_server_names_succeeds() {
         resp.status().as_u16(),
         201,
         "empty mcp_server_names should succeed"
-    );
-}
-
-// ── Both filters together ─────────────────────────────────────────────────
-
-#[tokio::test]
-async fn test_create_conversation_both_filters_valid() {
-    let harness = TestHarness::start()
-        .await
-        .expect("failed to start test harness");
-
-    // agent_mock_llm has no MCP servers, so mcp_server_names: [] is valid.
-    // tool_names: ["bash"] restricts to only bash.
-    let resp = harness
-        .client()
-        .post(format!(
-            "{}/agents/agent_mock_llm/conversations",
-            harness.bridge_url()
-        ))
-        .header("content-type", "application/json")
-        .json(&serde_json::json!({
-            "tool_names": ["bash"],
-            "mcp_server_names": []
-        }))
-        .send()
-        .await
-        .expect("request failed");
-
-    assert_eq!(
-        resp.status().as_u16(),
-        201,
-        "both filters together should succeed"
-    );
-}
-
-// ============================================================================
-// Per-conversation API key override e2e tests
-// ============================================================================
-
-// ── API key override: conversation created successfully ──────────────────
-
-#[tokio::test]
-async fn test_create_conversation_with_api_key_override() {
-    let harness = TestHarness::start()
-        .await
-        .expect("failed to start test harness");
-
-    let resp = harness
-        .client()
-        .post(format!(
-            "{}/agents/agent_mock_llm/conversations",
-            harness.bridge_url()
-        ))
-        .header("content-type", "application/json")
-        .json(&serde_json::json!({
-            "api_key": "sk-custom-override-key"
-        }))
-        .send()
-        .await
-        .expect("request failed");
-
-    assert_eq!(
-        resp.status().as_u16(),
-        201,
-        "should create conversation with API key override"
-    );
-
-    let body: serde_json::Value = resp.json().await.unwrap();
-    assert!(body["conversation_id"].is_string());
-}
-
-// ── API key override: conversation responds to messages ──────────────────
-
-#[tokio::test]
-async fn test_api_key_override_conversation_responds_to_messages() {
-    let harness = TestHarness::start()
-        .await
-        .expect("failed to start test harness");
-
-    let resp = harness
-        .client()
-        .post(format!(
-            "{}/agents/agent_mock_llm/conversations",
-            harness.bridge_url()
-        ))
-        .header("content-type", "application/json")
-        .json(&serde_json::json!({
-            "api_key": "sk-custom-key-for-test"
-        }))
-        .send()
-        .await
-        .expect("create conversation failed");
-
-    assert_eq!(resp.status().as_u16(), 201);
-    let body: serde_json::Value = resp.json().await.unwrap();
-    let conv_id = body["conversation_id"].as_str().unwrap();
-
-    let sse = SseStream::connect(harness.bridge_url(), conv_id)
-        .await
-        .expect("SSE connect failed");
-
-    harness
-        .send_message(conv_id, "Hello with custom API key")
-        .await
-        .expect("send_message failed");
-
-    let events = sse.wait_for_done_count(1, Duration::from_secs(15)).await;
-    let event_types: Vec<&str> = events.iter().map(|e| e.event_type.as_str()).collect();
-    assert!(
-        event_types.contains(&"done"),
-        "should complete with done event; got: {:?}",
-        event_types
-    );
-}
-
-// ── API key override combined with tool filter ───────────────────────────
-
-#[tokio::test]
-async fn test_create_conversation_with_api_key_and_tool_filter() {
-    let harness = TestHarness::start()
-        .await
-        .expect("failed to start test harness");
-
-    let resp = harness
-        .client()
-        .post(format!(
-            "{}/agents/agent_mock_llm/conversations",
-            harness.bridge_url()
-        ))
-        .header("content-type", "application/json")
-        .json(&serde_json::json!({
-            "api_key": "sk-custom-key",
-            "tool_names": ["bash"]
-        }))
-        .send()
-        .await
-        .expect("request failed");
-
-    assert_eq!(
-        resp.status().as_u16(),
-        201,
-        "should create conversation with both API key override and tool filter"
-    );
-}
-
-// ── Empty API key returns 400 ────────────────────────────────────────────
-
-#[tokio::test]
-async fn test_create_conversation_with_empty_api_key_returns_400() {
-    let harness = TestHarness::start()
-        .await
-        .expect("failed to start test harness");
-
-    let resp = harness
-        .client()
-        .post(format!(
-            "{}/agents/agent_mock_llm/conversations",
-            harness.bridge_url()
-        ))
-        .header("content-type", "application/json")
-        .json(&serde_json::json!({
-            "api_key": ""
-        }))
-        .send()
-        .await
-        .expect("request failed");
-
-    assert_eq!(
-        resp.status().as_u16(),
-        400,
-        "should return 400 for empty API key"
-    );
-
-    let body: serde_json::Value = resp.json().await.unwrap();
-    assert_eq!(body["error"]["code"], "invalid_request");
-    assert!(
-        body["error"]["message"]
-            .as_str()
-            .unwrap()
-            .contains("api_key cannot be empty"),
-        "error should mention empty api_key"
-    );
-}
-
-// ── Invalid subagent name returns 400 ────────────────────────────────────
-
-#[tokio::test]
-async fn test_create_conversation_with_invalid_subagent_name_returns_400() {
-    let harness = TestHarness::start()
-        .await
-        .expect("failed to start test harness");
-
-    let resp = harness
-        .client()
-        .post(format!(
-            "{}/agents/agent_mock_llm/conversations",
-            harness.bridge_url()
-        ))
-        .header("content-type", "application/json")
-        .json(&serde_json::json!({
-            "subagent_api_keys": {
-                "nonexistent_subagent": "<provider-api-key>"
-            }
-        }))
-        .send()
-        .await
-        .expect("request failed");
-
-    assert_eq!(
-        resp.status().as_u16(),
-        400,
-        "should return 400 for unknown subagent name"
-    );
-
-    let body: serde_json::Value = resp.json().await.unwrap();
-    assert_eq!(body["error"]["code"], "invalid_request");
-    assert!(
-        body["error"]["message"]
-            .as_str()
-            .unwrap()
-            .contains("nonexistent_subagent"),
-        "error should name the invalid subagent"
     );
 }
