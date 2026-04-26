@@ -117,6 +117,7 @@ func (h *AuthHandler) issueTokensAndRespond(w http.ResponseWriter, status int, u
 			ID:   m.OrgID.String(),
 			Name: m.Org.Name,
 			Role: m.Role,
+			BYOK: m.Org.BYOK,
 		})
 	}
 
