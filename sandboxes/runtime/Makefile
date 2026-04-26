@@ -39,7 +39,7 @@ test-unit: ## Run library tests only
 	cargo test --workspace --lib
 
 test-e2e: ## Run e2e tests (single-threaded)
-	cargo test -p bridge-e2e --test e2e_tests -- --test-threads=1
+	cargo test -p bridge-e2e --test e2e_a_tests --test e2e_b_tests --test e2e_c_tests --test e2e_d_tests -- --test-threads=1
 
 test-lsp: ## Run LSP unit tests
 	cargo test -p lsp
@@ -64,27 +64,27 @@ test-all: ## Run everything (requires FIREWORKS_API_KEY in env or .env file)
 test-e2e-llm: ## Run real LLM e2e tests
 	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
 	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
-	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test real_e2e_tests -- --ignored --test-threads=1 --nocapture
+	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test real_e2e_a_tests --test real_e2e_b_tests --test real_e2e_c_tests --test real_e2e_d_tests --test real_e2e_e_tests --test real_e2e_f_tests --test real_e2e_g_tests --test real_e2e_h_tests --test real_e2e_i_tests --test real_e2e_j_tests --test real_e2e_k_tests --test real_e2e_l_tests -- --ignored --test-threads=1 --nocapture
 
 test-e2e-observability: ## Run observability e2e tests (webhook token/model data)
 	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
 	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
-	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test observability_e2e_tests -- --ignored --test-threads=1 --nocapture
+	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test observability_e2e_a_tests --test observability_e2e_b_tests -- --ignored --test-threads=1 --nocapture
 
 test-e2e-approval: ## Run approval flow e2e tests
 	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
 	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
-	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test approval_e2e_tests -- --ignored --test-threads=1 --nocapture
+	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test approval_e2e_a_tests --test approval_e2e_b_tests --test approval_e2e_c_tests -- --ignored --test-threads=1 --nocapture
 
 test-e2e-integration-real: ## Run integration e2e tests with real LLM
 	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
 	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
-	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test integration_real_e2e_tests -- --ignored --test-threads=1 --nocapture
+	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test integration_real_e2e_a_tests --test integration_real_e2e_b_tests --test integration_real_e2e_c_tests --test integration_real_e2e_d_tests --test integration_real_e2e_e_tests -- --ignored --test-threads=1 --nocapture
 
 test-e2e-parallel: ## Run parallel subagent e2e tests
 	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
 	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
-	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test parallel_e2e_tests -- --test-threads=1 --nocapture
+	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test parallel_e2e_a_tests --test parallel_e2e_b_tests -- --test-threads=1 --nocapture
 
 # --- Setup ---
 
