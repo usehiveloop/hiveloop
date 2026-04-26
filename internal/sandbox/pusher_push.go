@@ -70,7 +70,6 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		"agent_id", agent.ID,
 		"agent_name", agent.Name,
 		"sandbox_id", sb.ID,
-		"sandbox_type", sb.SandboxType,
 	)
 
 	return nil

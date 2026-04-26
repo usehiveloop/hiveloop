@@ -43,23 +43,19 @@ func (h *AgentCleanupHandler) Handle(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("loading agent: %w", err)
 	}
 
-	if agent.SandboxType == "dedicated" {
-		h.cleanupDedicatedSandboxes(ctx, &agent)
-	} else if agent.SandboxType == "shared" {
-		h.cleanupSharedAgent(ctx, &agent)
-	}
+	h.cleanupAgentSandboxes(ctx, &agent)
 
 	if err := h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}).Error; err != nil {
 		return fmt.Errorf("hard-deleting agent: %w", err)
 	}
 
-	slog.Info("agent cleanup: complete", "agent_id", agent.ID, "sandbox_type", agent.SandboxType)
+	slog.Info("agent cleanup: complete", "agent_id", agent.ID)
 	return nil
 }
 
-func (h *AgentCleanupHandler) cleanupDedicatedSandboxes(ctx context.Context, agent *model.Agent) {
+func (h *AgentCleanupHandler) cleanupAgentSandboxes(ctx context.Context, agent *model.Agent) {
 	if h.orchestrator == nil {
-		slog.Warn("agent cleanup: orchestrator not configured, skipping dedicated sandbox cleanup", "agent_id", agent.ID)
+		slog.Warn("agent cleanup: orchestrator not configured, skipping sandbox cleanup", "agent_id", agent.ID)
 		return
 	}
 
@@ -74,16 +70,5 @@ func (h *AgentCleanupHandler) cleanupDedicatedSandboxes(ctx context.Context, age
 		if err := h.orchestrator.DeleteSandbox(ctx, &sb); err != nil {
 			slog.Error("agent cleanup: failed to destroy dedicated sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
 		}
-	}
-}
-
-func (h *AgentCleanupHandler) cleanupSharedAgent(ctx context.Context, agent *model.Agent) {
-	if h.pusher == nil {
-		slog.Warn("agent cleanup: pusher not configured, skipping shared agent cleanup", "agent_id", agent.ID)
-		return
-	}
-
-	if err := h.pusher.RemoveAgent(ctx, agent); err != nil {
-		slog.Error("agent cleanup: failed to remove shared agent from bridge", "agent_id", agent.ID, "error", err)
 	}
 }

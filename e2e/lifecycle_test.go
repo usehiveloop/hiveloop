@@ -45,13 +45,13 @@ func newLifecycleHarness(t *testing.T) *lifecycleHarness {
 
 	agent := model.Agent{
 		OrgID: &org.ID, Name: "lc-agent-" + suffix,
-		CredentialID: &cred.ID, SandboxType: "shared", SystemPrompt: "test", Model: "gpt-4o",
+		CredentialID: &cred.ID, SystemPrompt: "test", Model: "gpt-4o",
 	}
 	h.db.Create(&agent)
 	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
 
 	sandbox := model.Sandbox{
-		OrgID: &org.ID, SandboxType: "shared",
+		OrgID: &org.ID,
 		ExternalID: "lc-ext-" + suffix, BridgeURL: "https://test:25434",
 		EncryptedBridgeAPIKey: []byte("enc-key"), Status: "running",
 	}
@@ -209,9 +209,8 @@ func TestListSandboxes(t *testing.T) {
 
 	var resp struct {
 		Data []struct {
-			ID          string `json:"id"`
-			SandboxType string `json:"sandbox_type"`
-			Status      string `json:"status"`
+			ID     string `json:"id"`
+			Status string `json:"status"`
 		} `json:"data"`
 	}
 	json.NewDecoder(rr.Body).Decode(&resp)
@@ -263,10 +262,9 @@ func TestGetSandbox(t *testing.T) {
 	}
 
 	var resp struct {
-		ID          string `json:"id"`
-		SandboxType string `json:"sandbox_type"`
-		Status      string `json:"status"`
-		ExternalID  string `json:"external_id"`
+		ID         string `json:"id"`
+		Status     string `json:"status"`
+		ExternalID string `json:"external_id"`
 	}
 	json.NewDecoder(rr.Body).Decode(&resp)
 

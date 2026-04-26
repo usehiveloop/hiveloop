@@ -87,7 +87,6 @@ func seedAgentWithGitHub(t *testing.T, db *gorm.DB) (orgID, agentID, convID uuid
 		OrgID:        &orgID,
 		Name:         "test-agent-" + agentID.String()[:8],
 		Model:        "anthropic/claude-haiku-4-5",
-		SandboxType:  "shared",
 		SystemPrompt: "test",
 		Integrations: model.JSON{
 			connectionID.String(): map[string]any{
@@ -102,7 +101,6 @@ func seedAgentWithGitHub(t *testing.T, db *gorm.DB) (orgID, agentID, convID uuid
 	if err := db.Create(&model.Sandbox{
 		ID:                    sandboxID,
 		OrgID:                 &orgID,
-		SandboxType:           "shared",
 		ExternalID:            "sb-ext-" + sandboxID.String()[:8],
 		BridgeURL:             "https://test.invalid",
 		EncryptedBridgeAPIKey: []byte("fake"),

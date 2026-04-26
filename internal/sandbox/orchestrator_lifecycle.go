@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	sandboxIdleTimeoutMinutes  = 10
-	sandboxArchiveAfterHours   = 24
+	sandboxIdleTimeoutMinutes = 10
+	sandboxArchiveAfterHours  = 24
 )
 
 func (o *Orchestrator) RunSandboxLifecycle(ctx context.Context) {
@@ -20,22 +20,14 @@ func (o *Orchestrator) RunSandboxLifecycle(ctx context.Context) {
 
 	var idleRunning []model.Sandbox
 	if err := o.db.Where(
-		"status = ? AND sandbox_type != ? AND last_active_at IS NOT NULL AND last_active_at < ?",
+		"status = ? AND last_active_at IS NOT NULL AND last_active_at < ?",
 		string(StatusRunning),
-		"system",
 		idleCutoff,
 	).Find(&idleRunning).Error; err != nil {
 		slog.Error("sandbox lifecycle: query idle running sandboxes failed", "error", err)
 	} else {
 		for i := range idleRunning {
 			sb := &idleRunning[i]
-			if sb.SandboxType == "shared" {
-				var agentCount int64
-				o.db.Model(&model.Agent{}).Where("sandbox_id = ?", sb.ID).Count(&agentCount)
-				if agentCount > 0 {
-					continue
-				}
-			}
 			slog.Info("sandbox lifecycle: stopping idle sandbox",
 				"sandbox_id", sb.ID,
 				"external_id", sb.ExternalID,
@@ -50,9 +42,8 @@ func (o *Orchestrator) RunSandboxLifecycle(ctx context.Context) {
 
 	var staleStopped []model.Sandbox
 	if err := o.db.Where(
-		"status = ? AND sandbox_type != ? AND stopped_at IS NOT NULL AND stopped_at < ?",
+		"status = ? AND stopped_at IS NOT NULL AND stopped_at < ?",
 		string(StatusStopped),
-		"system",
 		archiveCutoff,
 	).Find(&staleStopped).Error; err != nil {
 		slog.Error("sandbox lifecycle: query stale stopped sandboxes failed", "error", err)
