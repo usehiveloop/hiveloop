@@ -5,13 +5,16 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
+	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
 
 const defaultRefreshFreqSeconds = 600
@@ -120,7 +123,31 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("rag source created", "source_id", src.ID, "org_id", org.ID, "kind", src.KindValue)
+	h.dispatchInitialIngest(src)
 	writeJSON(w, http.StatusCreated, toRAGSourceResponse(src))
+}
+
+// dispatchInitialIngest fires a one-off rag:ingest immediately after
+// the source row lands so the user doesn't wait up to 15s for the
+// scheduler tick. asynq.Unique collapses with a near-simultaneous
+// scheduler enqueue.
+func (h *RAGSourceHandler) dispatchInitialIngest(src *ragmodel.RAGSource) {
+	if src.KindValue != ragmodel.RAGSourceKindIntegration {
+		return
+	}
+	task, err := ragtasks.NewIngestTask(ragtasks.IngestPayload{RAGSourceID: src.ID})
+	if err != nil {
+		slog.Warn("rag source created: build initial ingest task failed",
+			"source_id", src.ID, "err", err)
+		return
+	}
+	if _, err := h.enq.Enqueue(task, asynq.Unique(60*time.Second)); err != nil {
+		if errors.Is(err, asynq.ErrDuplicateTask) {
+			return
+		}
+		slog.Warn("rag source created: enqueue initial ingest failed",
+			"source_id", src.ID, "err", err)
+	}
 }
 
 func (h *RAGSourceHandler) attachInConnection(

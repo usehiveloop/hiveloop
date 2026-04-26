@@ -119,6 +119,36 @@ func GetAttemptForSource(
 	return &attempt, nil
 }
 
+// LatestAttemptsBySource returns the most-recent RAGIndexAttempt for
+// every source ID in the input set, keyed by RAGSourceID. Sources with
+// zero attempts are absent from the result.
+//
+// Uses Postgres DISTINCT ON to fetch one row per source in a single
+// query — cheap even for the org-wide List response.
+func LatestAttemptsBySource(
+	db *gorm.DB,
+	orgID uuid.UUID,
+	sourceIDs []uuid.UUID,
+) (map[uuid.UUID]ragmodel.RAGIndexAttempt, error) {
+	out := map[uuid.UUID]ragmodel.RAGIndexAttempt{}
+	if len(sourceIDs) == 0 {
+		return out, nil
+	}
+	var rows []ragmodel.RAGIndexAttempt
+	if err := db.Raw(`
+		SELECT DISTINCT ON (rag_source_id) *
+		FROM rag_index_attempts
+		WHERE org_id = ? AND rag_source_id IN ?
+		ORDER BY rag_source_id, time_created DESC, id DESC
+	`, orgID, sourceIDs).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	for i := range rows {
+		out[rows[i].RAGSourceID] = rows[i]
+	}
+	return out, nil
+}
+
 // ListRecentAttempts returns the n most-recent attempts for a source,
 // org-scoped. Used by the source-detail response to inline the last
 // few attempts without a second round trip.

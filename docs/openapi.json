@@ -3717,6 +3717,42 @@
         }
       }
     },
+    "/auth/me": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns the current user and their organization memberships.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get current user",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/meResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/otp/request": {
       "post": {
         "description": "Sends a 6-digit one-time code to the given email address.",
@@ -14688,6 +14724,23 @@
           }
         }
       },
+      "meResponse": {
+        "type": "object",
+        "properties": {
+          "is_platform_admin": {
+            "type": "boolean"
+          },
+          "orgs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/orgMemberDTO"
+            }
+          },
+          "user": {
+            "$ref": "#/components/schemas/userResponse"
+          }
+        }
+      },
       "modelSummary": {
         "type": "object",
         "properties": {
@@ -15403,6 +15456,9 @@
       "ragAttemptDetailResponse": {
         "type": "object",
         "properties": {
+          "docs_estimated": {
+            "type": "integer"
+          },
           "docs_removed_from_index": {
             "type": "integer"
           },
@@ -15511,6 +15567,9 @@
       "ragIndexAttemptResponse": {
         "type": "object",
         "properties": {
+          "docs_estimated": {
+            "type": "integer"
+          },
           "docs_removed_from_index": {
             "type": "integer"
           },
@@ -15577,6 +15636,32 @@
           }
         }
       },
+      "ragLatestAttemptStatus": {
+        "type": "object",
+        "properties": {
+          "docs_estimated": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "new_docs_indexed": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "time_started": {
+            "type": "string"
+          },
+          "time_updated": {
+            "type": "string"
+          },
+          "total_docs_indexed": {
+            "type": "integer"
+          }
+        }
+      },
       "ragListResponse": {
         "type": "object",
         "properties": {
@@ -15638,6 +15723,9 @@
           },
           "last_time_perm_sync": {
             "type": "string"
+          },
+          "latest_attempt": {
+            "$ref": "#/components/schemas/ragLatestAttemptStatus"
           },
           "name": {
             "type": "string"
@@ -15712,6 +15800,9 @@
           },
           "last_time_perm_sync": {
             "type": "string"
+          },
+          "latest_attempt": {
+            "$ref": "#/components/schemas/ragLatestAttemptStatus"
           },
           "name": {
             "type": "string"

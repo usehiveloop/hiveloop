@@ -144,6 +144,21 @@ type PermSyncConnector interface {
 	SyncExternalGroups(ctx context.Context, src Source) (<-chan ExternalGroupOrFailure, error)
 }
 
+// EstimatingConnector returns a pre-flight count of how many documents
+// the next ingest run will fetch. Optional: implement only when the
+// upstream API can answer cheaply (e.g. GitHub's `Link: rel="last"`
+// pagination header on `/issues?per_page=1`). Connectors that would
+// have to walk the full catalog to count should not implement this —
+// the UI falls back to indeterminate progress.
+type EstimatingConnector interface {
+	Connector
+
+	// EstimateTotal returns the number of documents the next run is
+	// expected to ingest. Called once per attempt right after the
+	// attempt row is opened and before any batches stream.
+	EstimateTotal(ctx context.Context, src Source) (int, error)
+}
+
 // SlimConnector lists every current document ID available in the
 // source. Used by the pruning loop (Tranche 3C) to detect source-side
 // deletions: documents present in our index but no longer in the

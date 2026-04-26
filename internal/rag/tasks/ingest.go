@@ -67,6 +67,8 @@ func (d *Deps) HandleIngest(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
+	stampDocsEstimated(ctx, deps.DB, conn, src, attempt)
+
 	hb := startHeartbeat(ctx, deps.DB, attempt.ID, deps.HeartbeatTick)
 	defer hb.stop()
 
@@ -146,19 +148,23 @@ func runIngest(
 		stats.docsSeen++
 		batch = append(batch, *item.Doc)
 		if len(batch) >= deps.BatchSize {
+			n := len(batch)
 			if err := flushBatch(ctx, deps, src, attempt, batch); err != nil {
 				return stats, err
 			}
-			stats.docsBatched += len(batch)
+			stats.docsBatched += n
+			bumpAttemptProgress(ctx, deps.DB, attempt.ID, n)
 			batch = batch[:0]
 			hb.touchProgress()
 		}
 	}
 	if len(batch) > 0 {
+		n := len(batch)
 		if err := flushBatch(ctx, deps, src, attempt, batch); err != nil {
 			return stats, err
 		}
-		stats.docsBatched += len(batch)
+		stats.docsBatched += n
+		bumpAttemptProgress(ctx, deps.DB, attempt.ID, n)
 		hb.touchProgress()
 	}
 	stats.pollEnd = windowEnd
