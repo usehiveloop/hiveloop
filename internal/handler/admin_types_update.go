@@ -22,7 +22,6 @@ type adminUpdateAgentRequest struct {
 	Name              *string    `json:"name,omitempty"`
 	Description       *string    `json:"description,omitempty"`
 	CredentialID      *string    `json:"credential_id,omitempty"`
-	SandboxType       *string    `json:"sandbox_type,omitempty"`
 	SandboxTemplateID *string    `json:"sandbox_template_id,omitempty"`
 	SystemPrompt      *string    `json:"system_prompt,omitempty"`
 	Model             *string    `json:"model,omitempty"`

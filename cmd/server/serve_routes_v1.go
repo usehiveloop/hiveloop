@@ -37,7 +37,6 @@ func setupV1Routes(
 	agentHandler *handler.AgentHandler,
 	marketplaceHandler *handler.MarketplaceHandler,
 	conversationHandler *handler.ConversationHandler,
-	systemConvHandler *handler.SystemConversationHandler,
 	routerHandler *handler.RouterHandler,
 	customDomainHandler *handler.CustomDomainHandler,
 	orchestrator *sandbox.Orchestrator,
@@ -205,9 +204,6 @@ func setupV1Routes(
 						r.Post("/approvals/{requestID}", conversationHandler.ResolveApproval)
 						r.Get("/events", conversationHandler.ListEvents)
 					})
-				}
-				if systemConvHandler != nil {
-					r.Post("/system-agents/{type}/conversations", systemConvHandler.Create)
 				}
 				r.Route("/sandboxes", func(r chi.Router) {
 					sandboxHandler := handler.NewSandboxHandler(database, orchestrator)
