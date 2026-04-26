@@ -1,9 +1,3 @@
-// Pure helpers used by perm_sync.go: group-id constructors + email
-// flatteners. Lives in its own file to keep perm_sync.go under the
-// 300-line ceiling.
-//
-// Onyx analog: backend/ee/onyx/external_permissions/github/utils.py:249-277
-// (group-id forms) + utils.py member-email collection helpers.
 package github
 
 import (
@@ -13,9 +7,9 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
-// Group-id constructors mirror utils.py:249-277. Output runs through
-// acl.BuildExtGroupName + acl.PrefixExternalGroup so the byte sequence
-// matches the indexing-side ACL.
+// Group-id constructors run output through acl.BuildExtGroupName +
+// acl.PrefixExternalGroup so the byte sequence matches the
+// indexing-side ACL.
 func collaboratorsGroupID(repoID int64) string {
 	return acl.PrefixExternalGroup(
 		acl.BuildExtGroupName(strconv.FormatInt(repoID, 10)+"_collaborators",
@@ -39,9 +33,8 @@ func teamGroupID(slug string) string {
 		acl.BuildExtGroupName(slug, model.DocumentSourceGithub))
 }
 
-// emailsFromUsers flattens user records into []string of emails. Falls
-// back to login when email is hidden so the junction-table upsert
-// always has at least the username to match on.
+// emailsFromUsers falls back to login when email is hidden so the
+// junction-table upsert always has at least the username to match on.
 func emailsFromUsers(users []GithubUser) []string {
 	if len(users) == 0 {
 		return nil
@@ -57,8 +50,6 @@ func emailsFromUsers(users []GithubUser) []string {
 	return out
 }
 
-// emailsFromMemberships is the GithubMembership-typed twin of
-// emailsFromUsers. Same fallback semantics.
 func emailsFromMemberships(ms []GithubMembership) []string {
 	if len(ms) == 0 {
 		return nil
@@ -74,9 +65,8 @@ func emailsFromMemberships(ms []GithubMembership) []string {
 	return out
 }
 
-// isPublic / isInternal: both fields are checked because GitHub's
-// visibility column is the modern source of truth, but older API
-// versions populated only the `private` boolean.
+// isPublic checks both fields because older GitHub API versions
+// populated only the `private` boolean; modern responses use visibility.
 func isPublic(repo GithubRepo) bool {
 	if repo.Visibility != "" {
 		return repo.Visibility == "public"

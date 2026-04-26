@@ -1,21 +1,3 @@
-// PermSync: visibility-based ACL + group enumeration.
-//
-// Visibility translation (utils.py:28-33):
-//
-//   public   → ExternalAccess{IsPublic: true}, no groups.
-//   private  → ExternalAccess{IsPublic: false},
-//              groups = {collaborators, outside_collaborators, all team-slugs}
-//   internal → ExternalAccess{IsPublic: false},
-//              groups = {<org_id>_organization}
-//
-// Onyx analog (split):
-//   - doc_sync.py:34-142  — per-doc ExternalAccess
-//   - group_sync.py:14-51 — per-source ExternalGroup catalog
-//   - utils.py:249-277    — group-id forms
-//
-// We unify them: SyncDocPermissions yields one DocExternalAccess per
-// repo-doc; SyncExternalGroups yields one ExternalGroup per
-// collaborators / outside-collaborators / team / org-membership group.
 package github
 
 import (
@@ -24,10 +6,9 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
 )
 
-// mapVisibility translates a GithubRepo into ExternalAccess. The group
-// IDs produced here are the same byte sequences that SyncExternalGroups
-// emits for the same repo — both sides go through acl.PrefixExternalGroup
-// + acl.BuildExtGroupName to pin the lowercase + namespacing invariant.
+// mapVisibility produces the same group IDs SyncExternalGroups emits
+// for the same repo — both sides must agree byte-for-byte or the
+// per-doc ACL won't match the published group catalog.
 func mapVisibility(repo GithubRepo) *interfaces.ExternalAccess {
 	if isPublic(repo) {
 		return &interfaces.ExternalAccess{IsPublic: true}
@@ -37,10 +18,6 @@ func mapVisibility(repo GithubRepo) *interfaces.ExternalAccess {
 			ExternalUserGroupIDs: []string{orgGroupID(repo.Owner.ID)},
 		}
 	}
-	// private: collaborators + outside-collaborators + (every team-slug
-	// resolves dynamically when SyncExternalGroups walks teams; for the
-	// per-doc ACL we inject the static group IDs that perm-sync will
-	// also publish).
 	return &interfaces.ExternalAccess{
 		ExternalUserGroupIDs: []string{
 			collaboratorsGroupID(repo.ID),
@@ -49,13 +26,6 @@ func mapVisibility(repo GithubRepo) *interfaces.ExternalAccess {
 	}
 }
 
-// SyncDocPermissions streams one DocExternalAccess per
-// repo-document. The pattern mirrors fetch_prs.go / fetch_issues.go but
-// emits SlimDocument-shaped access updates rather than full Documents.
-//
-// Onyx analog: doc_sync.py:34-142 — same per-repo loop, same visibility
-// branch. We unify PRs + Issues here: every doc in the repo shares the
-// same repo-level ExternalAccess.
 func (c *GithubConnector) SyncDocPermissions(
 	ctx context.Context, _ interfaces.Source,
 ) (<-chan interfaces.DocExternalAccessOrFailure, error) {
@@ -75,11 +45,6 @@ func (c *GithubConnector) SyncDocPermissions(
 	return out, nil
 }
 
-// streamRepoDocAccess walks PRs + Issues for a single repo and emits
-// DocExternalAccess for each. We reuse the listing endpoints because we
-// need doc IDs anyway — the slim variant exists for prune diffing, but
-// for perm-sync we want the same ACL applied to every PR/Issue regardless
-// of state.
 func (c *GithubConnector) streamRepoDocAccess(
 	ctx context.Context, fullName string, access *interfaces.ExternalAccess,
 	out chan<- interfaces.DocExternalAccessOrFailure,
@@ -129,13 +94,6 @@ func (c *GithubConnector) streamRepoDocAccess(
 	}
 }
 
-// SyncExternalGroups streams the per-source group catalog. Per repo:
-//
-//   public   → no groups (everyone sees it; nothing to enumerate).
-//   private  → collaborators, outside-collaborators, team(s).
-//   internal → org-membership.
-//
-// Onyx analog: group_sync.py:14-51.
 func (c *GithubConnector) SyncExternalGroups(
 	ctx context.Context, _ interfaces.Source,
 ) (<-chan interfaces.ExternalGroupOrFailure, error) {
@@ -154,9 +112,8 @@ func (c *GithubConnector) SyncExternalGroups(
 	return out, nil
 }
 
-// enumerateGroups emits the right group set for the given repo. Helpers
-// that fetch member lists wrap their own error path so a partial failure
-// (e.g. one team's members fail) doesn't kill the whole sync.
+// A partial failure (one team's members fail) does not kill the whole
+// sync — each helper wraps its own error path.
 func (c *GithubConnector) enumerateGroups(
 	ctx context.Context, repo GithubRepo, out chan<- interfaces.ExternalGroupOrFailure,
 ) {
@@ -176,12 +133,10 @@ func (c *GithubConnector) enumerateGroups(
 		})
 		return
 	}
-	// private:
 	c.emitCollaboratorGroups(ctx, repo, out)
 	c.emitTeamGroups(ctx, repo, out)
 }
 
-// emitCollaboratorGroups emits the two collaborator-style groups.
 func (c *GithubConnector) emitCollaboratorGroups(
 	ctx context.Context, repo GithubRepo, out chan<- interfaces.ExternalGroupOrFailure,
 ) {
@@ -207,7 +162,6 @@ func (c *GithubConnector) emitCollaboratorGroups(
 	})
 }
 
-// emitTeamGroups walks the repo's teams and emits one group per team.
 func (c *GithubConnector) emitTeamGroups(
 	ctx context.Context, repo GithubRepo, out chan<- interfaces.ExternalGroupOrFailure,
 ) {

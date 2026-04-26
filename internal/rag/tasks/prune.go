@@ -15,17 +15,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/ragpb"
 )
 
-// HandlePrune is the asynq handler for TypeRagPrune. It drives the
-// source's SlimConnector to enumerate every currently-present upstream
-// doc, diffs the result against rag_documents to find IDs no longer
-// present, and cascades the deletion to:
-//
-//   1. rag-engine via ragclient.Prune (vector + chunk delete)
-//   2. rag_document_by_sources junction rows for this source
-//   3. rag_documents rows that no source claims any more
-//
-// Port of try_creating_prune_generator_task at
-// backend/onyx/background/celery/tasks/pruning/tasks.py:228-235.
 func (d *Deps) HandlePrune(ctx context.Context, t *asynq.Task) error {
 	deps := d.withDefaults()
 	payload, err := UnmarshalPrune(t.Payload())
@@ -73,11 +62,9 @@ func (d *Deps) HandlePrune(ctx context.Context, t *asynq.Task) error {
 	return touchLastPruned(ctx, deps.DB, src.ID)
 }
 
-// drainSlim reads every SlimDocument the connector reports and returns
-// the list of doc IDs that should be retained. Failures are logged but
-// don't abort the prune (a failed entity simply isn't in the keep set,
-// which would cause a deletion — so we instead return the error so
-// callers don't accidentally delete docs because the source was flaky).
+// A failure during slim listing must abort the prune: a missing entity
+// would otherwise drop out of the keep set and trigger a spurious
+// deletion when the source is just flaky.
 func drainSlim(
 	ctx context.Context,
 	slim interfaces.SlimConnector,
@@ -100,11 +87,9 @@ func drainSlim(
 	return keep, nil
 }
 
-// pruneDeletedDocs removes the rag_document_by_sources rows for this
-// source whose document_id is not in keep, returning the deleted IDs.
-// keep being empty is permitted (means "delete every doc"); the caller
-// is responsible for the safety check (the rag-engine refuses an
-// empty keep set on the gRPC side).
+// keep being empty is permitted (means "delete every doc"). The
+// rag-engine refuses an empty keep set on the gRPC side, which is the
+// safety net.
 func pruneDeletedDocs(
 	ctx context.Context,
 	db *gorm.DB,
@@ -132,9 +117,8 @@ func pruneDeletedDocs(
 	return deletedIDs, nil
 }
 
-// deleteOrphanDocs removes rag_documents rows that no longer have any
-// source claim. We only delete the strict orphans — a document
-// indexed by two sources where one prunes it stays in rag_documents.
+// A document indexed by two sources where one prunes it stays in
+// rag_documents — only strict orphans are deleted.
 func deleteOrphanDocs(ctx context.Context, db *gorm.DB, candidateIDs []string) error {
 	if len(candidateIDs) == 0 {
 		return nil
@@ -154,7 +138,6 @@ func deleteOrphanDocs(ctx context.Context, db *gorm.DB, candidateIDs []string) e
 	return nil
 }
 
-// touchLastPruned advances the source's last_pruned column.
 func touchLastPruned(ctx context.Context, db *gorm.DB, sourceID uuid.UUID) error {
 	now := time.Now()
 	if err := db.WithContext(ctx).

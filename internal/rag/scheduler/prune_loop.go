@@ -12,12 +12,6 @@ import (
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
 
-// ScanPruneDue selects rag_sources whose prune_freq_seconds has elapsed
-// since the last prune and whose connector kind supports SlimConnector,
-// then enqueues a TypeRagPrune task for each. Mirrors Onyx's
-// check_for_pruning at
-// backend/onyx/background/celery/tasks/pruning/tasks.py:206-314, gated
-// by _is_pruning_due at tasks.py:164-197.
 func ScanPruneDue(
 	ctx context.Context,
 	db *gorm.DB,
@@ -71,16 +65,13 @@ func ScanPruneDue(
 	return enqueued, firstErr
 }
 
-// pruneCandidate matches the SELECT shape below.
 type pruneCandidate struct {
 	ID   uuid.UUID
 	Kind string
 }
 
-// selectPruneDueSources returns sources whose last_pruned + prune_freq_seconds
-// has passed (or that have never been pruned). The query intentionally
-// does NOT exclude in-flight ingest attempts — pruning is independent
-// of the document fetcher and runs against the persisted snapshot.
+// Pruning is independent of in-flight ingest attempts — it runs against
+// the persisted snapshot, not the live fetcher.
 func selectPruneDueSources(ctx context.Context, db *gorm.DB, limit int) ([]pruneCandidate, error) {
 	const q = `
 		SELECT id, kind

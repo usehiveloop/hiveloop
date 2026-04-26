@@ -13,21 +13,6 @@ import (
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
 
-// ScanIngestDue selects every RAGSource that is enabled, in an active
-// status, has a non-null refresh frequency, is not currently being
-// ingested, and whose last successful ingest is older than its refresh
-// frequency. For each match it enqueues a TypeRagIngest task with
-// asynq.Unique keyed on the source ID so duplicate scans within the
-// configured slack window collapse to a single job.
-//
-// Port of Onyx check_for_indexing at
-// backend/onyx/background/celery/tasks/docprocessing/tasks.py:788-1149.
-// The predicate mirrors should_index() at
-// backend/onyx/background/celery/tasks/docprocessing/utils.py:171-300.
-//
-// Returns the number of tasks enqueued. A non-nil error indicates a DB
-// or enqueue failure on at least one source; partial progress is still
-// reported via the count.
 func ScanIngestDue(
 	ctx context.Context,
 	db *gorm.DB,
@@ -62,19 +47,6 @@ func ScanIngestDue(
 	return enqueued, firstErr
 }
 
-// selectIngestDueSourceIDs returns the IDs of rag_sources rows that are
-// eligible for an ingest run right now. The query is bounded by limit
-// to keep a single tick's work proportional to the worker pool, even at
-// thousands of sources.
-//
-// Predicate breakdown:
-//   - enabled = true                           — admin toggle
-//   - status IN ('ACTIVE','INITIAL_INDEXING')  — source is live
-//   - refresh_freq_seconds IS NOT NULL         — null = on-demand only
-//   - last_successful_index_time IS NULL
-//     OR last_successful_index_time +
-//        refresh_freq_seconds * '1s' < NOW()   — overdue
-//   - NOT EXISTS in-flight attempt             — one concurrent run max
 func selectIngestDueSourceIDs(ctx context.Context, db *gorm.DB, limit int) ([]uuid.UUID, error) {
 	const q = `
 		SELECT id
@@ -102,9 +74,6 @@ func selectIngestDueSourceIDs(ctx context.Context, db *gorm.DB, limit int) ([]uu
 	return ids, nil
 }
 
-// enqueueIngest builds and submits a single TypeRagIngest task with a
-// Unique TTL keyed on the typename + payload so duplicate scans inside
-// the window collapse.
 func enqueueIngest(enq enqueue.TaskEnqueuer, sourceID uuid.UUID, uniqueTTL time.Duration) error {
 	task, err := ragtasks.NewIngestTask(
 		ragtasks.IngestPayload{RAGSourceID: sourceID},
@@ -112,13 +81,7 @@ func enqueueIngest(enq enqueue.TaskEnqueuer, sourceID uuid.UUID, uniqueTTL time.
 	if err != nil {
 		return err
 	}
-	if _, err := enq.Enqueue(task,
-		// Unique keys on (typename, payload) so the same source ID
-		// inside the same window is a no-op.
-		asynqUnique(uniqueTTL),
-	); err != nil {
-		// asynq returns ErrDuplicateTask when Unique blocks the
-		// enqueue; that's the success case for our dedupe contract.
+	if _, err := enq.Enqueue(task, asynqUnique(uniqueTTL)); err != nil {
 		if isDuplicate(err) {
 			return nil
 		}

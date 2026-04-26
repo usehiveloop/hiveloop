@@ -1,11 +1,3 @@
-// Issue-fetch loop. Same shape as fetch_prs.go; differs in two ways:
-//
-//  1. We filter out entries whose `pull_request` field is set — GitHub
-//     returns PRs as issues on /repos/.../issues, and Onyx skips them
-//     at connector.py:710 (`if issue.pull_request: continue`).
-//  2. The Document mapping comes from issueToDocument, not prToDocument.
-//
-// Onyx analog: connector.py:694-754 (`_fetch_issues`).
 package github
 
 import (
@@ -16,8 +8,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
 )
 
-// fetchIssuesPage drains one page of /repos/{owner}/{repo}/issues. Same
-// return semantics as fetchPRsPage.
 func fetchIssuesPage(
 	ctx context.Context,
 	client *Client,
@@ -42,9 +32,8 @@ func fetchIssuesPage(
 	earlyBreak := false
 	for i := range issues {
 		issue := issues[i]
-		// Drop PR-shaped issues: GitHub returns them on this endpoint
-		// but they're already covered by /pulls (or excluded entirely
-		// by IncludePRs=false).
+		// GitHub returns PRs on /repos/.../issues; they're handled by
+		// the /pulls endpoint instead.
 		if issue.PullRequest != nil {
 			continue
 		}

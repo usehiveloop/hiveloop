@@ -10,8 +10,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 )
 
-// PeriodicTaskConfigs returns the periodic task configurations for the Asynq scheduler.
-// Optional ragSched, when non-nil, contributes the RAG four-loop scheduler tasks.
 func PeriodicTaskConfigs(cfg *config.Config, ragSched *scheduler.Deps) []*asynq.PeriodicTaskConfig {
 	configs := []*asynq.PeriodicTaskConfig{
 		{

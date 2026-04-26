@@ -15,13 +15,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/ragpb"
 )
 
-// HandlePermSync is the asynq handler for TypeRagPermSync. It drives
-// the source's PermSyncConnector and pushes ACL updates to the
-// rag-engine via UpdateACL — no re-embed, no chunk rewrite. On clean
-// completion the source's last_time_perm_sync is advanced.
-//
-// Port of try_creating_permissions_sync_task at
-// backend/ee/onyx/background/celery/tasks/doc_permission_syncing/tasks.py:230-235.
 func (d *Deps) HandlePermSync(ctx context.Context, t *asynq.Task) error {
 	deps := d.withDefaults()
 	payload, err := UnmarshalPermSync(t.Payload())
@@ -63,8 +56,6 @@ func (d *Deps) HandlePermSync(ctx context.Context, t *asynq.Task) error {
 	return nil
 }
 
-// drainPermSyncStream consumes the per-doc access channel, batches
-// updates, and ships each batch through ragclient.UpdateACL.
 func drainPermSyncStream(
 	ctx context.Context,
 	deps *Deps,
@@ -116,8 +107,8 @@ func drainPermSyncStream(
 	return flush()
 }
 
-// persistACLLocal mirrors the ACL update into rag_documents so search
-// can ACL-filter without round-tripping to Rust on every query.
+// Mirrors the ACL update into rag_documents so search can ACL-filter
+// without round-tripping to the rag-engine on every query.
 func persistACLLocal(ctx context.Context, db *gorm.DB, batch []*ragpb.UpdateACLEntry) error {
 	if len(batch) == 0 {
 		return nil
