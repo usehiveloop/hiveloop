@@ -2,7 +2,6 @@
   "pages": [
     "index",
     "auth",
-    "triggers",
     "webhooks",
     "oauth",
     "agents",
@@ -23,9 +22,9 @@
     "orgs",
     "providers",
     "reporting",
-    "router",
     "sandbox-templates",
     "sandboxes",
+    "tokens",
     "usage"
   ],
   "title": "API Reference",
