@@ -31,7 +31,7 @@ func newAgentDeleteHarness(t *testing.T) *agentDeleteHarness {
 	db := connectTestDB(t)
 
 	mock := &enqueue.MockClient{}
-	agentHandler := handler.NewAgentHandler(db, nil, nil, nil, mock)
+	agentHandler := handler.NewAgentHandler(db, nil, nil, mock)
 
 	r := chi.NewRouter()
 	r.Route("/v1/agents", func(r chi.Router) {
@@ -77,7 +77,6 @@ func (h *agentDeleteHarness) createTestAgent(t *testing.T, orgID uuid.UUID, name
 		Name:         name,
 		SystemPrompt: "test prompt",
 		Model:        "test-model",
-		SandboxType:  "shared",
 		Status:       "active",
 	}
 	if err := h.db.Create(&agent).Error; err != nil {

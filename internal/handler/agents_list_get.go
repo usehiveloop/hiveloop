@@ -17,7 +17,6 @@ import (
 // @Tags agents
 // @Produce json
 // @Param status query string false "Filter by status (active, archived)"
-// @Param sandbox_type query string false "Filter by sandbox type (shared, dedicated)"
 // @Param limit query int false "Page size (default 50, max 100)"
 // @Param cursor query string false "Pagination cursor"
 // @Success 200 {object} paginatedResponse[agentResponse]
@@ -41,9 +40,6 @@ func (h *AgentHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	if status := r.URL.Query().Get("status"); status != "" {
 		q = q.Where("agents.status = ?", status)
-	}
-	if sandboxType := r.URL.Query().Get("sandbox_type"); sandboxType != "" {
-		q = q.Where("agents.sandbox_type = ?", sandboxType)
 	}
 
 	q = applyPagination(q, cursor, limit)

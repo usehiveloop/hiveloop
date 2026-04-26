@@ -9,17 +9,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-func (o *Orchestrator) ReleasePoolSandbox(ctx context.Context, agent *model.Agent) error {
-	if agent.SandboxID == nil {
-		return nil
-	}
-
-	o.db.Model(agent).Update("sandbox_id", nil)
-	agent.SandboxID = nil
-
-	return nil
-}
-
 func (o *Orchestrator) StopSandbox(ctx context.Context, sb *model.Sandbox) error {
 	if err := o.provider.StopSandbox(ctx, sb.ExternalID); err != nil {
 		return fmt.Errorf("stopping sandbox %s: %w", sb.ID, err)

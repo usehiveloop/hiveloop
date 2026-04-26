@@ -64,7 +64,7 @@ func newAgentAPIHarness(t *testing.T) *agentAPIHarness {
 	// Build router with agent routes (no auth middleware — we inject org context directly)
 	reg := registry.Global()
 	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(h.db, nil, nil)
-	agentHandler := handler.NewAgentHandler(h.db, reg, nil, nil)
+	agentHandler := handler.NewAgentHandler(h.db, reg, nil)
 
 	r := chi.NewRouter()
 	r.Use(func(next http.Handler) http.Handler {
@@ -233,7 +233,6 @@ func TestAgentAPI_CRUD(t *testing.T) {
 		"name": "support-agent-%s",
 		"description": "Customer support bot",
 		"credential_id": %q,
-		"sandbox_type": "shared",
 		"system_prompt": "You are a helpful customer support agent.",
 		"model": "gpt-5.4",
 		"agent_config": {"max_tokens": 4096, "temperature": 0.3},
@@ -251,7 +250,6 @@ func TestAgentAPI_CRUD(t *testing.T) {
 		Description  *string        `json:"description"`
 		CredentialID string         `json:"credential_id"`
 		ProviderID   string         `json:"provider_id"`
-		SandboxType  string         `json:"sandbox_type"`
 		SystemPrompt string         `json:"system_prompt"`
 		Model        string         `json:"model"`
 		AgentConfig  map[string]any `json:"agent_config"`
@@ -275,9 +273,6 @@ func TestAgentAPI_CRUD(t *testing.T) {
 	}
 	if created.ProviderID != "openai" {
 		t.Errorf("provider_id: got %q", created.ProviderID)
-	}
-	if created.SandboxType != "shared" {
-		t.Errorf("sandbox_type: got %q", created.SandboxType)
 	}
 	if created.Model != "gpt-5.4" {
 		t.Errorf("model: got %q", created.Model)
@@ -309,12 +304,6 @@ func TestAgentAPI_CRUD(t *testing.T) {
 	json.NewDecoder(rr.Body).Decode(&listed)
 	if len(listed.Data) < 1 {
 		t.Fatal("list should return at least 1 agent")
-	}
-
-	// List with filter
-	rr = h.request(t, http.MethodGet, "/v1/agents?sandbox_type=shared", "")
-	if rr.Code != http.StatusOK {
-		t.Fatalf("list filtered: expected 200, got %d", rr.Code)
 	}
 
 	// Update
@@ -356,18 +345,9 @@ func TestAgentAPI_Validation(t *testing.T) {
 		t.Errorf("missing fields: expected 400, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// Invalid sandbox_type
-	rr = h.request(t, http.MethodPost, "/v1/agents", fmt.Sprintf(`{
-		"name": "test", "credential_id": %q, "sandbox_type": "invalid",
-		"system_prompt": "test", "model": "gpt-5.4"
-	}`, h.cred.ID.String()))
-	if rr.Code != http.StatusBadRequest {
-		t.Errorf("invalid sandbox_type: expected 400, got %d: %s", rr.Code, rr.Body.String())
-	}
-
 	// Non-existent credential
 	rr = h.request(t, http.MethodPost, "/v1/agents", fmt.Sprintf(`{
-		"name": "test", "credential_id": %q, "sandbox_type": "shared",
+		"name": "test", "credential_id": %q,
 		"system_prompt": "test", "model": "gpt-5.4"
 	}`, uuid.New().String()))
 	if rr.Code != http.StatusBadRequest {
@@ -376,7 +356,7 @@ func TestAgentAPI_Validation(t *testing.T) {
 
 	// Model not supported by provider
 	rr = h.request(t, http.MethodPost, "/v1/agents", fmt.Sprintf(`{
-		"name": "test", "credential_id": %q, "sandbox_type": "shared",
+		"name": "test", "credential_id": %q,
 		"system_prompt": "test", "model": "claude-opus-4-20250514"
 	}`, h.cred.ID.String()))
 	if rr.Code != http.StatusBadRequest {
@@ -401,7 +381,7 @@ func TestAgentAPI_DuplicateName(t *testing.T) {
 	name := "dup-agent-" + suffix
 
 	body := fmt.Sprintf(`{
-		"name": %q, "credential_id": %q, "sandbox_type": "shared",
+		"name": %q, "credential_id": %q,
 		"system_prompt": "test", "model": "gpt-5.4"
 	}`, name, h.cred.ID.String())
 
@@ -452,7 +432,6 @@ func TestAgentAPI_WithTemplate(t *testing.T) {
 	body := fmt.Sprintf(`{
 		"name": "agent-with-tmpl-%s",
 		"credential_id": %q,
-		"sandbox_type": "dedicated",
 		"sandbox_template_id": %q,
 		"system_prompt": "test",
 		"model": "gpt-5.4"

@@ -84,11 +84,6 @@ func (h *AgentHandler) UpdateSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if agent.SandboxType != "dedicated" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "setup configuration is only available for dedicated sandbox agents"})
-		return
-	}
-
 	var req setupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})

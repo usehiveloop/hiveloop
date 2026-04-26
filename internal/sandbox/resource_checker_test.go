@@ -130,7 +130,6 @@ func TestRunResourceCheck_UpdatesSandboxFields(t *testing.T) {
 		BridgeURL:             "https://mock.test",
 		EncryptedBridgeAPIKey: []byte("enc"),
 		Status:                "running",
-		SandboxType:           "dedicated",
 	}
 	if err := db.Create(&sb).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
@@ -188,7 +187,6 @@ func TestRunResourceCheck_SkipsStoppedSandboxes(t *testing.T) {
 		BridgeURL:             "https://mock.test",
 		EncryptedBridgeAPIKey: []byte("enc"),
 		Status:                "stopped",
-		SandboxType:           "dedicated",
 	}
 	db.Create(&sb)
 	t.Cleanup(func() { db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
@@ -212,7 +210,6 @@ func TestRunResourceCheck_HandlesExecuteError(t *testing.T) {
 		BridgeURL:             "https://mock.test",
 		EncryptedBridgeAPIKey: []byte("enc"),
 		Status:                "running",
-		SandboxType:           "dedicated",
 	}
 	db.Create(&sb)
 	provider.registerSandbox(sb.ExternalID, StatusRunning)
@@ -245,7 +242,6 @@ func TestRunResourceCheck_MultipleSandboxes(t *testing.T) {
 			BridgeURL:             "https://mock.test",
 			EncryptedBridgeAPIKey: []byte("enc"),
 			Status:                "running",
-			SandboxType:           "dedicated",
 		}
 		db.Create(&sb)
 		provider.registerSandbox(sb.ExternalID, StatusRunning)

@@ -15,8 +15,6 @@ type Agent struct {
 	Description       *string          `gorm:"type:text"`
 	CredentialID      *uuid.UUID       `gorm:"type:uuid;index"` // nil for system agents
 	Credential        *Credential      `gorm:"foreignKey:CredentialID;constraint:OnDelete:SET NULL"`
-	SandboxType       string           `gorm:"not null"` // "dedicated" or "shared"
-	SandboxID         *uuid.UUID       `gorm:"type:uuid;index"` // set for shared agents (points to pool sandbox)
 	SandboxTemplateID *uuid.UUID       `gorm:"type:uuid"`
 	SandboxTemplate   *SandboxTemplate `gorm:"foreignKey:SandboxTemplateID;constraint:OnDelete:SET NULL"`
 
@@ -35,7 +33,7 @@ type Agent struct {
 	Team         string `gorm:"not null;default:''"` // team tag for memory scoping (e.g. "engineering", "sales")
 	SharedMemory bool   `gorm:"not null;default:false"` // can store shared memories visible to all agents in identity
 
-	// Sandbox setup (dedicated agents only — ignored for shared agents)
+	// Sandbox setup
 	SandboxTools     pq.StringArray `gorm:"type:text[];default:'{}'"`  // enabled sandbox tools (e.g. "chrome")
 	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"`  // shell commands run on dedicated sandbox creation
 	EncryptedEnvVars []byte         `gorm:"type:bytea"`                // AES-256-GCM encrypted JSON map of env vars

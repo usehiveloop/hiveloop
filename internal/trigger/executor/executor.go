@@ -97,16 +97,12 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 		return fmt.Errorf("loading agent %s: %w", agentDispatch.AgentID, err)
 	}
 
-	if agent.SandboxID == nil {
-		return fmt.Errorf("agent %s has no sandbox assigned", agent.Name)
+	// 2. Provision a dedicated sandbox and get a Bridge client.
+	sb, err := executor.orchestrator.CreateDedicatedSandbox(ctx, &agent)
+	if err != nil {
+		return fmt.Errorf("creating dedicated sandbox for %s: %w", agent.Name, err)
 	}
-
-	// 2. Get Bridge client.
-	var sb model.Sandbox
-	if err := executor.db.Where("id = ?", *agent.SandboxID).First(&sb).Error; err != nil {
-		return fmt.Errorf("loading sandbox for agent %s: %w", agent.Name, err)
-	}
-	client, err := executor.orchestrator.GetBridgeClient(ctx, &sb)
+	client, err := executor.orchestrator.GetBridgeClient(ctx, sb)
 	if err != nil {
 		return fmt.Errorf("getting bridge client for %s: %w", agent.Name, err)
 	}
@@ -134,7 +130,7 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 		ConnectionID:         agentDispatch.ReplyConnectionID,
 		ResourceKey:          agentDispatch.ResourceKey,
 		BridgeConversationID: conv.ConversationId,
-		SandboxID:            *agent.SandboxID,
+		SandboxID:            sb.ID,
 	}).Error; err != nil {
 		slog.Error("executor: failed to store router conversation", "error", err)
 	}
