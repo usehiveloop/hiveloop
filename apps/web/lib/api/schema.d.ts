@@ -11223,6 +11223,8 @@ export interface components {
             role?: string;
         };
         orgMemberDTO: {
+            /** @description Whether the org runs agents on its own LLM credentials. */
+            byok?: boolean;
             id?: string;
             name?: string;
             role?: string;

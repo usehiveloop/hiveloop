@@ -101,6 +101,7 @@ func (h *AdminHandler) Impersonate(w http.ResponseWriter, r *http.Request) {
 			ID:   membership.OrgID.String(),
 			Name: membership.Org.Name,
 			Role: membership.Role,
+			BYOK: membership.Org.BYOK,
 		})
 	}
 

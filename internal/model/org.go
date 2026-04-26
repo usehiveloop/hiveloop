@@ -20,6 +20,10 @@ type Org struct {
 	// the org row so request-path checks don't need a join.
 	PlanSlug string `gorm:"not null;default:'free';size:64"`
 
+	// BYOK reports whether the org runs agents on its own LLM credentials.
+	// When false, agents fall back to platform-owned system credentials.
+	BYOK bool `gorm:"not null;default:false"`
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
