@@ -23,6 +23,10 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	var memberships []model.OrgMembership
 	h.db.Preload("Org").Where("user_id = ?", user.ID).Find(&memberships)
 
+	// Bulk-load full plan rows for every plan slug referenced by the user's
+	// orgs in one query, then map slug -> plan. Avoids an N+1 over plans.
+	plans := loadPlans(h.db, memberships)
+
 	orgs := make([]orgMemberDTO, 0, len(memberships))
 	for _, m := range memberships {
 		dto := orgMemberDTO{
@@ -31,9 +35,9 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 			Role:    m.Role,
 			BYOK:    m.Org.BYOK,
 			LogoURL: m.Org.LogoURL,
+			Plan:    plans[m.Org.PlanSlug],
 		}
 		if m.Role == "owner" || m.Role == "admin" {
-			dto.PlanSlug = m.Org.PlanSlug
 			balance, err := h.credits.Balance(m.OrgID)
 			if err != nil {
 				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load balance"})

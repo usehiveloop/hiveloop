@@ -26,6 +26,7 @@ func setupPublicRoutes(
 	actionsCatalog *catalog.Catalog,
 	marketplaceHandler *handler.MarketplaceHandler,
 	orgInviteHandler *handler.OrgInviteHandler,
+	plansHandler *handler.PlansHandler,
 	bridgeWebhookHandler *handler.BridgeWebhookHandler,
 	nangoWebhookHandler *handler.NangoWebhookHandler,
 	incomingWebhookHandler *handler.IncomingWebhookHandler,
@@ -58,6 +59,9 @@ func setupPublicRoutes(
 
 	// Org invite preview (public, token-based lookup)
 	r.Get("/v1/invites/{token}", orgInviteHandler.Preview)
+
+	// Billing plans catalog (no auth)
+	r.Get("/v1/plans", plansHandler.List)
 
 	// Webhook receivers (HMAC-verified, no auth middleware)
 	r.Post("/internal/webhooks/bridge/{sandboxID}", bridgeWebhookHandler.Handle)
