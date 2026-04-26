@@ -28,8 +28,14 @@ func newPresigner(t *testing.T, ttl time.Duration) *storage.S3Presigner {
 	if endpoint == "" {
 		endpoint = testMinioEndpoint
 	}
-	if resp, err := http.Get(endpoint + "/minio/health/ready"); err != nil || resp.StatusCode >= 400 {
+	hcReq, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, endpoint+"/minio/health/ready", nil)
+	if resp, err := http.DefaultClient.Do(hcReq); err != nil || resp.StatusCode >= 400 {
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
 		t.Skipf("MinIO not reachable at %s: %v", endpoint, err)
+	} else {
+		_ = resp.Body.Close()
 	}
 	cfg := storage.PublicAssetsConfig{
 		Bucket:     testMinioBucket,
@@ -65,7 +71,7 @@ func TestSign_AvatarHappyPath(t *testing.T) {
 		t.Fatalf("expected avatars/ prefix, got %q", out.Key)
 	}
 
-	req, _ := http.NewRequest(http.MethodPut, out.UploadURL, bytes.NewReader(body))
+	req, _ := http.NewRequestWithContext(t.Context(), http.MethodPut, out.UploadURL, bytes.NewReader(body))
 	for k, v := range out.RequiredHeaders {
 		req.Header.Set(k, v)
 	}
@@ -74,16 +80,17 @@ func TestSign_AvatarHappyPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PUT: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200 from PUT, got %d", resp.StatusCode)
 	}
 
-	getResp, err := http.Get(out.PublicURL)
+	getReq, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, out.PublicURL, nil)
+	getResp, err := http.DefaultClient.Do(getReq)
 	if err != nil {
 		t.Fatalf("public GET: %v", err)
 	}
-	defer getResp.Body.Close()
+	defer func() { _ = getResp.Body.Close() }()
 	if getResp.StatusCode != http.StatusOK {
 		t.Fatalf("public GET: expected 200, got %d", getResp.StatusCode)
 	}
@@ -107,14 +114,14 @@ func TestSign_RejectsContentTypeMismatch(t *testing.T) {
 		t.Fatalf("sign: %v", err)
 	}
 
-	req, _ := http.NewRequest(http.MethodPut, out.UploadURL, bytes.NewReader(body))
+	req, _ := http.NewRequestWithContext(t.Context(), http.MethodPut, out.UploadURL, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "text/plain")
 	req.ContentLength = int64(len(body))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("PUT: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode < 400 {
 		t.Fatalf("expected 4xx for content-type mismatch, got %d", resp.StatusCode)
 	}
@@ -135,14 +142,14 @@ func TestSign_RejectsOversizeFile(t *testing.T) {
 		t.Fatalf("sign: %v", err)
 	}
 
-	req, _ := http.NewRequest(http.MethodPut, out.UploadURL, bytes.NewReader(actual))
+	req, _ := http.NewRequestWithContext(t.Context(), http.MethodPut, out.UploadURL, bytes.NewReader(actual))
 	req.Header.Set("Content-Type", "image/png")
 	req.ContentLength = int64(len(actual))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("PUT: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode < 400 {
 		t.Fatalf("expected 4xx for oversize, got %d", resp.StatusCode)
 	}
@@ -220,14 +227,14 @@ func TestSign_ExpiredURL(t *testing.T) {
 
 	time.Sleep(2 * time.Second)
 
-	req, _ := http.NewRequest(http.MethodPut, out.UploadURL, bytes.NewReader(body))
+	req, _ := http.NewRequestWithContext(t.Context(), http.MethodPut, out.UploadURL, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "image/png")
 	req.ContentLength = int64(len(body))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("PUT: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode < 400 {
 		t.Fatalf("expected 4xx for expired URL, got %d", resp.StatusCode)
 	}

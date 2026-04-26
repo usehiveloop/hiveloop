@@ -33,8 +33,14 @@ func newRealPresigner(t *testing.T) *storage.S3Presigner {
 	if endpoint == "" {
 		endpoint = testMinioEndpoint
 	}
-	if resp, err := http.Get(endpoint + "/minio/health/ready"); err != nil || resp.StatusCode >= 400 {
+	hcReq, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, endpoint+"/minio/health/ready", nil)
+	if resp, err := http.DefaultClient.Do(hcReq); err != nil || resp.StatusCode >= 400 {
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
 		t.Skipf("MinIO not reachable at %s: %v", endpoint, err)
+	} else {
+		_ = resp.Body.Close()
 	}
 	p, err := storage.NewS3Presigner(storage.PublicAssetsConfig{
 		Bucket:     testMinioBucket,
@@ -112,7 +118,7 @@ func TestUploadsSign_Avatar_HappyPath(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	if resp["upload_method"] != "PUT" {
 		t.Fatalf("expected upload_method=PUT, got %v", resp["upload_method"])
 	}
@@ -143,7 +149,7 @@ func TestUploadsSign_OrgLogo_AnyMemberAllowed(t *testing.T) {
 		t.Fatalf("plain member: expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	key := resp["key"].(string)
 	want := "pub/o/" + org.ID.String() + "/"
 	if !bytesHasPrefix(key, want) {
