@@ -51,6 +51,15 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// provider_prompts is optional; validate only when the caller actually
+	// supplied entries so a system_prompt-only agent is allowed.
+	if len(req.ProviderPrompts) > 0 {
+		if errMsg := req.ProviderPrompts.Validate(); errMsg != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
+			return
+		}
+	}
+
 	if len(req.SandboxTools) > 0 {
 		if invalid := model.ValidateSandboxTools(req.SandboxTools); invalid != "" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid sandbox tool: %q", invalid)})
@@ -109,6 +118,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		OrgID:        &org.ID,
 		Name:         req.Name,
 		Description:  req.Description,
+		AvatarURL:    req.AvatarURL,
 		CredentialID: &cred.ID,
 		SystemPrompt:    req.SystemPrompt,
 		ProviderPrompts: req.ProviderPrompts,

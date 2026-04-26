@@ -10727,6 +10727,7 @@ export interface components {
         agentResponse: {
             agent_config?: components["schemas"]["JSON"];
             attached_skills?: components["schemas"]["agentSkillSummary"][];
+            avatar_url?: string;
             created_at?: string;
             credential_id?: string;
             description?: string;
@@ -10879,6 +10880,7 @@ export interface components {
         };
         createAgentRequest: {
             agent_config?: components["schemas"]["JSON"];
+            avatar_url?: string;
             credential_id?: string;
             description?: string;
             instructions?: string;
@@ -11638,6 +11640,7 @@ export interface components {
         };
         updateAgentRequest: {
             agent_config?: components["schemas"]["JSON"];
+            avatar_url?: string;
             credential_id?: string;
             description?: string;
             instructions?: string;

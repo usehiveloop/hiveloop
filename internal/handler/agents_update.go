@@ -61,10 +61,21 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.Description != nil {
 		updates["description"] = *req.Description
 	}
+	if req.AvatarURL != nil {
+		if *req.AvatarURL == "" {
+			updates["avatar_url"] = nil
+		} else {
+			updates["avatar_url"] = *req.AvatarURL
+		}
+	}
 	if req.SystemPrompt != nil {
 		updates["system_prompt"] = *req.SystemPrompt
 	}
 	if len(req.ProviderPrompts) > 0 {
+		if errMsg := req.ProviderPrompts.Validate(); errMsg != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
+			return
+		}
 		updates["provider_prompts"] = req.ProviderPrompts
 	}
 	if req.Instructions != nil {
