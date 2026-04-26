@@ -10,17 +10,24 @@ import { extractErrorMessage } from "@/lib/api/error"
 import { scratchSteps, marketplaceSteps } from "./types"
 import type { CreationMode, Step, SkillPreview, SubagentPreview, TriggerConfig } from "./types"
 
+type PermissionLevel = "allow" | "deny" | "require_approval"
+
 export interface CreateAgentFormValues {
   name: string
   description: string
   model: string
   credentialId: string
   sandboxType: "shared" | "dedicated"
+  systemPrompt: string
   providerPrompts: Record<string, string>
   instructions: string
   judgeKeyId: string
   judgeModel: string
   selectedMarketplaceAgent: string
+  permissions: Record<string, PermissionLevel>
+  sharedMemory: boolean
+  team: string
+  category: string
 }
 
 interface CreateAgentContextValue {
@@ -38,12 +45,15 @@ interface CreateAgentContextValue {
   goTo: (step: Step) => void
   toggleIntegration: (connectionId: string) => void
   toggleAction: (connectionId: string, actionKey: string) => void
+  setSelectedIntegrations: React.Dispatch<React.SetStateAction<Set<string>>>
+  setSelectedActions: React.Dispatch<React.SetStateAction<Record<string, Set<string>>>>
   toggleSkill: (skill: SkillPreview) => void
   clearSkills: () => void
   toggleSubagent: (subagent: SubagentPreview) => void
   clearSubagents: () => void
   addTrigger: (trigger: TriggerConfig) => void
   removeTrigger: (index: number) => void
+  updateTrigger: (index: number, newTriggers: TriggerConfig[]) => void
   handleCreate: () => void
   reset: () => void
 }
@@ -74,11 +84,16 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       model: "",
       credentialId: "",
       sandboxType: "shared",
+      systemPrompt: "",
       providerPrompts: {},
       instructions: "",
       judgeKeyId: "",
       judgeModel: "",
       selectedMarketplaceAgent: "",
+      permissions: {},
+      sharedMemory: false,
+      team: "",
+      category: "",
     },
   })
 
@@ -178,6 +193,14 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
     setTriggers((previous) => previous.filter((_, triggerIndex) => triggerIndex !== index))
   }, [])
 
+  const updateTrigger = useCallback((index: number, newTriggers: TriggerConfig[]) => {
+    setTriggers((previous) => {
+      const next = [...previous]
+      next.splice(index, 1, ...newTriggers)
+      return next
+    })
+  }, [])
+
   const reset = useCallback(() => {
     setStep("mode")
     setModeState(null)
@@ -201,8 +224,6 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       }
     }
 
-    const firstPrompt = Object.values(values.providerPrompts).find((prompt) => prompt.trim()) ?? ""
-
     const providerPromptsPayload: Record<string, { system_prompt: string }> = {}
     for (const [provider, prompt] of Object.entries(values.providerPrompts)) {
       if (prompt.trim()) {
@@ -210,13 +231,17 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       }
     }
 
+    const fallbackPrompt =
+      Object.values(values.providerPrompts).find((prompt) => prompt.trim()) ?? ""
+    const resolvedSystemPrompt = values.systemPrompt.trim() || fallbackPrompt
+
     const body: Record<string, unknown> = {
       name: values.name.trim(),
       description: values.description.trim() || undefined,
       credential_id: values.credentialId,
       model: values.model,
       sandbox_type: values.sandboxType,
-      system_prompt: firstPrompt,
+      system_prompt: resolvedSystemPrompt,
       provider_prompts: providerPromptsPayload,
       instructions: values.instructions || undefined,
       integrations: integrationsPayload,
@@ -236,6 +261,16 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         trigger_keys: trigger.triggerKeys,
         conditions: trigger.conditions,
       }))
+    }
+
+    if (Object.keys(values.permissions).length > 0) {
+      body.permissions = values.permissions
+    }
+
+    body.shared_memory = values.sharedMemory
+
+    if (values.team.trim()) {
+      body.team = values.team.trim()
     }
 
     createAgent.mutate(
@@ -270,12 +305,15 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         goTo,
         toggleIntegration,
         toggleAction,
+        setSelectedIntegrations,
+        setSelectedActions,
         toggleSkill,
         clearSkills,
         toggleSubagent,
         clearSubagents,
         addTrigger,
         removeTrigger,
+        updateTrigger,
         handleCreate,
         reset,
       }}

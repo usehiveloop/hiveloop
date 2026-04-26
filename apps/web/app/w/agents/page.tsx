@@ -2,13 +2,13 @@
 
 import { useState, useMemo } from "react"
 import { $api } from "@/lib/api/hooks"
-import { AgentsHeader } from "./_components/agents-header"
+import { PageHeader } from "@/components/page-header"
 import { AgentsSearch } from "./_components/agents-search"
 import { AgentsTable } from "./_components/agents-table"
 import { AgentsEmpty } from "./_components/agents-empty"
 import { CreateAgentDialog } from "./_components/create-agent-dialog"
+import { AgentsSkeleton } from "./_components/agents-skeleton"
 import { EditAgentPanel } from "./[id]/_components/edit-agent-panel"
-import { PageLoader } from "@/components/page-loader"
 import type { CreationMode } from "./_components/create-agent/types"
 import type { components } from "@/lib/api/schema"
 
@@ -38,36 +38,33 @@ export default function AgentsPage() {
     setCreateOpen(true)
   }
 
-  if (isLoading) {
-    return <PageLoader description="Loading your agents" />
-  }
-
-  if (agents.length === 0) {
-    return (
-      <>
-        <AgentsEmpty
-          onCreateFromScratch={() => openCreateWith("scratch")}
-          onCreateFromMarketplace={() => openCreateWith("marketplace")}
-        />
-        <CreateAgentDialog
-          open={createOpen}
-          onOpenChange={(open) => {
-            setCreateOpen(open)
-            if (!open) setCreateMode(undefined)
-          }}
-          initialMode={createMode}
-        />
-      </>
-    )
-  }
-
   return (
     <>
-      <div className="max-w-464 mx-auto w-full px-4 py-8">
-        <AgentsHeader count={agents.length} />
-        <AgentsSearch value={search} onChange={setSearch} />
-        <AgentsTable agents={filtered} onEditAgent={setEditingAgent} />
-      </div>
+      <PageHeader title="Agents" actions={<CreateAgentDialog />} />
+
+      {isLoading ? (
+        <AgentsSkeleton />
+      ) : agents.length === 0 ? (
+        <>
+          <AgentsEmpty
+            onCreateFromScratch={() => openCreateWith("scratch")}
+            onCreateFromMarketplace={() => openCreateWith("marketplace")}
+          />
+          <CreateAgentDialog
+            open={createOpen}
+            onOpenChange={(open) => {
+              setCreateOpen(open)
+              if (!open) setCreateMode(undefined)
+            }}
+            initialMode={createMode}
+          />
+        </>
+      ) : (
+        <div className="mx-auto w-full max-w-4xl px-6 py-10">
+          <AgentsSearch value={search} onChange={setSearch} />
+          <AgentsTable agents={filtered} onEditAgent={setEditingAgent} />
+        </div>
+      )}
 
       <EditAgentPanel
         open={editingAgent !== null}

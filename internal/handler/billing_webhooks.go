@@ -213,12 +213,22 @@ func (h *BillingWebhookHandler) grantPeriodCredits(providerName string, event bi
 		return nil
 	}
 
+	// Plan-grant credits expire at the end of the billing period plus a
+	// 3-day grace window, so a cycle-boundary spend isn't refused while the
+	// next invoice's webhook is still in flight.
+	var expiresAt *time.Time
+	if !state.CurrentPeriodEnd.IsZero() {
+		t := state.CurrentPeriodEnd.Add(billing.PlanGrantGracePeriod)
+		expiresAt = &t
+	}
+
 	return h.credits.Grant(
 		orgID,
 		plan.MonthlyCredits,
 		billing.ReasonPlanGrant,
 		"subscription",
 		state.ExternalSubscriptionID,
+		expiresAt,
 	)
 }
 

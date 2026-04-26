@@ -4,8 +4,11 @@
   "pages": [
     "v1/sandbox-templates/get",
     "v1/sandbox-templates/post",
+    "v1/sandbox-templates/public/get",
     "v1/sandbox-templates/id/get",
     "v1/sandbox-templates/id/delete",
-    "v1/sandbox-templates/id/put"
+    "v1/sandbox-templates/id/put",
+    "v1/sandbox-templates/id/build/post",
+    "v1/sandbox-templates/id/retry/post"
   ]
 }

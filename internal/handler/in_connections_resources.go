@@ -18,7 +18,7 @@ import (
 // @Produce json
 // @Param id path string true "In-Connection ID"
 // @Param type path string true "Resource type (e.g., repository, project)"
-// @Success 200 {object} resources.DiscoveryResult
+// @Success 200 {object} github_com_usehiveloop_hiveloop_internal_resources.DiscoveryResult
 // @Failure 400 {object} errorResponse
 // @Failure 401 {object} errorResponse
 // @Failure 404 {object} errorResponse

@@ -53,7 +53,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("antialiased", fontMono.variable, "font-sans", geist.variable, bricolage.variable, sora.variable)}
     >
-      <body>
+      <body suppressHydrationWarning>
         <QueryProvider>
           <ThemeProvider>
             <TooltipProvider>{children}</TooltipProvider>
