@@ -29,6 +29,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 			ID:   m.OrgID.String(),
 			Name: m.Org.Name,
 			Role: m.Role,
+			BYOK: m.Org.BYOK,
 		}
 		if m.Role == "owner" || m.Role == "admin" {
 			dto.PlanSlug = m.Org.PlanSlug

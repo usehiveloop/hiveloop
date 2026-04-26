@@ -13449,6 +13449,10 @@
       "orgMemberDTO": {
         "type": "object",
         "properties": {
+          "byok": {
+            "description": "Whether the org runs agents on its own LLM credentials.",
+            "type": "boolean"
+          },
           "id": {
             "type": "string"
           },
