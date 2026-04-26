@@ -70,6 +70,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	inIntegrationHandler := handler.NewInIntegrationHandler(database, nangoClient, actionsCatalog)
 	inConnectionHandler := handler.NewInConnectionHandler(database, nangoClient, actionsCatalog)
 	orgHandler := handler.NewOrgHandler(database)
+	plansHandler := handler.NewPlansHandler(database)
 	routerHandler := handler.NewRouterHandler(database, actionsCatalog)
 	var emailSender email.Sender = &email.LogSender{}
 	if enqueuer != nil {
@@ -164,7 +165,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, bridgeWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, billingWebhookHandler, nangoClient, sandboxEncKey)
+	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, plansHandler, bridgeWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, billingWebhookHandler, nangoClient, sandboxEncKey)
 
 	// HTTP triggers: unauthenticated endpoint, trigger UUID acts as bearer token.
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)

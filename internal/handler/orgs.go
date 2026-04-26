@@ -23,6 +23,31 @@ func NewOrgHandler(db *gorm.DB) *OrgHandler {
 	return &OrgHandler{db: db}
 }
 
+// planFor looks up the full plan by slug. Returns nil if the slug has no
+// row in the plans table — caller surfaces that as `plan: null`.
+func (h *OrgHandler) planFor(slug string) *planDTO {
+	if slug == "" {
+		return nil
+	}
+	var plan model.Plan
+	if err := h.db.Where("slug = ?", slug).First(&plan).Error; err != nil {
+		return nil
+	}
+	return planFromModel(plan)
+}
+
+func (h *OrgHandler) buildOrgResponse(org model.Org) orgResponse {
+	return orgResponse{
+		ID:        org.ID.String(),
+		Name:      org.Name,
+		RateLimit: org.RateLimit,
+		Active:    org.Active,
+		LogoURL:   org.LogoURL,
+		Plan:      h.planFor(org.PlanSlug),
+		CreatedAt: org.CreatedAt.Format(time.RFC3339),
+	}
+}
+
 type createOrgRequest struct {
 	Name string `json:"name"`
 }
@@ -33,12 +58,13 @@ type updateOrgRequest struct {
 }
 
 type orgResponse struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	RateLimit int    `json:"rate_limit"`
-	Active    bool   `json:"active"`
-	LogoURL   string `json:"logo_url,omitempty"`
-	CreatedAt string `json:"created_at"`
+	ID        string   `json:"id"`
+	Name      string   `json:"name"`
+	RateLimit int      `json:"rate_limit"`
+	Active    bool     `json:"active"`
+	LogoURL   string   `json:"logo_url,omitempty"`
+	Plan      *planDTO `json:"plan,omitempty"`
+	CreatedAt string   `json:"created_at"`
 }
 
 // Create handles POST /v1/orgs.
@@ -99,14 +125,7 @@ func (h *OrgHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, orgResponse{
-		ID:        org.ID.String(),
-		Name:      org.Name,
-		RateLimit: org.RateLimit,
-		Active:    org.Active,
-		LogoURL:   org.LogoURL,
-		CreatedAt: org.CreatedAt.Format(time.RFC3339),
-	})
+	writeJSON(w, http.StatusCreated, h.buildOrgResponse(org))
 }
 
 // Current handles GET /v1/orgs/current.
@@ -125,14 +144,7 @@ func (h *OrgHandler) Current(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, orgResponse{
-		ID:        org.ID.String(),
-		Name:      org.Name,
-		RateLimit: org.RateLimit,
-		Active:    org.Active,
-		LogoURL:   org.LogoURL,
-		CreatedAt: org.CreatedAt.Format(time.RFC3339),
-	})
+	writeJSON(w, http.StatusOK, h.buildOrgResponse(*org))
 }
 
 // Update handles PATCH /v1/orgs/current.
@@ -192,12 +204,5 @@ func (h *OrgHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, orgResponse{
-		ID:        org.ID.String(),
-		Name:      org.Name,
-		RateLimit: org.RateLimit,
-		Active:    org.Active,
-		LogoURL:   org.LogoURL,
-		CreatedAt: org.CreatedAt.Format(time.RFC3339),
-	})
+	writeJSON(w, http.StatusOK, h.buildOrgResponse(org))
 }
