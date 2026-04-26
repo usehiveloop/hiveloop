@@ -60,6 +60,12 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// category is optional; if provided it must match a known catalog ID.
+	if req.Category != nil && *req.Category != "" && !isValidAgentCategory(*req.Category) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid category %q", *req.Category)})
+		return
+	}
+
 	if len(req.SandboxTools) > 0 {
 		if invalid := model.ValidateSandboxTools(req.SandboxTools); invalid != "" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid sandbox tool: %q", invalid)})
@@ -119,6 +125,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Name:         req.Name,
 		Description:  req.Description,
 		AvatarURL:    req.AvatarURL,
+		Category:     req.Category,
 		CredentialID: &cred.ID,
 		SystemPrompt:    req.SystemPrompt,
 		ProviderPrompts: req.ProviderPrompts,
