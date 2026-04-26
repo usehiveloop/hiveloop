@@ -13,6 +13,15 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/email"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+// otpRequestDedupWindow swallows duplicate /auth/otp/request calls for the
+// same email that arrive within this window. It exists to fix the
+// "user receives two OTP emails for one action" bug caused by browser
+// double-clicks, React StrictMode dev double-effects, and mobile/HTTP
+// retries — all of which deliver two POSTs in well under a second. Real
+// users don't legitimately request a new code this fast, so squashing
+// duplicates here is safe and surfaces no UX regression.
+const otpRequestDedupWindow = 5 * time.Second
+
 func (h *AuthHandler) OTPRequest(w http.ResponseWriter, r *http.Request) {
 	var req otpRequestPayload
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -32,10 +41,25 @@ func (h *AuthHandler) OTPRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Idempotency: if we just issued an active code for this email a few
+	// seconds ago, treat this as a duplicate submit and short-circuit.
+	// The previously-emailed code is still valid — no new code, no new email.
+	now := time.Now()
+	var recent model.OTPCode
+	dedupErr := h.db.
+		Where("email = ? AND used_at IS NULL AND expires_at > ? AND created_at > ?",
+			req.Email, now, now.Add(-otpRequestDedupWindow)).
+		Order("created_at DESC").
+		First(&recent).Error
+	if dedupErr == nil {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		return
+	}
+
 	// Invalidate any unused OTP codes for this email
 	h.db.Model(&model.OTPCode{}).
 		Where("email = ? AND used_at IS NULL", req.Email).
-		Update("used_at", time.Now())
+		Update("used_at", now)
 
 	// Generate new code
 	plainCode, codeHash, err := model.GenerateOTPCode()
