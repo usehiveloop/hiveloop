@@ -11,14 +11,27 @@ import (
 // last page. Tolerates both rel="next" and rel=next quoting styles GitHub
 // has shipped over the years.
 func nextPageNumber(h http.Header) (int, bool) {
+	return relPageNumber(h, "next")
+}
+
+// lastPageNumber extracts the rel="last" page number — used for cheap
+// total-count estimation by paging at per_page=1, where the last page
+// number equals the total item count.
+func lastPageNumber(h http.Header) (int, bool) {
+	return relPageNumber(h, "last")
+}
+
+func relPageNumber(h http.Header, rel string) (int, bool) {
 	link := h.Get("Link")
 	if link == "" {
 		return 0, false
 	}
+	wantQuoted := `rel="` + rel + `"`
+	wantBare := `rel=` + rel
 
 	for _, entry := range strings.Split(link, ",") {
 		entry = strings.TrimSpace(entry)
-		if !strings.Contains(entry, `rel="next"`) && !strings.Contains(entry, `rel=next`) {
+		if !strings.Contains(entry, wantQuoted) && !strings.Contains(entry, wantBare) {
 			continue
 		}
 

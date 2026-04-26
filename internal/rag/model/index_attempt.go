@@ -60,6 +60,12 @@ type RAGIndexAttempt struct {
 	TotalDocsIndexed     *int `gorm:"default:0"`
 	DocsRemovedFromIndex *int `gorm:"default:0"`
 
+	// DocsEstimated is a connector pre-flight count of how many docs the
+	// run will fetch, populated by EstimatingConnector before the first
+	// batch lands. Nil means the connector can't estimate cheaply and the
+	// UI should show indeterminate progress until the run finishes.
+	DocsEstimated *int `gorm:"type:integer"`
+
 	// ErrorMsg / FullExceptionTrace — only populated when Status=failed.
 	// Onyx models.py:2217-2220.
 	ErrorMsg           *string `gorm:"type:text"`

@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/middleware"
@@ -43,9 +44,22 @@ func (h *RAGSourceHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	srcIDs := make([]uuid.UUID, len(rows))
+	for i := range rows {
+		srcIDs[i] = rows[i].ID
+	}
+	latest, err := ragdb.LatestAttemptsBySource(h.db, org.ID, srcIDs)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to load latest attempts"})
+		return
+	}
+
 	data := make([]ragSourceResponse, len(rows))
 	for i := range rows {
 		data[i] = toRAGSourceResponse(&rows[i])
+		if a, ok := latest[rows[i].ID]; ok {
+			data[i].LatestAttempt = toRAGLatestAttemptStatus(&a)
+		}
 	}
 
 	page := opts.Page
@@ -106,6 +120,9 @@ func (h *RAGSourceHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 	for i := range attempts {
 		resp.RecentAttempts[i] = toRAGAttemptResponse(&attempts[i])
+	}
+	if len(attempts) > 0 {
+		resp.LatestAttempt = toRAGLatestAttemptStatus(&attempts[0])
 	}
 
 	writeJSON(w, http.StatusOK, resp)

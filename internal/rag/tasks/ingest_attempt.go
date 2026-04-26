@@ -123,6 +123,64 @@ func finalizeAttempt(
 	return nil
 }
 
+// stampDocsEstimated calls the connector's optional pre-flight count
+// and stamps it onto the attempt row so the UI can render a determinate
+// progress bar. Failures are logged and ignored — an estimate is a
+// nice-to-have, never load-bearing for the run itself.
+func stampDocsEstimated(
+	ctx context.Context,
+	db *gorm.DB,
+	conn interfaces.Connector,
+	src *ragmodel.RAGSource,
+	attempt *ragmodel.RAGIndexAttempt,
+) {
+	est, ok := conn.(interfaces.EstimatingConnector)
+	if !ok {
+		return
+	}
+	count, err := est.EstimateTotal(ctx, src)
+	if err != nil {
+		slog.Warn("rag ingest: estimate total failed",
+			"source_id", src.ID, "attempt_id", attempt.ID, "err", err)
+		return
+	}
+	if err := db.WithContext(ctx).
+		Model(&ragmodel.RAGIndexAttempt{}).
+		Where("id = ?", attempt.ID).
+		Update("docs_estimated", count).Error; err != nil {
+		slog.Warn("rag ingest: persist docs_estimated failed",
+			"attempt_id", attempt.ID, "err", err)
+		return
+	}
+	attempt.DocsEstimated = &count
+}
+
+// bumpAttemptProgress increments the running doc counter on the attempt
+// row. Called once per flushed batch — per-doc would be too chatty.
+func bumpAttemptProgress(
+	ctx context.Context,
+	db *gorm.DB,
+	attemptID uuid.UUID,
+	delta int,
+) {
+	if delta <= 0 {
+		return
+	}
+	now := time.Now()
+	if err := db.WithContext(ctx).
+		Model(&ragmodel.RAGIndexAttempt{}).
+		Where("id = ?", attemptID).
+		Updates(map[string]any{
+			"new_docs_indexed":   gorm.Expr("COALESCE(new_docs_indexed, 0) + ?", delta),
+			"total_docs_indexed": gorm.Expr("COALESCE(total_docs_indexed, 0) + ?", delta),
+			"last_progress_time": now,
+			"time_updated":       now,
+		}).Error; err != nil {
+		slog.Warn("rag ingest: bump progress failed",
+			"attempt_id", attemptID, "err", err)
+	}
+}
+
 // We don't fail the whole attempt over an error-log INSERT failure,
 // but we surface it via Warn.
 func recordAttemptError(

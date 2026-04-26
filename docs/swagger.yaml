@@ -2206,6 +2206,17 @@ definitions:
       verified:
         type: boolean
     type: object
+  internal_handler.meResponse:
+    properties:
+      is_platform_admin:
+        type: boolean
+      orgs:
+        items:
+          $ref: '#/definitions/internal_handler.orgMemberDTO'
+        type: array
+      user:
+        $ref: '#/definitions/internal_handler.userResponse'
+    type: object
   internal_handler.modelSummary:
     properties:
       cost:
@@ -2670,6 +2681,8 @@ definitions:
     type: object
   internal_handler.ragAttemptDetailResponse:
     properties:
+      docs_estimated:
+        type: integer
       docs_removed_from_index:
         type: integer
       error_count:
@@ -2741,6 +2754,8 @@ definitions:
     type: object
   internal_handler.ragIndexAttemptResponse:
     properties:
+      docs_estimated:
+        type: integer
       docs_removed_from_index:
         type: integer
       error_msg:
@@ -2784,6 +2799,23 @@ definitions:
           $ref: '#/definitions/internal_handler.ragIntegrationResponse'
         type: array
     type: object
+  internal_handler.ragLatestAttemptStatus:
+    properties:
+      docs_estimated:
+        type: integer
+      id:
+        type: string
+      new_docs_indexed:
+        type: integer
+      status:
+        type: string
+      time_started:
+        type: string
+      time_updated:
+        type: string
+      total_docs_indexed:
+        type: integer
+    type: object
   internal_handler.ragListResponse:
     properties:
       data:
@@ -2825,6 +2857,8 @@ definitions:
         type: string
       last_time_perm_sync:
         type: string
+      latest_attempt:
+        $ref: '#/definitions/internal_handler.ragLatestAttemptStatus'
       name:
         type: string
       org_id:
@@ -2874,6 +2908,8 @@ definitions:
         type: string
       last_time_perm_sync:
         type: string
+      latest_attempt:
+        $ref: '#/definitions/internal_handler.ragLatestAttemptStatus'
       name:
         type: string
       org_id:
@@ -5572,6 +5608,25 @@ paths:
       security:
       - BearerAuth: []
       summary: Log out
+      tags:
+      - auth
+  /auth/me:
+    get:
+      description: Returns the current user and their organization memberships.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.meResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user
       tags:
       - auth
   /auth/otp/request:

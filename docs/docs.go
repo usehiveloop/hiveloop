@@ -3204,6 +3204,37 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the current user and their organization memberships.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.meResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/otp/request": {
             "post": {
                 "description": "Sends a 6-digit one-time code to the given email address.",
@@ -12899,6 +12930,23 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.meResponse": {
+            "type": "object",
+            "properties": {
+                "is_platform_admin": {
+                    "type": "boolean"
+                },
+                "orgs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.orgMemberDTO"
+                    }
+                },
+                "user": {
+                    "$ref": "#/definitions/internal_handler.userResponse"
+                }
+            }
+        },
         "internal_handler.modelSummary": {
             "type": "object",
             "properties": {
@@ -13614,6 +13662,9 @@ const docTemplate = `{
         "internal_handler.ragAttemptDetailResponse": {
             "type": "object",
             "properties": {
+                "docs_estimated": {
+                    "type": "integer"
+                },
                 "docs_removed_from_index": {
                     "type": "integer"
                 },
@@ -13722,6 +13773,9 @@ const docTemplate = `{
         "internal_handler.ragIndexAttemptResponse": {
             "type": "object",
             "properties": {
+                "docs_estimated": {
+                    "type": "integer"
+                },
                 "docs_removed_from_index": {
                     "type": "integer"
                 },
@@ -13788,6 +13842,32 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.ragLatestAttemptStatus": {
+            "type": "object",
+            "properties": {
+                "docs_estimated": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "new_docs_indexed": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "time_started": {
+                    "type": "string"
+                },
+                "time_updated": {
+                    "type": "string"
+                },
+                "total_docs_indexed": {
+                    "type": "integer"
+                }
+            }
+        },
         "internal_handler.ragListResponse": {
             "type": "object",
             "properties": {
@@ -13849,6 +13929,9 @@ const docTemplate = `{
                 },
                 "last_time_perm_sync": {
                     "type": "string"
+                },
+                "latest_attempt": {
+                    "$ref": "#/definitions/internal_handler.ragLatestAttemptStatus"
                 },
                 "name": {
                     "type": "string"
@@ -13923,6 +14006,9 @@ const docTemplate = `{
                 },
                 "last_time_perm_sync": {
                     "type": "string"
+                },
+                "latest_attempt": {
+                    "$ref": "#/definitions/internal_handler.ragLatestAttemptStatus"
                 },
                 "name": {
                     "type": "string"

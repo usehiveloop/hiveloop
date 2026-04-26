@@ -3460,6 +3460,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get current user
+         * @description Returns the current user and their organization memberships.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["meResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/otp/request": {
         parameters: {
             query?: never;
@@ -8097,6 +8145,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all active plans
+         * @description Returns the public catalog of billing plans, ordered by price
+         *     ascending (free first). Public — no authentication required.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["planDTO"][];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/providers": {
         parameters: {
             query?: never;
@@ -12017,6 +12114,11 @@ export interface components {
             updated_at?: string;
             verified?: boolean;
         };
+        meResponse: {
+            is_platform_admin?: boolean;
+            orgs?: components["schemas"]["orgMemberDTO"][];
+            user?: components["schemas"]["userResponse"];
+        };
         modelSummary: {
             cost?: components["schemas"]["Cost"];
             family?: string;
@@ -12064,7 +12166,7 @@ export interface components {
             id?: string;
             logo_url?: string;
             name?: string;
-            plan_slug?: string;
+            plan?: components["schemas"]["planDTO"];
             role?: string;
         };
         orgMemberResponse: {
@@ -12080,6 +12182,7 @@ export interface components {
             id?: string;
             logo_url?: string;
             name?: string;
+            plan?: components["schemas"]["planDTO"];
             rate_limit?: number;
         };
         otpRequestPayload: {
@@ -12209,6 +12312,14 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        planDTO: {
+            currency?: string;
+            monthly_credits?: number;
+            name?: string;
+            price_cents?: number;
+            slug?: string;
+            welcome_credits?: number;
+        };
         portalResponse: {
             portal_url?: string;
         };
@@ -12234,6 +12345,7 @@ export interface components {
             tags?: components["schemas"]["JSON"];
         };
         ragAttemptDetailResponse: {
+            docs_estimated?: number;
             docs_removed_from_index?: number;
             error_count?: number;
             error_msg?: string;
@@ -12269,6 +12381,7 @@ export interface components {
             total?: number;
         };
         ragIndexAttemptResponse: {
+            docs_estimated?: number;
             docs_removed_from_index?: number;
             error_msg?: string;
             from_beginning?: boolean;
@@ -12291,6 +12404,15 @@ export interface components {
         ragIntegrationsListResponse: {
             data?: components["schemas"]["ragIntegrationResponse"][];
         };
+        ragLatestAttemptStatus: {
+            docs_estimated?: number;
+            id?: string;
+            new_docs_indexed?: number;
+            status?: string;
+            time_started?: string;
+            time_updated?: string;
+            total_docs_indexed?: number;
+        };
         ragListResponse: {
             data?: components["schemas"]["ragSourceResponse"][];
             page?: number;
@@ -12310,6 +12432,7 @@ export interface components {
             last_pruned?: string;
             last_successful_index_time?: string;
             last_time_perm_sync?: string;
+            latest_attempt?: components["schemas"]["ragLatestAttemptStatus"];
             name?: string;
             org_id?: string;
             perm_sync_freq_seconds?: number;
@@ -12333,6 +12456,7 @@ export interface components {
             last_pruned?: string;
             last_successful_index_time?: string;
             last_time_perm_sync?: string;
+            latest_attempt?: components["schemas"]["ragLatestAttemptStatus"];
             name?: string;
             org_id?: string;
             perm_sync_freq_seconds?: number;
