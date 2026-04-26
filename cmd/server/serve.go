@@ -77,7 +77,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	orgInviteHandler := handler.NewOrgInviteHandler(database, emailSender, cfg.FrontendURL)
 	authHandler := handler.NewAuthHandler(database, rsaKey, signingKey,
 		cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL,
-		emailSender, cfg.FrontendURL, cfg.AutoConfirmEmail)
+		emailSender, cfg.FrontendURL, cfg.AutoConfirmEmail, deps.Credits)
 	if cfg.PlatformAdminEmails != "" {
 		authHandler.SetPlatformAdminEmails(strings.Split(cfg.PlatformAdminEmails, ","))
 	}
@@ -90,7 +90,8 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		cfg.FrontendURL,
 		cfg.OAuthGitHubClientID, cfg.OAuthGitHubClientSecret,
 		cfg.OAuthGoogleClientID, cfg.OAuthGoogleClientSecret,
-		cfg.OAuthXClientID, cfg.OAuthXClientSecret)
+		cfg.OAuthXClientID, cfg.OAuthXClientSecret,
+		deps.Credits)
 	apiKeyHandler := handler.NewAPIKeyHandler(database, apiKeyCache, cacheManager)
 	usageHandler := handler.NewUsageHandler(database)
 	auditHandler := handler.NewAuditHandler(database)
