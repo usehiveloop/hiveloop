@@ -1,6 +1,4 @@
-// Package github is a placeholder for the GitHub connector implementation
-// that will land in Phase 4.
-//
-// Ports backend/onyx/connectors/github/connector.py — kept empty for now so
-// the package tree compiles.
+// Package github talks to GitHub's REST API exclusively through
+// Nango's proxy boundary — the connector code never sees, stores, or
+// logs a GitHub token.
 package github

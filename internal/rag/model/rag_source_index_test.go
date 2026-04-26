@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -14,14 +15,9 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
 )
 
-// isCheckViolation pins on Postgres error 23514 so we don't
-// false-positive on unique / FK failures.
 func TestRAGSource_NeedsIngestPartialIndex(t *testing.T) {
 	db := testhelpers.ConnectTestDB(t)
 
-	// Part A: the partial index exists with the expected WHERE
-	// predicate. Index definition is the load-bearing invariant; the
-	// planner choice at test-scale row counts is noisy.
 	var indexdef string
 	if err := db.Raw(
 		`SELECT indexdef FROM pg_indexes WHERE indexname = 'idx_rag_sources_needs_ingest'`,
@@ -38,10 +34,6 @@ func TestRAGSource_NeedsIngestPartialIndex(t *testing.T) {
 		t.Fatalf("idx_rag_sources_needs_ingest has wrong WHERE clause: %s", indexdef)
 	}
 
-	// Part B: the planner picks the partial index over a seq scan
-	// once seq scan is disabled. We drop the broader composite index
-	// inside the transaction so the planner has no choice but the
-	// partial — the transaction rollback restores the dropped index.
 	org := testhelpers.NewTestOrg(t, db)
 	user := testhelpers.NewTestUser(t, db, org.ID)
 	integ := testhelpers.NewTestInIntegration(t, db, "github")
@@ -76,7 +68,7 @@ func TestRAGSource_NeedsIngestPartialIndex(t *testing.T) {
 	}
 
 	// Drop the competing composite index + seq scan inside a tx so the
-	// planner has only the partial index available.
+	// planner has only the partial index available; the rollback restores it.
 	var plan string
 	err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Exec(`SET LOCAL enable_seqscan = off`).Error; err != nil {
@@ -99,7 +91,6 @@ func TestRAGSource_NeedsIngestPartialIndex(t *testing.T) {
 		if len(plans) > 0 {
 			plan = plans[0].QueryPlan
 		}
-		// Rollback to restore the dropped index.
 		return errRollback
 	})
 	if !errors.Is(err, errRollback) {
@@ -110,12 +101,10 @@ func TestRAGSource_NeedsIngestPartialIndex(t *testing.T) {
 	}
 }
 
-// errRollback is a sentinel used to roll back a transaction without
-// signalling a true error.
 var errRollback = errors.New("intentional rollback")
 
-// Business value: the admin API validation rejects refresh frequencies
-// below 60s so a misconfiguration can't overload upstream APIs.
+// Validates refresh frequencies cannot be set below 60s — protects
+// upstream APIs from a misconfigured cadence.
 func TestRAGSource_ValidateRefreshFreq(t *testing.T) {
 	intPtr := func(n int) *int { return &n }
 
@@ -140,8 +129,7 @@ func TestRAGSource_ValidateRefreshFreq(t *testing.T) {
 	}
 }
 
-// Business value: the admin API validation rejects prune frequencies
-// below 300s so a misconfiguration can't thrash the prune worker.
+// Validates prune frequencies cannot be set below 300s.
 func TestRAGSource_ValidatePruneFreq(t *testing.T) {
 	intPtr := func(n int) *int { return &n }
 
@@ -165,9 +153,6 @@ func TestRAGSource_ValidatePruneFreq(t *testing.T) {
 	}
 }
 
-// Business value: the scheduler's "should I schedule work against this
-// source?" gate. A wrong answer either stalls ingestion (false
-// negative) or thrashes a disabled source (false positive).
 func TestRAGSourceStatus_IsActive(t *testing.T) {
 	cases := []struct {
 		status ragmodel.RAGSourceStatus
@@ -189,8 +174,6 @@ func TestRAGSourceStatus_IsActive(t *testing.T) {
 	}
 }
 
-// Business value: API input validation — typo'd kind strings must be
-// rejected at the edge before any DB write.
 func TestRAGSourceKind_IsValid(t *testing.T) {
 	cases := []struct {
 		kind ragmodel.RAGSourceKind
@@ -201,7 +184,7 @@ func TestRAGSourceKind_IsValid(t *testing.T) {
 		{ragmodel.RAGSourceKindFileUpload, true},
 		{ragmodel.RAGSourceKind("random"), false},
 		{ragmodel.RAGSourceKind(""), false},
-		{ragmodel.RAGSourceKind("integration"), false}, // case-sensitive
+		{ragmodel.RAGSourceKind("integration"), false},
 	}
 	for _, tc := range cases {
 		t.Run(string(tc.kind), func(t *testing.T) {
@@ -212,16 +195,12 @@ func TestRAGSourceKind_IsValid(t *testing.T) {
 	}
 }
 
-// Business value: the admin UI's "Add RAG source" picker filters
-// in_integrations by supports_rag_source. If the seed doesn't flip the
-// flag on the known-good providers, admins can't add a source at all.
+// Verifies the migration's seed flips supports_rag_source=true on a
+// curated provider allowlist; without it the admin UI can't list
+// addable RAG sources.
 func TestRAGSource_SeedsSupportsRAGSourceForKnownIntegrations(t *testing.T) {
 	db := testhelpers.ConnectTestDB(t)
 
-	// Insert a real github integration row. ConnectTestDB already ran
-	// rag.AutoMigrate which sets supports_rag_source=true for a curated
-	// provider allowlist. Existing rows for "github" are already
-	// flipped; new rows must also flip on the next migration pass.
 	seedUnique := "github-seed-" + uuid.NewString()
 	integ := &coremodel.InIntegration{
 		UniqueKey:   seedUnique,
@@ -235,8 +214,6 @@ func TestRAGSource_SeedsSupportsRAGSourceForKnownIntegrations(t *testing.T) {
 		db.Where("id = ?", integ.ID).Delete(&coremodel.InIntegration{})
 	})
 
-	// Run rag.AutoMigrate again; the seed step must flip the flag for
-	// our newly inserted row.
 	if err := rag.AutoMigrate(db); err != nil {
 		t.Fatalf("rag.AutoMigrate: %v", err)
 	}
@@ -253,5 +230,34 @@ func TestRAGSource_SeedsSupportsRAGSourceForKnownIntegrations(t *testing.T) {
 	}
 }
 
-// Business value: per-source config must persist cleanly. Silent JSONB
-// corruption on a field like config would be unrecoverable at scale.
+// Validates that IndexingStart round-trips through the schema —
+// silent loss to NULL would cause every run to re-ingest full history.
+func TestRAGSource_IndexingStartFloor(t *testing.T) {
+	db := testhelpers.ConnectTestDB(t)
+	org := testhelpers.NewTestOrg(t, db)
+	user := testhelpers.NewTestUser(t, db, org.ID)
+	integ := testhelpers.NewTestInIntegration(t, db, "github")
+	conn := testhelpers.NewTestInConnection(t, db, org.ID, user.ID, integ.ID)
+
+	src := testhelpers.NewTestRAGSource(t, db, org.ID, conn.ID)
+	var read ragmodel.RAGSource
+	if err := db.First(&read, "id = ?", src.ID).Error; err != nil {
+		t.Fatalf("read back: %v", err)
+	}
+	if read.IndexingStart != nil {
+		t.Fatalf("default IndexingStart should be nil, got %v", read.IndexingStart)
+	}
+
+	floor := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	if err := db.Model(&read).Update("indexing_start", floor).Error; err != nil {
+		t.Fatalf("update IndexingStart: %v", err)
+	}
+	var updated ragmodel.RAGSource
+	if err := db.First(&updated, "id = ?", src.ID).Error; err != nil {
+		t.Fatalf("read after update: %v", err)
+	}
+	if updated.IndexingStart == nil || !updated.IndexingStart.Equal(floor) {
+		t.Fatalf("IndexingStart round-trip mismatch: got %v want %v", updated.IndexingStart, floor)
+	}
+}
+
