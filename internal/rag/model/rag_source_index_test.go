@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -250,6 +251,41 @@ func TestRAGSource_SeedsSupportsRAGSourceForKnownIntegrations(t *testing.T) {
 	}
 	if !supports {
 		t.Fatal("expected supports_rag_source=true for provider='github' after migration")
+	}
+}
+
+// Business value: the IndexingStart escape-hatch column must persist
+// cleanly. Admins of pathological repos use it to floor the initial-
+// index window; if the column silently round-trips to NULL we'd
+// re-ingest the entire history every run.
+func TestRAGSource_IndexingStartFloor(t *testing.T) {
+	db := testhelpers.ConnectTestDB(t)
+	org := testhelpers.NewTestOrg(t, db)
+	user := testhelpers.NewTestUser(t, db, org.ID)
+	integ := testhelpers.NewTestInIntegration(t, db, "github")
+	conn := testhelpers.NewTestInConnection(t, db, org.ID, user.ID, integ.ID)
+
+	// Insert with NULL IndexingStart — the default + most common case.
+	src := testhelpers.NewTestRAGSource(t, db, org.ID, conn.ID)
+	var read ragmodel.RAGSource
+	if err := db.First(&read, "id = ?", src.ID).Error; err != nil {
+		t.Fatalf("read back: %v", err)
+	}
+	if read.IndexingStart != nil {
+		t.Fatalf("default IndexingStart should be nil, got %v", read.IndexingStart)
+	}
+
+	// Set + persist. Postgres timestamptz round-trip pins UTC.
+	floor := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	if err := db.Model(&read).Update("indexing_start", floor).Error; err != nil {
+		t.Fatalf("update IndexingStart: %v", err)
+	}
+	var updated ragmodel.RAGSource
+	if err := db.First(&updated, "id = ?", src.ID).Error; err != nil {
+		t.Fatalf("read after update: %v", err)
+	}
+	if updated.IndexingStart == nil || !updated.IndexingStart.Equal(floor) {
+		t.Fatalf("IndexingStart round-trip mismatch: got %v want %v", updated.IndexingStart, floor)
 	}
 }
 
