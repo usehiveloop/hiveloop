@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -95,6 +96,13 @@ func createAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agent
 
 		case "http":
 			trigger.TriggerKeys = pq.StringArray(input.TriggerKeys)
+			if input.SecretKey != "" {
+				hash, hashErr := bcrypt.GenerateFromPassword([]byte(input.SecretKey), bcrypt.DefaultCost)
+				if hashErr != nil {
+					return fmt.Errorf("hash trigger secret: %w", hashErr)
+				}
+				trigger.SecretKey = string(hash)
+			}
 
 		case "cron":
 			if input.CronSchedule == "" {

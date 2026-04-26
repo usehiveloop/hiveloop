@@ -29,6 +29,7 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 		Conditions   model.RawJSON  `gorm:"column:conditions"`
 		CronSchedule string         `gorm:"column:cron_schedule"`
 		Instructions string         `gorm:"column:instructions"`
+		SecretKey    string         `gorm:"column:secret_key"`
 	}
 
 	var rows []triggerRow
@@ -44,7 +45,8 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 			rt.enabled,
 			rr.conditions,
 			rt.cron_schedule,
-			rt.instructions
+			rt.instructions,
+			rt.secret_key
 		FROM routing_rules rr
 		JOIN router_triggers rt ON rt.id = rr.router_trigger_id
 		LEFT JOIN in_connections ic ON ic.id = rt.connection_id
@@ -71,6 +73,7 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 			Conditions:   conditions,
 			CronSchedule: row.CronSchedule,
 			Instructions: row.Instructions,
+			SecretSet:    row.SecretKey != "",
 		}
 		if row.ConnID != nil {
 			response.ConnectionID = row.ConnID.String()
