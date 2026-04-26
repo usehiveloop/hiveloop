@@ -1,0 +1,14 @@
+{
+  "title": "Org invites",
+  "description": "org-invites",
+  "pages": [
+    "v1/invites/token/get",
+    "v1/invites/token/accept/post",
+    "v1/invites/token/decline/post",
+    "v1/orgs/current/invites/get",
+    "v1/orgs/current/invites/post",
+    "v1/orgs/current/invites/id/delete",
+    "v1/orgs/current/invites/id/resend/post",
+    "v1/orgs/current/members/get"
+  ]
+}

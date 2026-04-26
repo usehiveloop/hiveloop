@@ -116,7 +116,9 @@ export function AddLlmKeyDialog({ open, onOpenChange, onCreated }: AddLlmKeyDial
         onOpenChange(nextOpen)
       }}
     >
-      <DialogPrimitive.Popup
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/50 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+        <DialogPrimitive.Popup
         className={cn(
           "fixed top-1/2 left-1/2 z-50 w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-4xl bg-popover p-6 text-sm text-popover-foreground shadow-xl ring-1 ring-foreground/5 duration-100 outline-none sm:max-w-md h-[600px] dark:ring-foreground/10",
           "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
@@ -299,7 +301,8 @@ export function AddLlmKeyDialog({ open, onOpenChange, onCreated }: AddLlmKeyDial
           <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
-      </DialogPrimitive.Popup>
+        </DialogPrimitive.Popup>
+      </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   )
 }

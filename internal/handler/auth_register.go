@@ -54,10 +54,10 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create user, org, and membership in a transaction.
+	// Create user, org, membership, and any welcome credit grant in a single
+	// transaction so signup is all-or-nothing.
 	var user model.User
 	var org model.Org
-	var membership model.OrgMembership
 
 	err = h.db.Transaction(func(tx *gorm.DB) error {
 		user = model.User{
@@ -69,23 +69,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			return fmt.Errorf("creating user: %w", err)
 		}
 
-		org = model.Org{
-			Name: fmt.Sprintf("%s's Workspace", req.Name),
-		}
-		if err := tx.Create(&org).Error; err != nil {
-			return fmt.Errorf("creating org: %w", err)
-		}
-
-		membership = model.OrgMembership{
-			UserID: user.ID,
-			OrgID:  org.ID,
-			Role:   "owner",
-		}
-		if err := tx.Create(&membership).Error; err != nil {
-			return fmt.Errorf("creating membership: %w", err)
-		}
-
-		return nil
+		var orgErr error
+		org, orgErr = createUserDefaultOrg(tx, h.credits, &user)
+		return orgErr
 	})
 	if err != nil {
 		slog.Error("failed to register user", "error", err)

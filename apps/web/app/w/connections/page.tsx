@@ -2,13 +2,16 @@
 
 import { useState, useMemo } from "react"
 import { $api } from "@/lib/api/hooks"
-import { ConnectionsHeader } from "./_components/connections-header"
+import { Button } from "@/components/ui/button"
+import { PageHeader } from "@/components/page-header"
 import { ConnectionsSearch } from "./_components/connections-search"
 import { ConnectionsTable } from "./_components/connections-table"
 import { ConnectionsEmpty } from "./_components/connections-empty"
 import { AddConnectionDialog } from "./_components/add-connection-dialog"
 import { PageLoader } from "@/components/page-loader"
 import { useConnectIntegration } from "./_hooks/use-connect-integration"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Add01Icon } from "@hugeicons/core-free-icons"
 
 interface ConnectOptions {
   credentials?: Record<string, string>
@@ -52,38 +55,34 @@ export default function ConnectionsPage() {
     setAddOpen(true)
   }
 
-  if (isLoading) {
-    return <PageLoader description="Loading your connections" />
-  }
+  return (
+    <>
+      <PageHeader
+        title="Connections"
+        actions={
+          <Button onClick={() => setAddOpen(true)}>
+            <HugeiconsIcon icon={Add01Icon} size={16} data-icon="inline-start" />
+            Add connection
+          </Button>
+        }
+      />
 
-  if (connections.length === 0) {
-    return (
-      <>
+      {isLoading ? (
+        <PageLoader description="Loading your connections" />
+      ) : connections.length === 0 ? (
         <ConnectionsEmpty
           connectingId={connectingId}
           onConnect={(id) => handleConnect(id)}
           onShowAll={() => setAddOpen(true)}
           onShowFormFor={handleShowFormFor}
         />
-        <AddConnectionDialog
-          open={addOpen}
-          onOpenChange={setAddOpen}
-          search={dialogSearch}
-          onSearchChange={setDialogSearch}
-          connectingId={connectingId}
-          onConnect={handleConnect}
-          preSelectedIntegrationId={preSelectedId}
-          onPreSelectedClear={() => setPreSelectedId(null)}
-        />
-      </>
-    )
-  }
+      ) : (
+        <div className="mx-auto w-full max-w-4xl px-6 py-10">
+          <ConnectionsSearch value={search} onChange={setSearch} />
+          <ConnectionsTable connections={filtered} />
+        </div>
+      )}
 
-  return (
-    <div className="max-w-464 mx-auto w-full px-4 py-8">
-      <ConnectionsHeader count={connections.length} onAddClick={() => setAddOpen(true)} />
-      <ConnectionsSearch value={search} onChange={setSearch} />
-      <ConnectionsTable connections={filtered} />
       <AddConnectionDialog
         open={addOpen}
         onOpenChange={setAddOpen}
@@ -94,6 +93,6 @@ export default function ConnectionsPage() {
         preSelectedIntegrationId={preSelectedId}
         onPreSelectedClear={() => setPreSelectedId(null)}
       />
-    </div>
+    </>
   )
 }
