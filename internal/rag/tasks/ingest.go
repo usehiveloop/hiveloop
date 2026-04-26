@@ -14,6 +14,39 @@ import (
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
+// pollOverlap is how far the next poll's window-start is rewound past
+// the previous run's last_successful_index_time, so updates that
+// landed in the upstream just before our last fetch are still picked
+// up. Mirrors Onyx's POLL_CONNECTOR_OFFSET
+// (backend/onyx/background/indexing/run_docfetching.py:445).
+const pollOverlap = 5 * time.Minute
+
+// computeIngestWindow returns the [start, end] time range the
+// connector should fetch updates within. Port of Onyx's window
+// computation at run_docfetching.py:419-451.
+//
+//	earliest = src.IndexingStart ?? epoch
+//	if fromBeginning OR src.LastSuccessfulIndexTime IS NULL:
+//	    start = earliest
+//	else:
+//	    start = max(earliest, src.LastSuccessfulIndexTime - 5min)
+//	end = now
+func computeIngestWindow(src *ragmodel.RAGSource, fromBeginning bool) (time.Time, time.Time) {
+	var earliest time.Time
+	if src.IndexingStart != nil {
+		earliest = *src.IndexingStart
+	}
+	end := time.Now()
+	if fromBeginning || src.LastSuccessfulIndexTime == nil {
+		return earliest, end
+	}
+	start := src.LastSuccessfulIndexTime.Add(-pollOverlap)
+	if start.Before(earliest) {
+		start = earliest
+	}
+	return start, end
+}
+
 // errFatalConnector wraps a fatal connector-level failure (e.g. bad
 // credentials, missing repo). The ingest handler unwraps it to mark the
 // attempt FAILED with the underlying message.
@@ -131,12 +164,12 @@ func runIngest(
 	attempt *ragmodel.RAGIndexAttempt,
 	hb *heartbeatHandle,
 ) (ingestStats, error) {
+	windowStart, windowEnd := computeIngestWindow(src, attempt.FromBeginning)
 	stats := ingestStats{
-		pollStart: time.Now(),
+		pollStart: windowStart,
 	}
 	checkpointBytes := loadCheckpointBytes(attempt)
-	now := time.Now()
-	stream, err := runnable.Run(ctx, src, checkpointBytes, time.Time{}, now)
+	stream, err := runnable.Run(ctx, src, checkpointBytes, windowStart, windowEnd)
 	if err != nil {
 		return stats, &errFatalConnector{inner: err}
 	}
@@ -169,7 +202,7 @@ func runIngest(
 		stats.docsBatched += len(batch)
 		hb.touchProgress()
 	}
-	stats.pollEnd = time.Now()
+	stats.pollEnd = windowEnd
 	return stats, nil
 }
 
