@@ -26,10 +26,11 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	orgs := make([]orgMemberDTO, 0, len(memberships))
 	for _, m := range memberships {
 		dto := orgMemberDTO{
-			ID:   m.OrgID.String(),
-			Name: m.Org.Name,
-			Role: m.Role,
-			BYOK: m.Org.BYOK,
+			ID:      m.OrgID.String(),
+			Name:    m.Org.Name,
+			Role:    m.Role,
+			BYOK:    m.Org.BYOK,
+			LogoURL: m.Org.LogoURL,
 		}
 		if m.Role == "owner" || m.Role == "admin" {
 			dto.PlanSlug = m.Org.PlanSlug
