@@ -21,9 +21,8 @@ import (
 )
 
 type recordingEnqueuer struct {
-	tasks       []*asynq.Task
-	seenUnique  map[string]bool
-	failNonUniq bool
+	tasks      []*asynq.Task
+	seenUnique map[string]bool
 }
 
 func newRecordingEnqueuer() *recordingEnqueuer {
