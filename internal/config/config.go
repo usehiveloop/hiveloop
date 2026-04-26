@@ -71,8 +71,13 @@ type Config struct {
 
 	// Kibamail (transactional email). When KibamailAPIKey is empty the
 	// worker falls back to LogSender (emails appear in logs only).
+	// FromAddress must be a bare email — Kibamail's API rejects RFC
+	// "Name <email>" syntax with a 422 INVALID_FIELD_VALUE on `from`.
+	// FromName is sent as the separate `fromName` top-level field so
+	// recipients see "Display Name <email>" in their inbox.
 	KibamailAPIKey      string `env:"KIBAMAIL_API_KEY"`
-	KibamailFromAddress string `env:"KIBAMAIL_FROM_ADDRESS" envDefault:"Betty from Hiveloop <betty@notifications.usehiveloop.com>"`
+	KibamailFromAddress string `env:"KIBAMAIL_FROM_ADDRESS" envDefault:"betty@notifications.usehiveloop.com"`
+	KibamailFromName    string `env:"KIBAMAIL_FROM_NAME" envDefault:"Betty from Hiveloop"`
 
 	// OAuth (social login)
 	OAuthGitHubClientID     string `env:"OAUTH_GITHUB_CLIENT_ID"`
