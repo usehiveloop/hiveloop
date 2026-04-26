@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { $api } from "@/lib/api/hooks"
 import { api } from "@/lib/api/client"
-import { FullPageLoader } from "@/components/full-page-loader"
 import type { components } from "@/lib/api/schema"
 
 type User = components["schemas"]["userResponse"]
@@ -133,10 +132,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     window.location.reload()
   }, [])
-
-  if (isLoading || isError) {
-    return <FullPageLoader />
-  }
 
   return (
     <AuthContext.Provider

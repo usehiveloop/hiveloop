@@ -3,15 +3,9 @@
   "description": "Authentication",
   "pages": [
     "auth/change-password/post",
-    "auth/confirm-email/post",
-    "auth/forgot-password/post",
-    "auth/login/post",
     "auth/logout/post",
-    "auth/me/get",
     "auth/otp/request/post",
     "auth/otp/verify/post",
-    "auth/refresh/post",
-    "auth/register/post",
     "auth/resend-confirmation/post",
     "auth/reset-password/post"
   ]

@@ -4,56 +4,6 @@
  */
 
 export interface paths {
-    "/admin/v1/admin-audit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List admin audit log
-         * @description Returns admin operation audit entries with filters.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Filter by resource (users, orgs, agents, etc.) */
-                    resource?: string;
-                    /** @description Filter by action (update_user, ban_user, delete_org, etc.) */
-                    action?: string;
-                    /** @description Filter by admin user ID */
-                    admin_id?: string;
-                    /** @description Page size */
-                    limit?: number;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/admin/v1/agents": {
         parameters: {
             query?: never;
@@ -2580,6 +2530,144 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/v1/system-credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List system credentials
+         * @description Returns every platform-owned credential. Admin-only.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["systemCredentialResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a system credential
+         * @description Creates a platform-owned credential used by agents that opted out of BYOK. Admin-only.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Credential details */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createSystemCredentialRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["systemCredentialResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/system-credentials/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a system credential
+         * @description Revokes a platform-owned credential. Agents that picked this credential will fail their next resolution and fall back to another system credential (or return a 503 if none remain).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Credential ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/v1/tokens": {
         parameters: {
             query?: never;
@@ -3332,174 +3420,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/confirm-email": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Confirm email address
-         * @description Confirms a user's email address using a verification token.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Confirmation token */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["confirmEmailRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["statusResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/forgot-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Request password reset
-         * @description Sends a password reset link to the email address if an account exists.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Email address */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["forgotPasswordRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["statusResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Log in
-         * @description Authenticates a user with email and password.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Login parameters */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["loginRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["authResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/auth/logout": {
         parameters: {
             query?: never;
@@ -3538,54 +3458,6 @@ export interface paths {
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get current user
-         * @description Returns the current user and their organization memberships.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["meResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3718,130 +3590,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Refresh tokens
-         * @description Exchanges a refresh token for new access and refresh tokens.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Refresh parameters */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["refreshRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["authResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Register a new user
-         * @description Creates a new user account, organization, and sends a confirmation email.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Registration parameters */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["registerRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["authResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/auth/resend-confirmation": {
         parameters: {
             query?: never;
@@ -3942,6 +3690,78 @@ export interface paths {
                 };
                 /** @description Bad Request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/incoming/triggers/{triggerID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Receive HTTP trigger request
+         * @description Receives an HTTP request and dispatches it through the router pipeline for the specified trigger. The trigger UUID acts as a bearer token. If the trigger has a secret key configured, the request must include a valid HMAC-SHA256 signature in the X-Signature-256 header.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description HMAC-SHA256 signature (sha256=hex). Required when the trigger has a secret key configured. */
+                    "X-Signature-256"?: string;
+                };
+                path: {
+                    /** @description Trigger UUID */
+                    triggerID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Invalid or missing HMAC signature */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -4086,94 +3906,6 @@ export interface paths {
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/oauth/github": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Start GitHub OAuth login
-         * @description Redirects the browser to GitHub's authorization page. Sets a state cookie for CSRF protection.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Redirect to GitHub */
-                307: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Provider not configured */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/oauth/github/callback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * GitHub OAuth callback
-         * @description Handles the redirect from GitHub after authorization. Exchanges the code for a token, creates or links the user account, and redirects to the frontend with a short-lived exchange token.
-         */
-        get: {
-            parameters: {
-                query: {
-                    /** @description Authorization code from GitHub */
-                    code: string;
-                    /** @description CSRF state parameter */
-                    state: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Redirect to frontend with error */
-                307: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4471,84 +4203,6 @@ export interface paths {
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/built-in-tools": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List all built-in tools
-         * @description Returns the complete list of built-in tools that can be granted to agents via permissions. Each tool includes its category and whether it is locked (cannot be toggled off).
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["BuiltInToolDefinition"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/sandbox-tools": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List available sandbox tools
-         * @description Returns the fixed list of tools and services that can be enabled in a dedicated agent sandbox.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SandboxToolDefinition"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5491,7 +5145,7 @@ export interface paths {
         put?: never;
         /**
          * Create checkout session
-         * @description Creates a Polar checkout session for upgrading to a Pro plan. Returns a checkout URL to redirect the user to.
+         * @description Creates a checkout session for subscribing to a plan. The client chooses the provider.
          */
         post: {
             parameters: {
@@ -5562,7 +5216,7 @@ export interface paths {
         put?: never;
         /**
          * Create billing portal session
-         * @description Creates a Polar customer portal session where the user can manage their subscription, payment methods, and invoices.
+         * @description Creates a customer portal session where the user can manage their subscription, payment methods, and invoices.
          */
         post: {
             parameters: {
@@ -5571,7 +5225,12 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            /** @description Portal request */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createPortalRequest"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -5626,7 +5285,7 @@ export interface paths {
         };
         /**
          * Get subscription status
-         * @description Returns the current billing plan and subscription status for the org.
+         * @description Returns the org's active plan, provider, and credit balance.
          */
         get: {
             parameters: {
@@ -6252,6 +5911,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/conversations/{convID}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Hydrate conversation history
+         * @description Returns persisted conversation events in chronological order, intended for hydrating a UI before opening the SSE stream. Paginated via since=<event_id>. Unlike GET /events, this endpoint sorts events ASC by sequence_number so the caller can render in order.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Return events with sequence_number greater than this event_id */
+                    since?: string;
+                    /** @description Page size (default 200, max 1000) */
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description Conversation ID */
+                    convID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["conversationHistoryResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/conversations/{convID}/messages": {
         parameters: {
             query?: never;
@@ -6330,7 +6045,7 @@ export interface paths {
         };
         /**
          * Stream conversation events (SSE)
-         * @description Opens a Server-Sent Events stream for real-time agent responses. Events include message_start, content_delta, tool_call_start, tool_call_result, message_end, done.
+         * @description Opens a Server-Sent Events stream for real-time agent responses. Defaults to live-only (cursor "$"); clients that want history should hydrate via GET /v1/conversations/{convID}/history first. Resumes from Last-Event-ID when provided.
          */
         get: {
             parameters: {
@@ -8503,6 +8218,536 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/router": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get or create router
+         * @description Returns the organization's router, creating one automatically if it doesn't exist yet.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Router"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update router
+         * @description Updates the organization's router settings such as persona, default agent, and memory team.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Router update fields */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateRouterRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Router"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/router/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List routing decisions
+         * @description Returns the most recent routing decisions for the organization, useful for auditing and debugging trigger routing.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoutingDecision"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/router/triggers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List router triggers
+         * @description Returns all triggers configured on the organization's router.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RouterTrigger"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a router trigger
+         * @description Creates a new trigger on the organization's router. Webhook triggers require a connection_id and trigger_keys. HTTP triggers generate a unique URL. Cron triggers require a cron_schedule expression.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Trigger definition */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createTriggerRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RouterTrigger"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/router/triggers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a router trigger
+         * @description Removes a trigger from the organization's router.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Trigger ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/router/triggers/{id}/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List routing rules
+         * @description Returns all routing rules for a specific trigger, ordered by priority.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Trigger ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoutingRule"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a routing rule
+         * @description Adds a routing rule to a trigger. Rules determine which agent handles events that match the trigger.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Trigger ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Rule definition */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoutingRule"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/router/triggers/{id}/rules/{ruleID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a routing rule
+         * @description Removes a routing rule from a trigger.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Trigger ID */
+                    id: string;
+                    /** @description Rule ID */
+                    ruleID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/sandbox-templates": {
         parameters: {
             query?: never;
@@ -10011,223 +10256,6 @@ export interface paths {
         };
         trace?: never;
     };
-    "/v1/tokens": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List tokens
-         * @description Returns tokens for the organization with cursor pagination. Supports filtering by credential_id.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Max items per page (1-100, default 50) */
-                    limit?: number;
-                    /** @description Pagination cursor from previous response */
-                    cursor?: string;
-                    /** @description Filter by credential ID */
-                    credential_id?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["paginatedResponse-tokenListItem"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Mint a proxy token
-         * @description Creates a short-lived JWT proxy token scoped to a credential.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Token minting parameters */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["mintTokenRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["mintTokenResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/tokens/{jti}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Revoke a proxy token
-         * @description Revokes a proxy token by its JTI and propagates through cache tiers.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Token JTI */
-                    jti: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/usage": {
         parameters: {
             query?: never;
@@ -10280,13 +10308,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "github_com_usehiveloop_hiveloop_internal_mcp.TokenScope": {
-            actions?: string[];
-            connection_id?: string;
-            resources?: {
-                [key: string]: string[];
-            };
-        };
         ConfigurableResourceSummary: {
             description?: string;
             display_name?: string;
@@ -10322,13 +10343,61 @@ export interface components {
              */
             webhook_url_required?: boolean;
         };
-        BuiltInToolDefinition: {
-            category?: string;
+        Agent: {
+            /** @description max_tokens, max_turns, temperature, etc. */
+            agentConfig?: components["schemas"]["JSON"];
+            /** @description "agent" or "subagent" */
+            agentType?: string;
+            createdAt?: string;
+            credential?: components["schemas"]["Credential"];
+            /** @description nil for system agents */
+            credentialID?: string;
+            deletedAt?: string;
             description?: string;
+            /** @description AES-256-GCM encrypted JSON map of env vars */
+            encryptedEnvVars?: number[];
             id?: string;
-            /** @description true = cannot be toggled off by the user */
-            locked?: boolean;
+            /** @description optional markdown instructions for auto-starting runs */
+            instructions?: string;
+            /** @description selected integration IDs/configs */
+            integrations?: components["schemas"]["JSON"];
+            isSystem?: boolean;
+            mcpServers?: components["schemas"]["JSON"];
+            /** @description must match credential's provider */
+            model?: string;
             name?: string;
+            org?: components["schemas"]["Org"];
+            /** @description nil for system agents */
+            orgID?: string;
+            /** @description tool permission overrides */
+            permissions?: components["schemas"]["JSON"];
+            /** @description e.g. "anthropic", "openai", "gemini" — set for system agents */
+            providerGroup?: string;
+            /** @description map[provider_group] -> {system_prompt, model} */
+            providerPrompts?: components["schemas"]["ProviderPromptsMap"];
+            /** @description per-connection resource scoping: {connID: {resourceKey: [{id, name}]}} */
+            resources?: components["schemas"]["JSON"];
+            /** @description set for shared agents (points to pool sandbox) */
+            sandboxID?: string;
+            sandboxTemplate?: components["schemas"]["SandboxTemplate"];
+            sandboxTemplateID?: string;
+            /** @description Sandbox setup (dedicated agents only — ignored for shared agents) */
+            sandboxTools?: string[];
+            /** @description "dedicated" or "shared" */
+            sandboxType?: string;
+            /** @description shell commands run on dedicated sandbox creation */
+            setupCommands?: string[];
+            /** @description can store shared memories visible to all agents in identity */
+            sharedMemory?: boolean;
+            skills?: components["schemas"]["JSON"];
+            /** @description active, archived */
+            status?: string;
+            /** @description Bridge AgentDefinition fields */
+            systemPrompt?: string;
+            /** @description team tag for memory scoping (e.g. "engineering", "sales") */
+            team?: string;
+            tools?: components["schemas"]["JSON"];
+            updatedAt?: string;
         };
         ConnectionConfigField: {
             automated?: boolean;
@@ -10340,6 +10409,66 @@ export interface components {
             pattern?: string;
             title?: string;
             type?: string;
+        };
+        Credential: {
+            authScheme?: string;
+            baseURL?: string;
+            createdAt?: string;
+            encryptedKey?: number[];
+            id?: string;
+            /**
+             * @description IsSystem marks credentials owned by the platform itself rather than by
+             *     a customer org. System credentials are used by agents that opted out of
+             *     BYOK (agent.credential_id IS NULL), managed via admin-only endpoints,
+             *     and hidden from org-scoped APIs. They FK to the platform org (see
+             *     internal/credentials.PlatformOrgID).
+             */
+            isSystem?: boolean;
+            label?: string;
+            lastRefillAt?: string;
+            meta?: components["schemas"]["JSON"];
+            org?: components["schemas"]["Org"];
+            orgID?: string;
+            providerID?: string;
+            refillAmount?: number;
+            refillInterval?: string;
+            remaining?: number;
+            revokedAt?: string;
+            wrappedDEK?: number[];
+        };
+        InConnection: {
+            createdAt?: string;
+            id?: string;
+            inIntegration?: components["schemas"]["InIntegration"];
+            inIntegrationID?: string;
+            meta?: components["schemas"]["JSON"];
+            nangoConnectionID?: string;
+            org?: components["schemas"]["Org"];
+            orgID?: string;
+            revokedAt?: string;
+            updatedAt?: string;
+            user?: components["schemas"]["User"];
+            userID?: string;
+            webhookConfigured?: boolean;
+        };
+        InIntegration: {
+            createdAt?: string;
+            deletedAt?: string;
+            displayName?: string;
+            id?: string;
+            meta?: components["schemas"]["JSON"];
+            nango_config?: components["schemas"]["JSON"];
+            provider?: string;
+            /**
+             * @description SupportsRAGSource is the admin-UI picker gate: only integrations
+             *     with this flag true appear in "Add RAG source". Seeded true for
+             *     the known-good providers (github, notion, slack, confluence,
+             *     jira, linear, google_drive) by the RAG model package's Migrate
+             *     entry point; anything else defaults false.
+             */
+            supports_rag_source?: boolean;
+            uniqueKey?: string;
+            updatedAt?: string;
         };
         JSON: {
             [key: string]: unknown;
@@ -10366,6 +10495,21 @@ export interface components {
             webhook_url?: string;
             webhook_user_defined_secret?: boolean;
         };
+        Org: {
+            active?: boolean;
+            allowedOrigins?: string[];
+            createdAt?: string;
+            id?: string;
+            name?: string;
+            /**
+             * @description Denormalised slug of the org's active plan ("free" when no active sub).
+             *     Source of truth lives in the subscriptions table; this is cached on
+             *     the org row so request-path checks don't need a join.
+             */
+            planSlug?: string;
+            rateLimit?: number;
+            updatedAt?: string;
+        };
         ProviderPromptConfig: {
             model?: string;
             system_prompt?: string;
@@ -10373,10 +10517,118 @@ export interface components {
         ProviderPromptsMap: {
             [key: string]: components["schemas"]["ProviderPromptConfig"];
         };
-        SandboxToolDefinition: {
-            description?: string;
+        Router: {
+            createdAt?: string;
+            defaultAgent?: components["schemas"]["Agent"];
+            defaultAgentID?: string;
             id?: string;
+            /** @description Hindsight namespace all specialists share */
+            memoryTeam?: string;
             name?: string;
+            org?: components["schemas"]["Org"];
+            orgID?: string;
+            /** @description shared voice injected into every specialist's instructions */
+            persona?: string;
+            updatedAt?: string;
+        };
+        RouterTrigger: {
+            /** @description nil for http/cron triggers */
+            connectionID?: string;
+            /** @description base context actions run before routing */
+            contextActions?: number[];
+            createdAt?: string;
+            /** @description Cron-specific fields (only used when TriggerType = "cron"). */
+            cronSchedule?: string;
+            enabled?: boolean;
+            /** @description enable LLM cross-connection enrichment */
+            enrichCrossReferences?: boolean;
+            id?: string;
+            inConnection?: components["schemas"]["InConnection"];
+            /**
+             * @description Instructions sent to the agent when the trigger fires (cron/http only).
+             *     For webhook triggers, instructions come from enrichment. For cron/http,
+             *     this field provides the base prompt template. Supports $refs.x substitution.
+             */
+            instructions?: string;
+            /** @description last successful fire */
+            lastRunAt?: string;
+            /** @description pre-computed next fire time; poller queries this */
+            nextRunAt?: string;
+            orgID?: string;
+            router?: components["schemas"]["Router"];
+            routerID?: string;
+            /** @description "rule" or "triage" */
+            routingMode?: string;
+            /**
+             * @description HTTP-specific fields (only used when TriggerType = "http").
+             *     If empty, the trigger relies on the unguessable UUID for security.
+             */
+            secretKey?: string;
+            triggerKeys?: string[];
+            /** @description "webhook", "http", "cron" */
+            triggerType?: string;
+            updatedAt?: string;
+        };
+        RoutingDecision: {
+            createdAt?: string;
+            enrichmentSteps?: number;
+            /** @description e.g. "app_mention", "pull_request.opened" */
+            eventType?: string;
+            id?: string;
+            /** @description LLM-generated summary of intent (triage only) */
+            intentSummary?: string;
+            latencyMs?: number;
+            orgID?: string;
+            resourceKey?: string;
+            routerTriggerID?: string;
+            /** @description "rule" or "triage" */
+            routingMode?: string;
+            /** @description agent IDs that were dispatched */
+            selectedAgents?: string[];
+            /** @description LLM turns used (triage only) */
+            turnCount?: number;
+        };
+        RoutingRule: {
+            agent?: components["schemas"]["Agent"];
+            agentID?: string;
+            /** @description nil = always matches (catch-all) */
+            conditions?: number[];
+            createdAt?: string;
+            id?: string;
+            /** @description 1 = highest priority */
+            priority?: number;
+            routerTrigger?: components["schemas"]["RouterTrigger"];
+            routerTriggerID?: string;
+        };
+        SandboxTemplate: {
+            baseTemplate?: components["schemas"]["SandboxTemplate"];
+            /** @description optional FK to public template used as base */
+            baseTemplateID?: string;
+            /** @description user's commands to run on base image */
+            buildCommands?: string;
+            buildError?: string;
+            /** @description accumulated build logs (newline separated) */
+            buildLogs?: string;
+            /** @description pending, building, ready, failed */
+            buildStatus?: string;
+            /** @description resources, env vars, etc. */
+            config?: components["schemas"]["JSON"];
+            createdAt?: string;
+            /** @description provider's template/snapshot ID once built */
+            externalID?: string;
+            id?: string;
+            /** @description display name for users */
+            name?: string;
+            org?: components["schemas"]["Org"];
+            /** @description nil = public/platform-wide template */
+            orgID?: string;
+            /** @description small, medium, large, xlarge */
+            size?: string;
+            /** @description Daytona snapshot name */
+            slug?: string;
+            /** @description user-facing tags, e.g. ["python","ml"] */
+            tags?: components["schemas"]["JSON"];
+            updatedAt?: string;
         };
         TriggerCondition: {
             /** @description equals, not_equals, one_of, not_one_of, contains, not_contains, matches, exists, not_exists */
@@ -10390,6 +10642,17 @@ export interface components {
             conditions?: components["schemas"]["TriggerCondition"][];
             /** @description "all" (AND) or "any" (OR) */
             mode?: string;
+        };
+        User: {
+            banReason?: string;
+            bannedAt?: string;
+            createdAt?: string;
+            email?: string;
+            emailConfirmedAt?: string;
+            id?: string;
+            name?: string;
+            passwordHash?: string;
+            updatedAt?: string;
         };
         "github_com_usehiveloop_hiveloop_internal_nango.Credentials": {
             app_id?: string;
@@ -10494,26 +10757,19 @@ export interface components {
         };
         adminCreateSandboxTemplateRequest: {
             name?: string;
-            /** @description small, medium, large, xlarge */
             size?: string;
-            /** @description Daytona snapshot name (built via make build-templates) */
             slug?: string;
-            /** @description user-facing tags, e.g. ["python","ml"] */
             tags?: string[];
         };
         adminCreateSkillRequest: {
-            /** @description Inline source */
             bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
             description?: string;
             featured?: boolean;
             name?: string;
             repo_ref?: string;
             repo_subpath?: string;
-            /** @description Git source */
             repo_url?: string;
-            /** @description "inline" or "git" */
             source_type?: string;
-            /** @description defaults to "published" for global skills */
             status?: string;
             tags?: string[];
         };
@@ -10697,9 +10953,7 @@ export interface components {
         adminUpdateSandboxTemplateRequest: {
             name?: string;
             size?: string;
-            /** @description Daytona snapshot name */
             slug?: string;
-            /** @description user-facing tags */
             tags?: string[];
         };
         adminUpdateSkillRequest: {
@@ -10780,15 +11034,22 @@ export interface components {
         agentTriggerInput: {
             conditions?: components["schemas"]["TriggerMatch"];
             connection_id?: string;
+            cron_schedule?: string;
+            instructions?: string;
             trigger_keys?: string[];
+            /** @description "webhook" (default), "http", "cron" */
+            trigger_type?: string;
         };
         agentTriggerResponse: {
             conditions?: unknown;
             connection_id?: string;
+            cron_schedule?: string;
             enabled?: boolean;
             id?: string;
+            instructions?: string;
             provider?: string;
             trigger_keys?: string[];
+            trigger_type?: string;
         };
         apiKeyResponse: {
             created_at?: string;
@@ -10841,9 +11102,6 @@ export interface components {
             exit_code?: number;
             output?: string;
         };
-        confirmEmailRequest: {
-            token?: string;
-        };
         conversationEventResponse: {
             agent_id?: string;
             bridge_conversation_id?: string;
@@ -10854,6 +11112,17 @@ export interface components {
             id?: string;
             sequence_number?: number;
             timestamp?: string;
+        };
+        conversationHistoryResponse: {
+            conversation_id?: string;
+            events?: components["schemas"]["conversationEventResponse"][];
+            has_more?: boolean;
+            /**
+             * @description LastEventID is the event_id of the last event in this page. Clients
+             *     can pass it as the `Last-Event-ID` header when opening the SSE stream
+             *     to resume from exactly where history ended.
+             */
+            last_event_id?: string;
         };
         conversationResponse: {
             agent_id?: string;
@@ -10890,24 +11159,25 @@ export interface components {
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             resources?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
-            /** @description tools to enable in dedicated sandbox (e.g. "chrome") */
             sandbox_tools?: string[];
             sandbox_type?: string;
             shared_memory?: boolean;
-            /** @description skills from /v1/skills to attach on create */
             skill_ids?: string[];
             skills?: components["schemas"]["JSON"];
-            /** @description subagents from /v1/subagents to attach on create */
             subagent_ids?: string[];
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
-            /** @description webhook triggers to create */
             triggers?: components["schemas"]["agentTriggerInput"][];
         };
         createCheckoutRequest: {
-            /** @description "pro_shared" or "pro_dedicated" */
-            product_type?: string;
+            cancel_url?: string;
+            /** @description e.g. "USD", "NGN" */
+            currency?: string;
+            /** @description "monthly" | "annual" */
+            cycle?: string;
+            plan_slug?: string;
+            provider?: string;
             success_url?: string;
         };
         createCheckoutResponse: {
@@ -10954,8 +11224,15 @@ export interface components {
         createOrgRequest: {
             name?: string;
         };
+        createPortalRequest: {
+            provider?: string;
+        };
+        createRuleRequest: {
+            agent_id?: string;
+            conditions?: number[];
+            priority?: number;
+        };
         createSandboxTemplateRequest: {
-            /** @description UUID of a public template to use as base */
             base_template_id?: string;
             build_commands?: string[];
             config?: components["schemas"]["JSON"];
@@ -10985,6 +11262,27 @@ export interface components {
             system_prompt?: string;
             tags?: string[];
             tools?: components["schemas"]["JSON"];
+        };
+        createSystemCredentialRequest: {
+            api_key?: string;
+            auth_scheme?: string;
+            base_url?: string;
+            label?: string;
+            provider_id?: string;
+        };
+        createTriggerRequest: {
+            /** @description required for webhook */
+            connection_id?: string;
+            /** @description required for cron */
+            cron_schedule?: string;
+            enrich_cross_references?: boolean;
+            instructions?: string;
+            /** @description "rule" (default) or "triage" */
+            routing_mode?: string;
+            /** @description required for webhook */
+            trigger_keys?: string[];
+            /** @description "webhook" (default), "http", "cron" */
+            trigger_type?: string;
         };
         credentialResponse: {
             auth_scheme?: string;
@@ -11032,9 +11330,6 @@ export interface components {
         execResponse: {
             results?: components["schemas"]["commandResult"][];
             success?: boolean;
-        };
-        forgotPasswordRequest: {
-            email?: string;
         };
         generationResponse: {
             cached_tokens?: number;
@@ -11118,12 +11413,6 @@ export interface components {
         listOrgMembersResponse: {
             data?: components["schemas"]["orgMemberResponse"][];
         };
-        loginRequest: {
-            email?: string;
-            /** @description optional: scope token to a specific org */
-            org_id?: string;
-            password?: string;
-        };
         logoutRequest: {
             refresh_token?: string;
         };
@@ -11159,27 +11448,6 @@ export interface components {
             tools?: components["schemas"]["JSON"];
             updated_at?: string;
             verified?: boolean;
-        };
-        meResponse: {
-            is_platform_admin?: boolean;
-            orgs?: components["schemas"]["orgMemberDTO"][];
-            user?: components["schemas"]["userResponse"];
-        };
-        mintTokenRequest: {
-            credential_id?: string;
-            meta?: components["schemas"]["JSON"];
-            refill_amount?: number;
-            refill_interval?: string;
-            remaining?: number;
-            scopes?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_mcp.TokenScope"][];
-            /** @description e.g. "1h", "24h" */
-            ttl?: string;
-        };
-        mintTokenResponse: {
-            expires_at?: string;
-            jti?: string;
-            mcp_endpoint?: string;
-            token?: string;
         };
         modelSummary: {
             cost?: components["schemas"]["Cost"];
@@ -11223,8 +11491,10 @@ export interface components {
             role?: string;
         };
         orgMemberDTO: {
+            credits?: number;
             id?: string;
             name?: string;
+            plan_slug?: string;
             role?: string;
         };
         orgMemberResponse: {
@@ -11368,11 +11638,6 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-tokenListItem": {
-            data?: components["schemas"]["tokenListItem"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
         portalResponse: {
             portal_url?: string;
         };
@@ -11396,16 +11661,6 @@ export interface components {
             size?: string;
             slug?: string;
             tags?: components["schemas"]["JSON"];
-        };
-        refreshRequest: {
-            /** @description optional: switch org */
-            org_id?: string;
-            refresh_token?: string;
-        };
-        registerRequest: {
-            email?: string;
-            name?: string;
-            password?: string;
         };
         reportRow: {
             avg_ttfb_ms?: number;
@@ -11573,22 +11828,20 @@ export interface components {
             updated_at?: string;
         };
         subscriptionResponse: {
-            plan?: string;
-            product_type?: string;
+            credits_balance?: number;
+            current_period_end?: string;
+            plan_slug?: string;
+            provider?: string;
             status?: string;
         };
-        tokenListItem: {
+        systemCredentialResponse: {
+            auth_scheme?: string;
+            base_url?: string;
             created_at?: string;
-            credential_id?: string;
-            expires_at?: string;
             id?: string;
-            jti?: string;
-            meta?: components["schemas"]["JSON"];
-            refill_amount?: number;
-            refill_interval?: string;
-            remaining?: number;
+            label?: string;
+            provider_id?: string;
             revoked_at?: string;
-            scopes?: components["schemas"]["JSON"];
         };
         tokenStats: {
             active?: number;
@@ -11624,7 +11877,6 @@ export interface components {
             display_name?: string;
             key?: string;
             payload_schema?: string;
-            /** @description ref_name → dot-path into payload */
             refs?: {
                 [key: string]: string;
             };
@@ -11647,17 +11899,14 @@ export interface components {
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             resources?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
-            /** @description tools to enable in dedicated sandbox */
             sandbox_tools?: string[];
             sandbox_type?: string;
             shared_memory?: boolean;
-            /** @description nil=don't touch, []=detach all, [ids]=sync to these */
             skill_ids?: string[];
             skills?: components["schemas"]["JSON"];
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
-            /** @description nil=don't touch, []=remove all */
             triggers?: components["schemas"]["agentTriggerInput"][];
         };
         updateContentRequest: {
@@ -11670,6 +11919,11 @@ export interface components {
             name?: string;
             status?: string;
             tags?: string[];
+        };
+        updateRouterRequest: {
+            default_agent_id?: string;
+            memory_team?: string;
+            persona?: string;
         };
         updateSandboxTemplateRequest: {
             build_commands?: string[];
@@ -11702,7 +11956,6 @@ export interface components {
             error_rates?: components["schemas"]["errorRate"][];
             latency?: components["schemas"]["latencyStats"][];
             requests?: components["schemas"]["requestStats"];
-            /** @description Generation-based analytics */
             spend_over_time?: components["schemas"]["spendOverTime"][];
             token_volumes?: components["schemas"]["tokenVolumes"][];
             tokens?: components["schemas"]["tokenStats"];

@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/email"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -46,6 +47,7 @@ func newOTPHarness(t *testing.T) *otpTestHarness {
 		&email.LogSender{},
 		"http://localhost:3000",
 		true, // autoConfirmEmail
+		billing.NewCreditsService(db),
 	)
 
 	r := chi.NewRouter()

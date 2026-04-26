@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -47,6 +48,7 @@ func newOAuthHarness(t *testing.T) *oauthTestHarness {
 		"", "", // no GitHub creds
 		"", "", // no Google creds
 		"", "", // no X creds
+		billing.NewCreditsService(db),
 	)
 
 	r := chi.NewRouter()
@@ -84,6 +86,7 @@ func newOAuthHarnessWithProviders(t *testing.T) *oauthTestHarness {
 		"gh-client-id", "gh-client-secret",
 		"google-client-id", "google-client-secret",
 		"x-client-id", "x-client-secret",
+		billing.NewCreditsService(db),
 	)
 
 	r := chi.NewRouter()

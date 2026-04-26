@@ -15,6 +15,7 @@ type Plan struct {
 	Slug           string    `gorm:"not null;uniqueIndex;size:64"`
 	Name           string    `gorm:"not null;size:128"`
 	MonthlyCredits int64     `gorm:"not null;default:0"`
+	WelcomeCredits int64     `gorm:"not null;default:0"` // one-time, granted to a user's default org on signup; non-expiring
 	PriceCents     int64     `gorm:"not null;default:0"`
 	Currency       string    `gorm:"not null;default:'USD';size:8"`
 	Active         bool      `gorm:"not null;default:true"`

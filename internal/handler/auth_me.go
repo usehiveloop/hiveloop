@@ -25,11 +25,21 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 
 	orgs := make([]orgMemberDTO, 0, len(memberships))
 	for _, m := range memberships {
-		orgs = append(orgs, orgMemberDTO{
+		dto := orgMemberDTO{
 			ID:   m.OrgID.String(),
 			Name: m.Org.Name,
 			Role: m.Role,
-		})
+		}
+		if m.Role == "owner" || m.Role == "admin" {
+			dto.PlanSlug = m.Org.PlanSlug
+			balance, err := h.credits.Balance(m.OrgID)
+			if err != nil {
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load balance"})
+				return
+			}
+			dto.Credits = &balance
+		}
+		orgs = append(orgs, dto)
 	}
 
 	isPlatformAdmin := len(h.platformAdminEmails) > 0 && h.platformAdminEmails[user.Email]

@@ -29,6 +29,7 @@ const (
 	TypeSandboxResourceCheck = "periodic:sandbox_resource_check"
 	TypeCronTriggerPoll      = "periodic:cron_trigger_poll"
 	TypeSandboxLifecycle     = "periodic:sandbox_lifecycle"
+	TypeCreditsExpire        = "periodic:credits_expire"
 )
 
 // Queue names with priority weights.

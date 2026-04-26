@@ -4,6 +4,9 @@
   "pages": [
     "v1/in/connections/get",
     "v1/in/connections/id/delete",
+    "v1/in/connections/id/reconnect-session/post",
+    "v1/in/connections/id/resources/type/get",
+    "v1/in/connections/id/webhook-configured/patch",
     "v1/in/integrations/id/connect-session/post",
     "v1/in/integrations/id/connections/post"
   ]

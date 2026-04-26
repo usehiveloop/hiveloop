@@ -43,9 +43,11 @@ type userResponse struct {
 }
 
 type orgMemberDTO struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Role string `json:"role"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Role     string `json:"role"`
+	PlanSlug string `json:"plan_slug,omitempty"`
+	Credits  *int64 `json:"credits,omitempty"`
 }
 
 type meResponse struct {

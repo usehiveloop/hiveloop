@@ -136,20 +136,8 @@ func (h *OAuthHandler) findOrCreateUser(provider string, profile *oauthProfile) 
 			return fmt.Errorf("creating user: %w", err)
 		}
 
-		org := model.Org{
-			Name: fmt.Sprintf("%s's Workspace", name),
-		}
-		if err := tx.Create(&org).Error; err != nil {
-			return fmt.Errorf("creating org: %w", err)
-		}
-
-		membership := model.OrgMembership{
-			UserID: user.ID,
-			OrgID:  org.ID,
-			Role:   "owner",
-		}
-		if err := tx.Create(&membership).Error; err != nil {
-			return fmt.Errorf("creating membership: %w", err)
+		if _, err := createUserDefaultOrg(tx, h.credits, &user); err != nil {
+			return err
 		}
 
 		oauthAcct := model.OAuthAccount{

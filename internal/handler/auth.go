@@ -9,6 +9,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/email"
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 )
@@ -29,6 +30,7 @@ type AuthHandler struct {
 	emailSender      email.Sender
 	frontendURL      string
 	autoConfirmEmail bool
+	credits          *billing.CreditsService
 
 	// Admin mode: when true, login is restricted to platform admin emails only.
 	// Used by the admin panel deployment to prevent non-admin users from logging in.
@@ -39,7 +41,7 @@ type AuthHandler struct {
 	loginAttempts map[string]*loginAttempt // keyed by email
 }
 
-func NewAuthHandler(db *gorm.DB, privateKey *rsa.PrivateKey, signingKey []byte, issuer, audience string, accessTTL, refreshTTL time.Duration, emailSender email.Sender, frontendURL string, autoConfirmEmail bool) *AuthHandler {
+func NewAuthHandler(db *gorm.DB, privateKey *rsa.PrivateKey, signingKey []byte, issuer, audience string, accessTTL, refreshTTL time.Duration, emailSender email.Sender, frontendURL string, autoConfirmEmail bool, credits *billing.CreditsService) *AuthHandler {
 	h := &AuthHandler{
 		db:               db,
 		privateKey:       privateKey,
@@ -51,6 +53,7 @@ func NewAuthHandler(db *gorm.DB, privateKey *rsa.PrivateKey, signingKey []byte, 
 		emailSender:      emailSender,
 		frontendURL:      frontendURL,
 		autoConfirmEmail: autoConfirmEmail,
+		credits:          credits,
 		loginAttempts:    make(map[string]*loginAttempt),
 	}
 

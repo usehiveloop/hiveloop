@@ -24,14 +24,6 @@ interface AgentsTableProps {
   onEditAgent?: (agent: Agent) => void
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
-}
-
 function getIntegrationSummaries(
   integrations: unknown,
   connectionsById: Map<string, { provider?: string; display_name?: string }>,
@@ -96,85 +88,40 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
   return (
     <>
       <div className="flex flex-col gap-2">
-        <div className="hidden md:flex items-center gap-3 px-4 py-1 text-[10px] font-mono uppercase tracking-[1px] text-muted-foreground/50">
-          <span className="flex-1 min-w-0">Name</span>
-          <span className="w-20 shrink-0">Integrations</span>
-          <span className="w-28 shrink-0 text-right">Model</span>
-          <span className="w-20 shrink-0 text-right">Type</span>
-          <span className="w-24 shrink-0 text-right">Created</span>
+        <div className="flex items-center gap-3 px-4 py-1 font-mono text-[10px] uppercase tracking-[1px] text-muted-foreground/50">
+          <span className="min-w-0 flex-1">Name</span>
+          <span className="w-24 shrink-0">Integrations</span>
           <span className="w-6 shrink-0" />
           <span className="w-8 shrink-0" />
         </div>
 
         {agents.map((agent) => (
-          <div key={agent.id}>
-            <Link
-              href={`/w/agents/${agent.id}`}
-              className="hidden md:flex items-center gap-3 rounded-xl border border-border px-4 py-2.5 transition-colors hover:border-primary"
-            >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <ProviderLogo provider={agent.provider_id ?? ""} size={24} />
-                <span className="text-sm font-medium text-foreground truncate">{agent.name}</span>
-              </div>
-              <div className="w-20 shrink-0">
-                <IntegrationLogos integrations={getIntegrationSummaries(agent.integrations, connectionsById)} size={20} />
-              </div>
-              <span className="w-28 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums truncate">
-                {agent.model}
-              </span>
-              <span className="w-20 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
-                {agent.sandbox_type}
-              </span>
-              <span className="w-24 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
-                {agent.created_at ? formatDate(agent.created_at) : "\u2014"}
-              </span>
-              <div className="w-6 shrink-0 flex justify-center">
-                <AgentStatusIndicator status={(agent.status ?? "active") as AgentStatus} agent={agent} />
-              </div>
-              <div className="w-8 shrink-0 flex justify-center" onClick={(event) => event.preventDefault()}>
-                <AgentActions
-                  agent={agent}
-                  onEdit={() => onEditAgent?.(agent)}
-                  onDelete={() => setDeleting(agent)}
-                  onEnvVars={() => setEnvVarsAgent(agent)}
-                  onSetupCommands={() => setSetupCommandsAgent(agent)}
-                  onConfigureResources={() => setResourcesAgent(agent)}
-                />
-              </div>
-            </Link>
-
-            <Link
-              href={`/w/agents/${agent.id}`}
-              className="flex md:hidden flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <ProviderLogo provider={agent.provider_id ?? ""} size={24} />
-                  <span className="text-sm font-medium text-foreground truncate">{agent.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <IntegrationLogos integrations={getIntegrationSummaries(agent.integrations, connectionsById)} size={18} />
-                  <AgentStatusIndicator status={(agent.status ?? "active") as AgentStatus} agent={agent} />
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono tabular-nums">
-                  <span>{agent.model}</span>
-                  <span>{agent.sandbox_type}</span>
-                  <span>{agent.created_at ? formatDate(agent.created_at) : "\u2014"}</span>
-                </div>
-                <div onClick={(event) => event.preventDefault()}>
-                  <AgentActions
-                    agent={agent}
-                    onEdit={() => onEditAgent?.(agent)}
-                    onDelete={() => setDeleting(agent)}
-                    onEnvVars={() => setEnvVarsAgent(agent)}
-                    onSetupCommands={() => setSetupCommandsAgent(agent)}
-                  />
-                </div>
-              </div>
-            </Link>
-          </div>
+          <Link
+            key={agent.id}
+            href={`/w/agents/${agent.id}`}
+            className="flex items-center gap-3 rounded-xl border border-border px-4 py-2.5 transition-colors hover:border-primary"
+          >
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <ProviderLogo provider={agent.provider_id ?? ""} size={24} />
+              <span className="truncate text-sm font-medium text-foreground">{agent.name}</span>
+            </div>
+            <div className="w-24 shrink-0">
+              <IntegrationLogos integrations={getIntegrationSummaries(agent.integrations, connectionsById)} size={20} />
+            </div>
+            <div className="flex w-6 shrink-0 justify-center">
+              <AgentStatusIndicator status={(agent.status ?? "active") as AgentStatus} agent={agent} />
+            </div>
+            <div className="flex w-8 shrink-0 justify-center" onClick={(event) => event.preventDefault()}>
+              <AgentActions
+                agent={agent}
+                onEdit={() => onEditAgent?.(agent)}
+                onDelete={() => setDeleting(agent)}
+                onEnvVars={() => setEnvVarsAgent(agent)}
+                onSetupCommands={() => setSetupCommandsAgent(agent)}
+                onConfigureResources={() => setResourcesAgent(agent)}
+              />
+            </div>
+          </Link>
         ))}
       </div>
 

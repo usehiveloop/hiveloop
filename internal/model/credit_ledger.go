@@ -12,12 +12,13 @@ import (
 // This table is never updated or deleted — corrections are additional rows
 // with reason="adjustment".
 type CreditLedgerEntry struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID     uuid.UUID `gorm:"type:uuid;not null;index"`
-	Amount    int64     `gorm:"not null"`
-	Reason    string    `gorm:"not null;size:64"`
-	RefType   string    `gorm:"size:64"`
-	RefID     string    `gorm:"size:64;index"`
+	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	OrgID     uuid.UUID  `gorm:"type:uuid;not null;index"`
+	Amount    int64      `gorm:"not null"`
+	Reason    string     `gorm:"not null;size:64"`
+	RefType   string     `gorm:"size:64"`
+	RefID     string     `gorm:"size:64;index"`
+	ExpiresAt *time.Time `gorm:"index"` // NULL = never expires (top-ups, adjustments, refunds, spends, expiry offsets)
 	CreatedAt time.Time
 }
 
