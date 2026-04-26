@@ -39,6 +39,7 @@ func setupV1Routes(
 	conversationHandler *handler.ConversationHandler,
 	routerHandler *handler.RouterHandler,
 	customDomainHandler *handler.CustomDomainHandler,
+	ragSourceHandler *handler.RAGSourceHandler,
 	orchestrator *sandbox.Orchestrator,
 	auditWriter *middleware.AuditWriter,
 ) {
@@ -216,6 +217,23 @@ func setupV1Routes(
 					}
 				})
 			})
+
+			if ragSourceHandler != nil {
+				r.Route("/rag", func(r chi.Router) {
+					r.Use(middleware.RequireOrgAdmin(database))
+					r.Get("/integrations", ragSourceHandler.ListIntegrations)
+					r.Post("/sources", ragSourceHandler.Create)
+					r.Get("/sources", ragSourceHandler.List)
+					r.Get("/sources/{id}", ragSourceHandler.Get)
+					r.Patch("/sources/{id}", ragSourceHandler.Update)
+					r.Delete("/sources/{id}", ragSourceHandler.Delete)
+					r.Post("/sources/{id}/sync", ragSourceHandler.TriggerSync)
+					r.Post("/sources/{id}/prune", ragSourceHandler.TriggerPrune)
+					r.Post("/sources/{id}/perm-sync", ragSourceHandler.TriggerPermSync)
+					r.Get("/sources/{id}/attempts", ragSourceHandler.ListAttempts)
+					r.Get("/sources/{id}/attempts/{attempt_id}", ragSourceHandler.GetAttempt)
+				})
+			}
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("all"))
