@@ -12,6 +12,7 @@ on:
       - ".golangci.yml"
       - "scripts/check-go-file-length.sh"
       - "scripts/file-length-allowlist.txt"
+      - "scripts/check-go-comment-density.sh"
       - ".github/workflows/lint.yml"
   pull_request:
     branches: [main]
@@ -22,6 +23,7 @@ on:
       - ".golangci.yml"
       - "scripts/check-go-file-length.sh"
       - "scripts/file-length-allowlist.txt"
+      - "scripts/check-go-comment-density.sh"
       - ".github/workflows/lint.yml"
 
 permissions:
@@ -35,6 +37,19 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check Go file length
         run: ./scripts/check-go-file-length.sh
+
+  # Caps comments at 10% of added Go lines in the PR diff. Aimed at trimming
+  # low-signal narration (especially from AI coding agents) before review.
+  go-comment-density:
+    name: Go comment density (≤10% of PR)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so we can diff against origin/main.
+          fetch-depth: 0
+      - name: Check Go comment density
+        run: ./scripts/check-go-comment-density.sh
 
   # golangci-lint runs the linter suite defined in .golangci.yml. We scope it
   # to issues NEWLY introduced by the PR (--new-from-rev=origin/main) so
