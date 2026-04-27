@@ -202,32 +202,27 @@ func TestUpdateSource_IndexingStartFloor(t *testing.T) {
 
 // ---------- Delete ----------
 
-func TestDeleteSource_TombstonesAndStopsScheduler(t *testing.T) {
+// DELETE /v1/rag/sources/{id} hard-deletes the row; postgres FKs cascade and
+// the prune loop reaps Qdrant points. Anything that scans for "is this source
+// still scheduler-eligible?" must see zero rows after the delete.
+func TestDeleteSource_HardDeletesAndStopsScheduler(t *testing.T) {
 	h := newRAGHarness(t)
 	src := h.createSource(t)
 
 	rr := del(t, h, "/v1/rag/sources/"+src.ID.String())
-	mustStatus(t, rr, http.StatusAccepted)
+	mustStatus(t, rr, http.StatusNoContent)
 
-	var dbRow ragmodel.RAGSource
-	h.DB.Where("id = ?", src.ID).First(&dbRow)
-	if dbRow.Status != ragmodel.RAGSourceStatusDeleting {
-		t.Fatalf("expected DELETING, got %s", dbRow.Status)
-	}
-
-	var resp map[string]any
-	decodeJSON(t, rr, &resp)
-	if resp["status"] != "deleting" || resp["note"] == "" {
-		t.Fatalf("expected deletion note, got %v", resp)
-	}
-
-	// scheduler eligibility query mirrors idx_rag_sources_needs_ingest:
-	// status IN ('ACTIVE','INITIAL_INDEXING'). DELETING must be excluded.
 	var n int64
+	h.DB.Model(&ragmodel.RAGSource{}).Where("id = ?", src.ID).Count(&n)
+	if n != 0 {
+		t.Fatalf("expected source row gone, found %d", n)
+	}
+
+	// Scheduler eligibility scan must not pick a deleted source up.
 	h.DB.Model(&ragmodel.RAGSource{}).
 		Where("id = ? AND enabled = true AND status IN ('ACTIVE','INITIAL_INDEXING')", src.ID).
 		Count(&n)
 	if n != 0 {
-		t.Fatalf("DELETING source should not be scheduler-eligible; matched %d", n)
+		t.Fatalf("deleted source should not be scheduler-eligible; matched %d", n)
 	}
 }

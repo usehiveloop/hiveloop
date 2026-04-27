@@ -9,6 +9,17 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+
+// @Summary Refresh tokens
+// @Description Exchanges a refresh token for new access and refresh tokens.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body refreshRequest true "Refresh parameters"
+// @Success 200 {object} authResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Router /auth/refresh [post]
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var req refreshRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -110,12 +121,3 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// Me handles GET /auth/me.
-// @Summary Get current user
-// @Description Returns the current user and their organization memberships.
-// @Tags auth
-// @Produce json
-// @Success 200 {object} meResponse
-// @Failure 401 {object} errorResponse
-// @Security BearerAuth
-// @Router /auth/me [get]
