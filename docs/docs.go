@@ -7286,6 +7286,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/rag/search": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Run a BM25 search against the org's RAG dataset, optionally reranked.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rag"
+                ],
+                "summary": "Search the knowledge base",
+                "parameters": [
+                    {
+                        "description": "Search query",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.ragSearchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.ragSearchResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/rag/sources": {
             "get": {
                 "security": [
@@ -13882,6 +13921,69 @@ const docTemplate = `{
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "internal_handler.ragSearchHit": {
+            "type": "object",
+            "properties": {
+                "blurb": {
+                    "type": "string"
+                },
+                "bm25_score": {
+                    "type": "number"
+                },
+                "chunk_id": {
+                    "type": "string"
+                },
+                "chunk_index": {
+                    "type": "integer"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "doc_id": {
+                    "type": "string"
+                },
+                "doc_updated_at": {
+                    "type": "string"
+                },
+                "rerank_score": {
+                    "type": "number"
+                },
+                "score": {
+                    "type": "number"
+                },
+                "vector_score": {
+                    "type": "number"
+                }
+            }
+        },
+        "internal_handler.ragSearchRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "query": {
+                    "type": "string"
+                },
+                "rerank": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "internal_handler.ragSearchResponse": {
+            "type": "object",
+            "properties": {
+                "after_rerank": {
+                    "type": "integer"
+                },
+                "hits": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.ragSearchHit"
+                    }
                 }
             }
         },
