@@ -21,9 +21,6 @@ type upsertEnvelope struct {
 	} `json:"result"`
 }
 
-// Upsert inserts or replaces points. wait=false returns as soon as the WAL
-// has the write; the indexer continues asynchronously. For backfills this
-// is the right tradeoff; the caller can poll Count to confirm flush.
 func (c *Client) Upsert(ctx context.Context, collection string, points []Point, wait bool) error {
 	if len(points) == 0 {
 		return nil
@@ -53,9 +50,6 @@ type MatchValue struct {
 	Any   []any `json:"any,omitempty"`
 }
 
-// SetPayload mutates one or more fields without touching the vector.
-// This is the load-bearing path for ACL updates — perm-sync runs frequently
-// and re-embedding on every membership change would be wasteful.
 func (c *Client) SetPayload(ctx context.Context, collection string, ids []string, payload map[string]any) error {
 	if len(ids) == 0 {
 		return nil
@@ -98,12 +92,11 @@ func (c *Client) Count(ctx context.Context, collection string, filter *Filter) (
 	return out.Result.Count, nil
 }
 
-// PointID derives a stable UUID for (org_id, doc_id) so re-ingesting the same
-// doc upserts in place. Qdrant accepts UUID-shaped strings as point IDs.
-func PointID(orgID, docID string) string {
-	h := sha1.Sum([]byte(orgID + "::" + docID))
-	// Format as UUID v5: 8-4-4-4-12 hex.
-	// Set version (5) and variant (RFC 4122) bits.
+// Stable UUIDv5 from (org_id, source_id, doc_id). Re-ingesting the same doc
+// under the same source upserts in place; a doc shared by two sources gets
+// two points.
+func PointID(orgID, sourceID, docID string) string {
+	h := sha1.Sum([]byte(orgID + "::" + sourceID + "::" + docID))
 	h[6] = (h[6] & 0x0f) | 0x50
 	h[8] = (h[8] & 0x3f) | 0x80
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
