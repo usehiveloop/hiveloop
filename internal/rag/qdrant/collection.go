@@ -2,9 +2,11 @@ package qdrant
 
 import (
 	"context"
-	"errors"
-	"net/http"
 	"strings"
+
+	qc "github.com/qdrant/go-client/qdrant"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type CollectionConfig struct {
@@ -13,61 +15,52 @@ type CollectionConfig struct {
 	OnDisk    bool
 }
 
-type collectionInfoEnvelope struct {
-	Result struct {
-		Status string `json:"status"`
-	} `json:"result"`
-}
-
 func (c *Client) CollectionExists(ctx context.Context, name string) (bool, error) {
-	var out collectionInfoEnvelope
-	err := c.do(ctx, http.MethodGet, "/collections/"+name, nil, &out)
-	if err == nil {
-		return true, nil
+	exists, err := c.c.CollectionExists(ctx, name)
+	if err != nil {
+		return false, err
 	}
-	// Qdrant returns 404 for missing collection.
-	if isNotFound(err) {
-		return false, nil
-	}
-	return false, err
+	return exists, nil
 }
 
 func (c *Client) CreateCollection(ctx context.Context, cfg CollectionConfig) error {
-	body := map[string]any{
-		"vectors": map[string]any{
-			"size":     cfg.VectorDim,
-			"distance": "Cosine",
-			"on_disk":  cfg.OnDisk,
+	return c.c.CreateCollection(ctx, &qc.CreateCollection{
+		CollectionName: cfg.Name,
+		VectorsConfig: qc.NewVectorsConfig(&qc.VectorParams{
+			Size:     uint64(cfg.VectorDim),
+			Distance: qc.Distance_Cosine,
+			OnDisk:   qc.PtrOf(cfg.OnDisk),
+		}),
+		OnDiskPayload: qc.PtrOf(cfg.OnDisk),
+		HnswConfig: &qc.HnswConfigDiff{
+			M:           qc.PtrOf(uint64(16)),
+			EfConstruct: qc.PtrOf(uint64(200)),
 		},
-		"hnsw_config": map[string]any{
-			"on_disk":       cfg.OnDisk,
-			"m":             16,
-			"ef_construct":  200,
-		},
-		"on_disk_payload": cfg.OnDisk,
-	}
-	return c.do(ctx, http.MethodPut, "/collections/"+cfg.Name, body, nil)
+	})
 }
 
 func (c *Client) DeleteCollection(ctx context.Context, name string) error {
-	err := c.do(ctx, http.MethodDelete, "/collections/"+name, nil, nil)
-	if err != nil && !isNotFound(err) {
+	if err := c.c.DeleteCollection(ctx, name); err != nil {
+		if status.Code(err) == codes.NotFound {
+			return nil
+		}
 		return err
 	}
 	return nil
 }
 
-type FieldSchema struct {
-	Type     string `json:"type"`
-	IsTenant bool   `json:"is_tenant,omitempty"`
-}
-
-func (c *Client) CreatePayloadIndex(ctx context.Context, collection, fieldName string, schema any) error {
-	body := map[string]any{
-		"field_name":   fieldName,
-		"field_schema": schema,
+func (c *Client) CreatePayloadIndex(ctx context.Context, collection, fieldName string, fieldType qc.FieldType, params *qc.PayloadIndexParams) error {
+	req := &qc.CreateFieldIndexCollection{
+		CollectionName:   collection,
+		FieldName:        fieldName,
+		FieldType:        qc.PtrOf(fieldType),
+		FieldIndexParams: params,
 	}
-	return c.do(ctx, http.MethodPut, "/collections/"+collection+"/index?wait=true", body, nil)
+	_, err := c.c.CreateFieldIndex(ctx, req)
+	if err != nil && !isAlreadyExists(err) {
+		return err
+	}
+	return nil
 }
 
 func (c *Client) EnsureCollection(ctx context.Context, cfg CollectionConfig) error {
@@ -80,38 +73,36 @@ func (c *Client) EnsureCollection(ctx context.Context, cfg CollectionConfig) err
 			return err
 		}
 	}
+	keywordTenantParams := qc.NewPayloadIndexParamsKeyword(&qc.KeywordIndexParams{
+		IsTenant: qc.PtrOf(true),
+	})
 	indices := []struct {
-		name   string
-		schema any
+		name      string
+		fieldType qc.FieldType
+		params    *qc.PayloadIndexParams
 	}{
-		{"org_id", FieldSchema{Type: "keyword", IsTenant: true}},
-		{"acl", "keyword"},
-		{"doc_id", "keyword"},
-		{"rag_source_id", "keyword"},
-		{"is_public", FieldSchema{Type: "bool"}},
-		{"doc_updated_at", FieldSchema{Type: "integer"}},
+		{"org_id", qc.FieldType_FieldTypeKeyword, keywordTenantParams},
+		{"acl", qc.FieldType_FieldTypeKeyword, nil},
+		{"doc_id", qc.FieldType_FieldTypeKeyword, nil},
+		{"rag_source_id", qc.FieldType_FieldTypeKeyword, nil},
+		{"is_public", qc.FieldType_FieldTypeBool, nil},
+		{"doc_updated_at", qc.FieldType_FieldTypeInteger, nil},
 	}
 	for _, idx := range indices {
-		if err := c.CreatePayloadIndex(ctx, cfg.Name, idx.name, idx.schema); err != nil {
-			// Qdrant returns 200 for duplicate index creation; ignore "already exists" if it leaks through.
-			if !isAlreadyExists(err) {
-				return err
-			}
+		if err := c.CreatePayloadIndex(ctx, cfg.Name, idx.name, idx.fieldType, idx.params); err != nil {
+			return err
 		}
 	}
 	return nil
-}
-
-func isNotFound(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "-> 404:")
 }
 
 func isAlreadyExists(err error) bool {
 	if err == nil {
 		return false
 	}
+	if status.Code(err) == codes.AlreadyExists {
+		return true
+	}
 	msg := err.Error()
 	return strings.Contains(msg, "already exists") || strings.Contains(msg, "duplicate")
 }
-
-var _ = errors.New

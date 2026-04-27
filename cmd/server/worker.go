@@ -256,18 +256,25 @@ func buildRagDeps(
 	db *gorm.DB,
 	nangoClient *nango.Client,
 ) *ragtasks.Deps {
-	if cfg.QdrantEndpoint == "" {
-		slog.Warn("rag worker: QDRANT_ENDPOINT not set — rag:* handlers disabled")
+	if cfg.QdrantHost == "" {
+		slog.Warn("rag worker: QDRANT_HOST not set — rag:* handlers disabled")
 		return nil
 	}
 	if cfg.LLMAPIURL == "" || cfg.LLMAPIKey == "" || cfg.LLMModel == "" {
 		slog.Warn("rag worker: LLM_API_URL/LLM_API_KEY/LLM_MODEL not set — rag:* handlers disabled")
 		return nil
 	}
-	qd := qdrant.New(qdrant.Config{
-		Endpoint: cfg.QdrantEndpoint,
-		APIKey:   cfg.QdrantAPIKey,
+	qd, err := qdrant.New(qdrant.Config{
+		Host:   cfg.QdrantHost,
+		Port:   cfg.QdrantPort,
+		UseTLS: cfg.QdrantUseTLS,
+		APIKey: cfg.QdrantAPIKey,
 	})
+	if err != nil {
+		slog.Error("rag worker: dial qdrant failed — rag:* handlers disabled",
+			"host", cfg.QdrantHost, "port", cfg.QdrantPort, "err", err)
+		return nil
+	}
 	if err := qd.EnsureCollection(ctx, qdrant.CollectionConfig{
 		Name:      cfg.QdrantCollection,
 		VectorDim: cfg.LLMEmbeddingDim,
@@ -284,7 +291,7 @@ func buildRagDeps(
 		Dim:     cfg.LLMEmbeddingDim,
 	})
 	slog.Info("rag worker: qdrant + embedder ready",
-		"endpoint", cfg.QdrantEndpoint,
+		"host", cfg.QdrantHost, "port", cfg.QdrantPort,
 		"collection", cfg.QdrantCollection,
 		"vector_dim", cfg.LLMEmbeddingDim)
 	return &ragtasks.Deps{
