@@ -21,6 +21,7 @@ import (
 	// Blank import populates interfaces.Registry via init().
 	_ "github.com/usehiveloop/hiveloop/internal/rag/connectors"
 	"github.com/usehiveloop/hiveloop/internal/rag/ragclient"
+	"github.com/usehiveloop/hiveloop/internal/rag/ragpb"
 	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 	"github.com/usehiveloop/hiveloop/internal/skills"
@@ -270,6 +271,13 @@ func buildRagDeps(
 		slog.Error("rag worker: dial rag-engine failed — rag:* handlers disabled",
 			"endpoint", cfg.RagEngineEndpoint, "err", err)
 		return nil
+	}
+	if _, err := client.CreateDataset(ctx, &ragpb.CreateDatasetRequest{
+		DatasetName: cfg.RagDatasetName,
+		VectorDim:   cfg.RagVectorDim,
+	}); err != nil {
+		slog.Warn("rag worker: ensure dataset failed",
+			"dataset", cfg.RagDatasetName, "err", err)
 	}
 	slog.Info("rag worker: rag-engine client ready",
 		"endpoint", cfg.RagEngineEndpoint, "dataset", cfg.RagDatasetName,
