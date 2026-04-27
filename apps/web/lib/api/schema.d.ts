@@ -8488,7 +8488,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a RAG source
-         * @description Soft-tombstones the source (Status → DELETING). The scheduler stops enqueuing work immediately; row + document teardown happens asynchronously via a cleanup loop.
+         * @description Hard-deletes the source row. Postgres-side rows (attempts, documents, sync state, ACLs) cascade. Vector store entries are reaped later by the prune loop.
          */
         delete: {
             parameters: {
@@ -8502,14 +8502,12 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Accepted */
-                202: {
+                /** @description No Content */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content: {
-                        "application/json": components["schemas"]["triggerResponse"];
-                    };
+                    content?: never;
                 };
             };
         };

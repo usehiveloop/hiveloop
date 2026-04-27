@@ -10,15 +10,14 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	ragdb "github.com/usehiveloop/hiveloop/internal/rag/db"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
 // @Summary Delete a RAG source
-// @Description Soft-tombstones the source (Status → DELETING). The scheduler stops enqueuing work immediately; row + document teardown happens asynchronously via a cleanup loop.
+// @Description Hard-deletes the source row. Postgres-side rows (attempts, documents, sync state, ACLs) cascade. Vector store entries are reaped later by the prune loop.
 // @Tags rag
 // @Produce json
 // @Param id path string true "Source ID"
-// @Success 202 {object} triggerResponse
+// @Success 204
 // @Security BearerAuth
 // @Router /v1/rag/sources/{id} [delete]
 func (h *RAGSourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -43,22 +42,12 @@ func (h *RAGSourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if src.Status == ragmodel.RAGSourceStatusDeleting {
-		writeJSON(w, http.StatusAccepted, map[string]any{
-			"status": "deleting",
-			"note":   "documents will be removed asynchronously",
-		})
+	if err := h.db.Delete(src).Error; err != nil {
+		slog.Error("failed to delete rag source", "error", err, "source_id", src.ID, "org_id", org.ID)
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to delete source"})
 		return
 	}
 
-	if err := h.db.Model(src).Update("status", ragmodel.RAGSourceStatusDeleting).Error; err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to mark source for deletion"})
-		return
-	}
-
-	slog.Info("rag source marked for deletion", "source_id", src.ID, "org_id", org.ID)
-	writeJSON(w, http.StatusAccepted, map[string]any{
-		"status": "deleting",
-		"note":   "documents will be removed asynchronously",
-	})
+	slog.Info("rag source deleted", "source_id", src.ID, "org_id", org.ID)
+	w.WriteHeader(http.StatusNoContent)
 }
