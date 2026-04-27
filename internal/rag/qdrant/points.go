@@ -2,7 +2,7 @@ package qdrant
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"net/http"
@@ -92,12 +92,13 @@ func (c *Client) Count(ctx context.Context, collection string, filter *Filter) (
 	return out.Result.Count, nil
 }
 
-// Stable UUIDv5 from (org_id, source_id, doc_id). Re-ingesting the same doc
-// under the same source upserts in place; a doc shared by two sources gets
-// two points.
+// Stable UUID-shaped string from (org_id, source_id, doc_id). Re-ingesting
+// the same doc under the same source upserts in place; a doc shared by two
+// sources gets two points. Qdrant accepts UUID-shaped strings as point IDs.
 func PointID(orgID, sourceID, docID string) string {
-	h := sha1.Sum([]byte(orgID + "::" + sourceID + "::" + docID))
-	h[6] = (h[6] & 0x0f) | 0x50
+	h := sha256.Sum256([]byte(orgID + "::" + sourceID + "::" + docID))
+	// Set UUIDv8 (custom) version + RFC 4122 variant bits.
+	h[6] = (h[6] & 0x0f) | 0x80
 	h[8] = (h[8] & 0x3f) | 0x80
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
 		binary.BigEndian.Uint32(h[0:4]),
