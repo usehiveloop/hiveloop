@@ -15750,6 +15750,9 @@
       "ragSearchRequest": {
         "type": "object",
         "properties": {
+          "bypass_acl": {
+            "type": "boolean"
+          },
           "limit": {
             "type": "integer"
           },

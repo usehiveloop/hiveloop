@@ -20,9 +20,10 @@ func NewRAGSearchHandler(client *ragclient.Client, datasetName string) *RAGSearc
 }
 
 type ragSearchRequest struct {
-	Query  string `json:"query"`
-	Rerank bool   `json:"rerank,omitempty"`
-	Limit  uint32 `json:"limit,omitempty"`
+	Query     string `json:"query"`
+	Rerank    bool   `json:"rerank,omitempty"`
+	Limit     uint32 `json:"limit,omitempty"`
+	BypassACL bool   `json:"bypass_acl,omitempty"`
 }
 
 type ragSearchHit struct {
@@ -82,9 +83,11 @@ func (h *RAGSearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 		limit = 10
 	}
 
-	acl := []string{}
-	if user.Email != "" {
-		acl = append(acl, user.Email)
+	var acl []string
+	if req.BypassACL {
+		acl = []string{"*"}
+	} else if user.Email != "" {
+		acl = []string{user.Email}
 	}
 
 	resp, err := h.client.Search(r.Context(), &ragpb.SearchRequest{

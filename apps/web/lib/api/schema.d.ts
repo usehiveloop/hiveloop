@@ -12474,6 +12474,7 @@ export interface components {
             vector_score?: number;
         };
         ragSearchRequest: {
+            bypass_acl?: boolean;
             limit?: number;
             query?: string;
             rerank?: boolean;
