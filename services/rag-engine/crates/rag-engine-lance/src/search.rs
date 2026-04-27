@@ -75,21 +75,26 @@ fn build_filter(p: &SearchParams) -> Result<String> {
     let mut clauses: Vec<String> = Vec::new();
     clauses.push(filter::eq_str(col::ORG_ID, &p.org_id));
 
-    // ACL: public OR acl-match.
-    let mut acl_sub: Vec<String> = Vec::new();
-    if p.include_public {
-        acl_sub.push(format!("{} = true", col::IS_PUBLIC));
-    }
-    if let Some(c) = filter::array_has_any(col::ACL, &p.acl_any_of) {
-        acl_sub.push(c);
-    }
-    if let Some(acl_clause) = filter::or_all(acl_sub) {
-        clauses.push(acl_clause);
-    } else {
-        // Neither acl_any_of nor include_public — the caller gets
-        // NOTHING. We encode that explicitly as `1 = 0` so LanceDB
-        // short-circuits rather than returning everything.
-        clauses.push("1 = 0".to_string());
+    // "*" in acl_any_of disables ACL filtering — admin/debug only.
+    // Org scope is still enforced; only the per-doc ACL check is bypassed.
+    let bypass = p.acl_any_of.iter().any(|s| s == "*");
+    if !bypass {
+        // ACL: public OR acl-match.
+        let mut acl_sub: Vec<String> = Vec::new();
+        if p.include_public {
+            acl_sub.push(format!("{} = true", col::IS_PUBLIC));
+        }
+        if let Some(c) = filter::array_has_any(col::ACL, &p.acl_any_of) {
+            acl_sub.push(c);
+        }
+        if let Some(acl_clause) = filter::or_all(acl_sub) {
+            clauses.push(acl_clause);
+        } else {
+            // Neither acl_any_of nor include_public — the caller gets
+            // NOTHING. We encode that explicitly as `1 = 0` so LanceDB
+            // short-circuits rather than returning everything.
+            clauses.push("1 = 0".to_string());
+        }
     }
 
     if let Some(ts) = p.doc_updated_after {
