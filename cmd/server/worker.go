@@ -9,11 +9,16 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/hibiken/asynqmon"
 
+	"gorm.io/gorm"
+
 	"github.com/usehiveloop/hiveloop/internal/bootstrap"
+	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/email"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
+	"github.com/usehiveloop/hiveloop/internal/nango"
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
+	"github.com/usehiveloop/hiveloop/internal/rag/ragclient"
 	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 	"github.com/usehiveloop/hiveloop/internal/skills"
@@ -66,6 +71,8 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		Cfg: ragscheduler.NewConfig(),
 	}
 
+	ragDeps := buildRagDeps(ctx, cfg, deps.DB, deps.NangoClient)
+
 	workerDeps := &tasks.WorkerDeps{
 		DB:           deps.DB,
 		Cleanup:      deps.Cleanup,
@@ -87,6 +94,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		CacheManager: deps.CacheManager,
 		Credits:      deps.Credits,
 		Enqueuer:     enqueuer,
+		Rag:          ragDeps,
 		RagScheduler: ragSched,
 	}
 
@@ -237,5 +245,42 @@ func (l *asynqLogger) Error(args ...any) {
 
 func (l *asynqLogger) Fatal(args ...any) {
 	slog.Error(fmt.Sprint(args...))
+}
+
+// buildRagDeps dials the rag-engine and returns the Deps the task
+// handlers need. Returns nil (with a warning) when RAG_ENGINE_ENDPOINT
+// is unset or the dial fails — the worker keeps running but rag:* tasks
+// will fail with "handler not found".
+func buildRagDeps(
+	ctx context.Context,
+	cfg *config.Config,
+	db *gorm.DB,
+	nangoClient *nango.Client,
+) *ragtasks.Deps {
+	if cfg.RagEngineEndpoint == "" {
+		slog.Warn("rag worker: RAG_ENGINE_ENDPOINT not set — rag:* handlers disabled")
+		return nil
+	}
+	client, err := ragclient.New(ctx, ragclient.Config{
+		Endpoint:     cfg.RagEngineEndpoint,
+		SharedSecret: cfg.RagEngineSharedSecret,
+		DialTimeout:  cfg.RagDialTimeout,
+	})
+	if err != nil {
+		slog.Error("rag worker: dial rag-engine failed — rag:* handlers disabled",
+			"endpoint", cfg.RagEngineEndpoint, "err", err)
+		return nil
+	}
+	slog.Info("rag worker: rag-engine client ready",
+		"endpoint", cfg.RagEngineEndpoint, "dataset", cfg.RagDatasetName,
+		"vector_dim", cfg.RagVectorDim)
+	return &ragtasks.Deps{
+		DB:                db,
+		RagClient:         client,
+		Nango:             nangoClient,
+		BatchSize:         cfg.RagBatchSize,
+		DatasetName:       cfg.RagDatasetName,
+		DeclaredVectorDim: cfg.RagVectorDim,
+	}
 }
 
