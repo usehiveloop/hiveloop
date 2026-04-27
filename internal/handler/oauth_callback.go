@@ -9,11 +9,14 @@ import (
 
 )
 
-// oauthProfile holds the normalised user info fetched from an OAuth provider.
-
-// provider (e.g. X/Twitter) does not return a user email.
-
-// isPlaceholderEmail reports whether the email is a generated placeholder.
+// @Summary GitHub OAuth callback
+// @Description Handles the redirect from GitHub after authorization. Exchanges the code for a token, creates or links the user account, and redirects to the frontend with a short-lived exchange token.
+// @Tags oauth
+// @Param code query string true "Authorization code from GitHub"
+// @Param state query string true "CSRF state parameter"
+// @Success 307 "Redirect to frontend with exchange token"
+// @Failure 307 "Redirect to frontend with error"
+// @Router /oauth/github/callback [get]
 func (h *OAuthHandler) GitHubCallback(w http.ResponseWriter, r *http.Request) {
 	h.handleCallback(w, r, "github", h.githubConfig)
 }

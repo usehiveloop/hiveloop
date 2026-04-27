@@ -15,6 +15,16 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+
+// @Summary Request password reset
+// @Description Sends a password reset link to the email address if an account exists.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body forgotPasswordRequest true "Email address"
+// @Success 200 {object} statusResponse
+// @Failure 400 {object} errorResponse
+// @Router /auth/forgot-password [post]
 func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	genericResponse := map[string]string{
 		"status":  "ok",

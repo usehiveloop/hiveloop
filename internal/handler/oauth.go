@@ -110,14 +110,3 @@ func NewOAuthHandler(
 	return h
 }
 
-// ---------------------------------------------------------------------------
-// Login endpoints — redirect the browser to the provider's authorize URL.
-// ---------------------------------------------------------------------------
-
-// GitHubLogin handles GET /oauth/github.
-// @Summary Start GitHub OAuth login
-// @Description Redirects the browser to GitHub's authorization page. Sets a state cookie for CSRF protection.
-// @Tags oauth
-// @Success 307 "Redirect to GitHub"
-// @Failure 404 {object} errorResponse "Provider not configured"
-// @Router /oauth/github [get]
