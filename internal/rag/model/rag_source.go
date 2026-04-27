@@ -155,6 +155,26 @@ func (s *RAGSource) SourceKind() string {
 	return string(s.KindValue)
 }
 
+// NangoConnectionID exposes the upstream connection's Nango handle so
+// connectors can dial through the proxy. Empty string when there's no
+// in_connection (kind != INTEGRATION).
+func (s *RAGSource) NangoConnectionID() string {
+	if s.InConnection == nil {
+		return ""
+	}
+	return s.InConnection.NangoConnectionID
+}
+
+// NangoProviderConfigKey returns the per-org provider config key Nango
+// uses to namespace connections. Mirrors the "in_<unique_key>" format
+// the connections handler uses; keep them in sync.
+func (s *RAGSource) NangoProviderConfigKey() string {
+	if s.InConnection == nil || s.InConnection.InIntegration.UniqueKey == "" {
+		return ""
+	}
+	return "in_" + s.InConnection.InIntegration.UniqueKey
+}
+
 // Config returns `{}` when the map is nil/empty so the column's
 // not-null-default-'{}' behavior is preserved at the interface boundary.
 func (s *RAGSource) Config() json.RawMessage {
