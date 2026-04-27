@@ -41,13 +41,13 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate required fields — system_prompt is not required when forge is used.
-	if req.Name == "" || req.CredentialID == "" || req.Model == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name, credential_id, and model are required"})
+	if req.Name == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name is required"})
 		return
 	}
-	if req.SystemPrompt == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "system_prompt is required"})
+
+	if !org.BYOK && (req.CredentialID != "" || req.Model != "") {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "credential_id and model are only allowed when BYOK is enabled for this workspace"})
 		return
 	}
 
@@ -86,20 +86,21 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Validate credential exists, belongs to org, and is not revoked
 	var cred model.Credential
-	if err := h.db.Where("id = ? AND org_id = ? AND revoked_at IS NULL", req.CredentialID, org.ID).First(&cred).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "credential not found or revoked"})
+	var hasCred bool
+	if req.CredentialID != "" {
+		if err := h.db.Where("id = ? AND org_id = ? AND revoked_at IS NULL", req.CredentialID, org.ID).First(&cred).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "credential not found or revoked"})
+				return
+			}
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to validate credential"})
 			return
 		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to validate credential"})
-		return
+		hasCred = true
 	}
 
-
-	// Validate model is supported by the credential's provider
-	if cred.ProviderID != "" {
+	if hasCred && req.Model != "" && cred.ProviderID != "" {
 		provider, ok := h.registry.GetProvider(cred.ProviderID)
 		if ok {
 			if _, modelExists := provider.Models[req.Model]; !modelExists {
@@ -126,7 +127,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Description:  req.Description,
 		AvatarURL:    req.AvatarURL,
 		Category:     req.Category,
-		CredentialID: &cred.ID,
 		SystemPrompt:    req.SystemPrompt,
 		ProviderPrompts: req.ProviderPrompts,
 		Instructions:    req.Instructions,
@@ -142,6 +142,9 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		SharedMemory: req.SharedMemory,
 		SandboxTools: pq.StringArray(req.SandboxTools),
 		Status:       "active",
+	}
+	if hasCred {
+		agent.CredentialID = &cred.ID
 	}
 	if len(agent.Permissions) == 0 {
 		agent.Permissions = defaultToolPermissions()
