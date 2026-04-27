@@ -126,7 +126,7 @@ func (h *RAGSearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		out.Hits = reranked
-	} else if uint32(len(out.Hits)) > limit {
+	} else if len(out.Hits) > int(limit) {
 		out.Hits = out.Hits[:limit]
 	}
 	writeJSON(w, http.StatusOK, out)

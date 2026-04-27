@@ -3,7 +3,7 @@ package qdrant_test
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"testing"
 	"time"
@@ -20,8 +20,9 @@ func liveClient(t *testing.T) *qdrant.Client {
 	return qdrant.New(qdrant.Config{Endpoint: endpoint, APIKey: os.Getenv("QDRANT_API_KEY")})
 }
 
-func randomVector(dim int, seed int64) []float32 {
-	r := rand.New(rand.NewSource(seed))
+func randomVector(dim int, seed uint64) []float32 {
+	// Deterministic vector for test fixtures; not security-sensitive.
+	r := rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)) //nolint:gosec
 	v := make([]float32, dim)
 	for i := range v {
 		v[i] = r.Float32()*2 - 1
@@ -69,7 +70,7 @@ func TestQdrantContract_Live(t *testing.T) {
 	for i, f := range fixtures {
 		points[i] = qdrant.Point{
 			ID:     qdrant.PointID(f.org, f.src, f.doc),
-			Vector: randomVector(dim, int64(i+1)),
+			Vector: randomVector(dim, uint64(i+1)), //nolint:gosec
 			Payload: map[string]any{
 				"org_id":        f.org,
 				"rag_source_id": f.src,
