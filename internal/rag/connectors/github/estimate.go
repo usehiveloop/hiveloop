@@ -21,19 +21,30 @@ func (c *GithubConnector) EstimateTotal(ctx context.Context, src interfaces.Sour
 	total := 0
 	for _, repo := range cfg.Repositories {
 		fullName := cfg.RepoOwner + "/" + repo
-		if cfg.IncludePRs {
+		var prCount int
+		if cfg.IncludePRs || cfg.IncludeIssues {
 			n, err := c.client.countViaLink(ctx, "/repos/"+fullName+"/pulls", cfg.StateFilter)
 			if err != nil {
 				return 0, fmt.Errorf("github estimate: pulls %s: %w", fullName, err)
 			}
-			total += n
+			prCount = n
+		}
+		if cfg.IncludePRs {
+			total += prCount
 		}
 		if cfg.IncludeIssues {
+			// /issues returns issues + PRs; subtract PRs to get the
+			// actual issue count the connector will emit (it filters
+			// PR-shaped items out of the issues stream).
 			n, err := c.client.countViaLink(ctx, "/repos/"+fullName+"/issues", cfg.StateFilter)
 			if err != nil {
 				return 0, fmt.Errorf("github estimate: issues %s: %w", fullName, err)
 			}
-			total += n
+			issuesOnly := n - prCount
+			if issuesOnly < 0 {
+				issuesOnly = 0
+			}
+			total += issuesOnly
 		}
 	}
 	return total, nil

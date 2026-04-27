@@ -13962,6 +13962,9 @@ const docTemplate = `{
         "internal_handler.ragSearchRequest": {
             "type": "object",
             "properties": {
+                "bypass_acl": {
+                    "type": "boolean"
+                },
                 "limit": {
                     "type": "integer"
                 },

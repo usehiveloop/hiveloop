@@ -16,6 +16,7 @@ type Hit = components["schemas"]["ragSearchHit"]
 export function SearchPanel() {
   const [query, setQuery] = useState("")
   const [rerank, setRerank] = useState(false)
+  const [bypassACL, setBypassACL] = useState(true)
   const [hits, setHits] = useState<Hit[]>([])
   const search = $api.useMutation("post", "/v1/rag/search")
 
@@ -23,7 +24,7 @@ export function SearchPanel() {
     const q = query.trim()
     if (!q || search.isPending) return
     search.mutate(
-      { body: { query: q, rerank, limit: 10 } },
+      { body: { query: q, rerank, limit: 10, bypass_acl: bypassACL } },
       {
         onSuccess: (data) => {
           setHits(data?.hits ?? [])
@@ -63,6 +64,13 @@ export function SearchPanel() {
             onCheckedChange={(v) => setRerank(Boolean(v))}
           />
           Rerank
+        </label>
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Checkbox
+            checked={bypassACL}
+            onCheckedChange={(v) => setBypassACL(Boolean(v))}
+          />
+          Bypass ACL
         </label>
         <Button onClick={handleSearch} loading={search.isPending}>
           Search

@@ -116,6 +116,9 @@ func finalizeAttempt(
 	if stats.docsBatched > 0 || src.Status != ragmodel.RAGSourceStatusInitialIndexing {
 		srcUpd["last_successful_index_time"] = now
 	}
+	if stats.docsBatched > 0 {
+		srcUpd["total_docs_indexed"] = gorm.Expr("total_docs_indexed + ?", stats.docsBatched)
+	}
 	if src.Status == ragmodel.RAGSourceStatusInitialIndexing && stats.docsBatched > 0 {
 		srcUpd["status"] = ragmodel.RAGSourceStatusActive
 	}

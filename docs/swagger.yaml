@@ -2854,6 +2854,8 @@ definitions:
     type: object
   internal_handler.ragSearchRequest:
     properties:
+      bypass_acl:
+        type: boolean
       limit:
         type: integer
       query:
