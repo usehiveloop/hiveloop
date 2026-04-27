@@ -12,8 +12,14 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
-	"github.com/usehiveloop/hiveloop/internal/rag/ragpb"
+	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
 )
+
+type aclUpdate struct {
+	docID    string
+	acl      []string
+	isPublic bool
+}
 
 func (d *Deps) HandlePermSync(ctx context.Context, t *asynq.Task) error {
 	deps := d.withDefaults()
@@ -63,20 +69,13 @@ func drainPermSyncStream(
 	stream <-chan interfaces.DocExternalAccessOrFailure,
 ) error {
 	const batchSize = 200
-	batch := make([]*ragpb.UpdateACLEntry, 0, batchSize)
-	batchID := 0
+	batch := make([]aclUpdate, 0, batchSize)
 	flush := func() error {
 		if len(batch) == 0 {
 			return nil
 		}
-		batchID++
-		if _, err := deps.RagClient.UpdateACL(ctx, &ragpb.UpdateACLRequest{
-			DatasetName:    deps.DatasetName,
-			OrgId:          src.OrgIDValue.String(),
-			Entries:        batch,
-			IdempotencyKey: fmt.Sprintf("perm-sync-%s-%d", src.ID, batchID),
-		}); err != nil {
-			return fmt.Errorf("UpdateACL (%d docs): %w", len(batch), err)
+		if err := pushACLToQdrant(ctx, deps, src, batch); err != nil {
+			return err
 		}
 		if err := persistACLLocal(ctx, deps.DB, batch); err != nil {
 			return err
@@ -93,10 +92,10 @@ func drainPermSyncStream(
 		if item.Access == nil || item.Access.ExternalAccess == nil {
 			continue
 		}
-		batch = append(batch, &ragpb.UpdateACLEntry{
-			DocId:    item.Access.DocID,
-			Acl:      append([]string(nil), item.Access.ExternalAccess.ExternalUserEmails...),
-			IsPublic: item.Access.ExternalAccess.IsPublic,
+		batch = append(batch, aclUpdate{
+			docID:    item.Access.DocID,
+			acl:      append([]string(nil), item.Access.ExternalAccess.ExternalUserEmails...),
+			isPublic: item.Access.ExternalAccess.IsPublic,
 		})
 		if len(batch) >= batchSize {
 			if err := flush(); err != nil {
@@ -107,9 +106,45 @@ func drainPermSyncStream(
 	return flush()
 }
 
-// Mirrors the ACL update into rag_documents so search can ACL-filter
-// without round-tripping to the rag-engine on every query.
-func persistACLLocal(ctx context.Context, db *gorm.DB, batch []*ragpb.UpdateACLEntry) error {
+// Qdrant set_payload accepts a single payload object applied to many points.
+// We group updates by ACL+is_public signature so docs sharing perms are
+// updated in one round-trip, instead of one call per doc.
+func pushACLToQdrant(ctx context.Context, deps *Deps, src *ragmodel.RAGSource, batch []aclUpdate) error {
+	groups := map[string][]string{}
+	specs := map[string]aclUpdate{}
+	for _, u := range batch {
+		key := fmt.Sprintf("%v|%s", u.isPublic, joinSorted(u.acl))
+		groups[key] = append(groups[key], qdrant.PointID(src.OrgIDValue.String(), u.docID))
+		specs[key] = u
+	}
+	for key, ids := range groups {
+		spec := specs[key]
+		payload := map[string]any{
+			"acl":       append([]string(nil), spec.acl...),
+			"is_public": spec.isPublic,
+		}
+		if err := deps.Qdrant.SetPayload(ctx, deps.Collection, ids, payload); err != nil {
+			return fmt.Errorf("set_payload (%d docs): %w", len(ids), err)
+		}
+	}
+	return nil
+}
+
+func joinSorted(ss []string) string {
+	cp := append([]string(nil), ss...)
+	for i := 1; i < len(cp); i++ {
+		for j := i; j > 0 && cp[j] < cp[j-1]; j-- {
+			cp[j], cp[j-1] = cp[j-1], cp[j]
+		}
+	}
+	out := ""
+	for _, s := range cp {
+		out += s + ","
+	}
+	return out
+}
+
+func persistACLLocal(ctx context.Context, db *gorm.DB, batch []aclUpdate) error {
 	if len(batch) == 0 {
 		return nil
 	}
@@ -117,17 +152,16 @@ func persistACLLocal(ctx context.Context, db *gorm.DB, batch []*ragpb.UpdateACLE
 	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, u := range batch {
 			if err := tx.Model(&ragmodel.RAGDocument{}).
-				Where("id = ?", u.DocId).
+				Where("id = ?", u.docID).
 				Updates(map[string]any{
-					"external_user_emails": pq.StringArray(u.Acl),
-					"is_public":            u.IsPublic,
+					"external_user_emails": pq.StringArray(u.acl),
+					"is_public":            u.isPublic,
 					"last_modified":        now,
 					"last_synced":          now,
 				}).Error; err != nil {
-				return fmt.Errorf("update rag_documents %s acl: %w", u.DocId, err)
+				return fmt.Errorf("update rag_documents %s acl: %w", u.docID, err)
 			}
 		}
 		return nil
 	})
 }
-

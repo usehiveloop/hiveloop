@@ -20,8 +20,8 @@ import (
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
 	// Blank import populates interfaces.Registry via init().
 	_ "github.com/usehiveloop/hiveloop/internal/rag/connectors"
-	"github.com/usehiveloop/hiveloop/internal/rag/ragclient"
-	"github.com/usehiveloop/hiveloop/internal/rag/ragpb"
+	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
+	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
 	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 	"github.com/usehiveloop/hiveloop/internal/skills"
@@ -250,45 +250,52 @@ func (l *asynqLogger) Fatal(args ...any) {
 	slog.Error(fmt.Sprint(args...))
 }
 
-// buildRagDeps returns nil (worker keeps running, rag:* tasks fail with
-// "handler not found") when the engine isn't configured or unreachable.
+// Returns nil (worker keeps running, rag:* tasks fail with "handler not found")
+// when Qdrant or the embedder isn't configured.
 func buildRagDeps(
 	ctx context.Context,
 	cfg *config.Config,
 	db *gorm.DB,
 	nangoClient *nango.Client,
 ) *ragtasks.Deps {
-	if cfg.RagEngineEndpoint == "" {
-		slog.Warn("rag worker: RAG_ENGINE_ENDPOINT not set — rag:* handlers disabled")
+	if cfg.QdrantEndpoint == "" {
+		slog.Warn("rag worker: QDRANT_ENDPOINT not set — rag:* handlers disabled")
 		return nil
 	}
-	client, err := ragclient.New(ctx, ragclient.Config{
-		Endpoint:     cfg.RagEngineEndpoint,
-		SharedSecret: cfg.RagEngineSharedSecret,
-		DialTimeout:  cfg.RagDialTimeout,
+	if cfg.LLMAPIURL == "" || cfg.LLMAPIKey == "" || cfg.LLMModel == "" {
+		slog.Warn("rag worker: LLM_API_URL/LLM_API_KEY/LLM_MODEL not set — rag:* handlers disabled")
+		return nil
+	}
+	qd := qdrant.New(qdrant.Config{
+		Endpoint: cfg.QdrantEndpoint,
+		APIKey:   cfg.QdrantAPIKey,
 	})
-	if err != nil {
-		slog.Error("rag worker: dial rag-engine failed — rag:* handlers disabled",
-			"endpoint", cfg.RagEngineEndpoint, "err", err)
+	if err := qd.EnsureCollection(ctx, qdrant.CollectionConfig{
+		Name:      cfg.QdrantCollection,
+		VectorDim: cfg.LLMEmbeddingDim,
+		OnDisk:    true,
+	}); err != nil {
+		slog.Error("rag worker: ensure qdrant collection failed — rag:* handlers disabled",
+			"collection", cfg.QdrantCollection, "err", err)
 		return nil
 	}
-	if _, err := client.CreateDataset(ctx, &ragpb.CreateDatasetRequest{
-		DatasetName: cfg.RagDatasetName,
-		VectorDim:   cfg.RagVectorDim,
-	}); err != nil {
-		slog.Warn("rag worker: ensure dataset failed",
-			"dataset", cfg.RagDatasetName, "err", err)
-	}
-	slog.Info("rag worker: rag-engine client ready",
-		"endpoint", cfg.RagEngineEndpoint, "dataset", cfg.RagDatasetName,
-		"vector_dim", cfg.RagVectorDim)
+	embedder := embedclient.NewEmbedder(embedclient.EmbedderConfig{
+		BaseURL: cfg.LLMAPIURL,
+		APIKey:  cfg.LLMAPIKey,
+		Model:   cfg.LLMModel,
+		Dim:     cfg.LLMEmbeddingDim,
+	})
+	slog.Info("rag worker: qdrant + embedder ready",
+		"endpoint", cfg.QdrantEndpoint,
+		"collection", cfg.QdrantCollection,
+		"vector_dim", cfg.LLMEmbeddingDim)
 	return &ragtasks.Deps{
-		DB:                db,
-		RagClient:         client,
-		Nango:             nangoClient,
-		BatchSize:         cfg.RagBatchSize,
-		DatasetName:       cfg.RagDatasetName,
-		DeclaredVectorDim: cfg.RagVectorDim,
+		DB:         db,
+		Qdrant:     qd,
+		Embedder:   embedder,
+		Nango:      nangoClient,
+		Collection: cfg.QdrantCollection,
+		BatchSize:  cfg.RagBatchSize,
 	}
 }
 
