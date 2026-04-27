@@ -10,6 +10,17 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+
+// @Summary Log in
+// @Description Authenticates a user with email and password.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body loginRequest true "Login parameters"
+// @Success 200 {object} authResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -86,14 +97,3 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	h.issueTokensAndRespond(w, http.StatusOK, user, orgID, role)
 }
 
-// Refresh handles POST /auth/refresh.
-// @Summary Refresh tokens
-// @Description Exchanges a refresh token for new access and refresh tokens.
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param body body refreshRequest true "Refresh parameters"
-// @Success 200 {object} authResponse
-// @Failure 400 {object} errorResponse
-// @Failure 401 {object} errorResponse
-// @Router /auth/refresh [post]

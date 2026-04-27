@@ -72,6 +72,10 @@ func TestOTP_NewRequestInvalidatesOld(t *testing.T) {
 	h.db.Where("email = ? AND used_at IS NULL", testEmail).First(&firstOTP)
 	firstCode := recoverCode(t, firstOTP.TokenHash)
 
+	// Sleep past the rapid-fire dedup window so the next request issues a
+	// fresh code (and invalidates the first) instead of short-circuiting.
+	time.Sleep(5*time.Second + 200*time.Millisecond)
+
 	// Request second code — should invalidate the first
 	h.doRequest(t, "POST", "/auth/otp/request", map[string]string{"email": testEmail})
 

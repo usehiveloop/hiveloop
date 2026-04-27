@@ -8,11 +8,12 @@ import (
 
 )
 
-// oauthProfile holds the normalised user info fetched from an OAuth provider.
-
-// provider (e.g. X/Twitter) does not return a user email.
-
-// isPlaceholderEmail reports whether the email is a generated placeholder.
+// @Summary Start GitHub OAuth login
+// @Description Redirects the browser to GitHub's authorization page. Sets a state cookie for CSRF protection.
+// @Tags oauth
+// @Success 307 "Redirect to GitHub"
+// @Failure 404 {object} errorResponse "Provider not configured"
+// @Router /oauth/github [get]
 func (h *OAuthHandler) GitHubLogin(w http.ResponseWriter, r *http.Request) {
 	h.beginLogin(w, r, h.githubConfig)
 }
@@ -77,16 +78,3 @@ func (h *OAuthHandler) beginLogin(w http.ResponseWriter, r *http.Request, cfg *o
 	http.Redirect(w, r, cfg.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier)), http.StatusTemporaryRedirect)
 }
 
-// ---------------------------------------------------------------------------
-// Callback endpoints — handle the redirect back from the provider.
-// ---------------------------------------------------------------------------
-
-// GitHubCallback handles GET /oauth/github/callback.
-// @Summary GitHub OAuth callback
-// @Description Handles the redirect from GitHub after authorization. Exchanges the code for a token, creates or links the user account, and redirects to the frontend with a short-lived exchange token.
-// @Tags oauth
-// @Param code query string true "Authorization code from GitHub"
-// @Param state query string true "CSRF state parameter"
-// @Success 307 "Redirect to frontend with exchange token"
-// @Failure 307 "Redirect to frontend with error"
-// @Router /oauth/github/callback [get]

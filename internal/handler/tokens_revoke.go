@@ -11,11 +11,18 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// TokenHandler manages sandbox proxy token operations.
-
-// MCPServerCache is an interface for evicting cached MCP servers.
-
-// NewTokenHandler creates a new token handler.
+// @Summary Revoke a proxy token
+// @Description Revokes a proxy token by its JTI and propagates through cache tiers.
+// @Tags tokens
+// @Produce json
+// @Param jti path string true "Token JTI"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/tokens/{jti} [delete]
 func (h *TokenHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {

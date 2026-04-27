@@ -8,17 +8,12 @@ import { AgentsTable } from "./_components/agents-table"
 import { AgentsEmpty } from "./_components/agents-empty"
 import { CreateAgentDialog } from "./_components/create-agent-dialog"
 import { AgentsSkeleton } from "./_components/agents-skeleton"
-import { EditAgentPanel } from "./[id]/_components/edit-agent-panel"
 import type { CreationMode } from "./_components/create-agent/types"
-import type { components } from "@/lib/api/schema"
-
-type Agent = components["schemas"]["agentResponse"]
 
 export default function AgentsPage() {
   const [search, setSearch] = useState("")
   const [createOpen, setCreateOpen] = useState(false)
   const [createMode, setCreateMode] = useState<CreationMode | undefined>(undefined)
-  const [editingAgent, setEditingAgent] = useState<Agent | null>(null)
 
   const { data, isLoading } = $api.useQuery("get", "/v1/agents")
   const agents = data?.data ?? []
@@ -62,15 +57,9 @@ export default function AgentsPage() {
       ) : (
         <div className="mx-auto w-full max-w-4xl px-6 py-10">
           <AgentsSearch value={search} onChange={setSearch} />
-          <AgentsTable agents={filtered} onEditAgent={setEditingAgent} />
+          <AgentsTable agents={filtered} />
         </div>
       )}
-
-      <EditAgentPanel
-        open={editingAgent !== null}
-        onOpenChange={(open) => { if (!open) setEditingAgent(null) }}
-        agent={editingAgent}
-      />
     </>
   )
 }

@@ -7,6 +7,15 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+
+// @Summary Get current user
+// @Description Returns the current user and their organization memberships.
+// @Tags auth
+// @Produce json
+// @Success 200 {object} meResponse
+// @Failure 401 {object} errorResponse
+// @Security BearerAuth
+// @Router /auth/me [get]
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.AuthClaimsFromContext(r.Context())
 	if !ok {
@@ -86,13 +95,3 @@ type changePasswordRequest struct {
 	NewPassword     string `json:"new_password"`
 }
 
-// ConfirmEmail handles POST /auth/confirm-email.
-// @Summary Confirm email address
-// @Description Confirms a user's email address using a verification token.
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param body body confirmEmailRequest true "Confirmation token"
-// @Success 200 {object} statusResponse
-// @Failure 400 {object} errorResponse
-// @Router /auth/confirm-email [post]
