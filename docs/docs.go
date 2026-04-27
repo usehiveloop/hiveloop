@@ -13968,6 +13968,10 @@ const docTemplate = `{
                 "limit": {
                     "type": "integer"
                 },
+                "mode": {
+                    "description": "\"hybrid\" | \"vector\" | \"bm25\" (default hybrid)",
+                    "type": "string"
+                },
                 "query": {
                     "type": "string"
                 },

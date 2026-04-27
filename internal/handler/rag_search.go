@@ -21,9 +21,21 @@ func NewRAGSearchHandler(client *ragclient.Client, datasetName string) *RAGSearc
 
 type ragSearchRequest struct {
 	Query     string `json:"query"`
+	Mode      string `json:"mode,omitempty"` // "hybrid" | "vector" | "bm25" (default hybrid)
 	Rerank    bool   `json:"rerank,omitempty"`
 	Limit     uint32 `json:"limit,omitempty"`
 	BypassACL bool   `json:"bypass_acl,omitempty"`
+}
+
+func resolveSearchMode(s string) ragpb.SearchMode {
+	switch s {
+	case "vector":
+		return ragpb.SearchMode_SEARCH_MODE_VECTOR_ONLY
+	case "bm25":
+		return ragpb.SearchMode_SEARCH_MODE_BM25_ONLY
+	default:
+		return ragpb.SearchMode_SEARCH_MODE_HYBRID
+	}
 }
 
 type ragSearchHit struct {
@@ -94,7 +106,7 @@ func (h *RAGSearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 		DatasetName:   h.datasetName,
 		OrgId:         org.ID.String(),
 		QueryText:     req.Query,
-		Mode:          ragpb.SearchMode_SEARCH_MODE_HYBRID,
+		Mode:          resolveSearchMode(req.Mode),
 		AclAnyOf:      acl,
 		IncludePublic: true,
 		Limit:         limit,

@@ -12476,6 +12476,8 @@ export interface components {
         ragSearchRequest: {
             bypass_acl?: boolean;
             limit?: number;
+            /** @description "hybrid" | "vector" | "bm25" (default hybrid) */
+            mode?: string;
             query?: string;
             rerank?: boolean;
         };

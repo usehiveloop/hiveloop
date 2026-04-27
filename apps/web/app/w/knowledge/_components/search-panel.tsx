@@ -7,6 +7,13 @@ import { extractErrorMessage } from "@/lib/api/error"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Search01Icon } from "@hugeicons/core-free-icons"
 import type { components } from "@/lib/api/schema"
@@ -15,6 +22,7 @@ type Hit = components["schemas"]["ragSearchHit"]
 
 export function SearchPanel() {
   const [query, setQuery] = useState("")
+  const [mode, setMode] = useState<"hybrid" | "vector" | "bm25">("hybrid")
   const [rerank, setRerank] = useState(false)
   const [bypassACL, setBypassACL] = useState(true)
   const [hits, setHits] = useState<Hit[]>([])
@@ -24,7 +32,7 @@ export function SearchPanel() {
     const q = query.trim()
     if (!q || search.isPending) return
     search.mutate(
-      { body: { query: q, rerank, limit: 10, bypass_acl: bypassACL } },
+      { body: { query: q, mode, rerank, limit: 10, bypass_acl: bypassACL } },
       {
         onSuccess: (data) => {
           setHits(data?.hits ?? [])
@@ -58,6 +66,19 @@ export function SearchPanel() {
             className="pl-9"
           />
         </div>
+        <Select
+          value={mode}
+          onValueChange={(v) => setMode(v as typeof mode)}
+        >
+          <SelectTrigger className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="hybrid">Hybrid</SelectItem>
+            <SelectItem value="vector">Vector</SelectItem>
+            <SelectItem value="bm25">BM25</SelectItem>
+          </SelectContent>
+        </Select>
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
           <Checkbox
             checked={rerank}
