@@ -171,15 +171,23 @@ type Config struct {
 	PostHogEndpoint string `env:"POSTHOG_ENDPOINT" envDefault:"https://us.i.posthog.com"`
 	PostHogEnabled  bool   `env:"POSTHOG_ENABLED" envDefault:"false"`
 
-	// RAG engine (Rust sidecar). Empty RagEngineEndpoint disables the
-	// ingest/perm_sync/prune task handlers — the worker still starts but
-	// rag:* tasks fail with "handler not found".
-	RagEngineEndpoint     string        `env:"RAG_ENGINE_ENDPOINT"`
-	RagEngineSharedSecret string        `env:"RAG_ENGINE_SHARED_SECRET"`
-	RagDatasetName        string        `env:"RAG_DATASET_NAME" envDefault:"default"`
-	RagVectorDim          uint32        `env:"RAG_VECTOR_DIM" envDefault:"3072"`
-	RagBatchSize          int           `env:"RAG_BATCH_SIZE" envDefault:"500"`
-	RagDialTimeout        time.Duration `env:"RAG_DIAL_TIMEOUT" envDefault:"10s"`
+	// Qdrant (vector store). Empty QdrantEndpoint disables RAG.
+	QdrantEndpoint   string `env:"QDRANT_ENDPOINT"`
+	QdrantAPIKey     string `env:"QDRANT_API_KEY"`
+	QdrantCollection string `env:"QDRANT_COLLECTION" envDefault:"rag_chunks_3072"`
+
+	// Embedder (OpenAI-compatible).
+	LLMAPIURL       string `env:"LLM_API_URL"`
+	LLMAPIKey       string `env:"LLM_API_KEY"`
+	LLMModel        string `env:"LLM_MODEL"`
+	LLMEmbeddingDim uint32 `env:"LLM_EMBEDDING_DIM" envDefault:"3072"`
+
+	// Reranker (Cohere-compatible via OpenRouter).
+	RerankerBaseURL string `env:"RERANKER_BASE_URL"`
+	RerankerAPIKey  string `env:"RERANKER_API_KEY"`
+	RerankerModel   string `env:"RERANKER_MODEL"`
+
+	RagBatchSize int `env:"RAG_BATCH_SIZE" envDefault:"100"`
 
 	// Paystack (billing provider). Empty PaystackSecretKey disables the
 	// provider — the billing registry simply won't include it and checkout

@@ -12,7 +12,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
-	"github.com/usehiveloop/hiveloop/internal/rag/ragpb"
+	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
 )
 
 func (d *Deps) HandlePrune(ctx context.Context, t *asynq.Task) error {
@@ -48,13 +48,12 @@ func (d *Deps) HandlePrune(ctx context.Context, t *asynq.Task) error {
 		return touchLastPruned(ctx, deps.DB, src.ID)
 	}
 
-	if _, err := deps.RagClient.Prune(ctx, &ragpb.PruneRequest{
-		DatasetName:    deps.DatasetName,
-		OrgId:          src.OrgIDValue.String(),
-		KeepDocIds:     keep,
-		IdempotencyKey: fmt.Sprintf("prune-%s-%d", src.ID, time.Now().Unix()),
-	}); err != nil {
-		return fmt.Errorf("prune %s: ragclient.Prune: %w", src.ID, err)
+	pointIDs := make([]string, len(deletedIDs))
+	for i, docID := range deletedIDs {
+		pointIDs[i] = qdrant.PointID(src.OrgIDValue.String(), docID)
+	}
+	if err := deps.Qdrant.DeleteByIDs(ctx, deps.Collection, pointIDs); err != nil {
+		return fmt.Errorf("prune %s: qdrant delete: %w", src.ID, err)
 	}
 	if err := deleteOrphanDocs(ctx, deps.DB, deletedIDs); err != nil {
 		return err
@@ -62,9 +61,6 @@ func (d *Deps) HandlePrune(ctx context.Context, t *asynq.Task) error {
 	return touchLastPruned(ctx, deps.DB, src.ID)
 }
 
-// A failure during slim listing must abort the prune: a missing entity
-// would otherwise drop out of the keep set and trigger a spurious
-// deletion when the source is just flaky.
 func drainSlim(
 	ctx context.Context,
 	slim interfaces.SlimConnector,
@@ -87,9 +83,6 @@ func drainSlim(
 	return keep, nil
 }
 
-// keep being empty is permitted (means "delete every doc"). The
-// rag-engine refuses an empty keep set on the gRPC side, which is the
-// safety net.
 func pruneDeletedDocs(
 	ctx context.Context,
 	db *gorm.DB,
@@ -117,8 +110,7 @@ func pruneDeletedDocs(
 	return deletedIDs, nil
 }
 
-// A document indexed by two sources where one prunes it stays in
-// rag_documents — only strict orphans are deleted.
+// A doc shared by two sources stays in rag_documents — only strict orphans go.
 func deleteOrphanDocs(ctx context.Context, db *gorm.DB, candidateIDs []string) error {
 	if len(candidateIDs) == 0 {
 		return nil
@@ -151,4 +143,3 @@ func touchLastPruned(ctx context.Context, db *gorm.DB, sourceID uuid.UUID) error
 	}
 	return nil
 }
-
