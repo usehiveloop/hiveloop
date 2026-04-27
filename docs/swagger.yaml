@@ -2829,6 +2829,47 @@ definitions:
       total:
         type: integer
     type: object
+  internal_handler.ragSearchHit:
+    properties:
+      blurb:
+        type: string
+      bm25_score:
+        type: number
+      chunk_id:
+        type: string
+      chunk_index:
+        type: integer
+      content:
+        type: string
+      doc_id:
+        type: string
+      doc_updated_at:
+        type: string
+      rerank_score:
+        type: number
+      score:
+        type: number
+      vector_score:
+        type: number
+    type: object
+  internal_handler.ragSearchRequest:
+    properties:
+      limit:
+        type: integer
+      query:
+        type: string
+      rerank:
+        type: boolean
+    type: object
+  internal_handler.ragSearchResponse:
+    properties:
+      after_rerank:
+        type: integer
+      hits:
+        items:
+          $ref: '#/definitions/internal_handler.ragSearchHit'
+        type: array
+    type: object
   internal_handler.ragSourceDetailResponse:
     properties:
       access_type:
@@ -8276,6 +8317,30 @@ paths:
       security:
       - BearerAuth: []
       summary: List RAG-supported integrations
+      tags:
+      - rag
+  /v1/rag/search:
+    post:
+      consumes:
+      - application/json
+      description: Run a BM25 search against the org's RAG dataset, optionally reranked.
+      parameters:
+      - description: Search query
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.ragSearchRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.ragSearchResponse'
+      security:
+      - BearerAuth: []
+      summary: Search the knowledge base
       tags:
       - rag
   /v1/rag/sources:
