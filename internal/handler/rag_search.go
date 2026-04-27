@@ -62,6 +62,11 @@ func (h *RAGSearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "missing org context"})
 		return
 	}
+	user, ok := middleware.UserFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "missing user context"})
+		return
+	}
 
 	var req ragSearchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -77,13 +82,21 @@ func (h *RAGSearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 		limit = 10
 	}
 
+	acl := []string{}
+	if user.Email != "" {
+		acl = append(acl, user.Email)
+	}
+
 	resp, err := h.client.Search(r.Context(), &ragpb.SearchRequest{
-		DatasetName: h.datasetName,
-		OrgId:       org.ID.String(),
-		QueryText:   req.Query,
-		Mode:        ragpb.SearchMode_SEARCH_MODE_BM25_ONLY,
-		Limit:       limit,
-		Rerank:      req.Rerank,
+		DatasetName:   h.datasetName,
+		OrgId:         org.ID.String(),
+		QueryText:     req.Query,
+		Mode:          ragpb.SearchMode_SEARCH_MODE_HYBRID,
+		AclAnyOf:      acl,
+		IncludePublic: true,
+		Limit:         limit,
+		HybridAlpha:   0.7,
+		Rerank:        req.Rerank,
 	})
 	if err != nil {
 		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
