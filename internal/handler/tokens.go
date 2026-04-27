@@ -51,18 +51,3 @@ type mintTokenResponse struct {
 }
 
 const maxTokenTTL = 24 * time.Hour
-
-// Mint handles POST /v1/tokens.
-// @Summary Mint a proxy token
-// @Description Creates a short-lived JWT proxy token scoped to a credential.
-// @Tags tokens
-// @Accept json
-// @Produce json
-// @Param body body mintTokenRequest true "Token minting parameters"
-// @Success 201 {object} mintTokenResponse
-// @Failure 400 {object} errorResponse
-// @Failure 401 {object} errorResponse
-// @Failure 404 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Security BearerAuth
-// @Router /v1/tokens [post]

@@ -35,7 +35,7 @@ import {
   type AgentIntegrations,
 } from "@/app/w/agents/_components/manage-integrations-dialog"
 import { EditTriggersDialog } from "@/app/w/agents/_components/edit-triggers-dialog"
-import { ToolPermissionsSection } from "@/app/w/agents/[id]/_components/edit-agent-panel/tool-permissions"
+import { ToolPermissionsSection } from "@/app/w/agents/_components/create-agent/tool-permissions"
 import { AgentAvatarPicker } from "./_components/agent-avatar-picker"
 import { CategoryCombobox } from "./_components/category-combobox"
 import type { components } from "@/lib/api/schema"

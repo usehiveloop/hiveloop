@@ -31,8 +31,8 @@ func newAgentAPIHarness(t *testing.T) *agentAPIHarness {
 
 	suffix := uuid.New().String()[:8]
 
-	// Create org
-	org := model.Org{Name: "e2e-agent-api-" + suffix}
+	// Create org with BYOK so credential_id + model are accepted on agent create.
+	org := model.Org{Name: "e2e-agent-api-" + suffix, BYOK: true}
 	if err := h.db.Create(&org).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
@@ -339,8 +339,8 @@ func TestAgentAPI_CRUD(t *testing.T) {
 func TestAgentAPI_Validation(t *testing.T) {
 	h := newAgentAPIHarness(t)
 
-	// Missing required fields
-	rr := h.request(t, http.MethodPost, "/v1/agents", `{"name": "test"}`)
+	// Missing required fields (name is required)
+	rr := h.request(t, http.MethodPost, "/v1/agents", `{}`)
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("missing fields: expected 400, got %d: %s", rr.Code, rr.Body.String())
 	}

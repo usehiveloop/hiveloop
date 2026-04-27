@@ -6,6 +6,7 @@ var BaseResource = class {
   constructor(client) {
     this.client = client;
   }
+  client;
 };
 
 // src/resources/agents.ts
