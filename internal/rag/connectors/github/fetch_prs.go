@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
@@ -21,6 +22,9 @@ func fetchPRsPage(
 	out chan<- interfaces.DocumentOrFailure,
 ) bool {
 	prs, next, err := client.listPullRequestsPage(ctx, fullName, state, cp.CurrPage)
+	slog.Info("github fetch prs",
+		"repo", fullName, "state", state, "page", cp.CurrPage,
+		"got", len(prs), "next", next, "err", err)
 	if err != nil {
 		if errors.Is(err, errRateLimited) {
 			out <- interfaces.NewDocFailure(entityFailure(fullName,
@@ -33,9 +37,12 @@ func fetchPRsPage(
 	}
 
 	earlyBreak := false
+	emitted := 0
+	skippedAfterEnd := 0
 	for i := range prs {
 		pr := prs[i]
 		if !end.IsZero() && pr.UpdatedAt.After(end) {
+			skippedAfterEnd++
 			continue
 		}
 		// Page is sorted updated-desc; anything older than start means
@@ -50,7 +57,12 @@ func fetchPRsPage(
 		}
 		doc := prToDocument(fullName, pr, access)
 		out <- interfaces.NewDocResult(&doc)
+		emitted++
 	}
+	slog.Info("github prs page emit",
+		"repo", fullName, "page", cp.CurrPage,
+		"emitted", emitted, "skipped_after_end", skippedAfterEnd,
+		"early_break", earlyBreak)
 	if earlyBreak || next == 0 {
 		return true
 	}
