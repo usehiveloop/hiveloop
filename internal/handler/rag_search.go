@@ -1,63 +1,55 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/rag/ragclient"
-	"github.com/usehiveloop/hiveloop/internal/rag/ragpb"
+	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
+	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
 )
 
 type RAGSearchHandler struct {
-	client      *ragclient.Client
-	datasetName string
+	qd         *qdrant.Client
+	embedder   *embedclient.Embedder
+	reranker   *embedclient.Reranker
+	collection string
 }
 
-func NewRAGSearchHandler(client *ragclient.Client, datasetName string) *RAGSearchHandler {
-	return &RAGSearchHandler{client: client, datasetName: datasetName}
+func NewRAGSearchHandler(qd *qdrant.Client, embedder *embedclient.Embedder,
+	reranker *embedclient.Reranker, collection string) *RAGSearchHandler {
+	return &RAGSearchHandler{qd: qd, embedder: embedder, reranker: reranker, collection: collection}
 }
 
 type ragSearchRequest struct {
 	Query     string `json:"query"`
-	Mode      string `json:"mode,omitempty"` // "hybrid" | "vector" | "bm25" (default hybrid)
 	Rerank    bool   `json:"rerank,omitempty"`
 	Limit     uint32 `json:"limit,omitempty"`
 	BypassACL bool   `json:"bypass_acl,omitempty"`
 }
 
-func resolveSearchMode(s string) ragpb.SearchMode {
-	switch s {
-	case "vector":
-		return ragpb.SearchMode_SEARCH_MODE_VECTOR_ONLY
-	case "bm25":
-		return ragpb.SearchMode_SEARCH_MODE_BM25_ONLY
-	default:
-		return ragpb.SearchMode_SEARCH_MODE_HYBRID
-	}
-}
-
 type ragSearchHit struct {
-	ChunkID      string  `json:"chunk_id"`
-	DocID        string  `json:"doc_id"`
-	ChunkIndex   uint32  `json:"chunk_index"`
-	Score        float64 `json:"score"`
-	Bm25Score    float64 `json:"bm25_score"`
-	VectorScore  float64 `json:"vector_score"`
-	RerankScore  float64 `json:"rerank_score"`
-	Blurb        string  `json:"blurb"`
-	Content      string  `json:"content"`
-	DocUpdatedAt *string `json:"doc_updated_at,omitempty"`
+	ID          string  `json:"id"`
+	DocID       string  `json:"doc_id"`
+	Score       float64 `json:"score"`
+	RerankScore float64 `json:"rerank_score,omitempty"`
+	Title       string  `json:"title,omitempty"`
+	Link        string  `json:"link,omitempty"`
+	Blurb       string  `json:"blurb,omitempty"`
+	Content     string  `json:"content,omitempty"`
 }
 
 type ragSearchResponse struct {
-	Hits        []ragSearchHit `json:"hits"`
-	AfterRerank uint32         `json:"after_rerank"`
+	Hits []ragSearchHit `json:"hits"`
 }
 
+const candidatePool uint32 = 50
+
 // @Summary Search the knowledge base
-// @Description Run a BM25 search against the org's RAG dataset, optionally reranked.
+// @Description Hybrid retrieval against the org's RAG dataset, optionally reranked.
 // @Tags rag
 // @Accept json
 // @Produce json
@@ -66,8 +58,8 @@ type ragSearchResponse struct {
 // @Security BearerAuth
 // @Router /v1/rag/search [post]
 func (h *RAGSearchHandler) Search(w http.ResponseWriter, r *http.Request) {
-	if h.client == nil {
-		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: "rag engine not configured"})
+	if h.qd == nil || h.embedder == nil {
+		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: "rag search not configured"})
 		return
 	}
 	org, ok := middleware.OrgFromContext(r.Context())
@@ -86,7 +78,7 @@ func (h *RAGSearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 		return
 	}
-	if req.Query == "" {
+	if strings.TrimSpace(req.Query) == "" {
 		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "query is required"})
 		return
 	}
@@ -95,50 +87,101 @@ func (h *RAGSearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 		limit = 10
 	}
 
-	var acl []string
-	if req.BypassACL {
-		acl = []string{"*"}
-	} else if user.Email != "" {
-		acl = []string{user.Email}
-	}
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
 
-	resp, err := h.client.Search(r.Context(), &ragpb.SearchRequest{
-		DatasetName:   h.datasetName,
-		OrgId:         org.ID.String(),
-		QueryText:     req.Query,
-		Mode:          resolveSearchMode(req.Mode),
-		AclAnyOf:      acl,
-		IncludePublic: true,
-		Limit:         limit,
-		HybridAlpha:   0.7,
-		Rerank:        req.Rerank,
-	})
+	vectors, err := h.embedder.Embed(ctx, []string{req.Query})
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
+		writeJSON(w, http.StatusBadGateway, errorResponse{Error: "embed query: " + err.Error()})
 		return
 	}
 
-	out := ragSearchResponse{
-		Hits:        make([]ragSearchHit, 0, len(resp.GetHits())),
-		AfterRerank: resp.GetAfterRerank(),
+	acl := []string{}
+	if user.Email != "" {
+		acl = append(acl, user.Email)
 	}
-	for _, h := range resp.GetHits() {
-		hit := ragSearchHit{
-			ChunkID:     h.GetChunkId(),
-			DocID:       h.GetDocId(),
-			ChunkIndex:  h.GetChunkIndex(),
-			Score:       h.GetScore(),
-			Bm25Score:   h.GetBm25Score(),
-			VectorScore: h.GetVectorScore(),
-			RerankScore: h.GetRerankScore(),
-			Blurb:       h.GetBlurb(),
-			Content:     h.GetContent(),
+	filter := qdrant.BuildACLFilter(org.ID.String(), acl, req.BypassACL)
+
+	topK := limit
+	if req.Rerank && h.reranker != nil {
+		topK = candidatePool
+	}
+	hits, err := h.qd.Search(ctx, qdrant.SearchRequest{
+		Collection:  h.collection,
+		Vector:      vectors[0],
+		Filter:      filter,
+		Limit:       topK,
+		WithPayload: true,
+	})
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, errorResponse{Error: "qdrant search: " + err.Error()})
+		return
+	}
+
+	out := ragSearchResponse{Hits: hitsToResponse(hits)}
+	if req.Rerank && h.reranker != nil && len(hits) > 0 {
+		reranked, err := rerankHits(ctx, h.reranker, req.Query, out.Hits, int(limit))
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, errorResponse{Error: "rerank: " + err.Error()})
+			return
 		}
-		if t := h.GetDocUpdatedAt(); t != nil {
-			s := t.AsTime().Format(time.RFC3339)
-			hit.DocUpdatedAt = &s
-		}
-		out.Hits = append(out.Hits, hit)
+		out.Hits = reranked
+	} else if len(out.Hits) > int(limit) {
+		out.Hits = out.Hits[:limit]
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+func hitsToResponse(hits []qdrant.Hit) []ragSearchHit {
+	out := make([]ragSearchHit, 0, len(hits))
+	for _, h := range hits {
+		hit := ragSearchHit{ID: h.ID, Score: h.Score}
+		if h.Payload != nil {
+			if v, ok := h.Payload["doc_id"].(string); ok {
+				hit.DocID = v
+			}
+			if v, ok := h.Payload["semantic_id"].(string); ok {
+				hit.Title = v
+			}
+			if v, ok := h.Payload["link"].(string); ok {
+				hit.Link = v
+			}
+			if v, ok := h.Payload["content"].(string); ok {
+				hit.Content = v
+				if len(v) > 200 {
+					hit.Blurb = v[:200]
+				} else {
+					hit.Blurb = v
+				}
+			}
+		}
+		out = append(out, hit)
+	}
+	return out
+}
+
+func rerankHits(ctx context.Context, rer *embedclient.Reranker, query string,
+	hits []ragSearchHit, topN int) ([]ragSearchHit, error) {
+	docs := make([]string, len(hits))
+	for i := range hits {
+		c := hits[i].Content
+		if len(c) > 1500 {
+			c = c[:1500]
+		}
+		docs[i] = c
+	}
+	results, err := rer.Rerank(ctx, query, docs, topN)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ragSearchHit, 0, len(results))
+	for _, r := range results {
+		if r.Index < 0 || r.Index >= len(hits) {
+			continue
+		}
+		hit := hits[r.Index]
+		hit.RerankScore = r.Score
+		out = append(out, hit)
+	}
+	return out, nil
 }

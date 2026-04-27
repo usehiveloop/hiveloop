@@ -15,11 +15,19 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/token"
 )
 
-// TokenHandler manages sandbox proxy token operations.
-
-// MCPServerCache is an interface for evicting cached MCP servers.
-
-// NewTokenHandler creates a new token handler.
+// @Summary Mint a proxy token
+// @Description Creates a short-lived JWT proxy token scoped to a credential.
+// @Tags tokens
+// @Accept json
+// @Produce json
+// @Param body body mintTokenRequest true "Token minting parameters"
+// @Success 201 {object} mintTokenResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/tokens [post]
 func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -191,17 +199,3 @@ func toTokenListItem(t model.Token) tokenListItem {
 	return item
 }
 
-// List handles GET /v1/tokens.
-// @Summary List tokens
-// @Description Returns tokens for the organization with cursor pagination. Supports filtering by credential_id.
-// @Tags tokens
-// @Produce json
-// @Param limit query int false "Max items per page (1-100, default 50)"
-// @Param cursor query string false "Pagination cursor from previous response"
-// @Param credential_id query string false "Filter by credential ID"
-// @Success 200 {object} paginatedResponse[tokenListItem]
-// @Failure 400 {object} errorResponse
-// @Failure 401 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Security BearerAuth
-// @Router /v1/tokens [get]

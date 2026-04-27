@@ -3416,6 +3416,174 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/confirm-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm email address
+         * @description Confirms a user's email address using a verification token.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Confirmation token */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["confirmEmailRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request password reset
+         * @description Sends a password reset link to the email address if an account exists.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Email address */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["forgotPasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log in
+         * @description Authenticates a user with email and password.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Login parameters */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["loginRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/logout": {
         parameters: {
             query?: never;
@@ -3596,6 +3764,68 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["otpVerifyPayload"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh tokens
+         * @description Exchanges a refresh token for new access and refresh tokens.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Refresh parameters */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["refreshRequest"];
                 };
             };
             responses: {
@@ -3963,6 +4193,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/oauth/github": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Start GitHub OAuth login
+         * @description Redirects the browser to GitHub's authorization page. Sets a state cookie for CSRF protection.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect to GitHub */
+                307: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Provider not configured */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/github/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GitHub OAuth callback
+         * @description Handles the redirect from GitHub after authorization. Exchanges the code for a token, creates or links the user account, and redirects to the frontend with a short-lived exchange token.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Authorization code from GitHub */
+                    code: string;
+                    /** @description CSRF state parameter */
+                    state: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect to frontend with error */
+                307: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/oauth/google": {
         parameters: {
             query?: never;
@@ -4258,6 +4576,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/agents/built-in-tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List built-in tools
+         * @description Returns the catalog of built-in tools that can be granted to an agent.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BuiltInToolDefinition"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/agents/categories": {
         parameters: {
             query?: never;
@@ -4285,6 +4642,45 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["agentCategory"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/sandbox-tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List sandbox tools
+         * @description Returns the catalog of sandbox tools that can be granted to an agent.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SandboxToolDefinition"][];
                     };
                 };
             };
@@ -8385,7 +8781,7 @@ export interface paths {
         put?: never;
         /**
          * Search the knowledge base
-         * @description Run a BM25 search against the org's RAG dataset, optionally reranked.
+         * @description Hybrid retrieval against the org's RAG dataset, optionally reranked.
          */
         post: {
             parameters: {
@@ -10927,6 +11323,223 @@ export interface paths {
         };
         trace?: never;
     };
+    "/v1/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List tokens
+         * @description Returns tokens for the organization with cursor pagination. Supports filtering by credential_id.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Max items per page (1-100, default 50) */
+                    limit?: number;
+                    /** @description Pagination cursor from previous response */
+                    cursor?: string;
+                    /** @description Filter by credential ID */
+                    credential_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-tokenListItem"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Mint a proxy token
+         * @description Creates a short-lived JWT proxy token scoped to a credential.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Token minting parameters */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["mintTokenRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["mintTokenResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tokens/{jti}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke a proxy token
+         * @description Revokes a proxy token by its JTI and propagates through cache tiers.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Token JTI */
+                    jti: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/usage": {
         parameters: {
             query?: never;
@@ -10979,6 +11592,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        "github_com_usehiveloop_hiveloop_internal_mcp.TokenScope": {
+            actions?: string[];
+            connection_id?: string;
+            resources?: {
+                [key: string]: string[];
+            };
+        };
         ConfigurableResourceSummary: {
             description?: string;
             display_name?: string;
@@ -11390,6 +12010,19 @@ export interface components {
             body?: string;
             path?: string;
         };
+        BuiltInToolDefinition: {
+            category?: string;
+            description?: string;
+            id?: string;
+            /** @description true = cannot be toggled off by the user */
+            locked?: boolean;
+            name?: string;
+        };
+        SandboxToolDefinition: {
+            description?: string;
+            id?: string;
+            name?: string;
+        };
         actionSchemaPaths: {
             paths?: components["schemas"]["schemaPath"][];
             response_schema?: string;
@@ -11799,6 +12432,9 @@ export interface components {
             exit_code?: number;
             output?: string;
         };
+        confirmEmailRequest: {
+            token?: string;
+        };
         conversationEventResponse: {
             agent_id?: string;
             bridge_conversation_id?: string;
@@ -12039,6 +12675,9 @@ export interface components {
             results?: components["schemas"]["commandResult"][];
             success?: boolean;
         };
+        forgotPasswordRequest: {
+            email?: string;
+        };
         generationResponse: {
             cached_tokens?: number;
             cost?: number;
@@ -12121,6 +12760,12 @@ export interface components {
         listOrgMembersResponse: {
             data?: components["schemas"]["orgMemberResponse"][];
         };
+        loginRequest: {
+            email?: string;
+            /** @description optional: scope token to a specific org */
+            org_id?: string;
+            password?: string;
+        };
         logoutRequest: {
             refresh_token?: string;
         };
@@ -12160,6 +12805,22 @@ export interface components {
             is_platform_admin?: boolean;
             orgs?: components["schemas"]["orgMemberDTO"][];
             user?: components["schemas"]["userResponse"];
+        };
+        mintTokenRequest: {
+            credential_id?: string;
+            meta?: components["schemas"]["JSON"];
+            refill_amount?: number;
+            refill_interval?: string;
+            remaining?: number;
+            scopes?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_mcp.TokenScope"][];
+            /** @description e.g. "1h", "24h" */
+            ttl?: string;
+        };
+        mintTokenResponse: {
+            expires_at?: string;
+            jti?: string;
+            mcp_endpoint?: string;
+            token?: string;
         };
         modelSummary: {
             cost?: components["schemas"]["Cost"];
@@ -12354,6 +13015,11 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        "paginatedResponse-tokenListItem": {
+            data?: components["schemas"]["tokenListItem"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         planDTO: {
             currency?: string;
             monthly_credits?: number;
@@ -12463,26 +13129,21 @@ export interface components {
         };
         ragSearchHit: {
             blurb?: string;
-            bm25_score?: number;
-            chunk_id?: string;
-            chunk_index?: number;
             content?: string;
             doc_id?: string;
-            doc_updated_at?: string;
+            id?: string;
+            link?: string;
             rerank_score?: number;
             score?: number;
-            vector_score?: number;
+            title?: string;
         };
         ragSearchRequest: {
             bypass_acl?: boolean;
             limit?: number;
-            /** @description "hybrid" | "vector" | "bm25" (default hybrid) */
-            mode?: string;
             query?: string;
             rerank?: boolean;
         };
         ragSearchResponse: {
-            after_rerank?: number;
             hits?: components["schemas"]["ragSearchHit"][];
         };
         ragSourceDetailResponse: {
@@ -12531,6 +13192,11 @@ export interface components {
             status?: string;
             total_docs_indexed?: number;
             updated_at?: string;
+        };
+        refreshRequest: {
+            /** @description optional: switch org */
+            org_id?: string;
+            refresh_token?: string;
         };
         reportRow: {
             avg_ttfb_ms?: number;
@@ -12714,6 +13380,19 @@ export interface components {
             label?: string;
             provider_id?: string;
             revoked_at?: string;
+        };
+        tokenListItem: {
+            created_at?: string;
+            credential_id?: string;
+            expires_at?: string;
+            id?: string;
+            jti?: string;
+            meta?: components["schemas"]["JSON"];
+            refill_amount?: number;
+            refill_interval?: string;
+            remaining?: number;
+            revoked_at?: string;
+            scopes?: components["schemas"]["JSON"];
         };
         tokenStats: {
             active?: number;

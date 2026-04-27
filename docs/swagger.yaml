@@ -1,5 +1,20 @@
 basePath: /
 definitions:
+  github_com_usehiveloop_hiveloop_internal_mcp.TokenScope:
+    properties:
+      actions:
+        items:
+          type: string
+        type: array
+      connection_id:
+        type: string
+      resources:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        type: object
+    type: object
   github_com_usehiveloop_hiveloop_internal_mcp_catalog.ConfigurableResourceSummary:
     properties:
       description:
@@ -707,6 +722,29 @@ definitions:
       body:
         type: string
       path:
+        type: string
+    type: object
+  internal_handler.BuiltInToolDefinition:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      locked:
+        description: true = cannot be toggled off by the user
+        type: boolean
+      name:
+        type: string
+    type: object
+  internal_handler.SandboxToolDefinition:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
         type: string
     type: object
   internal_handler.actionSchemaPaths:
@@ -1508,6 +1546,11 @@ definitions:
       output:
         type: string
     type: object
+  internal_handler.confirmEmailRequest:
+    properties:
+      token:
+        type: string
+    type: object
   internal_handler.conversationEventResponse:
     properties:
       agent_id:
@@ -1973,6 +2016,11 @@ definitions:
       success:
         type: boolean
     type: object
+  internal_handler.forgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    type: object
   internal_handler.generationResponse:
     properties:
       cached_tokens:
@@ -2134,6 +2182,16 @@ definitions:
           $ref: '#/definitions/internal_handler.orgMemberResponse'
         type: array
     type: object
+  internal_handler.loginRequest:
+    properties:
+      email:
+        type: string
+      org_id:
+        description: 'optional: scope token to a specific org'
+        type: string
+      password:
+        type: string
+    type: object
   internal_handler.logoutRequest:
     properties:
       refresh_token:
@@ -2216,6 +2274,37 @@ definitions:
         type: array
       user:
         $ref: '#/definitions/internal_handler.userResponse'
+    type: object
+  internal_handler.mintTokenRequest:
+    properties:
+      credential_id:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      refill_amount:
+        type: integer
+      refill_interval:
+        type: string
+      remaining:
+        type: integer
+      scopes:
+        items:
+          $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp.TokenScope'
+        type: array
+      ttl:
+        description: e.g. "1h", "24h"
+        type: string
+    type: object
+  internal_handler.mintTokenResponse:
+    properties:
+      expires_at:
+        type: string
+      jti:
+        type: string
+      mcp_endpoint:
+        type: string
+      token:
+        type: string
     type: object
   internal_handler.modelSummary:
     properties:
@@ -2618,6 +2707,17 @@ definitions:
       next_cursor:
         type: string
     type: object
+  internal_handler.paginatedResponse-internal_handler_tokenListItem:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.tokenListItem'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
   internal_handler.planDTO:
     properties:
       currency:
@@ -2833,24 +2933,20 @@ definitions:
     properties:
       blurb:
         type: string
-      bm25_score:
-        type: number
-      chunk_id:
-        type: string
-      chunk_index:
-        type: integer
       content:
         type: string
       doc_id:
         type: string
-      doc_updated_at:
+      id:
+        type: string
+      link:
         type: string
       rerank_score:
         type: number
       score:
         type: number
-      vector_score:
-        type: number
+      title:
+        type: string
     type: object
   internal_handler.ragSearchRequest:
     properties:
@@ -2858,9 +2954,6 @@ definitions:
         type: boolean
       limit:
         type: integer
-      mode:
-        description: '"hybrid" | "vector" | "bm25" (default hybrid)'
-        type: string
       query:
         type: string
       rerank:
@@ -2868,8 +2961,6 @@ definitions:
     type: object
   internal_handler.ragSearchResponse:
     properties:
-      after_rerank:
-        type: integer
       hits:
         items:
           $ref: '#/definitions/internal_handler.ragSearchHit'
@@ -2971,6 +3062,14 @@ definitions:
       total_docs_indexed:
         type: integer
       updated_at:
+        type: string
+    type: object
+  internal_handler.refreshRequest:
+    properties:
+      org_id:
+        description: 'optional: switch org'
+        type: string
+      refresh_token:
         type: string
     type: object
   internal_handler.reportRow:
@@ -3321,6 +3420,31 @@ definitions:
         type: string
       revoked_at:
         type: string
+    type: object
+  internal_handler.tokenListItem:
+    properties:
+      created_at:
+        type: string
+      credential_id:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      jti:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      refill_amount:
+        type: integer
+      refill_interval:
+        type: string
+      remaining:
+        type: integer
+      revoked_at:
+        type: string
+      scopes:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
   internal_handler.tokenStats:
     properties:
@@ -5632,6 +5756,89 @@ paths:
       summary: Change password
       tags:
       - auth
+  /auth/confirm-email:
+    post:
+      consumes:
+      - application/json
+      description: Confirms a user's email address using a verification token.
+      parameters:
+      - description: Confirmation token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.confirmEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.statusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Confirm email address
+      tags:
+      - auth
+  /auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Sends a password reset link to the email address if an account
+        exists.
+      parameters:
+      - description: Email address
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.forgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.statusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Request password reset
+      tags:
+      - auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user with email and password.
+      parameters:
+      - description: Login parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.authResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Log in
+      tags:
+      - auth
   /auth/logout:
     post:
       consumes:
@@ -5736,6 +5943,36 @@ paths:
           schema:
             $ref: '#/definitions/internal_handler.errorResponse'
       summary: Verify an OTP code
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Exchanges a refresh token for new access and refresh tokens.
+      parameters:
+      - description: Refresh parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.refreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.authResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Refresh tokens
       tags:
       - auth
   /auth/resend-confirmation:
@@ -5921,6 +6158,42 @@ paths:
           schema:
             $ref: '#/definitions/internal_handler.errorResponse'
       summary: Exchange OAuth token for access and refresh tokens
+      tags:
+      - oauth
+  /oauth/github:
+    get:
+      description: Redirects the browser to GitHub's authorization page. Sets a state
+        cookie for CSRF protection.
+      responses:
+        "307":
+          description: Redirect to GitHub
+        "404":
+          description: Provider not configured
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Start GitHub OAuth login
+      tags:
+      - oauth
+  /oauth/github/callback:
+    get:
+      description: Handles the redirect from GitHub after authorization. Exchanges
+        the code for a token, creates or links the user account, and redirects to
+        the frontend with a short-lived exchange token.
+      parameters:
+      - description: Authorization code from GitHub
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: CSRF state parameter
+        in: query
+        name: state
+        required: true
+        type: string
+      responses:
+        "307":
+          description: Redirect to frontend with error
+      summary: GitHub OAuth callback
       tags:
       - oauth
   /oauth/google:
@@ -6474,6 +6747,24 @@ paths:
       summary: Update agent sandbox setup config
       tags:
       - agents
+  /v1/agents/built-in-tools:
+    get:
+      description: Returns the catalog of built-in tools that can be granted to an
+        agent.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.BuiltInToolDefinition'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List built-in tools
+      tags:
+      - agents
   /v1/agents/categories:
     get:
       description: Returns the static catalog of work categories an agent can be tagged
@@ -6490,6 +6781,24 @@ paths:
       security:
       - BearerAuth: []
       summary: List agent categories
+      tags:
+      - agents
+  /v1/agents/sandbox-tools:
+    get:
+      description: Returns the catalog of sandbox tools that can be granted to an
+        agent.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.SandboxToolDefinition'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List sandbox tools
       tags:
       - agents
   /v1/api-keys:
@@ -8328,7 +8637,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Run a BM25 search against the org's RAG dataset, optionally reranked.
+      description: Hybrid retrieval against the org's RAG dataset, optionally reranked.
       parameters:
       - description: Search query
         in: body
@@ -9855,6 +10164,125 @@ paths:
       summary: Update a subagent
       tags:
       - subagents
+  /v1/tokens:
+    get:
+      description: Returns tokens for the organization with cursor pagination. Supports
+        filtering by credential_id.
+      parameters:
+      - description: Max items per page (1-100, default 50)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor from previous response
+        in: query
+        name: cursor
+        type: string
+      - description: Filter by credential ID
+        in: query
+        name: credential_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_tokenListItem'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List tokens
+      tags:
+      - tokens
+    post:
+      consumes:
+      - application/json
+      description: Creates a short-lived JWT proxy token scoped to a credential.
+      parameters:
+      - description: Token minting parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.mintTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.mintTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mint a proxy token
+      tags:
+      - tokens
+  /v1/tokens/{jti}:
+    delete:
+      description: Revokes a proxy token by its JTI and propagates through cache tiers.
+      parameters:
+      - description: Token JTI
+        in: path
+        name: jti
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke a proxy token
+      tags:
+      - tokens
   /v1/usage:
     get:
       description: Returns aggregated usage statistics for the current organization.

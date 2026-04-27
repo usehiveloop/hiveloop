@@ -8,11 +8,19 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// TokenHandler manages sandbox proxy token operations.
-
-// MCPServerCache is an interface for evicting cached MCP servers.
-
-// NewTokenHandler creates a new token handler.
+// @Summary List tokens
+// @Description Returns tokens for the organization with cursor pagination. Supports filtering by credential_id.
+// @Tags tokens
+// @Produce json
+// @Param limit query int false "Max items per page (1-100, default 50)"
+// @Param cursor query string false "Pagination cursor from previous response"
+// @Param credential_id query string false "Filter by credential ID"
+// @Success 200 {object} paginatedResponse[tokenListItem]
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/tokens [get]
 func (h *TokenHandler) List(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -63,16 +71,3 @@ func (h *TokenHandler) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
-// Revoke handles DELETE /v1/tokens/{jti}.
-// @Summary Revoke a proxy token
-// @Description Revokes a proxy token by its JTI and propagates through cache tiers.
-// @Tags tokens
-// @Produce json
-// @Param jti path string true "Token JTI"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} errorResponse
-// @Failure 401 {object} errorResponse
-// @Failure 404 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Security BearerAuth
-// @Router /v1/tokens/{jti} [delete]

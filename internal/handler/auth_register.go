@@ -116,14 +116,3 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	h.issueTokensAndRespond(w, http.StatusCreated, user, org.ID.String(), "owner")
 }
 
-// Login handles POST /auth/login.
-// @Summary Log in
-// @Description Authenticates a user with email and password.
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param body body loginRequest true "Login parameters"
-// @Success 200 {object} authResponse
-// @Failure 400 {object} errorResponse
-// @Failure 401 {object} errorResponse
-// @Router /auth/login [post]

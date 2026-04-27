@@ -39,7 +39,7 @@ export function AgentActions({
   onSetupCommands,
   onConfigureResources,
 }: AgentActionsProps) {
-  const isDedicated = agent.sandbox_type === "dedicated"
+  const isDedicated = Boolean(agent.sandbox_template_id)
 
   return (
     <DropdownMenu>
