@@ -108,10 +108,18 @@ func finalizeAttempt(
 	}
 
 	srcUpd := map[string]any{
-		"last_successful_index_time": now,
-		"updated_at":                 now,
+		"updated_at": now,
 	}
-	if src.Status == ragmodel.RAGSourceStatusInitialIndexing {
+	// Don't stamp last_successful_index_time on a zero-doc INITIAL run.
+	// The next scheduler tick computes its window from this timestamp;
+	// a premature stamp creates a 5-min window that finds nothing,
+	// and the source stays "successfully indexed nothing" forever.
+	// Only commit the timestamp once we've actually pulled documents
+	// or we're past the initial-indexing phase.
+	if stats.docsBatched > 0 || src.Status != ragmodel.RAGSourceStatusInitialIndexing {
+		srcUpd["last_successful_index_time"] = now
+	}
+	if src.Status == ragmodel.RAGSourceStatusInitialIndexing && stats.docsBatched > 0 {
 		srcUpd["status"] = ragmodel.RAGSourceStatusActive
 	}
 	if err := db.WithContext(ctx).
