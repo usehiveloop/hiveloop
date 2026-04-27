@@ -93,6 +93,12 @@ type RAGSource struct {
 	// InConnectionID is non-null iff Kind=INTEGRATION (CHECK-enforced).
 	InConnectionID *uuid.UUID `gorm:"type:uuid"`
 
+	// InConnection is populated via Preload at load time. Carries the
+	// upstream provider ("github", "notion", ...) which SourceKind()
+	// returns when KindValue=INTEGRATION so the connector registry
+	// looks up the right factory.
+	InConnection *model.InConnection `gorm:"foreignKey:InConnectionID;references:ID"`
+
 	AccessType AccessType `gorm:"type:varchar(16);not null"`
 
 	// IndexingStart caps the initial-index window for pathological
@@ -136,7 +142,18 @@ func (s *RAGSource) SourceID() string { return s.ID.String() }
 
 func (s *RAGSource) OrgID() string { return s.OrgIDValue.String() }
 
-func (s *RAGSource) SourceKind() string { return string(s.KindValue) }
+// SourceKind returns the connector-registry key for this source. For
+// kind=INTEGRATION the upstream connector is identified by the linked
+// in_integration's provider ("github", "notion", ...). For other kinds
+// the source category itself is the connector key.
+func (s *RAGSource) SourceKind() string {
+	if s.KindValue == RAGSourceKindIntegration &&
+		s.InConnection != nil &&
+		s.InConnection.InIntegration.Provider != "" {
+		return s.InConnection.InIntegration.Provider
+	}
+	return string(s.KindValue)
+}
 
 // Config returns `{}` when the map is nil/empty so the column's
 // not-null-default-'{}' behavior is preserved at the interface boundary.
