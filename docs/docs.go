@@ -7413,7 +7413,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Soft-tombstones the source (Status → DELETING). The scheduler stops enqueuing work immediately; row + document teardown happens asynchronously via a cleanup loop.",
+                "description": "Hard-deletes the source row. Postgres-side rows (attempts, documents, sync state, ACLs) cascade. Vector store entries are reaped later by the prune loop.",
                 "produces": [
                     "application/json"
                 ],
@@ -7431,11 +7431,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "202": {
-                        "description": "Accepted",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.triggerResponse"
-                        }
+                    "204": {
+                        "description": "No Content"
                     }
                 }
             },
