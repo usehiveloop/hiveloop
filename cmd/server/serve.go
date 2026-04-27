@@ -21,6 +21,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
 	"github.com/usehiveloop/hiveloop/internal/proxy"
+	"github.com/usehiveloop/hiveloop/internal/rag/ragclient"
 	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 	"github.com/usehiveloop/hiveloop/internal/storage"
 	"github.com/usehiveloop/hiveloop/internal/subscriptions"
@@ -171,7 +172,21 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
 	ragSourceHandler := handler.NewRAGSourceHandler(database, enqueuer, ragscheduler.HasPermSyncCapability)
-	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, subagentHandler, agentHandler, marketplaceHandler, conversationHandler, routerHandler, customDomainHandler, ragSourceHandler, uploadsHandler, orchestrator, auditWriter)
+	var ragSearchHandler *handler.RAGSearchHandler
+	if cfg.RagEngineEndpoint != "" {
+		ragSearchClient, err := ragclient.New(ctx, ragclient.Config{
+			Endpoint:     cfg.RagEngineEndpoint,
+			SharedSecret: cfg.RagEngineSharedSecret,
+			DialTimeout:  cfg.RagDialTimeout,
+		})
+		if err != nil {
+			slog.Error("rag search: dial rag-engine failed — /v1/rag/search disabled",
+				"endpoint", cfg.RagEngineEndpoint, "err", err)
+		} else {
+			ragSearchHandler = handler.NewRAGSearchHandler(ragSearchClient, cfg.RagDatasetName)
+		}
+	}
+	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, subagentHandler, agentHandler, marketplaceHandler, conversationHandler, routerHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, orchestrator, auditWriter)
 
 	var platformAdminEmails []string
 	if cfg.PlatformAdminEmails != "" {

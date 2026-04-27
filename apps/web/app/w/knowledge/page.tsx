@@ -7,28 +7,24 @@ import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { IntegrationLogo } from "@/components/integration-logo"
+import { SearchPanel } from "./_components/search-panel"
 import { SourceActions } from "./_components/source-actions"
-import type { components } from "@/lib/api/schema"
-
-type RagSource = components["schemas"]["ragSourceResponse"]
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  Add01Icon,
   BookOpen01Icon,
   Books02Icon,
   ConnectIcon,
   File01Icon,
   Globe02Icon,
-  Search01Icon,
   TextFontIcon,
 } from "@hugeicons/core-free-icons"
 import { AddConnectionDialog } from "./_components/add-connection-dialog"
+import type { components } from "@/lib/api/schema"
 
-const FILTERS = ["Type", "Creator"] as const
+type RagSource = components["schemas"]["ragSourceResponse"]
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   ACTIVE: "secondary",
@@ -168,27 +164,7 @@ export default function KnowledgePage() {
           ))}
         </div>
 
-        <div className="relative">
-          <HugeiconsIcon
-            icon={Search01Icon}
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input placeholder="Search Knowledge Base..." className="pl-9" />
-        </div>
-
-        <div className="flex items-center gap-2">
-          {FILTERS.map((label) => (
-            <Badge
-              key={label}
-              variant="outline"
-              className="cursor-pointer gap-1 text-muted-foreground hover:bg-muted/50"
-            >
-              <HugeiconsIcon icon={Add01Icon} size={12} />
-              {label}
-            </Badge>
-          ))}
-        </div>
+        <SearchPanel />
 
         {sourcesLoading ? (
           <div className="flex flex-col gap-2">

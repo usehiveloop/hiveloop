@@ -8623,6 +8623,43 @@
         }
       }
     },
+    "/v1/rag/search": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Run a BM25 search against the org's RAG dataset, optionally reranked.",
+        "tags": [
+          "rag"
+        ],
+        "summary": "Search the knowledge base",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ragSearchRequest"
+              }
+            }
+          },
+          "description": "Search query",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ragSearchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/rag/sources": {
       "get": {
         "security": [
@@ -15672,6 +15709,69 @@
           },
           "total": {
             "type": "integer"
+          }
+        }
+      },
+      "ragSearchHit": {
+        "type": "object",
+        "properties": {
+          "blurb": {
+            "type": "string"
+          },
+          "bm25_score": {
+            "type": "number"
+          },
+          "chunk_id": {
+            "type": "string"
+          },
+          "chunk_index": {
+            "type": "integer"
+          },
+          "content": {
+            "type": "string"
+          },
+          "doc_id": {
+            "type": "string"
+          },
+          "doc_updated_at": {
+            "type": "string"
+          },
+          "rerank_score": {
+            "type": "number"
+          },
+          "score": {
+            "type": "number"
+          },
+          "vector_score": {
+            "type": "number"
+          }
+        }
+      },
+      "ragSearchRequest": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "string"
+          },
+          "rerank": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ragSearchResponse": {
+        "type": "object",
+        "properties": {
+          "after_rerank": {
+            "type": "integer"
+          },
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ragSearchHit"
+            }
           }
         }
       },

@@ -8374,6 +8374,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/rag/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Search the knowledge base
+         * @description Run a BM25 search against the org's RAG dataset, optionally reranked.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Search query */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ragSearchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ragSearchResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/rag/sources": {
         parameters: {
             query?: never;
@@ -12416,6 +12460,27 @@ export interface components {
             page?: number;
             page_size?: number;
             total?: number;
+        };
+        ragSearchHit: {
+            blurb?: string;
+            bm25_score?: number;
+            chunk_id?: string;
+            chunk_index?: number;
+            content?: string;
+            doc_id?: string;
+            doc_updated_at?: string;
+            rerank_score?: number;
+            score?: number;
+            vector_score?: number;
+        };
+        ragSearchRequest: {
+            limit?: number;
+            query?: string;
+            rerank?: boolean;
+        };
+        ragSearchResponse: {
+            after_rerank?: number;
+            hits?: components["schemas"]["ragSearchHit"][];
         };
         ragSourceDetailResponse: {
             access_type?: string;

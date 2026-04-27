@@ -40,6 +40,7 @@ func setupV1Routes(
 	routerHandler *handler.RouterHandler,
 	customDomainHandler *handler.CustomDomainHandler,
 	ragSourceHandler *handler.RAGSourceHandler,
+	ragSearchHandler *handler.RAGSearchHandler,
 	uploadsHandler *handler.UploadsHandler,
 	orchestrator *sandbox.Orchestrator,
 	auditWriter *middleware.AuditWriter,
@@ -237,6 +238,9 @@ func setupV1Routes(
 					r.Post("/sources/{id}/perm-sync", ragSourceHandler.TriggerPermSync)
 					r.Get("/sources/{id}/attempts", ragSourceHandler.ListAttempts)
 					r.Get("/sources/{id}/attempts/{attempt_id}", ragSourceHandler.GetAttempt)
+					if ragSearchHandler != nil {
+						r.Post("/search", ragSearchHandler.Search)
+					}
 				})
 			}
 
