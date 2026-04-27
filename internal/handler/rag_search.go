@@ -135,10 +135,7 @@ func (h *RAGSearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 func hitsToResponse(hits []qdrant.Hit) []ragSearchHit {
 	out := make([]ragSearchHit, 0, len(hits))
 	for _, h := range hits {
-		hit := ragSearchHit{Score: h.Score}
-		if id, ok := h.ID.(string); ok {
-			hit.ID = id
-		}
+		hit := ragSearchHit{ID: h.ID, Score: h.Score}
 		if h.Payload != nil {
 			if v, ok := h.Payload["doc_id"].(string); ok {
 				hit.DocID = v

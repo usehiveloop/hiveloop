@@ -174,8 +174,15 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
 	ragSourceHandler := handler.NewRAGSourceHandler(database, enqueuer, ragscheduler.HasPermSyncCapability)
 	var ragSearchHandler *handler.RAGSearchHandler
-	if cfg.QdrantEndpoint != "" && cfg.LLMAPIURL != "" && cfg.LLMAPIKey != "" && cfg.LLMModel != "" {
-		qd := qdrant.New(qdrant.Config{Endpoint: cfg.QdrantEndpoint, APIKey: cfg.QdrantAPIKey})
+	if cfg.QdrantHost != "" && cfg.LLMAPIURL != "" && cfg.LLMAPIKey != "" && cfg.LLMModel != "" {
+		qd, err := qdrant.New(qdrant.Config{
+			Host: cfg.QdrantHost, Port: cfg.QdrantPort,
+			UseTLS: cfg.QdrantUseTLS, APIKey: cfg.QdrantAPIKey,
+		})
+		if err != nil {
+			slog.Error("rag search: dial qdrant failed — /v1/rag/search disabled", "err", err)
+			return err
+		}
 		embedder := embedclient.NewEmbedder(embedclient.EmbedderConfig{
 			BaseURL: cfg.LLMAPIURL,
 			APIKey:  cfg.LLMAPIKey,

@@ -171,8 +171,10 @@ type Config struct {
 	PostHogEndpoint string `env:"POSTHOG_ENDPOINT" envDefault:"https://us.i.posthog.com"`
 	PostHogEnabled  bool   `env:"POSTHOG_ENABLED" envDefault:"false"`
 
-	// Qdrant (vector store). Empty QdrantEndpoint disables RAG.
-	QdrantEndpoint   string `env:"QDRANT_ENDPOINT"`
+	// Qdrant (vector store, gRPC). Empty QdrantHost disables RAG.
+	QdrantHost       string `env:"QDRANT_HOST"`
+	QdrantPort       int    `env:"QDRANT_PORT" envDefault:"6334"`
+	QdrantUseTLS     bool   `env:"QDRANT_USE_TLS" envDefault:"false"`
 	QdrantAPIKey     string `env:"QDRANT_API_KEY"`
 	QdrantCollection string `env:"QDRANT_COLLECTION" envDefault:"rag_chunks_3072"`
 

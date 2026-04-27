@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
+	qdrantgo "github.com/qdrant/go-client/qdrant"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
@@ -83,14 +84,9 @@ func scrollStalePoints(
 	src *ragmodel.RAGSource,
 	keepSet map[string]struct{},
 ) ([]string, error) {
-	filter := map[string]any{
-		"must": []map[string]any{
-			{"key": "org_id", "match": map[string]any{"value": src.OrgIDValue.String()}},
-			{"key": "rag_source_id", "match": map[string]any{"value": src.ID.String()}},
-		},
-	}
+	filter := qdrant.BuildSourceFilter(src.OrgIDValue.String(), src.ID.String())
 	var stale []string
-	var offset any
+	var offset = (*qdrantgo.PointId)(nil)
 	for {
 		page, err := deps.Qdrant.Scroll(ctx, qdrant.ScrollRequest{
 			Collection:  deps.Collection,
@@ -107,8 +103,8 @@ func scrollStalePoints(
 			if _, kept := keepSet[docID]; kept {
 				continue
 			}
-			if id, ok := p.ID.(string); ok {
-				stale = append(stale, id)
+			if p.ID != "" {
+				stale = append(stale, p.ID)
 			}
 		}
 		if page.NextOffset == nil {

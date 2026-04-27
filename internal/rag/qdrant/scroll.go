@@ -2,27 +2,26 @@ package qdrant
 
 import (
 	"context"
-	"net/http"
+
+	qc "github.com/qdrant/go-client/qdrant"
 )
 
 type ScrollRequest struct {
 	Collection  string
-	Filter      map[string]any
+	Filter      *qc.Filter
 	Limit       uint32
-	Offset      any
+	Offset      *qc.PointId
 	WithPayload bool
 }
 
-type ScrollPage struct {
-	Points     []Hit
-	NextOffset any
+type ScrolledPoint struct {
+	ID      string
+	Payload map[string]any
 }
 
-type scrollEnvelope struct {
-	Result struct {
-		Points     []Hit `json:"points"`
-		NextOffset any   `json:"next_page_offset"`
-	} `json:"result"`
+type ScrollPage struct {
+	Points     []ScrolledPoint
+	NextOffset *qc.PointId
 }
 
 func (c *Client) Scroll(ctx context.Context, req ScrollRequest) (*ScrollPage, error) {
@@ -30,24 +29,24 @@ func (c *Client) Scroll(ctx context.Context, req ScrollRequest) (*ScrollPage, er
 	if limit == 0 {
 		limit = 256
 	}
-	body := map[string]any{
-		"limit":        limit,
-		"with_payload": req.WithPayload,
-		"with_vector":  false,
-	}
-	if req.Filter != nil {
-		body["filter"] = req.Filter
-	}
-	if req.Offset != nil {
-		body["offset"] = req.Offset
-	}
-	var out scrollEnvelope
-	if err := c.do(ctx, http.MethodPost,
-		"/collections/"+req.Collection+"/points/scroll", body, &out); err != nil {
+	resp, err := c.c.GetPointsClient().Scroll(ctx, &qc.ScrollPoints{
+		CollectionName: req.Collection,
+		Filter:         req.Filter,
+		Limit:          qc.PtrOf(limit),
+		Offset:         req.Offset,
+		WithPayload:    qc.NewWithPayload(req.WithPayload),
+		WithVectors:    qc.NewWithVectors(false),
+	})
+	if err != nil {
 		return nil, err
 	}
-	return &ScrollPage{
-		Points:     out.Result.Points,
-		NextOffset: out.Result.NextOffset,
-	}, nil
+	pts := resp.GetResult()
+	out := make([]ScrolledPoint, len(pts))
+	for i, p := range pts {
+		out[i] = ScrolledPoint{
+			ID:      pointIDString(p.GetId()),
+			Payload: fromValueMap(p.GetPayload()),
+		}
+	}
+	return &ScrollPage{Points: out, NextOffset: resp.GetNextPageOffset()}, nil
 }

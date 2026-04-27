@@ -5,19 +5,34 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"os"
+	"strconv"
 	"testing"
 	"time"
+
+	qdrantgo "github.com/qdrant/go-client/qdrant"
 
 	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
 )
 
 func liveClient(t *testing.T) *qdrant.Client {
 	t.Helper()
-	endpoint := os.Getenv("QDRANT_ENDPOINT")
-	if endpoint == "" {
-		t.Skip("QDRANT_ENDPOINT not set; skipping live qdrant test")
+	host := os.Getenv("QDRANT_HOST")
+	if host == "" {
+		t.Skip("QDRANT_HOST not set; skipping live qdrant test")
 	}
-	return qdrant.New(qdrant.Config{Endpoint: endpoint, APIKey: os.Getenv("QDRANT_API_KEY")})
+	port, _ := strconv.Atoi(os.Getenv("QDRANT_PORT"))
+	useTLS, _ := strconv.ParseBool(os.Getenv("QDRANT_USE_TLS"))
+	c, err := qdrant.New(qdrant.Config{
+		Host:   host,
+		Port:   port,
+		UseTLS: useTLS,
+		APIKey: os.Getenv("QDRANT_API_KEY"),
+	})
+	if err != nil {
+		t.Fatalf("dial qdrant: %v", err)
+	}
+	t.Cleanup(func() { _ = c.Close() })
+	return c
 }
 
 func randomVector(dim int, seed uint64) []float32 {
@@ -145,14 +160,9 @@ func TestQdrantContract_Live(t *testing.T) {
 	})
 
 	t.Run("prune scroll: only orgA/srcX points are seen", func(t *testing.T) {
-		filter := map[string]any{
-			"must": []map[string]any{
-				{"key": "org_id", "match": map[string]any{"value": orgA}},
-				{"key": "rag_source_id", "match": map[string]any{"value": srcX}},
-			},
-		}
+		filter := qdrant.BuildSourceFilter(orgA, srcX)
 		seen := map[string]bool{}
-		var offset any
+		var offset *qdrantgo.PointId
 		for {
 			page, err := c.Scroll(ctx, qdrant.ScrollRequest{
 				Collection: collection, Filter: filter, Limit: 100,
