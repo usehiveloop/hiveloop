@@ -49,17 +49,11 @@ function getConfigurableResources(connection: unknown): ConfigurableResource[] {
   return raw as ConfigurableResource[]
 }
 
-// buildSourceConfig converts a list of selected resources into the
-// connector-specific config blob. Provider-specific because the connector
-// schema varies (GitHub: repo_owner + repositories; Notion: pages; etc.).
 function buildSourceConfig(provider: string, picks: ResourceItem[]): Record<string, unknown> {
   const lowered = provider.toLowerCase()
   if (lowered === "github" || lowered === "github-app") {
-    // Resource id format from /v1/in/connections/{id}/resources/repo is
-    // "owner/repo" (id_field=full_name in catalog metadata). Strip the
-    // owner from each — connector takes the bare repo name list and a
-    // single repo_owner derived from the first selection. GitHub App
-    // installations are scoped to one org/user so all repos share an owner.
+    // Resource ids are GitHub full_names ("owner/repo"); the connector
+    // takes a single repo_owner + bare repo names.
     const owner = picks[0]?.id.split("/")[0] ?? ""
     return {
       repo_owner: owner,

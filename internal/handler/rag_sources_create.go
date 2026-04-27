@@ -77,8 +77,7 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	refresh := req.RefreshFreqSeconds
 	if refresh == nil {
-		// Default cadence keeps the source on the scheduler; the
-		// selector skips sources with refresh_freq_seconds = NULL.
+		// NULL = manual-only; the scheduler's selector skips it.
 		d := defaultRefreshFreqSeconds
 		refresh = &d
 	}
@@ -127,10 +126,6 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, toRAGSourceResponse(src))
 }
 
-// dispatchInitialIngest fires a one-off rag:ingest immediately after
-// the source row lands so the user doesn't wait up to 15s for the
-// scheduler tick. asynq.Unique collapses with a near-simultaneous
-// scheduler enqueue.
 func (h *RAGSourceHandler) dispatchInitialIngest(src *ragmodel.RAGSource) {
 	if src.KindValue != ragmodel.RAGSourceKindIntegration {
 		return

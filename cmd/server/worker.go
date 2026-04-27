@@ -18,9 +18,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	"github.com/usehiveloop/hiveloop/internal/nango"
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
-	// Side-effect import: registers every RAG connector with the
-	// interfaces.Registry at process start. Without this the worker
-	// can't resolve "github" / "github-app" / etc.
+	// Blank import populates interfaces.Registry via init().
 	_ "github.com/usehiveloop/hiveloop/internal/rag/connectors"
 	"github.com/usehiveloop/hiveloop/internal/rag/ragclient"
 	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
@@ -251,10 +249,8 @@ func (l *asynqLogger) Fatal(args ...any) {
 	slog.Error(fmt.Sprint(args...))
 }
 
-// buildRagDeps dials the rag-engine and returns the Deps the task
-// handlers need. Returns nil (with a warning) when RAG_ENGINE_ENDPOINT
-// is unset or the dial fails — the worker keeps running but rag:* tasks
-// will fail with "handler not found".
+// buildRagDeps returns nil (worker keeps running, rag:* tasks fail with
+// "handler not found") when the engine isn't configured or unreachable.
 func buildRagDeps(
 	ctx context.Context,
 	cfg *config.Config,

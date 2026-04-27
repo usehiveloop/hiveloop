@@ -93,10 +93,7 @@ type RAGSource struct {
 	// InConnectionID is non-null iff Kind=INTEGRATION (CHECK-enforced).
 	InConnectionID *uuid.UUID `gorm:"type:uuid"`
 
-	// InConnection is populated via Preload at load time. Carries the
-	// upstream provider ("github", "notion", ...) which SourceKind()
-	// returns when KindValue=INTEGRATION so the connector registry
-	// looks up the right factory.
+	// Preload required for SourceKind()/Nango* methods to work.
 	InConnection *model.InConnection `gorm:"foreignKey:InConnectionID;references:ID"`
 
 	AccessType AccessType `gorm:"type:varchar(16);not null"`
@@ -142,10 +139,8 @@ func (s *RAGSource) SourceID() string { return s.ID.String() }
 
 func (s *RAGSource) OrgID() string { return s.OrgIDValue.String() }
 
-// SourceKind returns the connector-registry key for this source. For
-// kind=INTEGRATION the upstream connector is identified by the linked
-// in_integration's provider ("github", "notion", ...). For other kinds
-// the source category itself is the connector key.
+// SourceKind returns the connector registry key. For INTEGRATION kinds
+// that's the upstream provider; otherwise the kind itself.
 func (s *RAGSource) SourceKind() string {
 	if s.KindValue == RAGSourceKindIntegration &&
 		s.InConnection != nil &&
@@ -155,9 +150,6 @@ func (s *RAGSource) SourceKind() string {
 	return string(s.KindValue)
 }
 
-// NangoConnectionID exposes the upstream connection's Nango handle so
-// connectors can dial through the proxy. Empty string when there's no
-// in_connection (kind != INTEGRATION).
 func (s *RAGSource) NangoConnectionID() string {
 	if s.InConnection == nil {
 		return ""
@@ -165,9 +157,8 @@ func (s *RAGSource) NangoConnectionID() string {
 	return s.InConnection.NangoConnectionID
 }
 
-// NangoProviderConfigKey returns the per-org provider config key Nango
-// uses to namespace connections. Mirrors the "in_<unique_key>" format
-// the connections handler uses; keep them in sync.
+// NangoProviderConfigKey mirrors handler/in_connections_resources.go —
+// keep in sync if either side changes.
 func (s *RAGSource) NangoProviderConfigKey() string {
 	if s.InConnection == nil || s.InConnection.InIntegration.UniqueKey == "" {
 		return ""

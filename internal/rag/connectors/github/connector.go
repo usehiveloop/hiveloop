@@ -30,9 +30,6 @@ type GithubConnector struct {
 	client     *Client
 	channelBuf int
 
-	// finalCp is the most-recent checkpoint state, captured on run exit
-	// so the non-generic FinalCheckpoint() can return it after the
-	// stream channel closes.
 	finalCp atomic.Pointer[GithubCheckpoint]
 }
 
@@ -122,8 +119,6 @@ func (c *GithubConnector) run(
 	out chan<- interfaces.DocumentOrFailure,
 ) {
 	defer close(out)
-	// Capture the final checkpoint state so the non-generic
-	// FinalCheckpoint() can return it after the channel closes.
 	defer func() {
 		final := cp
 		c.finalCp.Store(&final)
