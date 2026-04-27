@@ -69,7 +69,14 @@ export default function KnowledgePage() {
   function handleTriggerRun(source: RagSource) {
     if (!source.id) return
     triggerSync.mutate(
-      { params: { path: { id: source.id } }, body: {} },
+      {
+        params: { path: { id: source.id } },
+        // from_beginning bypasses the time-window floor derived from
+        // last_successful_index_time. Manual "Trigger run" always means
+        // "ingest everything reachable" — the user's intent, not a
+        // delta-poll.
+        body: { from_beginning: true },
+      },
       {
         onSuccess: (data) => {
           if (data?.deduplicated) {
