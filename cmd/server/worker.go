@@ -18,6 +18,10 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	"github.com/usehiveloop/hiveloop/internal/nango"
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
+	// Side-effect import: registers every RAG connector with the
+	// interfaces.Registry at process start. Without this the worker
+	// can't resolve "github" / "github-app" / etc.
+	_ "github.com/usehiveloop/hiveloop/internal/rag/connectors"
 	"github.com/usehiveloop/hiveloop/internal/rag/ragclient"
 	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
