@@ -110,12 +110,9 @@ func finalizeAttempt(
 	srcUpd := map[string]any{
 		"updated_at": now,
 	}
-	// Don't stamp last_successful_index_time on a zero-doc INITIAL run.
-	// The next scheduler tick computes its window from this timestamp;
-	// a premature stamp creates a 5-min window that finds nothing,
-	// and the source stays "successfully indexed nothing" forever.
-	// Only commit the timestamp once we've actually pulled documents
-	// or we're past the initial-indexing phase.
+	// last_successful_index_time defines the next poll window's lower
+	// bound. A 0-doc INITIAL run that stamps it traps the source in a
+	// 5-min window that finds nothing on every subsequent tick.
 	if stats.docsBatched > 0 || src.Status != ragmodel.RAGSourceStatusInitialIndexing {
 		srcUpd["last_successful_index_time"] = now
 	}
@@ -131,10 +128,6 @@ func finalizeAttempt(
 	return nil
 }
 
-// stampDocsEstimated calls the connector's optional pre-flight count
-// and stamps it onto the attempt row so the UI can render a determinate
-// progress bar. Failures are logged and ignored — an estimate is a
-// nice-to-have, never load-bearing for the run itself.
 func stampDocsEstimated(
 	ctx context.Context,
 	db *gorm.DB,
@@ -163,8 +156,6 @@ func stampDocsEstimated(
 	attempt.DocsEstimated = &count
 }
 
-// bumpAttemptProgress increments the running doc counter on the attempt
-// row. Called once per flushed batch — per-doc would be too chatty.
 func bumpAttemptProgress(
 	ctx context.Context,
 	db *gorm.DB,
