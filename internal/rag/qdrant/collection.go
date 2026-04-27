@@ -70,8 +70,6 @@ func (c *Client) CreatePayloadIndex(ctx context.Context, collection, fieldName s
 	return c.do(ctx, http.MethodPut, "/collections/"+collection+"/index?wait=true", body, nil)
 }
 
-// EnsureCollection creates the collection + standard payload indices if absent.
-// Idempotent — returns nil for both first-time and repeat calls.
 func (c *Client) EnsureCollection(ctx context.Context, cfg CollectionConfig) error {
 	exists, err := c.CollectionExists(ctx, cfg.Name)
 	if err != nil {

@@ -47,8 +47,6 @@ type embedResponse struct {
 	} `json:"data"`
 }
 
-// Embed returns one vector per input text in input order. Empty inputs map to
-// nil vectors so the caller can skip them without losing positional alignment.
 func (e *Embedder) Embed(ctx context.Context, inputs []string) ([][]float32, error) {
 	if len(inputs) == 0 {
 		return nil, nil
