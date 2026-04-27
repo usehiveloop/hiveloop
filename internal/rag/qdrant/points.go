@@ -5,99 +5,95 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
-	"net/http"
+
+	qc "github.com/qdrant/go-client/qdrant"
 )
 
 type Point struct {
-	ID      string         `json:"id"`
-	Vector  []float32      `json:"vector"`
-	Payload map[string]any `json:"payload"`
-}
-
-type upsertEnvelope struct {
-	Result struct {
-		OperationID uint64 `json:"operation_id"`
-		Status      string `json:"status"`
-	} `json:"result"`
+	ID      string
+	Vector  []float32
+	Payload map[string]any
 }
 
 func (c *Client) Upsert(ctx context.Context, collection string, points []Point, wait bool) error {
 	if len(points) == 0 {
 		return nil
 	}
-	body := map[string]any{"points": points}
-	q := "?wait=false"
-	if wait {
-		q = "?wait=true"
+	pts := make([]*qc.PointStruct, len(points))
+	for i, p := range points {
+		pts[i] = &qc.PointStruct{
+			Id:      qc.NewID(p.ID),
+			Vectors: qc.NewVectors(p.Vector...),
+			Payload: toValueMap(p.Payload),
+		}
 	}
-	var out upsertEnvelope
-	return c.do(ctx, http.MethodPut, "/collections/"+collection+"/points"+q, body, &out)
-}
-
-type Filter struct {
-	Must    []FilterClause `json:"must,omitempty"`
-	Should  []FilterClause `json:"should,omitempty"`
-	MustNot []FilterClause `json:"must_not,omitempty"`
-}
-
-type FilterClause struct {
-	Key   string      `json:"key,omitempty"`
-	Match *MatchValue `json:"match,omitempty"`
-}
-
-type MatchValue struct {
-	Value any   `json:"value,omitempty"`
-	Any   []any `json:"any,omitempty"`
+	_, err := c.c.Upsert(ctx, &qc.UpsertPoints{
+		CollectionName: collection,
+		Points:         pts,
+		Wait:           qc.PtrOf(wait),
+	})
+	return err
 }
 
 func (c *Client) SetPayload(ctx context.Context, collection string, ids []string, payload map[string]any) error {
 	if len(ids) == 0 {
 		return nil
 	}
-	body := map[string]any{
-		"points":  ids,
-		"payload": payload,
+	pids := make([]*qc.PointId, len(ids))
+	for i, s := range ids {
+		pids[i] = qc.NewID(s)
 	}
-	return c.do(ctx, http.MethodPost, "/collections/"+collection+"/points/payload?wait=true", body, nil)
-}
-
-func (c *Client) DeleteByFilter(ctx context.Context, collection string, filter Filter) error {
-	body := map[string]any{"filter": filter}
-	return c.do(ctx, http.MethodPost, "/collections/"+collection+"/points/delete?wait=true", body, nil)
+	_, err := c.c.SetPayload(ctx, &qc.SetPayloadPoints{
+		CollectionName: collection,
+		PointsSelector: qc.NewPointsSelector(pids...),
+		Payload:        toValueMap(payload),
+		Wait:           qc.PtrOf(true),
+	})
+	return err
 }
 
 func (c *Client) DeleteByIDs(ctx context.Context, collection string, ids []string) error {
 	if len(ids) == 0 {
 		return nil
 	}
-	body := map[string]any{"points": ids}
-	return c.do(ctx, http.MethodPost, "/collections/"+collection+"/points/delete?wait=true", body, nil)
-}
-
-type countEnvelope struct {
-	Result struct {
-		Count uint64 `json:"count"`
-	} `json:"result"`
-}
-
-func (c *Client) Count(ctx context.Context, collection string, filter *Filter) (uint64, error) {
-	body := map[string]any{"exact": true}
-	if filter != nil {
-		body["filter"] = filter
+	pids := make([]*qc.PointId, len(ids))
+	for i, s := range ids {
+		pids[i] = qc.NewID(s)
 	}
-	var out countEnvelope
-	if err := c.do(ctx, http.MethodPost, "/collections/"+collection+"/points/count", body, &out); err != nil {
+	_, err := c.c.Delete(ctx, &qc.DeletePoints{
+		CollectionName: collection,
+		Points:         qc.NewPointsSelector(pids...),
+		Wait:           qc.PtrOf(true),
+	})
+	return err
+}
+
+func (c *Client) DeleteByFilter(ctx context.Context, collection string, filter *qc.Filter) error {
+	_, err := c.c.Delete(ctx, &qc.DeletePoints{
+		CollectionName: collection,
+		Points:         qc.NewPointsSelectorFilter(filter),
+		Wait:           qc.PtrOf(true),
+	})
+	return err
+}
+
+func (c *Client) Count(ctx context.Context, collection string, filter *qc.Filter) (uint64, error) {
+	n, err := c.c.Count(ctx, &qc.CountPoints{
+		CollectionName: collection,
+		Filter:         filter,
+		Exact:          qc.PtrOf(true),
+	})
+	if err != nil {
 		return 0, err
 	}
-	return out.Result.Count, nil
+	return n, nil
 }
 
-// Stable UUID-shaped string from (org_id, source_id, doc_id). Re-ingesting
-// the same doc under the same source upserts in place; a doc shared by two
-// sources gets two points. Qdrant accepts UUID-shaped strings as point IDs.
+// Stable UUID-shaped string from (org_id, source_id, doc_id). Re-ingesting the
+// same doc under the same source upserts in place; a doc shared by two sources
+// gets two points.
 func PointID(orgID, sourceID, docID string) string {
 	h := sha256.Sum256([]byte(orgID + "::" + sourceID + "::" + docID))
-	// Set UUIDv8 (custom) version + RFC 4122 variant bits.
 	h[6] = (h[6] & 0x0f) | 0x80
 	h[8] = (h[8] & 0x3f) | 0x80
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
