@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-e2e-vault lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down ragtest setup-paystack
+.PHONY: build test test-e2e test-e2e-vault lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down setup-paystack
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -301,8 +301,3 @@ test-services-up:
 test-services-down:
 	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose stop postgres redis minio
 
-# End-to-end RAG smoke test against live Qdrant + embeddings + reranker.
-# Reads QDRANT_ENDPOINT, LLM_API_*, RERANKER_* from .env.rag.
-ragtest:
-	@test -f .env.rag || { echo ".env.rag not found; cp .env.rag.example .env.rag first"; exit 1; }
-	@set -a; . ./.env.rag; set +a; go run ./cmd/ragtest

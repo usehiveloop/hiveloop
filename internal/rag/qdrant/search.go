@@ -53,8 +53,7 @@ func (c *Client) Search(ctx context.Context, req SearchRequest) ([]Hit, error) {
 	return out.Result.Points, nil
 }
 
-// BuildACLFilter expresses: org_id == X AND (is_public OR acl matches any of [...]).
-// bypassACL drops the (is_public OR acl) clause, keeping only org partition.
+// org_id == X AND (is_public OR acl any-of [...]); bypassACL keeps only org_id.
 func BuildACLFilter(orgID string, aclAnyOf []string, bypassACL bool) map[string]any {
 	must := []map[string]any{
 		{"key": "org_id", "match": map[string]any{"value": orgID}},

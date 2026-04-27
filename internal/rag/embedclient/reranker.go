@@ -47,8 +47,6 @@ type rerankResponse struct {
 	Results []RerankResult `json:"results"`
 }
 
-// Rerank reorders documents by their relevance to the query. The returned
-// indices reference the input slice in descending score order; len(out) <= topN.
 func (r *Reranker) Rerank(ctx context.Context, query string, documents []string, topN int) ([]RerankResult, error) {
 	if len(documents) == 0 {
 		return nil, nil

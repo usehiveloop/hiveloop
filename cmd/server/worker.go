@@ -250,8 +250,6 @@ func (l *asynqLogger) Fatal(args ...any) {
 	slog.Error(fmt.Sprint(args...))
 }
 
-// Returns nil (worker keeps running, rag:* tasks fail with "handler not found")
-// when Qdrant or the embedder isn't configured.
 func buildRagDeps(
 	ctx context.Context,
 	cfg *config.Config,
