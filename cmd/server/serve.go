@@ -21,7 +21,8 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
 	"github.com/usehiveloop/hiveloop/internal/proxy"
-	"github.com/usehiveloop/hiveloop/internal/rag/ragclient"
+	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
+	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
 	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 	"github.com/usehiveloop/hiveloop/internal/storage"
 	"github.com/usehiveloop/hiveloop/internal/subscriptions"
@@ -173,18 +174,25 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
 	ragSourceHandler := handler.NewRAGSourceHandler(database, enqueuer, ragscheduler.HasPermSyncCapability)
 	var ragSearchHandler *handler.RAGSearchHandler
-	if cfg.RagEngineEndpoint != "" {
-		ragSearchClient, err := ragclient.New(ctx, ragclient.Config{
-			Endpoint:     cfg.RagEngineEndpoint,
-			SharedSecret: cfg.RagEngineSharedSecret,
-			DialTimeout:  cfg.RagDialTimeout,
+	if cfg.QdrantEndpoint != "" && cfg.LLMAPIURL != "" && cfg.LLMAPIKey != "" && cfg.LLMModel != "" {
+		qd := qdrant.New(qdrant.Config{Endpoint: cfg.QdrantEndpoint, APIKey: cfg.QdrantAPIKey})
+		embedder := embedclient.NewEmbedder(embedclient.EmbedderConfig{
+			BaseURL: cfg.LLMAPIURL,
+			APIKey:  cfg.LLMAPIKey,
+			Model:   cfg.LLMModel,
+			Dim:     cfg.LLMEmbeddingDim,
 		})
-		if err != nil {
-			slog.Error("rag search: dial rag-engine failed — /v1/rag/search disabled",
-				"endpoint", cfg.RagEngineEndpoint, "err", err)
-		} else {
-			ragSearchHandler = handler.NewRAGSearchHandler(ragSearchClient, cfg.RagDatasetName)
+		var reranker *embedclient.Reranker
+		if cfg.RerankerBaseURL != "" && cfg.RerankerAPIKey != "" && cfg.RerankerModel != "" {
+			reranker = embedclient.NewReranker(embedclient.RerankerConfig{
+				BaseURL: cfg.RerankerBaseURL,
+				APIKey:  cfg.RerankerAPIKey,
+				Model:   cfg.RerankerModel,
+			})
 		}
+		ragSearchHandler = handler.NewRAGSearchHandler(qd, embedder, reranker, cfg.QdrantCollection)
+	} else {
+		slog.Warn("rag search: qdrant or LLM not configured — /v1/rag/search disabled")
 	}
 	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, subagentHandler, agentHandler, marketplaceHandler, conversationHandler, routerHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, orchestrator, auditWriter)
 
