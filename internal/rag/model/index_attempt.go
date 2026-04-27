@@ -60,10 +60,7 @@ type RAGIndexAttempt struct {
 	TotalDocsIndexed     *int `gorm:"default:0"`
 	DocsRemovedFromIndex *int `gorm:"default:0"`
 
-	// DocsEstimated is a connector pre-flight count of how many docs the
-	// run will fetch, populated by EstimatingConnector before the first
-	// batch lands. Nil means the connector can't estimate cheaply and the
-	// UI should show indeterminate progress until the run finishes.
+	// Nil = no cheap estimate available; UI shows indeterminate progress.
 	DocsEstimated *int `gorm:"type:integer"`
 
 	// ErrorMsg / FullExceptionTrace — only populated when Status=failed.
