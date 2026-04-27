@@ -15,6 +15,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
 	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
+	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 	"github.com/usehiveloop/hiveloop/internal/skills"
 	subagents "github.com/usehiveloop/hiveloop/internal/sub-agents"
 	"github.com/usehiveloop/hiveloop/internal/tasks"
@@ -94,10 +95,11 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	srv := asynq.NewServer(redisOpt, asynq.Config{
 		Concurrency: cfg.AsynqConcurrency,
 		Queues: map[string]int{
-			tasks.QueueCritical: 6,
-			tasks.QueueDefault:  3,
-			tasks.QueuePeriodic: 2,
-			tasks.QueueBulk:     1,
+			tasks.QueueCritical:    6,
+			tasks.QueueDefault:     3,
+			tasks.QueuePeriodic:    2,
+			ragtasks.QueueRagWork:  2,
+			tasks.QueueBulk:        1,
 		},
 		Logger:          newAsynqLogger(),
 		ShutdownTimeout: cfg.AsynqShutdownTimeout,
