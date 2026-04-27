@@ -82,10 +82,13 @@ func (d *Deps) HandleIngest(ctx context.Context, t *asynq.Task) error {
 }
 
 // A missing source returns asynq.SkipRetry so the worker doesn't loop
-// on a tombstoned row.
+// on a tombstoned row. Preloads InConnection so SourceKind() can
+// resolve "INTEGRATION" → upstream provider for the connector lookup.
 func loadSource(ctx context.Context, db *gorm.DB, id uuid.UUID) (*ragmodel.RAGSource, error) {
 	var src ragmodel.RAGSource
-	if err := db.WithContext(ctx).First(&src, "id = ?", id).Error; err != nil {
+	if err := db.WithContext(ctx).
+		Preload("InConnection.InIntegration").
+		First(&src, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("ingest: source %s: %w", id, asynq.SkipRetry)
 		}
