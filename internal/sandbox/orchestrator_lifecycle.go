@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -33,7 +34,7 @@ func (o *Orchestrator) RunSandboxLifecycle(ctx context.Context) {
 				"external_id", sb.ExternalID,
 				"idle_minutes", int(now.Sub(*sb.LastActiveAt).Minutes()),
 			)
-			if err := o.StopSandbox(ctx, sb); err != nil {
+			if err := o.StopSandbox(ctx, sb); err != nil && !errors.Is(err, ErrSandboxNotFound) {
 				slog.Error("sandbox lifecycle: failed to stop idle sandbox",
 					"sandbox_id", sb.ID, "error", err)
 			}
@@ -55,7 +56,7 @@ func (o *Orchestrator) RunSandboxLifecycle(ctx context.Context) {
 				"external_id", sb.ExternalID,
 				"stopped_hours", int(now.Sub(*sb.StoppedAt).Hours()),
 			)
-			if err := o.ArchiveSandbox(ctx, sb); err != nil {
+			if err := o.ArchiveSandbox(ctx, sb); err != nil && !errors.Is(err, ErrSandboxNotFound) {
 				slog.Error("sandbox lifecycle: failed to archive stopped sandbox",
 					"sandbox_id", sb.ID, "error", err)
 			}
