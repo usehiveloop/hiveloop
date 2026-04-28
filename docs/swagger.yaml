@@ -1712,7 +1712,12 @@ definitions:
     type: object
   internal_handler.createCheckoutResponse:
     properties:
+      access_code:
+        description: 'popup flow: hand to PaystackPop().resumeTransaction()'
+        type: string
       checkout_url:
+        type: string
+      reference:
         type: string
     type: object
   internal_handler.createCredentialRequest:

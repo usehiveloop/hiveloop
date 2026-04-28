@@ -11,6 +11,7 @@ import { ArrowUpRight03Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { useAuth } from "@/lib/auth/auth-context"
+import { usePaystackPop } from "@/hooks/use-paystack-pop"
 import type { components } from "@/lib/api/schema"
 
 type Plan = components["schemas"]["planDTO"]
@@ -64,6 +65,7 @@ export default function Page() {
     total > 0 ? Math.min(1, Math.max(0, credits / total)) : 0
 
   const portal = $api.useMutation("post", "/v1/billing/portal")
+  const { subscribe, isPending: subscribing } = usePaystackPop()
 
   function handleManage() {
     portal.mutate(
@@ -200,18 +202,20 @@ export default function Page() {
               const active = plan.slug === currentSlug
               const isFree = (plan.price_cents ?? 0) === 0
               const features = plan.features ?? []
+              const subscribable = !active && !isFree
               return (
                 <li key={plan.slug}>
                   <button
                     type="button"
-                    onClick={() => {
-                      /* no-op for now */
-                    }}
+                    disabled={!subscribable || subscribing}
+                    onClick={() => subscribable && subscribe(plan)}
                     className={
-                      "flex w-full cursor-pointer flex-col gap-3 rounded-lg border px-3.5 py-3 text-left transition-colors " +
+                      "flex w-full flex-col gap-3 rounded-lg border px-3.5 py-3 text-left transition-colors disabled:cursor-default " +
                       (active
                         ? "border-primary/40 bg-primary/5"
-                        : "border-border/60 hover:border-primary")
+                        : subscribable
+                          ? "cursor-pointer border-border/60 hover:border-primary"
+                          : "border-border/60")
                     }
                   >
                     <div className="flex items-start justify-between gap-3">

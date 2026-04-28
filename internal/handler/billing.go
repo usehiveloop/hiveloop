@@ -39,6 +39,8 @@ type createCheckoutRequest struct {
 
 type createCheckoutResponse struct {
 	CheckoutURL string `json:"checkout_url"`
+	AccessCode  string `json:"access_code,omitempty"` // popup flow: hand to PaystackPop().resumeTransaction()
+	Reference   string `json:"reference,omitempty"`
 }
 
 // CreateCheckout creates a checkout session with the requested provider.
@@ -130,7 +132,11 @@ func (h *BillingHandler) CreateCheckout(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	writeJSON(w, http.StatusOK, createCheckoutResponse{CheckoutURL: session.URL})
+	writeJSON(w, http.StatusOK, createCheckoutResponse{
+		CheckoutURL: session.URL,
+		AccessCode:  session.AccessCode,
+		Reference:   session.ExternalID,
+	})
 }
 
 type createPortalRequest struct {

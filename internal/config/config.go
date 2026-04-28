@@ -193,10 +193,9 @@ type Config struct {
 
 	// Paystack (billing provider). Empty PaystackSecretKey disables the
 	// provider — the billing registry simply won't include it and checkout
-	// for NGN plans will fail fast with ErrUnknownProvider. Per-plan
-	// PAYSTACK_PLAN_<SLUG>_<CURRENCY>_<CYCLE> vars are read directly out of
-	// the environment by paystack.PlanRegistryFromEnv; run
-	// `make setup-paystack` to generate them.
+	// for NGN plans will fail fast with ErrUnknownProvider. Plan codes
+	// (PLN_xxx) live on the plans table (provider_plan_id column) — run
+	// `make setup-paystack` to seed them from Paystack's API.
 	PaystackSecretKey string `env:"PAYSTACK_SECRET_KEY"`
 }
 

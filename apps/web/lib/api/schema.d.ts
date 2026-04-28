@@ -4,6 +4,56 @@
  */
 
 export interface paths {
+    "/admin/v1/admin-audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List admin audit entries
+         * @description Returns mutating operations performed via the admin API. Payloads are sanitized — sensitive fields are masked at write time.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by resource (users, orgs, credentials, ...) */
+                    resource?: string;
+                    /** @description Filter by action */
+                    action?: string;
+                    /** @description Filter by admin user ID */
+                    admin_id?: string;
+                    /** @description Page size (max 100) */
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/v1/agents": {
         parameters: {
             query?: never;
@@ -12666,7 +12716,10 @@ export interface components {
             success_url?: string;
         };
         createCheckoutResponse: {
+            /** @description popup flow: hand to PaystackPop().resumeTransaction() */
+            access_code?: string;
             checkout_url?: string;
+            reference?: string;
         };
         createCredentialRequest: {
             api_key?: string;

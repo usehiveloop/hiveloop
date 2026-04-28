@@ -36,7 +36,7 @@ type initializeResponse struct {
 // email on the transaction. We keep it in the signature to satisfy
 // billing.Provider.
 func (p *Provider) CreateCheckout(ctx context.Context, _ string, intent billing.CheckoutIntent) (*billing.CheckoutSession, error) {
-	planCode, err := p.cfg.Plans.Lookup(intent.PlanSlug, intent.Currency, intent.Cycle)
+	planCode, err := p.cfg.Plans.PlanCode(intent.PlanSlug, intent.Currency, intent.Cycle)
 	if err != nil {
 		return nil, err
 	}
@@ -58,5 +58,6 @@ func (p *Provider) CreateCheckout(ctx context.Context, _ string, intent billing.
 	return &billing.CheckoutSession{
 		URL:        resp.AuthorizationURL,
 		ExternalID: resp.Reference,
+		AccessCode: resp.AccessCode,
 	}, nil
 }

@@ -13,7 +13,13 @@ func providerForEvents(t *testing.T) *Provider {
 	t.Helper()
 	return New(Config{
 		SecretKey: "sk_test",
-		Plans:     sampleRegistry(),
+		Plans: &fakePlanResolver{
+			bySlug: map[string]string{"pro": "PLN_pro_ngn_m"},
+			byCode: map[string]string{
+				"PLN_pro_ngn_m": "pro",
+				"PLN_pro_ngn_a": "pro",
+			},
+		},
 	})
 }
 

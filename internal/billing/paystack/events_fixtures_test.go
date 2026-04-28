@@ -26,14 +26,36 @@ func loadFixture(t *testing.T, name string, orgID uuid.UUID) []byte {
 	return body
 }
 
-// fixturesProvider wires plan_code → slug for the codes used in the
-// real-sample fixtures so planIndex lookups resolve.
+// fakePlanResolver maps a fixed slug↔code pair for the codes used in the
+// real-sample fixtures.
+type fakePlanResolver struct {
+	bySlug map[string]string // slug -> code (monthly only — fixtures don't exercise annual)
+	byCode map[string]string // code -> slug
+}
+
+func (f *fakePlanResolver) PlanCode(slug, _ string, _ billing.Cycle) (string, error) {
+	if code, ok := f.bySlug[slug]; ok {
+		return code, nil
+	}
+	return "", billing.ErrUnknownPlan
+}
+
+func (f *fakePlanResolver) SlugForPlanCode(code string) string {
+	return f.byCode[code]
+}
+
+// fixturesProvider wires plan_code ↔ slug for the codes used in the
+// real-sample fixtures.
 func fixturesProvider(t *testing.T) *Provider {
 	t.Helper()
 	return New(Config{
 		SecretKey: "sk_test",
-		Plans: PlanRegistry{
-			"pro": {"NGN": {Monthly: "PLN_pro_ngn_m", Annual: "PLN_pro_ngn_a"}},
+		Plans: &fakePlanResolver{
+			bySlug: map[string]string{"pro": "PLN_pro_ngn_m"},
+			byCode: map[string]string{
+				"PLN_pro_ngn_m": "pro",
+				"PLN_pro_ngn_a": "pro",
+			},
 		},
 	})
 }
