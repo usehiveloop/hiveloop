@@ -1,0 +1,65 @@
+name: github-basic
+integrations:
+  - unique_key: in_org-github
+    provider: github
+    display_name: GitHub
+    credentials:
+      type: APP
+      app_id: "12345"
+      app_link: https://github.com/apps/fake-app
+connections:
+  - id: conn-github-1
+    provider_config_key: in_org-github
+    provider: github
+    credentials:
+      type: APP
+      access_token: ghs_fake_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      installation_id: "42"
+proxy:
+  - method: GET
+    path: /user/repos
+    status: 200
+    body:
+      - id: 1
+        name: agent-test-repo
+        full_name: agent/agent-test-repo
+        private: false
+        default_branch: main
+      - id: 2
+        name: another-repo
+        full_name: agent/another-repo
+        private: true
+        default_branch: main
+
+  - method: GET
+    path: /repos/agent/agent-test-repo
+    status: 200
+    body:
+      id: 1
+      name: agent-test-repo
+      full_name: agent/agent-test-repo
+      default_branch: main
+
+  - method: GET
+    path_pattern: /repos/*/*/issues
+    status: 200
+    body: []
+
+  - method: POST
+    path_pattern: /repos/*/*/issues
+    status: 201
+    body:
+      id: 999
+      number: 1
+      state: open
+      title: Created by agent test
+      html_url: https://github.com/agent/agent-test-repo/issues/1
+
+  - method: GET
+    path_pattern: /repos/*/*/contents/*
+    status: 200
+    body:
+      type: file
+      encoding: base64
+      content: ZmFrZSBmaWxlIGNvbnRlbnRz
+      sha: deadbeef

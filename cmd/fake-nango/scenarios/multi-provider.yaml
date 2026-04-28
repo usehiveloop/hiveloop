@@ -1,0 +1,41 @@
+name: multi-provider
+integrations:
+  - unique_key: in_org-github
+    provider: github
+    credentials: { type: OAUTH2 }
+  - unique_key: in_org-slack
+    provider: slack
+    credentials: { type: OAUTH2 }
+  - unique_key: in_org-stripe
+    provider: stripe
+    credentials: { type: API_KEY }
+
+connections:
+  - id: conn-github
+    provider_config_key: in_org-github
+    provider: github
+    credentials: { access_token: ghp_fake, type: OAUTH2 }
+  - id: conn-slack
+    provider_config_key: in_org-slack
+    provider: slack
+    credentials: { access_token: xoxb-fake, type: OAUTH2 }
+  - id: conn-stripe
+    provider_config_key: in_org-stripe
+    provider: stripe
+    credentials: { api_key: sk_test_fake, type: API_KEY }
+
+proxy:
+  - method: GET
+    path: /user/repos
+    body: []
+
+  - method: POST
+    path: /chat.postMessage
+    body: { ok: true, ts: "1700000000.000100" }
+
+  - method: GET
+    path_pattern: /v1/customers/*
+    body:
+      id: cus_fake_123
+      object: customer
+      email: agent@example.com
