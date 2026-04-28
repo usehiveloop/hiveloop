@@ -2164,6 +2164,22 @@ definitions:
       provider:
         type: string
     type: object
+  internal_handler.initUpgradeRequest:
+    properties:
+      quote_id:
+        type: string
+    type: object
+  internal_handler.initUpgradeResponse:
+    properties:
+      access_code:
+        type: string
+      amount_minor:
+        type: integer
+      currency:
+        type: string
+      reference:
+        type: string
+    type: object
   internal_handler.integrationDetail:
     properties:
       actions:
@@ -7262,6 +7278,45 @@ paths:
       security:
       - BearerAuth: []
       summary: Cancel a subscription
+      tags:
+      - billing
+  /v1/billing/subscription/init-upgrade:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Upgrade quote id
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.initUpgradeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.initUpgradeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "410":
+          description: Gone
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Initialise a Paystack transaction for an upgrade quote
       tags:
       - billing
   /v1/billing/subscription/preview-change:

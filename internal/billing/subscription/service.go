@@ -29,6 +29,7 @@ var (
 	ErrUnsupportedChannel       = errors.New("subscription: payment channel is not eligible for recurring billing")
 	ErrCannotResume             = errors.New("subscription: cannot resume a canceled subscription")
 	ErrCannotCancel             = errors.New("subscription: subscription is already canceled")
+	ErrNotAnUpgrade             = errors.New("subscription: quote is not an upgrade")
 )
 
 type Service struct {
