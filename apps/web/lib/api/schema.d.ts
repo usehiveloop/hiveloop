@@ -5817,6 +5817,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/billing/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify subscription is active
+         * @description Waits up to 5s for the subscription webhook to land and the local Subscription row to become active for the requested plan.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Plan to wait for */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["verifyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["verifyResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Request Timeout */
+                408: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/catalog/integrations": {
         parameters: {
             query?: never;
@@ -13644,6 +13715,14 @@ export interface components {
         verifyDomainResponse: {
             message?: string;
             verified?: boolean;
+        };
+        verifyRequest: {
+            plan_slug?: string;
+        };
+        verifyResponse: {
+            plan_slug?: string;
+            /** @description "active" | "timeout" */
+            status?: string;
         };
     };
     responses: never;

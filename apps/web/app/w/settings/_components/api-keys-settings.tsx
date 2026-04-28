@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { useState } from "react"
-import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -29,7 +28,6 @@ import {
   PauseIcon,
   Copy01Icon,
   ArrowRight01Icon,
-  Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import {
   DropdownMenu,
@@ -49,15 +47,6 @@ function formatDate(dateStr: string) {
     year: "numeric",
   })
 }
-
-const API_KEY_SCOPES = [
-  { id: "all", label: "All", description: "Full access to every resource" },
-  { id: "agents", label: "Agents", description: "Create, update, and run agents" },
-  { id: "credentials", label: "Credentials", description: "Manage LLM provider keys" },
-  { id: "connect", label: "Connect", description: "Manage OAuth connections" },
-  { id: "integrations", label: "Integrations", description: "Configure third-party integrations" },
-  { id: "tokens", label: "Tokens", description: "Issue and revoke tokens" },
-] as const
 
 function ScopeBadge({ scopes }: { scopes?: string[] }) {
   if (!scopes || scopes.length === 0) return <span className="text-[11px] text-muted-foreground">{"\u2014"}</span>
@@ -106,13 +95,11 @@ function ApiKeyActions({ onRevoke }: { onRevoke: () => void }) {
 function CreateApiKeyDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const queryClient = useQueryClient()
   const [name, setName] = useState("")
-  const [selectedScopes, setSelectedScopes] = useState<string[]>(["all"])
   const [createdKey, setCreatedKey] = useState<string | null>(null)
   const createKey = $api.useMutation("post", "/v1/api-keys")
 
   function reset() {
     setName("")
-    setSelectedScopes(["all"])
     setCreatedKey(null)
   }
 
@@ -121,18 +108,12 @@ function CreateApiKeyDialog({ open, onOpenChange }: { open: boolean; onOpenChang
     onOpenChange(nextOpen)
   }
 
-  function toggleScope(scope: string) {
-    setSelectedScopes((prev) =>
-      prev.includes(scope) ? prev.filter((item) => item !== scope) : [...prev, scope],
-    )
-  }
-
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-    if (!name.trim() || selectedScopes.length === 0) return
+    if (!name.trim()) return
 
     createKey.mutate(
-      { body: { name: name.trim(), scopes: selectedScopes } },
+      { body: { name: name.trim(), scopes: ["all"] } },
       {
         onSuccess: (response) => {
           const key = (response as { key?: string })?.key
@@ -190,37 +171,7 @@ function CreateApiKeyDialog({ open, onOpenChange }: { open: boolean; onOpenChang
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Label>Scopes</Label>
-              <div className="flex flex-col gap-1.5">
-                {API_KEY_SCOPES.map((scope) => {
-                  const isSelected = selectedScopes.includes(scope.id)
-                  return (
-                    <button
-                      key={scope.id}
-                      type="button"
-                      onClick={() => toggleScope(scope.id)}
-                      className={cn(
-                        "flex items-center gap-3 w-full rounded-xl p-3 text-left transition-colors cursor-pointer",
-                        isSelected
-                          ? "bg-primary/5 border border-primary/20"
-                          : "bg-muted/50 hover:bg-muted border border-transparent"
-                      )}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">{scope.label}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{scope.description}</p>
-                      </div>
-                      {isSelected && (
-                        <HugeiconsIcon icon={Tick02Icon} size={16} className="text-primary shrink-0" />
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <Button type="submit" className="w-full" loading={createKey.isPending} disabled={!name.trim() || selectedScopes.length === 0}>
+            <Button type="submit" className="w-full" loading={createKey.isPending} disabled={!name.trim()}>
               Create key
             </Button>
           </form>

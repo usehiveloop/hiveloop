@@ -5136,6 +5136,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/billing/verify": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Waits up to 5s for the subscription webhook to land and the local Subscription row to become active for the requested plan.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Verify subscription is active",
+                "parameters": [
+                    {
+                        "description": "Plan to wait for",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.verifyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.verifyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "408": {
+                        "description": "Request Timeout",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/catalog/integrations": {
             "get": {
                 "description": "Returns every integration provider in the catalog with action counts.",
@@ -15921,6 +15978,26 @@ const docTemplate = `{
                 },
                 "verified": {
                     "type": "boolean"
+                }
+            }
+        },
+        "internal_handler.verifyRequest": {
+            "type": "object",
+            "properties": {
+                "plan_slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.verifyResponse": {
+            "type": "object",
+            "properties": {
+                "plan_slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "\"active\" | \"timeout\"",
+                    "type": "string"
                 }
             }
         }

@@ -113,6 +113,18 @@ type SubscriptionState struct {
 	CurrentPeriodStart     time.Time
 	CurrentPeriodEnd       time.Time
 	CanceledAt             *time.Time
+
+	// Payment-method snapshot — only populated by charge events. Empty on
+	// subscription.* events. The webhook handler writes these onto the
+	// Subscription row so the UI doesn't have to round-trip the provider.
+	ChargeReference   string
+	ChargeAmount      int64 // minor units
+	ChargedAt         *time.Time
+	CardLast4         string
+	CardBrand         string
+	CardExpMonth      string
+	CardExpYear       string
+	AuthorizationCode string
 }
 
 // Event is a normalized webhook event.
