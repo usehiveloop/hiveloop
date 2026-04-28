@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-e2e-vault lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down setup-paystack
+.PHONY: build test test-e2e test-e2e-vault lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -141,18 +141,6 @@ test-connections:
 # All integration e2e tests (nango + connect + proxy + vault)
 test-integrations:
 	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Integration|TestE2E_Connect|TestE2E_Proxy|TestE2E_Fireworks|TestVaultE2E"
-
-# Reconcile Hiveloop's canonical plans with a payment provider. Idempotent —
-# safe to run against any environment, multiple times. Dry-run by default;
-# pass `MUTATE=1` to actually create/update plans.
-#
-# Requires PAYSTACK_SECRET_KEY in the environment (test or live key).
-setup-paystack:
-ifdef MUTATE
-	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/setup-billing --provider=paystack --currencies=NGN
-else
-	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/setup-billing --provider=paystack --currencies=NGN --dry-run
-endif
 
 # Run linter
 lint:

@@ -14,6 +14,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/billing/paystack"
+	"github.com/usehiveloop/hiveloop/internal/billing/subscription"
 	"github.com/usehiveloop/hiveloop/internal/cache"
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/counter"
@@ -62,6 +63,7 @@ type Deps struct {
 	ToolUsageWriter  *middleware.ToolUsageWriter // nil if spider not configured
 	BillingRegistry  *billing.Registry           // always non-nil; may have zero providers
 	Credits          *billing.CreditsService     // credit ledger service
+	Subscriptions    *subscription.Service       // wraps registry+credits with the renewal worker
 	S3Client         *storage.S3Client           // nil if AWS_S3_BUCKET_NAME not set
 	PostHog          ph.Client                   // nil if PostHog disabled
 }
@@ -319,6 +321,7 @@ func New(ctx context.Context) (*Deps, error) {
 		ToolUsageWriter: toolUsageWriter,
 		BillingRegistry: billingRegistry,
 		Credits:         credits,
+		Subscriptions:   subscription.NewService(database, billingRegistry, credits),
 		S3Client:        s3Client,
 		PostHog:         postHogClient,
 	}, nil

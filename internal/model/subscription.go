@@ -43,6 +43,15 @@ type Subscription struct {
 	PendingPlan     *Plan      `gorm:"foreignKey:PendingPlanID"`
 	PendingChangeAt *time.Time
 
+	// Renewal worker bookkeeping. RenewalAttempts increments after every
+	// failed charge attempt; the renewal worker stops trying when it
+	// reaches MaxRenewalAttempts (5) and transitions the row to past_due.
+	// LastRenewalAttemptAt rate-limits the sweep — the next attempt is
+	// only enqueued after RenewalRetryInterval (1h) has passed.
+	RenewalAttempts      int    `gorm:"not null;default:0"`
+	LastRenewalAttemptAt *time.Time
+	LastRenewalError     string `gorm:"not null;default:'';size:512"`
+
 	// Saved payment method, lifted off the most recent successful charge.
 	// PaymentChannel is "card" or "bank" — these are the only channels we
 	// support for subscription renewals because they're the only Paystack
