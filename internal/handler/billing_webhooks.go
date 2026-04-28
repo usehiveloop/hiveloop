@@ -64,11 +64,9 @@ func (h *BillingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("billing webhook received", "provider", name, "type", event.Type, "raw_type", event.RawProviderType)
 
-	if err := h.apply(provider.Name(), event); err != nil {
-		slog.Error("billing webhook: apply failed", "provider", name, "type", event.Type, "error", err)
-		// Return 200 anyway so the provider doesn't retry on logic errors —
-		// signature was good, payload was good, our state just didn't fit.
-	}
+	// Webhook events are log-only for now: /v1/billing/verify resolves
+	// state synchronously via the provider API.
+	_ = event
 
 	w.WriteHeader(http.StatusOK)
 }

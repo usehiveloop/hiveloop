@@ -5877,8 +5877,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Verify subscription is active
-         * @description Waits up to 5s for the subscription webhook to land and the local Subscription row to become active for the requested plan.
+         * Verify checkout completed
+         * @description Synchronously resolves a checkout reference, asserts the transaction succeeded, and upserts the local Subscription row.
          */
         post: {
             parameters: {
@@ -5887,7 +5887,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            /** @description Plan to wait for */
+            /** @description Reference returned from /v1/billing/checkout */
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["verifyRequest"];
@@ -5921,8 +5921,8 @@ export interface paths {
                         "application/json": components["schemas"]["errorResponse"];
                     };
                 };
-                /** @description Request Timeout */
-                408: {
+                /** @description Bad Gateway */
+                502: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -11444,6 +11444,104 @@ export interface paths {
         };
         trace?: never;
     };
+    "/v1/system/tasks/{taskName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run a system task
+         * @description Executes a registered server-side LLM task using platform credentials. Each task name maps to a hard-coded definition (model tier, prompt, args). Caller may opt into streaming.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Task name */
+                    taskName: string;
+                };
+                cookie?: never;
+            };
+            /** @description Task arguments */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["systemTaskRequest"];
+                };
+            };
+            responses: {
+                /** @description SSE stream when stream=true */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": string;
+                        "text/event-stream": string;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tokens": {
         parameters: {
             query?: never;
@@ -12210,6 +12308,12 @@ export interface components {
         "github_com_usehiveloop_hiveloop_internal_skills.Reference": {
             body?: string;
             path?: string;
+        };
+        "github_com_usehiveloop_hiveloop_internal_system.Usage": {
+            cached_tokens?: number;
+            input_tokens?: number;
+            output_tokens?: number;
+            reasoning_tokens?: number;
         };
         BuiltInToolDefinition: {
             category?: string;
@@ -13606,6 +13710,18 @@ export interface components {
             provider_id?: string;
             revoked_at?: string;
         };
+        systemTaskJSONResponse: {
+            cached?: boolean;
+            model?: string;
+            text?: string;
+            usage?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_system.Usage"];
+        };
+        systemTaskRequest: {
+            args?: {
+                [key: string]: unknown;
+            };
+            stream?: boolean;
+        };
         tokenListItem: {
             created_at?: string;
             credential_id?: string;
@@ -13770,11 +13886,11 @@ export interface components {
             verified?: boolean;
         };
         verifyRequest: {
-            plan_slug?: string;
+            provider?: string;
+            reference?: string;
         };
         verifyResponse: {
             plan_slug?: string;
-            /** @description "active" | "timeout" */
             status?: string;
         };
     };

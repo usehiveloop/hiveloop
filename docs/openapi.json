@@ -6065,11 +6065,11 @@
             "BearerAuth": []
           }
         ],
-        "description": "Waits up to 5s for the subscription webhook to land and the local Subscription row to become active for the requested plan.",
+        "description": "Synchronously resolves a checkout reference, asserts the transaction succeeded, and upserts the local Subscription row.",
         "tags": [
           "billing"
         ],
-        "summary": "Verify subscription is active",
+        "summary": "Verify checkout completed",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6078,7 +6078,7 @@
               }
             }
           },
-          "description": "Plan to wait for",
+          "description": "Reference returned from /v1/billing/checkout",
           "required": true
         },
         "responses": {
@@ -6112,8 +6112,8 @@
               }
             }
           },
-          "408": {
-            "description": "Request Timeout",
+          "502": {
+            "description": "Bad Gateway",
             "content": {
               "application/json": {
                 "schema": {
@@ -11847,6 +11847,134 @@
         }
       }
     },
+    "/v1/system/tasks/{taskName}": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Executes a registered server-side LLM task using platform credentials. Each task name maps to a hard-coded definition (model tier, prompt, args). Caller may opt into streaming.",
+        "tags": [
+          "system"
+        ],
+        "summary": "Run a system task",
+        "parameters": [
+          {
+            "description": "Task name",
+            "name": "taskName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/systemTaskRequest"
+              }
+            }
+          },
+          "description": "Task arguments",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "SSE stream when stream=true",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/tokens": {
       "get": {
         "security": [
@@ -13249,6 +13377,23 @@
           },
           "path": {
             "type": "string"
+          }
+        }
+      },
+      "github_com_usehiveloop_hiveloop_internal_system.Usage": {
+        "type": "object",
+        "properties": {
+          "cached_tokens": {
+            "type": "integer"
+          },
+          "input_tokens": {
+            "type": "integer"
+          },
+          "output_tokens": {
+            "type": "integer"
+          },
+          "reasoning_tokens": {
+            "type": "integer"
           }
         }
       },
@@ -17429,6 +17574,35 @@
           }
         }
       },
+      "systemTaskJSONResponse": {
+        "type": "object",
+        "properties": {
+          "cached": {
+            "type": "boolean"
+          },
+          "model": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_system.Usage"
+          }
+        }
+      },
+      "systemTaskRequest": {
+        "type": "object",
+        "properties": {
+          "args": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "stream": {
+            "type": "boolean"
+          }
+        }
+      },
       "tokenListItem": {
         "type": "object",
         "properties": {
@@ -17942,7 +18116,10 @@
       "verifyRequest": {
         "type": "object",
         "properties": {
-          "plan_slug": {
+          "provider": {
+            "type": "string"
+          },
+          "reference": {
             "type": "string"
           }
         }
@@ -17954,7 +18131,6 @@
             "type": "string"
           },
           "status": {
-            "description": "\"active\" | \"timeout\"",
             "type": "string"
           }
         }

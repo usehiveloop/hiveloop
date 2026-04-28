@@ -19,13 +19,11 @@ interface UsePaystackPopOptions {
 interface UsePaystackPopHandlers {
   /**
    * Kick off the full subscribe flow for a plan:
-   *   1. POST /v1/billing/checkout — backend ensures the customer record has
-   *      org_id metadata and initialises a Paystack transaction.
-   *   2. PaystackPop.resumeTransaction(access_code) — opens the popup tied
-   *      to the just-initialised transaction so the customer + metadata
-   *      flow through.
-   *   3. POST /v1/billing/verify — polls the local DB for an active
-   *      Subscription on this plan.
+   *   1. POST /v1/billing/checkout — backend initialises a Paystack
+   *      transaction and returns access_code + reference.
+   *   2. PaystackPop.resumeTransaction(access_code) — opens the popup.
+   *   3. POST /v1/billing/verify — backend resolves the reference against
+   *      Paystack and upserts the Subscription synchronously.
    */
   subscribe: (plan: Plan) => void
   /** Slug of the plan currently mid-flight, or null. */
@@ -81,11 +79,22 @@ export function usePaystackPop(
               setPendingSlug(null)
               return
             }
+            const reference = data.reference
+            if (!reference) {
+              toast.error("Provider did not return a reference")
+              setPendingSlug(null)
+              return
+            }
             const popup = new PaystackPop()
             popup.resumeTransaction(data.access_code, {
               onSuccess: () => {
                 verify.mutate(
-                  { body: { plan_slug: plan.slug! } as never },
+                  {
+                    body: {
+                      provider: "paystack",
+                      reference,
+                    },
+                  },
                   {
                     onSuccess: (resp) => {
                       if (resp.status === "active") {

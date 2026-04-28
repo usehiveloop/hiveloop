@@ -3,10 +3,10 @@ package handler_test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -14,27 +14,32 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehiveloop/hiveloop/internal/billing/fake"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 type verifyHarness struct {
-	db     *gorm.DB
-	router *chi.Mux
+	db       *gorm.DB
+	router   *chi.Mux
+	provider *fake.Provider
 }
 
 func newVerifyHarness(t *testing.T) *verifyHarness {
 	t.Helper()
 	db := connectTestDB(t)
-	billingHandler := handler.NewBillingHandler(db, billing.NewRegistry(), billing.NewCreditsService(db))
+	registry := billing.NewRegistry()
+	provider := fake.New("paystack")
+	registry.Register(provider)
+	billingHandler := handler.NewBillingHandler(db, registry, billing.NewCreditsService(db))
 
 	r := chi.NewRouter()
 	r.Route("/v1/billing", func(r chi.Router) {
 		r.Use(middleware.ResolveOrgFromHeader(db))
 		r.Post("/verify", billingHandler.Verify)
 	})
-	return &verifyHarness{db: db, router: r}
+	return &verifyHarness{db: db, router: r, provider: provider}
 }
 
 func (h *verifyHarness) seedOrgWithMember(t *testing.T) (model.Org, model.User) {
@@ -74,22 +79,6 @@ func (h *verifyHarness) seedPlan(t *testing.T, slug string) model.Plan {
 	return plan
 }
 
-func (h *verifyHarness) seedActiveSub(t *testing.T, orgID, planID uuid.UUID) model.Subscription {
-	t.Helper()
-	sub := model.Subscription{
-		OrgID:                  orgID,
-		PlanID:                 planID,
-		Provider:               "paystack",
-		ExternalSubscriptionID: "SUB_verify_" + uuid.NewString()[:8],
-		ExternalCustomerID:     "CUS_verify_" + uuid.NewString()[:8],
-		Status:                 string(billing.StatusActive),
-	}
-	if err := h.db.Create(&sub).Error; err != nil {
-		t.Fatalf("create subscription: %v", err)
-	}
-	return sub
-}
-
 func (h *verifyHarness) post(t *testing.T, userID, orgID uuid.UUID, body any) *httptest.ResponseRecorder {
 	t.Helper()
 	buf := new(bytes.Buffer)
@@ -107,13 +96,24 @@ func (h *verifyHarness) post(t *testing.T, userID, orgID uuid.UUID, body any) *h
 	return rr
 }
 
-func TestBillingVerify_FoundImmediate(t *testing.T) {
+func TestBillingVerify_CreatesSubscription(t *testing.T) {
 	h := newVerifyHarness(t)
 	org, user := h.seedOrgWithMember(t)
-	plan := h.seedPlan(t, "verify-pro-"+uuid.NewString()[:8])
-	h.seedActiveSub(t, org.ID, plan.ID)
+	plan := h.seedPlan(t, "verify-create-"+uuid.NewString()[:8])
 
-	rr := h.post(t, user.ID, org.ID, map[string]string{"plan_slug": plan.Slug})
+	h.provider.NextResolveResult = &billing.ResolveCheckoutResult{
+		Status:                 billing.StatusActive,
+		PlanSlug:               plan.Slug,
+		ExternalSubscriptionID: "SUB_create",
+		ExternalCustomerID:     "CUS_create",
+		ChargeReference:        "ref_create",
+		ChargeAmount:           500000,
+		CardLast4:              "4242",
+		CardBrand:              "visa",
+		AuthorizationCode:      "AUTH_create",
+	}
+
+	rr := h.post(t, user.ID, org.ID, map[string]string{"reference": "ref_create"})
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
@@ -125,89 +125,110 @@ func TestBillingVerify_FoundImmediate(t *testing.T) {
 	if resp["plan_slug"] != plan.Slug {
 		t.Errorf("plan_slug = %q, want %q", resp["plan_slug"], plan.Slug)
 	}
+
+	var sub model.Subscription
+	if err := h.db.Where("org_id = ? AND plan_id = ?", org.ID, plan.ID).First(&sub).Error; err != nil {
+		t.Fatalf("expected subscription row, got: %v", err)
+	}
+	if sub.LastChargeReference != "ref_create" {
+		t.Errorf("LastChargeReference = %q, want %q", sub.LastChargeReference, "ref_create")
+	}
+	if sub.AuthorizationCode != "AUTH_create" {
+		t.Errorf("AuthorizationCode = %q, want %q", sub.AuthorizationCode, "AUTH_create")
+	}
+
+	var orgRow model.Org
+	h.db.First(&orgRow, "id = ?", org.ID)
+	if orgRow.PlanSlug != plan.Slug {
+		t.Errorf("org.plan_slug = %q, want %q", orgRow.PlanSlug, plan.Slug)
+	}
 }
 
-func TestBillingVerify_FoundDuringPoll(t *testing.T) {
+func TestBillingVerify_UpdatesExistingSubscription(t *testing.T) {
 	h := newVerifyHarness(t)
 	org, user := h.seedOrgWithMember(t)
-	plan := h.seedPlan(t, "verify-poll-"+uuid.NewString()[:8])
+	plan := h.seedPlan(t, "verify-update-"+uuid.NewString()[:8])
 
-	go func() {
-		time.Sleep(700 * time.Millisecond)
-		h.seedActiveSub(t, org.ID, plan.ID)
-	}()
+	existing := model.Subscription{
+		OrgID:                  org.ID,
+		PlanID:                 plan.ID,
+		Provider:               "paystack",
+		ExternalSubscriptionID: "SUB_old",
+		ExternalCustomerID:     "CUS_old",
+		Status:                 string(billing.StatusActive),
+		LastChargeReference:    "ref_old",
+		CardLast4:              "0000",
+	}
+	if err := h.db.Create(&existing).Error; err != nil {
+		t.Fatalf("seed sub: %v", err)
+	}
 
-	start := time.Now()
-	rr := h.post(t, user.ID, org.ID, map[string]string{"plan_slug": plan.Slug})
-	elapsed := time.Since(start)
+	h.provider.NextResolveResult = &billing.ResolveCheckoutResult{
+		Status:                 billing.StatusActive,
+		PlanSlug:               plan.Slug,
+		ExternalSubscriptionID: "SUB_new",
+		ExternalCustomerID:     "CUS_new",
+		ChargeReference:        "ref_new",
+		ChargeAmount:           700000,
+		CardLast4:              "4242",
+	}
 
+	rr := h.post(t, user.ID, org.ID, map[string]string{"reference": "ref_new"})
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
-	if elapsed >= 5*time.Second {
-		t.Errorf("verify took %v — should have resolved well before the 5s timeout", elapsed)
+
+	var got model.Subscription
+	if err := h.db.First(&got, "id = ?", existing.ID).Error; err != nil {
+		t.Fatalf("reload sub: %v", err)
+	}
+	if got.LastChargeReference != "ref_new" {
+		t.Errorf("LastChargeReference = %q, want %q", got.LastChargeReference, "ref_new")
+	}
+	if got.ExternalSubscriptionID != "SUB_new" {
+		t.Errorf("ExternalSubscriptionID = %q, want %q", got.ExternalSubscriptionID, "SUB_new")
+	}
+	if got.CardLast4 != "4242" {
+		t.Errorf("CardLast4 = %q, want %q", got.CardLast4, "4242")
 	}
 }
 
-func TestBillingVerify_TimeoutWhenAbsent(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping 5s timeout test in short mode")
-	}
+func TestBillingVerify_NonSuccessReturnsStatus(t *testing.T) {
 	h := newVerifyHarness(t)
 	org, user := h.seedOrgWithMember(t)
-	plan := h.seedPlan(t, "verify-absent-"+uuid.NewString()[:8])
 
-	start := time.Now()
-	rr := h.post(t, user.ID, org.ID, map[string]string{"plan_slug": plan.Slug})
-	elapsed := time.Since(start)
+	h.provider.NextResolveResult = &billing.ResolveCheckoutResult{Status: billing.StatusPastDue}
 
-	if rr.Code != http.StatusRequestTimeout {
-		t.Fatalf("expected 408, got %d: %s", rr.Code, rr.Body.String())
-	}
-	if elapsed < 4*time.Second {
-		t.Errorf("verify returned too quickly: %v (expected ~5s)", elapsed)
+	rr := h.post(t, user.ID, org.ID, map[string]string{"reference": "ref_pending"})
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 	var resp map[string]string
 	json.Unmarshal(rr.Body.Bytes(), &resp)
-	if resp["status"] != "timeout" {
-		t.Errorf("status = %q, want timeout", resp["status"])
+	if resp["status"] != "past_due" {
+		t.Errorf("status = %q, want past_due", resp["status"])
+	}
+
+	var count int64
+	h.db.Model(&model.Subscription{}).Where("org_id = ?", org.ID).Count(&count)
+	if count != 0 {
+		t.Errorf("expected 0 subscription rows, got %d", count)
 	}
 }
 
-func TestBillingVerify_OtherPlanIgnored(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping 5s timeout test in short mode")
-	}
+func TestBillingVerify_ProviderErrorReturns502(t *testing.T) {
 	h := newVerifyHarness(t)
 	org, user := h.seedOrgWithMember(t)
-	other := h.seedPlan(t, "verify-other-"+uuid.NewString()[:8])
-	requested := h.seedPlan(t, "verify-requested-"+uuid.NewString()[:8])
-	// Active subscription on a different plan than the one being verified.
-	h.seedActiveSub(t, org.ID, other.ID)
 
-	rr := h.post(t, user.ID, org.ID, map[string]string{"plan_slug": requested.Slug})
-	if rr.Code != http.StatusRequestTimeout {
-		t.Fatalf("expected 408, got %d: %s", rr.Code, rr.Body.String())
+	h.provider.NextResolveError = errors.New("paystack: boom")
+
+	rr := h.post(t, user.ID, org.ID, map[string]string{"reference": "ref_boom"})
+	if rr.Code != http.StatusBadGateway {
+		t.Fatalf("expected 502, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
 
-func TestBillingVerify_CanceledIgnored(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping 5s timeout test in short mode")
-	}
-	h := newVerifyHarness(t)
-	org, user := h.seedOrgWithMember(t)
-	plan := h.seedPlan(t, "verify-canceled-"+uuid.NewString()[:8])
-	sub := h.seedActiveSub(t, org.ID, plan.ID)
-	h.db.Model(&sub).Update("status", string(billing.StatusCanceled))
-
-	rr := h.post(t, user.ID, org.ID, map[string]string{"plan_slug": plan.Slug})
-	if rr.Code != http.StatusRequestTimeout {
-		t.Fatalf("expected 408 for canceled subscription, got %d: %s", rr.Code, rr.Body.String())
-	}
-}
-
-func TestBillingVerify_RequiresPlanSlug(t *testing.T) {
+func TestBillingVerify_RequiresReference(t *testing.T) {
 	h := newVerifyHarness(t)
 	org, user := h.seedOrgWithMember(t)
 
