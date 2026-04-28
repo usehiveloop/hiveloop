@@ -650,6 +650,12 @@ export function AgentForm() {
       <CreateSkillDialog
         open={createSkillOpen}
         onOpenChange={setCreateSkillOpen}
+        onCreated={(skill) => {
+          const preview = toSkillPreview(skill)
+          if (preview && !selectedSkills.has(preview.id)) {
+            toggleSkill(preview)
+          }
+        }}
       />
     </>
   )
