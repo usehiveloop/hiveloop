@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -10,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
@@ -136,7 +138,25 @@ func finalizeAttempt(
 		Updates(srcUpd).Error; err != nil {
 		return fmt.Errorf("finalize source %s: %w", src.ID, err)
 	}
+	debitWebsiteCredits(deps, src, a, stats)
 	return nil
+}
+
+// debitWebsiteCredits charges the org for a website crawl. Idempotent on
+// (rag_source_attempt_credit, attempt.ID) — retries can't double-charge.
+func debitWebsiteCredits(deps *Deps, src *ragmodel.RAGSource, a *ragmodel.RAGIndexAttempt, stats ingestStats) {
+	if deps.Credits == nil || src.KindValue != ragmodel.RAGSourceKindWebsite || stats.docsBatched <= 0 {
+		return
+	}
+	amount := int64(stats.docsBatched) * billing.WebsitePagePriceCredits
+	err := deps.Credits.Spend(
+		src.OrgIDValue, amount,
+		"rag_website_crawl", "rag_source_attempt_credit", a.ID.String(),
+	)
+	if err != nil && !errors.Is(err, billing.ErrAlreadyRecorded) {
+		slog.Warn("rag finalize: credit spend failed",
+			"source_id", src.ID, "attempt_id", a.ID, "amount", amount, "err", err)
+	}
 }
 
 func stampDocsEstimated(
