@@ -1,0 +1,16 @@
+{
+  "data": [
+    { "name": "github",            "display_name": "GitHub",     "auth_mode": "OAUTH2", "webhook_user_defined_secret": true },
+    { "name": "github-app-oauth",  "display_name": "GitHub App", "auth_mode": "APP" },
+    { "name": "slack",             "display_name": "Slack",      "auth_mode": "OAUTH2" },
+    { "name": "notion",            "display_name": "Notion",     "auth_mode": "OAUTH2" },
+    { "name": "linear",            "display_name": "Linear",     "auth_mode": "OAUTH2" },
+    { "name": "asana",             "display_name": "Asana",      "auth_mode": "OAUTH2" },
+    { "name": "jira",              "display_name": "Jira",       "auth_mode": "OAUTH2" },
+    { "name": "salesforce",        "display_name": "Salesforce", "auth_mode": "OAUTH2" },
+    { "name": "mailchimp",         "display_name": "Mailchimp",  "auth_mode": "OAUTH2" },
+    { "name": "sendgrid",          "display_name": "SendGrid",   "auth_mode": "API_KEY" },
+    { "name": "stripe",            "display_name": "Stripe",     "auth_mode": "API_KEY" },
+    { "name": "railway",           "display_name": "Railway",    "auth_mode": "API_KEY" }
+  ]
+}
