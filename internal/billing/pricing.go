@@ -30,6 +30,12 @@ var modelRates = map[string]ModelRates{
 	"glm-5.1-precision": {InputPerMTok: 0.437, OutputPerMTok: 4.40},
 }
 
+// WebsitePagePriceCredits is the flat per-page charge for a website
+// crawl. Set conservatively above worst-case observed Spider per-page
+// COGS so we never under-bill on heavy pages. 2 credits = $0.002 user
+// = $0.0005 COGS budget at 75% margin (vs ~$0.0003 observed worst).
+const WebsitePagePriceCredits = 2
+
 // TokensToCredits converts an LLM call's input/output token counts into the
 // number of credits the org's ledger should be debited.
 //
