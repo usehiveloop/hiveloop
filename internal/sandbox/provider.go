@@ -1,6 +1,14 @@
 package sandbox
 
-import "context"
+import (
+	"context"
+	"errors"
+)
+
+// ErrSandboxNotFound means the upstream provider returned 404 for the
+// sandbox. The orchestrator treats it as success on stop/archive/delete
+// since the desired state ("not running") is already reached upstream.
+var ErrSandboxNotFound = errors.New("sandbox not found upstream")
 
 // SandboxStatus represents the state of a sandbox.
 type SandboxStatus string
