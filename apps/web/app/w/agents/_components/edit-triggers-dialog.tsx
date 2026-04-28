@@ -2,30 +2,37 @@
 
 import { useState, useRef, useCallback, useEffect } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import { HugeiconsIcon } from "@hugeicons/react"
-import {
-  FlashIcon,
-  Cancel01Icon,
-  Add01Icon,
-  Edit02Icon,
-} from "@hugeicons/core-free-icons"
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { IntegrationLogo } from "@/components/integration-logo"
 import { $api } from "@/lib/api/hooks"
-import type { TriggerConfig, TriggerConditionsConfig } from "./create-agent/types"
+import type {
+  TriggerConfig,
+  TriggerConditionsConfig,
+} from "./create-agent/types"
 import { ConnectionPickerView } from "./create-agent/step-trigger/connection-picker"
 import { TriggerPickerView } from "./create-agent/step-trigger/trigger-picker"
 import { ConditionBuilderView } from "./create-agent/step-trigger/condition-builder"
+import { TriggerListView } from "./edit-triggers/trigger-list-view"
+import { TriggerTypePickerView } from "./edit-triggers/trigger-type-picker-view"
+import { HttpConfigView } from "./edit-triggers/http-config-view"
+import { CronConfigView } from "./edit-triggers/cron-config-view"
 
-type DialogView = "list" | "connections" | "triggers" | "conditions"
+export {
+  TriggerTypeAvatar,
+  triggerDisplayName,
+  HttpEndpointPill,
+} from "./edit-triggers/trigger-type-display"
+
+type DialogView =
+  | "list"
+  | "type"
+  | "connections"
+  | "triggers"
+  | "conditions"
+  | "http-config"
+  | "cron-config"
 
 interface SelectedEvent {
   key: string
@@ -108,7 +115,15 @@ export function EditTriggersDialog({
   }
 
   function navigateTo(nextView: DialogView) {
-    const order: DialogView[] = ["list", "connections", "triggers", "conditions"]
+    const order: DialogView[] = [
+      "list",
+      "type",
+      "connections",
+      "triggers",
+      "conditions",
+      "http-config",
+      "cron-config",
+    ]
     navDirection.current = order.indexOf(nextView) > order.indexOf(view) ? 1 : -1
     setSearch("")
     setView(nextView)
@@ -116,7 +131,49 @@ export function EditTriggersDialog({
 
   function handleAddClick() {
     resetFlowState()
-    navigateTo("connections")
+    navigateTo("type")
+  }
+
+  function handlePickType(triggerType: "webhook" | "http" | "cron") {
+    if (triggerType === "webhook") {
+      navigateTo("connections")
+    } else if (triggerType === "http") {
+      navigateTo("http-config")
+    } else {
+      navigateTo("cron-config")
+    }
+  }
+
+  function handleSaveHttp(input: { instructions: string; secretKey: string }) {
+    onAdd({
+      triggerType: "http",
+      connectionId: "",
+      connectionName: "HTTP trigger",
+      provider: "http",
+      triggerKeys: [],
+      triggerDisplayNames: [],
+      conditions: null,
+      instructions: input.instructions || undefined,
+      secretKey: input.secretKey || undefined,
+    })
+    resetFlowState()
+    navigateTo("list")
+  }
+
+  function handleSaveCron(input: { cronSchedule: string; instructions: string }) {
+    onAdd({
+      triggerType: "cron",
+      connectionId: "",
+      connectionName: "Cron trigger",
+      provider: "cron",
+      triggerKeys: [],
+      triggerDisplayNames: [],
+      conditions: null,
+      cronSchedule: input.cronSchedule,
+      instructions: input.instructions || undefined,
+    })
+    resetFlowState()
+    navigateTo("list")
   }
 
   function handleEditClick(index: number) {
@@ -205,6 +262,7 @@ export function EditTriggersDialog({
         events.find((event) => event.conditions && event.conditions.conditions.length > 0)
           ?.conditions ?? null
       return [{
+        triggerType: "webhook",
         connectionId: selectedConnection.id,
         connectionName: selectedConnection.name,
         provider: selectedConnection.provider,
@@ -226,6 +284,7 @@ export function EditTriggersDialog({
     const result: TriggerConfig[] = []
     if (withoutFilters.length > 0) {
       result.push({
+        triggerType: "webhook",
         connectionId: selectedConnection.id,
         connectionName: selectedConnection.name,
         provider: selectedConnection.provider,
@@ -236,6 +295,7 @@ export function EditTriggersDialog({
     }
     for (const event of withFilters) {
       result.push({
+        triggerType: "webhook",
         connectionId: selectedConnection.id,
         connectionName: selectedConnection.name,
         provider: selectedConnection.provider,
@@ -248,7 +308,7 @@ export function EditTriggersDialog({
   }
 
   function handleConfirmSelection() {
-    if (!selectedConnection || selectedEvents.size === 0) return
+    if (selectedEvents.size === 0) return
     const built = buildTriggersFromSelection()
     if (editingIndex !== null) {
       onUpdate(editingIndex, built)
@@ -260,11 +320,11 @@ export function EditTriggersDialog({
   }
 
   function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen) {
-      resetFlowState()
-      setView("list")
-    }
     onOpenChange(nextOpen)
+    if (!nextOpen) {
+      setView("list")
+      resetFlowState()
+    }
   }
 
   function backFromTriggers() {
@@ -276,12 +336,14 @@ export function EditTriggersDialog({
     }
   }
 
-  const configuringEvent = configuringEventKey ? selectedEvents.get(configuringEventKey) : null
+  const configuringEvent = configuringEventKey
+    ? selectedEvents.get(configuringEventKey)
+    : null
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md h-[600px] overflow-hidden flex flex-col p-0">
-        <div className="flex flex-col h-full p-6 overflow-hidden">
+      <DialogContent className="flex h-[600px] flex-col overflow-hidden p-0 sm:max-w-md">
+        <div className="flex h-full flex-col overflow-hidden p-6">
           <AnimatePresence mode="wait" custom={navDirection.current}>
             <motion.div
               key={view}
@@ -291,7 +353,7 @@ export function EditTriggersDialog({
               animate="center"
               exit="exit"
               transition={{ duration: 0.15, ease: "easeInOut" as const }}
-              className="flex flex-col h-full"
+              className="flex h-full flex-col"
             >
               {view === "list" && (
                 <TriggerListView
@@ -302,12 +364,18 @@ export function EditTriggersDialog({
                   onDone={() => handleOpenChange(false)}
                 />
               )}
+              {view === "type" && (
+                <TriggerTypePickerView
+                  onPick={handlePickType}
+                  onBack={() => navigateTo("list")}
+                />
+              )}
               {view === "connections" && (
                 <ConnectionPickerView
                   search={search}
                   onSearchChange={setSearch}
                   onPickConnection={handlePickConnection}
-                  onBack={() => { resetFlowState(); navigateTo("list") }}
+                  onBack={() => navigateTo("type")}
                   connectionIds={connectionIds}
                 />
               )}
@@ -335,104 +403,22 @@ export function EditTriggersDialog({
                   onBack={() => { setConfiguringEventKey(null); navigateTo("triggers") }}
                 />
               )}
+              {view === "http-config" && (
+                <HttpConfigView
+                  onSave={handleSaveHttp}
+                  onBack={() => navigateTo("type")}
+                />
+              )}
+              {view === "cron-config" && (
+                <CronConfigView
+                  onSave={handleSaveCron}
+                  onBack={() => navigateTo("type")}
+                />
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
       </DialogContent>
     </Dialog>
-  )
-}
-
-interface TriggerListViewProps {
-  triggers: TriggerConfig[]
-  onAdd: () => void
-  onEdit: (index: number) => void
-  onRemove: (index: number) => void
-  onDone: () => void
-}
-
-function TriggerListView({ triggers, onAdd, onEdit, onRemove, onDone }: TriggerListViewProps) {
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle>Edit triggers</DialogTitle>
-        <DialogDescription className="mt-2">
-          Add, edit, or remove webhook events that invoke this agent.
-        </DialogDescription>
-      </DialogHeader>
-
-      <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
-        {triggers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
-            <div className="flex items-center justify-center size-12 rounded-full bg-muted">
-              <HugeiconsIcon icon={FlashIcon} size={20} className="text-muted-foreground" />
-            </div>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              No triggers configured. Add one to invoke this agent automatically on webhook events.
-            </p>
-          </div>
-        ) : (
-          triggers.map((trigger, index) => (
-            <div
-              key={`${trigger.connectionId}-${index}`}
-              className="flex items-start gap-3 rounded-xl border border-border bg-muted/50 p-3"
-            >
-              <IntegrationLogo provider={trigger.provider} size={28} className="shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{trigger.connectionName}</p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {trigger.triggerDisplayNames.map((displayName, keyIndex) => (
-                    <Badge
-                      key={`${displayName}-${keyIndex}`}
-                      variant="secondary"
-                      className="text-[10px] font-mono"
-                    >
-                      {displayName}
-                    </Badge>
-                  ))}
-                </div>
-                {trigger.conditions && trigger.conditions.conditions.length > 0 && (
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    {trigger.conditions.conditions.length} filter
-                    {trigger.conditions.conditions.length !== 1 ? "s" : ""} ({trigger.conditions.mode})
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => onEdit(index)}
-                  className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors"
-                  title="Edit"
-                >
-                  <HugeiconsIcon icon={Edit02Icon} size={14} className="text-muted-foreground" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onRemove(index)}
-                  className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-destructive/10 transition-colors"
-                  title="Remove"
-                >
-                  <HugeiconsIcon icon={Cancel01Icon} size={14} className="text-destructive" />
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-
-        <button
-          type="button"
-          onClick={onAdd}
-          className="group flex items-center gap-3 w-full rounded-xl bg-muted/50 p-3 text-left transition-colors hover:bg-muted cursor-pointer border border-transparent mt-1"
-        >
-          <HugeiconsIcon icon={Add01Icon} size={16} className="text-muted-foreground shrink-0" />
-          <span className="text-sm text-muted-foreground">Add trigger</span>
-        </button>
-      </div>
-
-      <div className="pt-4 shrink-0">
-        <Button onClick={onDone} className="w-full">Done</Button>
-      </div>
-    </>
   )
 }

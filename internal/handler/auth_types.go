@@ -1,9 +1,5 @@
 package handler
 
-import (
-
-
-)
 // --- Request / Response types ---
 
 type registerRequest struct {
@@ -55,12 +51,14 @@ type orgMemberDTO struct {
 // planDTO is the customer-facing shape of a billing plan. Returned both as a
 // nested field on org DTOs and as the element type of GET /v1/plans.
 type planDTO struct {
-	Slug           string `json:"slug"`
-	Name           string `json:"name"`
-	MonthlyCredits int64  `json:"monthly_credits"`
-	WelcomeCredits int64  `json:"welcome_credits"`
-	PriceCents     int64  `json:"price_cents"`
-	Currency       string `json:"currency"`
+	Slug           string          `json:"slug"`
+	Name           string          `json:"name"`
+	Provider       string   `json:"provider,omitempty"`
+	Features       []string `json:"features,omitempty"`
+	MonthlyCredits int64           `json:"monthly_credits"`
+	WelcomeCredits int64           `json:"welcome_credits"`
+	PriceCents     int64           `json:"price_cents"`
+	Currency       string          `json:"currency"`
 }
 
 type meResponse struct {

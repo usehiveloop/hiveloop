@@ -1,24 +1,21 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { $api } from "@/lib/api/hooks"
+import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/page-header"
 import { AgentsSearch } from "./_components/agents-search"
 import { AgentsTable } from "./_components/agents-table"
 import { AgentsEmpty } from "./_components/agents-empty"
-import { CreateAgentDialog } from "./_components/create-agent-dialog"
 import { AgentsSkeleton } from "./_components/agents-skeleton"
-import { EditAgentPanel } from "./[id]/_components/edit-agent-panel"
-import type { CreationMode } from "./_components/create-agent/types"
-import type { components } from "@/lib/api/schema"
-
-type Agent = components["schemas"]["agentResponse"]
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Add01Icon } from "@hugeicons/core-free-icons"
 
 export default function AgentsPage() {
+  const router = useRouter()
   const [search, setSearch] = useState("")
-  const [createOpen, setCreateOpen] = useState(false)
-  const [createMode, setCreateMode] = useState<CreationMode | undefined>(undefined)
-  const [editingAgent, setEditingAgent] = useState<Agent | null>(null)
 
   const { data, isLoading } = $api.useQuery("get", "/v1/agents")
   const agents = data?.data ?? []
@@ -33,44 +30,33 @@ export default function AgentsPage() {
     )
   }, [agents, search])
 
-  function openCreateWith(mode: CreationMode) {
-    setCreateMode(mode)
-    setCreateOpen(true)
-  }
-
   return (
     <>
-      <PageHeader title="Agents" actions={<CreateAgentDialog />} />
+      <PageHeader
+        title="Agents"
+        actions={
+          <Button render={<Link href="/w/agents/new" />}>
+            <HugeiconsIcon icon={Add01Icon} size={16} data-icon="inline-start" />
+            New agent
+          </Button>
+        }
+      />
 
       {isLoading ? (
         <AgentsSkeleton />
       ) : agents.length === 0 ? (
-        <>
-          <AgentsEmpty
-            onCreateFromScratch={() => openCreateWith("scratch")}
-            onCreateFromMarketplace={() => openCreateWith("marketplace")}
-          />
-          <CreateAgentDialog
-            open={createOpen}
-            onOpenChange={(open) => {
-              setCreateOpen(open)
-              if (!open) setCreateMode(undefined)
-            }}
-            initialMode={createMode}
-          />
-        </>
+        <AgentsEmpty />
       ) : (
         <div className="mx-auto w-full max-w-4xl px-6 py-10">
           <AgentsSearch value={search} onChange={setSearch} />
-          <AgentsTable agents={filtered} onEditAgent={setEditingAgent} />
+          <AgentsTable
+            agents={filtered}
+            onEditAgent={(agent) => {
+              if (agent.id) router.push(`/w/agents/${agent.id}/edit`)
+            }}
+          />
         </div>
       )}
-
-      <EditAgentPanel
-        open={editingAgent !== null}
-        onOpenChange={(open) => { if (!open) setEditingAgent(null) }}
-        agent={editingAgent}
-      />
     </>
   )
 }

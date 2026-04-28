@@ -14,6 +14,8 @@ type Plan struct {
 	ID             uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	Slug           string    `gorm:"not null;uniqueIndex;size:64"`
 	Name           string    `gorm:"not null;size:128"`
+	Provider       string    `gorm:"not null;default:'';size:32;index"` // empty = provider-agnostic; otherwise the billing provider this row is for (e.g. "paystack")
+	Features       RawJSON   `gorm:"type:jsonb"`                        // optional; typically an array of bullet strings, but the column accepts any JSON shape
 	MonthlyCredits int64     `gorm:"not null;default:0"`
 	WelcomeCredits int64     `gorm:"not null;default:0"` // one-time, granted to a user's default org on signup; non-expiring
 	PriceCents     int64     `gorm:"not null;default:0"`

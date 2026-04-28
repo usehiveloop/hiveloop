@@ -46,10 +46,12 @@ const PLANS: Plan[] = [
     typicalRuns: 64,
     heavyRuns: 13,
     features: [
-      "Platform keys included",
-      "BYOK on any agent",
+      "One team member",
+      "RAG knowledge base",
+      "5 concurrent agent sessions",
+      "Unlimited connections",
+      "Top up credits anytime",
       "Default sandbox size",
-      "1 workspace",
       "Community support",
     ],
   },
@@ -64,10 +66,12 @@ const PLANS: Plan[] = [
     featured: true,
     features: [
       "Everything in Starter",
-      "Default + Large sandboxes",
-      "Unlimited workspaces",
+      "15 concurrent agent sessions",
+      "Unlimited agents",
+      "Unlimited agent triggers",
       "Priority email support",
-      "30-day audit log",
+      "Bring your own keys",
+      "Large sandboxes",
     ],
   },
   {
@@ -80,10 +84,9 @@ const PLANS: Plan[] = [
     heavyRuns: 149,
     features: [
       "Everything in Pro",
-      "All sandbox sizes",
-      "SSO (Google, Okta)",
-      "Unlimited audit log",
-      "Dedicated Slack channel",
+      "Extra large sandboxes",
+      "50 concurrent agent sessions",
+      "Unlimited connections",
     ],
   },
 ]
@@ -491,7 +494,7 @@ function TrialNote() {
       <p className="font-mono text-[11px] uppercase tracking-[2px] text-primary">Every new account</p>
       <p className="text-sm sm:text-base text-muted-foreground max-w-md">
         Get{" "}
-        <span className="font-mono font-medium text-foreground">150 credits</span>{" "}
+        <span className="font-mono font-medium text-foreground">1,000 credits</span>{" "}
         free on sign-up. No card required.
       </p>
     </motion.div>
@@ -703,7 +706,7 @@ function FinalCta() {
         <HugeiconsIcon icon={CpuIcon} size={22} className="text-primary" />
         <h2 className="font-heading text-[40px] sm:text-[56px] font-bold leading-[1.03] -tracking-[1.2px]">
           Start with{" "}
-          <span className="italic font-medium text-primary">150 free credits.</span>
+          <span className="italic font-medium text-primary">1,000 free credits.</span>
         </h2>
         <p className="text-muted-foreground max-w-lg leading-relaxed">
           Enough to build your first agent, watch it run, and decide whether this is the
