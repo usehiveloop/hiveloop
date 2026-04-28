@@ -33,6 +33,7 @@ const sections = [
     label: "Credentials & Access",
     items: [
       { label: "Credentials", href: "/dashboard/credentials" },
+      { label: "System Credentials", href: "/dashboard/system-credentials" },
       { label: "API Keys", href: "/dashboard/api-keys" },
       { label: "Tokens", href: "/dashboard/tokens" },
     ],
