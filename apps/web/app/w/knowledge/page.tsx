@@ -22,6 +22,7 @@ import {
   TextFontIcon,
 } from "@hugeicons/core-free-icons"
 import { AddConnectionDialog } from "./_components/add-connection-dialog"
+import { AddWebsiteDialog } from "./_components/add-website-dialog"
 import type { components } from "@/lib/api/schema"
 
 type RagSource = components["schemas"]["ragSourceResponse"]
@@ -49,6 +50,7 @@ function formatRelative(iso: string): string {
 
 export default function KnowledgePage() {
   const [addConnectionOpen, setAddConnectionOpen] = useState(false)
+  const [addWebsiteOpen, setAddWebsiteOpen] = useState(false)
   const [deleting, setDeleting] = useState<RagSource | null>(null)
   const queryClient = useQueryClient()
   const { data: sourcesData, isLoading: sourcesLoading } = $api.useQuery(
@@ -119,7 +121,7 @@ export default function KnowledgePage() {
       label: "Add Connection",
       onClick: () => setAddConnectionOpen(true),
     },
-    { icon: Globe02Icon, label: "Add URL", onClick: () => {} },
+    { icon: Globe02Icon, label: "Add URL", onClick: () => setAddWebsiteOpen(true) },
     { icon: File01Icon, label: "Add Files", onClick: () => {} },
     { icon: TextFontIcon, label: "Create Text", onClick: () => {} },
   ] as const
@@ -274,6 +276,11 @@ export default function KnowledgePage() {
       <AddConnectionDialog
         open={addConnectionOpen}
         onOpenChange={setAddConnectionOpen}
+      />
+
+      <AddWebsiteDialog
+        open={addWebsiteOpen}
+        onOpenChange={setAddWebsiteOpen}
       />
 
       <ConfirmDialog

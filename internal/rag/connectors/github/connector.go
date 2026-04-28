@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/nango"
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
 )
 
@@ -205,13 +204,13 @@ func (c *GithubConnector) computeRepoAccess(ctx context.Context, fullName string
 	return mapVisibility(repo), nil
 }
 
-func Build(src interfaces.Source, client *nango.Client) (interfaces.Connector, error) {
+func Build(src interfaces.Source, deps interfaces.BuildDeps) (interfaces.Connector, error) {
 	cfg, err := LoadConfig(src.Config())
 	if err != nil {
 		return nil, err
 	}
 	connectionID, providerKey := connectionFromSource(src)
-	return NewConnector(cfg, newNangoProxy(client, providerKey, connectionID)), nil
+	return NewConnector(cfg, newNangoProxy(deps.Nango, providerKey, connectionID)), nil
 }
 
 // connectionFromSource returns ("", "") when the Source doesn't expose

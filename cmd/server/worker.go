@@ -68,7 +68,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		Cfg: ragscheduler.NewConfig(),
 	}
 
-	ragDeps := buildRagDeps(ctx, cfg, deps.DB, deps.NangoClient)
+	ragDeps := buildRagDeps(ctx, cfg, deps.DB, deps.NangoClient, deps.SpiderClient)
 
 	workerDeps := &tasks.WorkerDeps{
 		DB:           deps.DB,
