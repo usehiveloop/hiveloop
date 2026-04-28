@@ -16,6 +16,8 @@ export default function AuthPage() {
   const [error, setError] = useState("")
 
   const login = $api.useMutation("post", "/auth/login")
+  // /auth/register exists at runtime (cmd/server/serve_routes.go) but lacks a swagger annotation.
+  // @ts-expect-error path not in generated schema
   const register = $api.useMutation("post", "/auth/register")
 
   const loading = login.isPending || register.isPending
