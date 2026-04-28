@@ -40,10 +40,17 @@ for f in "$RUN_DIR"/*.pid; do
   rm -f "$f"
 done
 
-# Belt + braces: any next-server / pnpm / fake-nango / hiveloop survivors
-# (from sessions before setsid was added, or from a forced kill earlier).
-pkill -9 -f "next-server" 2>/dev/null || true
-pkill -9 -f "/tmp/agent-test/(fake-nango|hiveloop)" 2>/dev/null || true
+# Belt + braces: kill anything binding our ports, regardless of how it
+# got there (sessions before setsid was added, manual `pnpm dev` runs, etc.).
+# This catches Next.js's start-server.js descendants which `pkill -f next-server`
+# doesn't match because the path contains "next/dist/server/lib/start-server".
+for PORT in 13004 18080 31112; do
+  for PID in $(lsof -ti tcp:$PORT 2>/dev/null); do
+    if kill -9 "$PID" 2>/dev/null; then
+      echo "  killed port:       :$PORT holder (pid $PID)"
+    fi
+  done
+done
 
 if [ "${HARD:-}" = "1" ]; then
   rm -f "$RUN_DIR"/*.log "$RUN_DIR"/*.env
