@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
 func TestDocumentOrFailure_ConstructorsAreMutuallyExclusive(t *testing.T) {
@@ -93,7 +92,7 @@ func TestRegistry_RegisterAndLookup(t *testing.T) {
 	t.Cleanup(resetRegistryForTest)
 	resetRegistryForTest()
 
-	factoryA := func(_ Source, _ *nango.Client) (Connector, error) {
+	factoryA := func(_ Source, _ BuildDeps) (Connector, error) {
 		return &stubConnector{kind: "test-a"}, nil
 	}
 	Register("test-a", factoryA)
@@ -104,7 +103,7 @@ func TestRegistry_RegisterAndLookup(t *testing.T) {
 	}
 
 	// Prove it's the same factory: invoke it and check the kind.
-	c, err := got(&stubSource{kind: "test-a"}, nil)
+	c, err := got(&stubSource{kind: "test-a"}, BuildDeps{})
 	if err != nil {
 		t.Fatalf("factory invocation failed: %v", err)
 	}
@@ -121,7 +120,7 @@ func TestRegistry_DuplicateKindPanics(t *testing.T) {
 	t.Cleanup(resetRegistryForTest)
 	resetRegistryForTest()
 
-	factory := func(_ Source, _ *nango.Client) (Connector, error) {
+	factory := func(_ Source, _ BuildDeps) (Connector, error) {
 		return &stubConnector{kind: "dup"}, nil
 	}
 	Register("dup", factory)
@@ -171,7 +170,7 @@ func TestRegistry_RegisteredKinds_SortedDeterministic(t *testing.T) {
 	// Register intentionally out of alphabetical order.
 	for _, k := range []string{"notion", "github", "slack", "confluence"} {
 		kind := k // capture
-		Register(kind, func(_ Source, _ *nango.Client) (Connector, error) {
+		Register(kind, func(_ Source, _ BuildDeps) (Connector, error) {
 			return &stubConnector{kind: kind}, nil
 		})
 	}

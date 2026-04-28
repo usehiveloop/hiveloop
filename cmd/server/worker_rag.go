@@ -6,11 +6,13 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/nango"
 	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
 	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
+	"github.com/usehiveloop/hiveloop/internal/spider"
 )
 
 func buildRagDeps(
@@ -18,6 +20,7 @@ func buildRagDeps(
 	cfg *config.Config,
 	db *gorm.DB,
 	nangoClient *nango.Client,
+	spiderClient *spider.Client,
 ) *ragtasks.Deps {
 	if cfg.QdrantHost == "" {
 		slog.Warn("rag worker: QDRANT_HOST not set — rag:* handlers disabled")
@@ -62,6 +65,8 @@ func buildRagDeps(
 		Qdrant:     qd,
 		Embedder:   embedder,
 		Nango:      nangoClient,
+		Spider:     spiderClient,
+		Credits:    billing.NewCreditsService(db),
 		Collection: cfg.QdrantCollection,
 		BatchSize:  cfg.RagBatchSize,
 	}

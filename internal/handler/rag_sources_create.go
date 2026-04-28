@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -11,8 +12,10 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/rag/connectors/website"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
@@ -111,6 +114,11 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if status, msg := h.precheckWebsiteCredits(src, org.ID); status != 0 {
+		writeJSON(w, status, errorResponse{Error: msg})
+		return
+	}
+
 	if err := h.db.Create(src).Error; err != nil {
 		if isDuplicateKeyError(err) {
 			writeJSON(w, http.StatusConflict, errorResponse{Error: "a RAG source already exists for this connection"})
@@ -127,7 +135,9 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RAGSourceHandler) dispatchInitialIngest(src *ragmodel.RAGSource) {
-	if src.KindValue != ragmodel.RAGSourceKindIntegration {
+	switch src.KindValue {
+	case ragmodel.RAGSourceKindIntegration, ragmodel.RAGSourceKindWebsite:
+	default:
 		return
 	}
 	task, err := ragtasks.NewIngestTask(ragtasks.IngestPayload{RAGSourceID: src.ID})
@@ -143,6 +153,29 @@ func (h *RAGSourceHandler) dispatchInitialIngest(src *ragmodel.RAGSource) {
 		slog.Warn("rag source created: enqueue initial ingest failed",
 			"source_id", src.ID, "err", err)
 	}
+}
+
+func (h *RAGSourceHandler) precheckWebsiteCredits(src *ragmodel.RAGSource, orgID uuid.UUID) (int, string) {
+	if src.KindValue != ragmodel.RAGSourceKindWebsite || h.credits == nil {
+		return 0, ""
+	}
+	cfg, err := website.LoadConfig(src.Config())
+	if err != nil {
+		return http.StatusUnprocessableEntity, err.Error()
+	}
+	required := int64(cfg.MaxPages) * billing.WebsitePagePriceCredits
+	bal, err := h.credits.Balance(orgID)
+	if err != nil {
+		slog.Error("rag source create: balance lookup failed", "org_id", orgID, "err", err)
+		return http.StatusInternalServerError, "failed to check credit balance"
+	}
+	if bal < required {
+		return http.StatusUnprocessableEntity, fmt.Sprintf(
+			"insufficient credits: this crawl needs %d credits at worst case, you have %d",
+			required, bal,
+		)
+	}
+	return 0, ""
 }
 
 func (h *RAGSourceHandler) attachInConnection(

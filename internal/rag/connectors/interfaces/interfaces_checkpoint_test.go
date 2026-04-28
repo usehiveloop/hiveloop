@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
 // ---------------------------------------------------------------------
@@ -111,16 +110,15 @@ func TestFactorySignature_AcceptsRealRAGSource(t *testing.T) {
 	// has the Source shape, which is what the test is really asserting.
 	var src Source = &stubSource{}
 
-	factory := func(s Source, n *nango.Client) (Connector, error) {
+	factory := func(s Source, _ BuildDeps) (Connector, error) {
 		// Prove the factory can read from the zero-value Source
 		// without panicking (nil Config, empty kind).
 		_ = s.Config()
 		_ = s.SourceKind()
-		_ = n
 		return &stubConnector{kind: "ok"}, nil
 	}
 
-	c, err := factory(src, nil)
+	c, err := factory(src, BuildDeps{})
 	if err != nil {
 		t.Fatalf("factory(zero Source) failed: %v", err)
 	}
@@ -197,7 +195,7 @@ func TestRegistry_PanicsOnEmptyKindOrNilFactory(t *testing.T) {
 	resetRegistryForTest()
 
 	assertPanic(t, "Register empty kind", func() {
-		Register("", func(_ Source, _ *nango.Client) (Connector, error) { return nil, nil })
+		Register("", func(_ Source, _ BuildDeps) (Connector, error) { return nil, nil })
 	})
 	assertPanic(t, "Register nil factory", func() {
 		Register("some-kind", nil)
