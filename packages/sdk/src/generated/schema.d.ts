@@ -4,56 +4,6 @@
  */
 
 export interface paths {
-    "/admin/v1/admin-audit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List admin audit log
-         * @description Returns admin operation audit entries with filters.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Filter by resource (users, orgs, agents, etc.) */
-                    resource?: string;
-                    /** @description Filter by action (update_user, ban_user, delete_org, etc.) */
-                    action?: string;
-                    /** @description Filter by admin user ID */
-                    admin_id?: string;
-                    /** @description Page size */
-                    limit?: number;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/admin/v1/agents": {
         parameters: {
             query?: never;
@@ -72,8 +22,6 @@ export interface paths {
                     org_id?: string;
                     /** @description Filter by status (active, archived) */
                     status?: string;
-                    /** @description Filter by sandbox type (shared, dedicated) */
-                    sandbox_type?: string;
                     /** @description Page size */
                     limit?: number;
                     /** @description Pagination cursor */
@@ -2069,8 +2017,6 @@ export interface paths {
                     org_id?: string;
                     /** @description Filter by status (running, stopped, error) */
                     status?: string;
-                    /** @description Filter by type (shared, dedicated) */
-                    sandbox_type?: string;
                     /** @description Page size */
                     limit?: number;
                     /** @description Pagination cursor */
@@ -2574,6 +2520,144 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/system-credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List system credentials
+         * @description Returns every platform-owned credential. Admin-only.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["systemCredentialResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a system credential
+         * @description Creates a platform-owned credential used by agents that opted out of BYOK. Admin-only.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Credential details */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createSystemCredentialRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["systemCredentialResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/system-credentials/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a system credential
+         * @description Revokes a platform-owned credential. Agents that picked this credential will fail their next resolution and fall back to another system credential (or return a 503 if none remain).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Credential ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -3780,68 +3864,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Register a new user
-         * @description Creates a new user account, organization, and sends a confirmation email.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Registration parameters */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["registerRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["authResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/auth/resend-confirmation": {
         parameters: {
             query?: never;
@@ -3942,6 +3964,85 @@ export interface paths {
                 };
                 /** @description Bad Request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/incoming/triggers/{triggerID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Receive HTTP trigger request
+         * @description Receives an HTTP request and dispatches it through the router pipeline for the specified trigger. The trigger UUID acts as a bearer token. If the trigger has a shared secret configured, the request must include the plaintext secret in any of: Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, or ?secret=<secret>.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description Plaintext shared secret as a query param. Last-resort transport when headers can't be customized. */
+                    secret?: string;
+                };
+                header?: {
+                    /** @description Bearer <secret>. One of the accepted ways to send the trigger's shared secret. */
+                    Authorization?: string;
+                    /** @description Plaintext shared secret. One of the accepted auth header names. */
+                    "X-Api-Key"?: string;
+                    /** @description Plaintext shared secret. One of the accepted auth header names. */
+                    "X-Webhook-Secret"?: string;
+                };
+                path: {
+                    /** @description Trigger UUID */
+                    triggerID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Missing or invalid shared secret */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -4372,8 +4473,6 @@ export interface paths {
                 query?: {
                     /** @description Filter by status (active, archived) */
                     status?: string;
-                    /** @description Filter by sandbox type (shared, dedicated) */
-                    sandbox_type?: string;
                     /** @description Page size (default 50, max 100) */
                     limit?: number;
                     /** @description Pagination cursor */
@@ -4408,7 +4507,7 @@ export interface paths {
         put?: never;
         /**
          * Create an agent
-         * @description Creates a new agent tied to a credential. Shared agents are pushed to Bridge immediately.
+         * @description Creates a new agent tied to a credential. A dedicated sandbox is provisioned lazily on conversation create.
          */
         post: {
             parameters: {
@@ -4485,8 +4584,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List all built-in tools
-         * @description Returns the complete list of built-in tools that can be granted to agents via permissions. Each tool includes its category and whether it is locked (cannot be toggled off).
+         * List built-in tools
+         * @description Returns the catalog of built-in tools that can be granted to an agent.
          */
         get: {
             parameters: {
@@ -4516,6 +4615,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/agents/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List agent categories
+         * @description Returns the static catalog of work categories an agent can be tagged with.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["agentCategory"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/agents/sandbox-tools": {
         parameters: {
             query?: never;
@@ -4524,8 +4662,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List available sandbox tools
-         * @description Returns the fixed list of tools and services that can be enabled in a dedicated agent sandbox.
+         * List sandbox tools
+         * @description Returns the catalog of sandbox tools that can be granted to an agent.
          */
         get: {
             parameters: {
@@ -4599,7 +4737,7 @@ export interface paths {
         put?: never;
         /**
          * Create a conversation
-         * @description Creates a new conversation for an agent. For shared agents, reuses the existing sandbox. For dedicated agents, spins up a new sandbox.
+         * @description Creates a new conversation for an agent by spinning up a dedicated sandbox.
          */
         post: {
             parameters: {
@@ -5000,7 +5138,7 @@ export interface paths {
         };
         /**
          * Update an agent
-         * @description Updates an agent. Re-validates credential/model compatibility. Shared agents are re-pushed to Bridge.
+         * @description Updates an agent. Re-validates credential/model compatibility.
          */
         put: {
             parameters: {
@@ -5491,7 +5629,7 @@ export interface paths {
         put?: never;
         /**
          * Create checkout session
-         * @description Creates a Polar checkout session for upgrading to a Pro plan. Returns a checkout URL to redirect the user to.
+         * @description Creates a checkout session for subscribing to a plan. The client chooses the provider.
          */
         post: {
             parameters: {
@@ -5562,7 +5700,7 @@ export interface paths {
         put?: never;
         /**
          * Create billing portal session
-         * @description Creates a Polar customer portal session where the user can manage their subscription, payment methods, and invoices.
+         * @description Creates a customer portal session where the user can manage their subscription, payment methods, and invoices.
          */
         post: {
             parameters: {
@@ -5571,7 +5709,12 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            /** @description Portal request */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createPortalRequest"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -5626,7 +5769,7 @@ export interface paths {
         };
         /**
          * Get subscription status
-         * @description Returns the current billing plan and subscription status for the org.
+         * @description Returns the org's active plan, provider, and credit balance.
          */
         get: {
             parameters: {
@@ -6252,6 +6395,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/conversations/{convID}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Hydrate conversation history
+         * @description Returns persisted conversation events in chronological order, intended for hydrating a UI before opening the SSE stream. Paginated via since=<event_id>. Unlike GET /events, this endpoint sorts events ASC by sequence_number so the caller can render in order.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Return events with sequence_number greater than this event_id */
+                    since?: string;
+                    /** @description Page size (default 200, max 1000) */
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description Conversation ID */
+                    convID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["conversationHistoryResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/conversations/{convID}/messages": {
         parameters: {
             query?: never;
@@ -6330,7 +6529,7 @@ export interface paths {
         };
         /**
          * Stream conversation events (SSE)
-         * @description Opens a Server-Sent Events stream for real-time agent responses. Events include message_start, content_delta, tool_call_start, tool_call_result, message_end, done.
+         * @description Opens a Server-Sent Events stream for real-time agent responses. Defaults to live-only (cursor "$"); clients that want history should hydrate via GET /v1/conversations/{convID}/history first. Resumes from Last-Event-ID when provided.
          */
         get: {
             parameters: {
@@ -7449,6 +7648,175 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/invites/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview an invitation (public)
+         * @description Returns basic invite details by plaintext token. Returns 404 for invalid/expired/used/revoked tokens without distinguishing.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Invite token (plaintext) */
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["orgInvitePreviewResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/invites/{token}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept an invitation
+         * @description Accepts an invite and creates the corresponding org membership. The authenticated user's email must match the invite email.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Invite token (plaintext) */
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["orgInviteAcceptResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/invites/{token}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decline an invitation
+         * @description Declines an invite and marks it as terminally revoked.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Invite token (plaintext) */
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/marketplace/agents": {
         parameters: {
             query?: never;
@@ -7836,6 +8204,389 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * Update current organization
+         * @description Updates name and/or logo_url on the current organization. Admins
+         *     and owners only. Pass an empty string for logo_url to clear it.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Fields to patch */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateOrgRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["orgResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/v1/orgs/current/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List pending invitations
+         * @description Returns non-expired, non-accepted, non-revoked invites for the current org. Admin-only.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["listOrgInvitesResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Invite a user to the current organization
+         * @description Creates a pending invitation for the given email and role. Admin-only.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Invite parameters */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createOrgInviteRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["orgInviteResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/current/invites/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke a pending invitation
+         * @description Marks an invite as revoked. Admin-only. Already-accepted invites cannot be revoked.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Invite ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/current/invites/{id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend an invitation
+         * @description Generates a new token and re-sends the invite email. Admin-only.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Invite ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["orgInviteResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/current/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List members of the current organization
+         * @description Returns every user with an active membership in the current org. Any member may call this.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["listOrgMembersResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all active plans
+         * @description Returns the public catalog of billing plans, ordered by price
+         *     ascending (free first). Public — no authentication required.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["planDTO"][];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -7980,6 +8731,484 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/rag/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List RAG-supported integrations
+         * @description Returns the platform integrations that can be used as RAG sources (i.e. their `supports_rag_source` flag is true). The admin UI uses this to filter the connection picker for the Knowledge Base.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ragIntegrationsListResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Search the knowledge base
+         * @description Hybrid retrieval against the org's RAG dataset, optionally reranked.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Search query */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ragSearchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ragSearchResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List RAG sources
+         * @description Returns the org's RAG sources. Supports pagination and optional status / kind filters.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by status */
+                    status?: string;
+                    /** @description Filter by kind */
+                    kind?: string;
+                    /** @description Page number (0-indexed) */
+                    page?: number;
+                    /** @description Page size, max 100 */
+                    page_size?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ragListResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a RAG source
+         * @description Creates a new RAG source that the scheduler will pick up on the next tick. Kind=integration requires a valid in_connection_id pointing at an integration whose supports_rag_source flag is true. Refresh / prune / perm-sync frequencies are validated against per-org minimums.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Source definition */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createRAGSourceRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ragSourceResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/sources/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a RAG source
+         * @description Returns one RAG source by ID with the last 5 index attempts inlined. 404 on cross-org access by design.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Source ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ragSourceDetailResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Delete a RAG source
+         * @description Hard-deletes the source row. Postgres-side rows (attempts, documents, sync state, ACLs) cascade. Vector store entries are reaped later by the prune loop.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Source ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Update a RAG source
+         * @description Patches mutable fields (name, status pause/resume, refresh / prune / perm-sync frequencies, indexing_start floor). Only ACTIVE ↔ PAUSED transitions are client-settable; DELETING is server-managed.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Source ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Patch payload */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateRAGSourceRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ragSourceResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/v1/rag/sources/{id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List index attempts for a RAG source
+         * @description Paginated, most-recent-first. Each row covers one ingest / perm-sync / prune attempt with status, doc counts, and error summary.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Page number (0-indexed) */
+                    page?: number;
+                    /** @description Page size, max 100 */
+                    page_size?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description Source ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ragAttemptsListResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/sources/{id}/attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get an index-attempt with per-doc errors
+         * @description Returns the attempt's status / counts / window plus the first page of per-doc failure rows. The dedicated errors page can be used to walk later pages if needed.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Source ID */
+                    id: string;
+                    /** @description Attempt ID */
+                    attempt_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ragAttemptDetailResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/sources/{id}/perm-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger an immediate permission sync
+         * @description Enqueues a one-off permission-sync job. Returns 422 if the source's connector does not implement PermSyncConnector (i.e. has no external ACL model worth syncing).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Source ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["triggerResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/sources/{id}/prune": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger an immediate prune
+         * @description Enqueues a one-off prune job: the connector enumerates upstream IDs and the worker deletes any documents we have that no longer exist upstream.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Source ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["triggerResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/rag/sources/{id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger an immediate ingest
+         * @description Enqueues a one-off ingest job for the source. Set from_beginning=true to override the time-window floor and re-walk from the source's IndexingStart (or epoch).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Source ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Trigger options */
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["syncTriggerRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["triggerResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/reporting": {
         parameters: {
             query?: never;
@@ -8051,6 +9280,536 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/router": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get or create router
+         * @description Returns the organization's router, creating one automatically if it doesn't exist yet.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Router"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update router
+         * @description Updates the organization's router settings such as persona, default agent, and memory team.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Router update fields */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateRouterRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Router"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/router/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List routing decisions
+         * @description Returns the most recent routing decisions for the organization, useful for auditing and debugging trigger routing.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoutingDecision"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/router/triggers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List router triggers
+         * @description Returns all triggers configured on the organization's router.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RouterTrigger"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a router trigger
+         * @description Creates a new trigger on the organization's router. Webhook triggers require a connection_id and trigger_keys. HTTP triggers generate a unique URL. Cron triggers require a cron_schedule expression.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Trigger definition */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createTriggerRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RouterTrigger"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/router/triggers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a router trigger
+         * @description Removes a trigger from the organization's router.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Trigger ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/router/triggers/{id}/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List routing rules
+         * @description Returns all routing rules for a specific trigger, ordered by priority.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Trigger ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoutingRule"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a routing rule
+         * @description Adds a routing rule to a trigger. Rules determine which agent handles events that match the trigger.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Trigger ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Rule definition */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoutingRule"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/router/triggers/{id}/rules/{ruleID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a routing rule
+         * @description Removes a routing rule from a trigger.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Trigger ID */
+                    id: string;
+                    /** @description Rule ID */
+                    ruleID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -9385,7 +11144,7 @@ export interface paths {
         put?: never;
         /**
          * Create a subagent
-         * @description Creates a reusable subagent that parent agents can invoke. Does not require sandbox_type or credential.
+         * @description Creates a reusable subagent that parent agents can invoke. Does not require a credential.
          */
         post: {
             parameters: {
@@ -9875,13 +11634,59 @@ export interface components {
              */
             webhook_url_required?: boolean;
         };
-        BuiltInToolDefinition: {
+        Agent: {
+            /** @description max_tokens, max_turns, temperature, etc. */
+            agentConfig?: components["schemas"]["JSON"];
+            /** @description "agent" or "subagent" */
+            agentType?: string;
+            avatarURL?: string;
             category?: string;
+            createdAt?: string;
+            credential?: components["schemas"]["Credential"];
+            /** @description nil for system agents */
+            credentialID?: string;
+            deletedAt?: string;
             description?: string;
+            /** @description AES-256-GCM encrypted JSON map of env vars */
+            encryptedEnvVars?: number[];
             id?: string;
-            /** @description true = cannot be toggled off by the user */
-            locked?: boolean;
+            /** @description optional markdown instructions for auto-starting runs */
+            instructions?: string;
+            /** @description selected integration IDs/configs */
+            integrations?: components["schemas"]["JSON"];
+            isSystem?: boolean;
+            mcpServers?: components["schemas"]["JSON"];
+            /** @description must match credential's provider */
+            model?: string;
             name?: string;
+            org?: components["schemas"]["Org"];
+            /** @description nil for system agents */
+            orgID?: string;
+            /** @description tool permission overrides */
+            permissions?: components["schemas"]["JSON"];
+            /** @description e.g. "anthropic", "openai", "gemini" — set for system agents */
+            providerGroup?: string;
+            /** @description map[provider_group] -> {system_prompt, model} */
+            providerPrompts?: components["schemas"]["ProviderPromptsMap"];
+            /** @description per-connection resource scoping: {connID: {resourceKey: [{id, name}]}} */
+            resources?: components["schemas"]["JSON"];
+            sandboxTemplate?: components["schemas"]["SandboxTemplate"];
+            sandboxTemplateID?: string;
+            /** @description Sandbox setup */
+            sandboxTools?: string[];
+            /** @description shell commands run on dedicated sandbox creation */
+            setupCommands?: string[];
+            /** @description can store shared memories visible to all agents in identity */
+            sharedMemory?: boolean;
+            skills?: components["schemas"]["JSON"];
+            /** @description active, archived */
+            status?: string;
+            /** @description Bridge AgentDefinition fields */
+            systemPrompt?: string;
+            /** @description team tag for memory scoping (e.g. "engineering", "sales") */
+            team?: string;
+            tools?: components["schemas"]["JSON"];
+            updatedAt?: string;
         };
         ConnectionConfigField: {
             automated?: boolean;
@@ -9893,6 +11698,66 @@ export interface components {
             pattern?: string;
             title?: string;
             type?: string;
+        };
+        Credential: {
+            authScheme?: string;
+            baseURL?: string;
+            createdAt?: string;
+            encryptedKey?: number[];
+            id?: string;
+            /**
+             * @description IsSystem marks credentials owned by the platform itself rather than by
+             *     a customer org. System credentials are used by agents that opted out of
+             *     BYOK (agent.credential_id IS NULL), managed via admin-only endpoints,
+             *     and hidden from org-scoped APIs. They FK to the platform org (see
+             *     internal/credentials.PlatformOrgID).
+             */
+            isSystem?: boolean;
+            label?: string;
+            lastRefillAt?: string;
+            meta?: components["schemas"]["JSON"];
+            org?: components["schemas"]["Org"];
+            orgID?: string;
+            providerID?: string;
+            refillAmount?: number;
+            refillInterval?: string;
+            remaining?: number;
+            revokedAt?: string;
+            wrappedDEK?: number[];
+        };
+        InConnection: {
+            createdAt?: string;
+            id?: string;
+            inIntegration?: components["schemas"]["InIntegration"];
+            inIntegrationID?: string;
+            meta?: components["schemas"]["JSON"];
+            nangoConnectionID?: string;
+            org?: components["schemas"]["Org"];
+            orgID?: string;
+            revokedAt?: string;
+            updatedAt?: string;
+            user?: components["schemas"]["User"];
+            userID?: string;
+            webhookConfigured?: boolean;
+        };
+        InIntegration: {
+            createdAt?: string;
+            deletedAt?: string;
+            displayName?: string;
+            id?: string;
+            meta?: components["schemas"]["JSON"];
+            nango_config?: components["schemas"]["JSON"];
+            provider?: string;
+            /**
+             * @description SupportsRAGSource is the admin-UI picker gate: only integrations
+             *     with this flag true appear in "Add RAG source". Seeded true for
+             *     the known-good providers (github, notion, slack, confluence,
+             *     jira, linear, google_drive) by the RAG model package's Migrate
+             *     entry point; anything else defaults false.
+             */
+            supports_rag_source?: boolean;
+            uniqueKey?: string;
+            updatedAt?: string;
         };
         JSON: {
             [key: string]: unknown;
@@ -9919,6 +11784,32 @@ export interface components {
             webhook_url?: string;
             webhook_user_defined_secret?: boolean;
         };
+        Org: {
+            active?: boolean;
+            allowedOrigins?: string[];
+            /**
+             * @description BYOK reports whether the org runs agents on its own LLM credentials.
+             *     When false, agents fall back to platform-owned system credentials.
+             */
+            byok?: boolean;
+            createdAt?: string;
+            id?: string;
+            /**
+             * @description LogoURL is a CDN-served URL to the org's square logo. Stored as the
+             *     public_url returned from POST /v1/uploads/sign with asset_type=org_logo.
+             *     Empty string when no logo is set.
+             */
+            logoURL?: string;
+            name?: string;
+            /**
+             * @description Denormalised slug of the org's active plan ("free" when no active sub).
+             *     Source of truth lives in the subscriptions table; this is cached on
+             *     the org row so request-path checks don't need a join.
+             */
+            planSlug?: string;
+            rateLimit?: number;
+            updatedAt?: string;
+        };
         ProviderPromptConfig: {
             model?: string;
             system_prompt?: string;
@@ -9926,10 +11817,122 @@ export interface components {
         ProviderPromptsMap: {
             [key: string]: components["schemas"]["ProviderPromptConfig"];
         };
-        SandboxToolDefinition: {
-            description?: string;
+        Router: {
+            createdAt?: string;
+            defaultAgent?: components["schemas"]["Agent"];
+            defaultAgentID?: string;
             id?: string;
+            /** @description Hindsight namespace all specialists share */
+            memoryTeam?: string;
             name?: string;
+            org?: components["schemas"]["Org"];
+            orgID?: string;
+            /** @description shared voice injected into every specialist's instructions */
+            persona?: string;
+            updatedAt?: string;
+        };
+        RouterTrigger: {
+            /** @description nil for http/cron triggers */
+            connectionID?: string;
+            /** @description base context actions run before routing */
+            contextActions?: number[];
+            createdAt?: string;
+            /** @description Cron-specific fields (only used when TriggerType = "cron"). */
+            cronSchedule?: string;
+            enabled?: boolean;
+            /** @description enable LLM cross-connection enrichment */
+            enrichCrossReferences?: boolean;
+            id?: string;
+            inConnection?: components["schemas"]["InConnection"];
+            /**
+             * @description Instructions sent to the agent when the trigger fires (cron/http only).
+             *     For webhook triggers, instructions come from enrichment. For cron/http,
+             *     this field provides the base prompt template. Supports $refs.x substitution.
+             */
+            instructions?: string;
+            /** @description last successful fire */
+            lastRunAt?: string;
+            /** @description pre-computed next fire time; poller queries this */
+            nextRunAt?: string;
+            orgID?: string;
+            router?: components["schemas"]["Router"];
+            routerID?: string;
+            /** @description "rule" or "triage" */
+            routingMode?: string;
+            /**
+             * @description HTTP-specific fields (only used when TriggerType = "http").
+             *     If empty, the trigger relies on the unguessable UUID for security.
+             *     When set, stores a bcrypt hash of the user-supplied shared secret. The
+             *     HTTP handler accepts the plaintext secret in any of:
+             *       Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, ?secret=
+             *     and verifies via bcrypt.CompareHashAndPassword.
+             */
+            secretKey?: string;
+            triggerKeys?: string[];
+            /** @description "webhook", "http", "cron" */
+            triggerType?: string;
+            updatedAt?: string;
+        };
+        RoutingDecision: {
+            createdAt?: string;
+            enrichmentSteps?: number;
+            /** @description e.g. "app_mention", "pull_request.opened" */
+            eventType?: string;
+            id?: string;
+            /** @description LLM-generated summary of intent (triage only) */
+            intentSummary?: string;
+            latencyMs?: number;
+            orgID?: string;
+            resourceKey?: string;
+            routerTriggerID?: string;
+            /** @description "rule" or "triage" */
+            routingMode?: string;
+            /** @description agent IDs that were dispatched */
+            selectedAgents?: string[];
+            /** @description LLM turns used (triage only) */
+            turnCount?: number;
+        };
+        RoutingRule: {
+            agent?: components["schemas"]["Agent"];
+            agentID?: string;
+            /** @description nil = always matches (catch-all) */
+            conditions?: number[];
+            createdAt?: string;
+            id?: string;
+            /** @description 1 = highest priority */
+            priority?: number;
+            routerTrigger?: components["schemas"]["RouterTrigger"];
+            routerTriggerID?: string;
+        };
+        SandboxTemplate: {
+            baseTemplate?: components["schemas"]["SandboxTemplate"];
+            /** @description optional FK to public template used as base */
+            baseTemplateID?: string;
+            /** @description user's commands to run on base image */
+            buildCommands?: string;
+            buildError?: string;
+            /** @description accumulated build logs (newline separated) */
+            buildLogs?: string;
+            /** @description pending, building, ready, failed */
+            buildStatus?: string;
+            /** @description resources, env vars, etc. */
+            config?: components["schemas"]["JSON"];
+            createdAt?: string;
+            /** @description provider's template/snapshot ID once built */
+            externalID?: string;
+            id?: string;
+            /** @description display name for users */
+            name?: string;
+            org?: components["schemas"]["Org"];
+            /** @description nil = public/platform-wide template */
+            orgID?: string;
+            /** @description small, medium, large, xlarge */
+            size?: string;
+            /** @description Daytona snapshot name */
+            slug?: string;
+            /** @description user-facing tags, e.g. ["python","ml"] */
+            tags?: components["schemas"]["JSON"];
+            updatedAt?: string;
         };
         TriggerCondition: {
             /** @description equals, not_equals, one_of, not_one_of, contains, not_contains, matches, exists, not_exists */
@@ -9943,6 +11946,17 @@ export interface components {
             conditions?: components["schemas"]["TriggerCondition"][];
             /** @description "all" (AND) or "any" (OR) */
             mode?: string;
+        };
+        User: {
+            banReason?: string;
+            bannedAt?: string;
+            createdAt?: string;
+            email?: string;
+            emailConfirmedAt?: string;
+            id?: string;
+            name?: string;
+            passwordHash?: string;
+            updatedAt?: string;
         };
         "github_com_usehiveloop_hiveloop_internal_nango.Credentials": {
             app_id?: string;
@@ -9996,6 +12010,19 @@ export interface components {
             body?: string;
             path?: string;
         };
+        BuiltInToolDefinition: {
+            category?: string;
+            description?: string;
+            id?: string;
+            /** @description true = cannot be toggled off by the user */
+            locked?: boolean;
+            name?: string;
+        };
+        SandboxToolDefinition: {
+            description?: string;
+            id?: string;
+            name?: string;
+        };
         actionSchemaPaths: {
             paths?: components["schemas"]["schemaPath"][];
             response_schema?: string;
@@ -10025,8 +12052,6 @@ export interface components {
             model?: string;
             name?: string;
             org_id?: string;
-            sandbox_id?: string;
-            sandbox_type?: string;
             status?: string;
         };
         adminConversationResponse: {
@@ -10047,26 +12072,19 @@ export interface components {
         };
         adminCreateSandboxTemplateRequest: {
             name?: string;
-            /** @description small, medium, large, xlarge */
             size?: string;
-            /** @description Daytona snapshot name (built via make build-templates) */
             slug?: string;
-            /** @description user-facing tags, e.g. ["python","ml"] */
             tags?: string[];
         };
         adminCreateSkillRequest: {
-            /** @description Inline source */
             bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
             description?: string;
             featured?: boolean;
             name?: string;
             repo_ref?: string;
             repo_subpath?: string;
-            /** @description Git source */
             repo_url?: string;
-            /** @description "inline" or "git" */
             source_type?: string;
-            /** @description defaults to "published" for global skills */
             status?: string;
             tags?: string[];
         };
@@ -10151,7 +12169,6 @@ export interface components {
             memory_limit_bytes?: number;
             memory_used_bytes?: number;
             org_id?: string;
-            sandbox_type?: string;
             status?: string;
         };
         adminSandboxTemplateResponse: {
@@ -10218,7 +12235,6 @@ export interface components {
             name?: string;
             permissions?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
-            sandbox_type?: string;
             shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             status?: string;
@@ -10250,9 +12266,7 @@ export interface components {
         adminUpdateSandboxTemplateRequest: {
             name?: string;
             size?: string;
-            /** @description Daytona snapshot name */
             slug?: string;
-            /** @description user-facing tags */
             tags?: string[];
         };
         adminUpdateSkillRequest: {
@@ -10277,9 +12291,16 @@ export interface components {
             name?: string;
             updated_at?: string;
         };
+        agentCategory: {
+            description?: string;
+            id?: string;
+            name?: string;
+        };
         agentResponse: {
             agent_config?: components["schemas"]["JSON"];
             attached_skills?: components["schemas"]["agentSkillSummary"][];
+            avatar_url?: string;
+            category?: string;
             created_at?: string;
             credential_id?: string;
             description?: string;
@@ -10293,10 +12314,8 @@ export interface components {
             provider_id?: string;
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             resources?: components["schemas"]["JSON"];
-            sandbox_id?: string;
             sandbox_template_id?: string;
             sandbox_tools?: string[];
-            sandbox_type?: string;
             shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             status?: string;
@@ -10333,15 +12352,34 @@ export interface components {
         agentTriggerInput: {
             conditions?: components["schemas"]["TriggerMatch"];
             connection_id?: string;
+            cron_schedule?: string;
+            instructions?: string;
+            /**
+             * @description SecretKey is the optional plaintext shared secret for HTTP triggers.
+             *     When provided, the server bcrypt-hashes it before storing. Never returned
+             *     in any response — see agentTriggerResponse.SecretSet for visibility.
+             */
+            secret_key?: string;
             trigger_keys?: string[];
+            /** @description "webhook" (default), "http", "cron" */
+            trigger_type?: string;
         };
         agentTriggerResponse: {
             conditions?: unknown;
             connection_id?: string;
+            cron_schedule?: string;
             enabled?: boolean;
             id?: string;
+            instructions?: string;
             provider?: string;
+            /**
+             * @description SecretSet indicates whether an HTTP trigger has a shared secret configured.
+             *     True when the trigger requires auth on incoming requests. The secret value
+             *     is never returned.
+             */
+            secret_set?: boolean;
             trigger_keys?: string[];
+            trigger_type?: string;
         };
         apiKeyResponse: {
             created_at?: string;
@@ -10408,6 +12446,17 @@ export interface components {
             sequence_number?: number;
             timestamp?: string;
         };
+        conversationHistoryResponse: {
+            conversation_id?: string;
+            events?: components["schemas"]["conversationEventResponse"][];
+            has_more?: boolean;
+            /**
+             * @description LastEventID is the event_id of the last event in this page. Clients
+             *     can pass it as the `Last-Event-ID` header when opening the SSE stream
+             *     to resume from exactly where history ended.
+             */
+            last_event_id?: string;
+        };
         conversationResponse: {
             agent_id?: string;
             created_at?: string;
@@ -10432,6 +12481,8 @@ export interface components {
         };
         createAgentRequest: {
             agent_config?: components["schemas"]["JSON"];
+            avatar_url?: string;
+            category?: string;
             credential_id?: string;
             description?: string;
             instructions?: string;
@@ -10443,24 +12494,24 @@ export interface components {
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             resources?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
-            /** @description tools to enable in dedicated sandbox (e.g. "chrome") */
             sandbox_tools?: string[];
-            sandbox_type?: string;
             shared_memory?: boolean;
-            /** @description skills from /v1/skills to attach on create */
             skill_ids?: string[];
             skills?: components["schemas"]["JSON"];
-            /** @description subagents from /v1/subagents to attach on create */
             subagent_ids?: string[];
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
-            /** @description webhook triggers to create */
             triggers?: components["schemas"]["agentTriggerInput"][];
         };
         createCheckoutRequest: {
-            /** @description "pro_shared" or "pro_dedicated" */
-            product_type?: string;
+            cancel_url?: string;
+            /** @description e.g. "USD", "NGN" */
+            currency?: string;
+            /** @description "monthly" | "annual" */
+            cycle?: string;
+            plan_slug?: string;
+            provider?: string;
             success_url?: string;
         };
         createCheckoutResponse: {
@@ -10500,11 +12551,32 @@ export interface components {
         createMarketplaceAgentRequest: {
             agent_id?: string;
         };
+        createOrgInviteRequest: {
+            email?: string;
+            role?: string;
+        };
         createOrgRequest: {
             name?: string;
         };
+        createPortalRequest: {
+            provider?: string;
+        };
+        createRAGSourceRequest: {
+            access_type?: string;
+            config?: components["schemas"]["JSON"];
+            in_connection_id?: string;
+            kind?: string;
+            name?: string;
+            perm_sync_freq_seconds?: number;
+            prune_freq_seconds?: number;
+            refresh_freq_seconds?: number;
+        };
+        createRuleRequest: {
+            agent_id?: string;
+            conditions?: number[];
+            priority?: number;
+        };
         createSandboxTemplateRequest: {
-            /** @description UUID of a public template to use as base */
             base_template_id?: string;
             build_commands?: string[];
             config?: components["schemas"]["JSON"];
@@ -10534,6 +12606,27 @@ export interface components {
             system_prompt?: string;
             tags?: string[];
             tools?: components["schemas"]["JSON"];
+        };
+        createSystemCredentialRequest: {
+            api_key?: string;
+            auth_scheme?: string;
+            base_url?: string;
+            label?: string;
+            provider_id?: string;
+        };
+        createTriggerRequest: {
+            /** @description required for webhook */
+            connection_id?: string;
+            /** @description required for cron */
+            cron_schedule?: string;
+            enrich_cross_references?: boolean;
+            instructions?: string;
+            /** @description "rule" (default) or "triage" */
+            routing_mode?: string;
+            /** @description required for webhook */
+            trigger_keys?: string[];
+            /** @description "webhook" (default), "http", "cron" */
+            trigger_type?: string;
         };
         credentialResponse: {
             auth_scheme?: string;
@@ -10661,6 +12754,12 @@ export interface components {
             date?: string;
             p95_ttfb_ms?: number;
         };
+        listOrgInvitesResponse: {
+            data?: components["schemas"]["orgInviteResponse"][];
+        };
+        listOrgMembersResponse: {
+            data?: components["schemas"]["orgMemberResponse"][];
+        };
         loginRequest: {
             email?: string;
             /** @description optional: scope token to a specific org */
@@ -10690,7 +12789,6 @@ export interface components {
             publisher_id?: string;
             publisher_name?: string;
             required_integrations?: string[];
-            sandbox_type?: string;
             shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             slug?: string;
@@ -10739,16 +12837,55 @@ export interface components {
             structured_output?: boolean;
             tool_call?: boolean;
         };
-        orgMemberDTO: {
+        orgInviteAcceptResponse: {
+            org_id?: string;
+            org_name?: string;
+            role?: string;
+        };
+        orgInvitePreviewResponse: {
+            email?: string;
+            expires_at?: string;
+            inviter_name?: string;
+            org_id?: string;
+            org_name?: string;
+            role?: string;
+        };
+        orgInviteResponse: {
+            accepted_at?: string;
+            created_at?: string;
+            email?: string;
+            expires_at?: string;
             id?: string;
+            invited_by_email?: string;
+            invited_by_id?: string;
+            invited_by_name?: string;
+            org_id?: string;
+            revoked_at?: string;
+            role?: string;
+        };
+        orgMemberDTO: {
+            byok?: boolean;
+            credits?: number;
+            id?: string;
+            logo_url?: string;
+            name?: string;
+            plan?: components["schemas"]["planDTO"];
+            role?: string;
+        };
+        orgMemberResponse: {
+            email?: string;
+            joined_at?: string;
             name?: string;
             role?: string;
+            user_id?: string;
         };
         orgResponse: {
             active?: boolean;
             created_at?: string;
             id?: string;
+            logo_url?: string;
             name?: string;
+            plan?: components["schemas"]["planDTO"];
             rate_limit?: number;
         };
         otpRequestPayload: {
@@ -10883,6 +13020,14 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        planDTO: {
+            currency?: string;
+            monthly_credits?: number;
+            name?: string;
+            price_cents?: number;
+            slug?: string;
+            welcome_credits?: number;
+        };
         portalResponse: {
             portal_url?: string;
         };
@@ -10907,15 +13052,151 @@ export interface components {
             slug?: string;
             tags?: components["schemas"]["JSON"];
         };
+        ragAttemptDetailResponse: {
+            docs_estimated?: number;
+            docs_removed_from_index?: number;
+            error_count?: number;
+            error_msg?: string;
+            errors?: components["schemas"]["ragAttemptErrorPayload"][];
+            from_beginning?: boolean;
+            full_exception_trace?: string;
+            id?: string;
+            new_docs_indexed?: number;
+            poll_range_end?: string;
+            poll_range_start?: string;
+            status?: string;
+            time_created?: string;
+            time_started?: string;
+            time_updated?: string;
+            total_docs_indexed?: number;
+        };
+        ragAttemptErrorPayload: {
+            document_id?: string;
+            document_link?: string;
+            entity_id?: string;
+            error_type?: string;
+            failed_time_range_end?: string;
+            failed_time_range_start?: string;
+            failure_message?: string;
+            id?: string;
+            is_resolved?: boolean;
+            time_created?: string;
+        };
+        ragAttemptsListResponse: {
+            data?: components["schemas"]["ragIndexAttemptResponse"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        ragIndexAttemptResponse: {
+            docs_estimated?: number;
+            docs_removed_from_index?: number;
+            error_msg?: string;
+            from_beginning?: boolean;
+            id?: string;
+            new_docs_indexed?: number;
+            poll_range_end?: string;
+            poll_range_start?: string;
+            status?: string;
+            time_created?: string;
+            time_started?: string;
+            time_updated?: string;
+            total_docs_indexed?: number;
+        };
+        ragIntegrationResponse: {
+            display_name?: string;
+            id?: string;
+            provider?: string;
+            unique_key?: string;
+        };
+        ragIntegrationsListResponse: {
+            data?: components["schemas"]["ragIntegrationResponse"][];
+        };
+        ragLatestAttemptStatus: {
+            docs_estimated?: number;
+            id?: string;
+            new_docs_indexed?: number;
+            status?: string;
+            time_started?: string;
+            time_updated?: string;
+            total_docs_indexed?: number;
+        };
+        ragListResponse: {
+            data?: components["schemas"]["ragSourceResponse"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        ragSearchHit: {
+            blurb?: string;
+            content?: string;
+            doc_id?: string;
+            id?: string;
+            link?: string;
+            rerank_score?: number;
+            score?: number;
+            title?: string;
+        };
+        ragSearchRequest: {
+            bypass_acl?: boolean;
+            limit?: number;
+            query?: string;
+            rerank?: boolean;
+        };
+        ragSearchResponse: {
+            hits?: components["schemas"]["ragSearchHit"][];
+        };
+        ragSourceDetailResponse: {
+            access_type?: string;
+            config?: number[];
+            created_at?: string;
+            enabled?: boolean;
+            id?: string;
+            in_connection_id?: string;
+            in_repeated_error_state?: boolean;
+            indexing_start?: string;
+            kind?: string;
+            last_pruned?: string;
+            last_successful_index_time?: string;
+            last_time_perm_sync?: string;
+            latest_attempt?: components["schemas"]["ragLatestAttemptStatus"];
+            name?: string;
+            org_id?: string;
+            perm_sync_freq_seconds?: number;
+            prune_freq_seconds?: number;
+            recent_attempts?: components["schemas"]["ragIndexAttemptResponse"][];
+            refresh_freq_seconds?: number;
+            status?: string;
+            total_docs_indexed?: number;
+            updated_at?: string;
+        };
+        ragSourceResponse: {
+            access_type?: string;
+            config?: number[];
+            created_at?: string;
+            enabled?: boolean;
+            id?: string;
+            in_connection_id?: string;
+            in_repeated_error_state?: boolean;
+            indexing_start?: string;
+            kind?: string;
+            last_pruned?: string;
+            last_successful_index_time?: string;
+            last_time_perm_sync?: string;
+            latest_attempt?: components["schemas"]["ragLatestAttemptStatus"];
+            name?: string;
+            org_id?: string;
+            perm_sync_freq_seconds?: number;
+            prune_freq_seconds?: number;
+            refresh_freq_seconds?: number;
+            status?: string;
+            total_docs_indexed?: number;
+            updated_at?: string;
+        };
         refreshRequest: {
             /** @description optional: switch org */
             org_id?: string;
             refresh_token?: string;
-        };
-        registerRequest: {
-            email?: string;
-            name?: string;
-            password?: string;
         };
         reportRow: {
             avg_ttfb_ms?: number;
@@ -10968,7 +13249,6 @@ export interface components {
             external_id?: string;
             id?: string;
             last_active_at?: string;
-            sandbox_type?: string;
             status?: string;
         };
         sandboxTemplateResponse: {
@@ -11083,9 +13363,23 @@ export interface components {
             updated_at?: string;
         };
         subscriptionResponse: {
-            plan?: string;
-            product_type?: string;
+            credits_balance?: number;
+            current_period_end?: string;
+            plan_slug?: string;
+            provider?: string;
             status?: string;
+        };
+        syncTriggerRequest: {
+            from_beginning?: boolean;
+        };
+        systemCredentialResponse: {
+            auth_scheme?: string;
+            base_url?: string;
+            created_at?: string;
+            id?: string;
+            label?: string;
+            provider_id?: string;
+            revoked_at?: string;
         };
         tokenListItem: {
             created_at?: string;
@@ -11129,12 +13423,16 @@ export interface components {
             total_cost?: number;
             user_id?: string;
         };
+        triggerResponse: {
+            deduplicated?: boolean;
+            source_id?: string;
+            task_type?: string;
+        };
         triggerSummary: {
             description?: string;
             display_name?: string;
             key?: string;
             payload_schema?: string;
-            /** @description ref_name → dot-path into payload */
             refs?: {
                 [key: string]: string;
             };
@@ -11146,6 +13444,8 @@ export interface components {
         };
         updateAgentRequest: {
             agent_config?: components["schemas"]["JSON"];
+            avatar_url?: string;
+            category?: string;
             credential_id?: string;
             description?: string;
             instructions?: string;
@@ -11157,17 +13457,13 @@ export interface components {
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             resources?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
-            /** @description tools to enable in dedicated sandbox */
             sandbox_tools?: string[];
-            sandbox_type?: string;
             shared_memory?: boolean;
-            /** @description nil=don't touch, []=detach all, [ids]=sync to these */
             skill_ids?: string[];
             skills?: components["schemas"]["JSON"];
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
-            /** @description nil=don't touch, []=remove all */
             triggers?: components["schemas"]["agentTriggerInput"][];
         };
         updateContentRequest: {
@@ -11180,6 +13476,25 @@ export interface components {
             name?: string;
             status?: string;
             tags?: string[];
+        };
+        updateOrgRequest: {
+            logo_url?: string;
+            name?: string;
+        };
+        updateRAGSourceRequest: {
+            config?: components["schemas"]["JSON"];
+            enabled?: boolean;
+            indexing_start?: string;
+            name?: string;
+            perm_sync_freq_seconds?: number;
+            prune_freq_seconds?: number;
+            refresh_freq_seconds?: number;
+            status?: string;
+        };
+        updateRouterRequest: {
+            default_agent_id?: string;
+            memory_team?: string;
+            persona?: string;
         };
         updateSandboxTemplateRequest: {
             build_commands?: string[];
@@ -11212,7 +13527,6 @@ export interface components {
             error_rates?: components["schemas"]["errorRate"][];
             latency?: components["schemas"]["latencyStats"][];
             requests?: components["schemas"]["requestStats"];
-            /** @description Generation-based analytics */
             spend_over_time?: components["schemas"]["spendOverTime"][];
             token_volumes?: components["schemas"]["tokenVolumes"][];
             tokens?: components["schemas"]["tokenStats"];

@@ -15,7 +15,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/rag"
 )
 
 // testDBURL mirrors internal/middleware/integration_test.go:26 — the
@@ -57,9 +56,6 @@ func ConnectTestDB(t *testing.T) *gorm.DB {
 
 	if err := model.AutoMigrate(db); err != nil {
 		t.Fatalf("model.AutoMigrate failed: %v", err)
-	}
-	if err := rag.AutoMigrate(db); err != nil {
-		t.Fatalf("rag.AutoMigrate failed: %v", err)
 	}
 
 	t.Cleanup(func() { _ = sqlDB.Close() })
