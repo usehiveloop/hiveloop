@@ -68,6 +68,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&ToolUsage{},
 		&Plan{},
 		&Subscription{},
+		&SubscriptionChangeQuote{},
 		&CreditLedgerEntry{},
 		&DriveAsset{},
 		&Router{},
@@ -120,8 +121,28 @@ func AutoMigrate(db *gorm.DB) error {
 	// Partial unique: prevent duplicate pending invites per (org, email).
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_org_invite_pending ON org_invites (org_id, email) WHERE accepted_at IS NULL AND revoked_at IS NULL`)
 
-	// Subscriptions: (provider, external_subscription_id) is globally unique.
-	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_sub_provider_ext ON subscriptions (provider, external_subscription_id)`)
+	// Subscriptions: relax legacy NOT NULL on external_subscription_id and
+	// re-create the unique index as a partial. We manage the recurring
+	// lifecycle ourselves now, so most rows have no upstream subscription
+	// code and the duplicate-empty-string risk has to go away.
+	db.Exec(`ALTER TABLE subscriptions ALTER COLUMN external_subscription_id DROP NOT NULL`)
+	db.Exec(`ALTER TABLE subscriptions ALTER COLUMN external_subscription_id DROP DEFAULT`)
+	db.Exec(`UPDATE subscriptions SET external_subscription_id = NULL WHERE external_subscription_id = ''`)
+	db.Exec(`DROP INDEX IF EXISTS idx_sub_provider_ext`)
+	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_sub_provider_ext ON subscriptions (provider, external_subscription_id) WHERE external_subscription_id IS NOT NULL`)
+
+	// Plans: relax NOT NULL on provider_plan_id since most plans don't ship
+	// with an upstream code anymore. Empty strings become NULL so the index
+	// is sane.
+	db.Exec(`ALTER TABLE plans ALTER COLUMN provider_plan_id DROP NOT NULL`)
+	db.Exec(`ALTER TABLE plans ALTER COLUMN provider_plan_id DROP DEFAULT`)
+	db.Exec(`UPDATE plans SET provider_plan_id = NULL WHERE provider_plan_id = ''`)
+
+	// At most one active subscription per (org, plan).
+	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_sub_org_plan_active ON subscriptions (org_id, plan_id) WHERE status = 'active'`)
+
+	// Quote lookup by reference is the verify hot path on apply-change.
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_sub_change_quote_open ON subscription_change_quotes (subscription_id) WHERE consumed_at IS NULL`)
 
 	// Credit ledger idempotency: when an async spend task retries after a
 	// transient failure, the retry must not double-deduct. The unique index

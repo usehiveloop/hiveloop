@@ -26,6 +26,17 @@ interface UsePaystackPopHandlers {
    *      Paystack and upserts the Subscription synchronously.
    */
   subscribe: (plan: Plan) => void
+  /**
+   * Open the Paystack popup against a server-issued access code (used by
+   * the upgrade flow once the backend has issued a quote and started a
+   * transaction). On successful payment, onPaid receives the reference
+   * the caller must hand to /apply-change.
+   */
+  openPopup: (
+    accessCode: string,
+    onPaid: (reference: string) => void,
+    onCancel?: () => void,
+  ) => void
   /** Slug of the plan currently mid-flight, or null. */
   pendingSlug: string | null
   /** True iff any subscribe flow is in progress. */
@@ -141,8 +152,24 @@ export function usePaystackPop(
     [user?.email, checkout, verify, queryClient, options],
   )
 
+  const openPopup = useCallback(
+    (
+      accessCode: string,
+      onPaid: (reference: string) => void,
+      onCancel?: () => void,
+    ) => {
+      const popup = new PaystackPop()
+      popup.resumeTransaction(accessCode, {
+        onSuccess: (tx: { reference: string }) => onPaid(tx.reference),
+        onCancel: () => onCancel?.(),
+      })
+    },
+    [],
+  )
+
   return {
     subscribe,
+    openPopup,
     pendingSlug,
     isPending: pendingSlug !== null,
   }

@@ -1490,6 +1490,20 @@ definitions:
       total:
         type: integer
     type: object
+  internal_handler.applyChangeRequest:
+    properties:
+      paystack_reference:
+        type: string
+      quote_id:
+        type: string
+    type: object
+  internal_handler.applyChangeResponse:
+    properties:
+      plan_slug:
+        type: string
+      status:
+        type: string
+    type: object
   internal_handler.attachSkillRequest:
     properties:
       pinned_version_id:
@@ -1538,6 +1552,20 @@ definitions:
         type: string
       user:
         $ref: '#/definitions/internal_handler.userResponse'
+    type: object
+  internal_handler.cancelRequest:
+    properties:
+      at_period_end:
+        type: boolean
+    type: object
+  internal_handler.cancelResponse:
+    properties:
+      cancel_at_period_end:
+        type: boolean
+      canceled_at:
+        type: string
+      status:
+        type: string
     type: object
   internal_handler.changePasswordRequest:
     properties:
@@ -2762,6 +2790,34 @@ definitions:
       portal_url:
         type: string
     type: object
+  internal_handler.previewChangeRequest:
+    properties:
+      plan_slug:
+        type: string
+    type: object
+  internal_handler.previewChangeResponse:
+    properties:
+      amount_minor:
+        type: integer
+      credit_grant_minor:
+        type: integer
+      currency:
+        type: string
+      effective_at:
+        type: string
+      expires_at:
+        type: string
+      from_plan_slug:
+        type: string
+      kind:
+        type: string
+      quote_id:
+        type: string
+      requires_payment_now:
+        type: boolean
+      to_plan_slug:
+        type: string
+    type: object
   internal_handler.providerDetail:
     properties:
       api:
@@ -3444,9 +3500,31 @@ definitions:
     type: object
   internal_handler.subscriptionResponse:
     properties:
+      cancel_at_period_end:
+        type: boolean
+      card_brand:
+        type: string
+      card_exp_month:
+        type: string
+      card_exp_year:
+        type: string
+      card_last4:
+        type: string
       credits_balance:
         type: integer
       current_period_end:
+        type: string
+      payment_account_name:
+        type: string
+      payment_bank_name:
+        type: string
+      payment_channel:
+        description: Payment-method snapshot from the most recent successful charge.
+        type: string
+      pending_change_at:
+        type: string
+      pending_plan_slug:
+        description: Pending plan change scheduled at PendingChangeAt (downgrade flow).
         type: string
       plan_slug:
         type: string
@@ -7173,12 +7251,122 @@ paths:
       summary: Get subscription status
       tags:
       - billing
+  /v1/billing/subscription/apply-change:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Quote and (for upgrades) Paystack reference
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.applyChangeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.applyChangeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "402":
+          description: Payment Required
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "410":
+          description: Gone
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Apply a subscription plan change
+      tags:
+      - billing
+  /v1/billing/subscription/cancel:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Cancellation options
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_handler.cancelRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.cancelResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel a subscription
+      tags:
+      - billing
+  /v1/billing/subscription/preview-change:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Target plan
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.previewChangeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.previewChangeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Preview a subscription plan change
+      tags:
+      - billing
+  /v1/billing/subscription/resume:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.cancelResponse'
+      security:
+      - BearerAuth: []
+      summary: Resume a subscription
+      tags:
+      - billing
   /v1/billing/verify:
     post:
       consumes:
       - application/json
-      description: Synchronously resolves a checkout reference, asserts the transaction
-        succeeded, and upserts the local Subscription row.
+      description: Resolves a Paystack transaction reference, asserts the paid amount
+        matches the plan's price, and provisions the Subscription row.
       parameters:
       - description: Reference returned from /v1/billing/checkout
         in: body
@@ -7199,6 +7387,10 @@ paths:
             $ref: '#/definitions/internal_handler.errorResponse'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "402":
+          description: Payment Required
           schema:
             $ref: '#/definitions/internal_handler.errorResponse'
         "502":
