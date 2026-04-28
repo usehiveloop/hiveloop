@@ -42,6 +42,7 @@ func setupV1Routes(
 	ragSourceHandler *handler.RAGSourceHandler,
 	ragSearchHandler *handler.RAGSearchHandler,
 	uploadsHandler *handler.UploadsHandler,
+	systemTaskHandler *handler.SystemTaskHandler,
 	orchestrator *sandbox.Orchestrator,
 	auditWriter *middleware.AuditWriter,
 ) {
@@ -169,6 +170,10 @@ func setupV1Routes(
 					// Agent triggers removed — routing is now handled by the
 					// Zira router at /v1/router/triggers.
 				})
+
+				if systemTaskHandler != nil {
+					r.Post("/system/tasks/{taskName}", systemTaskHandler.Run)
+				}
 
 				// Zira Router — unified routing identity for the org.
 				r.Route("/router", func(r chi.Router) {

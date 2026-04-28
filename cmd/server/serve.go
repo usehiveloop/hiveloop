@@ -201,7 +201,8 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	} else {
 		slog.Warn("rag search: qdrant or LLM not configured — /v1/rag/search disabled")
 	}
-	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, subagentHandler, agentHandler, marketplaceHandler, conversationHandler, routerHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, orchestrator, auditWriter)
+	systemTaskHandler := buildSystemTaskHandler(database, deps, redisClient)
+	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, subagentHandler, agentHandler, marketplaceHandler, conversationHandler, routerHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, systemTaskHandler, orchestrator, auditWriter)
 
 	var platformAdminEmails []string
 	if cfg.PlatformAdminEmails != "" {
