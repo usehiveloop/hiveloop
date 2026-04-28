@@ -47,6 +47,8 @@ func (h *BillingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	slog.Info("billing webhook raw body", "provider", name, "body", string(body))
+
 	if err := provider.VerifyWebhook(r, body); err != nil {
 		slog.Warn("billing webhook: signature verification failed", "provider", name, "error", err)
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "invalid signature"})

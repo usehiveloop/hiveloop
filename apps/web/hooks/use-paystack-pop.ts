@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback } from "react"
+import { useCallback, useState } from "react"
 import { toast } from "sonner"
 import { useQueryClient } from "@tanstack/react-query"
 import PaystackPop from "@paystack/inline-js"
@@ -28,6 +28,9 @@ interface UsePaystackPopHandlers {
    *      Subscription on this plan.
    */
   subscribe: (plan: Plan) => void
+  /** Slug of the plan currently mid-flight, or null. */
+  pendingSlug: string | null
+  /** True iff any subscribe flow is in progress. */
   isPending: boolean
 }
 
@@ -38,6 +41,7 @@ export function usePaystackPop(
   const queryClient = useQueryClient()
   const checkout = $api.useMutation("post", "/v1/billing/checkout")
   const verify = $api.useMutation("post", "/v1/billing/verify")
+  const [pendingSlug, setPendingSlug] = useState<string | null>(null)
 
   const subscribe = useCallback(
     (plan: Plan) => {
@@ -57,6 +61,8 @@ export function usePaystackPop(
       const returnURL =
         typeof window !== "undefined" ? window.location.href : ""
 
+      setPendingSlug(plan.slug)
+
       checkout.mutate(
         {
           body: {
@@ -72,6 +78,7 @@ export function usePaystackPop(
           onSuccess: (data) => {
             if (!data.access_code) {
               toast.error("Provider did not return an access code")
+              setPendingSlug(null)
               return
             }
             const popup = new PaystackPop()
@@ -95,6 +102,7 @@ export function usePaystackPop(
                         queryKey: ["get", "/auth/me"],
                       })
                       options.onSubscribed?.(plan.slug!)
+                      setPendingSlug(null)
                     },
                     onError: (err) => {
                       toast.error(
@@ -103,17 +111,20 @@ export function usePaystackPop(
                           "Could not confirm subscription. Refresh in a moment.",
                         ),
                       )
+                      setPendingSlug(null)
                     },
                   },
                 )
               },
               onCancel: () => {
                 // Customer dismissed the popup without paying — silent.
+                setPendingSlug(null)
               },
             })
           },
           onError: (err) => {
             toast.error(extractErrorMessage(err, "Could not start checkout"))
+            setPendingSlug(null)
           },
         },
       )
@@ -123,6 +134,7 @@ export function usePaystackPop(
 
   return {
     subscribe,
-    isPending: checkout.isPending || verify.isPending,
+    pendingSlug,
+    isPending: pendingSlug !== null,
   }
 }
