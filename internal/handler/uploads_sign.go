@@ -15,6 +15,20 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/storage"
 )
 
+// Sign issues a presigned upload URL for a public asset.
+// @Summary Sign upload URL
+// @Description Returns a presigned URL the client can PUT to for uploading public assets (avatars, org logos, etc).
+// @Tags uploads
+// @Accept json
+// @Produce json
+// @Param body body signUploadRequest true "Upload metadata"
+// @Success 200 {object} signUploadResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 422 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/uploads/sign [post]
 func (h *UploadsHandler) Sign(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok || user == nil {

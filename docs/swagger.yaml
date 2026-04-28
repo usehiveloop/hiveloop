@@ -3252,6 +3252,38 @@ definitions:
           type: string
         type: array
     type: object
+  internal_handler.signUploadRequest:
+    properties:
+      asset_type:
+        type: string
+      content_type:
+        type: string
+      filename:
+        type: string
+      org_id:
+        type: string
+      size_bytes:
+        type: integer
+    type: object
+  internal_handler.signUploadResponse:
+    properties:
+      expires_at:
+        type: string
+      key:
+        type: string
+      max_size_bytes:
+        type: integer
+      public_url:
+        type: string
+      required_headers:
+        additionalProperties:
+          type: string
+        type: object
+      upload_method:
+        type: string
+      upload_url:
+        type: string
+    type: object
   internal_handler.skillDetailResponse:
     properties:
       bundle:
@@ -10289,6 +10321,47 @@ paths:
       summary: Revoke a proxy token
       tags:
       - tokens
+  /v1/uploads/sign:
+    post:
+      consumes:
+      - application/json
+      description: Returns a presigned URL the client can PUT to for uploading public
+        assets (avatars, org logos, etc).
+      parameters:
+      - description: Upload metadata
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.signUploadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.signUploadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Sign upload URL
+      tags:
+      - uploads
   /v1/usage:
     get:
       description: Returns aggregated usage statistics for the current organization.

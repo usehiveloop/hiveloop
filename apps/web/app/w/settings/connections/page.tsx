@@ -201,15 +201,17 @@ export default function Page() {
                   {needsWebhook ? (
                     <TooltipProvider>
                       <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex items-center gap-1 text-[12px] text-amber-600 dark:text-amber-400">
-                            <HugeiconsIcon
-                              icon={Alert02Icon}
-                              strokeWidth={2}
-                              className="size-3.5"
-                            />
-                            Webhook
-                          </span>
+                        <TooltipTrigger
+                          render={
+                            <span className="inline-flex items-center gap-1 text-[12px] text-amber-600 dark:text-amber-400" />
+                          }
+                        >
+                          <HugeiconsIcon
+                            icon={Alert02Icon}
+                            strokeWidth={2}
+                            className="size-3.5"
+                          />
+                          Webhook
                         </TooltipTrigger>
                         <TooltipContent>
                           Webhook delivery isn't fully configured for this

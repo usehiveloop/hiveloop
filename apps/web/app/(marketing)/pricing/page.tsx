@@ -87,6 +87,7 @@ const PLANS: Plan[] = [
       "Extra large sandboxes",
       "50 concurrent agent sessions",
       "Unlimited connections",
+      "Custom preview domains",
     ],
   },
 ]
