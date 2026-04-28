@@ -11956,6 +11956,83 @@
         }
       }
     },
+    "/v1/uploads/sign": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns a presigned URL the client can PUT to for uploading public assets (avatars, org logos, etc).",
+        "tags": [
+          "uploads"
+        ],
+        "summary": "Sign upload URL",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/signUploadRequest"
+              }
+            }
+          },
+          "description": "Upload metadata",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/signUploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/usage": {
       "get": {
         "security": [
@@ -16896,6 +16973,55 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "signUploadRequest": {
+        "type": "object",
+        "properties": {
+          "asset_type": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "org_id": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": "integer"
+          }
+        }
+      },
+      "signUploadResponse": {
+        "type": "object",
+        "properties": {
+          "expires_at": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "max_size_bytes": {
+            "type": "integer"
+          },
+          "public_url": {
+            "type": "string"
+          },
+          "required_headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "upload_method": {
+            "type": "string"
+          },
+          "upload_url": {
+            "type": "string"
           }
         }
       },
