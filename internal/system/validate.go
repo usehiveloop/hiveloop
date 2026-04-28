@@ -1,9 +1,6 @@
 package system
 
-import (
-	"fmt"
-	"strings"
-)
+import "fmt"
 
 // ValidationError describes one failed argument check. Errors is a flat list
 // — the handler returns the first to the caller as a 400.
@@ -131,13 +128,3 @@ func validateOne(s ArgSpec, val any) *ValidationError {
 	return nil
 }
 
-// firstErrorMessage returns a human-readable summary of the first validation
-// error, suitable for an HTTP error body.
-func firstErrorMessage(errs []ValidationError) string {
-	if len(errs) == 0 {
-		return ""
-	}
-	var b strings.Builder
-	b.WriteString(errs[0].Error())
-	return b.String()
-}
