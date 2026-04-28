@@ -15,7 +15,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/spider"
 )
 
-const Kind = "website"
+const Kind = "WEBSITE"
 
 var _ interfaces.Connector = (*WebsiteConnector)(nil)
 

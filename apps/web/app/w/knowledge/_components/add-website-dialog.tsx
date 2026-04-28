@@ -59,7 +59,7 @@ export function AddWebsiteDialog({ open, onOpenChange }: AddWebsiteDialogProps) 
         body: {
           kind: "WEBSITE",
           name: trimmedName,
-          access_type: "PUBLIC",
+          access_type: "public",
           config: {
             url: trimmedURL,
             max_pages: maxPages,
