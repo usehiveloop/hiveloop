@@ -95,6 +95,21 @@ func (c *Client) CountBySourceID(ctx context.Context, collection, sourceID strin
 	})
 }
 
+// DeleteByDocIDs removes every point in (sourceID) whose payload doc_id
+// matches any value in docIDs. Used to clean up stale parts before
+// re-upserting a doc that may have changed shape (more or fewer parts).
+func (c *Client) DeleteByDocIDs(ctx context.Context, collection, sourceID string, docIDs []string) error {
+	if len(docIDs) == 0 {
+		return nil
+	}
+	return c.DeleteByFilter(ctx, collection, &qc.Filter{
+		Must: []*qc.Condition{
+			qc.NewMatchKeyword("rag_source_id", sourceID),
+			qc.NewMatchKeywords("doc_id", docIDs...),
+		},
+	})
+}
+
 // Stable UUID-shaped string from (org_id, source_id, doc_id). Re-ingesting the
 // same doc under the same source upserts in place; a doc shared by two sources
 // gets two points.
