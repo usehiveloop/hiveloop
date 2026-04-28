@@ -33,8 +33,6 @@ env:
   MEM_CACHE_MAX_SIZE: 10000
   JWT_SIGNING_KEY: local-dev-signing-key-for-tests-only
   CORS_ORIGINS: http://localhost:3000
-  VAULT_TOKEN: hiveloop-dev-token
-  VAULT_ADDRESS: http://localhost:8200
   # AUTH_RSA_PRIVATE_KEY is generated per-job (see "Generate auth RSA key" steps)
   AUTH_ISSUER: hiveloop
   AUTH_AUDIENCE: https://api.usehiveloop.com
@@ -132,28 +130,6 @@ jobs:
         if: always()
         run: docker compose down -v --remove-orphans 2>/dev/null || true
 
-  test-vault:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.25"
-          cache: true
-      - name: Generate auth RSA key
-        run: |
-          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
-      - name: start infrastructure
-        run: make test-setup
-        timeout-minutes: 5
-      - name: run vault tests
-        run: make test-vault
-        timeout-minutes: 5
-      - name: cleanup
-        if: always()
-        run: docker compose down -v --remove-orphans 2>/dev/null || true
-
   # Sharded internal unit tests with -race. Total wall-clock target: <4 min.
   # Packages are distributed round-robin (NR % N) across shards; imbalance is
   # acceptable because the heavy packages (handler, streaming, proxy, sandbox)
@@ -197,7 +173,7 @@ jobs:
         run: docker compose down -v --remove-orphans 2>/dev/null || true
 
   # Remaining e2e tests not already covered by the dedicated e2e jobs
-  # (test-auth, test-nango, test-proxy, test-connect, test-vault).
+  # (test-auth, test-nango, test-proxy, test-connect).
   test-e2e-core:
     runs-on: ubuntu-latest
     steps:
@@ -216,7 +192,7 @@ jobs:
       - name: run remaining e2e tests
         run: |
           go test ./e2e/... -race -count=1 -timeout=5m \
-            -skip '^(TestOrg|TestE2E_Integration|TestE2E_Proxy|TestE2E_Fireworks|TestE2E_Connect|TestVaultE2E)'
+            -skip '^(TestOrg|TestE2E_Integration|TestE2E_Proxy|TestE2E_Fireworks|TestE2E_Connect)'
         timeout-minutes: 5
       - name: cleanup
         if: always()
@@ -230,7 +206,6 @@ jobs:
         test-nango,
         test-proxy,
         test-connect,
-        test-vault,
         test-core,
         test-e2e-core,
       ]
@@ -242,7 +217,6 @@ jobs:
              [ "${{ needs.test-nango.result }}" != "success" ] || \
              [ "${{ needs.test-proxy.result }}" != "success" ] || \
              [ "${{ needs.test-connect.result }}" != "success" ] || \
-             [ "${{ needs.test-vault.result }}" != "success" ] || \
              [ "${{ needs.test-core.result }}" != "success" ] || \
              [ "${{ needs.test-e2e-core.result }}" != "success" ]; then
             echo "One or more test jobs failed"
