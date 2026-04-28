@@ -3814,6 +3814,40 @@ info:
   title: HiveLoop API
   version: "1.0"
 paths:
+  /admin/v1/admin-audit:
+    get:
+      description: Returns mutating operations performed via the admin API. Payloads
+        are sanitized — sensitive fields are masked at write time.
+      parameters:
+      - description: Filter by resource (users, orgs, credentials, ...)
+        in: query
+        name: resource
+        type: string
+      - description: Filter by action
+        in: query
+        name: action
+        type: string
+      - description: Filter by admin user ID
+        in: query
+        name: admin_id
+        type: string
+      - description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List admin audit entries
+      tags:
+      - admin
   /admin/v1/agents:
     get:
       description: Returns agents across all organizations.

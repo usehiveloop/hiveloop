@@ -12,6 +12,58 @@
     "host": "api.dev.hiveloop.com",
     "basePath": "/",
     "paths": {
+        "/admin/v1/admin-audit": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns mutating operations performed via the admin API. Payloads are sanitized — sensitive fields are masked at write time.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "List admin audit entries",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by resource (users, orgs, credentials, ...)",
+                        "name": "resource",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by action",
+                        "name": "action",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by admin user ID",
+                        "name": "admin_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/admin/v1/agents": {
             "get": {
                 "security": [
