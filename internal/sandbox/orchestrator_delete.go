@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -11,7 +12,11 @@ import (
 
 func (o *Orchestrator) StopSandbox(ctx context.Context, sb *model.Sandbox) error {
 	if err := o.provider.StopSandbox(ctx, sb.ExternalID); err != nil {
-		return fmt.Errorf("stopping sandbox %s: %w", sb.ID, err)
+		if !errors.Is(err, ErrSandboxNotFound) {
+			return fmt.Errorf("stopping sandbox %s: %w", sb.ID, err)
+		}
+		slog.Info("sandbox missing upstream, marking stopped locally",
+			"sandbox_id", sb.ID, "external_id", sb.ExternalID)
 	}
 	now := time.Now()
 	if err := o.db.Model(sb).Updates(map[string]any{
@@ -42,7 +47,11 @@ func (o *Orchestrator) ArchiveSandbox(ctx context.Context, sb *model.Sandbox) er
 	}
 
 	if err := o.provider.ArchiveSandbox(ctx, sb.ExternalID); err != nil {
-		return fmt.Errorf("archiving sandbox %s: %w", sb.ID, err)
+		if !errors.Is(err, ErrSandboxNotFound) {
+			return fmt.Errorf("archiving sandbox %s: %w", sb.ID, err)
+		}
+		slog.Info("sandbox missing upstream, marking archived locally",
+			"sandbox_id", sb.ID, "external_id", sb.ExternalID)
 	}
 
 	if err := o.db.Model(sb).Updates(map[string]any{

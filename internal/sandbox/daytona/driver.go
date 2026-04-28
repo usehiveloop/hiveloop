@@ -144,6 +144,9 @@ func (d *Driver) DeleteSandbox(ctx context.Context, externalID string) error {
 		return fmt.Errorf("deleting sandbox: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return sandbox.ErrSandboxNotFound
+	}
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("delete sandbox failed (status %d): %s", resp.StatusCode, body)
@@ -183,6 +186,9 @@ func (d *Driver) sandboxAction(ctx context.Context, externalID, action string) e
 		return fmt.Errorf("%s sandbox: %w", action, err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return sandbox.ErrSandboxNotFound
+	}
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("%s sandbox failed (status %d): %s", action, resp.StatusCode, body)
