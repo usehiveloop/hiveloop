@@ -49,6 +49,7 @@ type CheckoutIntent struct {
 	OrgName       string
 	CustomerEmail string
 	PlanSlug      string
+	AmountMinor   int64 // smallest unit of Currency (kobo for NGN, cents for USD); pinned to the plan's price at checkout time
 	Currency      string // ISO-4217, e.g. "USD", "NGN"
 	Cycle         Cycle
 	SuccessURL    string
