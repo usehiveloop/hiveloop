@@ -5230,6 +5230,68 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/billing/subscription/init-upgrade": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Initialise a Paystack transaction for an upgrade quote",
+                "parameters": [
+                    {
+                        "description": "Upgrade quote id",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.initUpgradeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.initUpgradeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "410": {
+                        "description": "Gone",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/billing/subscription/preview-change": {
             "post": {
                 "security": [
@@ -13739,6 +13801,31 @@ const docTemplate = `{
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.NangoConfig"
                 },
                 "provider": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.initUpgradeRequest": {
+            "type": "object",
+            "properties": {
+                "quote_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.initUpgradeResponse": {
+            "type": "object",
+            "properties": {
+                "access_code": {
+                    "type": "string"
+                },
+                "amount_minor": {
+                    "type": "integer"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "reference": {
                     "type": "string"
                 }
             }
