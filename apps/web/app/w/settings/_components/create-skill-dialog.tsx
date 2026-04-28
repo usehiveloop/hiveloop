@@ -10,19 +10,29 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { SkillContentEditor } from "./skill-content-editor"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { File01Icon, GitBranchIcon } from "@hugeicons/core-free-icons"
+import type { components } from "@/lib/api/schema"
+
+type SkillDetailResponse = components["schemas"]["skillDetailResponse"]
 
 interface CreateSkillDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onCreated?: (skill: SkillDetailResponse) => void
 }
 
-export function CreateSkillDialog({ open, onOpenChange }: CreateSkillDialogProps) {
+export function CreateSkillDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: CreateSkillDialogProps) {
   const queryClient = useQueryClient()
   const [sourceType, setSourceType] = useState<"inline" | "git">("inline")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
+  const [content, setContent] = useState("")
   const [repoUrl, setRepoUrl] = useState("")
   const [repoSubpath, setRepoSubpath] = useState("")
   const [repoRef, setRepoRef] = useState("main")
@@ -32,6 +42,7 @@ export function CreateSkillDialog({ open, onOpenChange }: CreateSkillDialogProps
     setSourceType("inline")
     setName("")
     setDescription("")
+    setContent("")
     setRepoUrl("")
     setRepoSubpath("")
     setRepoRef("main")
@@ -61,11 +72,15 @@ export function CreateSkillDialog({ open, onOpenChange }: CreateSkillDialogProps
       body.repo_subpath = repoSubpath.trim() || undefined
       body.repo_ref = repoRef.trim() || "main"
     } else {
+      if (!content.trim()) {
+        toast.error("Content is required for inline skills")
+        return
+      }
       body.bundle = {
         id: name.trim().toLowerCase().replace(/\s+/g, "-"),
         title: name.trim(),
         description: description.trim(),
-        content: "",
+        content: content,
         references: [],
       }
     }
@@ -73,9 +88,12 @@ export function CreateSkillDialog({ open, onOpenChange }: CreateSkillDialogProps
     createSkill.mutate(
       { body: body as never },
       {
-        onSuccess: () => {
+        onSuccess: (response) => {
           toast.success("Skill created")
           queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
+          if (onCreated && response) {
+            onCreated(response as SkillDetailResponse)
+          }
           handleOpenChange(false)
         },
         onError: (error) => {
@@ -87,7 +105,7 @@ export function CreateSkillDialog({ open, onOpenChange }: CreateSkillDialogProps
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent showCloseButton className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+      <DialogContent showCloseButton className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogTitle>Create skill</DialogTitle>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -126,6 +144,14 @@ export function CreateSkillDialog({ open, onOpenChange }: CreateSkillDialogProps
                     value={description}
                     onChange={(event) => setDescription(event.target.value)}
                     placeholder="What this skill does..."
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="skill-content-inline">Content</Label>
+                  <SkillContentEditor
+                    value={content}
+                    onChange={setContent}
+                    placeholder={`# Skill name\n\n## When to use this skill\n…\n\n## Steps\n1. …\n2. …`}
                   />
                 </div>
               </div>
@@ -186,7 +212,16 @@ export function CreateSkillDialog({ open, onOpenChange }: CreateSkillDialogProps
             </TabsContent>
           </Tabs>
 
-          <Button type="submit" className="w-full" loading={createSkill.isPending} disabled={!name.trim()}>
+          <Button
+            type="submit"
+            className="w-full"
+            loading={createSkill.isPending}
+            disabled={
+              !name.trim() ||
+              (sourceType === "inline" && !content.trim()) ||
+              (sourceType === "git" && !repoUrl.trim())
+            }
+          >
             Create skill
           </Button>
         </form>
