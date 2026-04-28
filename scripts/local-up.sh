@@ -57,7 +57,10 @@ supervise() {
     # restart — disable -e so they don't kill the subshell instead.
     set +e
     while true; do
-      "$@" >> "$logf" 2>&1 &
+      # Run the child in its own process group so local-down can kill the
+      # entire tree (pnpm → node → next-server, etc.) by sending the signal
+      # to -PGID instead of just the direct child.
+      setsid "$@" >> "$logf" 2>&1 &
       child=$!
       echo "$child" > "$pidf"
       wait "$child"

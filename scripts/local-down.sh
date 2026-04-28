@@ -21,7 +21,9 @@ for f in "$RUN_DIR"/*.supervisor.pid; do
   rm -f "$f"
 done
 
-# Then kill the actual children (orphaned by their dead supervisors).
+# Then kill each child's whole process group. local-up.sh starts children
+# under setsid so PGID == child PID — sending SIGKILL to -PID hits the
+# entire tree (e.g. pnpm → node → next-server).
 for f in "$RUN_DIR"/*.pid; do
   [ -f "$f" ] || continue
   NAME="$(basename "$f" .pid)"
@@ -29,11 +31,19 @@ for f in "$RUN_DIR"/*.pid; do
   # and may be shared with other tools). Skip.
   [ "$NAME" = "redis" ] && continue
   PID="$(cat "$f")"
-  if kill -9 "$PID" 2>/dev/null; then
+  # Negative pid → kill the whole process group rooted at PID.
+  if kill -9 -- "-$PID" 2>/dev/null; then
+    echo "  killed group:      $NAME (pgid $PID)"
+  elif kill -9 "$PID" 2>/dev/null; then
     echo "  killed child:      $NAME (pid $PID)"
   fi
   rm -f "$f"
 done
+
+# Belt + braces: any next-server / pnpm / fake-nango / hiveloop survivors
+# (from sessions before setsid was added, or from a forced kill earlier).
+pkill -9 -f "next-server" 2>/dev/null || true
+pkill -9 -f "/tmp/agent-test/(fake-nango|hiveloop)" 2>/dev/null || true
 
 if [ "${HARD:-}" = "1" ]; then
   rm -f "$RUN_DIR"/*.log "$RUN_DIR"/*.env
