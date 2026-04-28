@@ -9,6 +9,7 @@ import type { components } from "@/lib/api/schema"
 
 type User = components["schemas"]["userResponse"]
 type Org = components["schemas"]["orgMemberDTO"]
+type Plan = components["schemas"]["planDTO"]
 
 const ACTIVE_ORG_COOKIE = "hiveloop_active_org"
 
@@ -43,6 +44,7 @@ interface AuthContextValue {
   user: User | null
   orgs: Org[]
   activeOrg: Org | null
+  plans: Plan[]
   setActiveOrg: (org: Org) => void
   addOrg: (org: Org) => void
   logout: () => Promise<void>
@@ -59,11 +61,17 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { data, isLoading, isError } = $api.useQuery("get", "/auth/me", {}, { retry: false })
+  const meQuery = $api.useQuery("get", "/auth/me", {}, { retry: false })
+  const plansQuery = $api.useQuery("get", "/v1/plans", {}, { retry: false })
   const hasRedirected = useRef(false)
+
+  const data = meQuery.data
+  const isError = meQuery.isError
+  const isLoading = meQuery.isLoading || plansQuery.isLoading
 
   const user = (data?.user as User) ?? null
   const orgs = (data?.orgs as Org[]) ?? []
+  const plans = (plansQuery.data as Plan[] | undefined) ?? []
   const isPlatformAdmin = (data as Record<string, unknown>)?.is_platform_admin === true
 
   const [activeOrgId, setActiveOrgId] = useState<string | null>(() => getOrgIdFromCookie())
@@ -139,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         orgs,
         activeOrg,
+        plans,
         setActiveOrg,
         addOrg,
         logout,

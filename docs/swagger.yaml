@@ -2622,12 +2622,18 @@ definitions:
     properties:
       currency:
         type: string
+      features:
+        items:
+          type: string
+        type: array
       monthly_credits:
         type: integer
       name:
         type: string
       price_cents:
         type: integer
+      provider:
+        type: string
       slug:
         type: string
       welcome_credits:

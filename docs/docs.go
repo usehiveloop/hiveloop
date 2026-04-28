@@ -13607,6 +13607,12 @@ const docTemplate = `{
                 "currency": {
                     "type": "string"
                 },
+                "features": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "monthly_credits": {
                     "type": "integer"
                 },
@@ -13615,6 +13621,9 @@ const docTemplate = `{
                 },
                 "price_cents": {
                     "type": "integer"
+                },
+                "provider": {
+                    "type": "string"
                 },
                 "slug": {
                     "type": "string"

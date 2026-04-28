@@ -12356,9 +12356,11 @@ export interface components {
         };
         planDTO: {
             currency?: string;
+            features?: string[];
             monthly_credits?: number;
             name?: string;
             price_cents?: number;
+            provider?: string;
             slug?: string;
             welcome_credits?: number;
         };

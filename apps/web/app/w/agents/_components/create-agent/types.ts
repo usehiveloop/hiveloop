@@ -1,73 +1,3 @@
-export type CreationMode = "scratch" | "marketplace"
-
-export type Step =
-  | "mode"
-  | "sandbox"
-  | "integrations"
-  | "trigger"
-  | "llm-key"
-  | "basics"
-  | "system-prompt"
-  | "instructions"
-  | "skills"
-  | "subagents"
-  | "summary"
-  | "marketplace-browse"
-  | "marketplace-detail"
-
-export const scratchSteps: Step[] = [
-  "mode",
-  "sandbox",
-  "integrations",
-  "trigger",
-  "llm-key",
-  "basics",
-  "system-prompt",
-  "instructions",
-  "skills",
-  "subagents",
-  "summary",
-]
-
-export const marketplaceSteps: Step[] = [
-  "mode",
-  "marketplace-browse",
-  "marketplace-detail",
-]
-
-export interface Integration {
-  id: string
-  name: string
-  logo: string
-  description: string
-  actions: IntegrationAction[]
-}
-
-export interface IntegrationAction {
-  id: string
-  name: string
-  description: string
-  type: "read" | "write" | "delete"
-}
-
-export interface MarketplaceAgentPreview {
-  slug: string
-  name: string
-  description: string
-  publisher: { name: string; avatar: string }
-  installs: number
-  integrations: string[]
-  verified: boolean
-}
-
-export interface LlmKey {
-  id: string
-  name: string
-  provider: string
-  logo: string
-  models: string[]
-}
-
 export interface SkillPreview {
   id: string
   slug: string
@@ -99,11 +29,17 @@ export interface TriggerConditionsConfig {
   conditions: TriggerConditionConfig[]
 }
 
+export type TriggerType = "webhook" | "http" | "cron"
+
 export interface TriggerConfig {
+  triggerType: TriggerType
   connectionId: string
   connectionName: string
   provider: string
   triggerKeys: string[]
   triggerDisplayNames: string[]
   conditions: TriggerConditionsConfig | null
+  cronSchedule?: string
+  instructions?: string
+  secretKey?: string
 }

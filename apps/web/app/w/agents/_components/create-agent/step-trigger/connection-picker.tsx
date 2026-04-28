@@ -5,6 +5,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
+  Plug01Icon,
   Search01Icon,
 } from "@hugeicons/core-free-icons"
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -62,8 +63,19 @@ export function ConnectionPickerView({ search, onSearchChange, onPickConnection,
         {isLoading ? (
           Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-[64px] w-full rounded-xl" />)
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-3">
-            <p className="text-sm text-muted-foreground">No connections found.</p>
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+              <HugeiconsIcon
+                icon={connections.length === 0 ? Plug01Icon : Search01Icon}
+                size={20}
+                className="text-muted-foreground"
+              />
+            </div>
+            <p className="max-w-xs text-sm text-muted-foreground">
+              {connections.length === 0
+                ? "No connections in this workspace yet. Add one from the integrations section to enable webhook triggers."
+                : `No connections matching “${search.trim()}”.`}
+            </p>
           </div>
         ) : (
           filtered.map((connection) => (

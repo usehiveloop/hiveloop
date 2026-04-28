@@ -110,12 +110,3 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// Me handles GET /auth/me.
-// @Summary Get current user
-// @Description Returns the current user and their organization memberships.
-// @Tags auth
-// @Produce json
-// @Success 200 {object} meResponse
-// @Failure 401 {object} errorResponse
-// @Security BearerAuth
-// @Router /auth/me [get]

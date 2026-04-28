@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { ProviderLogo } from "@/components/provider-logo"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { IntegrationLogos, type IntegrationSummary } from "@/components/integration-logos"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { AgentStatusIndicator } from "./agent-status"
@@ -102,7 +103,14 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
             className="flex items-center gap-3 rounded-xl border border-border px-4 py-2.5 transition-colors hover:border-primary"
           >
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <ProviderLogo provider={agent.provider_id ?? ""} size={24} />
+              {agent.avatar_url ? (
+                <Avatar size="sm">
+                  <AvatarImage src={agent.avatar_url} alt={agent.name ?? ""} />
+                  <AvatarFallback>{(agent.name ?? "?").slice(0, 1).toUpperCase()}</AvatarFallback>
+                </Avatar>
+              ) : (
+                <ProviderLogo provider={agent.provider_id ?? ""} size={24} />
+              )}
               <span className="truncate text-sm font-medium text-foreground">{agent.name}</span>
             </div>
             <div className="w-24 shrink-0">
