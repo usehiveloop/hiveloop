@@ -7,12 +7,14 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/billing"
 )
 
-// initializeRequest is the POST /transaction/initialize body. We omit the
-// amount field — when `plan` is set, Paystack takes the amount from the plan
-// itself. Pass-through metadata lands on the transaction and is echoed back
-// in charge.success webhooks.
+// initializeRequest is the POST /transaction/initialize body. Paystack
+// requires `amount` even when `plan` is set — the plan amount overrides
+// it on Paystack's side, but the field cannot be omitted (the API rejects
+// with "Invalid Amount Sent"). Pass-through metadata lands on the
+// transaction and is echoed back in charge.success webhooks.
 type initializeRequest struct {
 	Email       string            `json:"email"`
+	Amount      int64             `json:"amount"` // minor units (kobo for NGN)
 	Plan        string            `json:"plan,omitempty"`
 	Currency    string            `json:"currency,omitempty"`
 	CallbackURL string            `json:"callback_url,omitempty"`
@@ -43,6 +45,7 @@ func (p *Provider) CreateCheckout(ctx context.Context, _ string, intent billing.
 
 	req := initializeRequest{
 		Email:       intent.CustomerEmail,
+		Amount:      intent.AmountMinor,
 		Plan:        planCode,
 		Currency:    intent.Currency,
 		CallbackURL: intent.SuccessURL,

@@ -108,6 +108,7 @@ func (h *BillingHandler) CreateCheckout(w http.ResponseWriter, r *http.Request) 
 		OrgName:       org.Name,
 		CustomerEmail: email,
 		PlanSlug:      plan.Slug,
+		AmountMinor:   plan.PriceCents,
 		Currency:      body.Currency,
 		Cycle:         cycle,
 		SuccessURL:    body.SuccessURL,
