@@ -18,6 +18,11 @@ import (
 // boundaries; reconciliation can compare part counts deterministically.
 const embedTokenLimit = 6000
 
+// OpenAI's embedding endpoint hard-caps a single request at 300k tokens.
+// Stay well under to leave room for tokenizer drift between us and the
+// server-side counter, and to keep response sizes reasonable.
+const embedRequestTokenLimit = 200_000
+
 func flushBatch(
 	ctx context.Context,
 	deps *Deps,
@@ -50,11 +55,7 @@ func flushBatch(
 		return fmt.Errorf("ingest: clear stale parts (%d docs): %w", len(docIDs), err)
 	}
 
-	inputs := make([]string, len(parts))
-	for i := range parts {
-		inputs[i] = parts[i].content
-	}
-	vectors, err := deps.Embedder.Embed(ctx, inputs)
+	vectors, err := embedInBudgetedGroups(ctx, deps.Embedder, parts)
 	if err != nil {
 		return fmt.Errorf("ingest: embed (%d parts from %d docs): %w", len(parts), len(docs), err)
 	}
@@ -75,11 +76,50 @@ func flushBatch(
 	return nil
 }
 
+// embedInBudgetedGroups chunks the embed call so each HTTP request stays
+// under the upstream token cap. We know each part's exact token count
+// (computed during splitting), so grouping is deterministic.
+func embedInBudgetedGroups(
+	ctx context.Context,
+	emb embedderClient,
+	parts []docPart,
+) ([][]float32, error) {
+	out := make([][]float32, 0, len(parts))
+	i := 0
+	for i < len(parts) {
+		j := i
+		sum := 0
+		for j < len(parts) {
+			if j > i && sum+parts[j].tokens > embedRequestTokenLimit {
+				break
+			}
+			sum += parts[j].tokens
+			j++
+		}
+		inputs := make([]string, j-i)
+		for k := range inputs {
+			inputs[k] = parts[i+k].content
+		}
+		vecs, err := emb.Embed(ctx, inputs)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, vecs...)
+		i = j
+	}
+	return out, nil
+}
+
+type embedderClient interface {
+	Embed(ctx context.Context, inputs []string) ([][]float32, error)
+}
+
 type docPart struct {
 	doc        *interfaces.Document
 	pointDocID string // <doc.DocID>-part-N — always suffixed for stability across re-runs
 	content    string
 	partIndex  int
+	tokens     int
 }
 
 func splitDocument(d *interfaces.Document) ([]docPart, error) {
@@ -96,8 +136,9 @@ func splitDocument(d *interfaces.Document) ([]docPart, error) {
 		out[i] = docPart{
 			doc:        d,
 			pointDocID: fmt.Sprintf("%s-part-%d", d.DocID, i),
-			content:    c,
+			content:    c.text,
 			partIndex:  i,
+			tokens:     c.tokens,
 		}
 	}
 	return out, nil
@@ -119,22 +160,30 @@ func getTokenizer() (*tiktoken.Tiktoken, error) {
 	return tokenizer, tokenizerErr
 }
 
-func splitByTokens(s string, maxTokens int) ([]string, error) {
+type tokenChunk struct {
+	text   string
+	tokens int
+}
+
+func splitByTokens(s string, maxTokens int) ([]tokenChunk, error) {
 	tk, err := getTokenizer()
 	if err != nil {
 		return nil, fmt.Errorf("tiktoken init: %w", err)
 	}
 	tokens := tk.Encode(s, nil, nil)
 	if len(tokens) <= maxTokens {
-		return []string{s}, nil
+		return []tokenChunk{{text: s, tokens: len(tokens)}}, nil
 	}
-	out := make([]string, 0, (len(tokens)+maxTokens-1)/maxTokens)
+	out := make([]tokenChunk, 0, (len(tokens)+maxTokens-1)/maxTokens)
 	for i := 0; i < len(tokens); i += maxTokens {
 		end := i + maxTokens
 		if end > len(tokens) {
 			end = len(tokens)
 		}
-		out = append(out, tk.Decode(tokens[i:end]))
+		out = append(out, tokenChunk{
+			text:   tk.Decode(tokens[i:end]),
+			tokens: end - i,
+		})
 	}
 	return out, nil
 }
