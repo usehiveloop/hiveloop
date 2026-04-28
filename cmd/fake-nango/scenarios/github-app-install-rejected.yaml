@@ -1,0 +1,10 @@
+name: github-app-install-rejected
+integrations:
+  - unique_key: in_org-github
+    provider: github
+    display_name: GitHub
+    credentials:
+      type: APP
+      app_id: "12345"
+      app_link: https://github.com/apps/fake-app
+proxy: []
