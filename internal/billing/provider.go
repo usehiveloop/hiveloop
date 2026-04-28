@@ -1,16 +1,14 @@
 // Package billing is the provider-agnostic billing layer.
 //
-// Real providers (Stripe, Paystack, Paddle, etc.) live in sub-packages and
-// implement the Provider interface. A fake provider for tests lives in
-// internal/billing/fake. The rest of the codebase only ever talks to the
-// Provider interface and the credit ledger service — never to a concrete
-// provider SDK.
+// We manage subscription lifecycle (period tracking, upgrades, downgrades,
+// cancellations, proration) ourselves and use providers purely to charge
+// a saved payment method. Provider implementations live in sub-packages
+// (paystack, fake) and adhere to the Provider interface.
 package billing
 
 import (
 	"context"
 	"errors"
-	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,7 +38,25 @@ var (
 	ErrUnsupportedCurrency  = errors.New("billing: currency not supported by this provider")
 	ErrUnknownPlan          = errors.New("billing: plan slug not configured for this provider")
 	ErrNoActiveSubscription = errors.New("billing: no active subscription for this org")
+	ErrAuthorizationRefused = errors.New("billing: provider declined the saved authorization")
 )
+
+// PaymentChannel is one of the channel kinds we accept for subscription
+// renewals. Only "card" and "bank" produce a reusable AuthorizationCode
+// from Paystack; other channels (USSD, mobile money, QR) are one-shot
+// and not supported on subscription rows.
+type PaymentChannel string
+
+const (
+	ChannelCard PaymentChannel = "card"
+	ChannelBank PaymentChannel = "bank"
+)
+
+// IsReusable reports whether c is a channel we consider eligible for
+// off-session re-charging.
+func (c PaymentChannel) IsReusable() bool {
+	return c == ChannelCard || c == ChannelBank
+}
 
 // CheckoutIntent describes a user's intent to subscribe to a plan. Providers
 // translate it into their native checkout-session shape.
@@ -49,7 +65,7 @@ type CheckoutIntent struct {
 	OrgName       string
 	CustomerEmail string
 	PlanSlug      string
-	AmountMinor   int64 // smallest unit of Currency (kobo for NGN, cents for USD); pinned to the plan's price at checkout time
+	AmountMinor   int64  // smallest unit of Currency (kobo for NGN, cents for USD)
 	Currency      string // ISO-4217, e.g. "USD", "NGN"
 	Cycle         Cycle
 	SuccessURL    string
@@ -57,68 +73,88 @@ type CheckoutIntent struct {
 	Metadata      map[string]string
 }
 
-// CheckoutSession is a normalized provider response. Every provider hands us
-// back at least a URL to redirect the browser to. AccessCode is populated
+// CheckoutSession is a normalized provider response. AccessCode is populated
 // when the provider supports a popup/inline flow that resumes a server-
 // initialised transaction (Paystack: resumeTransaction(access_code)).
 type CheckoutSession struct {
 	URL        string
 	ExternalID string
 	AccessCode string
+	Reference  string
 }
 
 // PortalRequest carries everything a provider might need to build a portal
-// URL. Adapters read whichever fields they care about; Stripe uses the
-// customer id, Paystack uses the subscription id, etc.
+// URL. Adapters read whichever fields they care about.
 type PortalRequest struct {
 	OrgID                  uuid.UUID
 	ExternalCustomerID     string
 	ExternalSubscriptionID string
 }
 
-// PortalSession is a URL into the provider's self-serve billing portal, or an
-// equivalent hosted page when the provider lacks a full portal.
+// PortalSession is a URL into the provider's self-serve billing portal.
 type PortalSession struct {
 	URL string
 }
 
+// ResolveCheckoutRequest looks up the state of a started transaction.
 type ResolveCheckoutRequest struct {
 	Reference     string
 	ExpectedOrgID uuid.UUID
 }
 
-type ResolveCheckoutResult struct {
-	Status                 SubscriptionStatus
-	PlanSlug               string
-	ExternalSubscriptionID string
-	ExternalCustomerID     string
-	CurrentPeriodStart     time.Time
-	CurrentPeriodEnd       time.Time
-
-	ChargeReference   string
-	ChargeAmount      int64
-	ChargedAt         *time.Time
+// PaymentMethod captures the reusable payment instrument Paystack returned
+// after a successful charge. Subscription renewals charge against
+// AuthorizationCode; the rest is for the UI to display "Visa ending in
+// 4242" or "GTBank — Jane Doe" without re-fetching from the provider.
+type PaymentMethod struct {
+	AuthorizationCode string
+	Channel           PaymentChannel
 	CardLast4         string
 	CardBrand         string
 	CardExpMonth      string
 	CardExpYear       string
-	AuthorizationCode string
+	BankName          string
+	AccountName       string
 }
 
-// EventType is the provider-agnostic webhook event type the rest of the
-// codebase reacts to. Provider implementations map their native event names
-// onto these.
-type EventType string
+// ResolveCheckoutResult is the verified state of a Paystack transaction.
+// Status reports the upstream payment status; PaidAmountMinor and Currency
+// let callers verify the customer paid what we quoted.
+//
+// Metadata is the string-keyed map we passed when initialising the
+// transaction, echoed back by the provider. We use it to carry plan_slug
+// (fresh checkout) or quote_id (change apply) end-to-end so verify can
+// look up what the customer was supposed to be paying for.
+type ResolveCheckoutResult struct {
+	Status             SubscriptionStatus
+	ExternalCustomerID string
+	PaidAt             *time.Time
+	PaidAmountMinor    int64
+	Currency           string
+	Reference          string
+	PaymentMethod      PaymentMethod
+	Metadata           map[string]string
+}
 
-const (
-	EventSubscriptionActivated EventType = "subscription.activated"
-	EventSubscriptionUpdated   EventType = "subscription.updated"
-	EventSubscriptionCanceled  EventType = "subscription.canceled"
-	EventSubscriptionRevoked   EventType = "subscription.revoked"
-	EventInvoicePaid           EventType = "invoice.paid"
-	EventPaymentFailed         EventType = "payment.failed"
-	EventUnhandled             EventType = "unhandled"
-)
+// ChargeAuthorizationRequest re-charges a saved payment method off-session.
+type ChargeAuthorizationRequest struct {
+	Email             string
+	AuthorizationCode string
+	AmountMinor       int64
+	Currency          string
+	Reference         string // optional — let the provider generate one when empty
+	Metadata          map[string]string
+}
+
+// ChargeAuthorizationResult mirrors a successful re-charge.
+type ChargeAuthorizationResult struct {
+	Status          SubscriptionStatus
+	Reference       string
+	PaidAt          *time.Time
+	PaidAmountMinor int64
+	Currency        string
+	PaymentMethod   PaymentMethod
+}
 
 // SubscriptionStatus is the normalized subscription state.
 type SubscriptionStatus string
@@ -130,71 +166,31 @@ const (
 	StatusRevoked  SubscriptionStatus = "revoked"
 )
 
-// SubscriptionState is the normalized subscription info lifted from a webhook.
-type SubscriptionState struct {
-	ExternalSubscriptionID string
-	ExternalCustomerID     string
-	OrgID                  uuid.UUID
-	PlanSlug               string
-	Status                 SubscriptionStatus
-	CurrentPeriodStart     time.Time
-	CurrentPeriodEnd       time.Time
-	CanceledAt             *time.Time
-
-	// Payment-method snapshot — only populated by charge events. Empty on
-	// subscription.* events. The webhook handler writes these onto the
-	// Subscription row so the UI doesn't have to round-trip the provider.
-	ChargeReference   string
-	ChargeAmount      int64 // minor units
-	ChargedAt         *time.Time
-	CardLast4         string
-	CardBrand         string
-	CardExpMonth      string
-	CardExpYear       string
-	AuthorizationCode string
-}
-
-// Event is a normalized webhook event.
-type Event struct {
-	Type            EventType
-	Subscription    *SubscriptionState
-	RawProviderType string
-}
-
 // Provider is the contract every payment provider implementation must satisfy.
-// Provider methods run during HTTP request handling, so they must be safe for
-// concurrent use.
+// Methods run inside HTTP request handlers and must be safe for concurrent use.
 type Provider interface {
-	// Name is the stable slug used in webhook URLs (/internal/webhooks/:provider)
-	// and stored in the subscriptions.provider column.
+	// Name is the stable slug stored in subscriptions.provider.
 	Name() string
 
 	// EnsureCustomer creates or returns the provider's external customer id
 	// for the org. Implementations must be idempotent on email or org id.
 	EnsureCustomer(ctx context.Context, orgID uuid.UUID, email, orgName string) (string, error)
 
-	// CreateCheckout returns a URL the browser should redirect to. Adapters
-	// that can't satisfy the requested currency or plan should return the
-	// matching ErrUnsupportedCurrency / ErrUnknownPlan sentinel.
+	// CreateCheckout initialises a fresh transaction the browser can resume
+	// via a popup. Adapters that can't satisfy the requested currency or
+	// plan should return the matching sentinel error.
 	CreateCheckout(ctx context.Context, customerID string, intent CheckoutIntent) (*CheckoutSession, error)
 
-	// CreatePortal returns a URL into the provider's customer portal — or the
-	// nearest equivalent the provider offers (e.g. Paystack's per-subscription
-	// manage-link). Adapters that require an active subscription should
-	// return ErrNoActiveSubscription when req.ExternalSubscriptionID is empty.
+	// CreatePortal returns a URL into the provider's customer portal — or
+	// the nearest equivalent the provider offers.
 	CreatePortal(ctx context.Context, req PortalRequest) (*PortalSession, error)
 
-	// ResolveCheckout queries the provider synchronously for the state of a
-	// checkout. Used by /v1/billing/verify to confirm a popup-flow charge
-	// completed without waiting on a webhook.
+	// ResolveCheckout queries the provider for the state of a transaction
+	// reference, used by /v1/billing/verify and /apply-change to confirm a
+	// charge completed and capture the saved authorization.
 	ResolveCheckout(ctx context.Context, req ResolveCheckoutRequest) (*ResolveCheckoutResult, error)
 
-	// VerifyWebhook checks the signature on an incoming webhook request. The
-	// request body is already read into body — implementations must not read
-	// r.Body. Return a non-nil error to reject the request.
-	VerifyWebhook(r *http.Request, body []byte) error
-
-	// ParseEvent decodes an already-verified webhook body into a normalized
-	// Event. Unrecognized provider event types should map to EventUnhandled.
-	ParseEvent(body []byte) (Event, error)
+	// ChargeAuthorization re-charges a saved authorization off-session.
+	// Returns ErrAuthorizationRefused on a declined charge.
+	ChargeAuthorization(ctx context.Context, req ChargeAuthorizationRequest) (*ChargeAuthorizationResult, error)
 }

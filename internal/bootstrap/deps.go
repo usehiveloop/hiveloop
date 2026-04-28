@@ -265,7 +265,6 @@ func New(ctx context.Context) (*Deps, error) {
 	if cfg.PaystackSecretKey != "" {
 		billingRegistry.Register(paystack.New(paystack.Config{
 			SecretKey: cfg.PaystackSecretKey,
-			Plans:     paystack.NewDBPlanResolver(database),
 		}))
 		slog.Info("paystack provider registered")
 	}

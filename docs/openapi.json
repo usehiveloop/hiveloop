@@ -6058,6 +6058,208 @@
         }
       }
     },
+    "/v1/billing/subscription/apply-change": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "billing"
+        ],
+        "summary": "Apply a subscription plan change",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/applyChangeRequest"
+              }
+            }
+          },
+          "description": "Quote and (for upgrades) Paystack reference",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/applyChangeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/subscription/cancel": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "billing"
+        ],
+        "summary": "Cancel a subscription",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/cancelRequest"
+              }
+            }
+          },
+          "description": "Cancellation options"
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/cancelResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/subscription/preview-change": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "billing"
+        ],
+        "summary": "Preview a subscription plan change",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/previewChangeRequest"
+              }
+            }
+          },
+          "description": "Target plan",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/previewChangeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/subscription/resume": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "billing"
+        ],
+        "summary": "Resume a subscription",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/cancelResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/billing/verify": {
       "post": {
         "security": [
@@ -6065,7 +6267,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Synchronously resolves a checkout reference, asserts the transaction succeeded, and upserts the local Subscription row.",
+        "description": "Resolves a Paystack transaction reference, asserts the paid amount matches the plan's price, and provisions the Subscription row.",
         "tags": [
           "billing"
         ],
@@ -6104,6 +6306,16 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
             "content": {
               "application/json": {
                 "schema": {
@@ -14539,6 +14751,28 @@
           }
         }
       },
+      "applyChangeRequest": {
+        "type": "object",
+        "properties": {
+          "paystack_reference": {
+            "type": "string"
+          },
+          "quote_id": {
+            "type": "string"
+          }
+        }
+      },
+      "applyChangeResponse": {
+        "type": "object",
+        "properties": {
+          "plan_slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
       "attachSkillRequest": {
         "type": "object",
         "properties": {
@@ -14611,6 +14845,28 @@
           },
           "user": {
             "$ref": "#/components/schemas/userResponse"
+          }
+        }
+      },
+      "cancelRequest": {
+        "type": "object",
+        "properties": {
+          "at_period_end": {
+            "type": "boolean"
+          }
+        }
+      },
+      "cancelResponse": {
+        "type": "object",
+        "properties": {
+          "cancel_at_period_end": {
+            "type": "boolean"
+          },
+          "canceled_at": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
           }
         }
       },
@@ -16483,6 +16739,49 @@
           }
         }
       },
+      "previewChangeRequest": {
+        "type": "object",
+        "properties": {
+          "plan_slug": {
+            "type": "string"
+          }
+        }
+      },
+      "previewChangeResponse": {
+        "type": "object",
+        "properties": {
+          "amount_minor": {
+            "type": "integer"
+          },
+          "credit_grant_minor": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "effective_at": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "from_plan_slug": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "quote_id": {
+            "type": "string"
+          },
+          "requires_payment_now": {
+            "type": "boolean"
+          },
+          "to_plan_slug": {
+            "type": "string"
+          }
+        }
+      },
       "providerDetail": {
         "type": "object",
         "properties": {
@@ -17523,10 +17822,42 @@
       "subscriptionResponse": {
         "type": "object",
         "properties": {
+          "cancel_at_period_end": {
+            "type": "boolean"
+          },
+          "card_brand": {
+            "type": "string"
+          },
+          "card_exp_month": {
+            "type": "string"
+          },
+          "card_exp_year": {
+            "type": "string"
+          },
+          "card_last4": {
+            "type": "string"
+          },
           "credits_balance": {
             "type": "integer"
           },
           "current_period_end": {
+            "type": "string"
+          },
+          "payment_account_name": {
+            "type": "string"
+          },
+          "payment_bank_name": {
+            "type": "string"
+          },
+          "payment_channel": {
+            "description": "Payment-method snapshot from the most recent successful charge.",
+            "type": "string"
+          },
+          "pending_change_at": {
+            "type": "string"
+          },
+          "pending_plan_slug": {
+            "description": "Pending plan change scheduled at PendingChangeAt (downgrade flow).",
             "type": "string"
           },
           "plan_slug": {
