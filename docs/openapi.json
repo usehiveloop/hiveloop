@@ -5997,6 +5997,73 @@
         }
       }
     },
+    "/v1/billing/verify": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Waits up to 5s for the subscription webhook to land and the local Subscription row to become active for the requested plan.",
+        "tags": [
+          "billing"
+        ],
+        "summary": "Verify subscription is active",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/verifyRequest"
+              }
+            }
+          },
+          "description": "Plan to wait for",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/verifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request Timeout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/catalog/integrations": {
       "get": {
         "description": "Returns every integration provider in the catalog with action counts.",
@@ -17801,6 +17868,26 @@
           },
           "verified": {
             "type": "boolean"
+          }
+        }
+      },
+      "verifyRequest": {
+        "type": "object",
+        "properties": {
+          "plan_slug": {
+            "type": "string"
+          }
+        }
+      },
+      "verifyResponse": {
+        "type": "object",
+        "properties": {
+          "plan_slug": {
+            "type": "string"
+          },
+          "status": {
+            "description": "\"active\" | \"timeout\"",
+            "type": "string"
           }
         }
       }

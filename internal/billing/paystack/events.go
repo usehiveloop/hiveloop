@@ -99,12 +99,25 @@ type subscriptionData struct {
 // this level can also be a number (0 = placeholder), so we deliberately
 // do not read it.
 type chargeData struct {
-	Reference string          `json:"reference"`
-	Status    string          `json:"status"`
-	Currency  string          `json:"currency"`
-	Customer  customerPayload `json:"customer"`
-	Plan      json.RawMessage `json:"plan"`
-	PaidAt    *time.Time      `json:"paidAt"`
+	Reference     string             `json:"reference"`
+	Status        string             `json:"status"`
+	Currency      string             `json:"currency"`
+	Amount        int64              `json:"amount"` // minor units (kobo for NGN)
+	Customer      customerPayload    `json:"customer"`
+	Plan          json.RawMessage    `json:"plan"`
+	PaidAt        *time.Time         `json:"paidAt"`
+	Authorization authorizationBlock `json:"authorization"`
+}
+
+type authorizationBlock struct {
+	AuthorizationCode string `json:"authorization_code"`
+	Last4             string `json:"last4"`
+	Brand             string `json:"brand"`
+	CardType          string `json:"card_type"`
+	Bank              string `json:"bank"`
+	ExpMonth          string `json:"exp_month"`
+	ExpYear           string `json:"exp_year"`
+	Reusable          bool   `json:"reusable"`
 }
 
 // invoiceData mirrors invoice.* events. The customer sits at the data root,
@@ -183,6 +196,14 @@ func (p *Provider) chargeState(d chargeData, planCode string) (*billing.Subscrip
 		OrgID:              orgID,
 		PlanSlug:           planSlug,
 		Status:             billing.StatusActive,
+		ChargeReference:    d.Reference,
+		ChargeAmount:       d.Amount,
+		ChargedAt:          d.PaidAt,
+		CardLast4:          d.Authorization.Last4,
+		CardBrand:          d.Authorization.Brand,
+		CardExpMonth:       d.Authorization.ExpMonth,
+		CardExpYear:        d.Authorization.ExpYear,
+		AuthorizationCode:  d.Authorization.AuthorizationCode,
 	}
 	if d.PaidAt != nil {
 		state.CurrentPeriodStart = *d.PaidAt

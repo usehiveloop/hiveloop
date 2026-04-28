@@ -86,6 +86,7 @@ func setupV1Routes(
 				r.Post("/billing/checkout", billingHandler.CreateCheckout)
 				r.Get("/billing/subscription", billingHandler.GetSubscription)
 				r.Post("/billing/portal", billingHandler.CreatePortal)
+				r.Post("/billing/verify", billingHandler.Verify)
 			}
 
 			r.Group(func(r chi.Router) {

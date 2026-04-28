@@ -3794,6 +3794,19 @@ definitions:
       verified:
         type: boolean
     type: object
+  internal_handler.verifyRequest:
+    properties:
+      plan_slug:
+        type: string
+    type: object
+  internal_handler.verifyResponse:
+    properties:
+      plan_slug:
+        type: string
+      status:
+        description: '"active" | "timeout"'
+        type: string
+    type: object
 host: api.dev.hiveloop.com
 info:
   contact: {}
@@ -7088,6 +7101,43 @@ paths:
       security:
       - BearerAuth: []
       summary: Get subscription status
+      tags:
+      - billing
+  /v1/billing/verify:
+    post:
+      consumes:
+      - application/json
+      description: Waits up to 5s for the subscription webhook to land and the local
+        Subscription row to become active for the requested plan.
+      parameters:
+      - description: Plan to wait for
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.verifyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.verifyResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "408":
+          description: Request Timeout
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Verify subscription is active
       tags:
       - billing
   /v1/catalog/integrations:
