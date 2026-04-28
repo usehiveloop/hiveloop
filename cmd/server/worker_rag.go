@@ -6,6 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/nango"
 	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
@@ -65,6 +66,7 @@ func buildRagDeps(
 		Embedder:   embedder,
 		Nango:      nangoClient,
 		Spider:     spiderClient,
+		Credits:    billing.NewCreditsService(db),
 		Collection: cfg.QdrantCollection,
 		BatchSize:  cfg.RagBatchSize,
 	}
