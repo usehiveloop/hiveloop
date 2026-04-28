@@ -46,9 +46,10 @@ type embedResponse struct {
 		Embedding []float32 `json:"embedding"`
 	} `json:"data"`
 	Error *struct {
-		Message string          `json:"message"`
-		Type    string          `json:"type"`
-		Code    json.RawMessage `json:"code"`
+		Message  string          `json:"message"`
+		Type     string          `json:"type"`
+		Code     json.RawMessage `json:"code"`
+		Metadata json.RawMessage `json:"metadata,omitempty"`
 	} `json:"error,omitempty"`
 }
 
@@ -89,8 +90,12 @@ func (e *Embedder) Embed(ctx context.Context, inputs []string) ([][]float32, err
 				return nil, fmt.Errorf("embed: decode: %w", err)
 			}
 			if out.Error != nil && out.Error.Message != "" {
-				return nil, fmt.Errorf("embed: upstream error: %s (type=%s code=%s)",
-					out.Error.Message, out.Error.Type, string(out.Error.Code))
+				meta := ""
+				if len(out.Error.Metadata) > 0 {
+					meta = " metadata=" + string(out.Error.Metadata)
+				}
+				return nil, fmt.Errorf("embed: upstream error: %s (type=%s code=%s)%s",
+					out.Error.Message, out.Error.Type, string(out.Error.Code), meta)
 			}
 			if len(out.Data) != len(inputs) {
 				preview := string(respBody)
