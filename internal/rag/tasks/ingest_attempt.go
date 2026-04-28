@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -59,13 +60,14 @@ func lastCheckpointPointer(ctx context.Context, db *gorm.DB, sourceID uuid.UUID)
 
 func finalizeAttempt(
 	ctx context.Context,
-	db *gorm.DB,
+	deps *Deps,
 	src *ragmodel.RAGSource,
 	a *ragmodel.RAGIndexAttempt,
 	stats ingestStats,
 	runErr error,
 	runnable RunnableCheckpointed,
 ) error {
+	db := deps.DB
 	now := time.Now()
 	updates := map[string]any{
 		"time_updated":       now,
@@ -116,8 +118,14 @@ func finalizeAttempt(
 	if stats.docsBatched > 0 || src.Status != ragmodel.RAGSourceStatusInitialIndexing {
 		srcUpd["last_successful_index_time"] = now
 	}
-	if stats.docsBatched > 0 {
-		srcUpd["total_docs_indexed"] = gorm.Expr("total_docs_indexed + ?", stats.docsBatched)
+	if n, err := deps.Qdrant.CountBySourceID(ctx, deps.Collection, src.ID.String()); err == nil {
+		if n > uint64(math.MaxInt32) {
+			n = uint64(math.MaxInt32)
+		}
+		srcUpd["total_docs_indexed"] = int(n) //nolint:gosec // bounded above
+	} else {
+		slog.Warn("rag finalize: count by source failed; leaving total_docs_indexed unchanged",
+			"source_id", src.ID, "err", err)
 	}
 	if src.Status == ragmodel.RAGSourceStatusInitialIndexing && stats.docsBatched > 0 {
 		srcUpd["status"] = ragmodel.RAGSourceStatusActive
