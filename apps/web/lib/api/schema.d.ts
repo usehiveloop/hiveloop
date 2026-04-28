@@ -13107,6 +13107,7 @@ export interface components {
             name?: string;
             price_cents?: number;
             provider?: string;
+            provider_plan_id?: string;
             slug?: string;
             welcome_credits?: number;
         };

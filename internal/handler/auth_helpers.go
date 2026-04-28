@@ -25,6 +25,7 @@ func planFromModel(p model.Plan) *planDTO {
 		Slug:           p.Slug,
 		Name:           p.Name,
 		Provider:       p.Provider,
+		ProviderPlanID: p.ProviderPlanID,
 		Features:       features,
 		MonthlyCredits: p.MonthlyCredits,
 		WelcomeCredits: p.WelcomeCredits,

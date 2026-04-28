@@ -2734,6 +2734,8 @@ definitions:
         type: integer
       provider:
         type: string
+      provider_plan_id:
+        type: string
       slug:
         type: string
       welcome_credits:
