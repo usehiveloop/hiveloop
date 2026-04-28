@@ -96,8 +96,12 @@ type subscriptionData struct {
 // chargeData mirrors the root of `data` on charge.success. Paystack's
 // `plan` field arrives in one of four shapes — see parseChargePlanCode —
 // so we keep it as a raw message and decode by inspection. `metadata` at
-// this level can also be a number (0 = placeholder), so we deliberately
-// do not read it.
+// this level can be a number (0 = placeholder) or a JSON object — we
+// keep it as a raw message and only decode when it parses as a string-map.
+// This is where Paystack echoes the metadata we passed to
+// /transaction/initialize, so it's the canonical place to find org_id
+// for popup-flow charges (customer.metadata is often null on charge
+// events even when the customer record itself carries metadata).
 type chargeData struct {
 	Reference     string             `json:"reference"`
 	Status        string             `json:"status"`
@@ -105,6 +109,7 @@ type chargeData struct {
 	Amount        int64              `json:"amount"` // minor units (kobo for NGN)
 	Customer      customerPayload    `json:"customer"`
 	Plan          json.RawMessage    `json:"plan"`
+	Metadata      json.RawMessage    `json:"metadata"`
 	PaidAt        *time.Time         `json:"paidAt"`
 	Authorization authorizationBlock `json:"authorization"`
 }
@@ -184,6 +189,15 @@ func (p *Provider) chargeState(d chargeData, planCode string) (*billing.Subscrip
 	orgID, err := extractOrgID(d.Customer.Metadata)
 	if err != nil {
 		return nil, err
+	}
+	if orgID == uuid.Nil {
+		// Customer.metadata is often null on charge events. Fall back to the
+		// transaction-level metadata, which carries the {org_id, plan_slug}
+		// we set on /transaction/initialize.
+		orgID, err = extractOrgIDFromRaw(d.Metadata)
+		if err != nil {
+			return nil, err
+		}
 	}
 	planSlug := p.cfg.Plans.SlugForPlanCode(planCode)
 	if planSlug == "" {
@@ -272,6 +286,22 @@ func extractOrgID(meta map[string]string) (uuid.UUID, error) {
 		return uuid.Nil, fmt.Errorf("invalid org_id %q: %w", raw, err)
 	}
 	return parsed, nil
+}
+
+// extractOrgIDFromRaw decodes a raw JSON value into a string map and pulls
+// out org_id. Paystack's transaction-level `metadata` can arrive as
+// {"org_id":"…"}, an empty object, null, or even a number — we silently
+// give up on anything that doesn't parse as a string map.
+func extractOrgIDFromRaw(raw json.RawMessage) (uuid.UUID, error) {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		return uuid.Nil, nil
+	}
+	var meta map[string]string
+	if err := json.Unmarshal(raw, &meta); err != nil {
+		return uuid.Nil, nil
+	}
+	return extractOrgID(meta)
 }
 
 // mapSubscriptionStatus normalises Paystack's status strings onto our own
