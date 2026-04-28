@@ -21,8 +21,6 @@ type Provider struct {
 	charges   []billing.ChargeAuthorizationRequest
 
 	NextCheckoutURL string
-	NextPortalURL   string
-
 	NextResolveResult *billing.ResolveCheckoutResult
 	NextResolveError  error
 
@@ -64,21 +62,6 @@ func (p *Provider) CreateCheckout(_ context.Context, customerID string, intent b
 	}
 	ref := "ref_fake_" + uuid.NewString()
 	return &billing.CheckoutSession{URL: url, ExternalID: ref, Reference: ref}, nil
-}
-
-// CreatePortal implements billing.Provider.
-func (p *Provider) CreatePortal(_ context.Context, req billing.PortalRequest) (*billing.PortalSession, error) {
-	if url := p.NextPortalURL; url != "" {
-		return &billing.PortalSession{URL: url}, nil
-	}
-	target := req.ExternalSubscriptionID
-	if target == "" {
-		target = req.ExternalCustomerID
-	}
-	if target == "" {
-		target = req.OrgID.String()
-	}
-	return &billing.PortalSession{URL: "https://fake-portal.example/" + target}, nil
 }
 
 // ResolveCheckout implements billing.Provider.

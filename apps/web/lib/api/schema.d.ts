@@ -5739,77 +5739,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/billing/portal": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create billing portal session
-         * @description Creates a customer portal session where the user can manage their subscription, payment methods, and invoices.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Portal request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["createPortalRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["portalResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/billing/subscription": {
         parameters: {
             query?: never;
@@ -5819,7 +5748,7 @@ export interface paths {
         };
         /**
          * Get subscription status
-         * @description Returns the org's active plan, provider, and credit balance.
+         * @description Returns the org's active plan, provider, payment-method snapshot, and any pending plan change.
          */
         get: {
             parameters: {
@@ -13113,9 +13042,6 @@ export interface components {
         createOrgRequest: {
             name?: string;
         };
-        createPortalRequest: {
-            provider?: string;
-        };
         createRAGSourceRequest: {
             access_type?: string;
             config?: components["schemas"]["JSON"];
@@ -13582,12 +13508,8 @@ export interface components {
             name?: string;
             price_cents?: number;
             provider?: string;
-            provider_plan_id?: string;
             slug?: string;
             welcome_credits?: number;
-        };
-        portalResponse: {
-            portal_url?: string;
         };
         previewChangeRequest: {
             plan_slug?: string;
