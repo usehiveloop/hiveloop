@@ -24,7 +24,7 @@ interface AddWebsiteDialogProps {
 }
 
 const DEFAULT_MAX_PAGES = 500
-const PAGE_PRICE_CREDITS = 2
+const PAGE_PRICE_CREDITS = 1
 
 export function AddWebsiteDialog({ open, onOpenChange }: AddWebsiteDialogProps) {
   const [name, setName] = useState("")

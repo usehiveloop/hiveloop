@@ -31,10 +31,9 @@ var modelRates = map[string]ModelRates{
 }
 
 // WebsitePagePriceCredits is the flat per-page charge for a website
-// crawl. Set conservatively above worst-case observed Spider per-page
-// COGS so we never under-bill on heavy pages. 2 credits = $0.002 user
-// = $0.0005 COGS budget at 75% margin (vs ~$0.0003 observed worst).
-const WebsitePagePriceCredits = 2
+// crawl. 1 credit = $0.001 to the user vs ~$0.0002 average Spider
+// COGS — roughly 5× our cost on typical mixed sites.
+const WebsitePagePriceCredits = 1
 
 // TokensToCredits converts an LLM call's input/output token counts into the
 // number of credits the org's ledger should be debited.
