@@ -52,14 +52,18 @@ supervise() {
   local pidf="$RUN_DIR/$name.pid"
   local supf="$RUN_DIR/$name.supervisor.pid"
 
-  ( while true; do
+  ( # The parent script runs `set -euo pipefail`. Inside the supervisor we
+    # WANT non-zero waits (SIGKILL → 137, panic → 1, etc.) so the loop can
+    # restart — disable -e so they don't kill the subshell instead.
+    set +e
+    while true; do
       "$@" >> "$logf" 2>&1 &
-      local child=$!
+      child=$!
       echo "$child" > "$pidf"
       wait "$child"
-      local ec=$?
+      ec=$?
       # 143 = SIGTERM (graceful shutdown initiated by local-down). Exit silently.
-      if [ $ec -eq 143 ] || [ $ec -eq 130 ]; then
+      if [ "$ec" = 143 ] || [ "$ec" = 130 ]; then
         rm -f "$pidf"
         exit 0
       fi
