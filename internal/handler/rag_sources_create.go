@@ -127,7 +127,9 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RAGSourceHandler) dispatchInitialIngest(src *ragmodel.RAGSource) {
-	if src.KindValue != ragmodel.RAGSourceKindIntegration {
+	switch src.KindValue {
+	case ragmodel.RAGSourceKindIntegration, ragmodel.RAGSourceKindWebsite:
+	default:
 		return
 	}
 	task, err := ragtasks.NewIngestTask(ragtasks.IngestPayload{RAGSourceID: src.ID})

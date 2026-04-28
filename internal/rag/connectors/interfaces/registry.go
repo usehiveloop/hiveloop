@@ -7,22 +7,26 @@ import (
 	"sync"
 
 	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehiveloop/hiveloop/internal/spider"
 )
 
+// BuildDeps carries shared clients a connector may need at construction.
+// Add a field here when a new connector arrives with new infra needs;
+// keeps Factory's signature stable.
+type BuildDeps struct {
+	Nango  *nango.Client
+	Spider *spider.Client
+}
+
 // Factory constructs a Connector instance bound to a specific Source
-// (a RAGSource row) and a shared Nango client. Each connector package
-// (e.g. github in Tranche 3D) exports one Factory and registers it in
-// the factory registry below via Register in its init() function.
+// (a RAGSource row) and a set of shared infra deps. Each connector
+// package exports one Factory and registers it in the factory registry
+// below via Register in its init() function.
 //
 // The returned Connector may additionally satisfy
 // CheckpointedConnector[T], PermSyncConnector, and/or SlimConnector —
 // callers type-assert for the capabilities they need.
-//
-// DEVIATION: the brief specifies `*ragmodel.RAGSource` for the src
-// parameter. See connector.go's Source interface comment for the
-// rationale — we use the local Source interface to keep this tranche
-// independent of Tranche 3A's concrete struct.
-type Factory func(src Source, nango *nango.Client) (Connector, error)
+type Factory func(src Source, deps BuildDeps) (Connector, error)
 
 // ErrUnknownKind is returned from Lookup when no factory is registered
 // for the requested kind. Callers can distinguish "no such connector"
