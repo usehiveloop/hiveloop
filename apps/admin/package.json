@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "license": "O'Saasy",
+  "packageManager": "pnpm@10.18.2",
   "scripts": {
     "dev": "next dev --turbopack -p 30113",
     "build": "next build",
