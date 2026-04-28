@@ -11540,6 +11540,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/uploads/sign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign upload URL
+         * @description Returns a presigned URL the client can PUT to for uploading public assets (avatars, org logos, etc).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Upload metadata */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["signUploadRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["signUploadResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unprocessable Entity */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/usage": {
         parameters: {
             query?: never;
@@ -13291,6 +13371,24 @@ export interface components {
         setupResponse: {
             env_var_keys?: string[];
             setup_commands?: string[];
+        };
+        signUploadRequest: {
+            asset_type?: string;
+            content_type?: string;
+            filename?: string;
+            org_id?: string;
+            size_bytes?: number;
+        };
+        signUploadResponse: {
+            expires_at?: string;
+            key?: string;
+            max_size_bytes?: number;
+            public_url?: string;
+            required_headers?: {
+                [key: string]: string;
+            };
+            upload_method?: string;
+            upload_url?: string;
         };
         skillDetailResponse: {
             bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
