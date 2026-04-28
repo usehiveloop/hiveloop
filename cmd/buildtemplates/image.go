@@ -34,13 +34,6 @@ const goVersion = "1.24.2"
 
 const astGrepVersion = "0.42.1"
 
-// fakeNangoVersion is the pinned release of cmd/fake-nango baked into
-// the dev-box image. Cut a new GitHub release of the binary when this
-// changes — see scripts/release-fake-nango.sh.
-const fakeNangoVersion = "0.1.0"
-
-const fakeNangoReleasesURL = "https://github.com/usehiveloop/hiveloop/releases/download"
-
 // devToolPackages are CLI tools and server binaries that ship dormant in the
 // dev-box image. None of these start daemons at boot.
 var devToolPackages = []string{
@@ -199,26 +192,12 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 			`ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh`,
 	)
 
-	image = installFakeNango(image, fakeNangoVersion)
-
 	image = image.Workdir(daytonaHome)
 	image = image.Entrypoint([]string{"/bin/sh", "-c",
 		"mkdir -p /home/daytona/.bridge && " +
 			"exec /usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
 
 	return image
-}
-
-// installFakeNango drops the fake Nango binary at /usr/local/bin/fake-nango.
-// Bridge does not start it automatically — the agent (or test harness) runs
-// `fake-nango -addr :3004` when a sandbox needs to override real Nango.
-func installFakeNango(image *daytona.DockerImage, version string) *daytona.DockerImage {
-	url := fmt.Sprintf("%s/fake-nango-v%s/fake-nango-v%s-x86_64-unknown-linux-gnu.tar.gz",
-		fakeNangoReleasesURL, version, version)
-	return image.Run(fmt.Sprintf(
-		`curl -fsSL "%s" | tar -xzf - -C /usr/local/bin && chmod +x /usr/local/bin/fake-nango`,
-		url,
-	))
 }
 
 // snapshotName returns the published snapshot name for a flavor + version + size.
