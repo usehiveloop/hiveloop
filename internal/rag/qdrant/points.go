@@ -89,6 +89,12 @@ func (c *Client) Count(ctx context.Context, collection string, filter *qc.Filter
 	return n, nil
 }
 
+func (c *Client) CountBySourceID(ctx context.Context, collection, sourceID string) (uint64, error) {
+	return c.Count(ctx, collection, &qc.Filter{
+		Must: []*qc.Condition{qc.NewMatchKeyword("rag_source_id", sourceID)},
+	})
+}
+
 // Stable UUID-shaped string from (org_id, source_id, doc_id). Re-ingesting the
 // same doc under the same source upserts in place; a doc shared by two sources
 // gets two points.
