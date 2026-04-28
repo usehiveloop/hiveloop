@@ -17,34 +17,6 @@ type Plan = components["schemas"]["planDTO"]
 
 const DEFAULT_PROVIDER = "paystack"
 
-const PLAN_FEATURES: Record<string, string[]> = {
-  free: [
-    "1,000 welcome credits (one-time)",
-    "Up to 3 agents",
-    "Community support",
-  ],
-  starter: [
-    "9,000 credits every month",
-    "Unlimited agents",
-    "Webhook & cron triggers",
-    "Email support",
-  ],
-  pro: [
-    "39,000 credits every month",
-    "Everything in Starter",
-    "Custom sandbox templates",
-    "Custom preview domains",
-    "Priority support",
-  ],
-  business: [
-    "99,000 credits every month",
-    "Everything in Pro",
-    "SSO (SAML)",
-    "99.9% uptime SLA",
-    "Dedicated support",
-  ],
-}
-
 function formatMoney(minor: number, currency: string) {
   const value = minor / 100
   try {
@@ -227,65 +199,70 @@ export default function Page() {
             {plans.map((plan) => {
               const active = plan.slug === currentSlug
               const isFree = (plan.price_cents ?? 0) === 0
-              const features = (plan.slug && PLAN_FEATURES[plan.slug]) || []
+              const features = plan.features ?? []
               return (
-                <li
-                  key={plan.slug}
-                  className={
-                    "flex flex-col gap-3 rounded-lg border px-3.5 py-3 " +
-                    (active
-                      ? "border-primary/40 bg-primary/5"
-                      : "border-border/60")
-                  }
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[13px] font-medium">{plan.name}</p>
-                        {active ? (
-                          <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400">
-                            <HugeiconsIcon icon={Tick02Icon} size={10} />
-                            Current
-                          </span>
-                        ) : null}
+                <li key={plan.slug}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      /* no-op for now */
+                    }}
+                    className={
+                      "flex w-full cursor-pointer flex-col gap-3 rounded-lg border px-3.5 py-3 text-left transition-colors " +
+                      (active
+                        ? "border-primary/40 bg-primary/5"
+                        : "border-border/60 hover:border-primary")
+                    }
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-[13px] font-medium">{plan.name}</p>
+                          {active ? (
+                            <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400">
+                              <HugeiconsIcon icon={Tick02Icon} size={10} />
+                              Current
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-0.5 text-[12px] text-muted-foreground">
+                          {(plan.monthly_credits ?? 0).toLocaleString("en-US")}{" "}
+                          credits / month
+                          {(plan.welcome_credits ?? 0) > 0
+                            ? ` · ${(plan.welcome_credits ?? 0).toLocaleString(
+                                "en-US",
+                              )} welcome`
+                            : ""}
+                        </p>
                       </div>
-                      <p className="mt-0.5 text-[12px] text-muted-foreground">
-                        {(plan.monthly_credits ?? 0).toLocaleString("en-US")}{" "}
-                        credits / month
-                        {(plan.welcome_credits ?? 0) > 0
-                          ? ` · ${(plan.welcome_credits ?? 0).toLocaleString(
-                              "en-US",
-                            )} welcome`
-                          : ""}
-                      </p>
+                      <span className="shrink-0 font-mono text-[13px] tabular-nums">
+                        {isFree
+                          ? "Free"
+                          : formatMoney(
+                              plan.price_cents ?? 0,
+                              plan.currency ?? "USD",
+                            )}
+                      </span>
                     </div>
-                    <span className="shrink-0 font-mono text-[13px] tabular-nums">
-                      {isFree
-                        ? "Free"
-                        : formatMoney(
-                            plan.price_cents ?? 0,
-                            plan.currency ?? "USD",
-                          )}
-                    </span>
-                  </div>
 
-                  {features.length > 0 ? (
-                    <ul className="flex flex-col gap-1.5">
-                      {features.map((feature) => (
-                        <li
-                          key={feature}
-                          className="flex items-center gap-2 text-[12px] text-muted-foreground"
-                        >
-                          <HugeiconsIcon
-                            icon={Tick02Icon}
-                            size={12}
-                            className="shrink-0 text-emerald-500"
-                          />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
+                    {features.length > 0 ? (
+                      <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+                        {features.map((feature) => (
+                          <li
+                            key={feature}
+                            className="flex items-center gap-2 text-[12px] text-muted-foreground"
+                          >
+                            <HugeiconsIcon
+                              icon={Tick02Icon}
+                              size={12}
+                              className="shrink-0 text-emerald-500"
+                            />
+                            <span className="truncate">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </button>
                 </li>
               )
             })}
