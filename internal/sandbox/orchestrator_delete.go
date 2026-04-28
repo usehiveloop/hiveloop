@@ -69,10 +69,6 @@ func (o *Orchestrator) ArchiveSandbox(ctx context.Context, sb *model.Sandbox) er
 	return nil
 }
 
-// Sandbox is gone from the upstream provider. Drop the local row so the FK
-// CASCADE on agent_conversations / router_conversations sweeps any
-// references. Returns ErrSandboxNotFound so callers know the row no longer
-// exists and shouldn't try to update it.
 func (o *Orchestrator) purgeMissingSandbox(sb *model.Sandbox) error {
 	slog.Info("sandbox missing upstream, purging local row",
 		"sandbox_id", sb.ID, "external_id", sb.ExternalID)
