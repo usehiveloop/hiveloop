@@ -6102,6 +6102,82 @@
         }
       }
     },
+    "/v1/billing/subscription/init-upgrade": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "billing"
+        ],
+        "summary": "Initialise a Paystack transaction for an upgrade quote",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/initUpgradeRequest"
+              }
+            }
+          },
+          "description": "Upgrade quote id",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/initUpgradeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/billing/subscription/preview-change": {
       "post": {
         "security": [
@@ -15706,6 +15782,31 @@
             "$ref": "#/components/schemas/NangoConfig"
           },
           "provider": {
+            "type": "string"
+          }
+        }
+      },
+      "initUpgradeRequest": {
+        "type": "object",
+        "properties": {
+          "quote_id": {
+            "type": "string"
+          }
+        }
+      },
+      "initUpgradeResponse": {
+        "type": "object",
+        "properties": {
+          "access_code": {
+            "type": "string"
+          },
+          "amount_minor": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "reference": {
             "type": "string"
           }
         }
