@@ -1,14 +1,15 @@
 "use client"
 
-import { createContext, useContext, useState, useRef, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { createContext, useContext, useState, useCallback } from "react"
 import { useForm, type UseFormReturn } from "react-hook-form"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
-import { scratchSteps, marketplaceSteps } from "./types"
-import type { CreationMode, Step, SkillPreview, SubagentPreview, TriggerConfig } from "./types"
+import type { components } from "@/lib/api/schema"
+import type { SkillPreview, SubagentPreview, TriggerConfig } from "./types"
+
+type Agent = components["schemas"]["agentResponse"]
 
 type PermissionLevel = "allow" | "deny" | "require_approval"
 
@@ -19,43 +20,33 @@ export interface CreateAgentFormValues {
   credentialId: string
   sandboxType: "shared" | "dedicated"
   systemPrompt: string
-  providerPrompts: Record<string, string>
   instructions: string
-  judgeKeyId: string
-  judgeModel: string
-  selectedMarketplaceAgent: string
   permissions: Record<string, PermissionLevel>
   sharedMemory: boolean
-  team: string
   category: string
+  avatarUrl: string
 }
 
+type Mode = "create" | "edit"
+
 interface CreateAgentContextValue {
+  mode: Mode
+  agentId: string | null
   form: UseFormReturn<CreateAgentFormValues>
-  step: Step
-  mode: CreationMode | null
-  direction: React.MutableRefObject<1 | -1>
   selectedIntegrations: Set<string>
   selectedActions: Record<string, Set<string>>
   selectedSkills: Map<string, SkillPreview>
   selectedSubagents: Map<string, SubagentPreview>
   triggers: TriggerConfig[]
   isSubmitting: boolean
-  setMode: (mode: CreationMode) => void
-  goTo: (step: Step) => void
-  toggleIntegration: (connectionId: string) => void
-  toggleAction: (connectionId: string, actionKey: string) => void
   setSelectedIntegrations: React.Dispatch<React.SetStateAction<Set<string>>>
   setSelectedActions: React.Dispatch<React.SetStateAction<Record<string, Set<string>>>>
   toggleSkill: (skill: SkillPreview) => void
-  clearSkills: () => void
   toggleSubagent: (subagent: SubagentPreview) => void
-  clearSubagents: () => void
   addTrigger: (trigger: TriggerConfig) => void
   removeTrigger: (index: number) => void
   updateTrigger: (index: number, newTriggers: TriggerConfig[]) => void
-  handleCreate: () => void
-  reset: () => void
+  handleSubmit: () => void
 }
 
 const CreateAgentContext = createContext<CreateAgentContextValue | null>(null)
@@ -69,89 +60,131 @@ export function useCreateAgent() {
 interface CreateAgentProviderProps {
   children: React.ReactNode
   onClose: () => void
-  initialMode?: CreationMode
+  agent?: Agent | null
 }
 
-export function CreateAgentProvider({ children, onClose, initialMode }: CreateAgentProviderProps) {
-  const router = useRouter()
-  const queryClient = useQueryClient()
-  const createAgent = $api.useMutation("post", "/v1/agents")
-
-  const form = useForm<CreateAgentFormValues>({
-    defaultValues: {
+function deriveFormValues(agent: Agent | null | undefined): CreateAgentFormValues {
+  if (!agent) {
+    return {
       name: "",
       description: "",
       model: "",
       credentialId: "",
       sandboxType: "shared",
       systemPrompt: "",
-      providerPrompts: {},
       instructions: "",
-      judgeKeyId: "",
-      judgeModel: "",
-      selectedMarketplaceAgent: "",
       permissions: {},
       sharedMemory: false,
-      team: "",
       category: "",
-    },
+      avatarUrl: "",
+    }
+  }
+  const rawPermissions = (agent.permissions ?? {}) as Record<string, string>
+  const permissions: Record<string, PermissionLevel> = {}
+  for (const [key, value] of Object.entries(rawPermissions)) {
+    if (value === "allow" || value === "deny" || value === "require_approval") {
+      permissions[key] = value
+    }
+  }
+  return {
+    name: agent.name ?? "",
+    description: agent.description ?? "",
+    model: agent.model ?? "",
+    credentialId: agent.credential_id ?? "",
+    sandboxType: "shared",
+    systemPrompt: agent.system_prompt ?? "",
+    instructions: agent.instructions ?? "",
+    permissions,
+    sharedMemory: agent.shared_memory ?? false,
+    category: agent.category ?? "",
+    avatarUrl: agent.avatar_url ?? "",
+  }
+}
+
+function deriveIntegrations(agent: Agent | null | undefined): {
+  ids: Set<string>
+  actions: Record<string, Set<string>>
+} {
+  const ids = new Set<string>()
+  const actions: Record<string, Set<string>> = {}
+  const raw = (agent?.integrations ?? {}) as Record<string, unknown>
+  for (const [connectionId, value] of Object.entries(raw)) {
+    ids.add(connectionId)
+    const cfg = value as { actions?: unknown } | undefined
+    actions[connectionId] = new Set(
+      Array.isArray(cfg?.actions) ? (cfg.actions as string[]) : [],
+    )
+  }
+  return { ids, actions }
+}
+
+function deriveTriggers(agent: Agent | null | undefined): TriggerConfig[] {
+  const list = agent?.triggers ?? []
+  return list.map((trigger) => ({
+    triggerType: ((trigger.trigger_type as TriggerConfig["triggerType"]) || "webhook"),
+    connectionId: trigger.connection_id ?? "",
+    connectionName: trigger.provider ?? "",
+    provider: trigger.provider ?? "",
+    triggerKeys: trigger.trigger_keys ?? [],
+    triggerDisplayNames: trigger.trigger_keys ?? [],
+    conditions: (trigger.conditions as TriggerConfig["conditions"]) ?? null,
+    cronSchedule: trigger.cron_schedule || undefined,
+    instructions: trigger.instructions || undefined,
+  }))
+}
+
+function deriveSkills(agent: Agent | null | undefined): Map<string, SkillPreview> {
+  const out = new Map<string, SkillPreview>()
+  for (const skill of agent?.attached_skills ?? []) {
+    if (!skill.id) continue
+    out.set(skill.id, {
+      id: skill.id,
+      slug: "",
+      name: skill.name ?? "",
+      description: skill.description ?? "",
+      sourceType: skill.source_type === "git" ? "git" : "inline",
+      scope: "org",
+      tags: [],
+      installCount: 0,
+      featured: false,
+    })
+  }
+  return out
+}
+
+function deriveSubagents(agent: Agent | null | undefined): Map<string, SubagentPreview> {
+  const out = new Map<string, SubagentPreview>()
+  for (const sub of agent?.subagents ?? []) {
+    if (!sub.id) continue
+    out.set(sub.id, {
+      id: sub.id,
+      name: sub.name ?? "",
+      description: sub.description ?? "",
+      model: sub.model ?? "",
+      scope: "org",
+    })
+  }
+  return out
+}
+
+export function CreateAgentProvider({ children, onClose, agent }: CreateAgentProviderProps) {
+  const queryClient = useQueryClient()
+  const createAgent = $api.useMutation("post", "/v1/agents")
+  const updateAgent = $api.useMutation("put", "/v1/agents/{id}")
+
+  const mode: Mode = agent?.id ? "edit" : "create"
+  const agentId = agent?.id ?? null
+
+  const form = useForm<CreateAgentFormValues>({
+    defaultValues: deriveFormValues(agent),
   })
 
-  const initialStep: Step = initialMode === "marketplace" ? "marketplace-browse" : initialMode ? "sandbox" : "mode"
-  const [step, setStep] = useState<Step>(initialStep)
-  const [mode, setModeState] = useState<CreationMode | null>(initialMode ?? null)
-  const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(new Set())
-  const [selectedActions, setSelectedActions] = useState<Record<string, Set<string>>>({})
-  const [selectedSkills, setSelectedSkills] = useState<Map<string, SkillPreview>>(new Map())
-  const [selectedSubagents, setSelectedSubagents] = useState<Map<string, SubagentPreview>>(new Map())
-  const [triggers, setTriggers] = useState<TriggerConfig[]>([])
-  const direction = useRef<1 | -1>(1)
-
-  const currentSteps = mode === "marketplace" ? marketplaceSteps : scratchSteps
-
-  const goTo = useCallback((next: Step) => {
-    direction.current = currentSteps.indexOf(next) > currentSteps.indexOf(step) ? 1 : -1
-    setStep(next)
-  }, [currentSteps, step])
-
-  const setMode = useCallback((newMode: CreationMode) => {
-    setModeState(newMode)
-    direction.current = 1
-    if (newMode === "marketplace") {
-      setStep("marketplace-browse")
-    } else {
-      setStep("sandbox")
-    }
-  }, [])
-
-  const toggleIntegration = useCallback((connectionId: string) => {
-    setSelectedIntegrations((prev) => {
-      const next = new Set(prev)
-      if (next.has(connectionId)) {
-        next.delete(connectionId)
-        setSelectedActions((prevActions) => {
-          const nextActions = { ...prevActions }
-          delete nextActions[connectionId]
-          return nextActions
-        })
-      } else {
-        next.add(connectionId)
-      }
-      return next
-    })
-  }, [])
-
-  const toggleAction = useCallback((connectionId: string, actionKey: string) => {
-    setSelectedActions((prev) => {
-      const current = new Set(prev[connectionId] ?? [])
-      if (current.has(actionKey)) {
-        current.delete(actionKey)
-      } else {
-        current.add(actionKey)
-      }
-      return { ...prev, [connectionId]: current }
-    })
-  }, [])
+  const initialIntegrations = deriveIntegrations(agent)
+  const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(initialIntegrations.ids)
+  const [selectedActions, setSelectedActions] = useState<Record<string, Set<string>>>(initialIntegrations.actions)
+  const [selectedSkills, setSelectedSkills] = useState<Map<string, SkillPreview>>(() => deriveSkills(agent))
+  const [selectedSubagents, setSelectedSubagents] = useState<Map<string, SubagentPreview>>(() => deriveSubagents(agent))
+  const [triggers, setTriggers] = useState<TriggerConfig[]>(() => deriveTriggers(agent))
 
   const toggleSkill = useCallback((skill: SkillPreview) => {
     setSelectedSkills((prev) => {
@@ -165,10 +198,6 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
     })
   }, [])
 
-  const clearSkills = useCallback(() => {
-    setSelectedSkills(new Map())
-  }, [])
-
   const toggleSubagent = useCallback((subagent: SubagentPreview) => {
     setSelectedSubagents((prev) => {
       const next = new Map(prev)
@@ -179,10 +208,6 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       }
       return next
     })
-  }, [])
-
-  const clearSubagents = useCallback(() => {
-    setSelectedSubagents(new Map())
   }, [])
 
   const addTrigger = useCallback((trigger: TriggerConfig) => {
@@ -201,20 +226,9 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
     })
   }, [])
 
-  const reset = useCallback(() => {
-    setStep("mode")
-    setModeState(null)
-    setSelectedIntegrations(new Set())
-    setSelectedActions({})
-    setSelectedSkills(new Map())
-    setSelectedSubagents(new Map())
-    setTriggers([])
-    form.reset()
-  }, [form])
-
-  const handleCreate = useCallback(() => {
+  const handleSubmit = useCallback(() => {
     const values = form.getValues()
-    if (!values.credentialId || !values.model || !values.sandboxType) return
+    if (!values.name.trim()) return
 
     const integrationsPayload: Record<string, { actions: string[] }> = {}
     for (const connectionId of selectedIntegrations) {
@@ -224,57 +238,58 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       }
     }
 
-    const providerPromptsPayload: Record<string, { system_prompt: string }> = {}
-    for (const [provider, prompt] of Object.entries(values.providerPrompts)) {
-      if (prompt.trim()) {
-        providerPromptsPayload[provider] = { system_prompt: prompt }
+    const triggersPayload = triggers.map((trigger) => {
+      const base: Record<string, unknown> = { trigger_type: trigger.triggerType }
+      if (trigger.instructions) base.instructions = trigger.instructions
+      if (trigger.triggerType === "webhook") {
+        base.connection_id = trigger.connectionId
+        base.trigger_keys = trigger.triggerKeys
+        base.conditions = trigger.conditions
+      } else if (trigger.triggerType === "cron") {
+        base.cron_schedule = trigger.cronSchedule
+      } else if (trigger.triggerType === "http") {
+        if (trigger.secretKey) base.secret_key = trigger.secretKey
       }
-    }
+      return base
+    })
 
-    const fallbackPrompt =
-      Object.values(values.providerPrompts).find((prompt) => prompt.trim()) ?? ""
-    const resolvedSystemPrompt = values.systemPrompt.trim() || fallbackPrompt
-
-    const body: Record<string, unknown> = {
+    const sharedBody: Record<string, unknown> = {
       name: values.name.trim(),
       description: values.description.trim() || undefined,
-      credential_id: values.credentialId,
-      model: values.model,
-      sandbox_type: values.sandboxType,
-      system_prompt: resolvedSystemPrompt,
-      provider_prompts: providerPromptsPayload,
+      credential_id: values.credentialId || undefined,
+      model: values.model || undefined,
+      system_prompt: values.systemPrompt.trim(),
       instructions: values.instructions || undefined,
       integrations: integrationsPayload,
+      triggers: triggersPayload,
+      skill_ids: Array.from(selectedSkills.keys()),
+      subagent_ids: Array.from(selectedSubagents.keys()),
+      permissions: values.permissions,
+      shared_memory: values.sharedMemory,
+      category: values.category.trim() || undefined,
+      avatar_url: values.avatarUrl || undefined,
     }
 
-    if (selectedSkills.size > 0) {
-      body.skill_ids = Array.from(selectedSkills.keys())
-    }
-
-    if (selectedSubagents.size > 0) {
-      body.subagent_ids = Array.from(selectedSubagents.keys())
-    }
-
-    if (triggers.length > 0) {
-      body.triggers = triggers.map((trigger) => ({
-        connection_id: trigger.connectionId,
-        trigger_keys: trigger.triggerKeys,
-        conditions: trigger.conditions,
-      }))
-    }
-
-    if (Object.keys(values.permissions).length > 0) {
-      body.permissions = values.permissions
-    }
-
-    body.shared_memory = values.sharedMemory
-
-    if (values.team.trim()) {
-      body.team = values.team.trim()
+    if (mode === "edit" && agentId) {
+      updateAgent.mutate(
+        { params: { path: { id: agentId } }, body: sharedBody as never },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["get", "/v1/agents"] })
+            queryClient.invalidateQueries({ queryKey: ["get", "/v1/agents/{id}", { params: { path: { id: agentId } } }] })
+            toast.success(`Agent "${values.name}" updated`)
+            onClose()
+          },
+          onError: (error) => {
+            toast.error(extractErrorMessage(error, "Failed to update agent"))
+          },
+        },
+      )
+      return
     }
 
     createAgent.mutate(
-      { body: body as never },
+      { body: sharedBody as never },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["get", "/v1/agents"] })
@@ -286,36 +301,41 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         },
       },
     )
-  }, [form, mode, selectedIntegrations, selectedActions, selectedSkills, selectedSubagents, triggers, createAgent, queryClient, onClose, router])
+  }, [
+    mode,
+    agentId,
+    form,
+    selectedIntegrations,
+    selectedActions,
+    selectedSkills,
+    selectedSubagents,
+    triggers,
+    createAgent,
+    updateAgent,
+    queryClient,
+    onClose,
+  ])
 
   return (
     <CreateAgentContext.Provider
       value={{
-        form,
-        step,
         mode,
-        direction,
+        agentId,
+        form,
         selectedIntegrations,
         selectedActions,
         selectedSkills,
         selectedSubagents,
         triggers,
-        isSubmitting: createAgent.isPending,
-        setMode,
-        goTo,
-        toggleIntegration,
-        toggleAction,
+        isSubmitting: mode === "edit" ? updateAgent.isPending : createAgent.isPending,
         setSelectedIntegrations,
         setSelectedActions,
         toggleSkill,
-        clearSkills,
         toggleSubagent,
-        clearSubagents,
         addTrigger,
         removeTrigger,
         updateTrigger,
-        handleCreate,
-        reset,
+        handleSubmit,
       }}
     >
       {children}

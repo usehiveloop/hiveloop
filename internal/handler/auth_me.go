@@ -7,6 +7,15 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+// Me handles GET /auth/me.
+// @Summary Get current user
+// @Description Returns the current user and their organization memberships.
+// @Tags auth
+// @Produce json
+// @Success 200 {object} meResponse
+// @Failure 401 {object} errorResponse
+// @Security BearerAuth
+// @Router /auth/me [get]
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.AuthClaimsFromContext(r.Context())
 	if !ok {

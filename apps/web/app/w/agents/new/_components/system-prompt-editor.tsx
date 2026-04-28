@@ -18,7 +18,7 @@ const CodeMirror = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-72 w-full animate-pulse rounded-xl border border-input bg-muted/30" />
+      <div className="h-[480px] w-full animate-pulse rounded-xl border border-input bg-muted/30" />
     ),
   }
 )
@@ -78,7 +78,7 @@ export function SystemPromptEditor({
             searchKeymap: false,
           }}
           placeholder={placeholder}
-          height="288px"
+          height="480px"
         />
       </div>
 

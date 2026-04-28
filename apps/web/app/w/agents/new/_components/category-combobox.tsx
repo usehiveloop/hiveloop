@@ -13,52 +13,45 @@ import {
   CommandList,
 } from "@/components/ui/command"
 
-export const AGENT_CATEGORIES = [
-  "Engineering",
-  "Product",
-  "Design",
-  "Marketing",
-  "Sales",
-  "Customer Support",
-  "Customer Success",
-  "Operations",
-  "People & HR",
-  "Finance",
-  "Legal",
-  "Data & Analytics",
-  "Security",
-  "IT",
-  "Research",
-] as const
+export interface CategoryOption {
+  id: string
+  name: string
+  description?: string
+}
 
 interface CategoryComboboxProps {
+  categories: CategoryOption[]
   value?: string
-  onSelect?: (category: string) => void
+  onSelect?: (categoryId: string) => void
+  loading?: boolean
   placeholder?: string
 }
 
 export function CategoryCombobox({
+  categories,
   value,
   onSelect,
+  loading,
   placeholder = "Select a category…",
 }: CategoryComboboxProps) {
   const [open, setOpen] = React.useState(false)
-  const selected = value ?? ""
+  const selected = categories.find((c) => c.id === value)
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={loading ? undefined : setOpen}>
       <PopoverTrigger
         render={
           <button
             type="button"
-            className="flex h-9 w-full items-center justify-between rounded-3xl border border-transparent bg-input/50 px-3 text-sm transition-colors hover:bg-input/70 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+            disabled={loading}
+            className="flex h-9 w-full items-center justify-between rounded-3xl border border-transparent bg-input/50 px-3 text-sm transition-colors hover:bg-input/70 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <span
               className={
                 selected ? "text-foreground" : "text-muted-foreground"
               }
             >
-              {selected || placeholder}
+              {loading ? "Loading categories…" : selected?.name ?? placeholder}
             </span>
             <HugeiconsIcon
               icon={ArrowDown01Icon}
@@ -77,22 +70,29 @@ export function CategoryCombobox({
           <CommandList>
             <CommandEmpty>No categories found.</CommandEmpty>
             <CommandGroup>
-              {AGENT_CATEGORIES.map((category) => (
+              {categories.map((category) => (
                 <CommandItem
-                  key={category}
-                  value={category}
+                  key={category.id}
+                  value={`${category.name} ${category.description ?? ""}`}
                   onSelect={() => {
-                    onSelect?.(category)
+                    onSelect?.(category.id)
                     setOpen(false)
                   }}
                   className="justify-between"
                 >
-                  <span>{category}</span>
-                  {selected === category ? (
+                  <div className="min-w-0">
+                    <p className="truncate">{category.name}</p>
+                    {category.description ? (
+                      <p className="truncate text-[11px] text-muted-foreground">
+                        {category.description}
+                      </p>
+                    ) : null}
+                  </div>
+                  {selected?.id === category.id ? (
                     <HugeiconsIcon
                       icon={Tick02Icon}
                       size={14}
-                      className="text-primary"
+                      className="shrink-0 text-primary"
                     />
                   ) : null}
                 </CommandItem>

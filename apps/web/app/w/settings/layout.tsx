@@ -4,9 +4,16 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
+  ArtificialIntelligence01Icon,
+  BookOpen01Icon,
+  ContainerIcon,
   CreditCardIcon,
+  Key01Icon,
+  Notification01Icon,
   Plug01Icon,
   Settings01Icon,
+  ShieldKeyIcon,
+  UserCircleIcon,
   UserGroupIcon,
 } from "@hugeicons/core-free-icons"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -15,26 +22,27 @@ const SECTIONS = [
   {
     label: "Workspace",
     items: [
-      {
-        title: "General",
-        href: "/w/settings/general",
-        icon: Settings01Icon,
-      },
-      {
-        title: "Members",
-        href: "/w/settings/members",
-        icon: UserGroupIcon,
-      },
-      {
-        title: "Connections",
-        href: "/w/settings/connections",
-        icon: Plug01Icon,
-      },
-      {
-        title: "Billing",
-        href: "/w/settings/billing",
-        icon: CreditCardIcon,
-      },
+      { title: "General", href: "/w/settings/general", icon: Settings01Icon },
+      { title: "Members", href: "/w/settings/members", icon: UserGroupIcon },
+      { title: "Connections", href: "/w/settings/connections", icon: Plug01Icon },
+      { title: "Billing", href: "/w/settings/billing", icon: CreditCardIcon },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { title: "Profile", href: "/w/settings/profile", icon: UserCircleIcon },
+      { title: "Notifications", href: "/w/settings/notifications", icon: Notification01Icon },
+      { title: "Security", href: "/w/settings/security", icon: ShieldKeyIcon },
+    ],
+  },
+  {
+    label: "Developer",
+    items: [
+      { title: "LLM keys", href: "/w/settings/llm-keys", icon: ArtificialIntelligence01Icon },
+      { title: "API keys", href: "/w/settings/api-keys", icon: Key01Icon },
+      { title: "Skills", href: "/w/settings/skills", icon: BookOpen01Icon },
+      { title: "Sandboxes", href: "/w/settings/sandboxes", icon: ContainerIcon },
     ],
   },
 ]
@@ -49,7 +57,7 @@ export default function SettingsLayout({
 
   return (
     <div className="flex min-h-0 flex-1">
-      <aside className="sticky top-0 hidden h-svh w-56 shrink-0 self-start overflow-y-auto border-r border-border/60 bg-muted/20 md:block">
+      <aside className="sticky top-0 hidden h-svh w-64 shrink-0 self-start overflow-y-auto border-r border-border/60 bg-muted/20 md:block">
         <div className="px-4 pt-5 pb-3">
           <h2 className="text-[13px] font-medium text-foreground">Settings</h2>
           <p className="text-[11px] text-muted-foreground">

@@ -809,7 +809,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Start with 150 free credits */}
+      {/* Start with 1,000 free credits */}
       <section className="w-full px-4 sm:px-6 lg:px-0">
         <div className="w-full max-w-424 mx-auto relative pb-20 sm:pb-28 lg:pb-36">
           <div
@@ -842,7 +842,7 @@ export default function Home() {
             <h2 className="font-heading text-[36px] sm:text-[52px] lg:text-[64px] font-bold text-foreground leading-[1.03] -tracking-[1px] sm:-tracking-[1.4px] max-w-3xl">
               Start with{" "}
               <span className="italic font-medium text-primary">
-                150 free credits.
+                1,000 free credits.
               </span>
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl">

@@ -3,6 +3,7 @@ package handler
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -16,9 +17,15 @@ import (
 
 // planFromModel projects an internal Plan row into the public DTO shape.
 func planFromModel(p model.Plan) *planDTO {
+	var features []string
+	if len(p.Features) > 0 && string(p.Features) != "null" {
+		_ = json.Unmarshal(p.Features, &features)
+	}
 	return &planDTO{
 		Slug:           p.Slug,
 		Name:           p.Name,
+		Provider:       p.Provider,
+		Features:       features,
 		MonthlyCredits: p.MonthlyCredits,
 		WelcomeCredits: p.WelcomeCredits,
 		PriceCents:     p.PriceCents,

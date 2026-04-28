@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 
 import {
   DropdownMenu,
@@ -29,6 +30,41 @@ function initial(name?: string) {
   return name?.trim().charAt(0).toUpperCase() || "?"
 }
 
+function OrgAvatar({
+  name,
+  logoUrl,
+  size = 8,
+}: {
+  name?: string
+  logoUrl?: string
+  size?: 6 | 8
+}) {
+  const px = size === 6 ? 24 : 32
+  const sizeClass = size === 6 ? "size-6" : "size-8"
+  const radiusClass = "rounded-md"
+  const fontClass = size === 6 ? "text-[11px]" : "text-sm"
+
+  if (logoUrl) {
+    return (
+      <Image
+        src={logoUrl}
+        alt=""
+        width={px}
+        height={px}
+        sizes={`${px}px`}
+        className={`${sizeClass} ${radiusClass} aspect-square shrink-0 object-cover`}
+      />
+    )
+  }
+  return (
+    <div
+      className={`flex aspect-square ${sizeClass} ${radiusClass} shrink-0 items-center justify-center bg-sidebar-primary font-mono ${fontClass} text-sidebar-primary-foreground`}
+    >
+      {initial(name)}
+    </div>
+  )
+}
+
 export function WorkspaceSwitcher() {
   const { orgs, activeOrg, setActiveOrg } = useAuth()
   const [createOpen, setCreateOpen] = React.useState(false)
@@ -46,9 +82,11 @@ export function WorkspaceSwitcher() {
                 />
               }
             >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary font-mono text-sm text-sidebar-primary-foreground">
-                {initial(activeOrg?.name)}
-              </div>
+              <OrgAvatar
+                name={activeOrg?.name}
+                logoUrl={activeOrg?.logo_url}
+                size={8}
+              />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">
                   {activeOrg?.name ?? "Select workspace"}
@@ -83,9 +121,11 @@ export function WorkspaceSwitcher() {
                       onClick={() => setActiveOrg(org)}
                       className="gap-2 p-2"
                     >
-                      <div className="flex size-6 items-center justify-center rounded-md border font-mono text-[11px] text-muted-foreground">
-                        {initial(org.name)}
-                      </div>
+                      <OrgAvatar
+                        name={org.name}
+                        logoUrl={org.logo_url}
+                        size={6}
+                      />
                       <span className="flex-1 truncate">{org.name}</span>
                       {isActive ? (
                         <HugeiconsIcon
