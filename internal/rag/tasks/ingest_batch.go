@@ -24,7 +24,11 @@ func flushBatch(
 	for i := range docs {
 		contents[i] = renderContent(&docs[i])
 	}
-	vectors, err := deps.Embedder.Embed(ctx, contents)
+	embedInputs := make([]string, len(contents))
+	for i, c := range contents {
+		embedInputs[i] = clampForEmbed(c)
+	}
+	vectors, err := deps.Embedder.Embed(ctx, embedInputs)
 	if err != nil {
 		return fmt.Errorf("ingest: embed (%d docs): %w", len(docs), err)
 	}
@@ -44,6 +48,16 @@ func flushBatch(
 		return fmt.Errorf("ingest: qdrant upsert (%d docs): %w", len(docs), err)
 	}
 	return nil
+}
+
+// ~6k tokens; under the 8192 ceiling shared by most embedders.
+const embedInputCharLimit = 24000
+
+func clampForEmbed(s string) string {
+	if len(s) <= embedInputCharLimit {
+		return s
+	}
+	return s[:embedInputCharLimit]
 }
 
 func renderContent(d *interfaces.Document) string {

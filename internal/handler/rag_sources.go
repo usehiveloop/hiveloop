@@ -63,6 +63,7 @@ type ragLatestAttemptStatus struct {
 	NewDocsIndexed   *int       `json:"new_docs_indexed,omitempty"`
 	TotalDocsIndexed *int       `json:"total_docs_indexed,omitempty"`
 	DocsEstimated    *int       `json:"docs_estimated,omitempty"`
+	ErrorMsg         *string    `json:"error_msg,omitempty"`
 	TimeStarted      *time.Time `json:"time_started,omitempty"`
 	TimeUpdated      time.Time  `json:"time_updated"`
 }
@@ -190,6 +191,7 @@ func toRAGLatestAttemptStatus(a *ragmodel.RAGIndexAttempt) *ragLatestAttemptStat
 		NewDocsIndexed:   a.NewDocsIndexed,
 		TotalDocsIndexed: a.TotalDocsIndexed,
 		DocsEstimated:    a.DocsEstimated,
+		ErrorMsg:         a.ErrorMsg,
 		TimeStarted:      a.TimeStarted,
 		TimeUpdated:      a.TimeUpdated,
 	}

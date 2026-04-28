@@ -106,8 +106,17 @@ func finalizeAttempt(
 	}
 
 	if terminal == ragmodel.IndexingStatusFailed {
-		// A failed attempt does not pause the source; the next scan
-		// tick can pick it up.
+		// First-run failure: flip out of INITIAL_INDEXING so the UI
+		// stops spinning. Successful retries restore ACTIVE below.
+		if src.Status == ragmodel.RAGSourceStatusInitialIndexing {
+			if err := db.WithContext(ctx).
+				Model(&ragmodel.RAGSource{}).
+				Where("id = ?", src.ID).
+				Update("status", ragmodel.RAGSourceStatusError).Error; err != nil {
+				slog.Warn("rag finalize: flip INITIAL_INDEXING → ERROR failed",
+					"source_id", src.ID, "err", err)
+			}
+		}
 		return runErr
 	}
 
@@ -129,7 +138,8 @@ func finalizeAttempt(
 		slog.Warn("rag finalize: count by source failed; leaving total_docs_indexed unchanged",
 			"source_id", src.ID, "err", err)
 	}
-	if src.Status == ragmodel.RAGSourceStatusInitialIndexing && stats.docsBatched > 0 {
+	if (src.Status == ragmodel.RAGSourceStatusInitialIndexing ||
+		src.Status == ragmodel.RAGSourceStatusError) && stats.docsBatched > 0 {
 		srcUpd["status"] = ragmodel.RAGSourceStatusActive
 	}
 	if err := db.WithContext(ctx).
