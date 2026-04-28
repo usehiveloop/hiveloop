@@ -104,7 +104,7 @@ daytona-infra/
 │   └── hosts.yml                    # All 4 servers
 ├── group_vars/
 │   ├── all.yml                      # Shared variables (domains, versions)
-│   ├── control.yml                  # Control plane secrets (vault-encrypt)
+│   ├── control.yml                  # Control plane secrets
 │   └── runners.yml                  # Runner variables
 ├── host_vars/
 │   ├── control.yml                  # Control VPS specific (IP, etc.)
@@ -293,16 +293,16 @@ gatekeeper_port: 5555
 
 ### `group_vars/control.yml`
 
-This file holds secrets. It should be encrypted with `ansible-vault` in production.
+This file holds secrets. Keep it out of version control — it's gitignored.
 
 ```yaml
 ---
 # =============================================================================
-# CONTROL PLANE SECRETS — ENCRYPT WITH ansible-vault
+# CONTROL PLANE SECRETS
 # =============================================================================
 
 # These are PLACEHOLDERS. Run scripts/generate-secrets.sh first,
-# then paste the generated values here (or use ansible-vault).
+# then paste the generated values here.
 
 # Encryption
 encryption_key: "GENERATE_ME"
@@ -367,7 +367,7 @@ gen() { openssl rand -hex "$1"; }
 
 cat > "$SECRETS_DIR/generated-secrets.yml" << EOF
 # Generated at $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-# Copy these values into group_vars/control.yml (or encrypt with ansible-vault)
+# Copy these values into group_vars/control.yml
 
 encryption_key: "$(gen 32)"
 encryption_salt: "$(gen 32)"
@@ -397,7 +397,7 @@ echo "# dex_admin_password_plaintext: \"$DEX_PASS\"  (save this somewhere safe)"
 
 echo ""
 echo "Secrets written to: $SECRETS_DIR/generated-secrets.yml"
-echo "Copy them into group_vars/control.yml and encrypt with: ansible-vault encrypt group_vars/control.yml"
+echo "Copy them into group_vars/control.yml and keep that file out of version control."
 ```
 
 Make it executable. The user runs this BEFORE any Ansible playbook.
@@ -1480,9 +1480,8 @@ Before running anything, the user must:
 3. [ ] Have a Cloudflare account with `ziraloop.com` zone
 4. [ ] Have a Cloudflare API token with DNS:Edit for `ziraloop.com`
 5. [ ] Run `chmod +x scripts/generate-secrets.sh && ./scripts/generate-secrets.sh`
-6. [ ] Copy secrets from `secrets/generated-secrets.yml` into `group_vars/control.yml`
-7. [ ] Optionally encrypt: `ansible-vault encrypt group_vars/control.yml`
-8. [ ] Fill in server IPs in `host_vars/` or pass via `--extra-vars`
+6. [ ] Copy secrets from `secrets/generated-secrets.yml` into `group_vars/control.yml` (keep gitignored)
+7. [ ] Fill in server IPs in `host_vars/` or pass via `--extra-vars`
 9. [ ] Create DNS records:
    - `api.daytona.ziraloop.com` A → control VPS IP
    - `dex.daytona.ziraloop.com` A → control VPS IP
@@ -1506,9 +1505,6 @@ ansible-playbook playbooks/phase2-docker.yml -e ...
 ansible-playbook playbooks/phase3-control-plane.yml -e ...
 ansible-playbook playbooks/phase4-runners.yml -e ...
 ansible-playbook playbooks/phase5-validate.yml -e ...
-
-# With ansible-vault:
-ansible-playbook playbooks/site.yml --ask-vault-pass -e ...
 ```
 
 ---

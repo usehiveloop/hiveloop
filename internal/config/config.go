@@ -7,8 +7,6 @@ import (
 
 	"github.com/caarlos0/env/v11"
 	"github.com/hibiken/asynq"
-
-	"github.com/usehiveloop/hiveloop/internal/crypto"
 )
 
 type Config struct {
@@ -29,18 +27,9 @@ type Config struct {
 	DBSSLMode  string `env:"DB_SSLMODE" envDefault:"disable"`
 
 	// KMS (key wrapping for credential encryption)
-	KMSType   string `env:"KMS_TYPE,required"` // "aead", "awskms", or "vault"
-	KMSKey    string `env:"KMS_KEY"`           // base64-encoded 32-byte key (aead) or AWS KMS key ID/ARN (awskms) or Vault key name (vault)
+	KMSType   string `env:"KMS_TYPE,required"` // "aead" or "awskms"
+	KMSKey    string `env:"KMS_KEY"`           // base64-encoded 32-byte key (aead) or AWS KMS key ID/ARN (awskms)
 	AWSRegion string `env:"AWS_REGION"`        // AWS region for awskms (default: us-east-1)
-
-	// HashiCorp Vault (for KMS_TYPE=vault)
-	VaultAddress   string `env:"VAULT_ADDRESS"`   // Vault server URL (e.g., http://localhost:8200)
-	VaultToken     string `env:"VAULT_TOKEN"`     // Vault authentication token
-	VaultNamespace string `env:"VAULT_NAMESPACE"` // Optional Vault Enterprise namespace
-	VaultMountPath string `env:"VAULT_MOUNT_PATH"` // Transit engine mount path (default: transit)
-	VaultCACert    string `env:"VAULT_CA_CERT"`   // Path to CA certificate (optional, for TLS)
-	VaultClientCert string `env:"VAULT_CLIENT_CERT"` // Path to client certificate (optional, for TLS)
-	VaultClientKey string `env:"VAULT_CLIENT_KEY"`   // Path to client key (optional, for TLS)
 
 	// Redis
 	RedisURL      string        `env:"REDIS_URL"`              // Full URL (e.g. rediss://...), enables TLS automatically
@@ -205,12 +194,10 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parsing config: %w", err)
 	}
 
-	// Enforce a supported KMS type.
-	if cfg.KMSType != "aead" && cfg.KMSType != "awskms" && cfg.KMSType != "vault" {
-		return nil, fmt.Errorf("KMS_TYPE must be 'aead', 'awskms', or 'vault' (got %q)", cfg.KMSType)
+	if cfg.KMSType != "aead" && cfg.KMSType != "awskms" {
+		return nil, fmt.Errorf("KMS_TYPE must be 'aead' or 'awskms' (got %q)", cfg.KMSType)
 	}
 
-	// Require at least one Redis connection method.
 	if cfg.RedisURL == "" && cfg.RedisAddr == "" {
 		return nil, fmt.Errorf("either REDIS_URL or REDIS_ADDR must be set")
 	}
@@ -243,23 +230,5 @@ func (c *Config) AsynqRedisOpt() asynq.RedisConnOpt {
 		Addr:     c.RedisAddr,
 		Password: c.RedisPassword,
 		DB:       c.RedisDB,
-	}
-}
-
-// VaultConfig returns a crypto.VaultConfig populated from the Config.
-// Returns nil if KMS_TYPE is not "vault".
-func (c *Config) VaultConfig() *crypto.VaultConfig {
-	if c.KMSType != "vault" {
-		return nil
-	}
-	return &crypto.VaultConfig{
-		Address:         c.VaultAddress,
-		Token:           c.VaultToken,
-		Namespace:       c.VaultNamespace,
-		MountPath:       c.VaultMountPath,
-		KeyName:         c.KMSKey,
-		CACert:          c.VaultCACert,
-		ClientCert:      c.VaultClientCert,
-		ClientKey:       c.VaultClientKey,
 	}
 }

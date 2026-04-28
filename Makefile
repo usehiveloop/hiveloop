@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-e2e-vault lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys upload-skills test-services-up test-services-down
+.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-proxy test-connect test-integrations test-connections test-setup openapi generate-auth-keys upload-skills test-services-up test-services-down
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -86,30 +86,20 @@ test:
 test-e2e:
 	go test ./e2e/... -v -count=1 -timeout=5m
 
-# Run Vault-specific e2e tests (requires docker-compose with Vault running)
-test-e2e-vault:
-	go test ./e2e/... -v -count=1 -timeout=5m -run "VaultE2E"
-
 # Start services and wait for healthy (no teardown, no tests)
 test-setup:
-	docker compose up -d postgres redis vault
+	docker compose up -d postgres redis
 	@echo "Waiting for services..."
 	@until docker compose exec -T postgres pg_isready -U hiveloop -q 2>/dev/null; do sleep 1; done
 	@echo "  ✓ Postgres"
 	@until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
 	@echo "  ✓ Redis"
-	@until docker compose exec -T vault vault status 2>/dev/null | grep -q "Version"; do sleep 1; done
-	@echo "  ✓ Vault"
-	@echo "  Waiting for Vault Transit key..."
-	@until docker compose exec -T vault vault read transit/keys/hiveloop-key 2>/dev/null | grep -q "type"; do sleep 2; done
-	@echo "  ✓ Vault Transit key ready"
 	@echo ""
 	@echo "  Infrastructure ready. Run tests with:"
 	@echo "    make test-auth"
 	@echo "    make test-nango"
 	@echo "    make test-proxy"
 	@echo "    make test-connect"
-	@echo "    make test-vault"
 
 # --- Targeted test commands (no teardown, assumes stack is running) ---
 
@@ -130,17 +120,13 @@ test-proxy:
 test-connect:
 	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Connect"
 
-# Vault KMS e2e tests
-test-vault:
-	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestVaultE2E"
-
 # Connection + scoped token e2e tests
 test-connections:
 	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Connection|TestE2E_ScopedToken"
 
-# All integration e2e tests (nango + connect + proxy + vault)
+# All integration e2e tests (nango + connect + proxy)
 test-integrations:
-	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Integration|TestE2E_Connect|TestE2E_Proxy|TestE2E_Fireworks|TestVaultE2E"
+	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Integration|TestE2E_Connect|TestE2E_Proxy|TestE2E_Fireworks"
 
 # Run linter
 lint:
@@ -161,46 +147,6 @@ check: vet lint check-file-length test build
 # Start local development stack (infra only, no proxy)
 up:
 	docker compose up -d postgres redis mailpit
-
-# Start local development stack with Vault (infra only, no proxy)
-vault-up:
-	docker compose up -d postgres redis vault mailpit
-
-# Start dev stack with Vault, wait for all services
-vault-dev: vault-up
-	@echo ""
-	@echo "Waiting for services..."
-	@until docker compose exec -T postgres pg_isready -U hiveloop -q 2>/dev/null; do sleep 1; done
-	@echo "  ✓ Postgres"
-	@until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
-	@echo "  ✓ Redis"
-	@until docker compose exec -T vault vault status 2>/dev/null | grep -q "Version"; do sleep 1; done
-	@echo "  ✓ Vault"
-	@until curl -sf http://localhost:8025/livez >/dev/null 2>&1; do sleep 2; done
-	@echo "  ✓ Mailpit"
-	@echo ""
-	@echo "========================================"
-	@echo "  HiveLoop dev stack with Vault is ready"
-	@echo "========================================"
-	@echo ""
-	@echo "  Mailpit UI:       http://localhost:8025"
-	@echo "  Vault UI:         http://localhost:8200"
-	@echo "  Postgres:         localhost:5433"
-	@echo "  Redis:            localhost:6379"
-	@echo ""
-	@echo "  Hosted services:"
-	@echo "    Nango:          https://integrations.dev.hiveloop.com"
-	@echo ""
-	@echo "  Vault credentials:"
-	@echo "    Token: hiveloop-dev-token"
-	@echo "    Key:   hiveloop-key"
-	@echo ""
-	@echo "  Add to your .env for Vault KMS:"
-	@echo "    KMS_TYPE=vault"
-	@echo "    KMS_KEY=hiveloop-key"
-	@echo "    VAULT_ADDRESS=http://localhost:8200"
-	@echo "    VAULT_TOKEN=hiveloop-dev-token"
-	@echo ""
 
 # Start dev infra, wait for healthy, then run server with hot reload (air)
 dev: up
@@ -239,11 +185,7 @@ test-clean-proxy:
 test-clean-connect:
 	@./scripts/test-clean.sh connect
 
-# Vault KMS tests
-test-clean-vault:
-	@./scripts/test-clean.sh vault
-
-# All integration tests (nango + connect + proxy + vault)
+# All integration tests (nango + connect + proxy)
 test-clean-integrations:
 	@./scripts/test-clean.sh integrations
 
@@ -288,4 +230,3 @@ test-services-up:
 # teardown.
 test-services-down:
 	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose stop postgres redis minio
-

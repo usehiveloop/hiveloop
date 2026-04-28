@@ -106,7 +106,7 @@ After Phase 2 deploys the control plane and you log into the dashboard:
 3. Navigate to the dashboard and set the **default region** to `us-bare-metal` (required — without this, snapshot creation returns 428)
 4. Navigate to API Keys section
 5. Generate a new API key (will start with `dtn_`)
-6. Update the repo's `.env` file at `/Users/bahdcoder/code/llmvault.dev/.env`:
+6. Update the repo's `.env` file at `/Users/bahdcoder/code/hiveloop.com/.env`:
    ```
    SANDBOX_PROVIDER_KEY=dtn_<your-new-key>
    ```

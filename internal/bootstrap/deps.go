@@ -106,14 +106,8 @@ func New(ctx context.Context) (*Deps, error) {
 		kms, err = crypto.NewAEADWrapper(ctx, cfg.KMSKey, "aead-local")
 	case "awskms":
 		kms, err = crypto.NewAWSKMSWrapper(ctx, cfg.KMSKey, cfg.AWSRegion)
-	case "vault":
-		vaultCfg := cfg.VaultConfig()
-		if vaultCfg == nil {
-			return nil, fmt.Errorf("vault configuration is nil")
-		}
-		kms, err = crypto.NewVaultTransitWrapper(ctx, *vaultCfg)
 	default:
-		return nil, fmt.Errorf("unsupported KMS_TYPE: %q (supported: aead, awskms, vault)", cfg.KMSType)
+		return nil, fmt.Errorf("unsupported KMS_TYPE: %q (supported: aead, awskms)", cfg.KMSType)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("creating %s KMS wrapper: %w", cfg.KMSType, err)
