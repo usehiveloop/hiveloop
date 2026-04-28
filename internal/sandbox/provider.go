@@ -1,6 +1,11 @@
 package sandbox
 
-import "context"
+import (
+	"context"
+	"errors"
+)
+
+var ErrSandboxNotFound = errors.New("sandbox not found upstream")
 
 // SandboxStatus represents the state of a sandbox.
 type SandboxStatus string
