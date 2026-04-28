@@ -13,7 +13,7 @@ func oauthCallback(st *store, h *hub, wh *webhookSender) http.HandlerFunc {
 			return
 		}
 
-		out := st.consumeOutcome()
+		out := st.consumeOutcome(sess.ProviderConfigKey)
 		if out.Result == "reject" {
 			h.sendError(sess.WSClientID, sess.ProviderConfigKey, sess.ConnectionID,
 				out.ErrorType, out.ErrorDesc)

@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-proxy test-connect test-integrations test-connections test-setup openapi generate-auth-keys upload-skills test-services-up test-services-down
+.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-proxy test-connect test-integrations test-connections test-setup openapi generate-auth-keys upload-skills test-services-up test-services-down seed-test local-up local-down local-reset local-status login-test asynq-peek
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -230,3 +230,52 @@ test-services-up:
 # teardown.
 test-services-down:
 	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose stop postgres redis minio
+
+# Seed deterministic test data (users, orgs, integrations, API key, agent,
+# revoked connection). Idempotent. Requires the backend to have booted at
+# least once so AutoMigrate has created the schema.
+seed-test:
+	@PGPASSWORD=$${POSTGRES_PASSWORD:-localdev} psql -q \
+		-h $${DB_HOST:-localhost} -p $${DB_PORT:-5433} \
+		-U $${DB_USER:-hiveloop} -d $${DB_NAME:-hiveloop} \
+		-f scripts/seed-test-data.sql
+
+# --- Local test stack (native postgres + redis + supervised apps) ---
+
+# Bring up the full stack: pg + redis (system services) + fake-nango +
+# backend + frontend. Apps run under supervisors that restart on crash with
+# a 2s delay. Pids in /tmp/agent-test/.
+local-up:
+	@./scripts/local-up.sh
+
+# Stop the supervised app processes. Leaves postgres/redis running.
+# HARD=1 also wipes /tmp/agent-test logs + env files.
+local-down:
+	@./scripts/local-down.sh
+
+# Restart the apps and re-seed. Use after big code changes or to clear state.
+local-reset:
+	@./scripts/local-down.sh
+	@./scripts/local-up.sh
+	@$(MAKE) -s seed-test
+
+# Quick health check across the stack.
+local-status:
+	@curl -s -o /dev/null -w "fake-nango (13004) %{http_code}\n" http://localhost:13004/providers.json || true
+	@curl -s -o /dev/null -w "backend    (18080) %{http_code}\n" http://localhost:18080/healthz || true
+	@curl -s -o /dev/null -w "frontend   (31112) %{http_code}\n" http://localhost:31112/ || true
+	@for f in /tmp/agent-test/*.pid; do \
+		[ -f "$$f" ] || continue; \
+		PID=$$(cat $$f); \
+		ps -p $$PID > /dev/null 2>&1 && echo "  alive: $$(basename $$f .pid) (pid $$PID)" || echo "  DEAD : $$(basename $$f .pid)"; \
+	done
+
+# Drive the OTP login flow programmatically. Stores __session in the
+# agent-browser Chrome session so subsequent UI calls are authed.
+login-test:
+	@./scripts/login-test-session.sh
+
+# Print queue counts (pending/active/scheduled/retry/archived) per asynq queue.
+# VERBOSE=1 also samples task type names.
+asynq-peek:
+	@./scripts/asynq-peek.sh
