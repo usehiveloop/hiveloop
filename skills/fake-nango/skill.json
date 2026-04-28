@@ -1,0 +1,5 @@
+{
+  "name": "fake-nango",
+  "description": "Local Nango replacement for agent test runs. HTTP + WebSocket compatible with the real Nango surface used by internal/nango/client.go and @nangohq/frontend.",
+  "root": "./SKILL.md"
+}
