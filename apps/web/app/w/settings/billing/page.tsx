@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SettingsShell } from "@/components/settings-shell"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowUpRight03Icon, Tick02Icon } from "@hugeicons/core-free-icons"
+import { ArrowUpRight03Icon, Loading03Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -65,7 +65,7 @@ export default function Page() {
     total > 0 ? Math.min(1, Math.max(0, credits / total)) : 0
 
   const portal = $api.useMutation("post", "/v1/billing/portal")
-  const { subscribe, isPending: subscribing } = usePaystackPop()
+  const { subscribe, pendingSlug, isPending: subscribing } = usePaystackPop()
 
   function handleManage() {
     portal.mutate(
@@ -203,6 +203,7 @@ export default function Page() {
               const isFree = (plan.price_cents ?? 0) === 0
               const features = plan.features ?? []
               const subscribable = !active && !isFree
+              const loading = pendingSlug === plan.slug
               return (
                 <li key={plan.slug}>
                   <button
@@ -210,12 +211,14 @@ export default function Page() {
                     disabled={!subscribable || subscribing}
                     onClick={() => subscribable && subscribe(plan)}
                     className={
-                      "flex w-full flex-col gap-3 rounded-lg border px-3.5 py-3 text-left transition-colors disabled:cursor-default " +
+                      "relative flex w-full flex-col gap-3 rounded-lg border px-3.5 py-3 text-left transition-colors disabled:cursor-default " +
                       (active
                         ? "border-primary/40 bg-primary/5"
-                        : subscribable
-                          ? "cursor-pointer border-border/60 hover:border-primary"
-                          : "border-border/60")
+                        : loading
+                          ? "border-primary"
+                          : subscribable
+                            ? "cursor-pointer border-border/60 hover:border-primary"
+                            : "border-border/60")
                     }
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -248,6 +251,14 @@ export default function Page() {
                             )}
                       </span>
                     </div>
+
+                    {loading ? (
+                      <HugeiconsIcon
+                        icon={Loading03Icon}
+                        size={14}
+                        className="absolute bottom-3 right-3 animate-spin text-muted-foreground"
+                      />
+                    ) : null}
 
                     {features.length > 0 ? (
                       <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
