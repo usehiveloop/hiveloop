@@ -103,6 +103,7 @@ func setupAdminRoutes(
 			r.Get("/custom-domains", adminHandler.ListCustomDomains)
 			r.Delete("/custom-domains/{id}", adminHandler.DeleteCustomDomain)
 			r.Get("/audit", adminHandler.ListAudit)
+			r.Get("/admin-audit", adminHandler.ListAdminAudit)
 			r.Get("/usage", adminHandler.ListUsage)
 			r.Get("/workspace-storage", adminHandler.ListWorkspaceStorage)
 			r.Delete("/workspace-storage/{id}", adminHandler.DeleteWorkspaceStorage)

@@ -137,6 +137,56 @@ func (h *AdminHandler) ListAudit(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]any{"data": entries, "has_more": hasMore})
 }
+// ListAdminAudit handles GET /admin/v1/admin-audit.
+// @Summary List admin audit entries
+// @Description Returns mutating operations performed via the admin API. Payloads are sanitized — sensitive fields are masked at write time.
+// @Tags admin
+// @Produce json
+// @Param resource query string false "Filter by resource (users, orgs, credentials, ...)"
+// @Param action query string false "Filter by action"
+// @Param admin_id query string false "Filter by admin user ID"
+// @Param limit query int false "Page size (max 100)"
+// @Success 200 {object} map[string]any
+// @Security BearerAuth
+// @Router /admin/v1/admin-audit [get]
+func (h *AdminHandler) ListAdminAudit(w http.ResponseWriter, r *http.Request) {
+	limit := 50
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if n, err := parseInt(l); err == nil && n > 0 {
+			if n > 100 {
+				n = 100
+			}
+			limit = n
+		}
+	}
+
+	q := h.db.Model(&model.AdminAuditEntry{})
+	if resource := r.URL.Query().Get("resource"); resource != "" {
+		q = q.Where("resource = ?", resource)
+	}
+	if action := r.URL.Query().Get("action"); action != "" {
+		q = q.Where("action = ?", action)
+	}
+	if adminID := r.URL.Query().Get("admin_id"); adminID != "" {
+		q = q.Where("admin_id = ?", adminID)
+	}
+
+	q = q.Order("created_at DESC").Limit(limit + 1)
+
+	var entries []model.AdminAuditEntry
+	if err := q.Find(&entries).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list admin audit entries"})
+		return
+	}
+
+	hasMore := len(entries) > limit
+	if hasMore {
+		entries = entries[:limit]
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"data": entries, "has_more": hasMore})
+}
+
 // ListUsage handles GET /admin/v1/usage.
 // @Summary Aggregate usage by org
 // @Description Returns aggregate request counts grouped by organization.

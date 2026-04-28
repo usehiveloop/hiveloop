@@ -7,6 +7,67 @@
     "version": "1.0"
   },
   "paths": {
+    "/admin/v1/admin-audit": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns mutating operations performed via the admin API. Payloads are sanitized \u2014 sensitive fields are masked at write time.",
+        "tags": [
+          "admin"
+        ],
+        "summary": "List admin audit entries",
+        "parameters": [
+          {
+            "description": "Filter by resource (users, orgs, credentials, ...)",
+            "name": "resource",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by action",
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by admin user ID",
+            "name": "admin_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size (max 100)",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/v1/agents": {
       "get": {
         "security": [
