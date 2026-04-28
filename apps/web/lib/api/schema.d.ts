@@ -13695,6 +13695,7 @@ export interface components {
         };
         ragLatestAttemptStatus: {
             docs_estimated?: number;
+            error_msg?: string;
             id?: string;
             new_docs_indexed?: number;
             status?: string;

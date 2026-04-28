@@ -45,6 +45,11 @@ type embedResponse struct {
 	Data []struct {
 		Embedding []float32 `json:"embedding"`
 	} `json:"data"`
+	Error *struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+		Code    string `json:"code"`
+	} `json:"error,omitempty"`
 }
 
 func (e *Embedder) Embed(ctx context.Context, inputs []string) ([][]float32, error) {
@@ -83,8 +88,17 @@ func (e *Embedder) Embed(ctx context.Context, inputs []string) ([][]float32, err
 			if err := json.Unmarshal(respBody, &out); err != nil {
 				return nil, fmt.Errorf("embed: decode: %w", err)
 			}
+			if out.Error != nil && out.Error.Message != "" {
+				return nil, fmt.Errorf("embed: upstream error: %s (type=%s code=%s)",
+					out.Error.Message, out.Error.Type, out.Error.Code)
+			}
 			if len(out.Data) != len(inputs) {
-				return nil, fmt.Errorf("embed: got %d vectors for %d inputs", len(out.Data), len(inputs))
+				preview := string(respBody)
+				if len(preview) > 300 {
+					preview = preview[:300]
+				}
+				return nil, fmt.Errorf("embed: got %d vectors for %d inputs (body: %s)",
+					len(out.Data), len(inputs), preview)
 			}
 			vectors := make([][]float32, len(out.Data))
 			for i := range out.Data {
