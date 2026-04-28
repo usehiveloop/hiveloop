@@ -14304,6 +14304,9 @@ const docTemplate = `{
                 "provider": {
                     "type": "string"
                 },
+                "provider_plan_id": {
+                    "type": "string"
+                },
                 "slug": {
                     "type": "string"
                 },

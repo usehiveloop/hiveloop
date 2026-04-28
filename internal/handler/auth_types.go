@@ -54,6 +54,7 @@ type planDTO struct {
 	Slug           string          `json:"slug"`
 	Name           string          `json:"name"`
 	Provider       string   `json:"provider,omitempty"`
+	ProviderPlanID string   `json:"provider_plan_id,omitempty"`
 	Features       []string `json:"features,omitempty"`
 	MonthlyCredits int64           `json:"monthly_credits"`
 	WelcomeCredits int64           `json:"welcome_credits"`
