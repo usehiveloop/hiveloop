@@ -21,7 +21,7 @@ func HasPermSyncCapability(kind string) bool {
 	if err != nil {
 		return false
 	}
-	c, err := factory(nilSource{kind: kind}, nil)
+	c, err := factory(nilSource{kind: kind}, interfaces.BuildDeps{})
 	if err != nil || c == nil {
 		return false
 	}
@@ -34,7 +34,7 @@ func HasSlimCapability(kind string) bool {
 	if err != nil {
 		return false
 	}
-	c, err := factory(nilSource{kind: kind}, nil)
+	c, err := factory(nilSource{kind: kind}, interfaces.BuildDeps{})
 	if err != nil || c == nil {
 		return false
 	}

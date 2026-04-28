@@ -6,9 +6,11 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/nango"
 	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
 	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
+	"github.com/usehiveloop/hiveloop/internal/spider"
 )
 
 type Deps struct {
@@ -16,6 +18,8 @@ type Deps struct {
 	Qdrant     *qdrant.Client
 	Embedder   *embedclient.Embedder
 	Nango      *nango.Client
+	Spider     *spider.Client
+	Credits    *billing.CreditsService
 	Collection string
 
 	// HeartbeatTick: the watchdog timeout must be at least 2× this value.

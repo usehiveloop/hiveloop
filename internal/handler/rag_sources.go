@@ -7,15 +7,17 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
 type RAGSourceHandler struct {
-	db   *gorm.DB
-	enq  enqueue.TaskEnqueuer
-	caps RAGCapabilityCheck
+	db      *gorm.DB
+	enq     enqueue.TaskEnqueuer
+	caps    RAGCapabilityCheck
+	credits *billing.CreditsService
 }
 
 // RAGCapabilityCheck answers "can a connector of this kind perform
@@ -24,8 +26,8 @@ type RAGSourceHandler struct {
 // doesn't depend on a real connector being registered.
 type RAGCapabilityCheck func(kind string) bool
 
-func NewRAGSourceHandler(db *gorm.DB, enq enqueue.TaskEnqueuer, caps RAGCapabilityCheck) *RAGSourceHandler {
-	return &RAGSourceHandler{db: db, enq: enq, caps: caps}
+func NewRAGSourceHandler(db *gorm.DB, enq enqueue.TaskEnqueuer, caps RAGCapabilityCheck, credits *billing.CreditsService) *RAGSourceHandler {
+	return &RAGSourceHandler{db: db, enq: enq, caps: caps, credits: credits}
 }
 
 type ragSourceResponse struct {
