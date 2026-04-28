@@ -2,7 +2,7 @@
 //
 // Files are split by responsibility:
 //   paystack.go  — Provider type, constructor, compile-time interface check
-//   config.go    — Config, PlanRegistry, plan_code lookup
+//   config.go    — Config + PlanResolver (DB-backed slug ↔ plan_code)
 //   client.go    — Low-level HTTP client for api.paystack.co
 //   customer.go  — EnsureCustomer
 //   checkout.go  — CreateCheckout (POST /transaction/initialize with a plan)
@@ -21,21 +21,15 @@ const Name = "paystack"
 //
 // It is safe for concurrent use; the underlying HTTP client is shared.
 type Provider struct {
-	cfg       Config
-	client    *client
-	planIndex map[string]string // paystack plan_code -> our plan slug
+	cfg    Config
+	client *client
 }
 
 // New constructs a Paystack provider.
-//
-// The caller configures credentials and plan mappings via Config. New builds
-// a reverse index (plan_code → slug) for webhook event parsing so we don't
-// scan the registry on every event.
 func New(cfg Config) *Provider {
 	return &Provider{
-		cfg:       cfg,
-		client:    newClient(cfg.SecretKey),
-		planIndex: cfg.Plans.reverseIndex(),
+		cfg:    cfg,
+		client: newClient(cfg.SecretKey),
 	}
 }
 
