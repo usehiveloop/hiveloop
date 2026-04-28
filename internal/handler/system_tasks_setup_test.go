@@ -241,33 +241,41 @@ func tptr(t time.Time) *time.Time { return &t }
 // validArgs returns the canonical request body for prompt_writer.
 func validArgs() map[string]any {
 	return map[string]any{
-		"target_model": "gpt-4.1-mini",
-		"goal":         "summarise GitHub PR diffs into one-paragraph release notes",
-		"audience":     "engineering managers",
+		"agent_name":   "deploy-watcher",
+		"category":     "ops",
+		"instructions": "Watch Railway deployments and open a GitHub issue when one fails.",
+		"skills_md":    "- fetch-railway-logs: pulls deployment logs\n- create-github-issue: opens an issue",
+		"tools_md":     "- slack_post: posts a status line back to the trigger source",
+		"triggers_md":  "- railway.deployment.failed: payload includes deployment_id",
 	}
 }
 
-// promptWriterPayload is the JSON the LLM is expected to return for
-// prompt_writer (the task asks for json_object response_format).
-const promptWriterPayload = `{"title":"PR diff summariser","system_prompt":"You take git diffs and produce one paragraph of release notes for engineering managers. Output plain text only.","rationale":"Open with role+goal; declare format; constrain audience."}`
+// promptWriterPayload is the markdown the LLM is expected to stream back.
+// Prompt_writer streams the produced system prompt directly — no JSON
+// wrapper. The harness uses this as the canned upstream response.
+const promptWriterPayload = "## Role\nYou are deploy-watcher. You triage failed Railway deployments.\n\n## Workflow\n1. Receive the deployment_id.\n2. Load the `fetch-railway-logs` skill.\n3. Open an issue with `create-github-issue`.\n4. Post a summary via `slack_post`.\n\n## Stop conditions\n- Issue created.\n- Two consecutive empty fetches.\n"
 
 // promptWriterTestTask is the prompt_writer task definition used by tests.
 // Mirrors internal/system/tasks/prompt_writer.go but kept local so the
-// harness can register it independently of import side-effects.
+// harness can register it independently of import side-effects, and pinned
+// to ProviderGroup "openai" so the harness's seeded openai system credential
+// resolves it.
 func promptWriterTestTask() system.Task {
 	return system.Task{
 		Name:               "prompt_writer",
-		Version:            "v1",
+		Version:            "v2",
 		ProviderGroup:      "openai",
 		ModelTier:          system.ModelCheapest,
-		ResponseFormat:     system.ResponseJSON,
 		SystemPrompt:       "You write production-grade system prompts.",
-		UserPromptTemplate: "target_model: {{.target_model}}\ngoal: {{.goal}}\naudience: {{.audience}}",
+		UserPromptTemplate: "agent: {{.agent_name}}\ncategory: {{.category}}\ninstructions: {{.instructions}}\n{{if .skills_md}}skills:\n{{.skills_md}}\n{{end}}{{if .tools_md}}tools:\n{{.tools_md}}\n{{end}}{{if .triggers_md}}triggers:\n{{.triggers_md}}\n{{end}}",
 		Args: []system.ArgSpec{
-			{Name: "target_model", Type: system.ArgString, Required: true, MaxLen: 80},
-			{Name: "goal", Type: system.ArgString, Required: true, MaxLen: 1000},
-			{Name: "audience", Type: system.ArgString, Required: true, MaxLen: 200},
-			{Name: "constraints", Type: system.ArgStringList, Required: false, MaxLen: 200},
+			{Name: "agent_name", Type: system.ArgString, Required: true, MaxLen: 80},
+			{Name: "category", Type: system.ArgString, Required: true, MaxLen: 80},
+			{Name: "instructions", Type: system.ArgString, Required: true, MaxLen: 4000},
+			{Name: "skills_md", Type: system.ArgString, Required: false, MaxLen: 4000},
+			{Name: "sub_agents_md", Type: system.ArgString, Required: false, MaxLen: 4000},
+			{Name: "triggers_md", Type: system.ArgString, Required: false, MaxLen: 4000},
+			{Name: "tools_md", Type: system.ArgString, Required: false, MaxLen: 2000},
 		},
 		MaxOutputTokens: 1024,
 		CacheTTL:        24 * time.Hour,
