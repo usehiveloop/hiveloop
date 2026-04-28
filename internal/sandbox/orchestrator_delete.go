@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -11,6 +12,9 @@ import (
 
 func (o *Orchestrator) StopSandbox(ctx context.Context, sb *model.Sandbox) error {
 	if err := o.provider.StopSandbox(ctx, sb.ExternalID); err != nil {
+		if errors.Is(err, ErrSandboxNotFound) {
+			return o.purgeMissingSandbox(sb)
+		}
 		return fmt.Errorf("stopping sandbox %s: %w", sb.ID, err)
 	}
 	now := time.Now()
@@ -28,8 +32,9 @@ func (o *Orchestrator) StopSandbox(ctx context.Context, sb *model.Sandbox) error
 }
 
 func (o *Orchestrator) DeleteSandbox(ctx context.Context, sb *model.Sandbox) error {
-	if err := o.provider.DeleteSandbox(ctx, sb.ExternalID); err != nil {
-		slog.Warn("failed to delete sandbox from provider", "sandbox_id", sb.ID, "external_id", sb.ExternalID, "error", err)
+	if err := o.provider.DeleteSandbox(ctx, sb.ExternalID); err != nil && !errors.Is(err, ErrSandboxNotFound) {
+		slog.Warn("failed to delete sandbox from provider",
+			"sandbox_id", sb.ID, "external_id", sb.ExternalID, "error", err)
 	}
 	return o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}).Error
 }
@@ -37,11 +42,17 @@ func (o *Orchestrator) DeleteSandbox(ctx context.Context, sb *model.Sandbox) err
 func (o *Orchestrator) ArchiveSandbox(ctx context.Context, sb *model.Sandbox) error {
 	if sb.Status != string(StatusStopped) {
 		if err := o.StopSandbox(ctx, sb); err != nil {
+			if errors.Is(err, ErrSandboxNotFound) {
+				return nil
+			}
 			return fmt.Errorf("stopping sandbox before archive: %w", err)
 		}
 	}
 
 	if err := o.provider.ArchiveSandbox(ctx, sb.ExternalID); err != nil {
+		if errors.Is(err, ErrSandboxNotFound) {
+			return o.purgeMissingSandbox(sb)
+		}
 		return fmt.Errorf("archiving sandbox %s: %w", sb.ID, err)
 	}
 
@@ -56,6 +67,15 @@ func (o *Orchestrator) ArchiveSandbox(ctx context.Context, sb *model.Sandbox) er
 
 	slog.Info("sandbox archived", "sandbox_id", sb.ID, "external_id", sb.ExternalID)
 	return nil
+}
+
+func (o *Orchestrator) purgeMissingSandbox(sb *model.Sandbox) error {
+	slog.Info("sandbox missing upstream, purging local row",
+		"sandbox_id", sb.ID, "external_id", sb.ExternalID)
+	if err := o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}).Error; err != nil {
+		return fmt.Errorf("purging missing sandbox %s: %w", sb.ID, err)
+	}
+	return ErrSandboxNotFound
 }
 
 func (o *Orchestrator) UnarchiveSandbox(ctx context.Context, sb *model.Sandbox) (*model.Sandbox, error) {
