@@ -82,6 +82,29 @@ type PortalSession struct {
 	URL string
 }
 
+type ResolveCheckoutRequest struct {
+	Reference     string
+	ExpectedOrgID uuid.UUID
+}
+
+type ResolveCheckoutResult struct {
+	Status                 SubscriptionStatus
+	PlanSlug               string
+	ExternalSubscriptionID string
+	ExternalCustomerID     string
+	CurrentPeriodStart     time.Time
+	CurrentPeriodEnd       time.Time
+
+	ChargeReference   string
+	ChargeAmount      int64
+	ChargedAt         *time.Time
+	CardLast4         string
+	CardBrand         string
+	CardExpMonth      string
+	CardExpYear       string
+	AuthorizationCode string
+}
+
 // EventType is the provider-agnostic webhook event type the rest of the
 // codebase reacts to. Provider implementations map their native event names
 // onto these.
@@ -160,6 +183,11 @@ type Provider interface {
 	// manage-link). Adapters that require an active subscription should
 	// return ErrNoActiveSubscription when req.ExternalSubscriptionID is empty.
 	CreatePortal(ctx context.Context, req PortalRequest) (*PortalSession, error)
+
+	// ResolveCheckout queries the provider synchronously for the state of a
+	// checkout. Used by /v1/billing/verify to confirm a popup-flow charge
+	// completed without waiting on a webhook.
+	ResolveCheckout(ctx context.Context, req ResolveCheckoutRequest) (*ResolveCheckoutResult, error)
 
 	// VerifyWebhook checks the signature on an incoming webhook request. The
 	// request body is already read into body — implementations must not read

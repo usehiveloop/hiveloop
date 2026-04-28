@@ -5195,7 +5195,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Waits up to 5s for the subscription webhook to land and the local Subscription row to become active for the requested plan.",
+                "description": "Synchronously resolves a checkout reference, asserts the transaction succeeded, and upserts the local Subscription row.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5205,10 +5205,10 @@ const docTemplate = `{
                 "tags": [
                     "billing"
                 ],
-                "summary": "Verify subscription is active",
+                "summary": "Verify checkout completed",
                 "parameters": [
                     {
-                        "description": "Plan to wait for",
+                        "description": "Reference returned from /v1/billing/checkout",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -5236,8 +5236,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/internal_handler.errorResponse"
                         }
                     },
-                    "408": {
-                        "description": "Request Timeout",
+                    "502": {
+                        "description": "Bad Gateway",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.errorResponse"
                         }
@@ -10033,6 +10033,83 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/system/tasks/{taskName}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Executes a registered server-side LLM task using platform credentials. Each task name maps to a hard-coded definition (model tier, prompt, args). Caller may opt into streaming.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "system"
+                ],
+                "summary": "Run a system task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task name",
+                        "name": "taskName",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Task arguments",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.systemTaskRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream when stream=true",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/tokens": {
             "get": {
                 "security": [
@@ -11350,6 +11427,23 @@ const docTemplate = `{
                 },
                 "path": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_usehiveloop_hiveloop_internal_system.Usage": {
+            "type": "object",
+            "properties": {
+                "cached_tokens": {
+                    "type": "integer"
+                },
+                "input_tokens": {
+                    "type": "integer"
+                },
+                "output_tokens": {
+                    "type": "integer"
+                },
+                "reasoning_tokens": {
+                    "type": "integer"
                 }
             }
         },
@@ -15530,6 +15624,35 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.systemTaskJSONResponse": {
+            "type": "object",
+            "properties": {
+                "cached": {
+                    "type": "boolean"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "usage": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_system.Usage"
+                }
+            }
+        },
+        "internal_handler.systemTaskRequest": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "stream": {
+                    "type": "boolean"
+                }
+            }
+        },
         "internal_handler.tokenListItem": {
             "type": "object",
             "properties": {
@@ -16043,7 +16166,10 @@ const docTemplate = `{
         "internal_handler.verifyRequest": {
             "type": "object",
             "properties": {
-                "plan_slug": {
+                "provider": {
+                    "type": "string"
+                },
+                "reference": {
                     "type": "string"
                 }
             }
@@ -16055,7 +16181,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "description": "\"active\" | \"timeout\"",
                     "type": "string"
                 }
             }
