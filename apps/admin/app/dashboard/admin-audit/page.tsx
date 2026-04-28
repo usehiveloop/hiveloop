@@ -87,6 +87,7 @@ export default function AdminAuditPage() {
   const [action, setAction] = useState("")
   const [selectedEntry, setSelectedEntry] = useState<AuditEntry | null>(null)
 
+  // @ts-expect-error path not in generated schema
   const { data, isLoading, error } = $api.useQuery("get", "/admin/v1/admin-audit", {
     params: {
       query: {
@@ -97,7 +98,7 @@ export default function AdminAuditPage() {
     },
   })
 
-  const entries = ((data as Record<string, unknown>)?.data ?? []) as AuditEntry[]
+  const entries = ((data as unknown as Record<string, unknown>)?.data ?? []) as AuditEntry[]
 
   return (
     <div className="space-y-6">
