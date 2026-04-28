@@ -13,9 +13,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// BillingHandler exposes checkout, portal, and subscription endpoints against
-// whatever billing provider the caller picks. The handler has no knowledge of
-// any specific provider — it goes through billing.Registry.
 type BillingHandler struct {
 	db       *gorm.DB
 	registry *billing.Registry
@@ -137,77 +134,6 @@ func (h *BillingHandler) CreateCheckout(w http.ResponseWriter, r *http.Request) 
 		AccessCode:  session.AccessCode,
 		Reference:   session.ExternalID,
 	})
-}
-
-type createPortalRequest struct {
-	Provider string `json:"provider"`
-}
-
-type portalResponse struct {
-	PortalURL string `json:"portal_url"`
-}
-
-// CreatePortal creates a provider customer portal session for the org.
-// @Summary Create billing portal session
-// @Description Creates a customer portal session where the user can manage their subscription, payment methods, and invoices.
-// @Tags billing
-// @Accept json
-// @Produce json
-// @Param body body createPortalRequest true "Portal request"
-// @Success 200 {object} portalResponse
-// @Failure 400 {object} errorResponse
-// @Failure 401 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Security BearerAuth
-// @Router /v1/billing/portal [post]
-func (h *BillingHandler) CreatePortal(w http.ResponseWriter, r *http.Request) {
-	org, ok := middleware.OrgFromContext(r.Context())
-	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
-		return
-	}
-
-	var body createPortalRequest
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
-		return
-	}
-
-	provider, err := h.registry.Get(body.Provider)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown provider"})
-		return
-	}
-
-	// The customer must already exist with this provider, which means there's
-	// at least one subscription row for (org, provider).
-	var sub model.Subscription
-	if err := h.db.Where("org_id = ? AND provider = ?", org.ID, provider.Name()).
-		Order("created_at DESC").First(&sub).Error; err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "no billing account with this provider"})
-		return
-	}
-
-	externalSubID := ""
-	if sub.ExternalSubscriptionID != nil {
-		externalSubID = *sub.ExternalSubscriptionID
-	}
-	session, err := provider.CreatePortal(r.Context(), billing.PortalRequest{
-		OrgID:                  org.ID,
-		ExternalCustomerID:     sub.ExternalCustomerID,
-		ExternalSubscriptionID: externalSubID,
-	})
-	if err != nil {
-		if errors.Is(err, billing.ErrNoActiveSubscription) {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "no active subscription"})
-			return
-		}
-		slog.Error("billing: failed to create portal", "provider", provider.Name(), "org_id", org.ID, "error", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create portal session"})
-		return
-	}
-
-	writeJSON(w, http.StatusOK, portalResponse{PortalURL: session.URL})
 }
 
 // lookupOrgOwnerEmail returns the email of the earliest-joined member of the

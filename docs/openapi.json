@@ -5945,73 +5945,6 @@
         }
       }
     },
-    "/v1/billing/portal": {
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Creates a customer portal session where the user can manage their subscription, payment methods, and invoices.",
-        "tags": [
-          "billing"
-        ],
-        "summary": "Create billing portal session",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/createPortalRequest"
-              }
-            }
-          },
-          "description": "Portal request",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/portalResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/billing/subscription": {
       "get": {
         "security": [
@@ -6019,7 +5952,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Returns the org's active plan, provider, and credit balance.",
+        "description": "Returns the org's active plan, provider, payment-method snapshot, and any pending plan change.",
         "tags": [
           "billing"
         ],
@@ -15276,14 +15209,6 @@
           }
         }
       },
-      "createPortalRequest": {
-        "type": "object",
-        "properties": {
-          "provider": {
-            "type": "string"
-          }
-        }
-      },
       "createRAGSourceRequest": {
         "type": "object",
         "properties": {
@@ -16720,22 +16645,11 @@
           "provider": {
             "type": "string"
           },
-          "provider_plan_id": {
-            "type": "string"
-          },
           "slug": {
             "type": "string"
           },
           "welcome_credits": {
             "type": "integer"
-          }
-        }
-      },
-      "portalResponse": {
-        "type": "object",
-        "properties": {
-          "portal_url": {
-            "type": "string"
           }
         }
       },

@@ -10,7 +10,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { SettingsShell } from "@/components/settings-shell"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  ArrowUpRight03Icon,
   Loading03Icon,
   Tick02Icon,
   CreditCardIcon,
@@ -25,8 +24,6 @@ import { ChangePlanDialog } from "./_components/change-plan-dialog"
 import { SubscriptionSuccessDialog } from "./_components/subscription-success-dialog"
 
 type Plan = components["schemas"]["planDTO"]
-
-const DEFAULT_PROVIDER = "paystack"
 
 function formatMoney(minor: number, currency: string) {
   const value = minor / 100
@@ -78,7 +75,6 @@ export default function Page() {
     : 0
   const pctRemaining = total > 0 ? Math.min(1, Math.max(0, credits / total)) : 0
 
-  const portal = $api.useMutation("post", "/v1/billing/portal")
   const cancelMutation = $api.useMutation("post", "/v1/billing/subscription/cancel")
   const resumeMutation = $api.useMutation("post", "/v1/billing/subscription/resume")
 
@@ -92,26 +88,9 @@ export default function Page() {
     },
   })
 
-  function handleManage() {
-    portal.mutate(
-      {
-        body: { provider: subscription?.provider ?? DEFAULT_PROVIDER } as never,
-      },
-      {
-        onSuccess: (data) => {
-          if (data.portal_url) window.location.href = data.portal_url
-        },
-        onError: (err) => {
-          toast.error(extractErrorMessage(err, "Failed to open billing portal"))
-        },
-      },
-    )
-  }
-
   function handlePlanClick(plan: Plan) {
     if (plan.slug === currentSlug) return
     if (!onPaidPlan) {
-      // Free → paid uses fresh checkout (no saved card to charge against).
       subscribe(plan)
       return
     }
@@ -144,25 +123,10 @@ export default function Page() {
     )
   }
 
-  const hasProvider = Boolean(subscription?.provider)
-
   return (
     <SettingsShell
       title="Billing"
-      description="Plan, credits, and your provider's portal."
-      action={
-        hasProvider ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleManage}
-            loading={portal.isPending}
-          >
-            Manage billing
-            <HugeiconsIcon icon={ArrowUpRight03Icon} size={13} />
-          </Button>
-        ) : null
-      }
+      description="Plan and credits."
     >
       {/* Current plan */}
       <section>
