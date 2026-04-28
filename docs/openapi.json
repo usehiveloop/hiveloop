@@ -3680,6 +3680,142 @@
         }
       }
     },
+    "/auth/confirm-email": {
+      "post": {
+        "description": "Confirms a user's email address using a verification token.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirm email address",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/confirmEmailRequest"
+              }
+            }
+          },
+          "description": "Confirmation token",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/statusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "description": "Sends a password reset link to the email address if an account exists.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Request password reset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/forgotPasswordRequest"
+              }
+            }
+          },
+          "description": "Email address",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/statusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "description": "Authenticates a user with email and password.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Log in",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/loginRequest"
+              }
+            }
+          },
+          "description": "Login parameters",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/authResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/logout": {
       "post": {
         "security": [
@@ -3824,6 +3960,58 @@
             }
           },
           "description": "OTP verification",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/authResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "description": "Exchanges a refresh token for new access and refresh tokens.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Refresh tokens",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/refreshRequest"
+              }
+            }
+          },
+          "description": "Refresh parameters",
           "required": true
         },
         "responses": {
@@ -4174,6 +4362,64 @@
         }
       }
     },
+    "/oauth/github": {
+      "get": {
+        "description": "Redirects the browser to GitHub's authorization page. Sets a state cookie for CSRF protection.",
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Start GitHub OAuth login",
+        "responses": {
+          "307": {
+            "description": "Redirect to GitHub"
+          },
+          "404": {
+            "description": "Provider not configured",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/github/callback": {
+      "get": {
+        "description": "Handles the redirect from GitHub after authorization. Exchanges the code for a token, creates or links the user account, and redirects to the frontend with a short-lived exchange token.",
+        "tags": [
+          "oauth"
+        ],
+        "summary": "GitHub OAuth callback",
+        "parameters": [
+          {
+            "description": "Authorization code from GitHub",
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "CSRF state parameter",
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect to frontend with error"
+          }
+        }
+      }
+    },
     "/oauth/google": {
       "get": {
         "description": "Redirects the browser to Google's authorization page. Sets a state cookie for CSRF protection.",
@@ -4427,6 +4673,35 @@
         }
       }
     },
+    "/v1/agents/built-in-tools": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns the catalog of built-in tools that can be granted to an agent.",
+        "tags": [
+          "agents"
+        ],
+        "summary": "List built-in tools",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BuiltInToolDefinition"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/agents/categories": {
       "get": {
         "security": [
@@ -4448,6 +4723,35 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/agentCategory"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/sandbox-tools": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns the catalog of sandbox tools that can be granted to an agent.",
+        "tags": [
+          "agents"
+        ],
+        "summary": "List sandbox tools",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SandboxToolDefinition"
                   }
                 }
               }
@@ -8630,7 +8934,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Run a BM25 search against the org's RAG dataset, optionally reranked.",
+        "description": "Hybrid retrieval against the org's RAG dataset, optionally reranked.",
         "tags": [
           "rag"
         ],
@@ -11415,6 +11719,243 @@
         }
       }
     },
+    "/v1/tokens": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns tokens for the organization with cursor pagination. Supports filtering by credential_id.",
+        "tags": [
+          "tokens"
+        ],
+        "summary": "List tokens",
+        "parameters": [
+          {
+            "description": "Max items per page (1-100, default 50)",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination cursor from previous response",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by credential ID",
+            "name": "credential_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedResponse-tokenListItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a short-lived JWT proxy token scoped to a credential.",
+        "tags": [
+          "tokens"
+        ],
+        "summary": "Mint a proxy token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/mintTokenRequest"
+              }
+            }
+          },
+          "description": "Token minting parameters",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mintTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tokens/{jti}": {
+      "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Revokes a proxy token by its JTI and propagates through cache tiers.",
+        "tags": [
+          "tokens"
+        ],
+        "summary": "Revoke a proxy token",
+        "parameters": [
+          {
+            "description": "Token JTI",
+            "name": "jti",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/usage": {
       "get": {
         "security": [
@@ -11467,6 +12008,29 @@
       }
     },
     "schemas": {
+      "github_com_usehiveloop_hiveloop_internal_mcp.TokenScope": {
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "connection_id": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
       "ConfigurableResourceSummary": {
         "type": "object",
         "properties": {
@@ -12479,6 +13043,41 @@
             "type": "string"
           },
           "path": {
+            "type": "string"
+          }
+        }
+      },
+      "BuiltInToolDefinition": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "locked": {
+            "description": "true = cannot be toggled off by the user",
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "SandboxToolDefinition": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
             "type": "string"
           }
         }
@@ -13693,6 +14292,14 @@
           }
         }
       },
+      "confirmEmailRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        }
+      },
       "conversationEventResponse": {
         "type": "object",
         "properties": {
@@ -14399,6 +15006,14 @@
           }
         }
       },
+      "forgotPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
       "generationResponse": {
         "type": "object",
         "properties": {
@@ -14645,6 +15260,21 @@
           }
         }
       },
+      "loginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "org_id": {
+            "description": "optional: scope token to a specific org",
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
       "logoutRequest": {
         "type": "object",
         "properties": {
@@ -14768,6 +15398,53 @@
           },
           "user": {
             "$ref": "#/components/schemas/userResponse"
+          }
+        }
+      },
+      "mintTokenRequest": {
+        "type": "object",
+        "properties": {
+          "credential_id": {
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "refill_amount": {
+            "type": "integer"
+          },
+          "refill_interval": {
+            "type": "string"
+          },
+          "remaining": {
+            "type": "integer"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_mcp.TokenScope"
+            }
+          },
+          "ttl": {
+            "description": "e.g. \"1h\", \"24h\"",
+            "type": "string"
+          }
+        }
+      },
+      "mintTokenResponse": {
+        "type": "object",
+        "properties": {
+          "expires_at": {
+            "type": "string"
+          },
+          "jti": {
+            "type": "string"
+          },
+          "mcp_endpoint": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
           }
         }
       },
@@ -15389,6 +16066,23 @@
           }
         }
       },
+      "paginatedResponse-tokenListItem": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/tokenListItem"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
       "planDTO": {
         "type": "object",
         "properties": {
@@ -15727,22 +16421,16 @@
           "blurb": {
             "type": "string"
           },
-          "bm25_score": {
-            "type": "number"
-          },
-          "chunk_id": {
-            "type": "string"
-          },
-          "chunk_index": {
-            "type": "integer"
-          },
           "content": {
             "type": "string"
           },
           "doc_id": {
             "type": "string"
           },
-          "doc_updated_at": {
+          "id": {
+            "type": "string"
+          },
+          "link": {
             "type": "string"
           },
           "rerank_score": {
@@ -15751,8 +16439,8 @@
           "score": {
             "type": "number"
           },
-          "vector_score": {
-            "type": "number"
+          "title": {
+            "type": "string"
           }
         }
       },
@@ -15765,10 +16453,6 @@
           "limit": {
             "type": "integer"
           },
-          "mode": {
-            "description": "\"hybrid\" | \"vector\" | \"bm25\" (default hybrid)",
-            "type": "string"
-          },
           "query": {
             "type": "string"
           },
@@ -15780,9 +16464,6 @@
       "ragSearchResponse": {
         "type": "object",
         "properties": {
-          "after_rerank": {
-            "type": "integer"
-          },
           "hits": {
             "type": "array",
             "items": {
@@ -15935,6 +16616,18 @@
             "type": "integer"
           },
           "updated_at": {
+            "type": "string"
+          }
+        }
+      },
+      "refreshRequest": {
+        "type": "object",
+        "properties": {
+          "org_id": {
+            "description": "optional: switch org",
+            "type": "string"
+          },
+          "refresh_token": {
             "type": "string"
           }
         }
@@ -16469,6 +17162,44 @@
           },
           "revoked_at": {
             "type": "string"
+          }
+        }
+      },
+      "tokenListItem": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "jti": {
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "refill_amount": {
+            "type": "integer"
+          },
+          "refill_interval": {
+            "type": "string"
+          },
+          "remaining": {
+            "type": "integer"
+          },
+          "revoked_at": {
+            "type": "string"
+          },
+          "scopes": {
+            "$ref": "#/components/schemas/JSON"
           }
         }
       },

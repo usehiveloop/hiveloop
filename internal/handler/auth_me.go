@@ -3,10 +3,10 @@ package handler
 import (
 	"net/http"
 
-
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+
 // Me handles GET /auth/me.
 // @Summary Get current user
 // @Description Returns the current user and their organization memberships.
@@ -95,13 +95,3 @@ type changePasswordRequest struct {
 	NewPassword     string `json:"new_password"`
 }
 
-// ConfirmEmail handles POST /auth/confirm-email.
-// @Summary Confirm email address
-// @Description Confirms a user's email address using a verification token.
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param body body confirmEmailRequest true "Confirmation token"
-// @Success 200 {object} statusResponse
-// @Failure 400 {object} errorResponse
-// @Router /auth/confirm-email [post]

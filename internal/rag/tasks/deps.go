@@ -7,22 +7,20 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/nango"
-	"github.com/usehiveloop/hiveloop/internal/rag/ragclient"
+	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
+	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
 )
 
 type Deps struct {
-	DB        *gorm.DB
-	RagClient *ragclient.Client
-	Nango     *nango.Client
+	DB         *gorm.DB
+	Qdrant     *qdrant.Client
+	Embedder   *embedclient.Embedder
+	Nango      *nango.Client
+	Collection string
 
 	// HeartbeatTick: the watchdog timeout must be at least 2× this value.
 	HeartbeatTick time.Duration
-
-	BatchSize int
-
-	DatasetName string
-
-	DeclaredVectorDim uint32
+	BatchSize     int
 }
 
 func RegisterHandlers(mux *asynq.ServeMux, deps *Deps) {
@@ -40,7 +38,7 @@ func (d *Deps) withDefaults() *Deps {
 		c.HeartbeatTick = 30 * time.Second
 	}
 	if c.BatchSize <= 0 {
-		c.BatchSize = 500
+		c.BatchSize = 100
 	}
 	return &c
 }

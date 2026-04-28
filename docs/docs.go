@@ -3165,6 +3165,132 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/confirm-email": {
+            "post": {
+                "description": "Confirms a user's email address using a verification token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Confirm email address",
+                "parameters": [
+                    {
+                        "description": "Confirmation token",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.confirmEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.statusResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/forgot-password": {
+            "post": {
+                "description": "Sends a password reset link to the email address if an account exists.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Request password reset",
+                "parameters": [
+                    {
+                        "description": "Email address",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.forgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.statusResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "Authenticates a user with email and password.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Log in",
+                "parameters": [
+                    {
+                        "description": "Login parameters",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.loginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.authResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/logout": {
             "post": {
                 "security": [
@@ -3305,6 +3431,52 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/internal_handler.otpVerifyPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.authResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "description": "Exchanges a refresh token for new access and refresh tokens.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Refresh tokens",
+                "parameters": [
+                    {
+                        "description": "Refresh parameters",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.refreshRequest"
                         }
                     }
                 ],
@@ -3596,6 +3768,56 @@ const docTemplate = `{
                 }
             }
         },
+        "/oauth/github": {
+            "get": {
+                "description": "Redirects the browser to GitHub's authorization page. Sets a state cookie for CSRF protection.",
+                "tags": [
+                    "oauth"
+                ],
+                "summary": "Start GitHub OAuth login",
+                "responses": {
+                    "307": {
+                        "description": "Redirect to GitHub"
+                    },
+                    "404": {
+                        "description": "Provider not configured",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/oauth/github/callback": {
+            "get": {
+                "description": "Handles the redirect from GitHub after authorization. Exchanges the code for a token, creates or links the user account, and redirects to the frontend with a short-lived exchange token.",
+                "tags": [
+                    "oauth"
+                ],
+                "summary": "GitHub OAuth callback",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authorization code from GitHub",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF state parameter",
+                        "name": "state",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "307": {
+                        "description": "Redirect to frontend with error"
+                    }
+                }
+            }
+        },
         "/oauth/google": {
             "get": {
                 "description": "Redirects the browser to Google's authorization page. Sets a state cookie for CSRF protection.",
@@ -3808,6 +4030,34 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/agents/built-in-tools": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the catalog of built-in tools that can be granted to an agent.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "agents"
+                ],
+                "summary": "List built-in tools",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/internal_handler.BuiltInToolDefinition"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/agents/categories": {
             "get": {
                 "security": [
@@ -3830,6 +4080,34 @@ const docTemplate = `{
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/internal_handler.agentCategory"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/agents/sandbox-tools": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the catalog of sandbox tools that can be granted to an agent.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "agents"
+                ],
+                "summary": "List sandbox tools",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/internal_handler.SandboxToolDefinition"
                             }
                         }
                     }
@@ -7293,7 +7571,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Run a BM25 search against the org's RAG dataset, optionally reranked.",
+                "description": "Hybrid retrieval against the org's RAG dataset, optionally reranked.",
                 "consumes": [
                     "application/json"
                 ],
@@ -9646,6 +9924,191 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/tokens": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns tokens for the organization with cursor pagination. Supports filtering by credential_id.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tokens"
+                ],
+                "summary": "List tokens",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max items per page (1-100, default 50)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor from previous response",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by credential ID",
+                        "name": "credential_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.paginatedResponse-internal_handler_tokenListItem"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a short-lived JWT proxy token scoped to a credential.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tokens"
+                ],
+                "summary": "Mint a proxy token",
+                "parameters": [
+                    {
+                        "description": "Token minting parameters",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.mintTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.mintTokenResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tokens/{jti}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Revokes a proxy token by its JTI and propagates through cache tiers.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tokens"
+                ],
+                "summary": "Revoke a proxy token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token JTI",
+                        "name": "jti",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/usage": {
             "get": {
                 "security": [
@@ -9679,6 +10142,29 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "github_com_usehiveloop_hiveloop_internal_mcp.TokenScope": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "connection_id": {
+                    "type": "string"
+                },
+                "resources": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "github_com_usehiveloop_hiveloop_internal_mcp_catalog.ConfigurableResourceSummary": {
             "type": "object",
             "properties": {
@@ -10691,6 +11177,41 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.BuiltInToolDefinition": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "locked": {
+                    "description": "true = cannot be toggled off by the user",
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.SandboxToolDefinition": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }
@@ -11905,6 +12426,14 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.confirmEmailRequest": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.conversationEventResponse": {
             "type": "object",
             "properties": {
@@ -12611,6 +13140,14 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.forgotPasswordRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.generationResponse": {
             "type": "object",
             "properties": {
@@ -12857,6 +13394,21 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.loginRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "description": "optional: scope token to a specific org",
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.logoutRequest": {
             "type": "object",
             "properties": {
@@ -12980,6 +13532,53 @@ const docTemplate = `{
                 },
                 "user": {
                     "$ref": "#/definitions/internal_handler.userResponse"
+                }
+            }
+        },
+        "internal_handler.mintTokenRequest": {
+            "type": "object",
+            "properties": {
+                "credential_id": {
+                    "type": "string"
+                },
+                "meta": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "refill_amount": {
+                    "type": "integer"
+                },
+                "refill_interval": {
+                    "type": "string"
+                },
+                "remaining": {
+                    "type": "integer"
+                },
+                "scopes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_mcp.TokenScope"
+                    }
+                },
+                "ttl": {
+                    "description": "e.g. \"1h\", \"24h\"",
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.mintTokenResponse": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string"
+                },
+                "jti": {
+                    "type": "string"
+                },
+                "mcp_endpoint": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
                 }
             }
         },
@@ -13601,6 +14200,23 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.paginatedResponse-internal_handler_tokenListItem": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.tokenListItem"
+                    }
+                },
+                "has_more": {
+                    "type": "boolean"
+                },
+                "next_cursor": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.planDTO": {
             "type": "object",
             "properties": {
@@ -13939,22 +14555,16 @@ const docTemplate = `{
                 "blurb": {
                     "type": "string"
                 },
-                "bm25_score": {
-                    "type": "number"
-                },
-                "chunk_id": {
-                    "type": "string"
-                },
-                "chunk_index": {
-                    "type": "integer"
-                },
                 "content": {
                     "type": "string"
                 },
                 "doc_id": {
                     "type": "string"
                 },
-                "doc_updated_at": {
+                "id": {
+                    "type": "string"
+                },
+                "link": {
                     "type": "string"
                 },
                 "rerank_score": {
@@ -13963,8 +14573,8 @@ const docTemplate = `{
                 "score": {
                     "type": "number"
                 },
-                "vector_score": {
-                    "type": "number"
+                "title": {
+                    "type": "string"
                 }
             }
         },
@@ -13977,10 +14587,6 @@ const docTemplate = `{
                 "limit": {
                     "type": "integer"
                 },
-                "mode": {
-                    "description": "\"hybrid\" | \"vector\" | \"bm25\" (default hybrid)",
-                    "type": "string"
-                },
                 "query": {
                     "type": "string"
                 },
@@ -13992,9 +14598,6 @@ const docTemplate = `{
         "internal_handler.ragSearchResponse": {
             "type": "object",
             "properties": {
-                "after_rerank": {
-                    "type": "integer"
-                },
                 "hits": {
                     "type": "array",
                     "items": {
@@ -14147,6 +14750,18 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.refreshRequest": {
+            "type": "object",
+            "properties": {
+                "org_id": {
+                    "description": "optional: switch org",
+                    "type": "string"
+                },
+                "refresh_token": {
                     "type": "string"
                 }
             }
@@ -14681,6 +15296,44 @@ const docTemplate = `{
                 },
                 "revoked_at": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handler.tokenListItem": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "credential_id": {
+                    "type": "string"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "jti": {
+                    "type": "string"
+                },
+                "meta": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "refill_amount": {
+                    "type": "integer"
+                },
+                "refill_interval": {
+                    "type": "string"
+                },
+                "remaining": {
+                    "type": "integer"
+                },
+                "revoked_at": {
+                    "type": "string"
+                },
+                "scopes": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 }
             }
         },
