@@ -34,6 +34,10 @@ type Provider struct {
 
 	// NextPortalURL overrides the URL returned by CreatePortal.
 	NextPortalURL string
+
+	// NextResolveResult / NextResolveError control ResolveCheckout's reply.
+	NextResolveResult *billing.ResolveCheckoutResult
+	NextResolveError  error
 }
 
 // New returns a fake provider registered under the given name.
@@ -87,6 +91,18 @@ func (p *Provider) CreatePortal(_ context.Context, req billing.PortalRequest) (*
 		target = req.OrgID.String()
 	}
 	return &billing.PortalSession{URL: "https://fake-portal.example/" + target}, nil
+}
+
+// ResolveCheckout implements billing.Provider. Returns the canned result
+// or error when set; otherwise reports the checkout active.
+func (p *Provider) ResolveCheckout(_ context.Context, _ billing.ResolveCheckoutRequest) (*billing.ResolveCheckoutResult, error) {
+	if p.NextResolveError != nil {
+		return nil, p.NextResolveError
+	}
+	if p.NextResolveResult != nil {
+		return p.NextResolveResult, nil
+	}
+	return &billing.ResolveCheckoutResult{Status: billing.StatusActive}, nil
 }
 
 // VerifyWebhook implements billing.Provider. Returns nil (accept) when no
