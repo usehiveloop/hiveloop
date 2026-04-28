@@ -1,6 +1,7 @@
 package paystack
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,30 +9,45 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/usehiveloop/hiveloop/internal/billing"
 )
+
+type customerPayload struct {
+	CustomerCode string `json:"customer_code"`
+	Email        string `json:"email"`
+}
+
+type authorizationBlock struct {
+	AuthorizationCode string `json:"authorization_code"`
+	Last4             string `json:"last4"`
+	Brand             string `json:"brand"`
+	CardType          string `json:"card_type"`
+	Bank              string `json:"bank"`
+	AccountName       string `json:"account_name"`
+	ExpMonth          string `json:"exp_month"`
+	ExpYear           string `json:"exp_year"`
+	Channel           string `json:"channel"`
+	Reusable          bool   `json:"reusable"`
+}
 
 type verifyTransactionResponse struct {
 	Reference     string             `json:"reference"`
 	Status        string             `json:"status"`
 	Amount        int64              `json:"amount"`
 	Currency      string             `json:"currency"`
+	Channel       string             `json:"channel"`
 	PaidAt        *time.Time         `json:"paid_at"`
 	Customer      customerPayload    `json:"customer"`
-	Plan          json.RawMessage    `json:"plan"`
-	Metadata      json.RawMessage    `json:"metadata"`
 	Authorization authorizationBlock `json:"authorization"`
+	// Paystack returns metadata in one of three shapes — null, the
+	// number 0 (their placeholder), or a JSON object — so we keep it
+	// raw and decode by inspection.
+	Metadata json.RawMessage `json:"metadata"`
 }
 
-type listSubscriptionsItem struct {
-	SubscriptionCode string     `json:"subscription_code"`
-	Status           string     `json:"status"`
-	NextPaymentDate  *time.Time `json:"next_payment_date"`
-	CreatedAt        *time.Time `json:"createdAt"`
-}
-
+// ResolveCheckout calls /transaction/verify/:reference and returns the
+// normalized result. Callers verify the paid amount against the plan
+// price themselves — this method is purely a transport.
 func (p *Provider) ResolveCheckout(ctx context.Context, req billing.ResolveCheckoutRequest) (*billing.ResolveCheckoutResult, error) {
 	if req.Reference == "" {
 		return nil, fmt.Errorf("paystack resolve: empty reference")
@@ -42,79 +58,49 @@ func (p *Provider) ResolveCheckout(ctx context.Context, req billing.ResolveCheck
 		return nil, fmt.Errorf("verify transaction: %w", err)
 	}
 
-	if tx.Status != "success" {
-		return &billing.ResolveCheckoutResult{Status: mapTransactionStatus(tx.Status)}, nil
-	}
-
-	if req.ExpectedOrgID != uuid.Nil {
-		orgID, err := extractOrgIDFromRaw(tx.Metadata)
-		if err == nil && orgID == uuid.Nil {
-			orgID, _ = extractOrgID(tx.Customer.Metadata)
-		}
-		if orgID != uuid.Nil && orgID != req.ExpectedOrgID {
-			return nil, fmt.Errorf("paystack resolve: reference belongs to a different org")
-		}
-	}
-
-	planCode := parseChargePlanCode(tx.Plan)
-	if planCode == "" {
-		return nil, fmt.Errorf("paystack resolve: transaction has no plan")
-	}
-	planSlug := p.cfg.Plans.SlugForPlanCode(planCode)
-	if planSlug == "" {
-		return nil, fmt.Errorf("paystack resolve: plan %q not managed", planCode)
-	}
-
-	res := &billing.ResolveCheckoutResult{
-		Status:             billing.StatusActive,
-		PlanSlug:           planSlug,
+	return &billing.ResolveCheckoutResult{
+		Status:             mapTransactionStatus(tx.Status),
 		ExternalCustomerID: tx.Customer.CustomerCode,
-		ChargeReference:    tx.Reference,
-		ChargeAmount:       tx.Amount,
-		ChargedAt:          tx.PaidAt,
-		CardLast4:          tx.Authorization.Last4,
-		CardBrand:          tx.Authorization.Brand,
-		CardExpMonth:       tx.Authorization.ExpMonth,
-		CardExpYear:        tx.Authorization.ExpYear,
-		AuthorizationCode:  tx.Authorization.AuthorizationCode,
-	}
-	if tx.PaidAt != nil {
-		res.CurrentPeriodStart = *tx.PaidAt
-	}
-
-	if sub, err := p.findActiveSubscription(ctx, tx.Customer.CustomerCode, planCode); err == nil && sub != nil {
-		res.ExternalSubscriptionID = sub.SubscriptionCode
-		if sub.NextPaymentDate != nil {
-			res.CurrentPeriodEnd = *sub.NextPaymentDate
-		}
-		if sub.CreatedAt != nil && res.CurrentPeriodStart.IsZero() {
-			res.CurrentPeriodStart = *sub.CreatedAt
-		}
-	}
-
-	return res, nil
+		PaidAt:             tx.PaidAt,
+		PaidAmountMinor:    tx.Amount,
+		Currency:           tx.Currency,
+		Reference:          tx.Reference,
+		PaymentMethod:      paymentMethodFrom(tx.Authorization, tx.Channel),
+		Metadata:           parseMetadata(tx.Metadata),
+	}, nil
 }
 
-// findActiveSubscription queries /subscription?customer=&plan= for the
-// subscription Paystack creates after the first successful charge. Returns
-// (nil, nil) when no row exists yet — callers treat that as "charge succeeded
-// but the subscription isn't visible yet" and fall back to charge data.
-func (p *Provider) findActiveSubscription(ctx context.Context, customerCode, planCode string) (*listSubscriptionsItem, error) {
-	if customerCode == "" || planCode == "" {
-		return nil, nil
+// parseMetadata decodes the metadata Paystack echoes back from the
+// /transaction/initialize call. Their API uses three shapes here — null,
+// the literal number 0 (their "no metadata" placeholder), or a JSON
+// object — so we accept all of them and ignore unknown shapes.
+func parseMetadata(raw json.RawMessage) map[string]string {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) || bytes.Equal(trimmed, []byte("0")) {
+		return nil
 	}
-	q := url.Values{}
-	q.Set("customer", customerCode)
-	q.Set("plan", planCode)
+	var m map[string]string
+	if err := json.Unmarshal(trimmed, &m); err != nil {
+		return nil
+	}
+	return m
+}
 
-	var items []listSubscriptionsItem
-	if err := p.client.do(ctx, http.MethodGet, "/subscription?"+q.Encode(), nil, &items); err != nil {
-		return nil, err
+func paymentMethodFrom(auth authorizationBlock, txChannel string) billing.PaymentMethod {
+	channel := billing.PaymentChannel(auth.Channel)
+	if channel == "" {
+		channel = billing.PaymentChannel(txChannel)
 	}
-	for i := range items {
-		return &items[i], nil
+	return billing.PaymentMethod{
+		AuthorizationCode: auth.AuthorizationCode,
+		Channel:           channel,
+		CardLast4:         auth.Last4,
+		CardBrand:         auth.Brand,
+		CardExpMonth:      auth.ExpMonth,
+		CardExpYear:       auth.ExpYear,
+		BankName:          auth.Bank,
+		AccountName:       auth.AccountName,
 	}
-	return nil, nil
 }
 
 func mapTransactionStatus(s string) billing.SubscriptionStatus {

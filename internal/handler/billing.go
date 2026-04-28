@@ -188,10 +188,14 @@ func (h *BillingHandler) CreatePortal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	externalSubID := ""
+	if sub.ExternalSubscriptionID != nil {
+		externalSubID = *sub.ExternalSubscriptionID
+	}
 	session, err := provider.CreatePortal(r.Context(), billing.PortalRequest{
 		OrgID:                  org.ID,
 		ExternalCustomerID:     sub.ExternalCustomerID,
-		ExternalSubscriptionID: sub.ExternalSubscriptionID,
+		ExternalSubscriptionID: externalSubID,
 	})
 	if err != nil {
 		if errors.Is(err, billing.ErrNoActiveSubscription) {
@@ -204,60 +208,6 @@ func (h *BillingHandler) CreatePortal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, portalResponse{PortalURL: session.URL})
-}
-
-type subscriptionResponse struct {
-	PlanSlug        string `json:"plan_slug"`
-	Status          string `json:"status"`
-	Provider        string `json:"provider,omitempty"`
-	CreditsBalance  int64  `json:"credits_balance"`
-	CurrentPeriodEnd string `json:"current_period_end,omitempty"`
-}
-
-// GetSubscription returns the org's current subscription and credit balance.
-// @Summary Get subscription status
-// @Description Returns the org's active plan, provider, and credit balance.
-// @Tags billing
-// @Produce json
-// @Success 200 {object} subscriptionResponse
-// @Failure 401 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Security BearerAuth
-// @Router /v1/billing/subscription [get]
-func (h *BillingHandler) GetSubscription(w http.ResponseWriter, r *http.Request) {
-	org, ok := middleware.OrgFromContext(r.Context())
-	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
-		return
-	}
-
-	balance, err := h.credits.Balance(org.ID)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load balance"})
-		return
-	}
-
-	resp := subscriptionResponse{
-		PlanSlug:       org.PlanSlug,
-		Status:         "active",
-		CreditsBalance: balance,
-	}
-
-	var sub model.Subscription
-	err = h.db.Where("org_id = ? AND status = ?", org.ID, string(billing.StatusActive)).
-		Order("created_at DESC").First(&sub).Error
-	if err == nil {
-		resp.Provider = sub.Provider
-		resp.Status = sub.Status
-		if !sub.CurrentPeriodEnd.IsZero() {
-			resp.CurrentPeriodEnd = sub.CurrentPeriodEnd.Format("2006-01-02T15:04:05Z07:00")
-		}
-	} else if err != gorm.ErrRecordNotFound {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load subscription"})
-		return
-	}
-
-	writeJSON(w, http.StatusOK, resp)
 }
 
 // lookupOrgOwnerEmail returns the email of the earliest-joined member of the

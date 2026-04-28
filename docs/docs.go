@@ -5188,6 +5188,185 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/billing/subscription/apply-change": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Apply a subscription plan change",
+                "parameters": [
+                    {
+                        "description": "Quote and (for upgrades) Paystack reference",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.applyChangeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.applyChangeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "402": {
+                        "description": "Payment Required",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "410": {
+                        "description": "Gone",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/billing/subscription/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Cancel a subscription",
+                "parameters": [
+                    {
+                        "description": "Cancellation options",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.cancelRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.cancelResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/billing/subscription/preview-change": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Preview a subscription plan change",
+                "parameters": [
+                    {
+                        "description": "Target plan",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.previewChangeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.previewChangeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/billing/subscription/resume": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Resume a subscription",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.cancelResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/billing/verify": {
             "post": {
                 "security": [
@@ -5195,7 +5374,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Synchronously resolves a checkout reference, asserts the transaction succeeded, and upserts the local Subscription row.",
+                "description": "Resolves a Paystack transaction reference, asserts the paid amount matches the plan's price, and provisions the Subscription row.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5232,6 +5411,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "402": {
+                        "description": "Payment Required",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.errorResponse"
                         }
@@ -12589,6 +12774,28 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.applyChangeRequest": {
+            "type": "object",
+            "properties": {
+                "paystack_reference": {
+                    "type": "string"
+                },
+                "quote_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.applyChangeResponse": {
+            "type": "object",
+            "properties": {
+                "plan_slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.attachSkillRequest": {
             "type": "object",
             "properties": {
@@ -12661,6 +12868,28 @@ const docTemplate = `{
                 },
                 "user": {
                     "$ref": "#/definitions/internal_handler.userResponse"
+                }
+            }
+        },
+        "internal_handler.cancelRequest": {
+            "type": "object",
+            "properties": {
+                "at_period_end": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "internal_handler.cancelResponse": {
+            "type": "object",
+            "properties": {
+                "cancel_at_period_end": {
+                    "type": "boolean"
+                },
+                "canceled_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
                 }
             }
         },
@@ -14533,6 +14762,49 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.previewChangeRequest": {
+            "type": "object",
+            "properties": {
+                "plan_slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.previewChangeResponse": {
+            "type": "object",
+            "properties": {
+                "amount_minor": {
+                    "type": "integer"
+                },
+                "credit_grant_minor": {
+                    "type": "integer"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "effective_at": {
+                    "type": "string"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "from_plan_slug": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "quote_id": {
+                    "type": "string"
+                },
+                "requires_payment_now": {
+                    "type": "boolean"
+                },
+                "to_plan_slug": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.providerDetail": {
             "type": "object",
             "properties": {
@@ -15573,10 +15845,42 @@ const docTemplate = `{
         "internal_handler.subscriptionResponse": {
             "type": "object",
             "properties": {
+                "cancel_at_period_end": {
+                    "type": "boolean"
+                },
+                "card_brand": {
+                    "type": "string"
+                },
+                "card_exp_month": {
+                    "type": "string"
+                },
+                "card_exp_year": {
+                    "type": "string"
+                },
+                "card_last4": {
+                    "type": "string"
+                },
                 "credits_balance": {
                     "type": "integer"
                 },
                 "current_period_end": {
+                    "type": "string"
+                },
+                "payment_account_name": {
+                    "type": "string"
+                },
+                "payment_bank_name": {
+                    "type": "string"
+                },
+                "payment_channel": {
+                    "description": "Payment-method snapshot from the most recent successful charge.",
+                    "type": "string"
+                },
+                "pending_change_at": {
+                    "type": "string"
+                },
+                "pending_plan_slug": {
+                    "description": "Pending plan change scheduled at PendingChangeAt (downgrade flow).",
                     "type": "string"
                 },
                 "plan_slug": {

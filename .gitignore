@@ -55,3 +55,6 @@ go.work.sum
 services/rag-engine/target/
 services/rag-engine/**/target/
 apps/web/.mcp.json
+
+# pnpm workspace cache (worktree artefact)
+node_modules/.pnpm-workspace-state-v1.json
