@@ -132,7 +132,9 @@ export function CronScheduleInput({ value, onChange }: CronScheduleInputProps) {
             <span className="text-[13px] text-muted-foreground">Every</span>
             <Select
               value={String(hourlyEvery)}
-              onValueChange={(v) => setHourlyEvery(Number.parseInt(v, 10))}
+              onValueChange={(v) => {
+                if (v != null) setHourlyEvery(Number.parseInt(v, 10))
+              }}
             >
               <SelectTrigger className="h-9 w-20">
                 <SelectValue />
