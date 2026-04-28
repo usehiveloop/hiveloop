@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehiveloop/hiveloop/internal/billing/subscription"
 	"github.com/usehiveloop/hiveloop/internal/cache"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
@@ -33,6 +34,7 @@ type WorkerDeps struct {
 	NangoClient      *nango.Client         // nil disables deterministic enrichment
 	CacheManager     *cache.Manager        // nil disables tasks that need credential decryption
 	Credits          *billing.CreditsService // required for billing-token-spend deduction
+	Subscriptions    *subscription.Service   // required for renewal worker
 	Enqueuer         enqueue.TaskEnqueuer  // required for enqueuing sub-tasks
 
 	Rag          *ragtasks.Deps
@@ -90,6 +92,14 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 	if deps.Credits != nil {
 		mux.HandleFunc(TypeBillingTokenSpend, NewBillingTokenSpendHandler(deps.Credits).Handle)
 		mux.HandleFunc(TypeCreditsExpire, NewCreditsExpireHandler(deps.Credits).Handle)
+	}
+
+	// Subscription renewal worker. Sweep runs hourly, finds due subs, and
+	// enqueues per-sub renewal tasks; per-sub tasks call ChargeAuthorization
+	// against the saved payment method.
+	if deps.Subscriptions != nil && deps.Enqueuer != nil {
+		mux.HandleFunc(TypeBillingRenewSweep, NewBillingRenewSweepHandler(deps.DB, deps.Enqueuer).Handle)
+		mux.HandleFunc(TypeBillingRenewSubscription, NewBillingRenewSubscriptionHandler(deps.Subscriptions).Handle)
 	}
 
 	// Conversation naming (async title generation from the first message).

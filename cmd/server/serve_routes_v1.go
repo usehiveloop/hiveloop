@@ -29,6 +29,7 @@ func setupV1Routes(
 	generationHandler *handler.GenerationHandler,
 	apiKeyHandler *handler.APIKeyHandler,
 	billingHandler *handler.BillingHandler,
+	subscriptionHandler *handler.SubscriptionHandler,
 	credHandler *handler.CredentialHandler,
 	tokenHandler *handler.TokenHandler,
 	sandboxTemplateHandler *handler.SandboxTemplateHandler,
@@ -83,12 +84,7 @@ func setupV1Routes(
 			r.Get("/api-keys", apiKeyHandler.List)
 			r.Delete("/api-keys/{id}", apiKeyHandler.Revoke)
 
-			if billingHandler != nil {
-				r.Post("/billing/checkout", billingHandler.CreateCheckout)
-				r.Get("/billing/subscription", billingHandler.GetSubscription)
-				r.Post("/billing/portal", billingHandler.CreatePortal)
-				r.Post("/billing/verify", billingHandler.Verify)
-			}
+			mountBillingRoutes(r, billingHandler, subscriptionHandler)
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("credentials"))

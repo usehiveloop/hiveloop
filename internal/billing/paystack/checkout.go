@@ -7,16 +7,11 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/billing"
 )
 
-// initializeRequest is the POST /transaction/initialize body. Paystack
-// requires `amount` even when `plan` is set — the plan amount overrides
-// it on Paystack's side, but the field cannot be omitted (the API rejects
-// with "Invalid Amount Sent"). Pass-through metadata lands on the
-// transaction and is echoed back in charge.success webhooks.
 type initializeRequest struct {
 	Email       string            `json:"email"`
-	Amount      int64             `json:"amount"` // minor units (kobo for NGN)
-	Plan        string            `json:"plan,omitempty"`
+	Amount      int64             `json:"amount"`
 	Currency    string            `json:"currency,omitempty"`
+	Channels    []string          `json:"channels,omitempty"`
 	CallbackURL string            `json:"callback_url,omitempty"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
@@ -27,27 +22,23 @@ type initializeResponse struct {
 	Reference        string `json:"reference"`
 }
 
-// CreateCheckout initialises a Paystack transaction tied to a plan.
+// CreateCheckout initialises a Paystack transaction the browser will resume
+// via PaystackPop.resumeTransaction(access_code). We charge a flat amount
+// — no plan_code — because we manage the recurring lifecycle ourselves.
 //
-// Paystack creates the Subscription automatically after the first successful
-// charge (delivered as subscription.create via webhook) — so this call only
-// returns the authorization URL the browser should redirect to. Our local
-// Subscription row is created from the webhook handler, not from this method.
+// Channels are restricted to card and bank: those are the only Paystack
+// channels that issue a reusable AuthorizationCode, which is required for
+// subscription renewals. Other channels (USSD, mobile money) are one-shot.
 //
 // The customerID argument is unused; Paystack derives the customer from the
 // email on the transaction. We keep it in the signature to satisfy
 // billing.Provider.
 func (p *Provider) CreateCheckout(ctx context.Context, _ string, intent billing.CheckoutIntent) (*billing.CheckoutSession, error) {
-	planCode, err := p.cfg.Plans.PlanCode(intent.PlanSlug, intent.Currency, intent.Cycle)
-	if err != nil {
-		return nil, err
-	}
-
 	req := initializeRequest{
 		Email:       intent.CustomerEmail,
 		Amount:      intent.AmountMinor,
-		Plan:        planCode,
 		Currency:    intent.Currency,
+		Channels:    []string{string(billing.ChannelCard), string(billing.ChannelBank)},
 		CallbackURL: intent.SuccessURL,
 		Metadata:    intent.Metadata,
 	}
@@ -62,5 +53,6 @@ func (p *Provider) CreateCheckout(ctx context.Context, _ string, intent billing.
 		URL:        resp.AuthorizationURL,
 		ExternalID: resp.Reference,
 		AccessCode: resp.AccessCode,
+		Reference:  resp.Reference,
 	}, nil
 }
