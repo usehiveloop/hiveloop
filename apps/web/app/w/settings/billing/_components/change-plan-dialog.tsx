@@ -60,7 +60,7 @@ export function ChangePlanDialog({ targetPlan, onClose, onApplied }: ChangePlanD
   const open = targetPlan !== null
   const queryClient = useQueryClient()
   const previewMutation = $api.useMutation("post", "/v1/billing/subscription/preview-change")
-  const checkoutMutation = $api.useMutation("post", "/v1/billing/checkout")
+  const initUpgradeMutation = $api.useMutation("post", "/v1/billing/subscription/init-upgrade")
   const applyMutation = $api.useMutation("post", "/v1/billing/subscription/apply-change")
   const { openPopup } = usePaystackPop()
 
@@ -110,20 +110,8 @@ export function ChangePlanDialog({ targetPlan, onClose, onApplied }: ChangePlanD
       return
     }
 
-    // Upgrade: spin up a Paystack transaction for the prorated amount, then
-    // hand the reference to apply-change once the popup completes.
-    const returnURL = typeof window !== "undefined" ? window.location.href : ""
-    checkoutMutation.mutate(
-      {
-        body: {
-          provider: "paystack",
-          plan_slug: targetPlan.slug,
-          currency: targetPlan.currency,
-          cycle: "monthly",
-          success_url: returnURL,
-          cancel_url: returnURL,
-        } as never,
-      },
+    initUpgradeMutation.mutate(
+      { body: { quote_id: preview.quote_id! } },
       {
         onSuccess: (data) => {
           if (!data.access_code) {

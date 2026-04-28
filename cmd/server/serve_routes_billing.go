@@ -17,6 +17,7 @@ func mountBillingRoutes(r chi.Router, billingHandler *handler.BillingHandler, su
 	r.Get("/billing/subscription", billingHandler.GetSubscription)
 
 	r.Post("/billing/subscription/preview-change", subscriptionHandler.PreviewChange)
+	r.Post("/billing/subscription/init-upgrade", subscriptionHandler.InitUpgrade)
 	r.Post("/billing/subscription/apply-change", subscriptionHandler.ApplyChange)
 	r.Post("/billing/subscription/cancel", subscriptionHandler.Cancel)
 	r.Post("/billing/subscription/resume", subscriptionHandler.Resume)
