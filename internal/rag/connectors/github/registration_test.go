@@ -17,7 +17,7 @@ func TestRegistration_GithubKindResolves(t *testing.T) {
 	}
 
 	src := &fixtureSource{cfg: json.RawMessage(`{"repo_owner":"acme","repositories":["widget"]}`)}
-	conn, err := factory(src, nil)
+	conn, err := factory(src, interfaces.BuildDeps{})
 	if err != nil {
 		t.Fatalf("factory: %v", err)
 	}
