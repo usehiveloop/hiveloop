@@ -5867,6 +5867,228 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/billing/subscription/apply-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply a subscription plan change */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Quote and (for upgrades) Paystack reference */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["applyChangeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["applyChangeResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Payment Required */
+                402: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/subscription/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a subscription */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Cancellation options */
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["cancelRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["cancelResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/subscription/preview-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview a subscription plan change */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Target plan */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["previewChangeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["previewChangeResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/subscription/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a subscription */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["cancelResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/billing/verify": {
         parameters: {
             query?: never;
@@ -5878,7 +6100,7 @@ export interface paths {
         put?: never;
         /**
          * Verify checkout completed
-         * @description Synchronously resolves a checkout reference, asserts the transaction succeeded, and upserts the local Subscription row.
+         * @description Resolves a Paystack transaction reference, asserts the paid amount matches the plan's price, and provisions the Subscription row.
          */
         post: {
             parameters: {
@@ -5914,6 +6136,15 @@ export interface paths {
                 };
                 /** @description Unauthorized */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Payment Required */
+                402: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -12701,6 +12932,14 @@ export interface components {
             revoked?: number;
             total?: number;
         };
+        applyChangeRequest: {
+            paystack_reference?: string;
+            quote_id?: string;
+        };
+        applyChangeResponse: {
+            plan_slug?: string;
+            status?: string;
+        };
         attachSkillRequest: {
             pinned_version_id?: string;
             skill_id?: string;
@@ -12726,6 +12965,14 @@ export interface components {
             orgs?: components["schemas"]["orgMemberDTO"][];
             refresh_token?: string;
             user?: components["schemas"]["userResponse"];
+        };
+        cancelRequest: {
+            at_period_end?: boolean;
+        };
+        cancelResponse: {
+            cancel_at_period_end?: boolean;
+            canceled_at?: string;
+            status?: string;
         };
         changePasswordRequest: {
             current_password?: string;
@@ -13342,6 +13589,21 @@ export interface components {
         portalResponse: {
             portal_url?: string;
         };
+        previewChangeRequest: {
+            plan_slug?: string;
+        };
+        previewChangeResponse: {
+            amount_minor?: number;
+            credit_grant_minor?: number;
+            currency?: string;
+            effective_at?: string;
+            expires_at?: string;
+            from_plan_slug?: string;
+            kind?: string;
+            quote_id?: string;
+            requires_payment_now?: boolean;
+            to_plan_slug?: string;
+        };
         providerDetail: {
             api?: string;
             doc?: string;
@@ -13692,8 +13954,20 @@ export interface components {
             updated_at?: string;
         };
         subscriptionResponse: {
+            cancel_at_period_end?: boolean;
+            card_brand?: string;
+            card_exp_month?: string;
+            card_exp_year?: string;
+            card_last4?: string;
             credits_balance?: number;
             current_period_end?: string;
+            payment_account_name?: string;
+            payment_bank_name?: string;
+            /** @description Payment-method snapshot from the most recent successful charge. */
+            payment_channel?: string;
+            pending_change_at?: string;
+            /** @description Pending plan change scheduled at PendingChangeAt (downgrade flow). */
+            pending_plan_slug?: string;
             plan_slug?: string;
             provider?: string;
             status?: string;

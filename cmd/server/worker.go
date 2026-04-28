@@ -89,8 +89,9 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		SkillFetcher: skills.NewGitFetcher(cfg.GitHubToken),
 		NangoClient:  deps.NangoClient,
 		CacheManager: deps.CacheManager,
-		Credits:      deps.Credits,
-		Enqueuer:     enqueuer,
+		Credits:       deps.Credits,
+		Subscriptions: deps.Subscriptions,
+		Enqueuer:      enqueuer,
 		Rag:          ragDeps,
 		RagScheduler: ragSched,
 	}

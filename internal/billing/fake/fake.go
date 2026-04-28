@@ -4,9 +4,6 @@ package fake
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
-	"net/http"
 	"sync"
 
 	"github.com/google/uuid"
@@ -14,30 +11,23 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/billing"
 )
 
-// Provider is an in-memory billing.Provider. Tests configure the canned
-// responses via the public fields and inspect the observed calls via the
-// accessor methods.
+// Provider is an in-memory billing.Provider. Tests configure canned responses
+// via the public fields and inspect observed calls via the accessor methods.
 type Provider struct {
 	mu        sync.Mutex
 	name      string
 	customers map[uuid.UUID]string
 	checkouts []billing.CheckoutIntent
+	charges   []billing.ChargeAuthorizationRequest
 
-	// SignatureHeader, when set, forces VerifyWebhook to require the header's
-	// value equal SignatureValue. Empty means "accept everything".
-	SignatureHeader string
-	SignatureValue  string
-
-	// NextCheckoutURL overrides the URL returned by CreateCheckout. Empty uses
-	// a generated placeholder.
 	NextCheckoutURL string
+	NextPortalURL   string
 
-	// NextPortalURL overrides the URL returned by CreatePortal.
-	NextPortalURL string
-
-	// NextResolveResult / NextResolveError control ResolveCheckout's reply.
 	NextResolveResult *billing.ResolveCheckoutResult
 	NextResolveError  error
+
+	NextChargeResult *billing.ChargeAuthorizationResult
+	NextChargeError  error
 }
 
 // New returns a fake provider registered under the given name.
@@ -51,8 +41,7 @@ func New(name string) *Provider {
 // Name implements billing.Provider.
 func (p *Provider) Name() string { return p.name }
 
-// EnsureCustomer implements billing.Provider. Returns a stable id derived from
-// the org id.
+// EnsureCustomer implements billing.Provider with a stable id.
 func (p *Provider) EnsureCustomer(_ context.Context, orgID uuid.UUID, _, _ string) (string, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -73,12 +62,11 @@ func (p *Provider) CreateCheckout(_ context.Context, customerID string, intent b
 	if url == "" {
 		url = "https://fake-checkout.example/" + customerID
 	}
-	return &billing.CheckoutSession{URL: url, ExternalID: "ch_" + uuid.NewString()}, nil
+	ref := "ref_fake_" + uuid.NewString()
+	return &billing.CheckoutSession{URL: url, ExternalID: ref, Reference: ref}, nil
 }
 
-// CreatePortal implements billing.Provider. The fake accepts either a
-// subscription id or a customer id to build the placeholder URL — whichever
-// the caller supplied.
+// CreatePortal implements billing.Provider.
 func (p *Provider) CreatePortal(_ context.Context, req billing.PortalRequest) (*billing.PortalSession, error) {
 	if url := p.NextPortalURL; url != "" {
 		return &billing.PortalSession{URL: url}, nil
@@ -93,8 +81,7 @@ func (p *Provider) CreatePortal(_ context.Context, req billing.PortalRequest) (*
 	return &billing.PortalSession{URL: "https://fake-portal.example/" + target}, nil
 }
 
-// ResolveCheckout implements billing.Provider. Returns the canned result
-// or error when set; otherwise reports the checkout active.
+// ResolveCheckout implements billing.Provider.
 func (p *Provider) ResolveCheckout(_ context.Context, _ billing.ResolveCheckoutRequest) (*billing.ResolveCheckoutResult, error) {
 	if p.NextResolveError != nil {
 		return nil, p.NextResolveError
@@ -105,35 +92,22 @@ func (p *Provider) ResolveCheckout(_ context.Context, _ billing.ResolveCheckoutR
 	return &billing.ResolveCheckoutResult{Status: billing.StatusActive}, nil
 }
 
-// VerifyWebhook implements billing.Provider. Returns nil (accept) when no
-// signature check is configured.
-func (p *Provider) VerifyWebhook(r *http.Request, _ []byte) error {
-	if p.SignatureHeader == "" {
-		return nil
+// ChargeAuthorization implements billing.Provider and records the call.
+func (p *Provider) ChargeAuthorization(_ context.Context, req billing.ChargeAuthorizationRequest) (*billing.ChargeAuthorizationResult, error) {
+	p.mu.Lock()
+	p.charges = append(p.charges, req)
+	p.mu.Unlock()
+	if p.NextChargeError != nil {
+		return nil, p.NextChargeError
 	}
-	if r.Header.Get(p.SignatureHeader) != p.SignatureValue {
-		return errors.New("fake: invalid signature")
+	if p.NextChargeResult != nil {
+		return p.NextChargeResult, nil
 	}
-	return nil
-}
-
-// Event is the JSON body the fake provider decodes. Tests emit this shape to
-// exercise the webhook handler.
-type Event struct {
-	Type         billing.EventType          `json:"type"`
-	Subscription *billing.SubscriptionState `json:"subscription,omitempty"`
-}
-
-// ParseEvent implements billing.Provider.
-func (p *Provider) ParseEvent(body []byte) (billing.Event, error) {
-	var ev Event
-	if err := json.Unmarshal(body, &ev); err != nil {
-		return billing.Event{}, err
-	}
-	return billing.Event{
-		Type:            ev.Type,
-		Subscription:    ev.Subscription,
-		RawProviderType: string(ev.Type),
+	return &billing.ChargeAuthorizationResult{
+		Status:          billing.StatusActive,
+		Reference:       "ref_charge_" + uuid.NewString(),
+		PaidAmountMinor: req.AmountMinor,
+		Currency:        req.Currency,
 	}, nil
 }
 
@@ -143,5 +117,14 @@ func (p *Provider) Checkouts() []billing.CheckoutIntent {
 	defer p.mu.Unlock()
 	out := make([]billing.CheckoutIntent, len(p.checkouts))
 	copy(out, p.checkouts)
+	return out
+}
+
+// Charges returns a snapshot of charge-authorization requests.
+func (p *Provider) Charges() []billing.ChargeAuthorizationRequest {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	out := make([]billing.ChargeAuthorizationRequest, len(p.charges))
+	copy(out, p.charges)
 	return out
 }

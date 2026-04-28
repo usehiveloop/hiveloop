@@ -21,11 +21,15 @@ func planFromModel(p model.Plan) *planDTO {
 	if len(p.Features) > 0 && string(p.Features) != "null" {
 		_ = json.Unmarshal(p.Features, &features)
 	}
+	providerPlanID := ""
+	if p.ProviderPlanID != nil {
+		providerPlanID = *p.ProviderPlanID
+	}
 	return &planDTO{
 		Slug:           p.Slug,
 		Name:           p.Name,
 		Provider:       p.Provider,
-		ProviderPlanID: p.ProviderPlanID,
+		ProviderPlanID: providerPlanID,
 		Features:       features,
 		MonthlyCredits: p.MonthlyCredits,
 		WelcomeCredits: p.WelcomeCredits,

@@ -2,9 +2,7 @@ package fake_test
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -47,6 +45,9 @@ func TestFake_CreateCheckoutRecordsIntent(t *testing.T) {
 	if session.URL != "https://custom.example/checkout" {
 		t.Fatalf("expected custom URL, got %q", session.URL)
 	}
+	if session.Reference == "" {
+		t.Fatal("expected a non-empty reference")
+	}
 
 	got := p.Checkouts()
 	if len(got) != 1 {
@@ -57,54 +58,37 @@ func TestFake_CreateCheckoutRecordsIntent(t *testing.T) {
 	}
 }
 
-func TestFake_VerifyWebhookSignature(t *testing.T) {
+func TestFake_ChargeAuthorizationDefaultActive(t *testing.T) {
 	p := fake.New("fake")
-	p.SignatureHeader = "X-Sig"
-	p.SignatureValue = "secret"
-
-	// missing header — rejected
-	r := httptest.NewRequest(http.MethodPost, "/", nil)
-	if err := p.VerifyWebhook(r, nil); err == nil {
-		t.Fatal("expected rejection when signature missing")
+	res, err := p.ChargeAuthorization(context.Background(), billing.ChargeAuthorizationRequest{
+		Email:             "x@example.com",
+		AuthorizationCode: "AUTH_xxx",
+		AmountMinor:       1000,
+		Currency:          "NGN",
+	})
+	if err != nil {
+		t.Fatalf("ChargeAuthorization: %v", err)
+	}
+	if res.Status != billing.StatusActive {
+		t.Errorf("Status = %q, want active", res.Status)
+	}
+	if res.PaidAmountMinor != 1000 {
+		t.Errorf("PaidAmountMinor = %d, want 1000", res.PaidAmountMinor)
 	}
 
-	// wrong value — rejected
-	r = httptest.NewRequest(http.MethodPost, "/", nil)
-	r.Header.Set("X-Sig", "wrong")
-	if err := p.VerifyWebhook(r, nil); err == nil {
-		t.Fatal("expected rejection when signature wrong")
-	}
-
-	// right value — accepted
-	r = httptest.NewRequest(http.MethodPost, "/", nil)
-	r.Header.Set("X-Sig", "secret")
-	if err := p.VerifyWebhook(r, nil); err != nil {
-		t.Fatalf("expected acceptance, got %v", err)
+	if got := p.Charges(); len(got) != 1 {
+		t.Fatalf("expected 1 recorded charge, got %d", len(got))
 	}
 }
 
-func TestFake_ParseEvent(t *testing.T) {
+func TestFake_ChargeAuthorizationError(t *testing.T) {
 	p := fake.New("fake")
-	orgID := uuid.New()
-	body, _ := json.Marshal(fake.Event{
-		Type: billing.EventSubscriptionActivated,
-		Subscription: &billing.SubscriptionState{
-			ExternalSubscriptionID: "sub_1",
-			ExternalCustomerID:     "cus_1",
-			OrgID:                  orgID,
-			PlanSlug:               "pro",
-			Status:                 billing.StatusActive,
-		},
-	})
+	p.NextChargeError = errors.New("boom")
 
-	ev, err := p.ParseEvent(body)
-	if err != nil {
-		t.Fatalf("ParseEvent: %v", err)
-	}
-	if ev.Type != billing.EventSubscriptionActivated {
-		t.Fatalf("Type = %q, want %q", ev.Type, billing.EventSubscriptionActivated)
-	}
-	if ev.Subscription == nil || ev.Subscription.OrgID != orgID {
-		t.Fatalf("subscription org id mismatch")
+	if _, err := p.ChargeAuthorization(context.Background(), billing.ChargeAuthorizationRequest{
+		AuthorizationCode: "AUTH_xxx",
+		AmountMinor:       100,
+	}); err == nil {
+		t.Fatal("expected error")
 	}
 }
