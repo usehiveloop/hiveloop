@@ -51,10 +51,14 @@ func (e *Embedder) Embed(ctx context.Context, inputs []string) ([][]float32, err
 	if len(inputs) == 0 {
 		return nil, nil
 	}
-	body, err := json.Marshal(map[string]any{
+	payload := map[string]any{
 		"model": e.cfg.Model,
 		"input": inputs,
-	})
+	}
+	if e.cfg.Dim > 0 {
+		payload["dimensions"] = e.cfg.Dim
+	}
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("embed: marshal: %w", err)
 	}
