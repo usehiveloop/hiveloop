@@ -15068,6 +15068,9 @@ const docTemplate = `{
                 "docs_estimated": {
                     "type": "integer"
                 },
+                "error_msg": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },

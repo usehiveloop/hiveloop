@@ -2987,6 +2987,8 @@ definitions:
     properties:
       docs_estimated:
         type: integer
+      error_msg:
+        type: string
       id:
         type: string
       new_docs_indexed:
