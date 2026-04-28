@@ -5094,63 +5094,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/billing/portal": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Creates a customer portal session where the user can manage their subscription, payment methods, and invoices.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "billing"
-                ],
-                "summary": "Create billing portal session",
-                "parameters": [
-                    {
-                        "description": "Portal request",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.createPortalRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.portalResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/v1/billing/subscription": {
             "get": {
                 "security": [
@@ -5158,7 +5101,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns the org's active plan, provider, and credit balance.",
+                "description": "Returns the org's active plan, provider, payment-method snapshot, and any pending plan change.",
                 "produces": [
                     "application/json"
                 ],
@@ -13299,14 +13242,6 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.createPortalRequest": {
-            "type": "object",
-            "properties": {
-                "provider": {
-                    "type": "string"
-                }
-            }
-        },
         "internal_handler.createRAGSourceRequest": {
             "type": "object",
             "properties": {
@@ -14743,22 +14678,11 @@ const docTemplate = `{
                 "provider": {
                     "type": "string"
                 },
-                "provider_plan_id": {
-                    "type": "string"
-                },
                 "slug": {
                     "type": "string"
                 },
                 "welcome_credits": {
                     "type": "integer"
-                }
-            }
-        },
-        "internal_handler.portalResponse": {
-            "type": "object",
-            "properties": {
-                "portal_url": {
-                    "type": "string"
                 }
             }
         },

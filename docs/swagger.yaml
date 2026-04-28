@@ -1836,11 +1836,6 @@ definitions:
       name:
         type: string
     type: object
-  internal_handler.createPortalRequest:
-    properties:
-      provider:
-        type: string
-    type: object
   internal_handler.createRAGSourceRequest:
     properties:
       access_type:
@@ -2778,17 +2773,10 @@ definitions:
         type: integer
       provider:
         type: string
-      provider_plan_id:
-        type: string
       slug:
         type: string
       welcome_credits:
         type: integer
-    type: object
-  internal_handler.portalResponse:
-    properties:
-      portal_url:
-        type: string
     type: object
   internal_handler.previewChangeRequest:
     properties:
@@ -7191,46 +7179,10 @@ paths:
       summary: Create checkout session
       tags:
       - billing
-  /v1/billing/portal:
-    post:
-      consumes:
-      - application/json
-      description: Creates a customer portal session where the user can manage their
-        subscription, payment methods, and invoices.
-      parameters:
-      - description: Portal request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.createPortalRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.portalResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create billing portal session
-      tags:
-      - billing
   /v1/billing/subscription:
     get:
-      description: Returns the org's active plan, provider, and credit balance.
+      description: Returns the org's active plan, provider, payment-method snapshot,
+        and any pending plan change.
       produces:
       - application/json
       responses:

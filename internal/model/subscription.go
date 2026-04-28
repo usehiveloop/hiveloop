@@ -8,8 +8,6 @@ import (
 
 // Subscription: org's subscription to a Plan. We manage the recurring
 // lifecycle ourselves and use the provider purely for charge_authorization.
-// ExternalSubscriptionID is nullable since we no longer rely on
-// provider-side subscriptions; kept for historical rows + escape hatch.
 type Subscription struct {
 	ID       uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	OrgID    uuid.UUID `gorm:"type:uuid;not null;index"`
@@ -18,8 +16,7 @@ type Subscription struct {
 	Plan     Plan      `gorm:"foreignKey:PlanID"`
 	Provider string    `gorm:"not null;size:32"`
 
-	ExternalSubscriptionID *string `gorm:"size:128"`
-	ExternalCustomerID     string  `gorm:"not null;size:128;index"`
+	ExternalCustomerID string `gorm:"not null;size:128;index"`
 
 	// active, past_due, canceled, incomplete.
 	Status string `gorm:"not null;size:32;default:'active'"`
