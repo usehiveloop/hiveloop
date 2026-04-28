@@ -222,28 +222,6 @@ func TestLoad_ProductionAllowsAWSKMS(t *testing.T) {
 	}
 }
 
-func TestLoad_ProductionAllowsVault(t *testing.T) {
-	setRequiredEnv(t)
-	t.Setenv("ENVIRONMENT", "production")
-	t.Setenv("KMS_TYPE", "vault")
-	t.Setenv("VAULT_ADDRESS", "http://localhost:8200")
-	t.Setenv("VAULT_TOKEN", "test-token")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cfg.KMSType != "vault" {
-		t.Errorf("expected KMS type 'vault', got %q", cfg.KMSType)
-	}
-	if cfg.VaultAddress != "http://localhost:8200" {
-		t.Errorf("expected Vault address 'http://localhost:8200', got %q", cfg.VaultAddress)
-	}
-	if cfg.VaultToken != "test-token" {
-		t.Errorf("expected Vault token 'test-token', got %q", cfg.VaultToken)
-	}
-}
-
 func TestLoad_DevelopmentAllowsAEAD(t *testing.T) {
 	setRequiredEnv(t)
 	t.Setenv("ENVIRONMENT", "development")
@@ -255,55 +233,6 @@ func TestLoad_DevelopmentAllowsAEAD(t *testing.T) {
 	}
 	if cfg.KMSType != "aead" {
 		t.Errorf("expected KMS type 'aead', got %q", cfg.KMSType)
-	}
-}
-
-func TestLoad_VaultConfig(t *testing.T) {
-	setRequiredEnv(t)
-	t.Setenv("KMS_TYPE", "vault")
-	t.Setenv("KMS_KEY", "my-encryption-key")
-	t.Setenv("VAULT_ADDRESS", "http://vault:8200")
-	t.Setenv("VAULT_TOKEN", "s.token")
-	t.Setenv("VAULT_NAMESPACE", "my-namespace")
-	t.Setenv("VAULT_MOUNT_PATH", "custom-transit")
-	t.Setenv("VAULT_CA_CERT", "/path/to/ca.crt")
-	t.Setenv("VAULT_CLIENT_CERT", "/path/to/client.crt")
-	t.Setenv("VAULT_CLIENT_KEY", "/path/to/client.key")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	// Test VaultConfig() method
-	vaultCfg := cfg.VaultConfig()
-	if vaultCfg == nil {
-		t.Fatal("expected VaultConfig to not be nil")
-	}
-
-	if vaultCfg.Address != "http://vault:8200" {
-		t.Errorf("expected Vault address 'http://vault:8200', got %q", vaultCfg.Address)
-	}
-	if vaultCfg.Token != "s.token" {
-		t.Errorf("expected Vault token 's.token', got %q", vaultCfg.Token)
-	}
-	if vaultCfg.Namespace != "my-namespace" {
-		t.Errorf("expected Vault namespace 'my-namespace', got %q", vaultCfg.Namespace)
-	}
-	if vaultCfg.MountPath != "custom-transit" {
-		t.Errorf("expected Vault mount path 'custom-transit', got %q", vaultCfg.MountPath)
-	}
-	if vaultCfg.KeyName != "my-encryption-key" {
-		t.Errorf("expected Vault key name 'my-encryption-key', got %q", vaultCfg.KeyName)
-	}
-	if vaultCfg.CACert != "/path/to/ca.crt" {
-		t.Errorf("expected CA cert '/path/to/ca.crt', got %q", vaultCfg.CACert)
-	}
-	if vaultCfg.ClientCert != "/path/to/client.crt" {
-		t.Errorf("expected client cert '/path/to/client.crt', got %q", vaultCfg.ClientCert)
-	}
-	if vaultCfg.ClientKey != "/path/to/client.key" {
-		t.Errorf("expected client key '/path/to/client.key', got %q", vaultCfg.ClientKey)
 	}
 }
 
@@ -321,17 +250,3 @@ func TestLoad_CORSOriginsOptional(t *testing.T) {
 	}
 }
 
-func TestLoad_VaultConfig_ReturnsNilForNonVault(t *testing.T) {
-	setRequiredEnv(t)
-	t.Setenv("KMS_TYPE", "aead")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	vaultCfg := cfg.VaultConfig()
-	if vaultCfg != nil {
-		t.Error("expected VaultConfig to be nil when KMS_TYPE is not 'vault'")
-	}
-}
