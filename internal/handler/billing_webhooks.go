@@ -125,10 +125,19 @@ func (h *BillingWebhookHandler) upsertSubscription(providerName string, event bi
 		CanceledAt:             state.CanceledAt,
 	}
 
-	// Upsert by (provider, external_subscription_id).
+	// Upsert: prefer matching by (provider, external_subscription_id) for
+	// renewal/lifecycle events. Fall back to (provider, org_id, plan_id,
+	// status='active') so we pick up rows charge.success may have created
+	// with an empty SUB_xxx — one org has at most one active subscription
+	// per plan, so this is unambiguous.
 	var existing model.Subscription
 	err = h.db.Where("provider = ? AND external_subscription_id = ?",
 		providerName, state.ExternalSubscriptionID).First(&existing).Error
+	if err == gorm.ErrRecordNotFound {
+		err = h.db.Where("provider = ? AND org_id = ? AND plan_id = ? AND status = ?",
+			providerName, orgID, plan.ID, string(billing.StatusActive)).
+			First(&existing).Error
+	}
 	switch {
 	case err == gorm.ErrRecordNotFound:
 		if err := h.db.Create(&sub).Error; err != nil {
@@ -137,8 +146,18 @@ func (h *BillingWebhookHandler) upsertSubscription(providerName string, event bi
 	case err != nil:
 		return err
 	default:
+		// Preserve the payment-method snapshot the charge.success branch
+		// already wrote — we only overlay the subscription-level fields.
 		sub.ID = existing.ID
 		sub.CreatedAt = existing.CreatedAt
+		sub.LastChargeReference = existing.LastChargeReference
+		sub.LastChargeAmount = existing.LastChargeAmount
+		sub.LastChargedAt = existing.LastChargedAt
+		sub.CardLast4 = existing.CardLast4
+		sub.CardBrand = existing.CardBrand
+		sub.CardExpMonth = existing.CardExpMonth
+		sub.CardExpYear = existing.CardExpYear
+		sub.AuthorizationCode = existing.AuthorizationCode
 		if err := h.db.Save(&sub).Error; err != nil {
 			return err
 		}

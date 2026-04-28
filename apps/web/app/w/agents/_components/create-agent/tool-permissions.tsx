@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   LockIcon,
@@ -22,9 +22,32 @@ import type { components } from "@/lib/api/schema"
 type BuiltInTool = components["schemas"]["BuiltInToolDefinition"]
 type PermissionLevel = "allow" | "deny" | "require_approval"
 
+// Tools allowed by default for a brand-new agent. Everything else starts denied.
+// IDs match the backend catalogue in internal/handler/agents_tools.go.
+const DEFAULT_ALLOWED_TOOLS = new Set<string>([
+  "skill",
+  "bash",
+  "agent",
+  "sub_agent",
+  "Read",
+  "write",
+  "apply_patch",
+  "RipGrep",
+  "web_search",
+  "web_fetch",
+  "todoread",
+  "todowrite",
+])
+
 interface ToolPermissionsSectionProps {
   permissions: Record<string, PermissionLevel>
   onChange: (permissions: Record<string, PermissionLevel>) => void
+  /**
+   * "create" seeds every non-locked tool with "deny" once tools load, so the
+   * default for a brand-new agent is no permissions granted. "edit" leaves
+   * existing agents untouched.
+   */
+  mode: "create" | "edit"
 }
 
 const PERMISSION_OPTIONS: Array<{
@@ -240,6 +263,7 @@ function PermissionSelector({
 export function ToolPermissionsSection({
   permissions,
   onChange,
+  mode,
 }: ToolPermissionsSectionProps) {
   const { data, isLoading } = $api.useQuery("get", "/v1/agents/built-in-tools")
   const tools: BuiltInTool[] = (data as BuiltInTool[] | undefined) ?? []
@@ -255,18 +279,32 @@ export function ToolPermissionsSection({
     return groups
   }, [tools])
 
-  function setPermission(toolId: string, next: PermissionLevel) {
-    const current = { ...permissions }
-    if (next === "allow") {
-      delete current[toolId]
-    } else {
-      current[toolId] = next
+  const seededRef = useRef(false)
+  useEffect(() => {
+    if (seededRef.current) return
+    if (mode !== "create") return
+    if (tools.length === 0) return
+    if (Object.keys(permissions).length > 0) return
+    const seeded: Record<string, PermissionLevel> = {}
+    for (const tool of tools) {
+      if (!tool.id) continue
+      if (tool.locked) continue
+      seeded[tool.id] = DEFAULT_ALLOWED_TOOLS.has(tool.id) ? "allow" : "deny"
     }
-    onChange(current)
+    seededRef.current = true
+    onChange(seeded)
+  }, [mode, tools, permissions, onChange])
+
+  function setPermission(toolId: string, next: PermissionLevel) {
+    onChange({ ...permissions, [toolId]: next })
   }
 
   function getPermission(toolId: string): PermissionLevel {
-    return permissions[toolId] ?? "allow"
+    if (permissions[toolId]) return permissions[toolId]
+    if (mode === "create") {
+      return DEFAULT_ALLOWED_TOOLS.has(toolId) ? "allow" : "deny"
+    }
+    return "allow"
   }
 
   if (isLoading) {
