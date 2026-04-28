@@ -12842,7 +12842,14 @@
         "internal_handler.createCheckoutResponse": {
             "type": "object",
             "properties": {
+                "access_code": {
+                    "description": "popup flow: hand to PaystackPop().resumeTransaction()",
+                    "type": "string"
+                },
                 "checkout_url": {
+                    "type": "string"
+                },
+                "reference": {
                     "type": "string"
                 }
             }

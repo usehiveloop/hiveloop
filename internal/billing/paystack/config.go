@@ -4,88 +4,82 @@ import (
 	"fmt"
 	"strings"
 
+	"gorm.io/gorm"
+
 	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// Config wires the Paystack adapter with credentials and plan-code mappings.
+// Config wires the Paystack adapter with credentials and a plan resolver.
 //
-// Plans resolves (plan slug, currency, cycle) → Paystack plan_code. Paystack
-// requires one plan per currency, so supporting a new currency for an
-// existing slug means populating another entry in Plans — no code changes.
+// Plans is the bridge between our plan catalog (the plans table) and the
+// Paystack-side plan codes (PLN_xxx). Production uses DBPlanResolver; tests
+// can inject a fake.
 type Config struct {
 	// SecretKey is the Paystack secret key ("sk_live_…" or "sk_test_…").
-	// Used both for API authorization and for webhook HMAC verification —
-	// Paystack signs webhooks with the same secret.
+	// Used both for API authorization and for webhook HMAC verification.
 	SecretKey string
 
-	// Plans is the slug → currency → PlanCodes registry. At minimum it
-	// should contain every slug the app sells, each with at least one
-	// currency. Empty PlanCodes entries (Monthly or Annual blank) mean
-	// that cycle isn't sold on Paystack for that currency.
-	Plans PlanRegistry
+	// Plans resolves slug ↔ plan_code. Required.
+	Plans PlanResolver
 }
 
-// PlanRegistry is keyed first by our plan slug ("starter"/"pro"/"business"),
-// then by ISO-4217 currency (uppercase: "NGN", "USD", …).
-//
-// Example:
-//
-//	PlanRegistry{
-//	    "pro": {"NGN": {Monthly: "PLN_abc", Annual: "PLN_xyz"}},
-//	}
-type PlanRegistry map[string]map[string]PlanCodes
+// PlanResolver bridges our plan catalog with Paystack plan codes.
+type PlanResolver interface {
+	// PlanCode resolves (slug, currency, cycle) → Paystack plan_code.
+	// Returns billing.ErrUnknownPlan when no row matches the slug, and
+	// billing.ErrUnsupportedCurrency when the row exists but its currency
+	// doesn't match.
+	PlanCode(slug, currency string, cycle billing.Cycle) (string, error)
 
-// PlanCodes are the Paystack plan_code values for a single (slug, currency)
-// pair — one per billing cycle. An empty value means that cycle isn't sold
-// on Paystack for the currency.
-type PlanCodes struct {
-	Monthly string
-	Annual  string
+	// SlugForPlanCode returns the plan slug a Paystack plan_code resolves to,
+	// or an empty string when the code isn't ours. Used by the webhook parser
+	// to filter out events for plans on the same Paystack account that we
+	// don't manage.
+	SlugForPlanCode(code string) string
 }
 
-// Lookup resolves a Paystack plan_code for a checkout.
+// DBPlanResolver implements PlanResolver against the plans table.
 //
-// Returns billing.ErrUnknownPlan when the slug isn't configured at all,
-// billing.ErrUnsupportedCurrency when the slug exists but not in the
-// requested currency, and a plain error when the cycle isn't recognised or
-// the plan_code for that cycle is blank.
-func (r PlanRegistry) Lookup(slug, currency string, cycle billing.Cycle) (string, error) {
-	byCurrency, ok := r[slug]
-	if !ok {
+// We only persist a single plan_code per row (the primary cycle/currency
+// the UI transacts in — monthly NGN today). Annual or multi-currency
+// support would mean a side table; deferring that until needed.
+type DBPlanResolver struct {
+	db *gorm.DB
+}
+
+// NewDBPlanResolver returns a resolver that reads plans from the database.
+func NewDBPlanResolver(db *gorm.DB) *DBPlanResolver {
+	return &DBPlanResolver{db: db}
+}
+
+func (r *DBPlanResolver) PlanCode(slug, currency string, cycle billing.Cycle) (string, error) {
+	if cycle != billing.CycleMonthly {
+		return "", fmt.Errorf("paystack: %w: cycle %q not supported", billing.ErrUnknownPlan, cycle)
+	}
+	var plan model.Plan
+	err := r.db.Where("slug = ? AND active = ? AND provider = ?", slug, true, Name).First(&plan).Error
+	if err != nil {
 		return "", fmt.Errorf("paystack: %w: %q", billing.ErrUnknownPlan, slug)
 	}
-	codes, ok := byCurrency[strings.ToUpper(currency)]
-	if !ok {
+	if !strings.EqualFold(plan.Currency, currency) {
 		return "", fmt.Errorf("paystack: %w: %s in %s", billing.ErrUnsupportedCurrency, slug, currency)
 	}
-	var code string
-	switch cycle {
-	case billing.CycleMonthly:
-		code = codes.Monthly
-	case billing.CycleAnnual:
-		code = codes.Annual
-	default:
-		return "", fmt.Errorf("paystack: unsupported cycle %q", cycle)
+	if plan.ProviderPlanID == "" {
+		return "", fmt.Errorf("paystack: %w: %s/%s has no provider_plan_id", billing.ErrUnknownPlan, slug, currency)
 	}
-	if code == "" {
-		return "", fmt.Errorf("paystack: %w: %s/%s (%s) not configured", billing.ErrUnknownPlan, slug, currency, cycle)
-	}
-	return code, nil
+	return plan.ProviderPlanID, nil
 }
 
-// reverseIndex builds a plan_code → slug map used by the webhook parser to
-// resolve which of our plans a Paystack event refers to.
-func (r PlanRegistry) reverseIndex() map[string]string {
-	idx := map[string]string{}
-	for slug, byCurrency := range r {
-		for _, codes := range byCurrency {
-			if codes.Monthly != "" {
-				idx[codes.Monthly] = slug
-			}
-			if codes.Annual != "" {
-				idx[codes.Annual] = slug
-			}
-		}
+func (r *DBPlanResolver) SlugForPlanCode(code string) string {
+	if code == "" {
+		return ""
 	}
-	return idx
+	var plan model.Plan
+	if err := r.db.
+		Where("provider = ? AND provider_plan_id = ? AND active = ?", Name, code, true).
+		First(&plan).Error; err != nil {
+		return ""
+	}
+	return plan.Slug
 }

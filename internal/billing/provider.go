@@ -57,10 +57,13 @@ type CheckoutIntent struct {
 }
 
 // CheckoutSession is a normalized provider response. Every provider hands us
-// back at least a URL to redirect the browser to.
+// back at least a URL to redirect the browser to. AccessCode is populated
+// when the provider supports a popup/inline flow that resumes a server-
+// initialised transaction (Paystack: resumeTransaction(access_code)).
 type CheckoutSession struct {
 	URL        string
 	ExternalID string
+	AccessCode string
 }
 
 // PortalRequest carries everything a provider might need to build a portal

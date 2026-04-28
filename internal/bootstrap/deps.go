@@ -263,12 +263,11 @@ func New(ctx context.Context) (*Deps, error) {
 	billingRegistry := billing.NewRegistry()
 	credits := billing.NewCreditsService(database)
 	if cfg.PaystackSecretKey != "" {
-		plans := paystack.PlanRegistryFromEnv()
 		billingRegistry.Register(paystack.New(paystack.Config{
 			SecretKey: cfg.PaystackSecretKey,
-			Plans:     plans,
+			Plans:     paystack.NewDBPlanResolver(database),
 		}))
-		slog.Info("paystack provider registered", "configured_slugs", len(plans))
+		slog.Info("paystack provider registered")
 	}
 	slog.Info("billing ready", "providers", billingRegistry.Names())
 

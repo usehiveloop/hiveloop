@@ -168,7 +168,7 @@ func (p *Provider) subscriptionState(d subscriptionData) (*billing.SubscriptionS
 		ExternalSubscriptionID: d.SubscriptionCode,
 		ExternalCustomerID:     d.Customer.CustomerCode,
 		OrgID:                  orgID,
-		PlanSlug:               p.planIndex[d.Plan.PlanCode],
+		PlanSlug:               p.cfg.Plans.SlugForPlanCode(d.Plan.PlanCode),
 		Status:                 mapSubscriptionStatus(d.Status),
 	}
 	if d.CreatedAt != nil {
@@ -185,7 +185,7 @@ func (p *Provider) chargeState(d chargeData, planCode string) (*billing.Subscrip
 	if err != nil {
 		return nil, err
 	}
-	planSlug := p.planIndex[planCode]
+	planSlug := p.cfg.Plans.SlugForPlanCode(planCode)
 	if planSlug == "" {
 		// Charge for a plan_code we don't manage — someone else's plan on
 		// the same Paystack account, or a dashboard-created one. Ignore.
