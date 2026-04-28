@@ -576,6 +576,7 @@ export function AgentForm() {
             description="Click a tool to cycle between allow, require approval, and deny."
           >
             <ToolPermissionsSection
+              mode={mode}
               permissions={permissions}
               onChange={(next) => form.setValue("permissions", next)}
             />

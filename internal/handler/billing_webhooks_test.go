@@ -12,10 +12,18 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// seedSubscription inserts a Subscription row (and its prerequisite org +
-// plan) for resolveOrgID tests. Returns the org id so the caller can
-// assert the lookup resolves back to it.
-func seedSubscription(t *testing.T, db *gorm.DB, externalSubID, externalCustomerID string) uuid.UUID {
+// seededSub bundles everything a webhook test typically needs about a
+// pre-seeded Subscription row: the org id, the plan, and the row itself.
+type seededSub struct {
+	OrgID uuid.UUID
+	Plan  model.Plan
+	Sub   model.Subscription
+}
+
+// seedSubscriptionFull inserts a Subscription row (and its prerequisite org +
+// plan). Used by snapshot/upsert tests that need org_id + plan_slug to match
+// the (provider, org_id, plan_id, status='active') key.
+func seedSubscriptionFull(t *testing.T, db *gorm.DB, externalSubID, externalCustomerID string) seededSub {
 	t.Helper()
 	org := createTestOrg(t, db)
 
@@ -42,7 +50,13 @@ func seedSubscription(t *testing.T, db *gorm.DB, externalSubID, externalCustomer
 		t.Fatalf("create subscription: %v", err)
 	}
 	t.Cleanup(func() { db.Where("id = ?", sub.ID).Delete(&model.Subscription{}) })
-	return org.ID
+	return seededSub{OrgID: org.ID, Plan: plan, Sub: sub}
+}
+
+// seedSubscription is the legacy helper kept for resolveOrgID tests that
+// only need the org id back.
+func seedSubscription(t *testing.T, db *gorm.DB, externalSubID, externalCustomerID string) uuid.UUID {
+	return seedSubscriptionFull(t, db, externalSubID, externalCustomerID).OrgID
 }
 
 // TestBillingWebhook_ResolveOrgID_FromState exercises the happy path:
