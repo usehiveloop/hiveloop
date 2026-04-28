@@ -38,18 +38,10 @@ func TestSystemTask_NonStreaming_HappyPath(t *testing.T) {
 	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	// The text we get back is the JSON the LLM produced. The prompt_writer
-	// contract says it must be valid JSON with title/system_prompt/rationale.
-	var inner struct {
-		Title        string `json:"title"`
-		SystemPrompt string `json:"system_prompt"`
-		Rationale    string `json:"rationale"`
-	}
-	if err := json.Unmarshal([]byte(resp.Text), &inner); err != nil {
-		t.Fatalf("LLM payload not valid JSON: %v\n%s", err, resp.Text)
-	}
-	if inner.SystemPrompt == "" {
-		t.Fatalf("LLM payload missing system_prompt")
+	// prompt_writer streams markdown — the response text is the prompt
+	// itself. Sanity-check it has the required Role section.
+	if !strings.Contains(resp.Text, "## Role") {
+		t.Fatalf("LLM payload missing '## Role' section:\n%s", resp.Text)
 	}
 	if resp.Usage.InputTokens != 42 || resp.Usage.OutputTokens != 18 {
 		t.Fatalf("usage = %+v", resp.Usage)
@@ -65,9 +57,9 @@ func TestSystemTask_NonStreaming_HappyPath(t *testing.T) {
 func TestSystemTask_Streaming_RewritesToHiveloopShape(t *testing.T) {
 	h := newSystemTaskHarness(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		_, _ = io.WriteString(w, `data: {"model":"m","choices":[{"delta":{"content":"`+escapeJSON(`{"title":"x",`)+`"}}]}
+		_, _ = io.WriteString(w, `data: {"model":"m","choices":[{"delta":{"content":"`+escapeJSON("## Role\nYou are deploy-watcher.\n\n")+`"}}]}
 
-data: {"model":"m","choices":[{"delta":{"content":"`+escapeJSON(`"system_prompt":"x","rationale":"x"}`)+`"}}]}
+data: {"model":"m","choices":[{"delta":{"content":"`+escapeJSON("## Workflow\n1. Receive deployment_id.\n")+`"}}]}
 
 data: {"model":"m","choices":[{"delta":{}}],"usage":{"prompt_tokens":11,"completion_tokens":7}}
 
@@ -92,14 +84,8 @@ data: [DONE]
 		t.Fatalf("delta count = %d, want 2; body=%q", len(deltas), rr.Body.String())
 	}
 	full := strings.Join(deltas, "")
-	var inner struct {
-		Title string `json:"title"`
-	}
-	if err := json.Unmarshal([]byte(full), &inner); err != nil {
-		t.Fatalf("streamed text is not valid JSON: %v\n%s", err, full)
-	}
-	if inner.Title == "" {
-		t.Fatalf("streamed JSON missing title field")
+	if !strings.Contains(full, "## Role") || !strings.Contains(full, "## Workflow") {
+		t.Fatalf("streamed markdown missing expected sections:\n%s", full)
 	}
 	if !done.Done {
 		t.Fatalf("done frame missing")
@@ -170,18 +156,19 @@ func TestSystemTask_ArgValidation(t *testing.T) {
 		args map[string]any
 	}{
 		{"missing-required", map[string]any{
-			"target_model": "m", "goal": "x",
+			"agent_name": "n", "category": "c",
+			// instructions missing
 		}},
 		{"wrong-type", map[string]any{
-			"target_model": 42, "goal": "x", "audience": "y",
+			"agent_name": 42, "category": "c", "instructions": "i",
 		}},
 		{"unknown-arg", map[string]any{
-			"target_model": "m", "goal": "x", "audience": "y", "extra": "z",
+			"agent_name": "n", "category": "c", "instructions": "i", "extra": "z",
 		}},
 		{"too-long", map[string]any{
-			"target_model": "m",
-			"goal":         strings.Repeat("x", 1001),
-			"audience":     "y",
+			"agent_name":   "n",
+			"category":     "c",
+			"instructions": strings.Repeat("x", 4001),
 		}},
 	}
 	for _, c := range cases {

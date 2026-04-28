@@ -91,16 +91,16 @@ func TestSystemTask_CacheBypass_OnVersionBump(t *testing.T) {
 	})
 
 	body := map[string]any{"args": validArgs()}
-	_ = h.post(t, "prompt_writer", body) // populate cache @ v1
-	_ = h.post(t, "prompt_writer", body) // hit cache @ v1
+	_ = h.post(t, "prompt_writer", body) // populate cache @ baseline version
+	_ = h.post(t, "prompt_writer", body) // hit cache @ baseline version
 	if got := atomic.LoadInt32(h.hits); got != 1 {
-		t.Fatalf("after two calls @ v1, hits=%d, want 1", got)
+		t.Fatalf("after two calls @ baseline, hits=%d, want 1", got)
 	}
 
 	// Bump the version — same task name, new Version. Cache key changes.
 	system.ResetForTest()
 	bumped := freshTask("prompt_writer")
-	bumped.Version = "v2"
+	bumped.Version = "v999-bump"
 	system.Register(bumped)
 
 	_ = h.post(t, "prompt_writer", body)
