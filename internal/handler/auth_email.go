@@ -13,6 +13,16 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/email"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+
+// @Summary Confirm email address
+// @Description Confirms a user's email address using a verification token.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body confirmEmailRequest true "Confirmation token"
+// @Success 200 {object} statusResponse
+// @Failure 400 {object} errorResponse
+// @Router /auth/confirm-email [post]
 func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	var req confirmEmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -161,13 +171,3 @@ func (h *AuthHandler) ResendConfirmation(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, genericResponse)
 }
 
-// ForgotPassword handles POST /auth/forgot-password.
-// @Summary Request password reset
-// @Description Sends a password reset link to the email address if an account exists.
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param body body forgotPasswordRequest true "Email address"
-// @Success 200 {object} statusResponse
-// @Failure 400 {object} errorResponse
-// @Router /auth/forgot-password [post]

@@ -179,13 +179,10 @@ jobs:
         timeout-minutes: 5
       - name: run internal tests (shard ${{ matrix.shard }}/4)
         run: |
-          # The RAG infra-dependent packages spawn the Rust rag-engine
-          # binary and/or require MinIO + Asynq; they run in the
-          # dedicated test-rag-e2e workflow with the right services
-          # provisioned, not in this sharded unit suite.
+          # RAG infra-dependent packages need MinIO + Asynq + a live Qdrant;
+          # they run via `make ragtest` against staging, not in this suite.
           PACKAGES=$(go list ./internal/... \
             | grep -vE '^github.com/usehiveloop/hiveloop/internal/rag$' \
-            | grep -vE '^github.com/usehiveloop/hiveloop/internal/rag/ragclient$' \
             | grep -vE '^github.com/usehiveloop/hiveloop/internal/rag/testhelpers$' \
             | grep -vE '^github.com/usehiveloop/hiveloop/internal/rag/scheduler$' \
             | grep -vE '^github.com/usehiveloop/hiveloop/internal/rag/tasks$' \

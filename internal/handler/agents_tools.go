@@ -6,6 +6,11 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
+// Aliases so swagger emits BuiltInToolDefinition / SandboxToolDefinition keys
+// in the schema rather than internal-package-prefixed ones.
+type BuiltInToolDefinition = model.BuiltInToolDefinition
+type SandboxToolDefinition = model.SandboxToolDefinition
+
 func defaultJSON(j model.JSON) model.JSON {
 	if j == nil {
 		return model.JSON{}
@@ -38,10 +43,24 @@ func defaultToolPermissions() model.JSON {
 	return perms
 }
 
+// @Summary List sandbox tools
+// @Description Returns the catalog of sandbox tools that can be granted to an agent.
+// @Tags agents
+// @Produce json
+// @Success 200 {array} SandboxToolDefinition
+// @Security BearerAuth
+// @Router /v1/agents/sandbox-tools [get]
 func (h *AgentHandler) ListSandboxTools(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, model.ValidSandboxTools)
 }
 
+// @Summary List built-in tools
+// @Description Returns the catalog of built-in tools that can be granted to an agent.
+// @Tags agents
+// @Produce json
+// @Success 200 {array} BuiltInToolDefinition
+// @Security BearerAuth
+// @Router /v1/agents/built-in-tools [get]
 func (h *AgentHandler) ListBuiltInTools(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, model.ValidBuiltInTools)
 }
