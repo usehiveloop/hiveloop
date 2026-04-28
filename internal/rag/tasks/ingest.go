@@ -74,7 +74,7 @@ func (d *Deps) HandleIngest(ctx context.Context, t *asynq.Task) error {
 
 	stats, runErr := runIngest(ctx, deps, src, runnable, attempt, hb)
 
-	finalErr := finalizeAttempt(ctx, deps.DB, src, attempt, stats, runErr, runnable)
+	finalErr := finalizeAttempt(ctx, deps, src, attempt, stats, runErr, runnable)
 	// Stop heartbeat BEFORE returning so no further writes race the
 	// finalisation UPDATE. The defer is a backstop.
 	hb.stop()
