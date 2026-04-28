@@ -5914,6 +5914,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/billing/subscription/init-upgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Initialise a Paystack transaction for an upgrade quote */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Upgrade quote id */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["initUpgradeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["initUpgradeResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/billing/subscription/preview-change": {
         parameters: {
             query?: never;
@@ -13210,6 +13287,15 @@ export interface components {
             meta?: components["schemas"]["JSON"];
             nango_config?: components["schemas"]["NangoConfig"];
             provider?: string;
+        };
+        initUpgradeRequest: {
+            quote_id?: string;
+        };
+        initUpgradeResponse: {
+            access_code?: string;
+            amount_minor?: number;
+            currency?: string;
+            reference?: string;
         };
         integrationDetail: {
             actions?: components["schemas"]["actionSummary"][];
