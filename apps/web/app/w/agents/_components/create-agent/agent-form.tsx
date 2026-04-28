@@ -335,22 +335,6 @@ export function AgentForm() {
           ) : null}
 
           <Section
-            title="Instructions"
-            description="The base instructions that shape your agent's behavior. Markdown supported."
-          >
-            <Controller
-              name="systemPrompt"
-              control={form.control}
-              render={({ field }) => (
-                <SystemPromptEditor
-                  value={field.value}
-                  onChange={field.onChange}
-                />
-              )}
-            />
-          </Section>
-
-          <Section
             title="Integrations"
             description="External services your agent can access."
           >
@@ -594,6 +578,22 @@ export function AgentForm() {
             <ToolPermissionsSection
               permissions={permissions}
               onChange={(next) => form.setValue("permissions", next)}
+            />
+          </Section>
+
+          <Section
+            title="Instructions"
+            description="The base instructions that shape your agent's behavior. Markdown supported."
+          >
+            <Controller
+              name="systemPrompt"
+              control={form.control}
+              render={({ field }) => (
+                <SystemPromptEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
             />
           </Section>
 
