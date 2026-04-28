@@ -29,7 +29,6 @@ const (
 var (
 	ErrUnsupportedCurrency  = errors.New("billing: currency not supported by this provider")
 	ErrUnknownPlan          = errors.New("billing: plan slug not configured for this provider")
-	ErrNoActiveSubscription = errors.New("billing: no active subscription for this org")
 	ErrAuthorizationRefused = errors.New("billing: provider declined the saved authorization")
 )
 
@@ -66,16 +65,6 @@ type CheckoutSession struct {
 	ExternalID string
 	AccessCode string
 	Reference  string
-}
-
-type PortalRequest struct {
-	OrgID                  uuid.UUID
-	ExternalCustomerID     string
-	ExternalSubscriptionID string
-}
-
-type PortalSession struct {
-	URL string
 }
 
 type ResolveCheckoutRequest struct {
@@ -143,7 +132,6 @@ type Provider interface {
 	Name() string
 	EnsureCustomer(ctx context.Context, orgID uuid.UUID, email, orgName string) (string, error)
 	CreateCheckout(ctx context.Context, customerID string, intent CheckoutIntent) (*CheckoutSession, error)
-	CreatePortal(ctx context.Context, req PortalRequest) (*PortalSession, error)
 	ResolveCheckout(ctx context.Context, req ResolveCheckoutRequest) (*ResolveCheckoutResult, error)
 	ChargeAuthorization(ctx context.Context, req ChargeAuthorizationRequest) (*ChargeAuthorizationResult, error)
 }
