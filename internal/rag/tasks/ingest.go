@@ -102,7 +102,7 @@ func buildConnector(src *ragmodel.RAGSource, deps *Deps) (interfaces.Connector, 
 	if err != nil {
 		return nil, fmt.Errorf("ingest: lookup connector %q: %w", src.SourceKind(), err)
 	}
-	c, err := factory(src, deps.Nango)
+	c, err := factory(src, interfaces.BuildDeps{Nango: deps.Nango, Spider: deps.Spider})
 	if err != nil {
 		return nil, fmt.Errorf("ingest: build connector %q: %w", src.SourceKind(), err)
 	}
