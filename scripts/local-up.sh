@@ -157,7 +157,6 @@ DB_PASSWORD=localdev
 DB_NAME=hiveloop
 DB_SSLMODE=disable
 KMS_TYPE=aead
-KMS_KEY=zvEnqF+4dO8J+h7pRbGgXstMEWcjbNt78yEOk1ywQ7I=
 REDIS_ADDR=localhost:$REDIS_PORT
 REDIS_CACHE_TTL=30m
 MEM_CACHE_TTL=5m
@@ -176,6 +175,20 @@ SANDBOX_PROVIDER_ID=daytona
 EOF
 grep "^AUTH_RSA_PRIVATE_KEY=" .env >> "$RUN_DIR/backend.env" 2>/dev/null \
   || echo "  ! warning: AUTH_RSA_PRIVATE_KEY missing from .env" >&2
+
+# KMS_KEY: prefer .env so secrets stay out of source. If .env doesn't have
+# one, generate an ephemeral 32-byte AES-GCM key into a per-run sidecar so
+# repeated runs against the same DB still decrypt previously-wrapped data.
+if grep -q "^KMS_KEY=" .env 2>/dev/null; then
+  grep "^KMS_KEY=" .env >> "$RUN_DIR/backend.env"
+elif [ -f "$RUN_DIR/kms.key" ]; then
+  echo "KMS_KEY=$(cat "$RUN_DIR/kms.key")" >> "$RUN_DIR/backend.env"
+else
+  KEY=$(openssl rand -base64 32 | tr -d '\n')
+  echo "$KEY" > "$RUN_DIR/kms.key"
+  echo "KMS_KEY=$KEY" >> "$RUN_DIR/backend.env"
+  echo "  ! generated ephemeral KMS_KEY at $RUN_DIR/kms.key"
+fi
 
 # Build the env-arg string once (avoids re-reading inside the supervisor loop)
 BACKEND_ENV_ARGS=$(grep -v '^\s*#' "$RUN_DIR/backend.env" | grep -v '^\s*$')

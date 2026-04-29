@@ -11,6 +11,19 @@ import (
 
 func boolPtr(v bool) *bool { return &v }
 
+// trimmedRef returns nil for empty/whitespace inputs so we don't store empty
+// strings; some model columns are nullable.
+func trimmedRef(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	v := strings.TrimSpace(*s)
+	if v == "" {
+		return nil
+	}
+	return &v
+}
+
 func derefBool(p *bool, fallback bool) bool {
 	if p != nil {
 		return *p

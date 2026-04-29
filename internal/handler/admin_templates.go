@@ -25,19 +25,6 @@ import (
 // @Success 200 {object} paginatedResponse[adminSandboxTemplateResponse]
 // @Security BearerAuth
 // @Router /admin/v1/sandbox-templates [get]
-// trimmedRef returns nil for empty/whitespace inputs so we don't store empty
-// strings; the model column is nullable.
-func trimmedRef(s *string) *string {
-	if s == nil {
-		return nil
-	}
-	v := strings.TrimSpace(*s)
-	if v == "" {
-		return nil
-	}
-	return &v
-}
-
 func (h *AdminHandler) ListSandboxTemplates(w http.ResponseWriter, r *http.Request) {
 	limit, cursor, err := parsePagination(r)
 	if err != nil {

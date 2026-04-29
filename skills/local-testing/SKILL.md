@@ -48,7 +48,9 @@ DB_PASSWORD=localdev
 DB_NAME=hiveloop
 DB_SSLMODE=disable
 KMS_TYPE=aead
-KMS_KEY=zvEnqF+4dO8J+h7pRbGgXstMEWcjbNt78yEOk1ywQ7I=
+# KMS_KEY: leave out — local-up.sh sources from .env or generates an
+# ephemeral key at /tmp/agent-test/kms.key. Generate one manually with:
+#   openssl rand -base64 32
 REDIS_ADDR=localhost:6379
 REDIS_CACHE_TTL=30m
 MEM_CACHE_TTL=5m
