@@ -174,12 +174,21 @@ start_backend() {
   wait_http "http://localhost:$BACKEND_PORT/healthz" "backend" 15
 }
 
+find_corepack() {
+  command -v corepack >/dev/null 2>&1 && { command -v corepack; return; }
+  local node_dir
+  node_dir="$(dirname "$(command -v node 2>/dev/null)" 2>/dev/null)"
+  [ -x "$node_dir/corepack" ] && { echo "$node_dir/corepack"; return; }
+  return 1
+}
+
 ensure_pnpm() {
   command -v pnpm >/dev/null 2>&1 && return 0
-  corepack enable >/dev/null 2>&1 || true
-  corepack prepare pnpm@10.18.2 --activate >/dev/null 2>&1 || true
-  local node_dir
+  local corepack node_dir
+  corepack="$(find_corepack)" || { echo "  ✗ corepack not found (need Node ≥16.10)" >&2; exit 1; }
   node_dir="$(dirname "$(command -v node)")"
+  "$corepack" enable >/dev/null 2>&1 || true
+  "$corepack" prepare pnpm@10.18.2 --activate >/dev/null 2>&1 || true
   [ -x "$node_dir/pnpm" ] && ln -sf "$node_dir/pnpm" /usr/local/bin/pnpm 2>/dev/null
   command -v pnpm >/dev/null 2>&1 || { echo "  ✗ pnpm install failed" >&2; exit 1; }
 }
@@ -192,9 +201,7 @@ ensure_web_deps() {
 }
 
 free_next_lock() {
-  local pid
-  pid="$(lsof -t apps/web/.next/dev/lock 2>/dev/null | head -1 || true)"
-  [ -n "$pid" ] && { kill -9 "$pid" 2>/dev/null; sleep 1; rm -f apps/web/.next/dev/lock; }
+  rm -f apps/web/.next/dev/lock 2>/dev/null
 }
 
 write_web_env() {
