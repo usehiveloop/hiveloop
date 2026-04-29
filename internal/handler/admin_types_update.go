@@ -38,6 +38,7 @@ type adminUpdateAgentRequest struct {
 
 type adminCreateSandboxTemplateRequest struct {
 	Name         string   `json:"name"`
+	Description  *string  `json:"description,omitempty"`
 	Slug         string   `json:"slug"`
 	Tags         []string `json:"tags"`
 	Size         string   `json:"size"`
@@ -46,6 +47,7 @@ type adminCreateSandboxTemplateRequest struct {
 
 type adminUpdateSandboxTemplateRequest struct {
 	Name         *string  `json:"name,omitempty"`
+	Description  *string  `json:"description,omitempty"`
 	Slug         *string  `json:"slug,omitempty"`
 	Tags         []string `json:"tags,omitempty"`
 	Size         *string  `json:"size,omitempty"`

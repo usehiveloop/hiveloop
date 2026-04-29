@@ -11365,6 +11365,10 @@
                 "createdAt": {
                     "type": "string"
                 },
+                "description": {
+                    "description": "user-facing description shown in template pickers",
+                    "type": "string"
+                },
                 "externalID": {
                     "description": "provider's template/snapshot ID once built",
                     "type": "string"
@@ -11823,6 +11827,9 @@
                 "base_image_ref": {
                     "type": "string"
                 },
+                "description": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -12154,6 +12161,9 @@
                 "created_at": {
                     "type": "string"
                 },
+                "description": {
+                    "type": "string"
+                },
                 "external_id": {
                     "type": "string"
                 },
@@ -12410,6 +12420,9 @@
             "type": "object",
             "properties": {
                 "base_image_ref": {
+                    "type": "string"
+                },
+                "description": {
                     "type": "string"
                 },
                 "name": {

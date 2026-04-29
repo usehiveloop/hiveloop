@@ -237,6 +237,7 @@ type adminSandboxTemplateResponse struct {
 	ID             string     `json:"id"`
 	OrgID          *string    `json:"org_id"`
 	Name           string     `json:"name"`
+	Description    string     `json:"description"`
 	Slug           string     `json:"slug"`
 	Tags           model.JSON `json:"tags"`
 	Size           string     `json:"size"`
@@ -254,6 +255,7 @@ func toAdminSandboxTemplateResponse(t model.SandboxTemplate) adminSandboxTemplat
 	resp := adminSandboxTemplateResponse{
 		ID:            t.ID.String(),
 		Name:          t.Name,
+		Description:   t.Description,
 		Slug:          t.Slug,
 		Tags:          t.Tags,
 		Size:          t.Size,
