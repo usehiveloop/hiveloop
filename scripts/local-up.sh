@@ -203,6 +203,26 @@ echo "==> frontend (:$FRONTEND_PORT)"
 if healthy_http "http://localhost:$FRONTEND_PORT/"; then
   echo "  ✓ already up"
 else
+  # Provision pnpm via corepack if it's missing. `npm install -g pnpm`
+  # has been observed to hang for many minutes in x86_64-via-rosetta
+  # containers on Apple Silicon — corepack is bundled with Node ≥16.10
+  # and finishes in ~5s.
+  if ! command -v pnpm >/dev/null 2>&1; then
+    echo "  ! pnpm not found — installing via corepack"
+    corepack enable >/dev/null 2>&1 || true
+    corepack prepare pnpm@10.18.2 --activate >/dev/null 2>&1 || true
+    NODE_BIN_DIR="$(dirname "$(command -v node)")"
+    [ -x "$NODE_BIN_DIR/pnpm" ] && ln -sf "$NODE_BIN_DIR/pnpm" /usr/local/bin/pnpm 2>/dev/null
+    command -v pnpm >/dev/null || { echo "  ✗ pnpm install failed" >&2; exit 1; }
+  fi
+
+  # Install web deps if node_modules is missing — fresh clones don't have it.
+  if [ ! -d apps/web/node_modules ]; then
+    echo "  ! apps/web/node_modules missing — running pnpm install"
+    ( cd apps/web && pnpm install --frozen-lockfile > "$RUN_DIR/pnpm-install.log" 2>&1 ) \
+      || { echo "  ✗ pnpm install failed (see $RUN_DIR/pnpm-install.log)" >&2; exit 1; }
+  fi
+
   # Free apps/web/.next/dev/lock if a stale next dev still holds it
   LOCK_PID="$(lsof -t apps/web/.next/dev/lock 2>/dev/null | head -1 || true)"
   if [ -n "$LOCK_PID" ]; then
@@ -214,7 +234,7 @@ else
 
   WEB_ENV_ARGS="$(cat "$RUN_DIR/web.env" | xargs)"
   supervise "web" bash -c "cd '$ROOT/apps/web' && exec env $WEB_ENV_ARGS pnpm dev --port $FRONTEND_PORT"
-  wait_http "http://localhost:$FRONTEND_PORT/" "frontend" 60
+  wait_http "http://localhost:$FRONTEND_PORT/" "frontend" 90
 fi
 
 echo ""
