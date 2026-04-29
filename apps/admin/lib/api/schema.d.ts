@@ -12456,6 +12456,8 @@ export interface components {
             /** @description resources, env vars, etc. */
             config?: components["schemas"]["JSON"];
             createdAt?: string;
+            /** @description user-facing description shown in template pickers */
+            description?: string;
             /** @description provider's template/snapshot ID once built */
             externalID?: string;
             id?: string;
@@ -12616,6 +12618,7 @@ export interface components {
         };
         adminCreateSandboxTemplateRequest: {
             base_image_ref?: string;
+            description?: string;
             name?: string;
             size?: string;
             slug?: string;
@@ -12724,6 +12727,7 @@ export interface components {
             build_logs?: string;
             build_status?: string;
             created_at?: string;
+            description?: string;
             external_id?: string;
             id?: string;
             name?: string;
@@ -12811,6 +12815,7 @@ export interface components {
         };
         adminUpdateSandboxTemplateRequest: {
             base_image_ref?: string;
+            description?: string;
             name?: string;
             size?: string;
             slug?: string;

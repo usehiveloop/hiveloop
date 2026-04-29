@@ -17,13 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { TemplateCombobox } from "./template-combobox"
 import {
   useSandboxTemplate,
   useTriggerBuild,
@@ -211,22 +205,11 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                   {publicTemplates.length > 0 && (
                     <div className="space-y-2">
                       <Label>Base Template</Label>
-                      <Select
+                      <TemplateCombobox
+                        templates={publicTemplates}
                         value={selectedBaseTemplate}
-                        onValueChange={(value) => setSelectedBaseTemplate(value ?? "")}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="None (default base image)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">None (default base image)</SelectItem>
-                          {publicTemplates.map((tmpl) => (
-                            <SelectItem key={tmpl.id} value={tmpl.id}>
-                              {tmpl.name} ({tmpl.size})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        onSelect={setSelectedBaseTemplate}
+                      />
                       <p className="text-xs text-muted-foreground">
                         Optionally build on top of a public template instead of the default base image.
                       </p>

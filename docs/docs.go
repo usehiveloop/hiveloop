@@ -11368,6 +11368,10 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "string"
                 },
+                "description": {
+                    "description": "user-facing description shown in template pickers",
+                    "type": "string"
+                },
                 "externalID": {
                     "description": "provider's template/snapshot ID once built",
                     "type": "string"
@@ -11826,6 +11830,9 @@ const docTemplate = `{
                 "base_image_ref": {
                     "type": "string"
                 },
+                "description": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -12157,6 +12164,9 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "description": {
+                    "type": "string"
+                },
                 "external_id": {
                     "type": "string"
                 },
@@ -12413,6 +12423,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "base_image_ref": {
+                    "type": "string"
+                },
+                "description": {
                     "type": "string"
                 },
                 "name": {

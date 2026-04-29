@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/admin/status-badge"
 import { TimeAgo } from "@/components/admin/time-ago"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -56,6 +57,7 @@ type ScopeFilter = "all" | "public"
 
 interface CreateForm {
   name: string
+  description: string
   slug: string
   tags: string
   size: string
@@ -64,6 +66,7 @@ interface CreateForm {
 
 interface EditForm {
   name: string
+  description: string
   slug: string
   tags: string
   size: string
@@ -94,6 +97,7 @@ export default function SandboxTemplatesPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [createForm, setCreateForm] = useState<CreateForm>({
     name: "",
+    description: "",
     slug: "",
     tags: "",
     size: "medium",
@@ -106,6 +110,7 @@ export default function SandboxTemplatesPage() {
   )
   const [editForm, setEditForm] = useState<EditForm>({
     name: "",
+    description: "",
     slug: "",
     tags: "",
     size: "medium",
@@ -136,7 +141,7 @@ export default function SandboxTemplatesPage() {
       onSuccess: () => {
         invalidateList()
         setCreateOpen(false)
-        setCreateForm({ name: "", slug: "", tags: "", size: "medium", baseImageRef: "" })
+        setCreateForm({ name: "", description: "", slug: "", tags: "", size: "medium", baseImageRef: "" })
       },
     }
   )
@@ -172,6 +177,7 @@ export default function SandboxTemplatesPage() {
     createMutation.mutate({
       body: {
         name: createForm.name,
+        description: createForm.description.trim() || undefined,
         slug: createForm.slug,
         tags,
         size: createForm.size,
@@ -184,6 +190,7 @@ export default function SandboxTemplatesPage() {
     const tagsArray = Array.isArray(tpl.tags) ? tpl.tags : []
     setEditForm({
       name: tpl.name || "",
+      description: tpl.description || "",
       slug: tpl.slug || "",
       tags: tagsArray.join(", "),
       size: tpl.size || "medium",
@@ -205,6 +212,7 @@ export default function SandboxTemplatesPage() {
       params: { path: { id: editingTemplate.id } },
       body: {
         name: editForm.name,
+        description: editForm.description.trim(),
         slug: editForm.slug,
         tags,
         size: editForm.size,
@@ -406,6 +414,21 @@ export default function SandboxTemplatesPage() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="create-description">Description</Label>
+              <Textarea
+                id="create-description"
+                value={createForm.description}
+                onChange={(event) =>
+                  setCreateForm((form) => ({
+                    ...form,
+                    description: event.target.value,
+                  }))
+                }
+                placeholder="Shown to users when picking a base template."
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="create-slug">
                 Slug (Daytona snapshot name)
               </Label>
@@ -521,6 +544,21 @@ export default function SandboxTemplatesPage() {
                   }))
                 }
                 placeholder="Template name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editForm.description}
+                onChange={(event) =>
+                  setEditForm((form) => ({
+                    ...form,
+                    description: event.target.value,
+                  }))
+                }
+                placeholder="Shown to users when picking a base template."
+                rows={3}
               />
             </div>
             <div className="space-y-2">

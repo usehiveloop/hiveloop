@@ -149,9 +149,15 @@ func (h *AdminHandler) CreateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 		_ = json.Unmarshal(tagsJSON, &tags)
 	}
 
+	description := ""
+	if req.Description != nil {
+		description = strings.TrimSpace(*req.Description)
+	}
+
 	tmpl := model.SandboxTemplate{
 		OrgID:        nil, // public template
 		Name:         name,
+		Description:  description,
 		Slug:         slug,
 		Tags:         tags,
 		Size:         size,
@@ -237,6 +243,9 @@ func (h *AdminHandler) UpdateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		updates["name"] = name
+	}
+	if req.Description != nil {
+		updates["description"] = strings.TrimSpace(*req.Description)
 	}
 	if req.Size != nil {
 		if !model.ValidTemplateSize(*req.Size) {
