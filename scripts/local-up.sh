@@ -78,30 +78,30 @@ supervise() {
 }
 
 # ─── 1. Postgres ────────────────────────────────────────────────────────────
-echo "==> postgres (:$PG_PORT)"
-if pg_isready -h 127.0.0.1 -p "$PG_PORT" -U hiveloop -q 2>/dev/null; then
-  echo "  ✓ already up"
-else
-  # Ubuntu's pg_ctlcluster wrapper — only works if the cluster has been
-  # configured to listen on $PG_PORT. The dev-box image setup is responsible
-  # for that (see cmd/buildtemplates).
-  if command -v pg_ctlcluster >/dev/null 2>&1; then
-    PG_VER="$(pg_lsclusters -h 2>/dev/null | awk '$3 == '"$PG_PORT"' { print $1; exit }')"
-    if [ -n "${PG_VER:-}" ]; then
-      pg_ctlcluster "$PG_VER" main start 2>/dev/null || true
-    else
-      echo "  ! no cluster configured for port $PG_PORT — see dev-box init" >&2
-    fi
-  else
-    echo "  ! pg_ctlcluster not found; expecting postgres on :$PG_PORT" >&2
+# Try the configured port first (Mac dev: docker-compose maps to 5433; sandbox:
+# nothing on 5433). If nothing's there, fall back to the apt cluster's default
+# (5432) which is what local-init.sh provisions. If THAT's empty too, run
+# local-init.sh to start the cluster + create user/db.
+echo "==> postgres"
+PG_HOSTPORT_FOUND=""
+for try_port in "$PG_PORT" 5432 5433; do
+  if pg_isready -h 127.0.0.1 -p "$try_port" -U hiveloop -q 2>/dev/null; then
+    PG_HOSTPORT_FOUND="$try_port"
+    break
   fi
-  for i in $(seq 1 15); do
-    pg_isready -h 127.0.0.1 -p "$PG_PORT" -U hiveloop -q 2>/dev/null && { echo "  ✓ ready"; break; }
-    sleep 1
-  done
-  pg_isready -h 127.0.0.1 -p "$PG_PORT" -U hiveloop -q 2>/dev/null \
-    || { echo "  ✗ postgres not reachable on :$PG_PORT" >&2; exit 1; }
+done
+
+if [ -z "$PG_HOSTPORT_FOUND" ]; then
+  echo "  no postgres reachable — running scripts/local-init.sh"
+  PG_HOSTPORT_FOUND="$("$ROOT/scripts/local-init.sh" 2>&1 | tee /dev/stderr | tail -1 || true)"
+  if [ -z "$PG_HOSTPORT_FOUND" ] || ! pg_isready -h 127.0.0.1 -p "$PG_HOSTPORT_FOUND" -U hiveloop -q 2>/dev/null; then
+    echo "  ✗ postgres still not reachable after init" >&2
+    exit 1
+  fi
 fi
+
+PG_PORT="$PG_HOSTPORT_FOUND"
+echo "  ✓ ready on :$PG_PORT"
 
 # ─── 2. Redis ───────────────────────────────────────────────────────────────
 echo ""
@@ -173,8 +173,19 @@ NANGO_ENDPOINT=http://localhost:$FAKE_NANGO_PORT
 NANGO_SECRET_KEY=fake-nango-secret
 SANDBOX_PROVIDER_ID=daytona
 EOF
-grep "^AUTH_RSA_PRIVATE_KEY=" .env >> "$RUN_DIR/backend.env" 2>/dev/null \
-  || echo "  ! warning: AUTH_RSA_PRIVATE_KEY missing from .env" >&2
+# AUTH_RSA_PRIVATE_KEY: prefer .env. Otherwise reuse a previously-generated
+# ephemeral key (so refresh tokens issued before a restart still verify),
+# and generate a fresh one only on first run.
+if grep -q "^AUTH_RSA_PRIVATE_KEY=" .env 2>/dev/null; then
+  grep "^AUTH_RSA_PRIVATE_KEY=" .env >> "$RUN_DIR/backend.env"
+elif [ -f "$RUN_DIR/auth-rsa.key" ]; then
+  echo "AUTH_RSA_PRIVATE_KEY=$(cat "$RUN_DIR/auth-rsa.key")" >> "$RUN_DIR/backend.env"
+else
+  KEY=$(openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n')
+  echo "$KEY" > "$RUN_DIR/auth-rsa.key"
+  echo "AUTH_RSA_PRIVATE_KEY=$KEY" >> "$RUN_DIR/backend.env"
+  echo "  ! generated ephemeral AUTH_RSA_PRIVATE_KEY at $RUN_DIR/auth-rsa.key"
+fi
 
 # KMS_KEY: prefer .env so secrets stay out of source. If .env doesn't have
 # one, generate an ephemeral 32-byte AES-GCM key into a per-run sidecar so
