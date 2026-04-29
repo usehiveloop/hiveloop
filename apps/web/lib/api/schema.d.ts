@@ -12441,6 +12441,8 @@ export interface components {
             routerTriggerID?: string;
         };
         SandboxTemplate: {
+            /** @description OCI image ref used as FROM when a child template builds on top of this row */
+            baseImageRef?: string;
             baseTemplate?: components["schemas"]["SandboxTemplate"];
             /** @description optional FK to public template used as base */
             baseTemplateID?: string;
@@ -12454,6 +12456,8 @@ export interface components {
             /** @description resources, env vars, etc. */
             config?: components["schemas"]["JSON"];
             createdAt?: string;
+            /** @description user-facing description shown in template pickers */
+            description?: string;
             /** @description provider's template/snapshot ID once built */
             externalID?: string;
             id?: string;
@@ -12613,6 +12617,8 @@ export interface components {
             provider?: string;
         };
         adminCreateSandboxTemplateRequest: {
+            base_image_ref?: string;
+            description?: string;
             name?: string;
             size?: string;
             slug?: string;
@@ -12714,12 +12720,14 @@ export interface components {
             status?: string;
         };
         adminSandboxTemplateResponse: {
+            base_image_ref?: string;
             base_template_id?: string;
             build_commands?: string;
             build_error?: string;
             build_logs?: string;
             build_status?: string;
             created_at?: string;
+            description?: string;
             external_id?: string;
             id?: string;
             name?: string;
@@ -12806,6 +12814,8 @@ export interface components {
             rate_limit?: number;
         };
         adminUpdateSandboxTemplateRequest: {
+            base_image_ref?: string;
+            description?: string;
             name?: string;
             size?: string;
             slug?: string;
@@ -13627,6 +13637,7 @@ export interface components {
             name?: string;
         };
         publicTemplateResponse: {
+            description?: string;
             id?: string;
             name?: string;
             size?: string;
@@ -13841,6 +13852,7 @@ export interface components {
             build_status?: string;
             config?: components["schemas"]["JSON"];
             created_at?: string;
+            description?: string;
             external_id?: string;
             id?: string;
             is_public?: boolean;
