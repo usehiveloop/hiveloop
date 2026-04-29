@@ -3,6 +3,7 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { ImpersonationBanner } from "@/components/impersonation-banner"
 import { Loader } from "@/components/loader"
+import { OnboardingPanel } from "@/components/onboarding-panel"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context"
 
@@ -31,6 +32,7 @@ export default function WorkspaceLayout({
         <SidebarInset>
           <AuthGate>{children}</AuthGate>
         </SidebarInset>
+        <OnboardingPanel />
       </SidebarProvider>
     </AuthProvider>
   )

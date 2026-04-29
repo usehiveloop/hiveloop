@@ -11,7 +11,7 @@ type SandboxTemplate struct {
 	OrgID          *uuid.UUID `gorm:"type:uuid;index"`                           // nil = public/platform-wide template
 	Org            *Org       `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
 	Name           string     `gorm:"not null"`                                  // display name for users
-	Description    string     `gorm:"type:text;not null;default:''"`             // user-facing description shown in template pickers
+	Description    string     `gorm:"type:text;not null;default:''"`
 	Slug           string     `gorm:"not null;uniqueIndex"`                      // Daytona snapshot name
 	Tags           JSON       `gorm:"type:jsonb;not null;default:'[]'"`          // user-facing tags, e.g. ["python","ml"]
 	Size           string     `gorm:"not null;default:'medium'"`                 // small, medium, large, xlarge

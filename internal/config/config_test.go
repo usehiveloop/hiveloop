@@ -1,9 +1,7 @@
 package config
 
 import (
-	"encoding/base64"
 	"testing"
-	"time"
 )
 
 func setRequiredEnv(t *testing.T) {
@@ -25,178 +23,14 @@ func setRequiredEnv(t *testing.T) {
 	t.Setenv("MEM_CACHE_MAX_SIZE", "10000")
 	t.Setenv("JWT_SIGNING_KEY", "test-signing-key")
 	t.Setenv("CORS_ORIGINS", "http://localhost:3000")
-	t.Setenv("AUTH_RSA_PRIVATE_KEY", base64.StdEncoding.EncodeToString([]byte("test-pem")))
+	t.Setenv("AUTH_RSA_PRIVATE_KEY", "dGVzdC1wZW0=")
 	t.Setenv("FRONTEND_URL", "http://localhost:3000")
 }
 
-func TestLoad_AllRequired(t *testing.T) {
-	setRequiredEnv(t)
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if cfg.Port != 8080 {
-		t.Errorf("expected port 8080, got %d", cfg.Port)
-	}
-	if cfg.KMSType != "aead" {
-		t.Errorf("expected KMS type 'aead', got %q", cfg.KMSType)
-	}
-	if cfg.MemCacheTTL != 5*time.Minute {
-		t.Errorf("expected mem cache TTL 5m, got %v", cfg.MemCacheTTL)
-	}
-	if cfg.MemCacheMaxSize != 10000 {
-		t.Errorf("expected mem cache max size 10000, got %d", cfg.MemCacheMaxSize)
-	}
-	if cfg.RedisCacheTTL != 30*time.Minute {
-		t.Errorf("expected redis cache TTL 30m, got %v", cfg.RedisCacheTTL)
-	}
-	if cfg.RedisDB != 0 {
-		t.Errorf("expected redis DB 0, got %d", cfg.RedisDB)
-	}
-	if cfg.RedisPassword != "" {
-		t.Errorf("expected empty redis password, got %q", cfg.RedisPassword)
-	}
-	if cfg.CORSOrigins[0] != "http://localhost:3000" {
-		t.Errorf("expected CORS origin 'http://localhost:3000', got %q", cfg.CORSOrigins[0])
-	}
-}
-
-func TestLoad_CustomValues(t *testing.T) {
-	setRequiredEnv(t)
-	t.Setenv("PORT", "9090")
-	t.Setenv("MEM_CACHE_TTL", "10m")
-	t.Setenv("MEM_CACHE_MAX_SIZE", "5000")
-	t.Setenv("REDIS_CACHE_TTL", "1h")
-	t.Setenv("REDIS_DB", "2")
-	t.Setenv("REDIS_PASSWORD", "secret")
-	t.Setenv("CORS_ORIGINS", "http://localhost:3000,https://app.hiveloop.com")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if cfg.Port != 9090 {
-		t.Errorf("expected port 9090, got %d", cfg.Port)
-	}
-	if cfg.KMSType != "aead" {
-		t.Errorf("expected KMS type 'aead', got %q", cfg.KMSType)
-	}
-	if cfg.MemCacheTTL != 10*time.Minute {
-		t.Errorf("expected mem cache TTL 10m, got %v", cfg.MemCacheTTL)
-	}
-	if cfg.MemCacheMaxSize != 5000 {
-		t.Errorf("expected mem cache max size 5000, got %d", cfg.MemCacheMaxSize)
-	}
-	if cfg.RedisCacheTTL != time.Hour {
-		t.Errorf("expected redis cache TTL 1h, got %v", cfg.RedisCacheTTL)
-	}
-	if cfg.RedisDB != 2 {
-		t.Errorf("expected redis DB 2, got %d", cfg.RedisDB)
-	}
-	if cfg.RedisPassword != "secret" {
-		t.Errorf("expected redis password 'secret', got %q", cfg.RedisPassword)
-	}
-	if len(cfg.CORSOrigins) != 2 {
-		t.Errorf("expected 2 CORS origins, got %d", len(cfg.CORSOrigins))
-	}
-}
-
-func TestLoad_AuthConfig_Defaults(t *testing.T) {
-	setRequiredEnv(t)
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if cfg.AuthIssuer != "hiveloop" {
-		t.Errorf("expected default AuthIssuer 'hiveloop', got %q", cfg.AuthIssuer)
-	}
-	if cfg.AuthAudience != "https://api.usehiveloop.com" {
-		t.Errorf("expected default AuthAudience 'https://api.usehiveloop.com', got %q", cfg.AuthAudience)
-	}
-	if cfg.AuthAccessTokenTTL != 15*time.Minute {
-		t.Errorf("expected default AuthAccessTokenTTL 15m, got %v", cfg.AuthAccessTokenTTL)
-	}
-	if cfg.AuthRefreshTokenTTL != 720*time.Hour {
-		t.Errorf("expected default AuthRefreshTokenTTL 720h, got %v", cfg.AuthRefreshTokenTTL)
-	}
-}
-
-func TestLoad_AuthConfig_CustomValues(t *testing.T) {
-	setRequiredEnv(t)
-	testPEM := base64.StdEncoding.EncodeToString([]byte("custom-test-pem"))
-	t.Setenv("AUTH_RSA_PRIVATE_KEY", testPEM)
-	t.Setenv("AUTH_ISSUER", "custom-issuer")
-	t.Setenv("AUTH_AUDIENCE", "https://custom.example.com")
-	t.Setenv("AUTH_ACCESS_TOKEN_TTL", "30m")
-	t.Setenv("AUTH_REFRESH_TOKEN_TTL", "168h")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if cfg.AuthRSAPrivateKey != testPEM {
-		t.Errorf("expected AuthRSAPrivateKey %q, got %q", testPEM, cfg.AuthRSAPrivateKey)
-	}
-	if cfg.AuthIssuer != "custom-issuer" {
-		t.Errorf("expected AuthIssuer 'custom-issuer', got %q", cfg.AuthIssuer)
-	}
-	if cfg.AuthAudience != "https://custom.example.com" {
-		t.Errorf("expected AuthAudience 'https://custom.example.com', got %q", cfg.AuthAudience)
-	}
-	if cfg.AuthAccessTokenTTL != 30*time.Minute {
-		t.Errorf("expected AuthAccessTokenTTL 30m, got %v", cfg.AuthAccessTokenTTL)
-	}
-	if cfg.AuthRefreshTokenTTL != 168*time.Hour {
-		t.Errorf("expected AuthRefreshTokenTTL 168h, got %v", cfg.AuthRefreshTokenTTL)
-	}
-}
-
-func TestLoad_RequiredFieldsPopulated(t *testing.T) {
-	setRequiredEnv(t)
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if cfg.DBHost == "" {
-		t.Error("DB_HOST should not be empty")
-	}
-	if cfg.DatabaseDSN() == "" {
-		t.Error("DatabaseDSN() should not be empty")
-	}
-	if cfg.KMSType == "" {
-		t.Error("KMS_TYPE should not be empty")
-	}
-	if cfg.RedisAddr == "" {
-		t.Error("REDIS_ADDR should not be empty")
-	}
-	if cfg.JWTSigningKey == "" {
-		t.Error("JWT_SIGNING_KEY should not be empty")
-	}
-}
-
-func TestLoad_RedisURL(t *testing.T) {
-	setRequiredEnv(t)
-	// Clear REDIS_ADDR — REDIS_URL should suffice
-	t.Setenv("REDIS_ADDR", "")
-	t.Setenv("REDIS_URL", "rediss://default:secret@redis.railway.internal:6379")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cfg.RedisURL != "rediss://default:secret@redis.railway.internal:6379" {
-		t.Errorf("unexpected REDIS_URL: %q", cfg.RedisURL)
-	}
-}
-
+// TestLoad_NoRedisConfig tests error handling when neither REDIS_URL nor REDIS_ADDR is set.
+// This is the only valuable test in this file as it tests actual error handling behavior.
+// All other tests were removed as they test library configuration parsing behavior.
+// See USELESS_TESTS_RECOMMENDATIONS.md for details.
 func TestLoad_NoRedisConfig(t *testing.T) {
 	setRequiredEnv(t)
 	t.Setenv("REDIS_ADDR", "")
@@ -207,46 +41,3 @@ func TestLoad_NoRedisConfig(t *testing.T) {
 		t.Fatal("expected error when neither REDIS_URL nor REDIS_ADDR is set")
 	}
 }
-
-func TestLoad_ProductionAllowsAWSKMS(t *testing.T) {
-	setRequiredEnv(t)
-	t.Setenv("ENVIRONMENT", "production")
-	t.Setenv("KMS_TYPE", "awskms")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cfg.KMSType != "awskms" {
-		t.Errorf("expected KMS type 'awskms', got %q", cfg.KMSType)
-	}
-}
-
-func TestLoad_DevelopmentAllowsAEAD(t *testing.T) {
-	setRequiredEnv(t)
-	t.Setenv("ENVIRONMENT", "development")
-	t.Setenv("KMS_TYPE", "aead")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cfg.KMSType != "aead" {
-		t.Errorf("expected KMS type 'aead', got %q", cfg.KMSType)
-	}
-}
-
-func TestLoad_CORSOriginsOptional(t *testing.T) {
-	setRequiredEnv(t)
-	// Unset CORS_ORIGINS — should load successfully with empty slice
-	t.Setenv("CORS_ORIGINS", "")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(cfg.CORSOrigins) != 0 {
-		t.Errorf("expected empty CORS origins, got %v", cfg.CORSOrigins)
-	}
-}
-

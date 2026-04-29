@@ -152,7 +152,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	if req.SandboxTemplateID != nil && *req.SandboxTemplateID != "" {
 		var tmpl model.SandboxTemplate
-		if err := h.db.Where("id = ? AND org_id = ?", *req.SandboxTemplateID, org.ID).First(&tmpl).Error; err != nil {
+		if err := h.db.Where("id = ? AND (org_id = ? OR org_id IS NULL)", *req.SandboxTemplateID, org.ID).First(&tmpl).Error; err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "sandbox template not found"})
 			return
 		}
