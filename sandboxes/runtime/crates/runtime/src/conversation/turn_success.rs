@@ -39,11 +39,31 @@ pub(super) async fn handle_got_result(
     let has_text = matches!(&response_text, Some(text) if !text.is_empty());
     let had_tool_calls = history_contains_tool_calls(&enriched_history, history_backup.len());
 
+    // Detect leaked tool calls — model emitted its native tool-call template
+    // (Hermes XML, MiMo function tag, Gemma special tokens, Tencent template,
+    // bare-JSON Qwen) as plain text instead of structured `tool_calls`. The
+    // turn looks complete (`has_text=true`, `had_tool_calls=false`) but the
+    // model was actually trying to call a tool the inference server failed
+    // to translate. Treat as a recoverable empty response so the agent gets
+    // one more shot to re-emit using the proper schema.
+    let leaked_tool_call = response_text
+        .as_deref()
+        .map(llm::providers::tool_call_recovery::detect_leak)
+        .unwrap_or(false);
+    if leaked_tool_call {
+        tracing::warn!(
+            agent_id = ctx.agent_id,
+            conversation_id = ctx.conversation_id,
+            response_preview = %response_text.as_deref().unwrap_or("").chars().take(200).collect::<String>(),
+            "tool_call_leak_detected — model emitted native tool-call template as text; routing through empty-response recovery"
+        );
+    }
+
     let needs_recovery = if ctx.tool_calls_only && had_tool_calls {
         // Agent is configured to complete with tool calls only — no text needed.
         false
     } else {
-        !has_text
+        !has_text || leaked_tool_call
     };
 
     let response = if needs_recovery {
@@ -141,6 +161,49 @@ pub(super) async fn handle_got_result(
         initial_output_tokens,
         latency_ms,
     );
+
+    // Verifier gating: ask the classifier whether this turn is genuinely
+    // done. On `needs_work + high` (within cap), append a synthetic user
+    // message and ask the runtime to resume the same turn. On any other
+    // verdict — or any verifier error — proceed as today.
+    let verifier_action = super::verifier::run_if_enabled(
+        ctx.verifier_config,
+        ctx.verifier_client,
+        ctx.agent_system_prompt,
+        &enriched_history,
+        history_backup.len(),
+        ctx.reprompt_count,
+        ctx.event_bus,
+        ctx.agent_id,
+        ctx.conversation_id,
+    )
+    .await;
+
+    if let super::verifier::VerifierAction::Reprompt { synthetic_prompt } = verifier_action {
+        enriched_history.push(rig::message::Message::user(&synthetic_prompt));
+        let synthetic_persisted = bridge_core::conversation::Message {
+            role: bridge_core::conversation::Role::User,
+            content: vec![bridge_core::conversation::ContentBlock::Text {
+                text: synthetic_prompt.clone(),
+            }],
+            timestamp: chrono::Utc::now(),
+            system_reminder: None,
+        };
+        {
+            let mut guard = ctx.persisted_messages.lock().unwrap();
+            guard.push(synthetic_persisted);
+        }
+        if let Some(storage) = ctx.storage {
+            storage.replace_messages(
+                ctx.conversation_id.to_string(),
+                ctx.persisted_messages.lock().unwrap().clone(),
+            );
+        }
+        return TurnOutcome::ResumeSameTurn {
+            new_history: enriched_history,
+            synthetic_prompt,
+        };
+    }
 
     emit_turn_complete_events(
         ctx.event_bus,

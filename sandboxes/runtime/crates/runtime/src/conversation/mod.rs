@@ -12,6 +12,7 @@ mod turn_classify;
 mod turn_result;
 mod turn_success;
 mod turn_wait;
+mod verifier;
 mod volatile;
 
 pub use convert::{convert_messages, normalize_messages_for_persistence};

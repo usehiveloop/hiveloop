@@ -65,6 +65,7 @@ fn agent_definition_roundtrip_all_fields_present() {
             tool_requirements: vec![],
             subagent_timeout_foreground_secs: None,
             subagent_timeout_background_secs: None,
+            verifier: None,
         },
         subagents: vec![AgentDefinition {
             id: "sub-agent-001".to_string(),

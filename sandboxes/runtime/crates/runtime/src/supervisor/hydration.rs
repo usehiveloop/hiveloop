@@ -148,6 +148,8 @@ impl AgentSupervisor {
         let tool_calls_only = def.config.tool_calls_only.unwrap_or(false);
         let system_reminder_refresh_turns = def.config.system_reminder_refresh_turns;
         let tool_requirements = def.config.tool_requirements.clone();
+        let agent_system_prompt = def.system_prompt.clone();
+        let verifier_config = def.config.verifier.clone();
         // Get skills from the registered SkillTool (includes local discoveries)
         let skills = state
             .tool_registry
@@ -252,6 +254,8 @@ impl AgentSupervisor {
                 system_reminder_refresh_turns,
                 ping_state,
                 tool_requirements,
+                agent_system_prompt,
+                verifier_config,
             })
             .await;
         });

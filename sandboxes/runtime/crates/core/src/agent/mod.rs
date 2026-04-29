@@ -12,11 +12,13 @@ use crate::tool::ToolDefinition;
 
 mod requirements;
 mod runtime;
+mod verifier;
 
 pub use requirements::{
     RequirementCadence, RequirementEnforcement, RequirementPosition, ToolRequirement,
 };
 pub use runtime::{HistoryStripConfig, ImmortalConfig};
+pub use verifier::{VerifierAgentConfig, VerifierModel, VerifierProvider};
 
 /// Type alias for agent identifiers.
 pub type AgentId = String;
@@ -202,6 +204,14 @@ pub struct AgentConfig {
     /// background subagent. Default: 300 (5 minutes).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subagent_timeout_background_secs: Option<u64>,
+
+    /// Verifier agent configuration. When set + `enabled: true`, every
+    /// terminal-text turn is gated through a small, cheap second model that
+    /// returns `users_turn` / `completed` / `needs_work`. On `needs_work` (with
+    /// high confidence and within the per-turn cap) the runtime injects a
+    /// synthetic re-prompt and resumes the same turn. Default: `None` (off).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verifier: Option<VerifierAgentConfig>,
 }
 
 /// Default subagent execution timeout (5 minutes) used when an agent config

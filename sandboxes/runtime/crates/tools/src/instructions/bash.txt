@@ -1,19 +1,16 @@
-Execute a shell command.
+Execute a shell command. Each call runs in a fresh shell — env vars, `cd`, aliases do NOT carry across calls. Every invocation starts in the workspace directory.
 
-**Each call runs in a fresh shell.** Environment variables, `cd`, exported functions, and shell aliases do NOT carry across calls. Every invocation starts in the workspace directory. For a different directory, either chain `cd <path> && <cmd>` or pass the `workdir` parameter.
+Use for terminal operations (git, npm, composer, artisan, docker, tests). Do NOT use for file I/O — use Read, Write, Edit, Glob, RipGrep instead.
 
-Use this for terminal operations (git, npm, composer, artisan, docker, test runners). Do NOT use it for file I/O — there are dedicated tools: Read (not `cat`), Write (not `echo >`), Edit (not `sed`), Glob (not `find`), RipGrep (not `grep`).
-
-## Arguments
-- `command` (required): the shell command to run.
-- `workdir`: absolute path to cd into for this call only.
-- `timeout`: ms, default 120000 (2 min).
-- `description`: 5-10 words describing what it does (shown in logs).
-- `background: true`: spawn async; returns a task_id; you'll be notified on completion. Use for long builds / test suites where you don't want to block.
+## Args
+- `command` (required)
+- `workdir`: absolute path to cd into for this call only
+- `timeout`: ms, default 120000
+- `description`: 5–10 words for logs
+- `background: true`: spawn async, returns task_id, notification on completion
 
 ## Output
-Output over ~2 KB is summarized (head + tail) and the full version is spilled to a temp file. The summary includes the spill path; to find specific content, use RipGrep with that path as a regex target. Do NOT re-run the command or pipe through `head`/`tail` — the summary is already trimmed.
+Output >~2 KB is summarized (head + tail) with full version spilled to a temp file path. Use RipGrep on that path to find specific content — do NOT re-run the command.
 
 ## Parallelism
-- Independent commands: make multiple bash tool calls in a single turn (they run in parallel).
-- Dependent commands: chain with `&&` in one call.
+Independent commands: multiple bash calls in one turn run in parallel. Dependent commands: chain with `&&` in one call.

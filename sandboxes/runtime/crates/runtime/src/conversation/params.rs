@@ -115,4 +115,12 @@ pub struct ConversationParams {
     /// successful turn (see [`bridge_core::agent::ToolRequirement`]).
     /// Empty vec disables enforcement.
     pub tool_requirements: Vec<bridge_core::agent::ToolRequirement>,
+
+    /// Original agent system prompt (pre-preamble augmentation). Used by the
+    /// verifier projection so the classifier sees the same instructions the
+    /// agent did. Empty string when unset / verifier disabled.
+    pub agent_system_prompt: String,
+
+    /// Verifier configuration (None = verifier disabled for this conversation).
+    pub verifier_config: Option<bridge_core::agent::VerifierAgentConfig>,
 }

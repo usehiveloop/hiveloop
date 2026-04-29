@@ -20,6 +20,24 @@ use super::convert::is_retryable_stream_err;
 /// for a full 5 minutes is wedged, not slow.
 const STREAM_CHUNK_TIMEOUT: Duration = Duration::from_secs(300);
 
+/// Tighter cap for the **first** chunk: when the upstream silently drops a
+/// request (free-tier queues, rate-limit-without-status, etc.), we'd rather
+/// know in 60s than 300s. Once the model has emitted at least one chunk the
+/// connection is alive — drop back to `STREAM_CHUNK_TIMEOUT` for subsequent
+/// chunks so a model that's reasoning between deltas isn't aborted unfairly.
+///
+/// Tunable via `BRIDGE_FIRST_CHUNK_TIMEOUT_SECS`. Set very high (e.g. 300)
+/// to disable and revert to old behavior.
+const FIRST_CHUNK_TIMEOUT_DEFAULT: Duration = Duration::from_secs(60);
+
+fn first_chunk_timeout() -> Duration {
+    std::env::var("BRIDGE_FIRST_CHUNK_TIMEOUT_SECS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .map(Duration::from_secs)
+        .unwrap_or(FIRST_CHUNK_TIMEOUT_DEFAULT)
+}
+
 /// Accumulator for a single attempt of the streaming LLM call.
 pub(super) struct StreamAttempt {
     pub(super) accumulated_text: String,
@@ -69,14 +87,24 @@ pub(super) async fn run_streaming_with_retry(
             hook_cancellation: None,
         };
 
+        let first_timeout = first_chunk_timeout();
         loop {
-            let item = match tokio::time::timeout(STREAM_CHUNK_TIMEOUT, stream.next()).await {
+            // Use the tighter `first_chunk` timeout until any progress
+            // has been observed; once the upstream has emitted at least
+            // one chunk, the connection is alive — fall back to the
+            // longer chunk-gap timeout for the rest of the stream.
+            let timeout = if out.any_progress {
+                STREAM_CHUNK_TIMEOUT
+            } else {
+                first_timeout
+            };
+            let item = match tokio::time::timeout(timeout, stream.next()).await {
                 Ok(Some(item)) => item,
                 Ok(None) => break,
                 Err(_elapsed) => {
                     out.had_error = Some(format!(
                         "stream stalled: no chunk received for {}s (timed out)",
-                        STREAM_CHUNK_TIMEOUT.as_secs()
+                        timeout.as_secs()
                     ));
                     break;
                 }

@@ -33,3 +33,4 @@ sha2 = { workspace = true }
 [dev-dependencies]
 pretty_assertions = { workspace = true }
 tokio = { workspace = true }
+wiremock = { workspace = true }

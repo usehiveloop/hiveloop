@@ -30,6 +30,7 @@ fn agent_config_roundtrip_with_all_fields() {
         tool_requirements: vec![],
         subagent_timeout_foreground_secs: Some(60),
         subagent_timeout_background_secs: Some(600),
+        verifier: None,
     };
 
     let json = serde_json::to_string_pretty(&config).expect("serialize AgentConfig");

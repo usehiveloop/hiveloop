@@ -75,15 +75,22 @@ pub(super) async fn attempt_empty_response_recovery(
         let persisted_messages_for_cont = inputs.persisted_messages.clone();
         let mut history_for_continuation = enriched_history.clone();
         let (cont_tx, cont_rx) = tokio::sync::oneshot::channel();
+        // Corrective hint covers two cases: (a) genuine empty/parse-error
+        // response and (b) a leaked tool call where the model emitted its
+        // native template (`<tool_call>`, `<|tool_call>`, `<function=...>`,
+        // bare JSON) as plain text instead of using the structured
+        // `tool_calls` field. The hint is harmless when (a) is the cause
+        // and load-bearing when (b) is.
+        let corrective = "Important: when you call a tool, emit it ONLY via the structured tool_calls field. Do NOT write tool calls as text in the message content — no <tool_call>, <function=>, <|tool_call>, or bare-JSON tool descriptors in your reply.";
         let cont_prompt = if inputs.tool_calls_only {
             format!(
-                "You were assigned to work on the following task:\n\n{}\n\nPlease continue working on it.",
-                inputs.user_text
+                "You were assigned to work on the following task:\n\n{}\n\nPlease continue working on it.\n\n{}",
+                inputs.user_text, corrective
             )
         } else {
             format!(
-                "You were assigned to work on the following task:\n\n{}\n\nPlease continue working on it. If you have completed all the work, provide a final text summary.",
-                inputs.user_text
+                "You were assigned to work on the following task:\n\n{}\n\nPlease continue working on it. If you have completed all the work, provide a final text summary.\n\n{}",
+                inputs.user_text, corrective
             )
         };
 
@@ -124,6 +131,22 @@ pub(super) async fn attempt_empty_response_recovery(
 
         match tokio::time::timeout(CONTINUATION_TIMEOUT, cont_rx).await {
             Ok(Ok((Ok(pr), cont_history))) if !pr.output.is_empty() => {
+                // Reject continuation output that's a leaked tool call —
+                // the inference server failed to translate the model's
+                // native tool template into structured `tool_calls`, so
+                // accepting `<tool_call>...</tool_call>` text as a
+                // success would just save garbage. Fall through to the
+                // next attempt with the same enriched history.
+                if llm::providers::tool_call_recovery::detect_leak(&pr.output) {
+                    warn!(
+                        agent_id = inputs.agent_id,
+                        conversation_id = inputs.conversation_id,
+                        response_preview = %pr.output.chars().take(200).collect::<String>(),
+                        "tool_call_leak_in_continuation — rejecting; will retry"
+                    );
+                    *enriched_history = cont_history;
+                    continue;
+                }
                 info!(
                     agent_id = inputs.agent_id,
                     conversation_id = inputs.conversation_id,

@@ -41,6 +41,10 @@ pub(super) struct TurnResultCtx<'a> {
     pub(super) tool_calls_only: bool,
     pub(super) msg_id: &'a str,
     pub(super) tool_requirements: &'a [bridge_core::agent::ToolRequirement],
+    pub(super) agent_system_prompt: &'a str,
+    pub(super) verifier_config: Option<&'a bridge_core::agent::VerifierAgentConfig>,
+    pub(super) verifier_client: Option<&'a llm::VerifierClient>,
+    pub(super) reprompt_count: u32,
 }
 
 /// Outcome of processing a stream-turn result.
@@ -55,6 +59,27 @@ pub(super) enum TurnOutcome {
     /// History is restored to the backup; caller should just `turn_count += 1`
     /// and continue the loop.
     FatalRestored,
+    /// Verifier flagged the turn as `needs_work` with high confidence and
+    /// the per-turn re-prompt cap has not been hit. The caller should keep
+    /// the turn open, append `synthetic_prompt` as the next user message,
+    /// and re-spawn streaming.
+    ResumeSameTurn {
+        new_history: Vec<rig::message::Message>,
+        synthetic_prompt: String,
+    },
+}
+
+/// Public outcome returned by [`dispatch_chat_result`]. Wraps [`TurnOutcome`]
+/// so the run loop can act on it without exposing recovery internals.
+pub(super) enum DispatchOutcome {
+    Completed {
+        new_history: Vec<rig::message::Message>,
+    },
+    FatalRestored,
+    ResumeSameTurn {
+        new_history: Vec<rig::message::Message>,
+        synthetic_prompt: String,
+    },
 }
 
 /// Inputs needed only at TurnResultCtx construction time. Grouped to keep
@@ -81,6 +106,10 @@ pub(super) fn build_turn_result_ctx<'a>(
     tool_calls_only: bool,
     msg_id: &'a str,
     tool_requirements: &'a [bridge_core::agent::ToolRequirement],
+    agent_system_prompt: &'a str,
+    verifier_config: Option<&'a bridge_core::agent::VerifierAgentConfig>,
+    verifier_client: Option<&'a llm::VerifierClient>,
+    reprompt_count: u32,
 ) -> TurnResultCtx<'a> {
     TurnResultCtx {
         agent_id,
@@ -103,6 +132,10 @@ pub(super) fn build_turn_result_ctx<'a>(
         tool_calls_only,
         msg_id,
         tool_requirements,
+        agent_system_prompt,
+        verifier_config,
+        verifier_client,
+        reprompt_count,
     }
 }
 
@@ -199,15 +232,15 @@ pub(super) async fn dispatch_chat_result(
         >,
         tokio::time::error::Elapsed,
     >,
-) -> Option<Vec<rig::message::Message>> {
+) -> DispatchOutcome {
     match chat_result {
         Err(_timeout) => {
             handle_timeout(ctx, history, history_backup, pre_turn_len, start.elapsed()).await;
-            None
+            DispatchOutcome::FatalRestored
         }
         Ok(Err(_)) => {
             handle_task_cancelled(ctx, history, history_backup, pre_turn_len).await;
-            None
+            DispatchOutcome::FatalRestored
         }
         Ok(Ok((result, enriched_history))) => {
             let backup_for_fatal = history_backup.clone();
@@ -225,11 +258,20 @@ pub(super) async fn dispatch_chat_result(
             )
             .await
             {
-                TurnOutcome::Completed { new_history } => Some(new_history),
+                TurnOutcome::Completed { new_history } => {
+                    DispatchOutcome::Completed { new_history }
+                }
                 TurnOutcome::FatalRestored => {
                     *history = backup_for_fatal;
-                    None
+                    DispatchOutcome::FatalRestored
                 }
+                TurnOutcome::ResumeSameTurn {
+                    new_history,
+                    synthetic_prompt,
+                } => DispatchOutcome::ResumeSameTurn {
+                    new_history,
+                    synthetic_prompt,
+                },
             }
         }
     }

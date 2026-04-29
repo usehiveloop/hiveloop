@@ -26,6 +26,9 @@ pub fn to_sse_event(event: &BridgeEvent) -> Result<Event, serde_json::Error> {
         BridgeEventType::ChainCompleted => "chain_completed",
         BridgeEventType::ChainFailed => "chain_failed",
         BridgeEventType::ContextPressureWarning => "context_pressure_warning",
+        BridgeEventType::VerifierStarted => "verifier_started",
+        BridgeEventType::VerifierVerdict => "verifier_verdict",
+        BridgeEventType::VerifierError => "verifier_error",
     };
 
     let data = serde_json::to_string(event)?;

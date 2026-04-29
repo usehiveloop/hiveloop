@@ -60,6 +60,15 @@ pub enum BridgeEventType {
     /// Context pressure warning emitted mid-turn when tool-output bytes
     /// accumulate past a threshold. Clients can surface this as a warning.
     ContextPressureWarning,
+    /// Verifier classification call started for the just-finished turn.
+    VerifierStarted,
+    /// Verifier returned a verdict for the just-finished turn. Carries
+    /// verdict (`users_turn` / `completed` / `needs_work`), confidence, reason,
+    /// model, latency, and token usage.
+    VerifierVerdict,
+    /// Verifier call errored (timeout, transport, schema). The runtime treats
+    /// this as `users_turn` and proceeds.
+    VerifierError,
 }
 
 /// The single canonical event payload used across all delivery channels.

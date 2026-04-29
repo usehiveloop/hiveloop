@@ -19,6 +19,7 @@ mod dispatch;
 mod prompt_hooked;
 mod prompt_plain;
 mod retry;
+pub mod tool_call_recovery;
 mod tool_choice_middleware;
 
 #[cfg(test)]

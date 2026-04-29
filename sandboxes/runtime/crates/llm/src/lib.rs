@@ -6,6 +6,7 @@ pub mod providers;
 pub mod streaming;
 pub mod tool_adapter;
 pub mod tool_hook;
+pub mod verifier_client;
 
 pub use factory::build_agent;
 pub use permission_manager::PermissionManager;
@@ -16,3 +17,7 @@ pub use prefix_hash::{
 pub use providers::{BridgeAgent, BridgeStream, BridgeStreamItem, PromptResponse};
 pub use tool_adapter::{adapt_tools, DynamicTool};
 pub use tool_hook::{RepeatGuardState, ToolCallEmitter};
+pub use verifier_client::{
+    Confidence, ParsedVerdict, Verdict, VerifierBackend, VerifierClient, VerifierError,
+    VerifierRawResponse, VerifierRequest, VERIFIER_SYSTEM_PROMPT, VERIFIER_VERDICT_SCHEMA,
+};

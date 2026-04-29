@@ -1,19 +1,14 @@
-Code intelligence via the Language Server Protocol. Use after editing to check for compile errors, and before editing to understand structure.
+Code intelligence via LSP. Use before editing typed code (find symbols, definitions, callers); use after editing to check diagnostics.
 
 ## Operations
-- `goToDefinition` (line, character): jump to symbol definition
-- `findReferences` (line, character): list all usages
-- `hover` (line, character): type info and docs at position
-- `documentSymbol`: list symbols in `file_path` (no position)
-- `workspaceSymbol` (query): search symbols project-wide; up to 10 results
-- `goToImplementation` (line, character): find impls of interface/trait
-- `prepareCallHierarchy` / `incomingCalls` / `outgoingCalls` (line, character): callers/callees
-- `diagnostics`: errors/warnings for `file_path` (no position)
+- `goToDefinition` / `findReferences` / `goToImplementation` (line, character)
+- `hover` (line, character) — types + docs
+- `documentSymbol` (no position) — symbols in file
+- `workspaceSymbol` (query) — search project-wide, up to 10 results
+- `prepareCallHierarchy` / `incomingCalls` / `outgoingCalls` (line, character)
+- `diagnostics` (no position) — errors/warnings for the file
 
-## Parameters
-- `operation` (required), `file_path` (required, abs or relative)
-- `line`, `character`: 1-based; required for position-based ops
-- `query`: only for `workspaceSymbol`
+## Args
+- `operation`, `file_path` (required); `line`, `character` (1-based) for position ops; `query` for `workspaceSymbol`.
 
-## Notes
-Files are opened/refreshed automatically. If no server matches the file type, returns an error gracefully. Use `diagnostics` after edits to verify; use `goToDefinition` / `findReferences` instead of grep when navigating typed code.
+Prefer `goToDefinition` / `findReferences` over RipGrep when navigating typed code.

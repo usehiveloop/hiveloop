@@ -1361,194 +1361,45 @@ input = """
 """
 expected = "artisan: ok"
 
-# =============================================================================
-# AGENT 5 — artisan test (wrapper)
-# =============================================================================
 
 # =============================================================================
-# artisan test — Pest/PHPUnit wrapper
+# artisan test — PASSTHROUGH
 # =============================================================================
-# Design goals:
-#   • Clean run (all passing)         → strip banner/progress, keep `Tests: N passed`
-#                                       and `Duration:` lines verbatim
-#   • Empty test match (no tests)     → keep "No tests found."
-#   • Failures / errors / exceptions  → keep every FAIL block, the ⨯ line,
-#                                       assertion diff, stack frame, and summary
-#   • Coverage driver errors          → preserved via keep_lines_matching
+# `php artisan test` output (Pest, PHPUnit, or laravel/pao's structured JSON)
+# is intentionally NOT filtered. Any line-stripping or truncation we attempted
+# either swallowed the runner's pass/fail summary or mangled pao's single-line
+# JSON. The cost of misfiltering test output (agent burns turns guessing
+# whether tests passed) is much higher than the token cost of raw output.
 #
-# IMPORTANT: test-runner output is never silently rewritten. The runner's own
-# summary line (`Tests: N passed (M assertions)` / `OK (N tests, M assertions)`)
-# is the single most important signal — rewriting it to a synthetic string
-# previously caused a 20-turn debugging dead end. If aggressive compression is
-# wanted in future, expose it as an explicit opt-in mode (e.g. RTK_TERSE=1)
-# documented in the system prompt — never as the default.
-#
-# Pest uses unicode glyphs (✓ ⨯). PHPUnit uses ASCII (. × F E S R). We match
-# both. The summary line "Tests: N passed (M assertions)" is emitted by both.
+# This filter exists ONLY to prevent `artisan-zz-generic` (which truncates at
+# 240 chars/line and 60 lines) from catching `artisan test`. It does no
+# rewriting — output passes through unchanged.
 [filters.artisan-test]
-description = "artisan test (Pest + PHPUnit) — strip noise, keep the runner's own PASS/FAIL summary verbatim"
+description = "artisan test — passthrough (no filtering); reserves precedence over artisan-zz-generic"
 match_command = '^(?:php\s+)?(?:\./)?(?:vendor/bin/sail\s+)?artisan\s+test\b'
-strip_ansi = true
-filter_stderr = true
-
-# Normalize: drop per-test duration suffixes and parallel "dots only" progress
-# lines so downstream regexes can stay tight.
-replace = [
-  # Strip trailing "  0.05s" duration suffix ONLY on per-test bullet lines
-  # (identified by the ✓ / ⨯ / × glyphs).  Leaves the summary "Duration:"
-  # line alone.
-  { pattern = '^(\s*(?:✓|⨯|×).*?)\s+\d+(?:\.\d+)?s\s*$', replacement = '$1' },
-  # Collapse "dots only" parallel progress lines to empty.
-  { pattern = '^\s*[.⨯×FESR]+\s*$', replacement = '' },
-]
-
-# NOTE: no match_output shortcut. The runner's own `Tests: N passed (M assertions)`
-# / `Duration:` / `Parallel:` / `FAIL ...` lines must reach the agent verbatim.
-# A previous synthetic `artisan test: ok` collapse caused a 20-turn debugging
-# dead end because the agent could not see assertion counts or the real
-# pass/fail signal. Test-runner output is never silently rewritten.
-
-# On the failure / no-tests paths, keep only signal lines.
-keep_lines_matching = [
-  # FAIL / WARN / RISK / SKIP / INFO / ERROR group banners
-  '^\s*(FAIL|WARN|RISK|SKIP|INFO|ERROR)\s+',
-  # FAILED detail header (Pest prints "FAILED Tests\Foo > bar")
-  '^\s*FAILED\s+',
-  # Failure bullet (Pest unicode + PHPUnit ASCII)
-  '^\s*(⨯|×|✗)\s',
-  # Assertion diff
-  '^\s+Failed asserting',
-  # Source location ("at tests/Foo.php:N")
-  '^\s*at\s+.+\.php:\d+',
-  # Pest info lines we care about
-  'No tests (found|executed)',
-  # Plain error / exception prefixes (PHPUnit style & thrown messages)
-  '(?i)^\s*(error|exception|fatal|uncaught)\b',
-  # Summary lines
-  '^\s*Tests:\s+',
-  '^\s*Duration:',
-  '^\s*Parallel:',
-]
-
-# 2 failures ≈ 18 kept lines, 10 failures ≈ 80.  100 is a comfortable ceiling.
-max_lines = 100
-
-# Defensive fallback for the genuinely-empty case (no Tests: line, nothing
-# survived stripping). Worded so it's not mistaken for a real "ok".
-on_empty = "[rtk] artisan test produced no output after stripping noise — re-run with NO_RTK=1 to see raw output"
-
-# -----------------------------------------------------------------------------
-# Inline tests — inputs use ANSI-stripped output (strip_ansi = true means the
-# filter sees this form).  Triple-single-quote = TOML literal string = no
-# escape interpretation, so brackets / backslashes are safe.
-# -----------------------------------------------------------------------------
 
 [[tests.artisan-test]]
-name = "all passing — runner's own summary kept verbatim"
-input = '''
-
-   PASS  Tests\Unit\ExampleTest
-  ✓ that true is true
-
-   PASS  Tests\Feature\ExampleTest
-  ✓ the application returns a successful response                        0.05s
-
-  Tests:    2 passed (2 assertions)
-  Duration: 0.08s
-'''
-expected = '''  Tests:    2 passed (2 assertions)
-  Duration: 0.08s'''
+name = "passthrough — pao JSON kept verbatim"
+input = '''{"tool":"phpunit","result":"failed","tests":1,"passed":0,"assertions":1,"duration_ms":103,"failed":1,"failures":[{"test":"Tests\\Unit\\ApiFeatureTest::test_editor_can_create_article","file":"/tmp/app/tests/Unit/ApiFeatureTest.php","line":179,"message":"Expected 201 got 403."}]}'''
+expected = '''{"tool":"phpunit","result":"failed","tests":1,"passed":0,"assertions":1,"duration_ms":103,"failed":1,"failures":[{"test":"Tests\\Unit\\ApiFeatureTest::test_editor_can_create_article","file":"/tmp/app/tests/Unit/ApiFeatureTest.php","line":179,"message":"Expected 201 got 403."}]}'''
 
 [[tests.artisan-test]]
-name = "all passing with --filter — runner's own summary kept verbatim"
+name = "passthrough — pest summary kept verbatim"
 input = '''
-
    PASS  Tests\Feature\ExampleTest
   ✓ the application returns a successful response                        0.05s
 
   Tests:    1 passed (1 assertions)
-  Duration: 0.05s
+  Duration: 0.08s
 '''
-expected = '''  Tests:    1 passed (1 assertions)
-  Duration: 0.05s'''
+expected = '''
+   PASS  Tests\Feature\ExampleTest
+  ✓ the application returns a successful response                        0.05s
 
-[[tests.artisan-test]]
-name = "one failing test — keep FAIL, assertion diff, stack frame, summary"
-input = '''
-
-   PASS  Tests\Unit\ExampleTest
-  ✓ that true is true
-
-   FAIL  Tests\Feature\FailTest
-  ⨯ it fails comparing values                                            0.01s
-  ────────────────────────────────────────────────────────────────────────────
-   FAILED  Tests\Feature\FailTest > it fails comparing values
-  Failed asserting that 1 is identical to 2.
-
-  at tests/Feature/FailTest.php:4
-      1▕ <?php
-      2▕
-      3▕ it('fails comparing values', function () {
-  ➜   4▕     expect(1)->toBe(2);
-      5▕ });
-      6▕
-
-  1   tests/Feature/FailTest.php:4
-
-
-  Tests:    1 failed, 2 passed (3 assertions)
-  Duration: 0.10s
+  Tests:    1 passed (1 assertions)
+  Duration: 0.08s
 '''
-expected = '''   FAIL  Tests\Feature\FailTest
-  ⨯ it fails comparing values
-   FAILED  Tests\Feature\FailTest > it fails comparing values
-  Failed asserting that 1 is identical to 2.
-  at tests/Feature/FailTest.php:4
-  Tests:    1 failed, 2 passed (3 assertions)
-  Duration: 0.10s'''
 
-[[tests.artisan-test]]
-name = "exception thrown — keep FAILED header and source location"
-input = '''
-
-   FAIL  Tests\Feature\ExceptionTest
-  ⨯ it throws an unexpected exception                                    0.01s
-  ────────────────────────────────────────────────────────────────────────────
-   FAILED  Tests\Feature\ExceptionTest > it throws an unex…  RuntimeException
-  Something exploded in production
-
-  at tests/Feature/ExceptionTest.php:4
-      1▕ <?php
-      2▕
-      3▕ it('throws an unexpected exception', function () {
-  ➜   4▕     throw new \RuntimeException('Something exploded in production');
-      5▕ });
-
-  Tests:    1 failed (1 assertions)
-  Duration: 0.05s
-'''
-expected = '''   FAIL  Tests\Feature\ExceptionTest
-  ⨯ it throws an unexpected exception
-   FAILED  Tests\Feature\ExceptionTest > it throws an unex…  RuntimeException
-  at tests/Feature/ExceptionTest.php:4
-  Tests:    1 failed (1 assertions)
-  Duration: 0.05s'''
-
-[[tests.artisan-test]]
-name = "no tests found — keep info line"
-input = '''
-
-   INFO  No tests found.
-'''
-expected = "   INFO  No tests found."
-
-[[tests.artisan-test]]
-name = "coverage driver error — keep error"
-input = '''
-
-   ERROR  Code coverage driver not available. Did you install Xdebug or PCOV?
-'''
-expected = "   ERROR  Code coverage driver not available. Did you install Xdebug or PCOV?"
 
 # =============================================================================
 # AGENT 9 — artisan info/queue/vendor/key:generate/down:up
