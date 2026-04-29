@@ -22,9 +22,18 @@ func discoverSkills(skillsDir string) ([]string, error) {
 			continue
 		}
 		manifestPath := filepath.Join(skillsDir, entry.Name(), "skill.json")
-		if _, err := os.Stat(manifestPath); err == nil {
-			dirs = append(dirs, filepath.Join(skillsDir, entry.Name()))
+		body, err := os.ReadFile(manifestPath)
+		if err != nil {
+			continue
 		}
+		var mf manifest
+		if err := json.Unmarshal(body, &mf); err != nil {
+			return nil, fmt.Errorf("parsing %s: %w", manifestPath, err)
+		}
+		if mf.Internal {
+			continue
+		}
+		dirs = append(dirs, filepath.Join(skillsDir, entry.Name()))
 	}
 	return dirs, nil
 }

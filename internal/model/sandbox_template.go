@@ -18,6 +18,7 @@ type SandboxTemplate struct {
 	BaseTemplate   *SandboxTemplate `gorm:"foreignKey:BaseTemplateID"`
 	BuildCommands  string     `gorm:"type:text;not null;default:''"`             // user's commands to run on base image
 	ExternalID     *string    // provider's template/snapshot ID once built
+	BaseImageRef   *string    // OCI image ref used as FROM when a child template builds on top of this row
 	BuildStatus    string     `gorm:"not null;default:'pending'"`                // pending, building, ready, failed
 	BuildError     *string
 	BuildLogs      string `gorm:"type:text;not null;default:''"`                 // accumulated build logs (newline separated)

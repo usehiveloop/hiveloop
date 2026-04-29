@@ -5739,77 +5739,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/billing/portal": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create billing portal session
-         * @description Creates a customer portal session where the user can manage their subscription, payment methods, and invoices.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Portal request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["createPortalRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["portalResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/billing/subscription": {
         parameters: {
             query?: never;
@@ -5819,7 +5748,7 @@ export interface paths {
         };
         /**
          * Get subscription status
-         * @description Returns the org's active plan, provider, and credit balance.
+         * @description Returns the org's active plan, provider, payment-method snapshot, and any pending plan change.
          */
         get: {
             parameters: {
@@ -5867,6 +5796,305 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/billing/subscription/apply-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply a subscription plan change */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Quote and (for upgrades) Paystack reference */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["applyChangeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["applyChangeResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Payment Required */
+                402: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/subscription/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a subscription */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Cancellation options */
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["cancelRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["cancelResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/subscription/init-upgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Initialise a Paystack transaction for an upgrade quote */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Upgrade quote id */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["initUpgradeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["initUpgradeResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/subscription/preview-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview a subscription plan change */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Target plan */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["previewChangeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["previewChangeResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/subscription/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a subscription */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["cancelResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/billing/verify": {
         parameters: {
             query?: never;
@@ -5877,8 +6105,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Verify subscription is active
-         * @description Waits up to 5s for the subscription webhook to land and the local Subscription row to become active for the requested plan.
+         * Verify checkout completed
+         * @description Resolves a Paystack transaction reference, asserts the paid amount matches the plan's price, and provisions the Subscription row.
          */
         post: {
             parameters: {
@@ -5887,7 +6115,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            /** @description Plan to wait for */
+            /** @description Reference returned from /v1/billing/checkout */
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["verifyRequest"];
@@ -5921,8 +6149,17 @@ export interface paths {
                         "application/json": components["schemas"]["errorResponse"];
                     };
                 };
-                /** @description Request Timeout */
-                408: {
+                /** @description Payment Required */
+                402: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -11444,6 +11681,104 @@ export interface paths {
         };
         trace?: never;
     };
+    "/v1/system/tasks/{taskName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run a system task
+         * @description Executes a registered server-side LLM task using platform credentials. Each task name maps to a hard-coded definition (model tier, prompt, args). Caller may opt into streaming.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Task name */
+                    taskName: string;
+                };
+                cookie?: never;
+            };
+            /** @description Task arguments */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["systemTaskRequest"];
+                };
+            };
+            responses: {
+                /** @description SSE stream when stream=true */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": string;
+                        "text/event-stream": string;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tokens": {
         parameters: {
             query?: never;
@@ -12106,6 +12441,8 @@ export interface components {
             routerTriggerID?: string;
         };
         SandboxTemplate: {
+            /** @description OCI image ref used as FROM when a child template builds on top of this row */
+            baseImageRef?: string;
             baseTemplate?: components["schemas"]["SandboxTemplate"];
             /** @description optional FK to public template used as base */
             baseTemplateID?: string;
@@ -12211,6 +12548,12 @@ export interface components {
             body?: string;
             path?: string;
         };
+        "github_com_usehiveloop_hiveloop_internal_system.Usage": {
+            cached_tokens?: number;
+            input_tokens?: number;
+            output_tokens?: number;
+            reasoning_tokens?: number;
+        };
         BuiltInToolDefinition: {
             category?: string;
             description?: string;
@@ -12272,6 +12615,7 @@ export interface components {
             provider?: string;
         };
         adminCreateSandboxTemplateRequest: {
+            base_image_ref?: string;
             name?: string;
             size?: string;
             slug?: string;
@@ -12373,6 +12717,7 @@ export interface components {
             status?: string;
         };
         adminSandboxTemplateResponse: {
+            base_image_ref?: string;
             base_template_id?: string;
             build_commands?: string;
             build_error?: string;
@@ -12465,6 +12810,7 @@ export interface components {
             rate_limit?: number;
         };
         adminUpdateSandboxTemplateRequest: {
+            base_image_ref?: string;
             name?: string;
             size?: string;
             slug?: string;
@@ -12597,6 +12943,14 @@ export interface components {
             revoked?: number;
             total?: number;
         };
+        applyChangeRequest: {
+            paystack_reference?: string;
+            quote_id?: string;
+        };
+        applyChangeResponse: {
+            plan_slug?: string;
+            status?: string;
+        };
         attachSkillRequest: {
             pinned_version_id?: string;
             skill_id?: string;
@@ -12622,6 +12976,14 @@ export interface components {
             orgs?: components["schemas"]["orgMemberDTO"][];
             refresh_token?: string;
             user?: components["schemas"]["userResponse"];
+        };
+        cancelRequest: {
+            at_period_end?: boolean;
+        };
+        cancelResponse: {
+            cancel_at_period_end?: boolean;
+            canceled_at?: string;
+            status?: string;
         };
         changePasswordRequest: {
             current_password?: string;
@@ -12716,7 +13078,10 @@ export interface components {
             success_url?: string;
         };
         createCheckoutResponse: {
+            /** @description popup flow: hand to PaystackPop().resumeTransaction() */
+            access_code?: string;
             checkout_url?: string;
+            reference?: string;
         };
         createCredentialRequest: {
             api_key?: string;
@@ -12758,9 +13123,6 @@ export interface components {
         };
         createOrgRequest: {
             name?: string;
-        };
-        createPortalRequest: {
-            provider?: string;
         };
         createRAGSourceRequest: {
             access_type?: string;
@@ -12930,6 +13292,15 @@ export interface components {
             meta?: components["schemas"]["JSON"];
             nango_config?: components["schemas"]["NangoConfig"];
             provider?: string;
+        };
+        initUpgradeRequest: {
+            quote_id?: string;
+        };
+        initUpgradeResponse: {
+            access_code?: string;
+            amount_minor?: number;
+            currency?: string;
+            reference?: string;
         };
         integrationDetail: {
             actions?: components["schemas"]["actionSummary"][];
@@ -13228,12 +13599,23 @@ export interface components {
             name?: string;
             price_cents?: number;
             provider?: string;
-            provider_plan_id?: string;
             slug?: string;
             welcome_credits?: number;
         };
-        portalResponse: {
-            portal_url?: string;
+        previewChangeRequest: {
+            plan_slug?: string;
+        };
+        previewChangeResponse: {
+            amount_minor?: number;
+            credit_grant_minor?: number;
+            currency?: string;
+            effective_at?: string;
+            expires_at?: string;
+            from_plan_slug?: string;
+            kind?: string;
+            quote_id?: string;
+            requires_payment_now?: boolean;
+            to_plan_slug?: string;
         };
         providerDetail: {
             api?: string;
@@ -13318,6 +13700,7 @@ export interface components {
         };
         ragLatestAttemptStatus: {
             docs_estimated?: number;
+            error_msg?: string;
             id?: string;
             new_docs_indexed?: number;
             status?: string;
@@ -13585,8 +13968,20 @@ export interface components {
             updated_at?: string;
         };
         subscriptionResponse: {
+            cancel_at_period_end?: boolean;
+            card_brand?: string;
+            card_exp_month?: string;
+            card_exp_year?: string;
+            card_last4?: string;
             credits_balance?: number;
             current_period_end?: string;
+            payment_account_name?: string;
+            payment_bank_name?: string;
+            /** @description Payment-method snapshot from the most recent successful charge. */
+            payment_channel?: string;
+            pending_change_at?: string;
+            /** @description Pending plan change scheduled at PendingChangeAt (downgrade flow). */
+            pending_plan_slug?: string;
             plan_slug?: string;
             provider?: string;
             status?: string;
@@ -13602,6 +13997,18 @@ export interface components {
             label?: string;
             provider_id?: string;
             revoked_at?: string;
+        };
+        systemTaskJSONResponse: {
+            cached?: boolean;
+            model?: string;
+            text?: string;
+            usage?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_system.Usage"];
+        };
+        systemTaskRequest: {
+            args?: {
+                [key: string]: unknown;
+            };
+            stream?: boolean;
         };
         tokenListItem: {
             created_at?: string;
@@ -13767,11 +14174,11 @@ export interface components {
             verified?: boolean;
         };
         verifyRequest: {
-            plan_slug?: string;
+            provider?: string;
+            reference?: string;
         };
         verifyResponse: {
             plan_slug?: string;
-            /** @description "active" | "timeout" */
             status?: string;
         };
     };
