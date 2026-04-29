@@ -33,9 +33,21 @@ kill_children() {
   done
 }
 
+port_pids() {
+  local port="$1"
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -ti tcp:"$port" 2>/dev/null
+  elif command -v fuser >/dev/null 2>&1; then
+    fuser -n tcp "$port" 2>/dev/null | tr -s ' ' '\n' | grep -E '^[0-9]+$'
+  else
+    netstat -tlnp 2>/dev/null \
+      | awk -v p=":$port " '$4 ~ p { sub(/\/.*/, "", $7); if ($7 ~ /^[0-9]+$/) print $7 }'
+  fi
+}
+
 kill_port_holders() {
   for port in 13004 18080 31112; do
-    for pid in $(lsof -ti tcp:$port 2>/dev/null); do
+    for pid in $(port_pids "$port"); do
       kill -9 "$pid" 2>/dev/null && echo "  killed port:       :$port holder (pid $pid)"
     done
   done
