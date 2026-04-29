@@ -57,11 +57,12 @@ func (h *SandboxTemplateHandler) Delete(w http.ResponseWriter, r *http.Request) 
 }
 
 type publicTemplateResponse struct {
-	ID   string     `json:"id"`
-	Name string     `json:"name"`
-	Slug string     `json:"slug"`
-	Tags model.JSON `json:"tags"`
-	Size string     `json:"size"`
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	Slug        string     `json:"slug"`
+	Tags        model.JSON `json:"tags"`
+	Size        string     `json:"size"`
 }
 
 // ListPublic handles GET /v1/sandbox-templates/public.
@@ -83,11 +84,12 @@ func (h *SandboxTemplateHandler) ListPublic(w http.ResponseWriter, r *http.Reque
 	resp := make([]publicTemplateResponse, len(templates))
 	for index, tmpl := range templates {
 		resp[index] = publicTemplateResponse{
-			ID:   tmpl.ID.String(),
-			Name: tmpl.Name,
-			Slug: tmpl.Slug,
-			Tags: tmpl.Tags,
-			Size: tmpl.Size,
+			ID:          tmpl.ID.String(),
+			Name:        tmpl.Name,
+			Description: tmpl.Description,
+			Slug:        tmpl.Slug,
+			Tags:        tmpl.Tags,
+			Size:        tmpl.Size,
 		}
 	}
 

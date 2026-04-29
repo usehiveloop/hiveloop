@@ -14888,6 +14888,9 @@ const docTemplate = `{
         "internal_handler.publicTemplateResponse": {
             "type": "object",
             "properties": {
+                "description": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -15531,6 +15534,9 @@ const docTemplate = `{
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "created_at": {
+                    "type": "string"
+                },
+                "description": {
                     "type": "string"
                 },
                 "external_id": {

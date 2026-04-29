@@ -172,6 +172,11 @@ export function SandboxTemplatesList() {
                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Public</Badge>
                       )}
                     </div>
+                    {template.description ? (
+                      <p className="text-[12px] text-muted-foreground mt-0.5 truncate">
+                        {template.description}
+                      </p>
+                    ) : null}
                     {tags.length > 0 && (
                       <div className="flex items-center gap-1 mt-0.5">
                         {tags.map((tag) => (

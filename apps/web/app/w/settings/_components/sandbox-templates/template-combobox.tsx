@@ -17,6 +17,7 @@ export interface TemplateOption {
   id: string
   name: string
   size: string
+  description?: string
 }
 
 interface TemplateComboboxProps {
@@ -83,7 +84,7 @@ export function TemplateCombobox({
               {templates.map((template) => (
                 <CommandItem
                   key={template.id}
-                  value={`${template.name} ${template.size}`}
+                  value={`${template.name} ${template.size} ${template.description ?? ""}`}
                   onSelect={() => {
                     onSelect?.(template.id)
                     setOpen(false)
@@ -92,7 +93,10 @@ export function TemplateCombobox({
                 >
                   <div className="min-w-0">
                     <p className="truncate">{template.name}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">{template.size}</p>
+                    {template.description ? (
+                      <p className="truncate text-[11px] text-muted-foreground">{template.description}</p>
+                    ) : null}
+                    <p className="truncate text-[11px] text-muted-foreground/70">{template.size}</p>
                   </div>
                   {selected?.id === template.id ? (
                     <HugeiconsIcon icon={Tick02Icon} size={14} className="shrink-0 text-primary" />

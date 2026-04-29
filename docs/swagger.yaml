@@ -2871,6 +2871,8 @@ definitions:
     type: object
   internal_handler.publicTemplateResponse:
     properties:
+      description:
+        type: string
       id:
         type: string
       name:
@@ -3293,6 +3295,8 @@ definitions:
       config:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       created_at:
+        type: string
+      description:
         type: string
       external_id:
         type: string

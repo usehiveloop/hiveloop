@@ -66,6 +66,7 @@ type retryBuildRequest struct {
 type sandboxTemplateResponse struct {
 	ID             string     `json:"id"`
 	Name           string     `json:"name"`
+	Description    string     `json:"description"`
 	Slug           string     `json:"slug"`
 	Tags           model.JSON `json:"tags"`
 	Size           string     `json:"size"`
@@ -89,6 +90,7 @@ func toSandboxTemplateResponse(t model.SandboxTemplate) sandboxTemplateResponse 
 	resp := sandboxTemplateResponse{
 		ID:            t.ID.String(),
 		Name:          t.Name,
+		Description:   t.Description,
 		Slug:          t.Slug,
 		Tags:          t.Tags,
 		Size:          t.Size,
