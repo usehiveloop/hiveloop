@@ -1,27 +1,10 @@
 #!/usr/bin/env bash
-# Bring up the local test stack as native processes.
-#
-# Postgres + Redis are expected as system packages (apt installs in the
-# dev-box image). This script starts them if they aren't reachable yet.
-# fake-nango, backend, and frontend run under bash supervisors that restart
-# them on crash with a 2s delay.
-#
-# Idempotent — skips processes that are already healthy. Pid files in
-# $RUN_DIR/{name}.pid (child) and $RUN_DIR/{name}.supervisor.pid (loop).
-#
-# Env overrides:
-#   FAKE_NANGO_PORT   default 13004
-#   BACKEND_PORT      default 18080
-#   FRONTEND_PORT     default 31112
-#   PG_PORT           default 5433
-#   REDIS_PORT        default 6379
-#   RUN_DIR           default /tmp/agent-test
 set -euo pipefail
 
 FAKE_NANGO_PORT="${FAKE_NANGO_PORT:-13004}"
 BACKEND_PORT="${BACKEND_PORT:-18080}"
 FRONTEND_PORT="${FRONTEND_PORT:-31112}"
-PG_PORT="${PG_PORT:-5433}"
+PG_PORT="${PG_PORT:-5432}"
 REDIS_PORT="${REDIS_PORT:-6379}"
 RUN_DIR="${RUN_DIR:-/tmp/agent-test}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -29,43 +12,30 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p "$RUN_DIR"
 cd "$ROOT"
 
-# ─── Helpers ────────────────────────────────────────────────────────────────
 healthy_http() { curl -sf -o /dev/null "$1" 2>/dev/null; }
+
 wait_http() {
   local url="$1" name="$2" tries="${3:-30}"
-  for i in $(seq 1 "$tries"); do
+  for _ in $(seq 1 "$tries"); do
     healthy_http "$url" && { echo "  ✓ $name"; return 0; }
     sleep 1
   done
-  echo "  ✗ $name (timeout after ${tries}s)"; return 1
+  echo "  ✗ $name (timeout after ${tries}s)"
+  return 1
 }
 
-# supervise NAME -- CMD ARGS...
-# Backgrounds CMD under a restart loop. Writes:
-#   $RUN_DIR/$NAME.pid             — current child pid
-#   $RUN_DIR/$NAME.supervisor.pid  — the loop's pid
-#   $RUN_DIR/$NAME.log             — combined stdout/stderr
-# local-down.sh kills supervisor.pid first (loop dies), then child pid.
 supervise() {
   local name="$1"; shift
   local logf="$RUN_DIR/$name.log"
   local pidf="$RUN_DIR/$name.pid"
   local supf="$RUN_DIR/$name.supervisor.pid"
-
-  ( # The parent script runs `set -euo pipefail`. Inside the supervisor we
-    # WANT non-zero waits (SIGKILL → 137, panic → 1, etc.) so the loop can
-    # restart — disable -e so they don't kill the subshell instead.
-    set +e
+  ( set +e
     while true; do
-      # Run the child in its own process group so local-down can kill the
-      # entire tree (pnpm → node → next-server, etc.) by sending the signal
-      # to -PGID instead of just the direct child.
       setsid "$@" >> "$logf" 2>&1 &
-      child=$!
+      local child=$!
       echo "$child" > "$pidf"
       wait "$child"
-      ec=$?
-      # 143 = SIGTERM (graceful shutdown initiated by local-down). Exit silently.
+      local ec=$?
       if [ "$ec" = 143 ] || [ "$ec" = 130 ]; then
         rm -f "$pidf"
         exit 0
@@ -77,64 +47,61 @@ supervise() {
   echo $! > "$supf"
 }
 
-# ─── 1. Postgres ────────────────────────────────────────────────────────────
-echo "==> postgres (:$PG_PORT)"
-if pg_isready -h 127.0.0.1 -p "$PG_PORT" -U hiveloop -q 2>/dev/null; then
-  echo "  ✓ already up"
-else
-  # Ubuntu's pg_ctlcluster wrapper — only works if the cluster has been
-  # configured to listen on $PG_PORT. The dev-box image setup is responsible
-  # for that (see cmd/buildtemplates).
-  if command -v pg_ctlcluster >/dev/null 2>&1; then
-    PG_VER="$(pg_lsclusters -h 2>/dev/null | awk '$3 == '"$PG_PORT"' { print $1; exit }')"
-    if [ -n "${PG_VER:-}" ]; then
-      pg_ctlcluster "$PG_VER" main start 2>/dev/null || true
-    else
-      echo "  ! no cluster configured for port $PG_PORT — see dev-box init" >&2
-    fi
-  else
-    echo "  ! pg_ctlcluster not found; expecting postgres on :$PG_PORT" >&2
-  fi
-  for i in $(seq 1 15); do
-    pg_isready -h 127.0.0.1 -p "$PG_PORT" -U hiveloop -q 2>/dev/null && { echo "  ✓ ready"; break; }
-    sleep 1
-  done
-  pg_isready -h 127.0.0.1 -p "$PG_PORT" -U hiveloop -q 2>/dev/null \
-    || { echo "  ✗ postgres not reachable on :$PG_PORT" >&2; exit 1; }
-fi
+pg_can_connect() {
+  PGPASSWORD=localdev psql -h 127.0.0.1 -p "$1" -U hiveloop -d hiveloop \
+    -tAc 'SELECT 1' >/dev/null 2>&1
+}
 
-# ─── 2. Redis ───────────────────────────────────────────────────────────────
-echo ""
-echo "==> redis (:$REDIS_PORT)"
-if redis-cli -h 127.0.0.1 -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG; then
-  echo "  ✓ already up"
-else
+ensure_postgres() {
+  echo "==> postgres"
+  for try in "$PG_PORT" 5432 5433; do
+    if pg_can_connect "$try"; then
+      PG_PORT="$try"
+      echo "$PG_PORT" > "$RUN_DIR/pg.port"
+      echo "  ✓ ready on :$PG_PORT"
+      return 0
+    fi
+  done
+  echo "  initializing native cluster..."
+  PG_PORT="$("$ROOT/scripts/local-init.sh" 2>&1 | tee /dev/stderr | tail -1)"
+  pg_can_connect "$PG_PORT" \
+    || { echo "  ✗ postgres still not reachable as hiveloop@hiveloop" >&2; exit 1; }
+  echo "$PG_PORT" > "$RUN_DIR/pg.port"
+  echo "  ✓ ready on :$PG_PORT"
+}
+
+ensure_redis() {
+  echo "==> redis (:$REDIS_PORT)"
+  if redis-cli -h 127.0.0.1 -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG; then
+    echo "  ✓ already up"
+    return 0
+  fi
   redis-server --daemonize yes --port "$REDIS_PORT" \
     --maxmemory 256mb --maxmemory-policy allkeys-lru \
     --logfile "$RUN_DIR/redis.log" \
     --pidfile "$RUN_DIR/redis.pid" 2>/dev/null || true
-  for i in $(seq 1 10); do
+  for _ in $(seq 1 10); do
     redis-cli -h 127.0.0.1 -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG \
-      && { echo "  ✓ ready"; break; }
+      && { echo "  ✓ ready"; return 0; }
     sleep 1
   done
-  redis-cli -h 127.0.0.1 -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG \
-    || { echo "  ✗ redis not reachable on :$REDIS_PORT" >&2; exit 1; }
-fi
+  echo "  ✗ redis not reachable on :$REDIS_PORT" >&2
+  exit 1
+}
 
-# ─── 3. Build ───────────────────────────────────────────────────────────────
-echo ""
-echo "==> build"
-go build -o "$RUN_DIR/fake-nango" ./cmd/fake-nango
-go build -o "$RUN_DIR/hiveloop"   ./cmd/server
-echo "  ✓ fake-nango + hiveloop"
+build_binaries() {
+  echo "==> build"
+  go build -o "$RUN_DIR/fake-nango" ./cmd/fake-nango
+  go build -o "$RUN_DIR/hiveloop"   ./cmd/server
+  echo "  ✓ fake-nango + hiveloop"
+}
 
-# ─── 4. fake-nango (supervised) ─────────────────────────────────────────────
-echo ""
-echo "==> fake-nango (:$FAKE_NANGO_PORT)"
-if healthy_http "http://localhost:$FAKE_NANGO_PORT/providers.json"; then
-  echo "  ✓ already up"
-else
+start_fake_nango() {
+  echo "==> fake-nango (:$FAKE_NANGO_PORT)"
+  if healthy_http "http://localhost:$FAKE_NANGO_PORT/providers.json"; then
+    echo "  ✓ already up"
+    return 0
+  fi
   FAKE_NANGO_SCENARIOS_DIR="$ROOT/cmd/fake-nango/scenarios" \
     supervise "fake-nango" \
       "$RUN_DIR/fake-nango" \
@@ -142,10 +109,28 @@ else
         -secret fake-nango-secret \
         -webhook-target "http://localhost:$BACKEND_PORT/internal/webhooks/nango"
   wait_http "http://localhost:$FAKE_NANGO_PORT/providers.json" "fake-nango"
-fi
+}
 
-# ─── 5. Backend env ─────────────────────────────────────────────────────────
-cat > "$RUN_DIR/backend.env" <<EOF
+gen_rsa() { openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n'; }
+gen_aes() { openssl rand -base64 32 | tr -d '\n'; }
+
+ensure_secret() {
+  local var="$1" file="$2" gen="$3"
+  if grep -q "^${var}=" .env 2>/dev/null; then
+    grep "^${var}=" .env >> "$RUN_DIR/backend.env"
+  elif [ -f "$RUN_DIR/$file" ]; then
+    echo "${var}=$(cat "$RUN_DIR/$file")" >> "$RUN_DIR/backend.env"
+  else
+    local val
+    val="$($gen)"
+    echo "$val" > "$RUN_DIR/$file"
+    echo "${var}=${val}" >> "$RUN_DIR/backend.env"
+    echo "  ! generated ephemeral $var at $RUN_DIR/$file"
+  fi
+}
+
+write_backend_env() {
+  cat > "$RUN_DIR/backend.env" <<EOF
 ENVIRONMENT=development
 PORT=$BACKEND_PORT
 LOG_LEVEL=info
@@ -173,90 +158,95 @@ NANGO_ENDPOINT=http://localhost:$FAKE_NANGO_PORT
 NANGO_SECRET_KEY=fake-nango-secret
 SANDBOX_PROVIDER_ID=daytona
 EOF
-grep "^AUTH_RSA_PRIVATE_KEY=" .env >> "$RUN_DIR/backend.env" 2>/dev/null \
-  || echo "  ! warning: AUTH_RSA_PRIVATE_KEY missing from .env" >&2
+  ensure_secret AUTH_RSA_PRIVATE_KEY auth-rsa.key gen_rsa
+  ensure_secret KMS_KEY              kms.key      gen_aes
+}
 
-# KMS_KEY: prefer .env so secrets stay out of source. If .env doesn't have
-# one, generate an ephemeral 32-byte AES-GCM key into a per-run sidecar so
-# repeated runs against the same DB still decrypt previously-wrapped data.
-if grep -q "^KMS_KEY=" .env 2>/dev/null; then
-  grep "^KMS_KEY=" .env >> "$RUN_DIR/backend.env"
-elif [ -f "$RUN_DIR/kms.key" ]; then
-  echo "KMS_KEY=$(cat "$RUN_DIR/kms.key")" >> "$RUN_DIR/backend.env"
-else
-  KEY=$(openssl rand -base64 32 | tr -d '\n')
-  echo "$KEY" > "$RUN_DIR/kms.key"
-  echo "KMS_KEY=$KEY" >> "$RUN_DIR/backend.env"
-  echo "  ! generated ephemeral KMS_KEY at $RUN_DIR/kms.key"
-fi
-
-# Build the env-arg string once (avoids re-reading inside the supervisor loop)
-BACKEND_ENV_ARGS=$(grep -v '^\s*#' "$RUN_DIR/backend.env" | grep -v '^\s*$')
-
-# ─── 6. Backend (supervised) ────────────────────────────────────────────────
-echo ""
-echo "==> backend (:$BACKEND_PORT)"
-if healthy_http "http://localhost:$BACKEND_PORT/healthz"; then
-  echo "  ✓ already up"
-else
-  supervise "backend" env $BACKEND_ENV_ARGS "$RUN_DIR/hiveloop" serve
+start_backend() {
+  echo "==> backend (:$BACKEND_PORT)"
+  if healthy_http "http://localhost:$BACKEND_PORT/healthz"; then
+    echo "  ✓ already up"
+    return 0
+  fi
+  local args
+  args=$(grep -v '^\s*#' "$RUN_DIR/backend.env" | grep -v '^\s*$')
+  supervise "backend" env $args "$RUN_DIR/hiveloop" serve
   wait_http "http://localhost:$BACKEND_PORT/healthz" "backend" 15
-fi
+}
 
-# ─── 7. Frontend (supervised) ───────────────────────────────────────────────
-cat > "$RUN_DIR/web.env" <<EOF
+ensure_pnpm() {
+  command -v pnpm >/dev/null 2>&1 && return 0
+  corepack enable >/dev/null 2>&1 || true
+  corepack prepare pnpm@10.18.2 --activate >/dev/null 2>&1 || true
+  local node_dir
+  node_dir="$(dirname "$(command -v node)")"
+  [ -x "$node_dir/pnpm" ] && ln -sf "$node_dir/pnpm" /usr/local/bin/pnpm 2>/dev/null
+  command -v pnpm >/dev/null 2>&1 || { echo "  ✗ pnpm install failed" >&2; exit 1; }
+}
+
+ensure_web_deps() {
+  [ -d apps/web/node_modules ] && return 0
+  echo "  installing web deps..."
+  ( cd apps/web && pnpm install --frozen-lockfile > "$RUN_DIR/pnpm-install.log" 2>&1 ) \
+    || { echo "  ✗ pnpm install failed (see $RUN_DIR/pnpm-install.log)" >&2; exit 1; }
+}
+
+free_next_lock() {
+  local pid
+  pid="$(lsof -t apps/web/.next/dev/lock 2>/dev/null | head -1 || true)"
+  [ -n "$pid" ] && { kill -9 "$pid" 2>/dev/null; sleep 1; rm -f apps/web/.next/dev/lock; }
+}
+
+write_web_env() {
+  cat > "$RUN_DIR/web.env" <<EOF
 NEXT_PUBLIC_API_URL=http://localhost:$BACKEND_PORT
 API_URL=http://localhost:$BACKEND_PORT
 NEXT_PUBLIC_CONNECTIONS_HOST=http://localhost:$FAKE_NANGO_PORT
 SESSION_SECRET=dev-session-secret-32chars-padding
 EOF
+}
 
-echo ""
-echo "==> frontend (:$FRONTEND_PORT)"
-if healthy_http "http://localhost:$FRONTEND_PORT/"; then
-  echo "  ✓ already up"
-else
-  # Provision pnpm via corepack if it's missing. `npm install -g pnpm`
-  # has been observed to hang for many minutes in x86_64-via-rosetta
-  # containers on Apple Silicon — corepack is bundled with Node ≥16.10
-  # and finishes in ~5s.
-  if ! command -v pnpm >/dev/null 2>&1; then
-    echo "  ! pnpm not found — installing via corepack"
-    corepack enable >/dev/null 2>&1 || true
-    corepack prepare pnpm@10.18.2 --activate >/dev/null 2>&1 || true
-    NODE_BIN_DIR="$(dirname "$(command -v node)")"
-    [ -x "$NODE_BIN_DIR/pnpm" ] && ln -sf "$NODE_BIN_DIR/pnpm" /usr/local/bin/pnpm 2>/dev/null
-    command -v pnpm >/dev/null || { echo "  ✗ pnpm install failed" >&2; exit 1; }
+start_frontend() {
+  echo "==> frontend (:$FRONTEND_PORT)"
+  if healthy_http "http://localhost:$FRONTEND_PORT/"; then
+    echo "  ✓ already up"
+    return 0
   fi
-
-  # Install web deps if node_modules is missing — fresh clones don't have it.
-  if [ ! -d apps/web/node_modules ]; then
-    echo "  ! apps/web/node_modules missing — running pnpm install"
-    ( cd apps/web && pnpm install --frozen-lockfile > "$RUN_DIR/pnpm-install.log" 2>&1 ) \
-      || { echo "  ✗ pnpm install failed (see $RUN_DIR/pnpm-install.log)" >&2; exit 1; }
-  fi
-
-  # Free apps/web/.next/dev/lock if a stale next dev still holds it
-  LOCK_PID="$(lsof -t apps/web/.next/dev/lock 2>/dev/null | head -1 || true)"
-  if [ -n "$LOCK_PID" ]; then
-    echo "  ! killing stale next dev (pid $LOCK_PID)"
-    kill -9 "$LOCK_PID" 2>/dev/null || true
-    sleep 1
-    rm -f apps/web/.next/dev/lock
-  fi
-
-  WEB_ENV_ARGS="$(cat "$RUN_DIR/web.env" | xargs)"
-  supervise "web" bash -c "cd '$ROOT/apps/web' && exec env $WEB_ENV_ARGS pnpm dev --port $FRONTEND_PORT"
+  ensure_pnpm
+  ensure_web_deps
+  free_next_lock
+  local args
+  args="$(cat "$RUN_DIR/web.env" | xargs)"
+  supervise "web" bash -c "cd '$ROOT/apps/web' && exec env $args pnpm dev --port $FRONTEND_PORT"
   wait_http "http://localhost:$FRONTEND_PORT/" "frontend" 90
-fi
+}
 
-echo ""
-echo "Stack is up:"
-echo "  fake-nango   http://localhost:$FAKE_NANGO_PORT"
-echo "  backend      http://localhost:$BACKEND_PORT"
-echo "  frontend     http://localhost:$FRONTEND_PORT"
-echo ""
-echo "Logs:        $RUN_DIR/{fake-nango,backend,web}.log"
-echo "Tail:        tail -f $RUN_DIR/*.log"
-echo "Stop:        make local-down"
-echo "Next:        make seed-test  &&  make login-test"
+print_summary() {
+  cat <<EOF
+
+Stack is up:
+  fake-nango   http://localhost:$FAKE_NANGO_PORT
+  backend      http://localhost:$BACKEND_PORT
+  frontend     http://localhost:$FRONTEND_PORT
+
+Logs:        $RUN_DIR/{fake-nango,backend,web}.log
+Tail:        tail -f $RUN_DIR/*.log
+Stop:        make local-down
+Next:        make seed-test  &&  make login-test
+EOF
+}
+
+ensure_postgres
+echo
+ensure_redis
+echo
+build_binaries
+echo
+start_fake_nango
+write_backend_env
+echo
+start_backend
+write_web_env
+echo
+start_frontend
+print_summary
