@@ -19,10 +19,14 @@ func mountAdmin(r chi.Router, st *store, h *hub, wh *webhookSender) {
 }
 
 type setOutcomeReq struct {
-	Result      string         `json:"result"`
-	ErrorType   string         `json:"error_type,omitempty"`
-	ErrorDesc   string         `json:"error_desc,omitempty"`
-	Credentials map[string]any `json:"credentials,omitempty"`
+	// ProviderConfigKey scopes the outcome to a single integration's flow
+	// (e.g. "in_github-2b548f11"). Omit to set the sticky default applied
+	// when no per-key outcome is queued.
+	ProviderConfigKey string         `json:"provider_config_key,omitempty"`
+	Result            string         `json:"result"`
+	ErrorType         string         `json:"error_type,omitempty"`
+	ErrorDesc         string         `json:"error_desc,omitempty"`
+	Credentials       map[string]any `json:"credentials,omitempty"`
 }
 
 func setNextOutcome(st *store) http.HandlerFunc {
@@ -35,13 +39,17 @@ func setNextOutcome(st *store) http.HandlerFunc {
 		if req.Result == "" {
 			req.Result = "approve"
 		}
-		st.setOutcome(outcome{
+		st.setOutcome(req.ProviderConfigKey, outcome{
 			Result:      req.Result,
 			ErrorType:   req.ErrorType,
 			ErrorDesc:   req.ErrorDesc,
 			Credentials: req.Credentials,
 		})
-		writeJSON(w, http.StatusOK, map[string]any{"status": "ok"})
+		scope := req.ProviderConfigKey
+		if scope == "" {
+			scope = "default"
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "scope": scope})
 	}
 }
 

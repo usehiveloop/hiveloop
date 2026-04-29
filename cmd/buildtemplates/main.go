@@ -1,15 +1,5 @@
-// Command buildtemplates creates base sandbox snapshots with Bridge pre-installed.
-//
-// It builds templates of different sizes (small, medium, large, xlarge) and
-// flavors (bridge, dev-box) on the configured sandbox provider.
-//
-// Usage:
-//
-//	go run ./cmd/buildtemplates -version 0.10.0
-//	go run ./cmd/buildtemplates -version 0.10.0 -size small
-//	go run ./cmd/buildtemplates -version 0.10.0 -flavor dev-box
-//	go run ./cmd/buildtemplates -version 0.10.0 -flavor dev-box -size medium
-//	go run ./cmd/buildtemplates -version 0.10.0 -provider daytona
+// Required env: GHCR_USERNAME, GHCR_PAT, SANDBOX_PROVIDER_KEY,
+// SANDBOX_PROVIDER_URL, SANDBOX_TARGET. See `make build-templates` for usage.
 package main
 
 import (
@@ -24,9 +14,8 @@ import (
 
 func main() {
 	version := flag.String("version", "", "Bridge version to install (required, e.g. 0.10.0)")
-	provider := flag.String("provider", "daytona", "Sandbox provider (daytona)")
 	flavor := flag.String("flavor", flavorBridge, "Image flavor to build (bridge, dev-box)")
-	size := flag.String("size", "all", "Template size to build (small, medium, large, xlarge, all)")
+	size := flag.String("size", "all", "Snapshot sizes to register (small, medium, large, xlarge, all)")
 	flag.Parse()
 
 	if *version == "" {
@@ -59,17 +48,9 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
-	var err error
-	switch *provider {
-	case "daytona":
-		err = buildDaytona(ctx, *flavor, *version, targetSizes)
-	default:
-		err = fmt.Errorf("unsupported provider: %s", *provider)
-	}
-
-	if err != nil {
+	if err := buildAndPush(ctx, *flavor, *version, targetSizes); err != nil {
 		log.Fatalf("error: %v", err)
 	}
 
-	log.Println("All templates built successfully.")
+	log.Println("Done.")
 }

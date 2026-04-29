@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	daytona "github.com/daytonaio/daytona/libs/sdk-go/pkg/daytona"
+
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -33,13 +34,6 @@ const nvmVersion = "v0.40.4"
 const goVersion = "1.24.2"
 
 const astGrepVersion = "0.42.1"
-
-// fakeNangoVersion is the pinned release of cmd/fake-nango baked into
-// the dev-box image. Cut a new GitHub release of the binary when this
-// changes — see scripts/release-fake-nango.sh.
-const fakeNangoVersion = "0.1.0"
-
-const fakeNangoReleasesURL = "https://github.com/usehiveloop/hiveloop/releases/download"
 
 // devToolPackages are CLI tools and server binaries that ship dormant in the
 // dev-box image. None of these start daemons at boot.
@@ -74,23 +68,27 @@ var devToolPackages = []string{
 
 var sizes = model.TemplateSizes
 
+// snapshotName returns the Daytona snapshot name for (flavor, version, size).
+// The naming scheme matches what was published before the GHCR migration so
+// existing references keep working.
+func snapshotName(flavor, bridgeVersion, size string) string {
+	switch flavor {
+	case flavorDevBox:
+		return fmt.Sprintf("hiveloop-dev-box-%s-v%s", size, bridgeVersion)
+	default:
+		return fmt.Sprintf("hiveloop-bridge-%s-%s", strings.ReplaceAll(bridgeVersion, ".", "-"), size)
+	}
+}
+
 func bridgeDownloadURL(version string) string {
 	return fmt.Sprintf("%s/v%s/bridge-v%s-x86_64-unknown-linux-gnu.tar.gz",
 		bridgeReleasesURL, version, version)
 }
 
-// buildBaseImage installs the shared runtime layer used by every flavor:
-// system packages and the Bridge binary.
 func buildBaseImage(bridgeVersion string) *daytona.DockerImage {
 	downloadURL := bridgeDownloadURL(bridgeVersion)
 
 	image := daytona.Base(baseImage)
-
-	// Switch to Hetzner's mirror — Ubuntu's archive throttles Hetzner IPs to ~120KB/s
-	// while Hetzner's own mirror serves at 6+ MB/s.
-	image = image.Run(
-		`sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirror.hetzner.de/ubuntu/packages|g; s|http://security.ubuntu.com/ubuntu|http://mirror.hetzner.de/ubuntu/packages|g' /etc/apt/sources.list.d/ubuntu.sources || ` +
-			`sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirror.hetzner.de/ubuntu/packages|g; s|http://security.ubuntu.com/ubuntu|http://mirror.hetzner.de/ubuntu/packages|g' /etc/apt/sources.list`)
 
 	image = image.AptGet(basePackages)
 	image = image.Run(fmt.Sprintf("mkdir -p %s/.bridge", daytonaHome))
@@ -102,7 +100,6 @@ func buildBaseImage(bridgeVersion string) *daytona.DockerImage {
 	return image
 }
 
-// buildBridgeImage produces the default flavor: just the base runtime.
 func buildBridgeImage(bridgeVersion string) *daytona.DockerImage {
 	image := buildBaseImage(bridgeVersion)
 
@@ -112,9 +109,6 @@ func buildBridgeImage(bridgeVersion string) *daytona.DockerImage {
 	return image
 }
 
-// buildDevBoxImage layers a developer toolchain on top of the base bridge
-// runtime: Node.js (via nvm), Chrome for Testing, and agent-browser
-// for AI-driven browser automation.
 func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	image := buildBaseImage(bridgeVersion)
 
@@ -137,7 +131,6 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 
 	image = image.Run("npm install -g --prefix=/usr/local agent-browser")
 
-	// GitHub CLI (official apt repository).
 	image = image.Run(
 		"mkdir -p -m 755 /etc/apt/keyrings && " +
 			"wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && " +
@@ -147,8 +140,6 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 
 	image = image.Run("agent-browser install --with-deps")
 
-	// Dev tools: compilers, databases, media, terminal multiplexers,
-	// network diagnostics, archive utilities, editors.
 	image = image.AptGet(devToolPackages)
 
 	image = image.Run(
@@ -199,8 +190,6 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 			`ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh`,
 	)
 
-	image = installFakeNango(image, fakeNangoVersion)
-
 	image = image.Workdir(daytonaHome)
 	image = image.Entrypoint([]string{"/bin/sh", "-c",
 		"mkdir -p /home/daytona/.bridge && " +
@@ -209,24 +198,3 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	return image
 }
 
-// installFakeNango drops the fake Nango binary at /usr/local/bin/fake-nango.
-// Bridge does not start it automatically — the agent (or test harness) runs
-// `fake-nango -addr :3004` when a sandbox needs to override real Nango.
-func installFakeNango(image *daytona.DockerImage, version string) *daytona.DockerImage {
-	url := fmt.Sprintf("%s/fake-nango-v%s/fake-nango-v%s-x86_64-unknown-linux-gnu.tar.gz",
-		fakeNangoReleasesURL, version, version)
-	return image.Run(fmt.Sprintf(
-		`curl -fsSL "%s" | tar -xzf - -C /usr/local/bin && chmod +x /usr/local/bin/fake-nango`,
-		url,
-	))
-}
-
-// snapshotName returns the published snapshot name for a flavor + version + size.
-func snapshotName(flavor, bridgeVersion, size string) string {
-	switch flavor {
-	case flavorDevBox:
-		return fmt.Sprintf("hiveloop-dev-box-%s-v%s", size, bridgeVersion)
-	default:
-		return fmt.Sprintf("hiveloop-bridge-%s-%s", strings.ReplaceAll(bridgeVersion, ".", "-"), size)
-	}
-}

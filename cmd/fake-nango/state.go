@@ -72,9 +72,10 @@ type store struct {
 	connectSessions map[string]*connectSession // by token
 	oauthSessions   map[string]*oauthSession   // by state
 
-	nextOutcome outcome // applied to next /oauth/connect or form-auth call
-	calls       []callLog
-	fixtures    []proxyFixture
+	defaultOutcome outcome            // fallback when no per-provider outcome is set
+	outcomes       map[string]outcome // per provider_config_key, consumed once
+	calls          []callLog
+	fixtures       []proxyFixture
 }
 
 func newStore() *store {
@@ -83,7 +84,8 @@ func newStore() *store {
 		connections:     map[string]*connection{},
 		connectSessions: map[string]*connectSession{},
 		oauthSessions:   map[string]*oauthSession{},
-		nextOutcome:     outcome{Result: "approve"},
+		defaultOutcome:  outcome{Result: "approve"},
+		outcomes:        map[string]outcome{},
 	}
 }
 
@@ -154,18 +156,30 @@ func (s *store) takeOAuthSession(state string) (*oauthSession, bool) {
 	return sess, ok
 }
 
-func (s *store) consumeOutcome() outcome {
+// consumeOutcome returns the per-provider outcome (consumed once) if set,
+// else the default outcome (sticky). Per-provider always wins.
+func (s *store) consumeOutcome(providerConfigKey string) outcome {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	o := s.nextOutcome
-	s.nextOutcome = outcome{Result: "approve"}
-	return o
+	if o, ok := s.outcomes[providerConfigKey]; ok {
+		delete(s.outcomes, providerConfigKey)
+		return o
+	}
+	return s.defaultOutcome
 }
 
-func (s *store) setOutcome(o outcome) {
+// setOutcome sets the next outcome. If providerConfigKey is empty, it
+// changes the sticky default applied to all flows that don't have a
+// per-provider override. If non-empty, it queues a one-shot outcome for
+// that key.
+func (s *store) setOutcome(providerConfigKey string, o outcome) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.nextOutcome = o
+	if providerConfigKey == "" {
+		s.defaultOutcome = o
+		return
+	}
+	s.outcomes[providerConfigKey] = o
 }
 
 func (s *store) recordCall(method, path string) {
@@ -248,7 +262,8 @@ func (s *store) reset() {
 	s.connections = map[string]*connection{}
 	s.connectSessions = map[string]*connectSession{}
 	s.oauthSessions = map[string]*oauthSession{}
-	s.nextOutcome = outcome{Result: "approve"}
+	s.defaultOutcome = outcome{Result: "approve"}
+	s.outcomes = map[string]outcome{}
 	s.calls = nil
 	s.fixtures = nil
 }

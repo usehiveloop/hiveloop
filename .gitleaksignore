@@ -12,3 +12,10 @@
 ecf822bd72292431d5d21d3ad5fcebb90468e277:internal/billing/paystack/testdata/subscription_disable_complete.json:generic-api-key:7
 ecf822bd72292431d5d21d3ad5fcebb90468e277:internal/billing/paystack/testdata/invoice_payment_failed.json:generic-api-key:31
 ecf822bd72292431d5d21d3ad5fcebb90468e277:internal/billing/paystack/testdata/subscription_not_renew.json:generic-api-key:8
+
+# Hardcoded dev KMS_KEY introduced in 7edebbfc (PR #148) and removed in
+# 87badb12. The value is gone from HEAD — local-up.sh now sources from
+# .env or generates an ephemeral key. These fingerprints are for the
+# intermediate commits that still carry the literal in their diffs.
+7edebbfca24ff1bd483b79be7fd6a0e1d4d9c412:scripts/local-up.sh:generic-api-key:153
+7edebbfca24ff1bd483b79be7fd6a0e1d4d9c412:skills/local-testing/SKILL.md:generic-api-key:51

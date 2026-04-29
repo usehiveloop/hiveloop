@@ -59,6 +59,7 @@ interface CreateForm {
   slug: string
   tags: string
   size: string
+  baseImageRef: string
 }
 
 interface EditForm {
@@ -66,6 +67,7 @@ interface EditForm {
   slug: string
   tags: string
   size: string
+  baseImageRef: string
 }
 
 const TEMPLATE_SIZES = [
@@ -95,6 +97,7 @@ export default function SandboxTemplatesPage() {
     slug: "",
     tags: "",
     size: "medium",
+    baseImageRef: "",
   })
 
   // Edit dialog
@@ -106,6 +109,7 @@ export default function SandboxTemplatesPage() {
     slug: "",
     tags: "",
     size: "medium",
+    baseImageRef: "",
   })
 
   const queryParams: Record<string, string> = {}
@@ -132,7 +136,7 @@ export default function SandboxTemplatesPage() {
       onSuccess: () => {
         invalidateList()
         setCreateOpen(false)
-        setCreateForm({ name: "", slug: "", tags: "", size: "medium" })
+        setCreateForm({ name: "", slug: "", tags: "", size: "medium", baseImageRef: "" })
       },
     }
   )
@@ -171,6 +175,7 @@ export default function SandboxTemplatesPage() {
         slug: createForm.slug,
         tags,
         size: createForm.size,
+        base_image_ref: createForm.baseImageRef.trim() || undefined,
       },
     })
   }
@@ -182,6 +187,7 @@ export default function SandboxTemplatesPage() {
       slug: tpl.slug || "",
       tags: tagsArray.join(", "),
       size: tpl.size || "medium",
+      baseImageRef: tpl.base_image_ref || "",
     })
     updateMutation.reset()
     setEditingTemplate({ id: tpl.id! })
@@ -202,6 +208,7 @@ export default function SandboxTemplatesPage() {
         slug: editForm.slug,
         tags,
         size: editForm.size,
+        base_image_ref: editForm.baseImageRef.trim(),
       },
     })
   }
@@ -430,6 +437,23 @@ export default function SandboxTemplatesPage() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="create-base-image-ref">
+                Base Image Ref (optional, OCI ref used as FROM when child templates build on this)
+              </Label>
+              <Input
+                id="create-base-image-ref"
+                value={createForm.baseImageRef}
+                onChange={(event) =>
+                  setCreateForm((form) => ({
+                    ...form,
+                    baseImageRef: event.target.value,
+                  }))
+                }
+                placeholder="e.g. ghcr.io/usehiveloop/sandbox-dev-box:v0.22.0"
+                className="font-mono"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="create-size">Size</Label>
               <Select
                 value={createForm.size}
@@ -526,6 +550,23 @@ export default function SandboxTemplatesPage() {
                     tags: event.target.value,
                   }))
                 }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-base-image-ref">
+                Base Image Ref (OCI ref used as FROM when child templates build on this)
+              </Label>
+              <Input
+                id="edit-base-image-ref"
+                value={editForm.baseImageRef}
+                onChange={(event) =>
+                  setEditForm((form) => ({
+                    ...form,
+                    baseImageRef: event.target.value,
+                  }))
+                }
+                placeholder="e.g. ghcr.io/usehiveloop/sandbox-dev-box:v0.22.0"
+                className="font-mono"
               />
             </div>
             <div className="space-y-2">

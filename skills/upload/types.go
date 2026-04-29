@@ -7,6 +7,11 @@ type manifest struct {
 	Description string         `json:"description"`
 	Root        string         `json:"root"`
 	Files       []manifestFile `json:"files"`
+
+	// Internal skills are local-only documentation for AI coding agents
+	// working on this repo (test runbooks, fake-server references, etc.).
+	// They are never uploaded to the customer-facing skills API.
+	Internal bool `json:"internal,omitempty"`
 }
 
 type manifestFile struct {

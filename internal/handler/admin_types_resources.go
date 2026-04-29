@@ -246,6 +246,7 @@ type adminSandboxTemplateResponse struct {
 	BuildLogs      string     `json:"build_logs,omitempty"`
 	BuildCommands  string     `json:"build_commands,omitempty"`
 	ExternalID     *string    `json:"external_id,omitempty"`
+	BaseImageRef   *string    `json:"base_image_ref,omitempty"`
 	CreatedAt      string     `json:"created_at"`
 }
 
@@ -261,6 +262,7 @@ func toAdminSandboxTemplateResponse(t model.SandboxTemplate) adminSandboxTemplat
 		BuildLogs:     t.BuildLogs,
 		BuildCommands: t.BuildCommands,
 		ExternalID:    t.ExternalID,
+		BaseImageRef:  t.BaseImageRef,
 		CreatedAt:     t.CreatedAt.Format(time.RFC3339),
 	}
 	if t.OrgID != nil {
