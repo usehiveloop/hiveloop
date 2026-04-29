@@ -33,6 +33,7 @@ certs/
 .ignored/*
 .analysis/*
 .gitnexus
+.poolside/
 
 codedb.snapshot
 # Added by code-review-graph
