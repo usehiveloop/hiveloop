@@ -76,7 +76,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	plansHandler := handler.NewPlansHandler(database)
 	routerHandler := handler.NewRouterHandler(database, actionsCatalog)
 	var emailSender email.Sender = &email.LogSender{}
-	if enqueuer != nil {
+	if enqueuer != nil && cfg.KibamailAPIKey != "" {
 		emailSender = email.NewAsynqSender(enqueuer)
 	}
 	orgInviteHandler := handler.NewOrgInviteHandler(database, emailSender, cfg.FrontendURL)

@@ -1,0 +1,6 @@
+{
+  "name": "local-testing",
+  "description": "End-to-end test runbook for backend + frontend changes: stack startup, seed data, fake-nango control, DB inspection, agent-browser patterns, common test scenarios, and troubleshooting.",
+  "root": "./SKILL.md",
+  "internal": true
+}

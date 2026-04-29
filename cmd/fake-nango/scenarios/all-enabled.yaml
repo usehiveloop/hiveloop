@@ -1,0 +1,29 @@
+name: all-enabled
+# Mirrors scripts/seed-test-data.sql. Loaded into fake-nango with
+#   curl -X POST http://localhost:13004/_admin/load -d '{"name":"all-enabled"}'
+#
+# Each integration's unique_key matches `in_<provider>-test`, which is what
+# `inNangoKey()` in internal/handler/in_integrations.go produces from the
+# unique_key seeded in the DB. fake-nango does not strictly require these
+# integrations to exist for /oauth/connect to work, but having them present
+# makes /integrations/{key} GETs resolve, /connection responses look right
+# for code that introspects them, and admin /_admin/outcome scoping by
+# provider_config_key target the keys backend code will actually use.
+integrations:
+  - { unique_key: in_github-test,     provider: github,     display_name: GitHub,     credentials: { type: OAUTH2 } }
+  - { unique_key: in_slack-test,      provider: slack,      display_name: Slack,      credentials: { type: OAUTH2 } }
+  - { unique_key: in_notion-test,     provider: notion,     display_name: Notion,     credentials: { type: OAUTH2 } }
+  - { unique_key: in_linear-test,     provider: linear,     display_name: Linear,     credentials: { type: OAUTH2 } }
+  - { unique_key: in_asana-test,      provider: asana,      display_name: Asana,      credentials: { type: OAUTH2 } }
+  - { unique_key: in_jira-test,       provider: jira,       display_name: Jira,       credentials: { type: OAUTH2 } }
+  - { unique_key: in_salesforce-test, provider: salesforce, display_name: Salesforce, credentials: { type: OAUTH2 } }
+  - { unique_key: in_railway-test,    provider: railway,    display_name: Railway,    credentials: { type: OAUTH2 } }
+
+# A few proxy fixtures so backend code that calls /proxy/* during a test
+# (e.g. internal/resources/discovery.go listing GitHub repos or Slack
+# channels) gets a plausible response. Add more as tests need them.
+proxy:
+  - { method: GET,  path: /user/repos,         body: [] }
+  - { method: GET,  path: /user,               body: { login: agent-bot, id: 1 } }
+  - { method: POST, path: /chat.postMessage,   body: { ok: true, ts: "1700000000.000100" } }
+  - { method: GET,  path: /conversations.list, body: { ok: true, channels: [] } }

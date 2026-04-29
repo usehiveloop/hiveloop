@@ -13312,6 +13312,10 @@
       "SandboxTemplate": {
         "type": "object",
         "properties": {
+          "baseImageRef": {
+            "description": "OCI image ref used as FROM when a child template builds on top of this row",
+            "type": "string"
+          },
           "baseTemplate": {
             "$ref": "#/components/schemas/SandboxTemplate"
           },
@@ -13800,6 +13804,9 @@
       "adminCreateSandboxTemplateRequest": {
         "type": "object",
         "properties": {
+          "base_image_ref": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -14110,6 +14117,9 @@
       "adminSandboxTemplateResponse": {
         "type": "object",
         "properties": {
+          "base_image_ref": {
+            "type": "string"
+          },
           "base_template_id": {
             "type": "string"
           },
@@ -14383,6 +14393,9 @@
       "adminUpdateSandboxTemplateRequest": {
         "type": "object",
         "properties": {
+          "base_image_ref": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
