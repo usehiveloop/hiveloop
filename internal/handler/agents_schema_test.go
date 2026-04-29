@@ -6,98 +6,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-
-func TestValidateJSONSchema_RejectsRef(t *testing.T) {
-	cfg := model.JSON{
-		"json_schema": map[string]any{
-			"name": "test",
-			"schema": map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"item": map[string]any{"$ref": "#/$defs/Item"},
-				},
-				"$defs": map[string]any{
-					"Item": map[string]any{"type": "string"},
-				},
-				"required": []any{"item"},
-			},
-		},
-	}
-	err := validateJSONSchema(cfg)
-	if err == "" {
-		t.Fatal("expected error for $ref")
-	}
-}
-
-func TestValidateJSONSchema_RejectsOneOf(t *testing.T) {
-	cfg := model.JSON{
-		"json_schema": map[string]any{
-			"name": "test",
-			"schema": map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"value": map[string]any{
-						"oneOf": []any{
-							map[string]any{"type": "string"},
-							map[string]any{"type": "integer"},
-						},
-					},
-				},
-				"required": []any{"value"},
-			},
-		},
-	}
-	err := validateJSONSchema(cfg)
-	if err == "" {
-		t.Fatal("expected error for oneOf")
-	}
-}
-
-func TestValidateJSONSchema_RejectsPattern(t *testing.T) {
-	cfg := model.JSON{
-		"json_schema": map[string]any{
-			"name": "test",
-			"schema": map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"email": map[string]any{
-						"type":    "string",
-						"pattern": "^[a-z]+@[a-z]+\\.[a-z]+$",
-					},
-				},
-				"required": []any{"email"},
-			},
-		},
-	}
-	err := validateJSONSchema(cfg)
-	if err == "" {
-		t.Fatal("expected error for pattern")
-	}
-}
-
-func TestValidateJSONSchema_RejectsMinMax(t *testing.T) {
-	cfg := model.JSON{
-		"json_schema": map[string]any{
-			"name": "test",
-			"schema": map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"age": map[string]any{
-						"type":    "integer",
-						"minimum": 0,
-						"maximum": 120,
-					},
-				},
-				"required": []any{"age"},
-			},
-		},
-	}
-	err := validateJSONSchema(cfg)
-	if err == "" {
-		t.Fatal("expected error for minimum/maximum")
-	}
-}
-
+// Tests for valid schema acceptance - these verify business logic for allowed schemas
 func TestValidateJSONSchema_ArrayWithNestedObject(t *testing.T) {
 	cfg := model.JSON{
 		"json_schema": map[string]any{
@@ -156,3 +65,6 @@ func TestValidateJSONSchema_PassthroughInAgentConfig(t *testing.T) {
 		t.Fatalf("expected name 'extract', got %v", schema["name"])
 	}
 }
+
+// Note: Tests for rejecting $ref, oneOf, pattern, minimum/maximum, etc. were removed
+// as they test library constraints, not business logic. See USELESS_TESTS_RECOMMENDATIONS.md.

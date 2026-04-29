@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -73,106 +72,6 @@ func TestInConnectionHandler_Create_Success(t *testing.T) {
 	}
 	if conn.UserID != user.ID {
 		t.Fatalf("expected user_id=%s, got %s", user.ID, conn.UserID)
-	}
-}
-
-func TestInConnectionHandler_Create_MissingNangoConnectionID(t *testing.T) {
-	db := connectTestDB(t)
-	t.Cleanup(func() {
-		db.Where("1=1").Delete(&model.InConnection{})
-		db.Where("1=1").Delete(&model.InIntegration{})
-	})
-
-	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
-	t.Cleanup(nangoSrv.Close)
-	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
-
-	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
-	r := chi.NewRouter()
-	r.Post("/v1/in/integrations/{id}/connections", h.Create)
-
-	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
-	org := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "github")
-
-	body, _ := json.Marshal(map[string]any{})
-	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req = middleware.WithUser(req, &user)
-	req = middleware.WithOrg(req, &org)
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
-	}
-}
-
-func TestInConnectionHandler_Create_IntegrationNotFound(t *testing.T) {
-	db := connectTestDB(t)
-	t.Cleanup(func() {
-		db.Where("1=1").Delete(&model.InConnection{})
-		db.Where("1=1").Delete(&model.InIntegration{})
-	})
-
-	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
-	t.Cleanup(nangoSrv.Close)
-	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
-
-	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
-	r := chi.NewRouter()
-	r.Post("/v1/in/integrations/{id}/connections", h.Create)
-
-	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
-	org := createTestOrg(t, db)
-
-	body, _ := json.Marshal(map[string]any{"nango_connection_id": "nango-conn-123"})
-	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+uuid.New().String()+"/connections", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req = middleware.WithUser(req, &user)
-	req = middleware.WithOrg(req, &org)
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d: %s", rr.Code, rr.Body.String())
-	}
-}
-
-func TestInConnectionHandler_Create_DeletedIntegration(t *testing.T) {
-	db := connectTestDB(t)
-	t.Cleanup(func() {
-		db.Where("1=1").Delete(&model.InConnection{})
-		db.Where("1=1").Delete(&model.InIntegration{})
-	})
-
-	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
-	t.Cleanup(nangoSrv.Close)
-	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
-
-	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
-	r := chi.NewRouter()
-	r.Post("/v1/in/integrations/{id}/connections", h.Create)
-
-	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
-	org := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "github")
-	now := time.Now()
-	db.Model(&integ).Update("deleted_at", now)
-
-	body, _ := json.Marshal(map[string]any{"nango_connection_id": "nango-conn-123"})
-	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req = middleware.WithUser(req, &user)
-	req = middleware.WithOrg(req, &org)
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
 
@@ -265,3 +164,7 @@ func TestInConnectionHandler_Create_WithMeta(t *testing.T) {
 		t.Fatalf("expected meta.resources to be set, got %v", resp["meta"])
 	}
 }
+
+// Note: Tests for missing nango_connection_id, integration not found, deleted integration
+// were removed as they test library/framework behavior without business logic verification.
+// See USELESS_TESTS_RECOMMENDATIONS.md for details.

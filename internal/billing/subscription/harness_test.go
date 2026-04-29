@@ -121,7 +121,7 @@ func (h *harness) seedSub(t *testing.T, plan model.Plan, periodOffsetSecs int64)
 		CurrentPeriodStart: periodStart,
 		CurrentPeriodEnd:   periodEnd,
 		AuthorizationCode:  "AUTH_test",
-		PaymentChannel:     "card",
+		PaymentChannel:       "card",
 	}
 	if err := h.db.Create(&sub).Error; err != nil {
 		t.Fatalf("seed sub: %v", err)

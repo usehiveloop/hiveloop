@@ -11369,7 +11369,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "description": {
-                    "description": "user-facing description shown in template pickers",
                     "type": "string"
                 },
                 "externalID": {

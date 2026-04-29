@@ -559,7 +559,6 @@ definitions:
       createdAt:
         type: string
       description:
-        description: user-facing description shown in template pickers
         type: string
       externalID:
         description: provider's template/snapshot ID once built

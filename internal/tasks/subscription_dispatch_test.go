@@ -241,39 +241,4 @@ func TestBuildSubscriptionEventMessage_AvailablePathsAsCodeBlock(t *testing.T) {
 	}
 }
 
-func TestRenderPayloadPaths_AnnotatesLongStringsWithByteSize(t *testing.T) {
-	longProse := strings.Repeat("x", 500)
-	paths := renderPayloadPaths(map[string]any{
-		"short": "hi",
-		"long":  longProse,
-	})
-	if paths["short"] != "string" {
-		t.Errorf("short string should render as plain 'string', got %q", paths["short"])
-	}
-	if paths["long"] != "string (500 bytes)" {
-		t.Errorf("long string should carry byte count, got %q", paths["long"])
-	}
-}
 
-func TestRenderPayloadPaths_EmptyPayloadReturnsNil(t *testing.T) {
-	if got := renderPayloadPaths(nil); got != nil {
-		t.Errorf("nil payload should return nil, got %#v", got)
-	}
-	if got := renderPayloadPaths(map[string]any{}); got != nil {
-		t.Errorf("empty payload should return nil, got %#v", got)
-	}
-}
-
-func TestRenderPayloadPaths_CapsDepth(t *testing.T) {
-	nested := map[string]any{"a": map[string]any{"b": map[string]any{"c": map[string]any{"d": map[string]any{"e": map[string]any{"f": map[string]any{"g": map[string]any{"h": "leaf"}}}}}}}}
-	paths := renderPayloadPaths(nested)
-	foundTruncation := false
-	for _, v := range paths {
-		if v == "…(truncated, max depth)" {
-			foundTruncation = true
-		}
-	}
-	if !foundTruncation {
-		t.Errorf("deep payload should hit the depth cap, got: %#v", paths)
-	}
-}

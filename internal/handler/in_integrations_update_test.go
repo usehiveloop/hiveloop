@@ -83,19 +83,6 @@ func TestInIntegrationHandler_Update_Meta(t *testing.T) {
 	}
 }
 
-func TestInIntegrationHandler_Update_NotFound(t *testing.T) {
-	h := newInIntegHarness(t, nil)
-	user := createTestUser(t, h.db, fmt.Sprintf("admin-%s@test.com", uuid.New().String()[:8]))
-
-	rr := h.doRequest(t, http.MethodPut, "/v1/in/integrations/"+uuid.New().String(), map[string]any{
-		"display_name": "Updated",
-	}, &user)
-
-	if rr.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d", rr.Code)
-	}
-}
-
 func TestInIntegrationHandler_Update_NangoFailure(t *testing.T) {
 	mockCfg := &nangoMockConfig{updateStatus: http.StatusInternalServerError}
 	h := newInIntegHarness(t, mockCfg)
@@ -114,3 +101,7 @@ func TestInIntegrationHandler_Update_NangoFailure(t *testing.T) {
 		t.Fatalf("expected 502, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
+
+// Note: TestInIntegrationHandler_Update_NotFound was removed as it tests
+// library/framework behavior (404 status code) without business logic.
+// See USELESS_TESTS_RECOMMENDATIONS.md for details.

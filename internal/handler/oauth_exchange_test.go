@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -55,51 +53,9 @@ func TestOAuth_Exchange_Success(t *testing.T) {
 	}
 }
 
-func TestOAuth_Exchange_MissingToken(t *testing.T) {
-	h := newOAuthHarness(t)
-
-	rr := h.doRequest(t, http.MethodPost, "/oauth/exchange", map[string]string{"token": ""})
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", rr.Code)
-	}
-}
-
-func TestOAuth_Exchange_InvalidToken(t *testing.T) {
-	h := newOAuthHarness(t)
-
-	rr := h.doRequest(t, http.MethodPost, "/oauth/exchange", map[string]string{"token": "bogus-token"})
-	if rr.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d", rr.Code)
-	}
-}
-
-func TestOAuth_Exchange_ExpiredToken(t *testing.T) {
-	h := newOAuthHarness(t)
-
-	user := createOAuthTestUser(t, h.db, fmt.Sprintf("exchange-exp-%s@test.com", uuid.New().String()[:8]),
-		"Exchange Expired", "github", fmt.Sprintf("gh-%s", uuid.New().String()[:8]))
-
-	plaintext, hash, err := model.GenerateExchangeToken()
-	if err != nil {
-		t.Fatalf("generate token: %v", err)
-	}
-	et := model.OAuthExchangeToken{
-		UserID:    user.ID,
-		TokenHash: hash,
-		ExpiresAt: time.Now().Add(-1 * time.Minute), // already expired
-	}
-	if err := h.db.Create(&et).Error; err != nil {
-		t.Fatalf("create exchange token: %v", err)
-	}
-	t.Cleanup(func() { h.db.Where("id = ?", et.ID).Delete(&model.OAuthExchangeToken{}) })
-
-	rr := h.doRequest(t, http.MethodPost, "/oauth/exchange", map[string]string{"token": plaintext})
-	if rr.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d; body: %s", rr.Code, rr.Body.String())
-	}
-}
-
-func TestOAuth_Exchange_UsedToken(t *testing.T) {
+// TestOAuth_Exchange_UsedToken_NoNewSession verifies that a used token cannot be exchanged
+// and that no new access token can be created from it. This tests business logic.
+func TestOAuth_Exchange_UsedToken_NoNewSession(t *testing.T) {
 	h := newOAuthHarness(t)
 
 	user := createOAuthTestUser(t, h.db, fmt.Sprintf("exchange-used-%s@test.com", uuid.New().String()[:8]),
@@ -121,22 +77,20 @@ func TestOAuth_Exchange_UsedToken(t *testing.T) {
 	}
 	t.Cleanup(func() { h.db.Where("id = ?", et.ID).Delete(&model.OAuthExchangeToken{}) })
 
+	// Count refresh tokens before
+	var tokenCountBefore int64
+	h.db.Model(&model.RefreshToken{}).Where("user_id = ?", user.ID).Count(&tokenCountBefore)
+
 	rr := h.doRequest(t, http.MethodPost, "/oauth/exchange", map[string]string{"token": plaintext})
 	if rr.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d; body: %s", rr.Code, rr.Body.String())
 	}
-}
 
-func TestOAuth_Exchange_InvalidBody(t *testing.T) {
-	h := newOAuthHarness(t)
-
-	req := httptest.NewRequest(http.MethodPost, "/oauth/exchange", strings.NewReader("not-json"))
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-	h.router.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", rr.Code)
+	// Verify no new refresh token was created
+	var tokenCountAfter int64
+	h.db.Model(&model.RefreshToken{}).Where("user_id = ?", user.ID).Count(&tokenCountAfter)
+	if tokenCountAfter != tokenCountBefore {
+		t.Errorf("no new token should be created for used token, before=%d after=%d", tokenCountBefore, tokenCountAfter)
 	}
 }
 

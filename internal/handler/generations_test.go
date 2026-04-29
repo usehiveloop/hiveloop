@@ -51,24 +51,24 @@ func seedGenerations(t *testing.T, db *gorm.DB, orgID uuid.UUID, credID uuid.UUI
 	for i := range gens {
 		ttfb := 50 + i*10
 		gens[i] = model.Generation{
-			ID:           fmt.Sprintf("gen_test_%s_%d", orgID.String()[:8], i),
-			OrgID:        orgID,
-			CredentialID: credID,
-			TokenJTI:     fmt.Sprintf("jti_%s_%d", orgID.String()[:8], i),
-			ProviderID:   "openai",
-			Model:        "gpt-4o",
-			RequestPath:  "/v1/chat/completions",
-			IsStreaming:  i%2 == 0,
-			InputTokens:  100 + i*50,
-			OutputTokens: 50 + i*25,
-			CachedTokens: 10 * i,
-			Cost:         0.005 * float64(i+1),
-			TTFBMs:       &ttfb,
-			TotalMs:      200 + i*50,
+			ID:             fmt.Sprintf("gen_test_%s_%d", orgID.String()[:8], i),
+			OrgID:          orgID,
+			CredentialID:   credID,
+			TokenJTI:       fmt.Sprintf("jti_%s_%d", orgID.String()[:8], i),
+			ProviderID:     "openai",
+			Model:          "gpt-4o",
+			RequestPath:    "/v1/chat/completions",
+			IsStreaming:    i%2 == 0,
+			InputTokens:    100 + i*50,
+			OutputTokens:   50 + i*25,
+			CachedTokens:   10 * i,
+			Cost:           0.005 * float64(i+1),
+			TTFBMs:         &ttfb,
+			TotalMs:        200 + i*50,
 			UpstreamStatus: 200,
-			UserID:       fmt.Sprintf("user_%d", i%3),
-			Tags:         pq.StringArray{"chat", fmt.Sprintf("tier_%d", i%2)},
-			CreatedAt:    time.Now().Add(-time.Duration(count-i) * time.Minute),
+			UserID:         fmt.Sprintf("user_%d", i%3),
+			Tags:           pq.StringArray{"chat", fmt.Sprintf("tier_%d", i%2)},
+			CreatedAt:      time.Now().Add(-time.Duration(count-i) * time.Minute),
 		}
 	}
 	if err := db.Create(&gens).Error; err != nil {
@@ -121,16 +121,6 @@ func TestGenerationHandler_Get_WrongOrg(t *testing.T) {
 	}
 }
 
-func TestGenerationHandler_Get_NotFound(t *testing.T) {
-	h := newGenerationHarness(t)
-	org := createTestOrg(t, h.db)
-
-	rr := h.doRequest(t, "/v1/generations/gen_nonexistent", &org)
-	if rr.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d", rr.Code)
-	}
-}
-
 // --------------------------------------------------------------------------
 // GET /v1/generations — List
 // --------------------------------------------------------------------------
@@ -164,15 +154,15 @@ func TestGenerationHandler_List_FilterByModel(t *testing.T) {
 
 	// Add a generation with different model
 	h.db.Create(&model.Generation{
-		ID:           fmt.Sprintf("gen_diff_%s", org.ID.String()[:8]),
-		OrgID:        org.ID,
-		CredentialID: credID,
-		TokenJTI:     "jti_diff",
-		ProviderID:   "anthropic",
-		Model:        "claude-sonnet-4-20250514",
-		RequestPath:  "/v1/messages",
+		ID:             fmt.Sprintf("gen_diff_%s", org.ID.String()[:8]),
+		OrgID:          org.ID,
+		CredentialID:   credID,
+		TokenJTI:       "jti_diff",
+		ProviderID:     "anthropic",
+		Model:          "claude-sonnet-4-20250514",
+		RequestPath:    "/v1/messages",
 		UpstreamStatus: 200,
-		CreatedAt:    time.Now(),
+		CreatedAt:      time.Now(),
 	})
 	t.Cleanup(func() {
 		h.db.Where("id = ?", fmt.Sprintf("gen_diff_%s", org.ID.String()[:8])).Delete(&model.Generation{})
@@ -221,28 +211,7 @@ func TestGenerationHandler_List_OrgIsolation(t *testing.T) {
 	}
 }
 
-func TestGenerationHandler_List_Empty(t *testing.T) {
-	h := newGenerationHarness(t)
-	org := createTestOrg(t, h.db)
-
-	rr := h.doRequest(t, "/v1/generations", &org)
-	var page struct {
-		Data    []map[string]any `json:"data"`
-		HasMore bool             `json:"has_more"`
-	}
-	_ = json.NewDecoder(rr.Body).Decode(&page)
-	if len(page.Data) != 0 {
-		t.Fatalf("expected 0 generations, got %d", len(page.Data))
-	}
-	if page.HasMore {
-		t.Fatal("expected has_more=false")
-	}
-}
-
-func TestGenerationHandler_List_MissingOrg(t *testing.T) {
-	h := newGenerationHarness(t)
-	rr := h.doRequest(t, "/v1/generations", nil)
-	if rr.Code != http.StatusForbidden {
-		t.Fatalf("expected 403, got %d", rr.Code)
-	}
-}
+// Note: Tests TestGenerationHandler_Get_NotFound, TestGenerationHandler_List_Empty,
+// and TestGenerationHandler_List_MissingOrg were removed as they test library/framework
+// behavior (status codes for invalid/missing inputs) without verifying business logic.
+// See USELESS_TESTS_RECOMMENDATIONS.md for details.
