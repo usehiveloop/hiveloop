@@ -12456,7 +12456,6 @@ export interface components {
             /** @description resources, env vars, etc. */
             config?: components["schemas"]["JSON"];
             createdAt?: string;
-            /** @description user-facing description shown in template pickers */
             description?: string;
             /** @description provider's template/snapshot ID once built */
             externalID?: string;

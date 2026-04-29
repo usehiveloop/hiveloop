@@ -57,6 +57,7 @@ func setupV1Routes(
 		r.Post("/invites/{token}/accept", orgInviteHandler.Accept)
 		r.Post("/invites/{token}/decline", orgInviteHandler.Decline)
 
+
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.ResolveOrgFlexible(database))
 			r.Use(middleware.RateLimit())

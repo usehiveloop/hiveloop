@@ -15,7 +15,10 @@ package registry
 
 import (
 	"sort"
+	"strings"
 	"sync"
+
+	"github.com/dustin/go-humanize"
 )
 
 // Provider represents an LLM provider.
@@ -42,6 +45,11 @@ type Model struct {
 	Cost             *Cost       `json:"cost,omitempty"`
 	Limit            *Limit      `json:"limit,omitempty"`
 	Status           string      `json:"status,omitempty"`
+
+	Speed       string `json:"speed,omitempty"`
+	Tier        string `json:"tier,omitempty"`
+	Description string `json:"description,omitempty"`
+	Hidden      bool   `json:"-"`
 }
 
 // Modalities describes input/output modalities.
@@ -124,4 +132,36 @@ func (r *Registry) ModelCount() int {
 	return n
 }
 
+func DerivedTier(m Model) string {
+	if m.Tier != "" {
+		return m.Tier
+	}
+	if m.Cost == nil {
+		return "mid"
+	}
+	switch {
+	case m.Cost.Output >= 12:
+		return "premium"
+	case m.Cost.Output >= 2:
+		return "mid"
+	default:
+		return "cheap"
+	}
+}
 
+func DerivedDescription(m Model) string {
+	if m.Description != "" {
+		return m.Description
+	}
+	parts := []string{}
+	if m.Reasoning {
+		parts = append(parts, "Reasoning")
+	}
+	if m.OpenWeights {
+		parts = append(parts, "open-weights")
+	}
+	if m.Limit != nil && m.Limit.Context > 0 {
+		parts = append(parts, humanize.SI(float64(m.Limit.Context), "")+" context")
+	}
+	return strings.Join(parts, " · ")
+}
