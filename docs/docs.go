@@ -11331,6 +11331,10 @@ const docTemplate = `{
         "github_com_usehiveloop_hiveloop_internal_model.SandboxTemplate": {
             "type": "object",
             "properties": {
+                "baseImageRef": {
+                    "description": "OCI image ref used as FROM when a child template builds on top of this row",
+                    "type": "string"
+                },
                 "baseTemplate": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.SandboxTemplate"
                 },
@@ -11819,6 +11823,9 @@ const docTemplate = `{
         "internal_handler.adminCreateSandboxTemplateRequest": {
             "type": "object",
             "properties": {
+                "base_image_ref": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -12129,6 +12136,9 @@ const docTemplate = `{
         "internal_handler.adminSandboxTemplateResponse": {
             "type": "object",
             "properties": {
+                "base_image_ref": {
+                    "type": "string"
+                },
                 "base_template_id": {
                     "type": "string"
                 },
@@ -12402,6 +12412,9 @@ const docTemplate = `{
         "internal_handler.adminUpdateSandboxTemplateRequest": {
             "type": "object",
             "properties": {
+                "base_image_ref": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },

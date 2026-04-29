@@ -25,6 +25,19 @@ import (
 // @Success 200 {object} paginatedResponse[adminSandboxTemplateResponse]
 // @Security BearerAuth
 // @Router /admin/v1/sandbox-templates [get]
+// trimmedRef returns nil for empty/whitespace inputs so we don't store empty
+// strings; the model column is nullable.
+func trimmedRef(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	v := strings.TrimSpace(*s)
+	if v == "" {
+		return nil
+	}
+	return &v
+}
+
 func (h *AdminHandler) ListSandboxTemplates(w http.ResponseWriter, r *http.Request) {
 	limit, cursor, err := parsePagination(r)
 	if err != nil {
@@ -150,14 +163,15 @@ func (h *AdminHandler) CreateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 	}
 
 	tmpl := model.SandboxTemplate{
-		OrgID:       nil, // public template
-		Name:        name,
-		Slug:        slug,
-		Tags:        tags,
-		Size:        size,
-		ExternalID:  &slug, // slug IS the Daytona snapshot name
-		BuildStatus: "ready",
-		Config:      model.JSON{},
+		OrgID:        nil, // public template
+		Name:         name,
+		Slug:         slug,
+		Tags:         tags,
+		Size:         size,
+		ExternalID:   &slug, // slug IS the Daytona snapshot name
+		BaseImageRef: trimmedRef(req.BaseImageRef),
+		BuildStatus:  "ready",
+		Config:       model.JSON{},
 	}
 
 	if err := h.db.Create(&tmpl).Error; err != nil {
@@ -259,6 +273,14 @@ func (h *AdminHandler) UpdateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 		var tagsModel model.JSON
 		_ = json.Unmarshal(tagsJSON, &tagsModel)
 		updates["tags"] = tagsModel
+	}
+	if req.BaseImageRef != nil {
+		ref := strings.TrimSpace(*req.BaseImageRef)
+		if ref == "" {
+			updates["base_image_ref"] = gorm.Expr("NULL")
+		} else {
+			updates["base_image_ref"] = ref
+		}
 	}
 
 	if len(updates) == 0 {

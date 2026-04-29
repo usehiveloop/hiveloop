@@ -37,16 +37,18 @@ openapi:
 	"
 	@echo "✓ docs/openapi.json updated"
 
-# Build sandbox templates (all 4 sizes)
+# Build + push base sandbox images to GHCR and register Daytona snapshots
+# (one per size: small, medium, large, xlarge) pointing at the GHCR image.
+# Requires GHCR_USERNAME, GHCR_PAT (PAT with write:packages),
+# SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, SANDBOX_TARGET.
 # Usage: make build-templates VERSION=0.10.0
 #        make build-templates VERSION=0.10.0 SIZE=small
 #        make build-templates VERSION=0.10.0 SIZE=small,medium
-#        make build-templates VERSION=0.10.0 PROVIDER=daytona
 #        make build-templates VERSION=0.10.0 FLAVOR=dev-box
 #        make build-templates VERSION=0.10.0 FLAVOR=dev-box SIZE=medium
 build-templates:
 	@test -n "$(VERSION)" || (echo "error: VERSION is required (e.g. make build-templates VERSION=0.10.0)" && exit 1)
-	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates -version=$(VERSION) -provider=$(or $(PROVIDER),daytona) -flavor=$(or $(FLAVOR),bridge) -size=$(or $(SIZE),all)
+	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates -version=$(VERSION) -flavor=$(or $(FLAVOR),bridge) -size=$(or $(SIZE),all)
 
 # Upload skill definitions to Hiveloop API (reads HIVELOOP_SKILLS_API_KEY from .env)
 upload-skills:

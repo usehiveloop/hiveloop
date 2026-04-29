@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	daytona "github.com/daytonaio/daytona/libs/sdk-go/pkg/daytona"
+
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -67,23 +68,27 @@ var devToolPackages = []string{
 
 var sizes = model.TemplateSizes
 
+// snapshotName returns the Daytona snapshot name for (flavor, version, size).
+// The naming scheme matches what was published before the GHCR migration so
+// existing references keep working.
+func snapshotName(flavor, bridgeVersion, size string) string {
+	switch flavor {
+	case flavorDevBox:
+		return fmt.Sprintf("hiveloop-dev-box-%s-v%s", size, bridgeVersion)
+	default:
+		return fmt.Sprintf("hiveloop-bridge-%s-%s", strings.ReplaceAll(bridgeVersion, ".", "-"), size)
+	}
+}
+
 func bridgeDownloadURL(version string) string {
 	return fmt.Sprintf("%s/v%s/bridge-v%s-x86_64-unknown-linux-gnu.tar.gz",
 		bridgeReleasesURL, version, version)
 }
 
-// buildBaseImage installs the shared runtime layer used by every flavor:
-// system packages and the Bridge binary.
 func buildBaseImage(bridgeVersion string) *daytona.DockerImage {
 	downloadURL := bridgeDownloadURL(bridgeVersion)
 
 	image := daytona.Base(baseImage)
-
-	// Switch to Hetzner's mirror — Ubuntu's archive throttles Hetzner IPs to ~120KB/s
-	// while Hetzner's own mirror serves at 6+ MB/s.
-	image = image.Run(
-		`sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirror.hetzner.de/ubuntu/packages|g; s|http://security.ubuntu.com/ubuntu|http://mirror.hetzner.de/ubuntu/packages|g' /etc/apt/sources.list.d/ubuntu.sources || ` +
-			`sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirror.hetzner.de/ubuntu/packages|g; s|http://security.ubuntu.com/ubuntu|http://mirror.hetzner.de/ubuntu/packages|g' /etc/apt/sources.list`)
 
 	image = image.AptGet(basePackages)
 	image = image.Run(fmt.Sprintf("mkdir -p %s/.bridge", daytonaHome))
@@ -95,7 +100,6 @@ func buildBaseImage(bridgeVersion string) *daytona.DockerImage {
 	return image
 }
 
-// buildBridgeImage produces the default flavor: just the base runtime.
 func buildBridgeImage(bridgeVersion string) *daytona.DockerImage {
 	image := buildBaseImage(bridgeVersion)
 
@@ -105,9 +109,6 @@ func buildBridgeImage(bridgeVersion string) *daytona.DockerImage {
 	return image
 }
 
-// buildDevBoxImage layers a developer toolchain on top of the base bridge
-// runtime: Node.js (via nvm), Chrome for Testing, and agent-browser
-// for AI-driven browser automation.
 func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	image := buildBaseImage(bridgeVersion)
 
@@ -130,7 +131,6 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 
 	image = image.Run("npm install -g --prefix=/usr/local agent-browser")
 
-	// GitHub CLI (official apt repository).
 	image = image.Run(
 		"mkdir -p -m 755 /etc/apt/keyrings && " +
 			"wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && " +
@@ -140,8 +140,6 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 
 	image = image.Run("agent-browser install --with-deps")
 
-	// Dev tools: compilers, databases, media, terminal multiplexers,
-	// network diagnostics, archive utilities, editors.
 	image = image.AptGet(devToolPackages)
 
 	image = image.Run(
@@ -200,12 +198,3 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	return image
 }
 
-// snapshotName returns the published snapshot name for a flavor + version + size.
-func snapshotName(flavor, bridgeVersion, size string) string {
-	switch flavor {
-	case flavorDevBox:
-		return fmt.Sprintf("hiveloop-dev-box-%s-v%s", size, bridgeVersion)
-	default:
-		return fmt.Sprintf("hiveloop-bridge-%s-%s", strings.ReplaceAll(bridgeVersion, ".", "-"), size)
-	}
-}

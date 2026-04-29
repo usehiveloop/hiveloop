@@ -121,7 +121,7 @@ export function SandboxTemplatesList() {
             Custom sandbox environments for your agents.
           </p>
         </div>
-        <Button onClick={() => setCreateModalOpen(true)} disabled>
+        <Button onClick={() => setCreateModalOpen(true)}>
           <HugeiconsIcon icon={Add01Icon} size={16} className="mr-2" />
           New Template
         </Button>
@@ -138,8 +138,8 @@ export function SandboxTemplatesList() {
           <div className="w-full max-w-sm">
             <button
               type="button"
-              disabled
-              className="group flex items-start gap-4 w-full rounded-xl bg-muted/50 p-4 text-left opacity-50 cursor-not-allowed"
+              onClick={() => setCreateModalOpen(true)}
+              className="group flex items-start gap-4 w-full rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted"
             >
               <HugeiconsIcon icon={ContainerIcon} size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
               <div className="flex-1 min-w-0">
@@ -148,7 +148,7 @@ export function SandboxTemplatesList() {
                   Define a custom environment with build commands and dependencies.
                 </p>
               </div>
-              <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground/30 shrink-0 mt-0.5" />
+              <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground/60 shrink-0 mt-0.5 transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
         </div>

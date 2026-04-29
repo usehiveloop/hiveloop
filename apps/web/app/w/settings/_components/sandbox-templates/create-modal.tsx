@@ -32,6 +32,9 @@ import {
   createSandboxTemplate,
   type SandboxTemplate,
 } from "@/hooks/use-sandbox-template"
+import { BuildCommandsEditor } from "./build-commands-editor"
+
+const DEFAULT_COMMANDS_PLACEHOLDER = "# One command per line. Lines run with && between them.\napt-get install -y python3 python3-pip\npip3 install requests"
 
 interface CreateSandboxTemplateModalProps {
   open: boolean
@@ -41,7 +44,7 @@ interface CreateSandboxTemplateModalProps {
 
 export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: CreateSandboxTemplateModalProps) {
   const [name, setName] = useState("")
-  const [buildCommands, setBuildCommands] = useState<string[]>([""])
+  const [buildCommandsText, setBuildCommandsText] = useState("")
   const [selectedBaseTemplate, setSelectedBaseTemplate] = useState<string>("")
   const [isBuilding, setIsBuilding] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
@@ -63,7 +66,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
 
   const resetForm = useCallback(() => {
     setName("")
-    setBuildCommands([""])
+    setBuildCommandsText("")
     setSelectedBaseTemplate("")
     setIsBuilding(false)
     setIsRetrying(false)
@@ -97,23 +100,12 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
     resetForm()
   }
 
-  function updateCommand(index: number, value: string) {
-    const newCommands = [...buildCommands]
-    newCommands[index] = value
-    setBuildCommands(newCommands)
-  }
-
-  function addCommand() {
-    setBuildCommands([...buildCommands, ""])
-  }
-
-  function removeCommand(index: number) {
-    if (buildCommands.length <= 1) return
-    const newCommands = buildCommands.filter((_, i) => i !== index)
-    setBuildCommands(newCommands)
-  }
-
-  const filteredCommands = buildCommands.filter(cmd => cmd.trim() !== "")
+  // Lines that aren't blank and aren't comments. Each line is a separate
+  // command joined with && server-side, so '#' lines are tossed locally.
+  const filteredCommands = buildCommandsText
+    .split("\n")
+    .map((line) => line.replace(/\s+$/, ""))
+    .filter((line) => line.trim() !== "" && !line.trim().startsWith("#"))
 
   async function handleCreateAndBuild() {
     if (!name.trim()) {
@@ -168,8 +160,8 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
 
   function handleRetry() {
     if (!buildTemplateId) return
-    const cmds = template?.build_commands ?? [""]
-    setBuildCommands(cmds.length > 0 ? cmds : [""])
+    const cmds = template?.build_commands ?? []
+    setBuildCommandsText(cmds.join("\n"))
     setIsRetrying(true)
     setIsBuilding(false)
   }
@@ -256,41 +248,15 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
               )}
 
               <div className="space-y-2">
-                <Label>Build Commands</Label>
-                <div className="space-y-2">
-                  {buildCommands.map((cmd, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input
-                        placeholder="apt-get install curl"
-                        value={cmd}
-                        onChange={(e) => updateCommand(index, e.target.value)}
-                        className="font-mono text-sm flex-1"
-                      />
-                      {buildCommands.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeCommand(index)}
-                          className="h-8 px-2 shrink-0 text-muted-foreground hover:text-destructive"
-                        >
-                          ×
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addCommand}
-                  className="mt-2"
-                >
-                  + Add Command
-                </Button>
+                <Label htmlFor="build-commands">Build Commands</Label>
+                <BuildCommandsEditor
+                  value={buildCommandsText}
+                  onChange={setBuildCommandsText}
+                  placeholder={DEFAULT_COMMANDS_PLACEHOLDER}
+                  height="240px"
+                />
                 <p className="text-xs text-muted-foreground">
-                  Each command runs in a separate shell layer, joined with &&.
+                  One command per line. Lines are joined with &&. Comments (#) and blanks are ignored.
                 </p>
               </div>
             </div>
@@ -341,7 +307,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                     variant="outline"
                     onClick={() => {
                       setIsRetrying(false)
-                      setBuildCommands([""])
+                      setBuildCommandsText("")
                     }}
                   >
                     Cancel

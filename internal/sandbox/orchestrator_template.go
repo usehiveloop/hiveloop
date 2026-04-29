@@ -24,7 +24,10 @@ func (o *Orchestrator) resolveBuildOpts(tmpl *model.SandboxTemplate, snapshotNam
 	if tmpl.BaseTemplateID != nil {
 		var baseTmpl model.SandboxTemplate
 		if err := o.db.First(&baseTmpl, "id = ?", *tmpl.BaseTemplateID).Error; err == nil {
-			if baseTmpl.ExternalID != nil {
+			switch {
+			case baseTmpl.BaseImageRef != nil && *baseTmpl.BaseImageRef != "":
+				opts.BaseImage = *baseTmpl.BaseImageRef
+			case baseTmpl.ExternalID != nil:
 				opts.BaseImage = *baseTmpl.ExternalID
 			}
 		}
