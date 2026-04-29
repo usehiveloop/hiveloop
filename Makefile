@@ -244,14 +244,14 @@ seed-test:
 
 local-up:
 	@./scripts/local-up.sh
+	@$(MAKE) -s seed-test
 
 local-down:
 	@./scripts/local-down.sh
 
 local-reset:
 	@./scripts/local-down.sh
-	@./scripts/local-up.sh
-	@$(MAKE) -s seed-test
+	@$(MAKE) -s local-up
 
 local-status:
 	@curl -s -o /dev/null -w "fake-nango (13004) %{http_code}\n" http://localhost:13004/providers.json || true
