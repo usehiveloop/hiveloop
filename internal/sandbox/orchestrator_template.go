@@ -97,8 +97,8 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 		}
 
 		switch status.State {
-		case "ready":
-			slog.Info("snapshot build completed", "external_id", externalID)
+		case "active", "ready":
+			slog.Info("snapshot build completed", "external_id", externalID, "state", status.State)
 			if onStatus != nil {
 				onStatus("ready", "")
 			}
