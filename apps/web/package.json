@@ -30,6 +30,7 @@
     "@nangohq/frontend": "^0.69.47",
     "@paystack/inline-js": "^2.22.8",
     "@pierre/diffs": "^1.1.19",
+    "@sentry/nextjs": "^10.51.0",
     "@tanstack/react-query": "^5.96.2",
     "@tanstack/react-virtual": "^3.13.23",
     "@types/mdx": "^2.0.13",
