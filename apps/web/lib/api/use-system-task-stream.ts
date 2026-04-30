@@ -3,10 +3,6 @@
 import { useCallback, useRef, useState } from "react"
 import { fetchEventSource } from "@microsoft/fetch-event-source"
 
-// SSE frame shape emitted by /v1/system/tasks/{taskName} (the platform's
-// rewritten envelope — not OpenAI's). Forwarder writes one
-// `data: {"delta":"..."}` per chunk, then a final
-// `data: {"done":true,"usage":{...}}`. No `[DONE]` sentinel.
 type SystemTaskFrame = {
   delta?: string
   done?: boolean
@@ -30,24 +26,9 @@ export interface SystemTaskResult {
 }
 
 interface RunOptions {
-  /** Called on every delta. Receives the new chunk only, not the buffer. */
   onDelta?: (delta: string) => void
 }
 
-/**
- * Streams a registered platform system task. Generic over task name + args
- * because every system task uses the same wire shape.
- *
- * Behavior:
- *   - `run(args)` POSTs `{ stream: true, args }` to
- *     `/api/proxy/v1/system/tasks/{taskName}` and consumes the SSE response.
- *   - Resolves to `{ text, usage }` once the `done:true` frame arrives.
- *   - Rejects with a `SystemTaskError` on non-2xx (parses the typed
- *     `{error, error_code}` envelope when present).
- *   - `output` mirrors the accumulated text reactively, so a UI can render
- *     the prompt as it streams in.
- *   - Calling `run` again aborts any in-flight request.
- */
 export function useSystemTaskStream(taskName: string) {
   const [isStreaming, setIsStreaming] = useState(false)
   const [output, setOutput] = useState("")
@@ -83,14 +64,11 @@ export function useSystemTaskStream(taskName: string) {
           body: JSON.stringify({ stream: true, args }),
           credentials: "include",
           signal: controller.signal,
-          // Default would re-open on visibility / network blips, but we
-          // want a one-shot generation, not a long-lived subscription.
           openWhenHidden: true,
           async onopen(response) {
             const ct = response.headers.get("content-type") ?? ""
             if (response.ok && ct.includes("text/event-stream")) return
 
-            // Surface the typed error envelope when present.
             let envelope: { error?: string; error_code?: string } = {}
             try {
               envelope = await response.json()
@@ -102,8 +80,6 @@ export function useSystemTaskStream(taskName: string) {
               error_code: envelope.error_code,
               status: response.status,
             }
-            // Throwing here aborts the lib's reconnect loop. We surface the
-            // typed object via the catch in onerror → reject.
             throw err
           },
           onmessage(ev) {
@@ -128,13 +104,9 @@ export function useSystemTaskStream(taskName: string) {
             }
           },
           onerror(err) {
-            // Throw to stop the lib's auto-reconnect.
             throw err
           },
           onclose() {
-            // Some servers/proxies close without a `done` frame. Treat that
-            // as success if we accumulated any output, otherwise as an
-            // empty-but-clean stream.
             if (!resolved) {
               resolved = true
               resolve({ text: buffer, usage: finalUsage })
@@ -144,9 +116,6 @@ export function useSystemTaskStream(taskName: string) {
           .catch((err) => {
             if (resolved) return
             if (controller.signal.aborted) {
-              // Aborted by us (typically because we got `done` and called
-              // controller.abort to short-circuit). The fetchEventSource
-              // implementation throws its abort signal; treat as resolved.
               resolved = true
               resolve({ text: buffer, usage: finalUsage })
               return

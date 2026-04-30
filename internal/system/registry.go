@@ -63,14 +63,14 @@ func validateTask(t Task) error {
 	if t.Version == "" {
 		return fmt.Errorf("Version is required (bump when prompt/schema/model changes)")
 	}
-	if t.ProviderGroup == "" {
-		return fmt.Errorf("ProviderGroup is required")
-	}
 	if t.ModelTier == "" {
 		return fmt.Errorf("ModelTier is required")
 	}
 	if t.ModelTier == ModelNamed && t.Model == "" {
 		return fmt.Errorf("Model is required when ModelTier is ModelNamed")
+	}
+	if t.ModelTier != ModelNamed && t.ProviderGroup == "" {
+		return fmt.Errorf("ProviderGroup is required for tier=%q", t.ModelTier)
 	}
 	if t.UserPromptTemplate == "" {
 		return fmt.Errorf("UserPromptTemplate is required")

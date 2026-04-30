@@ -16,6 +16,13 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/system"
 )
 
+func (h *SystemTaskHandler) pickCredential(ctx context.Context, task system.Task) (*model.Credential, error) {
+	if task.ModelTier == system.ModelNamed {
+		return h.picker.PickByModel(ctx, task.Model)
+	}
+	return h.picker.Pick(ctx, task.ProviderGroup)
+}
+
 func (h *SystemTaskHandler) serveCached(w http.ResponseWriter, cached *system.CompletionResult, stream bool) {
 	if stream {
 		_ = system.EmitCachedSSE(w, cached)

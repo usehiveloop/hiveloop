@@ -20,13 +20,7 @@ const (
 	ArgInt        ArgType = "int"
 	ArgBool       ArgType = "bool"
 	ArgStringList ArgType = "string_list"
-	// ArgObject is a JSON object decoded as map[string]any. Validation only
-	// asserts the top-level shape; deep validation belongs in the task's
-	// Resolve hook, where business rules (org-scoping, catalog lookups) live.
-	ArgObject ArgType = "object"
-	// ArgObjectList is a JSON array of objects, decoded as []any where each
-	// element is a map[string]any. Same depth-of-validation contract as
-	// ArgObject.
+	ArgObject     ArgType = "object"
 	ArgObjectList ArgType = "object_list"
 )
 
@@ -76,8 +70,6 @@ type Task struct {
 
 	Description string
 
-	// ProviderGroup is fed to credentials.Picker.Pick — "openai", "anthropic",
-	// "groq", etc.
 	ProviderGroup string
 
 	// ModelTier + Model resolve the upstream model id.
@@ -101,20 +93,12 @@ type Task struct {
 	// the cache only when CacheTTL > 0.
 	CacheTTL time.Duration
 
-	// Resolve, if set, runs after ValidateArgs and before the user template
-	// is rendered. It receives the validated raw args and returns the map
-	// that actually feeds the template. This is the place to do org-scoped
-	// DB lookups (skill IDs → name+description, connection IDs → provider
-	// + actions catalog, etc.) so the template can range over rich data.
-	//
-	// Returning a *ResolveError surfaces a stable machine-readable code to
-	// the client; any other error becomes a generic 400.
+	// Resolve, when set, runs between ValidateArgs and template render.
+	// Returning a *ResolveError surfaces error_code to the client; any
+	// other error becomes a generic 400.
 	Resolve func(ctx context.Context, deps ResolveDeps, args map[string]any) (map[string]any, error)
 }
 
-// ResolveDeps are the runtime dependencies a Resolve hook may need. The
-// handler injects these from its own constructed deps; tasks pull only what
-// they care about.
 type ResolveDeps struct {
 	DB             *gorm.DB
 	OrgID          uuid.UUID
@@ -122,15 +106,11 @@ type ResolveDeps struct {
 	ActionsCatalog *catalog.Catalog
 }
 
-// ResolveError is the typed error a Resolve hook returns when it wants to
-// surface a stable error_code to the client (e.g. "unknown_skill"). The
-// handler maps this to a 400 with the error_code field populated.
 type ResolveError struct {
 	Code    string
 	Message string
 }
 
-// Error implements the error interface.
 func (e *ResolveError) Error() string {
 	if e == nil {
 		return ""

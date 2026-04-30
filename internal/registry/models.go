@@ -1356,6 +1356,26 @@ var curatedProviders = []Provider{
 					Output:  65535,
 				},
 			},
+			"openai/gpt-5-nano": {
+				ID:          "openai/gpt-5-nano",
+				Name:        "GPT 5 Nano",
+				Family:      "gpt-nano",
+				Reasoning:   true,
+				ToolCall:    false,
+				ReleaseDate: "2025-08-07",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.05,
+					Output: 0.4,
+				},
+				Limit: &Limit{
+					Context: 400000,
+					Output:  128000,
+				},
+			},
 			"google/gemini-2.5-flash": {
 				ID:               "google/gemini-2.5-flash",
 				Name:             "Gemini 2.5 Flash",

@@ -36,9 +36,8 @@ type SystemTaskHandler struct {
 	actionsCatalog *catalog.Catalog
 }
 
-// NewSystemTaskHandler builds the handler. All deps are required except
-// `cache`, which may be nil to disable caching across all tasks, and
-// `actionsCatalog`, which may be nil for tasks that don't need it.
+// NewSystemTaskHandler builds the handler. `cache` may be nil to disable
+// caching; `actionsCatalog` may be nil for tasks that don't need it.
 func NewSystemTaskHandler(
 	db *gorm.DB,
 	picker credentials.Picker,
@@ -148,11 +147,6 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Resolve runs after validation and before template rendering. Tasks use
-	// it to translate IDs into rich data via org-scoped DB lookups (skill IDs
-	// → name+description, integration connection IDs → provider + actions
-	// catalog, etc.). Tasks without a resolver pass req.Args through
-	// unchanged.
 	resolvedArgs := req.Args
 	if task.Resolve != nil {
 		out, err := task.Resolve(r.Context(), system.ResolveDeps{
@@ -184,11 +178,11 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 		stream = *req.Stream
 	}
 
-	cred, err := h.picker.Pick(r.Context(), task.ProviderGroup)
+	cred, err := h.pickCredential(r.Context(), task)
 	if err != nil {
 		if errors.Is(err, credentials.ErrNoSystemCredential) {
 			writeJSON(w, http.StatusServiceUnavailable, systemTaskError{
-				Error:     fmt.Sprintf("no platform credential available for provider group %q", task.ProviderGroup),
+				Error:     err.Error(),
 				ErrorCode: "system_credential_unavailable",
 			})
 			return

@@ -11,9 +11,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/system"
 )
 
-// Resolved structures the user template ranges over. Field names are public
-// so text/template can reach them.
-
 type resolvedSkill struct {
 	Name        string
 	Description string
@@ -56,24 +53,15 @@ type resolvedTool struct {
 	Description string
 }
 
-// connRow is the join shape used by integration + trigger lookups when we
-// need (connection_id, provider_slug, provider_display_name) in one query.
 type connRow struct {
 	ID          uuid.UUID `gorm:"column:id"`
 	Provider    string    `gorm:"column:provider"`
 	DisplayName string    `gorm:"column:display_name"`
 }
 
-// resolvePromptWriterArgs turns the agent-create-shaped raw args into the
-// structured form the user template ranges over.
-//
-// Authorisation rule: every referenced ID must be reachable from
-// deps.OrgID. Foreign-org IDs surface as ResolveError so the FE can show a
-// stable error code.
 func resolvePromptWriterArgs(ctx context.Context, deps system.ResolveDeps, args map[string]any) (map[string]any, error) {
 	// Every key the user template references must be present — render runs
-	// with `missingkey=error`, so an absent key would 500 the request.
-	// Empty slices/maps make {{with}} blocks skip cleanly.
+	// with missingkey=error.
 	out := map[string]any{
 		"name":         stringArg(args, "name"),
 		"category":     stringArg(args, "category"),
@@ -129,8 +117,6 @@ func resolvePromptWriterArgs(ctx context.Context, deps system.ResolveDeps, args 
 	return out, nil
 }
 
-// ── skills ────────────────────────────────────────────────────────────────
-
 func resolveSkills(deps system.ResolveDeps, rawIDs []string) ([]resolvedSkill, error) {
 	ids, err := parseUUIDs(rawIDs, "skill_id", "unknown_skill")
 	if err != nil {
@@ -175,8 +161,6 @@ func rowsToIDsSkill(rows []model.Skill) []uuid.UUID {
 	}
 	return out
 }
-
-// ── sub-agents ────────────────────────────────────────────────────────────
 
 func resolveSubagents(deps system.ResolveDeps, rawIDs []string) ([]resolvedSubagent, error) {
 	ids, err := parseUUIDs(rawIDs, "subagent_id", "unknown_subagent")
@@ -223,12 +207,6 @@ func rowsToIDsSubagent(rows []model.Agent) []uuid.UUID {
 	return out
 }
 
-// ── integrations ──────────────────────────────────────────────────────────
-
-// resolveIntegrations walks the FE payload {connection_id: {actions: [slug]}}
-// and produces one resolvedIntegration per connection. Each connection's
-// actions are looked up in the catalog so Gemini sees display name +
-// description, not just slugs.
 func resolveIntegrations(deps system.ResolveDeps, raw map[string]any) ([]resolvedIntegration, error) {
 	if len(raw) == 0 {
 		return nil, nil
@@ -291,7 +269,6 @@ func resolveIntegrations(deps system.ResolveDeps, raw map[string]any) ([]resolve
 
 func lookupActions(cat *catalog.Catalog, provider string, slugs []string) ([]resolvedActionRef, error) {
 	if cat == nil || len(slugs) == 0 {
-		// Catalog absent (test harness) → degrade to slug-only refs.
 		out := make([]resolvedActionRef, len(slugs))
 		for i, s := range slugs {
 			out[i] = resolvedActionRef{Slug: s}
@@ -315,8 +292,6 @@ func lookupActions(cat *catalog.Catalog, provider string, slugs []string) ([]res
 	}
 	return out, nil
 }
-
-// ── triggers ──────────────────────────────────────────────────────────────
 
 func resolveTriggers(deps system.ResolveDeps, raw []map[string]any) ([]resolvedTrigger, error) {
 	if len(raw) == 0 {
@@ -350,7 +325,6 @@ func resolveTriggers(deps system.ResolveDeps, raw []map[string]any) ([]resolvedT
 				trig.Keys[j] = resolvedTriggerKey{Display: k}
 			}
 		case "cron":
-			// no provider, no keys
 		default:
 			return nil, &system.ResolveError{
 				Code:    "invalid_trigger_type",
@@ -362,10 +336,6 @@ func resolveTriggers(deps system.ResolveDeps, raw []map[string]any) ([]resolvedT
 	return out, nil
 }
 
-// lookupConnectionProvider returns (slug, display) for a single connection
-// owned by deps.OrgID. The slug is used for catalog lookups (action /
-// trigger definitions are keyed by provider slug); the display is what we
-// render to Gemini.
 func lookupConnectionProvider(deps system.ResolveDeps, connID string) (string, string, error) {
 	if connID == "" {
 		return "", "", &system.ResolveError{Code: "unknown_connection", Message: "connection_id is required for webhook triggers"}
@@ -404,10 +374,6 @@ func lookupTriggerKeys(cat *catalog.Catalog, providerDisplay string, keys []stri
 		if cat == nil {
 			continue
 		}
-		// providerDisplay is the integration's display name; the catalog is
-		// keyed by provider slug. We try the display name first (cheap),
-		// then fall back to the slug. If neither resolves, just emit the
-		// raw key — it still gives Gemini something to work with.
 		if def, ok := cat.GetTrigger(providerDisplay, k); ok {
 			out[i].Display = def.DisplayName
 			out[i].Description = def.Description
@@ -415,8 +381,6 @@ func lookupTriggerKeys(cat *catalog.Catalog, providerDisplay string, keys []stri
 	}
 	return out
 }
-
-// ── built-in + sandbox tools ──────────────────────────────────────────────
 
 func resolveBuiltinTools(toolsObj map[string]any, sandbox []string) []resolvedTool {
 	defByID := make(map[string]model.BuiltInToolDefinition, len(model.ValidBuiltInTools))
@@ -454,8 +418,6 @@ func resolveBuiltinTools(toolsObj map[string]any, sandbox []string) []resolvedTo
 	}
 	return out
 }
-
-// ── helpers ───────────────────────────────────────────────────────────────
 
 func stringArg(m map[string]any, key string) string {
 	if m == nil {

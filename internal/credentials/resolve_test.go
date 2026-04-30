@@ -34,6 +34,10 @@ func (p *fakePicker) Pick(_ context.Context, group string) (*model.Credential, e
 	return nil, credentials.ErrNoSystemCredential
 }
 
+func (p *fakePicker) PickByModel(_ context.Context, _ string) (*model.Credential, error) {
+	return nil, credentials.ErrNoSystemCredential
+}
+
 func TestResolve_NilAgent(t *testing.T) {
 	_, err := credentials.Resolve(context.Background(), nil, nil, nil)
 	if err == nil {
