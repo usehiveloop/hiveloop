@@ -1,0 +1,6 @@
+{
+  "name": "git-github",
+  "description": "Perform common human git and GitHub workflows from the CLI: branching, committing, opening pull requests (with images), commenting, reacting, labeling, reviewing — while respecting each repo's existing conventions.",
+  "root": "./SKILL.md",
+  "files": []
+}

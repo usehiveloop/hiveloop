@@ -43,6 +43,9 @@ func BuildLLMRequest(t Task, model string, args map[string]any, stream bool) (*L
 	if t.ResponseFormat == ResponseJSON {
 		req.ResponseFormat = &responseSpec{Type: "json_object"}
 	}
+	if t.ReasoningEffort != "" {
+		req.Reasoning = &reasoningSpec{Effort: t.ReasoningEffort}
+	}
 	if stream {
 		// OpenAI requires this opt-in to include usage in the final SSE chunk.
 		req.StreamOptions = &streamOptions{IncludeUsage: true}
