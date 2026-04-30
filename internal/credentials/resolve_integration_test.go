@@ -48,7 +48,7 @@ func TestIntegration_Resolve_PlatformPath(t *testing.T) {
 		ID:           uuid.New(),
 		OrgID:        &orgID,
 		CredentialID: nil,
-		Model:        "moonshotai/kimi-k2-instruct",
+		Model:        "kimi-k2.5",
 	}
 
 	got, err := credentials.Resolve(context.Background(), db, credentials.NewPicker(db), agent)
