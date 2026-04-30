@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/observe"
 )
@@ -42,7 +43,14 @@ func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
 			return
 		}
 
-		cred, err := cacheManager.GetDecryptedCredential(req.Context(), claims.CredentialID, orgID)
+		// System credentials FK to the platform org, not the customer org on
+		// the JWT, so look them up under PlatformOrgID.
+		lookupOrgID := orgID
+		if claims.IsSystem {
+			lookupOrgID = credentials.PlatformOrgID
+		}
+
+		cred, err := cacheManager.GetDecryptedCredential(req.Context(), claims.CredentialID, lookupOrgID)
 		if err != nil {
 			slog.Error("proxy director: credential lookup failed",
 				"credential_id", claims.CredentialID,

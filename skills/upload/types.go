@@ -1,7 +1,5 @@
 package main
 
-import "encoding/json"
-
 type manifest struct {
 	Name        string         `json:"name"`
 	Description string         `json:"description"`
