@@ -17,7 +17,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/mcpserver"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
-	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 )
 
 func setupMCPServer(
@@ -31,7 +31,8 @@ func setupMCPServer(
 	mcpRouter := chi.NewRouter()
 	mcpRouter.Use(chimw.RequestID)
 	mcpRouter.Use(chimw.RealIP)
-	mcpRouter.Use(posthogobs.Recoverer(deps.PostHog))
+	mcpRouter.Use(sentryobs.Middleware())
+	mcpRouter.Use(sentryobs.Recoverer())
 	mcpRouter.Use(middleware.RequestLog(slog.Default()))
 
 	replyMCPHandler := mcpserver.NewReplyMCPHandler(database, deps.ActionsCatalog)
@@ -62,7 +63,7 @@ func setupMCPServer(
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 0,
 		IdleTimeout:  120 * time.Second,
-		ErrorLog:     posthogobs.NewStdlogBridge("mcp_server"),
+		ErrorLog:     sentryobs.NewStdlogBridge("mcp_server"),
 	}
 
 	mcpHandler.ServerCache.StartCleanup(ctx, 5*time.Minute)

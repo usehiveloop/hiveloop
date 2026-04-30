@@ -3,6 +3,7 @@ package proxy
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/usehiveloop/hiveloop/internal/observe"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 )
 
 // CaptureTransport wraps an http.RoundTripper to capture response metadata
@@ -26,6 +28,16 @@ func (ct *CaptureTransport) RoundTrip(req *http.Request) (*http.Response, error)
 
 	start := time.Now()
 
+	span := sentryobs.StartSpan(req.Context(), "llm.upstream", req.Method+" "+req.URL.Host+req.URL.Path)
+	if span != nil {
+		span.SetData("http.method", req.Method)
+		span.SetData("http.host", req.URL.Host)
+		span.SetData("http.path", req.URL.Path)
+		if hasCaptured && captured.ProviderID != "" {
+			span.SetData("llm.provider", captured.ProviderID)
+		}
+	}
+
 	resp, err := ct.Inner.RoundTrip(req)
 	if err != nil {
 		totalMs := int(time.Since(start).Milliseconds())
@@ -34,9 +46,6 @@ func (ct *CaptureTransport) RoundTrip(req *http.Request) (*http.Response, error)
 			captured.ErrorType = classifyTransportError(err)
 			captured.ErrorMessage = err.Error()
 		}
-		// Log via slog — the wrapped handler mirrors this to PostHog. Upstream
-		// failures are operationally important; currently they were only
-		// recorded in the captured-data struct and never surfaced to alerts.
 		slog.Error("proxy upstream transport error",
 			"method", req.Method,
 			"host", req.URL.Host,
@@ -44,8 +53,11 @@ func (ct *CaptureTransport) RoundTrip(req *http.Request) (*http.Response, error)
 			"duration_ms", totalMs,
 			"error", err,
 		)
+		sentryobs.CaptureException(req.Context(), fmt.Errorf("proxy upstream %s %s: %w", req.Method, req.URL.Host, err))
+		sentryobs.FinishSpanWithError(span, err)
 		return nil, err
 	}
+	sentryobs.FinishSpanWithError(span, nil)
 
 	if !hasCaptured {
 		return resp, nil
@@ -71,9 +83,7 @@ func (ct *CaptureTransport) RoundTrip(req *http.Request) (*http.Response, error)
 				resp.Body = io.NopCloser(io.MultiReader(bytes.NewReader(snippet[:n]), resp.Body))
 			}
 		}
-		// Surface 5xx upstream errors via slog (mirrored to PostHog). 4xx are
-		// normal user-facing errors and don't warrant a capture — they already
-		// show up in the usage/audit tables.
+		// 4xx are normal user-facing errors; 5xx warrant capture.
 		if resp.StatusCode >= 500 {
 			slog.Error("proxy upstream 5xx response",
 				"method", req.Method,
