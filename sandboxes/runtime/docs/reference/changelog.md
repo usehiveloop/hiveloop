@@ -4,6 +4,18 @@ Changes to Bridge.
 
 ---
 
+## Unreleased
+
+### Added
+
+- **Verifier agent (`config.verifier`).** Optional second LLM that judges, after every terminal-text turn, whether the main agent really finished or stopped prematurely. On `needs_work + high` (within `max_reprompts_per_turn` cap), bridge synthesizes a user-message re-prompt and resumes the same turn — the agent sees what looks like a normal user follow-up. Verifier sees the agent's system prompt, full conversation text, and full tool I/O (head/tail-elided at 1000 chars/side). Frozen JSON-schema verdict shape (`verdict`, `confidence`, `instruction`) plus stable system-prompt bytes mean the verifier hits the upstream's prefix cache from call two onward. Failures (build errors, timeouts, parse failures) emit `verifier_error` and proceed — the verifier never blocks the agent. Three new SSE events: `verifier_started`, `verifier_verdict`, `verifier_error`. Force-disable via `BRIDGE_VERIFIER_DISABLED=1`. See [Verifier Agent](../core-concepts/verifier-agent.md) and [SSE → Verifier Events](../api-reference/sse-events.md#verifier-events).
+
+### Changed
+
+- **`VerifierProvider::OpenAI` wire format normalized to `"open_ai"`** (matching `core::ProviderType::OpenAI`). The serde-default `"open_a_i"` (snake_case splits on every capital letter, including consecutive ones) is rejected. Inline tests guard the rename. No impact on existing callers — the verifier is brand new in this release.
+
+---
+
 ## v0.22.0 (2026-04-26)
 
 ### Added

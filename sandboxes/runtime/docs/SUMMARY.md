@@ -24,6 +24,7 @@
 - [MCP](core-concepts/mcp.md)
 - [Skills](core-concepts/skills.md)
 - [Webhooks](core-concepts/webhooks.md)
+- [Verifier Agent](core-concepts/verifier-agent.md)
 
 ---
 

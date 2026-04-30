@@ -561,6 +561,96 @@ Fires when a subagent finishes its task and returns control to the parent conver
 
 ---
 
+## Verifier Events
+
+Fired only when the agent has [`config.verifier.enabled = true`](../core-concepts/verifier-agent.md). One verifier session = one `verifier_started` + one `verifier_verdict` (or one `verifier_error`).
+
+### `verifier_started`
+
+Fires when bridge is about to call the verifier model. Useful for UI affordances ("checking work...") and as a sanity signal that verifier wiring is alive.
+
+```json
+{
+  "event_id": "evt-080",
+  "event_type": "verifier_started",
+  "agent_id": "my-agent",
+  "conversation_id": "conv-abc123",
+  "timestamp": "2026-04-30T03:08:41Z",
+  "sequence_number": 273,
+  "data": {
+    "reprompt_count": 0
+  }
+}
+```
+
+| Data Field | Type | Description |
+|------------|------|-------------|
+| `reprompt_count` | number | How many synthetic re-prompts the verifier has fired in this turn so far. `0` on the first call; reaches `max_reprompts_per_turn` when the cap is exhausted. |
+
+### `verifier_verdict`
+
+Fires after the verifier returns a parsed verdict. The conversation continues based on the `verdict` field — `users_turn` / `completed` finalize the turn; `needs_work + high` (within cap) injects a synthetic user message and resumes the same turn.
+
+```json
+{
+  "event_id": "evt-081",
+  "event_type": "verifier_verdict",
+  "agent_id": "my-agent",
+  "conversation_id": "conv-abc123",
+  "timestamp": "2026-04-30T03:08:46Z",
+  "sequence_number": 274,
+  "data": {
+    "verdict": "completed",
+    "confidence": "high",
+    "instruction": "",
+    "model": "openai/gpt-5.4-nano",
+    "latency_ms": 5255,
+    "input_tokens": 30693,
+    "cached_input_tokens": 3840,
+    "output_tokens": 22,
+    "prefix_hash": "0582396eff8881800a35d5b2981c211aad11ed888e7ab4821acc87554f9c54b9",
+    "reprompt_count": 0
+  }
+}
+```
+
+| Data Field | Type | Description |
+|------------|------|-------------|
+| `verdict` | string | `"users_turn"`, `"completed"`, or `"needs_work"`. |
+| `confidence` | string | `"low"` or `"high"`. With `require_high_confidence: true` (default), only `"high"` triggers a re-prompt. |
+| `instruction` | string | Second-person directive populated only when `verdict = "needs_work"`. Empty string otherwise. Injected verbatim as the synthetic user message. |
+| `model` | string | The model that produced this verdict (echoes `verifier.primary.model`). |
+| `latency_ms` | number | Round-trip time of the verifier upstream call. |
+| `input_tokens` | number | Total input tokens billed by the upstream. |
+| `cached_input_tokens` | number | Subset of `input_tokens` served from the upstream's prefix cache. Stable from the second call onward in any session because the system prompt + schema bytes are frozen. |
+| `output_tokens` | number | Verdict JSON token count. Always small (~20). |
+| `prefix_hash` | string | SHA-256 of the cache-prefix bytes (system prompt + schema). Identical across all calls for a given bridge build. |
+| `reprompt_count` | number | Number of synthetic re-prompts already fired this turn. |
+
+### `verifier_error`
+
+Fires on parse failure, HTTP error, or timeout. The conversation **always proceeds** as if the verdict was `proceed` — verifier failures never block the turn.
+
+```json
+{
+  "event_id": "evt-082",
+  "event_type": "verifier_error",
+  "agent_id": "my-agent",
+  "conversation_id": "conv-abc123",
+  "timestamp": "2026-04-30T03:08:46Z",
+  "sequence_number": 275,
+  "data": {
+    "error": "request timed out after 5000ms"
+  }
+}
+```
+
+| Data Field | Type | Description |
+|------------|------|-------------|
+| `error` | string | Human-readable failure description. Common causes: upstream HTTP error, request timeout, malformed verdict JSON, schema-validation failure. |
+
+---
+
 ## Error Events
 
 ### `error`

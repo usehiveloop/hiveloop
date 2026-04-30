@@ -193,6 +193,20 @@ export BRIDGE_STANDALONE_AGENT="true"
 
 The environment snapshot refreshes every 5 turns to keep resource numbers current without adding overhead to every message. The pre-installed tools list is a static baseline from the sandbox template — it does not include tools the agent installs during the session (the agent already knows about those).
 
+### `BRIDGE_VERIFIER_DISABLED`
+
+Force-disable the [verifier agent](../core-concepts/verifier-agent.md) for every conversation, regardless of per-agent `config.verifier.enabled`. Use to kill verifier traffic in an outage without touching agent definitions or redeploying.
+
+- **Default:** unset (verifier honors per-agent config)
+- **Valid values:** any non-empty value disables the verifier; conventionally `1`
+- **Added in:** v0.23.0
+
+```bash
+export BRIDGE_VERIFIER_DISABLED="1"
+```
+
+When set, bridge logs `BRIDGE_VERIFIER_DISABLED set; verifier off` once per conversation start and proceeds as if the agent had `verifier.enabled = false`. No `verifier_started` / `verifier_verdict` / `verifier_error` events fire.
+
 ### `BRIDGE_OTEL_ENDPOINT`
 
 OpenTelemetry OTLP gRPC endpoint for trace export.

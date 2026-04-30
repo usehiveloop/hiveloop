@@ -486,6 +486,29 @@ To disable: `"history_strip": { "enabled": false }`. To turn off pinning of erro
 
 ---
 
+### Verifier
+
+A small second LLM that judges, after every terminal-text turn, whether the agent really finished or stopped prematurely. On `needs_work + high` (within cap) it injects a synthetic user message and resumes the same turn — the agent sees what looks like a normal follow-up and keeps going. Off by default; opt in per agent via `config.verifier`.
+
+```json
+"verifier": {
+  "enabled": true,
+  "primary": {
+    "provider": "open_ai",
+    "model": "openai/gpt-5.4-nano",
+    "api_key": "${OPENROUTER_API_KEY}",
+    "base_url": "https://openrouter.ai/api/v1"
+  },
+  "max_reprompts_per_turn": 2,
+  "require_high_confidence": true,
+  "timeout_ms": 20000
+}
+```
+
+Verifier failures (timeouts, HTTP errors, parse failures) never block the agent — they emit `verifier_error` and proceed. Force-disable globally with `BRIDGE_VERIFIER_DISABLED=1`. Full field reference, projection rules, verdict shape, and recommended configurations: [Verifier Agent](verifier-agent.md).
+
+---
+
 ### Permissions
 
 The `permissions` object maps tool names to permission levels. Tools not listed default to `allow`.
