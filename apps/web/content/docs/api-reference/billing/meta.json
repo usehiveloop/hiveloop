@@ -3,7 +3,6 @@
   "description": "Billing",
   "pages": [
     "v1/billing/checkout/post",
-    "v1/billing/portal/post",
     "v1/billing/subscription/get"
   ]
 }

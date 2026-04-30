@@ -18,15 +18,12 @@ internal/middleware/apikeyauth_test.go
 internal/middleware/admin_audit_test.go
 internal/handler/api_keys_test.go
 internal/handler/spider_test.go
-internal/handler/http_trigger_test.go
-internal/handler/git_credentials_test.go
 internal/handler/railway_proxy_test.go
 internal/trigger/dispatch/router_dispatcher_test.go
 internal/bridge/bridge_test.go
 internal/mcpserver/executor_test.go
 internal/spider/client_test.go
 internal/proxy/capture_test.go
-internal/config/config_test.go
 internal/mcp/catalog/catalog_test.go
 
 # End-to-end suites — multi-scenario black-box tests.
@@ -48,3 +45,6 @@ internal/trigger/dispatch/router_dispatcher.go
 internal/trigger/executor/executor.go
 internal/bootstrap/deps.go
 internal/resources/discovery.go
+internal/system/tasks/prompt_writer_resolve.go
+internal/handler/system_tasks.go
+internal/handler/system_tasks_prompt_writer_test.go

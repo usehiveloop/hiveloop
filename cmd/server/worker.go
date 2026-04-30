@@ -13,7 +13,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/email"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
-	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 	// Blank import populates interfaces.Registry via init().
 	_ "github.com/usehiveloop/hiveloop/internal/rag/connectors"
 	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
@@ -97,6 +97,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	}
 
 	mux := tasks.NewServeMux(workerDeps)
+	mux.Use(sentryobs.AsynqMiddleware())
 
 	srv := asynq.NewServer(redisOpt, asynq.Config{
 		Concurrency: cfg.AsynqConcurrency,
@@ -109,10 +110,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		},
 		Logger:          newAsynqLogger(),
 		ShutdownTimeout: cfg.AsynqShutdownTimeout,
-		// ErrorHandler fires on EVERY task failure (before retry is scheduled).
-		// This is how we capture task-handler panics and errors to PostHog —
-		// asynq recovers panics internally and surfaces them as errors here.
-		ErrorHandler: posthogobs.AsynqErrorHandler(deps.PostHog),
+		ErrorHandler:    sentryobs.AsynqErrorHandler(),
 	})
 
 	// Start Asynq server in background
@@ -185,7 +183,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	healthSrv := &http.Server{
 		Addr:     fmt.Sprintf(":%d", cfg.WorkerHealthPort),
 		Handler:  healthMux,
-		ErrorLog: posthogobs.NewStdlogBridge("worker_health_server"),
+		ErrorLog: sentryobs.NewStdlogBridge("worker_health_server"),
 	}
 	goroutine.Go(ctx, func(context.Context) {
 		slog.Info("worker health server starting", "port", cfg.WorkerHealthPort)
