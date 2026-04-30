@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.22.1] - 2026-04-30
+
+### Added
+
+- **Verifier agent (`config.verifier`).** Optional second LLM that judges, after every terminal-text turn, whether the main agent really finished or stopped prematurely. On `needs_work + high` (within `max_reprompts_per_turn` cap), bridge synthesizes a user-message re-prompt and resumes the same turn — the agent sees what looks like a normal user follow-up. The verifier sees the agent's system prompt, full conversation text, and full tool I/O (head/tail-elided at 1000 chars/side). Frozen JSON-schema verdict shape (`verdict`, `confidence`, `instruction`) plus stable system-prompt bytes mean the verifier hits the upstream's prefix cache from call two onward. Failures (build errors, timeouts, parse failures) emit `verifier_error` and proceed — the verifier never blocks the agent. Three new SSE events: `verifier_started`, `verifier_verdict`, `verifier_error`. Force-disable via `BRIDGE_VERIFIER_DISABLED=1`. See [Verifier Agent](docs/core-concepts/verifier-agent.md).
+
+### Changed
+
+- **`VerifierProvider::OpenAI` wire format normalized to `"open_ai"`** (matching `core::ProviderType::OpenAI`). The serde-default `"open_a_i"` (snake_case splits on every capital letter, including consecutive ones) is rejected. Inline tests guard the rename. No impact on existing callers — the verifier is brand new in this release.
+
+### Fixed
+
+- **`artisan-test` rtk filter passes through unchanged.** Laravel 13 ships `laravel/pao` which makes `php artisan test` emit single-line JSON instead of the human-readable PHPUnit summary. The previous filter stripped every line that didn't match its hardcoded `Tests:` / `OK (...)` patterns and emitted an `[rtk] artisan test produced no output after stripping noise` hint, leaving the agent with no test signal. Replaced with a passthrough filter that wins precedence over `artisan-zz-generic` (which would otherwise truncate at 240 chars/line and mangle pao's JSON) but does no rewriting.
+- **Tool-description tests (`*_description_is_rich`).** Restored phrases that the tool-description trim removed but `glob` and `read` description tests still asserted on. test-unit job had been failing on every CI run since the trim landed.
+
 ## [0.22.0] - 2026-04-26
 
 ### Added

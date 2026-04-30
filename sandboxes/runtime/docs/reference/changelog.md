@@ -4,7 +4,7 @@ Changes to Bridge.
 
 ---
 
-## Unreleased
+## v0.22.1 (2026-04-30)
 
 ### Added
 
@@ -13,6 +13,11 @@ Changes to Bridge.
 ### Changed
 
 - **`VerifierProvider::OpenAI` wire format normalized to `"open_ai"`** (matching `core::ProviderType::OpenAI`). The serde-default `"open_a_i"` (snake_case splits on every capital letter, including consecutive ones) is rejected. Inline tests guard the rename. No impact on existing callers — the verifier is brand new in this release.
+
+### Fixed
+
+- **`artisan-test` rtk filter passes through unchanged.** Laravel 13 ships `laravel/pao` which makes `php artisan test` emit single-line JSON instead of the human-readable PHPUnit summary. The previous filter stripped every line that didn't match its hardcoded `Tests:` / `OK (...)` patterns and emitted an `[rtk] artisan test produced no output after stripping noise` hint, leaving the agent with no test signal. Replaced with a passthrough filter that wins precedence over `artisan-zz-generic` (which would otherwise truncate at 240 chars/line and mangle pao's JSON) but does no rewriting.
+- **Tool-description tests (`*_description_is_rich`).** Restored phrases that the earlier tool-description trim removed but `glob` and `read` description tests still asserted on. `test-unit` had been failing on every CI run since the trim landed.
 
 ---
 
