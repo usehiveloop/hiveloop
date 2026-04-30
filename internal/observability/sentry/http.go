@@ -21,7 +21,7 @@ func Middleware() func(http.Handler) http.Handler {
 		enriched := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 			if hub := sentrygo.GetHubFromContext(request.Context()); hub != nil {
 				hub.Scope().SetTag("http.method", request.Method)
-				applyUserToScope(request.Context(), hub.Scope())
+				applyAttribution(request.Context(), hub.Scope())
 			}
 			next.ServeHTTP(writer, request)
 		})
@@ -38,7 +38,7 @@ func UserMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 			if hub := sentrygo.GetHubFromContext(request.Context()); hub != nil {
-				applyUserToScope(request.Context(), hub.Scope())
+				applyAttribution(request.Context(), hub.Scope())
 			}
 			next.ServeHTTP(writer, request)
 		})

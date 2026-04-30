@@ -19,7 +19,8 @@ import (
 )
 
 func init() {
-	sentryobs.SetUserExtractor(middleware.DistinctID)
+	sentryobs.SetUserExtractor(middleware.UserID)
+	sentryobs.SetOrgExtractor(middleware.OrgID)
 }
 
 // @title HiveLoop API

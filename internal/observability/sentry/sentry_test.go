@@ -11,9 +11,6 @@ import (
 	sentrygo "github.com/getsentry/sentry-go"
 )
 
-// withTestSentry forces Enabled()=true for the duration of t and configures a
-// fresh global hub bound to a Transport that drops all events. The caller can
-// inspect the hub's scope to assert on tags/user/contexts.
 func withTestSentry(t *testing.T) {
 	t.Helper()
 	if err := sentrygo.Init(sentrygo.ClientOptions{
@@ -38,17 +35,22 @@ func (*nullTransport) Flush(time.Duration) bool              { return true }
 func (*nullTransport) FlushWithContext(context.Context) bool { return true }
 func (*nullTransport) Close()                                {}
 
-func TestMiddleware_SetsUserOnHub(t *testing.T) {
+type testUserKey struct{}
+type testOrgKey struct{}
+
+func TestMiddleware_AppliesUserAndOrg(t *testing.T) {
 	withTestSentry(t)
 
 	SetUserExtractor(func(ctx context.Context) string {
-		if v, ok := ctx.Value(testUserKey{}).(string); ok {
-			return v
-		}
-		return ""
+		v, _ := ctx.Value(testUserKey{}).(string)
+		return v
+	})
+	SetOrgExtractor(func(ctx context.Context) string {
+		v, _ := ctx.Value(testOrgKey{}).(string)
+		return v
 	})
 
-	var captured atomic.Pointer[sentrygo.User]
+	var captured atomic.Pointer[sentrygo.Event]
 	handler := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		hub := sentrygo.GetHubFromContext(r.Context())
 		if hub == nil {
@@ -57,47 +59,62 @@ func TestMiddleware_SetsUserOnHub(t *testing.T) {
 		hub.WithScope(func(scope *sentrygo.Scope) {
 			ev := sentrygo.NewEvent()
 			scope.ApplyToEvent(ev, nil, hub.Client())
-			captured.Store(&ev.User)
+			captured.Store(ev)
 		})
 	})
 
 	wrapped := Middleware()(handler)
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req = req.WithContext(context.WithValue(req.Context(), testUserKey{}, "user:abc-123"))
+	ctx := context.WithValue(context.Background(), testUserKey{}, "user-abc")
+	ctx = context.WithValue(ctx, testOrgKey{}, "org-xyz")
+	req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
 	wrapped.ServeHTTP(httptest.NewRecorder(), req)
 
-	user := captured.Load()
-	if user == nil {
-		t.Fatal("expected user to be captured")
+	ev := captured.Load()
+	if ev == nil {
+		t.Fatal("expected event captured")
 	}
-	if user.ID != "user:abc-123" {
-		t.Fatalf("expected user.ID=user:abc-123, got %q", user.ID)
+	if ev.User.ID != "user-abc" {
+		t.Fatalf("user.id = %q, want user-abc", ev.User.ID)
+	}
+	if ev.Tags["org_id"] != "org-xyz" {
+		t.Fatalf("tag org_id = %q, want org-xyz", ev.Tags["org_id"])
 	}
 }
 
-func TestMiddleware_NoExtractor_NoUser(t *testing.T) {
+func TestMiddleware_OrgOnlyRequest(t *testing.T) {
 	withTestSentry(t)
 
-	userExtractor.Store(nil)
+	SetUserExtractor(func(context.Context) string { return "" })
+	SetOrgExtractor(func(ctx context.Context) string {
+		v, _ := ctx.Value(testOrgKey{}).(string)
+		return v
+	})
 
-	var captured atomic.Pointer[sentrygo.User]
+	var captured atomic.Pointer[sentrygo.Event]
 	handler := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		hub := sentrygo.GetHubFromContext(r.Context())
 		hub.WithScope(func(scope *sentrygo.Scope) {
 			ev := sentrygo.NewEvent()
 			scope.ApplyToEvent(ev, nil, hub.Client())
-			captured.Store(&ev.User)
+			captured.Store(ev)
 		})
 	})
 
 	wrapped := Middleware()(handler)
-	wrapped.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+	req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(
+		context.WithValue(context.Background(), testOrgKey{}, "org-only"),
+	)
+	wrapped.ServeHTTP(httptest.NewRecorder(), req)
 
-	user := captured.Load()
-	if user != nil && user.ID != "" {
-		t.Fatalf("expected empty user, got %q", user.ID)
+	ev := captured.Load()
+	if ev == nil {
+		t.Fatal("expected event captured")
+	}
+	if ev.User.ID != "" {
+		t.Fatalf("user.id = %q, want empty", ev.User.ID)
+	}
+	if ev.Tags["org_id"] != "org-only" {
+		t.Fatalf("tag org_id = %q, want org-only", ev.Tags["org_id"])
 	}
 }
-
-type testUserKey struct{}
