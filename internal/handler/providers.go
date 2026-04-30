@@ -5,18 +5,19 @@ import (
 	"sort"
 
 	"github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
-// ProviderHandler serves the embedded provider/model catalog.
 type ProviderHandler struct {
 	reg *registry.Registry
+	db  *gorm.DB
 }
 
-// NewProviderHandler creates a new provider handler.
-func NewProviderHandler(reg *registry.Registry) *ProviderHandler {
-	return &ProviderHandler{reg: reg}
+func NewProviderHandler(reg *registry.Registry, db *gorm.DB) *ProviderHandler {
+	return &ProviderHandler{reg: reg, db: db}
 }
 
 // errorResponse is the standard error envelope.
@@ -119,20 +120,29 @@ func (h *ProviderHandler) Get(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// AllModels handles GET /v1/models — returns every visible model across all
-// providers, with the provider_id attached to each entry. The frontend uses
-// this to render a single combobox without requiring a credential to be
-// selected first.
-// @Summary List all models across providers
-// @Description Returns the flattened catalog of every visible model, each entry tagged with its provider_id. Hidden routing-only models are excluded.
+// @Summary List user-selectable models across providers
+// @Description Returns models from providers that have at least one active system credential. Hidden routing-only models are excluded.
 // @Tags providers
 // @Produce json
 // @Success 200 {array} modelSummary
 // @Router /v1/models [get]
 func (h *ProviderHandler) AllModels(w http.ResponseWriter, r *http.Request) {
-	all := h.reg.AllProviders()
+	var providerIDs []string
+	if err := h.db.WithContext(r.Context()).
+		Model(&model.Credential{}).
+		Where("is_system = ? AND revoked_at IS NULL", true).
+		Distinct("provider_id").
+		Pluck("provider_id", &providerIDs).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to load system credentials"})
+		return
+	}
+
 	out := make([]modelSummary, 0, 64)
-	for _, p := range all {
+	for _, providerID := range providerIDs {
+		p, ok := h.reg.GetProvider(providerID)
+		if !ok {
+			continue
+		}
 		for _, mdl := range p.Models {
 			if mdl.Hidden {
 				continue

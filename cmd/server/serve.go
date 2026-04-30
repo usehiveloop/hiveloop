@@ -68,7 +68,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	mcpHandler.SetSubscriptionTools(subscriptions.RegisterTools(subscriptions.NewService(database, actionsCatalog)))
 	credHandler := handler.NewCredentialHandler(database, deps.KMS, cacheManager, ctr)
 	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr, actionsCatalog, cfg.MCPBaseURL, mcpHandler.ServerCache)
-	providerHandler := handler.NewProviderHandler(reg)
+	providerHandler := handler.NewProviderHandler(reg, database)
 	customDomainHandler := handler.NewCustomDomainHandler(database, cfg)
 	inIntegrationHandler := handler.NewInIntegrationHandler(database, nangoClient, actionsCatalog)
 	inConnectionHandler := handler.NewInConnectionHandler(database, nangoClient, actionsCatalog)

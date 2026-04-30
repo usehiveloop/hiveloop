@@ -8454,8 +8454,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List all models across providers
-         * @description Returns the flattened catalog of every visible model, each entry tagged with its provider_id. Hidden routing-only models are excluded.
+         * List user-selectable models across providers
+         * @description Returns models from providers that have at least one active system credential. Hidden routing-only models are excluded.
          */
         get: {
             parameters: {

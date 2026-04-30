@@ -150,7 +150,7 @@ func newHarness(t *testing.T) *testHarness {
 
 	// Provider handler
 	reg := registry.Global()
-	providerHandler := handler.NewProviderHandler(reg)
+	providerHandler := handler.NewProviderHandler(reg, db)
 
 	// Connect handlers
 	// Nango mock — no external Nango instance required
