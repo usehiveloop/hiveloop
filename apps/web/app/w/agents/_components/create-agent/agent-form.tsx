@@ -26,6 +26,7 @@ import {
 import { $api } from "@/lib/api/hooks"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useCreateAgent } from "./context"
+import { useEnhancePrompt } from "./use-enhance-prompt"
 import { SystemPromptEditor } from "@/app/w/agents/new/_components/system-prompt-editor"
 import { AddLlmKeyDialog } from "./add-llm-key-dialog"
 import {
@@ -71,6 +72,7 @@ export function AgentForm() {
     setSelectedIntegrations,
     setSelectedActions,
     selectedSkills,
+    selectedSubagents,
     toggleSkill,
     triggers,
     addTrigger,
@@ -87,6 +89,18 @@ export function AgentForm() {
   const model = form.watch("model")
   const sharedMemory = form.watch("sharedMemory")
   const permissions = form.watch("permissions")
+
+  const { enhance, isEnhancing } = useEnhancePrompt()
+  const handleEnhance = React.useCallback(() => {
+    void enhance({
+      values: form.getValues(),
+      selectedIntegrations,
+      selectedActions,
+      selectedSkills,
+      selectedSubagents,
+      triggers,
+    })
+  }, [enhance, form, selectedIntegrations, selectedActions, selectedSkills, selectedSubagents, triggers])
   const name = form.watch("name")
 
   React.useEffect(() => {
@@ -593,6 +607,8 @@ export function AgentForm() {
                 <SystemPromptEditor
                   value={field.value}
                   onChange={field.onChange}
+                  onEnhance={handleEnhance}
+                  isEnhancing={isEnhancing}
                 />
               )}
             />

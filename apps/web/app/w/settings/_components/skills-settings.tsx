@@ -4,6 +4,7 @@ import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { SkillDetailDialog } from "./skill-detail-dialog"
 import { CreateSkillDialog } from "./create-skill-dialog"
+import { EditSkillMetadataDialog } from "./edit-skill-metadata-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -26,6 +27,8 @@ import {
   GitBranchIcon,
   File01Icon,
   Globe02Icon,
+  Edit02Icon,
+  CodeIcon,
 } from "@hugeicons/core-free-icons"
 import {
   DropdownMenu,
@@ -94,12 +97,21 @@ function PublishedIndicator() {
 
 interface SkillActionsProps {
   skill: SkillRow
+  onEditMetadata: () => void
+  onEditContent: () => void
   onDelete: () => void
   onPublish: () => void
   onUnpublish: () => void
 }
 
-function SkillActions({ skill, onDelete, onPublish, onUnpublish }: SkillActionsProps) {
+function SkillActions({
+  skill,
+  onEditMetadata,
+  onEditContent,
+  onDelete,
+  onPublish,
+  onUnpublish,
+}: SkillActionsProps) {
   const isPublished = !!skill.public_skill_id
 
   return (
@@ -108,6 +120,17 @@ function SkillActions({ skill, onDelete, onPublish, onUnpublish }: SkillActionsP
         <HugeiconsIcon icon={MoreHorizontalIcon} size={16} className="text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={4} className="min-w-56">
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={onEditMetadata}>
+            <HugeiconsIcon icon={Edit02Icon} size={16} className="text-muted-foreground" />
+            Edit metadata
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onEditContent}>
+            <HugeiconsIcon icon={CodeIcon} size={16} className="text-muted-foreground" />
+            Edit content
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
         <DropdownMenuGroup>
           {isPublished ? (
             <DropdownMenuItem onClick={onUnpublish}>
@@ -138,6 +161,8 @@ export function SkillsSettings() {
   const queryClient = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [viewing, setViewing] = useState<SkillRow | null>(null)
+  const [viewingMode, setViewingMode] = useState<"view" | "edit">("view")
+  const [editingMetadata, setEditingMetadata] = useState<SkillRow | null>(null)
   const [deleting, setDeleting] = useState<SkillRow | null>(null)
   const [publishing, setPublishing] = useState<SkillRow | null>(null)
   const [unpublishing, setUnpublishing] = useState<SkillRow | null>(null)
@@ -261,7 +286,7 @@ export function SkillsSettings() {
             {skills.map((skill) => (
               <div key={skill.id}>
                 {/* Desktop row */}
-                <div className="hidden md:flex items-center gap-3 rounded-xl border border-border px-4 py-2.5 transition-colors hover:border-primary cursor-pointer" onClick={() => setViewing(skill)}>
+                <div className="hidden md:flex items-center gap-3 rounded-xl border border-border px-4 py-2.5 transition-colors hover:border-primary cursor-pointer" onClick={() => { setViewingMode("view"); setViewing(skill) }}>
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <HugeiconsIcon
                       icon={skill.source_type === "git" ? GitBranchIcon : File01Icon}
@@ -289,9 +314,11 @@ export function SkillsSettings() {
                   <span className="w-28 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
                     {skill.created_at ? formatDate(skill.created_at) : "\u2014"}
                   </span>
-                  <div className="w-8 shrink-0 flex justify-center">
+                  <div className="w-8 shrink-0 flex justify-center" onClick={(event) => event.stopPropagation()}>
                     <SkillActions
                       skill={skill}
+                      onEditMetadata={() => setEditingMetadata(skill)}
+                      onEditContent={() => { setViewingMode("edit"); setViewing(skill) }}
                       onDelete={() => setDeleting(skill)}
                       onPublish={() => setPublishing(skill)}
                       onUnpublish={() => setUnpublishing(skill)}
@@ -300,7 +327,7 @@ export function SkillsSettings() {
                 </div>
 
                 {/* Mobile row */}
-                <div className="flex md:hidden flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary cursor-pointer" onClick={() => setViewing(skill)}>
+                <div className="flex md:hidden flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary cursor-pointer" onClick={() => { setViewingMode("view"); setViewing(skill) }}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <HugeiconsIcon
@@ -318,12 +345,16 @@ export function SkillsSettings() {
                         )}
                       </div>
                     </div>
-                    <SkillActions
-                      skill={skill}
-                      onDelete={() => setDeleting(skill)}
-                      onPublish={() => setPublishing(skill)}
-                      onUnpublish={() => setUnpublishing(skill)}
-                    />
+                    <div onClick={(event) => event.stopPropagation()}>
+                      <SkillActions
+                        skill={skill}
+                        onEditMetadata={() => setEditingMetadata(skill)}
+                        onEditContent={() => { setViewingMode("edit"); setViewing(skill) }}
+                        onDelete={() => setDeleting(skill)}
+                        onPublish={() => setPublishing(skill)}
+                        onUnpublish={() => setUnpublishing(skill)}
+                      />
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono tabular-nums">
                     <Badge variant="secondary" className="text-[10px]">
@@ -344,7 +375,14 @@ export function SkillsSettings() {
       <SkillDetailDialog
         skill={viewing}
         open={viewing !== null}
+        initialEditing={viewingMode === "edit"}
         onOpenChange={(open) => { if (!open) setViewing(null) }}
+      />
+
+      <EditSkillMetadataDialog
+        skill={editingMetadata}
+        open={editingMetadata !== null}
+        onOpenChange={(open) => { if (!open) setEditingMetadata(null) }}
       />
 
       <ConfirmDialog
