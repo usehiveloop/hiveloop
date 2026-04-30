@@ -104,9 +104,9 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
           >
             <div className="flex min-w-0 flex-1 items-center gap-3">
               {agent.avatar_url ? (
-                <Avatar size="sm">
-                  <AvatarImage src={agent.avatar_url} alt={agent.name ?? ""} />
-                  <AvatarFallback>{(agent.name ?? "?").slice(0, 1).toUpperCase()}</AvatarFallback>
+                <Avatar size="sm" className="rounded-md after:rounded-md">
+                  <AvatarImage src={agent.avatar_url} alt={agent.name ?? ""} className="rounded-md" />
+                  <AvatarFallback className="rounded-md">{(agent.name ?? "?").slice(0, 1).toUpperCase()}</AvatarFallback>
                 </Avatar>
               ) : (
                 <ProviderLogo provider={agent.provider_id ?? ""} size={24} />
