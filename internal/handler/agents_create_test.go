@@ -146,7 +146,7 @@ func TestAgentCreate_NonBYOK_AcceptsValidModel(t *testing.T) {
 
 	rr := h.post(t, user.ID, org.ID, map[string]any{
 		"name":  "no-byok-model-" + uuid.New().String()[:8],
-		"model": "google/gemini-3-flash-preview",
+		"model": "claude-sonnet-4-6",
 	})
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
