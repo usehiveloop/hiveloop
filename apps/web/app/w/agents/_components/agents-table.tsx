@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
@@ -12,6 +11,7 @@ import { IntegrationLogos, type IntegrationSummary } from "@/components/integrat
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { AgentStatusIndicator } from "./agent-status"
 import { AgentActions } from "./agent-actions"
+import { AgentSessionsDialog } from "./agent-sessions-dialog"
 import { EnvVarsDialog } from "./env-vars-dialog"
 import { SetupCommandsDialog } from "./setup-commands-dialog"
 import { ConfigureResourcesDialog } from "./configure-resources-dialog"
@@ -49,6 +49,7 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
   const [envVarsAgent, setEnvVarsAgent] = useState<Agent | null>(null)
   const [setupCommandsAgent, setSetupCommandsAgent] = useState<Agent | null>(null)
   const [resourcesAgent, setResourcesAgent] = useState<Agent | null>(null)
+  const [sessionsAgent, setSessionsAgent] = useState<Agent | null>(null)
   const deleteAgent = $api.useMutation("delete", "/v1/agents/{id}")
 
   const { data: connectionsData } = $api.useQuery("get", "/v1/in/connections")
@@ -97,10 +98,11 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
         </div>
 
         {agents.map((agent) => (
-          <Link
+          <button
             key={agent.id}
-            href={`/w/agents/${agent.id}`}
-            className="flex items-center gap-3 rounded-xl border border-border px-4 py-2.5 transition-colors hover:border-primary"
+            type="button"
+            onClick={() => setSessionsAgent(agent)}
+            className="flex items-center gap-3 rounded-xl border border-border px-4 py-2.5 text-left transition-colors hover:border-primary"
           >
             <div className="flex min-w-0 flex-1 items-center gap-3">
               {agent.avatar_url ? (
@@ -119,7 +121,13 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
             <div className="flex w-6 shrink-0 justify-center">
               <AgentStatusIndicator status={(agent.status ?? "active") as AgentStatus} agent={agent} />
             </div>
-            <div className="flex w-8 shrink-0 justify-center" onClick={(event) => event.preventDefault()}>
+            <div
+              className="flex w-8 shrink-0 justify-center"
+              onClick={(event) => {
+                event.stopPropagation()
+                event.preventDefault()
+              }}
+            >
               <AgentActions
                 agent={agent}
                 onEdit={() => onEditAgent?.(agent)}
@@ -129,7 +137,7 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
                 onConfigureResources={() => setResourcesAgent(agent)}
               />
             </div>
-          </Link>
+          </button>
         ))}
       </div>
 
@@ -161,6 +169,11 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
         open={resourcesAgent !== null}
         onOpenChange={(open) => { if (!open) setResourcesAgent(null) }}
         agent={resourcesAgent}
+      />
+
+      <AgentSessionsDialog
+        agent={sessionsAgent}
+        onOpenChange={(open) => { if (!open) setSessionsAgent(null) }}
       />
     </>
   )

@@ -45,10 +45,10 @@ func TestIntegration_Resolve_PlatformPath(t *testing.T) {
 
 	orgID := seedBYOKOrg(t, db)
 	agent := &model.Agent{
-		ID:            uuid.New(),
-		OrgID:         &orgID,
-		CredentialID:  nil,
-		ProviderGroup: "kimi",
+		ID:           uuid.New(),
+		OrgID:        &orgID,
+		CredentialID: nil,
+		Model:        "moonshotai/kimi-k2-instruct",
 	}
 
 	got, err := credentials.Resolve(context.Background(), db, credentials.NewPicker(db), agent)
