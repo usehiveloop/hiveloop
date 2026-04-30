@@ -171,12 +171,53 @@ var curatedProviders = []Provider{
 		Name: "Crof",
 		API:  "https://crof.ai/v1",
 		Models: map[string]Model{
+			"kimi-k2.6": {
+				ID:          "kimi-k2.6",
+				Name:        "Kimi K2.6",
+				Family:      "kimi",
+				ToolCall:    true,
+				OpenWeights: true,
+				Description: "Great for complex workflows and coding tasks.",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.5,
+					Output: 1.99,
+				},
+				Limit: &Limit{
+					Context: 262144,
+					Output:  262144,
+				},
+			},
+			"kimi-k2.6-precision": {
+				ID:          "kimi-k2.6-precision",
+				Name:        "Kimi K2.6 (Precision)",
+				Family:      "kimi",
+				ToolCall:    true,
+				OpenWeights: true,
+				Description: "Higher precision Kimi for tougher tasks.",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.55,
+					Output: 2.7,
+				},
+				Limit: &Limit{
+					Context: 262144,
+					Output:  262144,
+				},
+			},
 			"kimi-k2.5": {
 				ID:          "kimi-k2.5",
 				Name:        "Kimi K2.5",
 				Family:      "kimi",
 				ToolCall:    true,
 				OpenWeights: true,
+				Description: "Older Kimi — solid for everyday tasks.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -190,24 +231,6 @@ var curatedProviders = []Provider{
 					Output:  262144,
 				},
 			},
-			"greg": {
-				ID:       "greg",
-				Name:     "Greg",
-				Family:   "greg",
-				ToolCall: true,
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.3,
-					Output: 0.3,
-				},
-				Limit: &Limit{
-					Context: 200000,
-					Output:  200000,
-				},
-			},
 			"kimi-k2.5-lightning": {
 				ID:          "kimi-k2.5-lightning",
 				Name:        "Kimi K2.5 (Lightning)",
@@ -215,6 +238,7 @@ var curatedProviders = []Provider{
 				Reasoning:   true,
 				ToolCall:    true,
 				OpenWeights: true,
+				Description: "Fast reasoning for quick coding tasks.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -234,6 +258,7 @@ var curatedProviders = []Provider{
 				Family:      "glm",
 				ToolCall:    true,
 				OpenWeights: true,
+				Description: "Great for basic coding tasks and day to day problems.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -253,12 +278,13 @@ var curatedProviders = []Provider{
 				Family:      "glm",
 				ToolCall:    true,
 				OpenWeights: true,
+				Description: "Higher precision GLM for tougher tasks.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
 				},
 				Cost: &Cost{
-					Input:  0.8,
+					Input:  0.75,
 					Output: 2.9,
 				},
 				Limit: &Limit{
@@ -272,6 +298,7 @@ var curatedProviders = []Provider{
 				Family:      "glm",
 				ToolCall:    true,
 				OpenWeights: true,
+				Description: "Older GLM — solid all-rounder.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -291,6 +318,7 @@ var curatedProviders = []Provider{
 				Family:      "glm",
 				ToolCall:    true,
 				OpenWeights: true,
+				Description: "Capable workflows at a great budget.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -310,6 +338,7 @@ var curatedProviders = []Provider{
 				Family:      "glm-flash",
 				ToolCall:    true,
 				OpenWeights: true,
+				Description: "Free option for simple coding tasks.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -325,6 +354,7 @@ var curatedProviders = []Provider{
 				Family:      "gemma",
 				ToolCall:    true,
 				OpenWeights: true,
+				Description: "Tiny and cheap for simple tasks.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -344,6 +374,7 @@ var curatedProviders = []Provider{
 				Family:      "minimax",
 				ToolCall:    true,
 				OpenWeights: true,
+				Description: "Fast and cheap for multi-step workflows.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -357,6 +388,27 @@ var curatedProviders = []Provider{
 					Output:  131072,
 				},
 			},
+			"qwen3.6-27b": {
+				ID:          "qwen3.6-27b",
+				Name:        "Qwen3.6 27B",
+				Family:      "qwen",
+				Reasoning:   true,
+				ToolCall:    true,
+				OpenWeights: true,
+				Description: "Cheap reasoning for everyday workflows.",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.2,
+					Output: 1.5,
+				},
+				Limit: &Limit{
+					Context: 262144,
+					Output:  262144,
+				},
+			},
 			"qwen3.5-397b-a17b": {
 				ID:          "qwen3.5-397b-a17b",
 				Name:        "Qwen3.5 397B A17B",
@@ -364,6 +416,7 @@ var curatedProviders = []Provider{
 				Reasoning:   true,
 				ToolCall:    true,
 				OpenWeights: true,
+				Description: "Large model for complex workflows.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -384,6 +437,7 @@ var curatedProviders = []Provider{
 				Reasoning:   true,
 				ToolCall:    true,
 				OpenWeights: true,
+				Description: "Free option for simple reasoning tasks.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -400,6 +454,7 @@ var curatedProviders = []Provider{
 				Reasoning:   true,
 				ToolCall:    true,
 				OpenWeights: true,
+				Description: "Cheapest pick for chat and simple coding.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -413,12 +468,73 @@ var curatedProviders = []Provider{
 					Output:  262144,
 				},
 			},
+			"deepseek-v4-pro": {
+				ID:          "deepseek-v4-pro",
+				Name:        "DeepSeek V4 Pro",
+				Family:      "deepseek",
+				ToolCall:    true,
+				OpenWeights: true,
+				Description: "Great for long running tasks at a budget.",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.4,
+					Output: 0.85,
+				},
+				Limit: &Limit{
+					Context: 1000000,
+					Output:  131072,
+				},
+			},
+			"deepseek-v4-pro-precision": {
+				ID:          "deepseek-v4-pro-precision",
+				Name:        "DeepSeek V4 Pro (Precision)",
+				Family:      "deepseek",
+				ToolCall:    true,
+				OpenWeights: true,
+				Description: "Higher precision pick for long running tasks.",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  1.25,
+					Output: 2.5,
+				},
+				Limit: &Limit{
+					Context: 1000000,
+					Output:  131072,
+				},
+			},
+			"deepseek-v4-flash": {
+				ID:          "deepseek-v4-flash",
+				Name:        "DeepSeek V4 Flash",
+				Family:      "deepseek",
+				ToolCall:    true,
+				OpenWeights: true,
+				Description: "Cheap pick for long running day to day tasks.",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.12,
+					Output: 0.21,
+				},
+				Limit: &Limit{
+					Context: 1000000,
+					Output:  131072,
+				},
+			},
 			"deepseek-v3.2": {
 				ID:          "deepseek-v3.2",
 				Name:        "DeepSeek V3.2",
 				Family:      "deepseek",
 				ToolCall:    true,
 				OpenWeights: true,
+				Description: "Older DeepSeek — cheap and solid.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -1186,6 +1302,7 @@ var curatedProviders = []Provider{
 				ToolCall:    true,
 				OpenWeights: true,
 				ReleaseDate: "2026-04-16",
+				Description: "Great for complex workflows and coding tasks.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -1208,6 +1325,7 @@ var curatedProviders = []Provider{
 				ToolCall:    true,
 				OpenWeights: true,
 				ReleaseDate: "2026-02-12",
+				Description: "Solid all-rounder for everyday tasks.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -1230,28 +1348,7 @@ var curatedProviders = []Provider{
 				ToolCall:    true,
 				OpenWeights: true,
 				ReleaseDate: "2026-02-12",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.3,
-					Output: 1.2,
-				},
-				Limit: &Limit{
-					Context: 204800,
-					Output:  131072,
-				},
-			},
-			"minimax/minimax-m2.1": {
-				ID:          "minimax/minimax-m2.1",
-				Name:        "MiniMax M2.1",
-				Family:      "minimax",
-				Speed:       "fast",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				ReleaseDate: "2025-12-23",
+				Description: "Fast and cheap for multi-step workflows.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -1275,6 +1372,7 @@ var curatedProviders = []Provider{
 				OpenWeights: true,
 				Knowledge:   "2025-01",
 				ReleaseDate: "2026-01-27",
+				Description: "Great for basic coding, handles images and videos.",
 				Modalities: &Modalities{
 					Input:  []string{"text", "image", "video"},
 					Output: []string{"text"},
@@ -1298,6 +1396,7 @@ var curatedProviders = []Provider{
 				OpenWeights: true,
 				Knowledge:   "2024-08",
 				ReleaseDate: "2025-11-06",
+				Description: "Great for basic coding tasks and day to day problems.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -1321,6 +1420,7 @@ var curatedProviders = []Provider{
 				OpenWeights: true,
 				Knowledge:   "2025-04",
 				ReleaseDate: "2025-12-22",
+				Description: "Capable workflows at a great budget.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -1343,6 +1443,7 @@ var curatedProviders = []Provider{
 				ToolCall:    true,
 				OpenWeights: true,
 				ReleaseDate: "2026-01-19",
+				Description: "Cheapest pick for simple coding",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -1363,7 +1464,9 @@ var curatedProviders = []Provider{
 				Reasoning:        true,
 				ToolCall:         true,
 				StructuredOutput: true,
+				Hidden:           true,
 				ReleaseDate:      "2025-12-17",
+				Description:      "Fast and great for long running tasks",
 				Modalities: &Modalities{
 					Input:  []string{"text", "image"},
 					Output: []string{"text"},
@@ -1387,6 +1490,7 @@ var curatedProviders = []Provider{
 				OpenWeights:      true,
 				Knowledge:        "2025-05",
 				ReleaseDate:      "2026-04-24",
+				Description:      "Cheap pick for long running day to day tasks",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -1410,6 +1514,7 @@ var curatedProviders = []Provider{
 				OpenWeights:      true,
 				Knowledge:        "2025-05",
 				ReleaseDate:      "2026-04-24",
+				Description:      "Top tier for the complex coding tasks",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
@@ -1431,6 +1536,7 @@ var curatedProviders = []Provider{
 				ToolCall:    true,
 				Knowledge:   "2024-12",
 				ReleaseDate: "2026-04-22",
+				Description: "Understands audio, video, and images. Great for basic coding tasks.",
 				Modalities: &Modalities{
 					Input:  []string{"text", "image", "audio", "video", "pdf"},
 					Output: []string{"text"},
@@ -1451,7 +1557,9 @@ var curatedProviders = []Provider{
 				Reasoning:        true,
 				ToolCall:         true,
 				StructuredOutput: true,
+				Hidden:           true,
 				ReleaseDate:      "2026-02-17",
+				Description:      "Top pick for coding and complex workflows",
 				Modalities: &Modalities{
 					Input:  []string{"text", "image"},
 					Output: []string{"text"},
@@ -1471,7 +1579,9 @@ var curatedProviders = []Provider{
 				Family:      "gpt-nano",
 				Reasoning:   true,
 				ToolCall:    false,
+				Hidden:      true,
 				ReleaseDate: "2025-08-07",
+				Description: "Cheap and simple; no tools",
 				Modalities: &Modalities{
 					Input:  []string{"text", "image"},
 					Output: []string{"text"},
@@ -1496,6 +1606,7 @@ var curatedProviders = []Provider{
 				Hidden:           true,
 				Knowledge:        "2025-01",
 				ReleaseDate:      "2025-07-17",
+				Description:      "Used internally for routing",
 				Modalities: &Modalities{
 					Input:  []string{"text", "image", "audio", "video", "pdf"},
 					Output: []string{"text"},
