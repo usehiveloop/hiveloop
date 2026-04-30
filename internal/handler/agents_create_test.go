@@ -16,6 +16,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
 type agentCreateHarness struct {
@@ -26,7 +27,7 @@ type agentCreateHarness struct {
 func newAgentCreateHarness(t *testing.T) *agentCreateHarness {
 	t.Helper()
 	db := connectTestDB(t)
-	agentHandler := handler.NewAgentHandler(db, nil, nil)
+	agentHandler := handler.NewAgentHandler(db, registry.Global(), nil)
 
 	r := chi.NewRouter()
 	r.Route("/v1/agents", func(r chi.Router) {
@@ -139,19 +140,32 @@ func TestAgentCreate_NonBYOK_RejectsCredentialID(t *testing.T) {
 	}
 }
 
-func TestAgentCreate_NonBYOK_RejectsModel(t *testing.T) {
+func TestAgentCreate_NonBYOK_AcceptsValidModel(t *testing.T) {
 	h := newAgentCreateHarness(t)
 	org, user := h.createOrgWithBYOK(t, false)
 
 	rr := h.post(t, user.ID, org.ID, map[string]any{
 		"name":  "no-byok-model-" + uuid.New().String()[:8],
-		"model": "claude-sonnet-4-6",
+		"model": "google/gemini-3-flash-preview",
+	})
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestAgentCreate_RejectsUnknownModel(t *testing.T) {
+	h := newAgentCreateHarness(t)
+	org, user := h.createOrgWithBYOK(t, false)
+
+	rr := h.post(t, user.ID, org.ID, map[string]any{
+		"name":  "unknown-model-" + uuid.New().String()[:8],
+		"model": "totally-made-up-model-name",
 	})
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
 	}
-	if msg := decodeError(t, rr); !strings.Contains(msg, "BYOK") {
-		t.Fatalf("expected BYOK rejection, got: %q", msg)
+	if msg := decodeError(t, rr); !strings.Contains(msg, "catalog") {
+		t.Fatalf("expected catalog rejection, got: %q", msg)
 	}
 }
 

@@ -213,45 +213,52 @@ Useful flags:
 - `--body-file pr.md` — when the body is large; easier than escaping.
 - `--web` — print the URL and open in browser instead of creating via API (use only if the user asks).
 
-If the repo has a PR template, `gh pr create` will pre-fill it. Read what `gh` opens, fill the placeholders, don't strip the template structure.
+If the repo has a PR template (`.github/PULL_REQUEST_TEMPLATE.md`), `gh pr create` only loads it in **interactive** mode. When you pass `--body` or `--body-file` non-interactively, the template is bypassed — so read it yourself first and incorporate its structure into your `--body`/`--body-file` content. Don't strip the template's sections.
+
+```bash
+test -f .github/PULL_REQUEST_TEMPLATE.md && cat .github/PULL_REQUEST_TEMPLATE.md
+```
 
 ### 4b. PR with uploaded images / screenshots
 
-`gh` does not support attaching binary images directly to a PR body. Two reliable approaches:
+Always host PR images on a **GitHub gist**. Never commit screenshots into the project repo — they bloat history and aren't part of the change.
 
-**Option A — gist-hosted (recommended for ad-hoc screenshots).** Upload the image to a gist, then reference its raw URL in markdown.
+`gh gist create file.png` rejects binary files directly (`binary file not supported`). The reliable trick: a gist IS a git repo, so create the gist with a placeholder text file, then `git push` the image into it.
 
 ```bash
-# Create a public gist with the image; gh prints the gist URL
-GIST_URL=$(gh gist create --public /tmp/screenshot.png)
-# Convert to a raw URL gh can render in markdown
+# 1. Create the gist with a placeholder (text file is required by gh gist create)
+echo "PR-1234 assets" > /tmp/placeholder.md
+GIST_URL=$(gh gist create --public --desc "PR-1234 screenshots" /tmp/placeholder.md)
 GIST_ID=$(basename "$GIST_URL")
-RAW_URL="https://gist.githubusercontent.com/$(gh api user -q .login)/$GIST_ID/raw/screenshot.png"
+USER=$(gh api user -q .login)
 
+# 2. Clone the gist's git repo and push the image into it
+#    (One-time setup: ssh-keyscan gist.github.com >> ~/.ssh/known_hosts)
+git clone "git@gist.github.com:${GIST_ID}.git" /tmp/gist-${GIST_ID}
+cp /tmp/screenshot.png /tmp/gist-${GIST_ID}/screenshot.png
+git -C /tmp/gist-${GIST_ID} add screenshot.png
+git -C /tmp/gist-${GIST_ID} commit -m "add screenshot"
+git -C /tmp/gist-${GIST_ID} push origin HEAD
+
+# 3. Reference via gist.githubusercontent.com raw URL (renders inline in markdown)
+RAW_URL="https://gist.githubusercontent.com/${USER}/${GIST_ID}/raw/screenshot.png"
+echo "![screenshot]($RAW_URL)"
+
+# 4. Use the URL in the PR body
 gh pr create --title "..." --body "$(cat <<EOF
 ## Summary
-Before/after screenshot:
+Before/after:
 
 ![screenshot]($RAW_URL)
 EOF
 )"
 ```
 
-**Option B — commit the asset.** If the repo has a `docs/` or `assets/` folder for screenshots, drop the image there in a separate commit and reference it via the GitHub blob raw URL:
+URL form to use: `https://gist.githubusercontent.com/<user>/<gist-id>/raw/<filename>`. Verified to serve as `Content-Type: image/png` and renders inline in PR markdown.
 
-```bash
-mkdir -p docs/assets/pr-1234
-cp /tmp/screenshot.png docs/assets/pr-1234/before.png
-git add docs/assets/pr-1234/before.png
-git commit -m "docs: add screenshot for PR-1234"
-git push
-# In PR body:
-# ![before](https://github.com/<owner>/<repo>/raw/<branch>/docs/assets/pr-1234/before.png)
-```
+If `git clone git@gist.github.com:...` fails with `Host key verification failed`, run once: `ssh-keyscan -t rsa,ecdsa,ed25519 gist.github.com >> ~/.ssh/known_hosts`. If you don't use SSH for git, use the HTTPS form: `git clone https://gist.github.com/<user>/<gist-id>.git`.
 
-Use Option A for transient screenshots (review only); use Option B if the screenshot belongs in the repo permanently.
-
-Do **not** try to call GitHub's `user-attachments` upload endpoint from `gh api` — it's an undocumented browser-only API and breaks unpredictably.
+Do **not** try to call GitHub's `user-attachments` upload endpoint from `gh api` — it's an undocumented browser-only API (uses CSRF tokens) and breaks from CLI.
 
 ### 4c. Update an existing PR
 
@@ -381,7 +388,8 @@ gh pr view <number> --comments
 | `--no-verify` to skip a failing hook | Fix the underlying issue and commit again — never bypass without explicit user approval |
 | Force-pushing to a shared branch | Use `--force-with-lease` on your own branch; never force-push `main` |
 | Inventing labels that don't exist | `gh label list` first; only create new labels if asked |
-| Trying to attach binary images to `gh pr create --body` | Host via gist (`gh gist create`) or commit to repo, then reference the raw URL |
+| Committing screenshots into the project repo to embed in a PR | Host them on a gist instead (clone the gist as a git repo and push the image to it) |
+| Running `gh gist create file.png` directly | It rejects binaries — create the gist with a text placeholder, then `git push` the image to the gist's git repo |
 | Merging without checking CI | `gh pr checks <n>` and `mergeStateStatus` before `gh pr merge` |
 | Approving / merging someone else's PR without being asked | Don't. Ask the user first |
 
