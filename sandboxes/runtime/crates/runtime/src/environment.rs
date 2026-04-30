@@ -26,8 +26,11 @@ const DEV_BOX_TOOLS: &str = "\
 Node.js (LTS via nvm), Go 1.24, Rust (stable), Python 3.12, \
 PostgreSQL 16 (dormant — start with `pg_ctlcluster 16 main start`), \
 Redis 7 (dormant — start with `redis-server --daemonize yes`), \
-SQLite 3, chrome-devtools-axi 0.1.15 (port 9224), gh-axi, \
-chrome-headless-shell, gcc/g++/make, ffmpeg, jq, yq, curl, git, tmux";
+SQLite 3, agent-browser (headless browser via `agent-browser`), \
+gh (GitHub CLI; auto-authenticated via hiveloop wrapper), \
+rtk (bash output token-trimmer), ripgrep (`rg`), ast-grep (`sg`), \
+gcc/g++/make, ffmpeg, jq, yq, curl, git, tmux, \
+npm/npx (Node), uv/uvx (Python)";
 
 impl EnvironmentSnapshot {
     pub fn collect() -> Self {

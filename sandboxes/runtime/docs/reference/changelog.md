@@ -4,6 +4,14 @@ Changes to Bridge.
 
 ---
 
+## v0.22.2 (2026-04-30)
+
+### Changed
+
+- **`DEV_BOX_TOOLS` reminder text** (`crates/runtime/src/environment.rs`) updated to match the tools actually shipped in the hiveloop dev-box sandbox image. Replaced `chrome-devtools-axi 0.1.15 (port 9224)`, `gh-axi`, and `chrome-headless-shell` with `agent-browser` and plain `gh` (auto-authenticated via the hiveloop git-credentials wrapper). Added `rtk`, `ripgrep` (`rg`), `ast-grep` (`sg`), `npm/npx`, and `uv/uvx` to the list. Only fires when `BRIDGE_STANDALONE_AGENT=true`.
+
+---
+
 ## v0.22.1 (2026-04-30)
 
 ### Added
