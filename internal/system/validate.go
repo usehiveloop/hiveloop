@@ -119,6 +119,23 @@ func validateOne(s ArgSpec, val any) *ValidationError {
 				}
 			}
 		}
+	case ArgObject:
+		if _, ok := val.(map[string]any); !ok {
+			return &ValidationError{Arg: s.Name, Message: "must be an object"}
+		}
+	case ArgObjectList:
+		raw, ok := val.([]any)
+		if !ok {
+			return &ValidationError{Arg: s.Name, Message: "must be an array of objects"}
+		}
+		for i, item := range raw {
+			if _, ok := item.(map[string]any); !ok {
+				return &ValidationError{
+					Arg:     s.Name,
+					Message: fmt.Sprintf("element %d is not an object", i),
+				}
+			}
+		}
 	default:
 		return &ValidationError{
 			Arg:     s.Name,

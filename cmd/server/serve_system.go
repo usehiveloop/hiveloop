@@ -10,6 +10,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/bootstrap"
 	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/handler"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/proxy"
 	"github.com/usehiveloop/hiveloop/internal/registry"
 	"github.com/usehiveloop/hiveloop/internal/system"
@@ -34,5 +35,6 @@ func buildSystemTaskHandler(db *gorm.DB, deps *bootstrap.Deps, redisClient *redi
 		cache,
 		fwd,
 		deps.Credits,
+		catalog.Global(),
 	)
 }

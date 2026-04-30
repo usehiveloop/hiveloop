@@ -11,95 +11,31 @@ Spin up the four-process stack, drive it with the `agent-browser` CLI, and asser
 
 | Service | Port | Source | Notes |
 |---|---|---|---|
-| Postgres | 5433 | docker-compose | `docker compose up -d postgres redis` (already running via OrbStack on most dev machines) |
-| Redis | 6379 | docker-compose | |
+| Postgres | 5432 | native (apt cluster) | Bootstrapped by `scripts/local-init.sh` on first run; live port written to `/tmp/agent-test/pg.port`. |
+| Redis | 6379 | native (`redis-server`) | Daemonized; pidfile at `/tmp/agent-test/redis.pid`. |
 | **fake-nango** | 13004 | `cmd/fake-nango` | Replaces every Nango HTTP + WS call. See `skills/fake-nango`. |
 | **backend** | 18080 | `cmd/server` | `serve` mode. Use 18080 to coexist with anything on 8080. |
 | **frontend** | 31112 | `apps/web` (Next.js) | Use 31112 to coexist with anything on 30112. |
 
 The agent's browser is also process #5 — `agent-browser` launches a real Chrome window via CDP. Watch your dock; it's not headless.
 
+The dev-box sandbox image already ships postgres, redis, Go, Node, and corepack. No docker-compose, no `.env` required — `make local-up` generates ephemeral RSA + KMS keys when `.env` is absent.
+
 ## Quick start
 
 ```bash
-# 1. Infra (idempotent — reuses running containers)
-make test-setup
-
-# 2. Build + start fake-nango
-go build -o /tmp/fake-nango ./cmd/fake-nango
-mkdir -p /tmp/agent-test
-FAKE_NANGO_SCENARIOS_DIR=$(pwd)/cmd/fake-nango/scenarios \
-  /tmp/fake-nango -addr :13004 -secret fake-nango-secret \
-    -webhook-target http://localhost:18080/internal/webhooks/nango \
-  > /tmp/agent-test/fake-nango.log 2>&1 &
-echo $! > /tmp/agent-test/fake-nango.pid
-
-# 3. Build + start backend with overrides
-go build -o /tmp/hiveloop ./cmd/server
-cat > /tmp/agent-test/backend.env <<'EOF'
-ENVIRONMENT=development
-PORT=18080
-LOG_LEVEL=info
-LOG_FORMAT=text
-DB_HOST=localhost
-DB_PORT=5433
-DB_USER=hiveloop
-DB_PASSWORD=localdev
-DB_NAME=hiveloop
-DB_SSLMODE=disable
-KMS_TYPE=aead
-# KMS_KEY: leave out — local-up.sh sources from .env or generates an
-# ephemeral key at /tmp/agent-test/kms.key. Generate one manually with:
-#   openssl rand -base64 32
-REDIS_ADDR=localhost:6379
-REDIS_CACHE_TTL=30m
-MEM_CACHE_TTL=5m
-MEM_CACHE_MAX_SIZE=10000
-JWT_SIGNING_KEY=local-dev-signing-key
-CORS_ORIGINS=http://localhost:31112
-AUTO_CONFIRM_EMAIL=true
-PLATFORM_ADMIN_EMAILS=agent-test@example.com
-ADMIN_API_ENABLED=true
-AUTH_ISSUER=hiveloop
-AUTH_AUDIENCE=http://localhost:18080
-FRONTEND_URL=http://localhost:31112
-NANGO_ENDPOINT=http://localhost:13004
-NANGO_SECRET_KEY=fake-nango-secret
-SANDBOX_PROVIDER_ID=daytona
-EOF
-grep "^AUTH_RSA_PRIVATE_KEY=" .env >> /tmp/agent-test/backend.env
-env $(cat /tmp/agent-test/backend.env | grep -v '^#' | grep -v '^$') /tmp/hiveloop serve \
-  > /tmp/agent-test/backend.log 2>&1 &
-echo $! > /tmp/agent-test/backend.pid
-
-# 4. Seed deterministic test data
-make seed-test
-curl -sX POST http://localhost:13004/_admin/load \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"all-enabled"}'
-
-# 5. Frontend (kill any existing instance — it holds .next/dev/lock)
-PORT_55=$(lsof -t .next/dev/lock 2>/dev/null); [ -n "$PORT_55" ] && kill -9 $PORT_55
-cat > /tmp/agent-test/web.env <<'EOF'
-NEXT_PUBLIC_API_URL=http://localhost:18080
-API_URL=http://localhost:18080
-NEXT_PUBLIC_CONNECTIONS_HOST=http://localhost:13004
-SESSION_SECRET=dev-session-secret-32chars-padding
-EOF
-cd apps/web
-env $(cat /tmp/agent-test/web.env | xargs) pnpm dev --port 31112 \
-  > /tmp/agent-test/web.log 2>&1 &
-echo $! > /tmp/agent-test/web.pid
-cd ../..
-
-# Health checks
-sleep 3
-for url in :13004/providers.json :18080/healthz :31112/; do
-  curl -s -o /dev/null -w "$url: %{http_code}\n" http://localhost$url
-done
+make local-up        # idempotent: brings up the full stack and auto-runs seed-test
+make local-status    # health-checks the four ports and lists supervised pids
+make login-test      # writes a __session cookie for agent-test@example.com to the agent-browser profile
+make local-down      # tears down supervisors, child process groups, and port holders
+make local-reset     # local-down + local-up
 ```
 
-To tear down: `for f in /tmp/agent-test/*.pid; do kill -9 $(cat "$f") 2>/dev/null; done`
+`make local-up` does, in order: postgres bring-up (`scripts/local-init.sh` initializes the apt cluster on first run), redis, build `cmd/fake-nango` + `cmd/server`, supervise fake-nango on :13004, write `/tmp/agent-test/backend.env` (sources `.env` if present, else generates ephemeral `AUTH_RSA_PRIVATE_KEY` + `KMS_KEY` under `/tmp/agent-test/`), supervise backend on :18080, install web deps via corepack/pnpm, supervise Next.js on :31112, then chain `make seed-test`.
+
+Logs land in `/tmp/agent-test/{fake-nango,backend,web}.log` — `tail -f /tmp/agent-test/*.log` to follow. Each service is wrapped by a supervisor that restarts on crash; supervisor PIDs are in `*.supervisor.pid`, child PIDs in `*.pid`.
+
+Don't reproduce the bring-up by hand — read `scripts/local-up.sh` if you need to deviate. Doing it manually drifts from what `make local-down` knows how to clean up.
 
 ## Test identity (after `make seed-test`)
 
@@ -156,7 +92,9 @@ Direct SQL is faster than going through the API for **assertions** and **fixture
 ### psql cheat sheet
 
 ```bash
-PSQL="PGPASSWORD=localdev psql -h localhost -p 5433 -U hiveloop -d hiveloop"
+# Read the live port written by local-up (defaults to 5432).
+PG_PORT=$(cat /tmp/agent-test/pg.port 2>/dev/null || echo 5432)
+PSQL="PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hiveloop -d hiveloop"
 
 # Inspect a connection by integration
 $PSQL -c "SELECT id, nango_connection_id, revoked_at FROM in_connections
@@ -168,8 +106,9 @@ $PSQL -c "UPDATE in_connections SET revoked_at = NOW()
           WHERE in_integration_id IN (SELECT id FROM in_integrations WHERE provider='github')
           AND revoked_at IS NULL;"
 
-# Confirm an event was dispatched (asynq queues)
-docker compose exec redis redis-cli LRANGE asynq:default:scheduled 0 5
+# Confirm an event was dispatched (asynq queues). Redis is native — no docker exec.
+redis-cli LRANGE asynq:default:scheduled 0 5
+# For richer poking, see `make asynq-peek`.
 ```
 
 ### When to insert directly
@@ -267,7 +206,8 @@ The chrome window is a real window — it's the easiest live view. For DevTools-
 
 ```bash
 # 1. Ensure no existing connection blocks the button
-PGPASSWORD=localdev psql -h localhost -p 5433 -U hiveloop -d hiveloop -c \
+PG_PORT=$(cat /tmp/agent-test/pg.port 2>/dev/null || echo 5432)
+PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hiveloop -d hiveloop -c \
   "UPDATE in_connections SET revoked_at = NOW() WHERE in_integration_id IN
    (SELECT id FROM in_integrations WHERE provider='github') AND revoked_at IS NULL;"
 
@@ -306,7 +246,8 @@ agent-browser eval "Array.from(document.querySelectorAll('li[role=\"listitem\"]'
 
 ```bash
 # Need a connection in place first (run the approve flow above), then:
-CONN_ID=$(PGPASSWORD=localdev psql -h localhost -p 5433 -U hiveloop -d hiveloop -tAc \
+PG_PORT=$(cat /tmp/agent-test/pg.port 2>/dev/null || echo 5432)
+CONN_ID=$(PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hiveloop -d hiveloop -tAc \
   "SELECT nango_connection_id FROM in_connections c
    JOIN in_integrations i ON i.id = c.in_integration_id
    WHERE i.provider='github' AND c.revoked_at IS NULL LIMIT 1;")
@@ -334,7 +275,9 @@ If the webhook lands but isn't dispatched, check `nango_webhooks_identify.go:106
 | `"platform admin access required"` from `POST /v1/in/integrations` | `PLATFORM_ADMIN_EMAILS` env not set on backend (admin check is dynamic per-request, no need to re-login after setting it) |
 | `Element not found` from agent-browser | Stale ref. Re-run `snapshot -i` and use the new ref, or switch to `find role button click --name "..."` |
 | Connection toast says "successfully" but `/v1/in/connections` is empty | The frontend uses session cookie; bearer key won't see user-scoped data. Switch to driving via the UI (cookie auth) |
-| `pnpm dev` won't start: `Unable to acquire lock` | Another `next dev` is already running. `lsof -t apps/web/.next/dev/lock` → kill that PID |
+| `pnpm dev` won't start: `Unable to acquire lock` | A previous `next dev` is still holding the lock. `make local-down` clears it (port-holder kill + `local-up.sh:free_next_lock` removes `apps/web/.next/dev/lock`); only fall back to `lsof` if you're not using the Makefile flow |
+| `make local-up` says "✗ frontend (timeout after 90s)" on first run | pnpm install over rosetta is slow. Look at `/tmp/agent-test/pnpm-install.log` — once it shows "Done in …" the supervisor will keep retrying and the next `make local-status` will show frontend up |
+| `make local-up` exits before seed runs | `seed-test` only chains after `local-up.sh` exits cleanly. Check `/tmp/agent-test/*.log` for whichever supervisor reported `✗`. After fixing, `make seed-test` is safe to run by itself |
 | `make seed-test` fails on `agents` insert | Partial unique index can't be ON CONFLICT target. The script uses `WHERE NOT EXISTS` instead — if you've copied it, make sure that block is intact |
 
 ## What this skill does NOT cover
@@ -344,4 +287,4 @@ If the webhook lands but isn't dispatched, check `nango_webhooks_identify.go:106
 - LLM proxy testing (use OpenRouter/Fireworks test keys; that flow is orthogonal to Nango)
 - Paystack billing (use `sk_test_xxx` keys + the `internal/billing/fake` provider — see `internal/billing/subscription/`)
 
-For Nango fake details, see `skills/fake-nango`. For agent-browser CLI, see `skills/agent-browser`.
+For Nango fake details, see `fake-nango` skill. For agent-browser CLI, see `agent-browser` skill.

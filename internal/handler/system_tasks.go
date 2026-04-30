@@ -12,6 +12,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/registry"
 	"github.com/usehiveloop/hiveloop/internal/system"
@@ -25,17 +26,19 @@ type CreditsSpender interface {
 
 // SystemTaskHandler dispatches /v1/system/tasks/{taskName} requests.
 type SystemTaskHandler struct {
-	db        *gorm.DB
-	picker    credentials.Picker
-	kms       *crypto.KeyWrapper
-	registry  *registry.Registry
-	cache     system.Cache
-	forwarder *system.Forwarder
-	credits   CreditsSpender
+	db             *gorm.DB
+	picker         credentials.Picker
+	kms            *crypto.KeyWrapper
+	registry       *registry.Registry
+	cache          system.Cache
+	forwarder      *system.Forwarder
+	credits        CreditsSpender
+	actionsCatalog *catalog.Catalog
 }
 
 // NewSystemTaskHandler builds the handler. All deps are required except
-// `cache`, which may be nil to disable caching across all tasks.
+// `cache`, which may be nil to disable caching across all tasks, and
+// `actionsCatalog`, which may be nil for tasks that don't need it.
 func NewSystemTaskHandler(
 	db *gorm.DB,
 	picker credentials.Picker,
@@ -44,15 +47,17 @@ func NewSystemTaskHandler(
 	cache system.Cache,
 	forwarder *system.Forwarder,
 	credits CreditsSpender,
+	actionsCatalog *catalog.Catalog,
 ) *SystemTaskHandler {
 	return &SystemTaskHandler{
-		db:        db,
-		picker:    picker,
-		kms:       kms,
-		registry:  reg,
-		cache:     cache,
-		forwarder: forwarder,
-		credits:   credits,
+		db:             db,
+		picker:         picker,
+		kms:            kms,
+		registry:       reg,
+		cache:          cache,
+		forwarder:      forwarder,
+		credits:        credits,
+		actionsCatalog: actionsCatalog,
 	}
 }
 
@@ -143,6 +148,37 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Resolve runs after validation and before template rendering. Tasks use
+	// it to translate IDs into rich data via org-scoped DB lookups (skill IDs
+	// → name+description, integration connection IDs → provider + actions
+	// catalog, etc.). Tasks without a resolver pass req.Args through
+	// unchanged.
+	resolvedArgs := req.Args
+	if task.Resolve != nil {
+		out, err := task.Resolve(r.Context(), system.ResolveDeps{
+			DB:             h.db,
+			OrgID:          orgID,
+			Registry:       h.registry,
+			ActionsCatalog: h.actionsCatalog,
+		}, req.Args)
+		if err != nil {
+			var rerr *system.ResolveError
+			if errors.As(err, &rerr) {
+				writeJSON(w, http.StatusBadRequest, systemTaskError{
+					Error:     rerr.Message,
+					ErrorCode: rerr.Code,
+				})
+				return
+			}
+			writeJSON(w, http.StatusBadRequest, systemTaskError{
+				Error:     err.Error(),
+				ErrorCode: "invalid_args",
+			})
+			return
+		}
+		resolvedArgs = out
+	}
+
 	stream := task.DefaultStream
 	if req.Stream != nil {
 		stream = *req.Stream
@@ -175,7 +211,7 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 
 	cacheKey := ""
 	if h.cache != nil && task.CacheTTL > 0 {
-		key, err := system.CacheKey(task, modelID, req.Args)
+		key, err := system.CacheKey(task, modelID, resolvedArgs)
 		if err == nil {
 			cacheKey = key
 			if hit, ok, _ := h.cache.Get(r.Context(), key); ok {
@@ -194,7 +230,7 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	llmReq, err := system.BuildLLMRequest(task, modelID, req.Args, stream)
+	llmReq, err := system.BuildLLMRequest(task, modelID, resolvedArgs, stream)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, systemTaskError{
 			Error:     "failed to build LLM request",

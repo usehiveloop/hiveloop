@@ -113,6 +113,7 @@ func buildHarness(t *testing.T, upstream fakeUpstream) *systemTaskHarness {
 	h := handler.NewSystemTaskHandler(
 		db, credentials.NewPicker(db), kms,
 		registry.Global(), cache, fwd, billing.NewCreditsService(db),
+		nil,
 	)
 
 	r := chi.NewRouter()
