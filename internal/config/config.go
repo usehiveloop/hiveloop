@@ -155,10 +155,16 @@ type Config struct {
 	AsynqConcurrency      int           `env:"ASYNQ_CONCURRENCY" envDefault:"30"`
 	AsynqShutdownTimeout  time.Duration `env:"ASYNQ_SHUTDOWN_TIMEOUT" envDefault:"120s"`
 
-	// PostHog error tracking (empty POSTHOG_API_KEY disables capture)
-	PostHogAPIKey   string `env:"POSTHOG_API_KEY"`
-	PostHogEndpoint string `env:"POSTHOG_ENDPOINT" envDefault:"https://us.i.posthog.com"`
-	PostHogEnabled  bool   `env:"POSTHOG_ENABLED" envDefault:"false"`
+	// Sentry error tracking + distributed tracing (empty SENTRY_DSN disables
+	// capture). When enabled, the SDK is wired into chi (HTTP transactions),
+	// asynq (per-task transactions), GORM (db.sql spans), go-redis (db.redis
+	// spans), outbound HTTP transports, and slog (Error+ records become
+	// Sentry events). See internal/observability/sentry.
+	SentryDSN                string  `env:"SENTRY_DSN"`
+	SentryEnabled            bool    `env:"SENTRY_ENABLED" envDefault:"false"`
+	SentryRelease            string  `env:"SENTRY_RELEASE"`
+	SentryTracesSampleRate   float64 `env:"SENTRY_TRACES_SAMPLE_RATE" envDefault:"0.1"`
+	SentryProfilesSampleRate float64 `env:"SENTRY_PROFILES_SAMPLE_RATE" envDefault:"0.0"`
 
 	// Qdrant (vector store, gRPC). Empty QdrantHost disables RAG.
 	QdrantHost       string `env:"QDRANT_HOST"`
