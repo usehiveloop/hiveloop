@@ -28,34 +28,12 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/system/tasks"
 )
 
-// ---------------------------------------------------------------------------
-// Integration tests for the REAL prompt_writer task — the structured-args +
-// org-scoped resolver path. Distinct from the generic system_tasks_test.go
-// which uses a stub task fixture.
-//
-// What's being verified:
-//
-//   1. Resolution actually replaces IDs with rich data: the rendered user
-//      prompt that goes upstream contains the skill name and description,
-//      not the raw UUID.
-//   2. Org isolation: a skill belonging to a foreign org cannot be referenced
-//      by ID — the resolver returns the typed error_code "unknown_skill".
-//   3. Public skills cross org boundaries when status='published'.
-//
-// Each test seeds its own rows + cleans up. Postgres test DB must be running
-// (`make test-setup`).
-// ---------------------------------------------------------------------------
-
-// promptWriterHarness is a parallel to systemTaskHarness, but registers the
-// REAL PromptWriter task and injects the real actions catalog so resolver
-// paths that touch it (action descriptions, trigger key descriptions) are
-// exercised end-to-end.
 type promptWriterHarness struct {
 	db           *gorm.DB
 	router       *chi.Mux
 	upstream     *httptest.Server
 	hits         *int32
-	upstreamBody *string // last raw upstream chat-completions request body
+	upstreamBody *string
 	org          *model.Org
 	otherOrg     *model.Org
 	user         *model.User
@@ -103,19 +81,14 @@ func newPromptWriterHarness(t *testing.T, upstreamFn fakeUpstream) *promptWriter
 			return
 		}
 		atomic.AddInt32(&hits, 1)
-		// Capture the upstream request body so tests can assert on the
-		// rendered user prompt that resolution produced.
 		body, _ := io.ReadAll(r.Body)
 		capturedBody = string(body)
-		// Re-feed the body for downstream handlers if any.
 		r.Body = io.NopCloser(strings.NewReader(capturedBody))
 		upstreamFn(w, r)
 	}))
 
 	kms := newPromptWriterKMS(t)
-	// PromptWriter uses ProviderGroup "gemini" — the picker maps
-	// ProviderID="google" → group "gemini" via subagents.MapProviderToGroup.
-	cred := seedSystemCredential(t, db, kms, srv.URL+"/v1", "google")
+	cred := seedSystemCredential(t, db, kms, srv.URL+"/v1", "openrouter")
 
 	org := &model.Org{Name: "pw-org-" + sysShortID()}
 	if err := db.Create(org).Error; err != nil {
@@ -193,14 +166,6 @@ func seedSkill(t *testing.T, db *gorm.DB, orgID *uuid.UUID, name, description, s
 	return skill
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-// The point of resolution: a UUID in skill_ids becomes the skill's
-// human-meaningful name + description in the rendered user prompt that goes
-// to Gemini. If this regresses, every prompt the model writes will refer to
-// agents' skills by opaque IDs.
 func TestPromptWriter_RendersResolvedSkillsIntoUpstreamRequest(t *testing.T) {
 	h := newPromptWriterHarness(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -232,24 +197,17 @@ func TestPromptWriter_RendersResolvedSkillsIntoUpstreamRequest(t *testing.T) {
 	if upstream == "" {
 		t.Fatal("upstream never received the forwarded request")
 	}
-	// The user message in the upstream chat-completions body must contain
-	// both the skill's name AND its description — i.e., resolution actually
-	// happened, not just slot-filling the UUID.
 	if !strings.Contains(upstream, "fetch-railway-logs") {
 		t.Errorf("upstream request missing skill name; body:\n%s", upstream)
 	}
 	if !strings.Contains(upstream, "pulls the last N lines of deployment logs from Railway") {
 		t.Errorf("upstream request missing skill description; body:\n%s", upstream)
 	}
-	// Belt-and-braces: the raw UUID should NOT leak into the prompt.
 	if strings.Contains(upstream, skill.ID.String()) {
 		t.Errorf("raw skill UUID leaked into prompt:\n%s", upstream)
 	}
 }
 
-// Org isolation: skill_ids referencing a foreign-org skill must be rejected
-// before any LLM call. The error envelope must carry a stable error_code so
-// the FE can switch on it.
 func TestPromptWriter_ForeignOrgSkill_Returns400UnknownSkill(t *testing.T) {
 	h := newPromptWriterHarness(t, func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("upstream must not be hit when resolution fails")
@@ -258,7 +216,7 @@ func TestPromptWriter_ForeignOrgSkill_Returns400UnknownSkill(t *testing.T) {
 	foreign := seedSkill(t, h.db, &h.otherOrg.ID,
 		"private-skill",
 		"belongs to a different org",
-		model.SkillStatusPublished, // even if published-in-its-org, not visible
+		model.SkillStatusPublished,
 	)
 
 	rr := h.post(t, map[string]any{
@@ -288,9 +246,6 @@ func TestPromptWriter_ForeignOrgSkill_Returns400UnknownSkill(t *testing.T) {
 	}
 }
 
-// Public-skill visibility rule: org_id IS NULL AND status='published' is
-// reachable from any org. Pins the SQL filter — flipping it to org-only
-// would silently break the marketplace.
 func TestPromptWriter_PublicPublishedSkill_VisibleAcrossOrgs(t *testing.T) {
 	h := newPromptWriterHarness(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -320,9 +275,6 @@ func TestPromptWriter_PublicPublishedSkill_VisibleAcrossOrgs(t *testing.T) {
 	}
 }
 
-// Public DRAFT skills must NOT leak — the marketplace gates visibility on
-// status='published'. Pairs with the test above so a single rule change
-// can't pass both.
 func TestPromptWriter_PublicDraftSkill_NotVisible(t *testing.T) {
 	h := newPromptWriterHarness(t, func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("upstream must not be hit when resolution fails")
