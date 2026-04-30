@@ -423,7 +423,10 @@ mod tests {
             ProjectedMessage::ToolResult { content } => assert!(content.contains("line a")),
             _ => panic!("expected ToolResult"),
         }
-        assert!(matches!(&proj.messages[3], ProjectedMessage::Assistant { .. }));
+        assert!(matches!(
+            &proj.messages[3],
+            ProjectedMessage::Assistant { .. }
+        ));
     }
 
     #[test]
