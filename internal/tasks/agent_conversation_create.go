@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
@@ -13,21 +14,29 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
-// AgentConversationCreateHandler provisions a dedicated sandbox, pushes the
-// agent to Bridge, creates a conversation, and sends the first message.
+const cleanupTimeout = 30 * time.Second
+
+func init() {
+	RegisterTaskBuilder(TypeAgentConversationCreate, func(payload []byte) (*asynq.Task, error) {
+		var p AgentConversationCreatePayload
+		if err := json.Unmarshal(payload, &p); err != nil {
+			return nil, fmt.Errorf("unmarshal agent conversation create payload: %w", err)
+		}
+		return NewAgentConversationCreateTask(p)
+	})
+}
+
 type AgentConversationCreateHandler struct {
 	db           *gorm.DB
 	orchestrator *sandbox.Orchestrator
 	pusher       *sandbox.Pusher
 }
 
-// NewAgentConversationCreateHandler creates the handler.
 func NewAgentConversationCreateHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, pusher *sandbox.Pusher) *AgentConversationCreateHandler {
 	return &AgentConversationCreateHandler{db: db, orchestrator: orchestrator, pusher: pusher}
 }
 
-// Handle processes a TypeAgentConversationCreate task.
-func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task *asynq.Task) error {
+func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task *asynq.Task) (handlerErr error) {
 	var payload AgentConversationCreatePayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		return fmt.Errorf("unmarshal payload: %w", err)
@@ -39,7 +48,33 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		"org_id", payload.OrgID,
 	)
 
-	// 1. Load agent.
+	var rollbacks []func(context.Context)
+	defer func() {
+		if handlerErr == nil {
+			return
+		}
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cleanupTimeout)
+		defer cancel()
+		for i := len(rollbacks) - 1; i >= 0; i-- {
+			rollbacks[i](cleanupCtx)
+		}
+		retryCount, _ := asynq.GetRetryCount(ctx)
+		maxRetry, _ := asynq.GetMaxRetry(ctx)
+		if retryCount < maxRetry {
+			return
+		}
+		if err := PersistTerminalFailure(cleanupCtx, handler.db, FailedEventInput{
+			OrgID:        payload.OrgID,
+			TriggerID:    payload.RouterTriggerID,
+			EventType:    TypeAgentConversationCreate,
+			Payload:      task.Payload(),
+			Err:          handlerErr,
+			AttemptCount: retryCount + 1,
+		}); err != nil {
+			logger.Error("cleanup: failed to persist failed event", "error", err.Error())
+		}
+	}()
+
 	logger.Info("step 1: loading agent")
 	var agent model.Agent
 	if err := handler.db.Where("id = ? AND deleted_at IS NULL", payload.AgentID).First(&agent).Error; err != nil {
@@ -56,7 +91,6 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		"sandbox_template_id", agent.SandboxTemplateID,
 	)
 
-	// 2. Create a dedicated sandbox.
 	logger.Info("step 2: creating dedicated sandbox",
 		"setup_commands", agent.SetupCommands,
 		"has_encrypted_env_vars", len(agent.EncryptedEnvVars) > 0,
@@ -64,11 +98,20 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 	)
 	sb, err := handler.orchestrator.CreateDedicatedSandbox(ctx, &agent)
 	if err != nil {
-		logger.Error("step 2: FAILED to create dedicated sandbox",
-			"error", err.Error(),
-		)
+		logger.Error("step 2: FAILED to create dedicated sandbox", "error", err.Error())
 		return fmt.Errorf("creating dedicated sandbox: %w", err)
 	}
+	rollbacks = append(rollbacks, func(cleanupCtx context.Context) {
+		if err := handler.orchestrator.DeleteSandbox(cleanupCtx, sb); err != nil {
+			logger.Error("cleanup: failed to delete sandbox",
+				"error", err.Error(),
+				"sandbox_id", sb.ID,
+				"external_id", sb.ExternalID,
+			)
+			return
+		}
+		logger.Info("cleanup: sandbox deleted", "sandbox_id", sb.ID, "external_id", sb.ExternalID)
+	})
 	logger.Info("step 2: dedicated sandbox created",
 		"sandbox_id", sb.ID,
 		"external_id", sb.ExternalID,
@@ -76,7 +119,6 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		"status", sb.Status,
 	)
 
-	// 3. Push agent to the new sandbox.
 	logger.Info("step 3: pushing agent to dedicated sandbox")
 	if err := handler.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
 		logger.Error("step 3: FAILED to push agent to sandbox",
@@ -85,11 +127,8 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		)
 		return fmt.Errorf("pushing agent to dedicated sandbox: %w", err)
 	}
-	logger.Info("step 3: agent pushed to dedicated sandbox",
-		"sandbox_id", sb.ID,
-	)
+	logger.Info("step 3: agent pushed to dedicated sandbox", "sandbox_id", sb.ID)
 
-	// 4. Get Bridge client.
 	logger.Info("step 4: getting bridge client", "sandbox_id", sb.ID)
 	client, err := handler.orchestrator.GetBridgeClient(ctx, sb)
 	if err != nil {
@@ -102,11 +141,7 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 	}
 	logger.Info("step 4: bridge client ready", "sandbox_id", sb.ID)
 
-	// 5. Create conversation.
-	logger.Info("step 5: creating conversation",
-		"agent_id", agent.ID,
-		"sandbox_id", sb.ID,
-	)
+	logger.Info("step 5: creating conversation", "agent_id", agent.ID, "sandbox_id", sb.ID)
 	conv, err := client.CreateConversation(ctx, agent.ID.String())
 	if err != nil {
 		logger.Error("step 5: FAILED to create conversation",
@@ -121,8 +156,6 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		"sandbox_id", sb.ID,
 	)
 
-	// 5b. Store AgentConversation — required for webhook pipeline to match
-	// incoming Bridge events to our internal conversation record.
 	agentConv := model.AgentConversation{
 		OrgID:                payload.OrgID,
 		AgentID:              payload.AgentID,
@@ -137,20 +170,31 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		)
 		return fmt.Errorf("storing agent conversation: %w", err)
 	}
+	rollbacks = append(rollbacks, func(cleanupCtx context.Context) {
+		if err := handler.db.WithContext(cleanupCtx).
+			Where("id = ?", agentConv.ID).
+			Delete(&model.AgentConversation{}).Error; err != nil {
+			logger.Error("cleanup: failed to delete agent conversation",
+				"error", err.Error(),
+				"agent_conversation_id", agentConv.ID,
+			)
+			return
+		}
+		logger.Info("cleanup: agent conversation deleted", "agent_conversation_id", agentConv.ID)
+	})
 	logger.Info("step 5b: agent conversation stored",
 		"agent_conversation_id", agentConv.ID,
 		"bridge_conversation_id", conv.ConversationId,
 		"sandbox_id", sb.ID,
 	)
 
-	// 6. Store RouterConversation for thread affinity.
 	logger.Info("step 6: storing router conversation",
 		"conversation_id", conv.ConversationId,
 		"router_trigger_id", payload.RouterTriggerID,
 		"connection_id", payload.ConnectionID,
 		"resource_key", payload.ResourceKey,
 	)
-	if err := handler.db.Create(&model.RouterConversation{
+	routerConv := model.RouterConversation{
 		OrgID:                payload.OrgID,
 		RouterTriggerID:      payload.RouterTriggerID,
 		AgentID:              payload.AgentID,
@@ -158,18 +202,28 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		ResourceKey:          payload.ResourceKey,
 		BridgeConversationID: conv.ConversationId,
 		SandboxID:            sb.ID,
-	}).Error; err != nil {
+	}
+	if err := handler.db.Create(&routerConv).Error; err != nil {
 		logger.Error("step 6: FAILED to store router conversation",
 			"error", err.Error(),
 			"conversation_id", conv.ConversationId,
 		)
 	} else {
-		logger.Info("step 6: router conversation stored",
-			"conversation_id", conv.ConversationId,
-		)
+		rollbacks = append(rollbacks, func(cleanupCtx context.Context) {
+			if err := handler.db.WithContext(cleanupCtx).
+				Where("id = ?", routerConv.ID).
+				Delete(&model.RouterConversation{}).Error; err != nil {
+				logger.Error("cleanup: failed to delete router conversation",
+					"error", err.Error(),
+					"router_conversation_id", routerConv.ID,
+				)
+				return
+			}
+			logger.Info("cleanup: router conversation deleted", "router_conversation_id", routerConv.ID)
+		})
+		logger.Info("step 6: router conversation stored", "conversation_id", conv.ConversationId)
 	}
 
-	// 7. Send instructions as first message.
 	if payload.Instructions != "" {
 		logger.Info("step 7: sending instructions",
 			"conversation_id", conv.ConversationId,

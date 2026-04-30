@@ -17,11 +17,12 @@ import {
 import { MultiFileDiff, type FileContents } from "@pierre/diffs/react"
 import { Group as PanelGroup, Panel, Separator as PanelResizer } from "react-resizable-panels"
 import { $api } from "@/lib/api/hooks"
+import { useAgentSessions } from "@/hooks/use-agent-sessions"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
-import { Workspace } from "./_components/workspace"
+import { Workspace } from "@/app/w/agents/[id]/_components/workspace"
 
 type ToolCall = { name: string; status: "running" | "done"; summary: string }
 
@@ -273,10 +274,16 @@ const messages: Message[] = [
 ]
 
 export default function AgentDetailPage() {
-  const { id } = useParams<{ id: string }>()
+  const { id } = useParams<{ id: string; convId: string }>()
   const { data: agent } = $api.useQuery("get", "/v1/agents/{id}", {
     params: { path: { id } },
   })
+
+  const { sessions } = useAgentSessions(id ?? null)
+
+  React.useEffect(() => {
+    if (sessions.length) console.log("sessions", sessions)
+  }, [sessions])
 
   const agentName = agent?.name ?? "Agent"
   const initial = (agentName ?? "?").slice(0, 1).toUpperCase()

@@ -81,6 +81,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&AgentSkill{},
 		&AgentSubagent{},
 		&ConversationSubscription{},
+		&FailedEvent{},
 	); err != nil {
 		return err
 	}
