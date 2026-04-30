@@ -1,38 +1,62 @@
 package enqueue
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hibiken/asynq"
+
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 )
 
-// TaskEnqueuer is the interface for enqueuing Asynq tasks. HTTP handlers and
-// middleware depend on this interface so that tests can inject a mock.
 type TaskEnqueuer interface {
 	Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error)
+	EnqueueContext(ctx context.Context, task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error)
 	Close() error
 }
 
-// Client wraps asynq.Client and implements TaskEnqueuer.
 type Client struct {
-	inner *asynq.Client
+	asynqClient *asynq.Client
 }
 
-// NewClient creates a new enqueue client from Asynq Redis connection options.
 func NewClient(redisOpt asynq.RedisConnOpt) *Client {
-	return &Client{inner: asynq.NewClient(redisOpt)}
+	return &Client{asynqClient: asynq.NewClient(redisOpt)}
 }
 
-// Enqueue submits a task to the Asynq queue.
 func (c *Client) Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
-	info, err := c.inner.Enqueue(task, opts...)
+	return c.EnqueueContext(context.Background(), task, opts...)
+}
+
+func (c *Client) EnqueueContext(ctx context.Context, task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
+	destinationQueue := destinationQueueFromOptions(opts)
+	enqueueSpan := sentryobs.StartEnqueueSpan(ctx, task.Type(), destinationQueue)
+
+	payloadWithTrace := sentryobs.WrapPayloadWithCurrentTrace(ctx, task.Payload())
+	taskToEnqueue := task
+	if len(payloadWithTrace) != len(task.Payload()) {
+		taskToEnqueue = asynq.NewTask(task.Type(), payloadWithTrace)
+	}
+
+	info, err := c.asynqClient.EnqueueContext(ctx, taskToEnqueue, opts...)
+	sentryobs.FinishEnqueueSpan(ctx, enqueueSpan, info, err)
 	if err != nil {
 		return nil, fmt.Errorf("enqueue %s: %w", task.Type(), err)
 	}
 	return info, nil
 }
 
-// Close flushes and closes the underlying Asynq client.
 func (c *Client) Close() error {
-	return c.inner.Close()
+	return c.asynqClient.Close()
+}
+
+func destinationQueueFromOptions(opts []asynq.Option) string {
+	for _, opt := range opts {
+		if opt.Type() != asynq.QueueOpt {
+			continue
+		}
+		if name, ok := opt.Value().(string); ok {
+			return name
+		}
+	}
+	return ""
 }

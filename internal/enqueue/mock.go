@@ -1,27 +1,28 @@
 package enqueue
 
 import (
+	"context"
 	"sync"
 	"testing"
 
 	"github.com/hibiken/asynq"
 )
 
-// MockClient implements TaskEnqueuer for tests. It captures all enqueued tasks
-// without needing a Redis connection.
 type MockClient struct {
 	mu       sync.Mutex
 	enqueued []EnqueuedTask
 }
 
-// EnqueuedTask records a single enqueue call.
 type EnqueuedTask struct {
 	TypeName string
 	Payload  []byte
 }
 
-// Enqueue captures the task for later assertions.
 func (m *MockClient) Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
+	return m.EnqueueContext(context.Background(), task, opts...)
+}
+
+func (m *MockClient) EnqueueContext(_ context.Context, task *asynq.Task, _ ...asynq.Option) (*asynq.TaskInfo, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.enqueued = append(m.enqueued, EnqueuedTask{
@@ -31,10 +32,8 @@ func (m *MockClient) Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.Tas
 	return &asynq.TaskInfo{}, nil
 }
 
-// Close is a no-op for the mock.
 func (m *MockClient) Close() error { return nil }
 
-// Tasks returns all captured enqueued tasks.
 func (m *MockClient) Tasks() []EnqueuedTask {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -43,7 +42,6 @@ func (m *MockClient) Tasks() []EnqueuedTask {
 	return cp
 }
 
-// AssertEnqueued asserts that at least one task of the given type was enqueued.
 func (m *MockClient) AssertEnqueued(t *testing.T, taskType string) {
 	t.Helper()
 	m.mu.Lock()
@@ -56,7 +54,6 @@ func (m *MockClient) AssertEnqueued(t *testing.T, taskType string) {
 	t.Errorf("expected task %q to be enqueued, but it was not", taskType)
 }
 
-// Flush clears all captured tasks.
 func (m *MockClient) Flush() {
 	m.mu.Lock()
 	defer m.mu.Unlock()

@@ -115,27 +115,26 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 
 	// Start Asynq server in background
 	errCh := make(chan error, 1)
-	goroutine.Go(ctx, func(context.Context) {
+	goroutine.Go(ctx, func(ctx context.Context) {
 		slog.Info("asynq worker starting", "concurrency", cfg.AsynqConcurrency)
 		if err := srv.Run(mux); err != nil {
-			slog.Error("asynq server error", "error", err)
+			sentryobs.CaptureAsynqServerError(ctx, err)
 			errCh <- err
 		}
 	})
 
-	// Asynq periodic task scheduler
 	periodicConfigs := tasks.PeriodicTaskConfigs(cfg, ragSched)
 	if len(periodicConfigs) > 0 {
-		scheduler := asynq.NewScheduler(redisOpt, nil)
+		scheduler := asynq.NewScheduler(redisOpt, sentryobs.AsynqSchedulerOpts(nil))
 		for _, pc := range periodicConfigs {
 			if _, err := scheduler.Register(pc.Cronspec, pc.Task, pc.Opts...); err != nil {
 				return fmt.Errorf("registering periodic task %s: %w", pc.Task.Type(), err)
 			}
 			slog.Info("registered periodic task", "type", pc.Task.Type(), "cron", pc.Cronspec)
 		}
-		goroutine.Go(ctx, func(context.Context) {
+		goroutine.Go(ctx, func(ctx context.Context) {
 			if err := scheduler.Run(); err != nil {
-				slog.Error("asynq scheduler error", "error", err)
+				sentryobs.CaptureAsynqSchedulerError(ctx, err)
 			}
 		})
 	}
