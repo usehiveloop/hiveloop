@@ -80,8 +80,7 @@ func AsynqMiddleware() asynq.MiddlewareFunc {
 			tx.SetData("messaging.message.id", taskID)
 			tx.SetData("messaging.message.retry_count", retryCount)
 
-			ctx = tx.Context()
-			err := next.ProcessTask(ctx, task)
+			err := next.ProcessTask(tx.Context(), task) //nolint:contextcheck
 
 			if err != nil {
 				tx.Status = sentrygo.SpanStatusInternalError
