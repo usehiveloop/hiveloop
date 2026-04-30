@@ -7363,14 +7363,14 @@ const docTemplate = `{
         },
         "/v1/models": {
             "get": {
-                "description": "Returns the flattened catalog of every visible model, each entry tagged with its provider_id. Hidden routing-only models are excluded.",
+                "description": "Returns models from providers that have at least one active system credential. Hidden routing-only models are excluded.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "providers"
                 ],
-                "summary": "List all models across providers",
+                "summary": "List user-selectable models across providers",
                 "responses": {
                     "200": {
                         "description": "OK",

@@ -169,10 +169,6 @@ func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]ag
 	return result
 }
 
-// validateAgentModel checks that modelID refers to a model that exists in
-// some provider's catalog and is not hidden. Returns nil for an empty
-// modelID — callers decide whether to require the field. Hidden models are
-// reserved for internal routing and are never user-selectable.
 func validateAgentModel(reg *registry.Registry, modelID string) error {
 	if modelID == "" {
 		return nil
