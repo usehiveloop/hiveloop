@@ -1,6 +1,6 @@
-Read a file from the local filesystem. Path must be absolute.
+Read a file from the local filesystem. The `file_path` must be an absolute path.
 
-Defaults: returns up to 2000 lines from the start. For files >2000 lines, pass `limit` explicitly (use `offset`+`limit` for ranged reads, or RipGrep to locate specific content). Files >10MB are refused — use RipGrep instead.
+Defaults: returns up to 2000 lines from the start. For files >2000 lines, pass `limit` explicitly (use `offset`+`limit` for ranged reads, or RipGrep to locate specific content). Files >10MB are refused — use RipGrep, or spawn `self_agent` if you need to read multiple slices independently.
 
 - `offset`: 1-indexed start line.
 - `limit`: max lines to read.
