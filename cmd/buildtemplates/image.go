@@ -170,6 +170,20 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 			"ln -sf /usr/local/cargo/bin/rustup /usr/local/bin/rustup",
 	)
 
+	// rtk: bash output token-trimmer that bridge prepends to ~85 routable commands
+	// (git, npm, composer, pytest, cargo, etc.). Without it bridge logs a warning
+	// and runs commands unfiltered, burning many more LLM tokens per call.
+	image = image.Run("curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh")
+
+	// uv/uvx: standard launcher for Python-based stdio MCP servers (e.g. `uvx <pkg>`).
+	// Installer drops into $HOME/.local/bin; symlink to /usr/local/bin so non-login
+	// shells find it.
+	image = image.Run(
+		"curl -LsSf https://astral.sh/uv/install.sh | sh && " +
+			"ln -sf /root/.local/bin/uv /usr/local/bin/uv && " +
+			"ln -sf /root/.local/bin/uvx /usr/local/bin/uvx",
+	)
+
 	image = image.Run("/usr/local/bin/bridge install-lsp all")
 
 	// Git credential helper — fetches GitHub tokens from the control plane on demand.
@@ -189,6 +203,11 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 			`chmod +x /usr/local/bin/gh-wrapper && ` +
 			`ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh`,
 	)
+
+	// Tells bridge to inject the "Pre-installed tools" reminder
+	// (DEV_BOX_TOOLS in crates/runtime/src/environment.rs) so agents know
+	// what's already on PATH in this sandbox.
+	image = image.Env("BRIDGE_STANDALONE_AGENT", "true")
 
 	image = image.Workdir(daytonaHome)
 	image = image.Entrypoint([]string{"/bin/sh", "-c",

@@ -71,33 +71,50 @@ type connRow struct {
 // deps.OrgID. Foreign-org IDs surface as ResolveError so the FE can show a
 // stable error code.
 func resolvePromptWriterArgs(ctx context.Context, deps system.ResolveDeps, args map[string]any) (map[string]any, error) {
+	// Every key the user template references must be present — render runs
+	// with `missingkey=error`, so an absent key would 500 the request.
+	// Empty slices/maps make {{with}} blocks skip cleanly.
 	out := map[string]any{
 		"name":         stringArg(args, "name"),
 		"category":     stringArg(args, "category"),
 		"instructions": stringArg(args, "instructions"),
+		"skills":       []resolvedSkill{},
+		"subagents":    []resolvedSubagent{},
+		"integrations": []resolvedIntegration{},
+		"triggers":     []resolvedTrigger{},
+		"tools":        []resolvedTool{},
+		"permissions":  map[string]string{},
 	}
 
-	if skills, err := resolveSkills(deps, stringSliceArg(args, "skill_ids")); err != nil {
+	skills, err := resolveSkills(deps, stringSliceArg(args, "skill_ids"))
+	if err != nil {
 		return nil, err
-	} else if len(skills) > 0 {
+	}
+	if len(skills) > 0 {
 		out["skills"] = skills
 	}
 
-	if subs, err := resolveSubagents(deps, stringSliceArg(args, "subagent_ids")); err != nil {
+	subs, err := resolveSubagents(deps, stringSliceArg(args, "subagent_ids"))
+	if err != nil {
 		return nil, err
-	} else if len(subs) > 0 {
+	}
+	if len(subs) > 0 {
 		out["subagents"] = subs
 	}
 
-	if integrations, err := resolveIntegrations(deps, mapArg(args, "integrations")); err != nil {
+	integrations, err := resolveIntegrations(deps, mapArg(args, "integrations"))
+	if err != nil {
 		return nil, err
-	} else if len(integrations) > 0 {
+	}
+	if len(integrations) > 0 {
 		out["integrations"] = integrations
 	}
 
-	if triggers, err := resolveTriggers(deps, objectListArg(args, "triggers")); err != nil {
+	triggers, err := resolveTriggers(deps, objectListArg(args, "triggers"))
+	if err != nil {
 		return nil, err
-	} else if len(triggers) > 0 {
+	}
+	if len(triggers) > 0 {
 		out["triggers"] = triggers
 	}
 

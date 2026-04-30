@@ -9,6 +9,7 @@ import {
   materialLight,
 } from "@uiw/codemirror-theme-material"
 import { useTheme } from "next-themes"
+import { cn } from "@/lib/utils"
 
 const CodeMirror = dynamic(
   () => import("@uiw/react-codemirror").then((mod) => mod.default),
@@ -38,6 +39,7 @@ interface SkillContentEditorProps {
   onChange: (value: string) => void
   placeholder?: string
   height?: string
+  className?: string
 }
 
 export function SkillContentEditor({
@@ -45,6 +47,7 @@ export function SkillContentEditor({
   onChange,
   placeholder,
   height = "280px",
+  className,
 }: SkillContentEditorProps) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === "dark"
@@ -55,7 +58,12 @@ export function SkillContentEditor({
   )
 
   return (
-    <div className="overflow-hidden rounded-xl border border-input transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30">
+    <div
+      className={cn(
+        "overflow-hidden rounded-xl border border-input transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30",
+        className,
+      )}
+    >
       <CodeMirror
         value={value}
         onChange={onChange}
@@ -73,6 +81,7 @@ export function SkillContentEditor({
         }}
         placeholder={placeholder}
         height={height}
+        style={{ height }}
       />
     </div>
   )

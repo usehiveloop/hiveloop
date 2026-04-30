@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { SkillContentEditor } from "./skill-content-editor"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { File01Icon, GitBranchIcon } from "@hugeicons/core-free-icons"
@@ -139,11 +140,12 @@ export function CreateSkillDialog({
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="skill-description-inline">Description</Label>
-                  <Input
+                  <Textarea
                     id="skill-description-inline"
                     value={description}
                     onChange={(event) => setDescription(event.target.value)}
                     placeholder="What this skill does..."
+                    rows={4}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -171,11 +173,12 @@ export function CreateSkillDialog({
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="skill-description-git">Description</Label>
-                  <Input
+                  <Textarea
                     id="skill-description-git"
                     value={description}
                     onChange={(event) => setDescription(event.target.value)}
                     placeholder="What this skill does..."
+                    rows={4}
                   />
                 </div>
                 <div className="flex flex-col gap-2">

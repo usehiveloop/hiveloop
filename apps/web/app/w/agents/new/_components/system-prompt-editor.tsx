@@ -89,7 +89,7 @@ export function SystemPromptEditor({
           size="sm"
           className="h-7 text-[12px] text-muted-foreground hover:text-foreground"
           onClick={onEnhance}
-          disabled={!value.trim() || isEnhancing}
+          disabled={isEnhancing}
           loading={isEnhancing}
         >
           <HugeiconsIcon

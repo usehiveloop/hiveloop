@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
   Dialog,
@@ -10,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { $api } from "@/lib/api/hooks"
+import { extractErrorMessage } from "@/lib/api/error"
 import type { components } from "@/lib/api/schema"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -22,6 +25,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
+import { SkillContentEditor } from "./skill-content-editor"
 
 type SkillRow = components["schemas"]["skillResponse"]
 
@@ -229,11 +233,22 @@ interface SkillDetailDialogProps {
   skill: SkillRow | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  initialEditing?: boolean
 }
 
-export function SkillDetailDialog({ skill, open, onOpenChange }: SkillDetailDialogProps) {
+export function SkillDetailDialog({
+  skill,
+  open,
+  onOpenChange,
+  initialEditing = false,
+}: SkillDetailDialogProps) {
+  const queryClient = useQueryClient()
   const [selectedPath, setSelectedPath] = useState("SKILL.md")
-  const [viewMode, setViewMode] = useState<"rendered" | "raw">("rendered")
+  const [viewMode, setViewMode] = useState<"rendered" | "raw">(
+    initialEditing ? "raw" : "rendered",
+  )
+  const [isEditingContent, setIsEditingContent] = useState(initialEditing)
+  const [editedFiles, setEditedFiles] = useState<Record<string, string>>({})
 
   const { data, isLoading } = $api.useQuery(
     "get",
@@ -243,6 +258,7 @@ export function SkillDetailDialog({ skill, open, onOpenChange }: SkillDetailDial
   )
 
   const detail = data as components["schemas"]["skillDetailResponse"] | undefined
+  const updateContent = $api.useMutation("put", "/v1/skills/{id}/content")
 
   const files = useMemo((): SkillFile[] => {
     if (!detail?.bundle) return []
@@ -264,19 +280,83 @@ export function SkillDetailDialog({ skill, open, onOpenChange }: SkillDetailDial
   const fileTree = useMemo(() => buildFileTree(files), [files])
 
   const selectedFile = files.find((file) => file.path === selectedPath) ?? files[0]
+  const selectedBody =
+    selectedFile && editedFiles[selectedFile.path] !== undefined
+      ? editedFiles[selectedFile.path]
+      : selectedFile?.body ?? ""
   const isMarkdown = selectedFile ? isMarkdownFile(selectedFile.path) : false
   const language = selectedFile ? getLanguageFromPath(selectedFile.path) : "text"
+  const hasEdits = Object.keys(editedFiles).length > 0
 
-  // Reset selection when opening a different skill.
-  const skillId = skill?.id
-  const previousSkillId = useMemo(() => skillId, [open])
-  if (skillId !== previousSkillId) {
+  useEffect(() => {
+    if (!open) return
     setSelectedPath("SKILL.md")
-    setViewMode("rendered")
+    setViewMode(initialEditing ? "raw" : "rendered")
+    setIsEditingContent(initialEditing)
+    setEditedFiles({})
+  }, [open, skill?.id, initialEditing])
+
+  function exitEditing() {
+    setIsEditingContent(false)
+    setEditedFiles({})
+  }
+
+  function handleEditorChange(nextValue: string) {
+    if (!selectedFile) return
+    setEditedFiles((prev) => ({ ...prev, [selectedFile.path]: nextValue }))
+  }
+
+  function handleSaveContent() {
+    if (!skill?.id || !detail?.bundle) return
+
+    const skillMdContent =
+      editedFiles["SKILL.md"] ?? detail.bundle.content ?? ""
+    const references = (detail.bundle.references ?? []).map((reference) => ({
+      path: reference.path ?? "",
+      body:
+        reference.path && editedFiles[reference.path] !== undefined
+          ? editedFiles[reference.path]
+          : reference.body ?? "",
+    }))
+
+    updateContent.mutate(
+      {
+        params: { path: { id: skill.id } },
+        body: {
+          bundle: {
+            id: detail.bundle.id ?? skill.slug,
+            title: detail.bundle.title ?? skill.name,
+            description: detail.bundle.description ?? skill.description ?? "",
+            content: skillMdContent,
+            parameters_schema: detail.bundle.parameters_schema,
+            manifest: detail.bundle.manifest,
+            references,
+          },
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("Skill content updated")
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills/{id}"] })
+          exitEditing()
+        },
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, "Failed to update skill content"))
+        },
+      },
+    )
+  }
+
+  function handleDialogOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      exitEditing()
+    }
+    onOpenChange(nextOpen)
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
         showCloseButton
         className="max-w-[100vw] h-dvh rounded-none p-0 gap-0 overflow-hidden md:max-w-5xl md:h-[80vh] md:rounded-4xl"
@@ -308,7 +388,6 @@ export function SkillDetailDialog({ skill, open, onOpenChange }: SkillDetailDial
           </div>
         ) : (
           <div className="absolute inset-0 flex">
-            {/* File tree sidebar */}
             <div className="w-56 shrink-0 border-r border-border flex flex-col overflow-hidden">
               <div className="h-16 shrink-0 flex items-center px-3 border-b border-border">
                 <div className="min-w-0">
@@ -329,12 +408,23 @@ export function SkillDetailDialog({ skill, open, onOpenChange }: SkillDetailDial
                   />
                 ))}
               </div>
+              {isEditingContent && (
+                <div className="shrink-0 border-t border-border p-3">
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    loading={updateContent.isPending}
+                    disabled={!hasEdits}
+                    onClick={handleSaveContent}
+                  >
+                    Save changes
+                  </Button>
+                </div>
+              )}
             </div>
 
-            {/* Content area */}
             <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-              {/* Toolbar */}
-              <div className="h-16 shrink-0 flex items-center justify-between px-4 pr-24 border-b border-border">
+              <div className="h-16 shrink-0 flex items-center justify-between px-4 pr-24 border-b border-border gap-3">
                 <p className="text-xs font-mono text-muted-foreground truncate">
                   {selectedFile?.path}
                 </p>
@@ -344,9 +434,10 @@ export function SkillDetailDialog({ skill, open, onOpenChange }: SkillDetailDial
                       variant="ghost"
                       className={cn(
                         "px-2.5 rounded-full text-[11px]",
-                        viewMode === "rendered" && "bg-background shadow-sm"
+                        viewMode === "rendered" && "bg-background shadow-sm",
                       )}
                       onClick={() => setViewMode("rendered")}
+                      disabled={isEditingContent}
                     >
                       <HugeiconsIcon icon={TextIcon} size={12} />
                       Preview
@@ -355,7 +446,7 @@ export function SkillDetailDialog({ skill, open, onOpenChange }: SkillDetailDial
                       variant="ghost"
                       className={cn(
                         "px-2.5 rounded-full text-[11px]",
-                        viewMode === "raw" && "bg-background shadow-sm"
+                        viewMode === "raw" && "bg-background shadow-sm",
                       )}
                       onClick={() => setViewMode("raw")}
                     >
@@ -366,14 +457,26 @@ export function SkillDetailDialog({ skill, open, onOpenChange }: SkillDetailDial
                 )}
               </div>
 
-              {/* File content */}
-              <div className="flex-1 overflow-y-auto overflow-x-hidden p-6">
-                {selectedFile && isMarkdown && viewMode === "rendered" ? (
-                  <MarkdownViewer content={selectedFile.body} />
-                ) : selectedFile ? (
-                  <RawViewer content={selectedFile.body} language={language} />
-                ) : null}
-              </div>
+              {isEditingContent && viewMode === "raw" && selectedFile ? (
+                <div className="flex-1 relative min-h-0">
+                  <div className="absolute inset-0 p-6">
+                    <SkillContentEditor
+                      value={selectedBody}
+                      onChange={handleEditorChange}
+                      height="100%"
+                      className="h-full"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-6">
+                  {selectedFile && isMarkdown && viewMode === "rendered" ? (
+                    <MarkdownViewer content={selectedBody} />
+                  ) : selectedFile ? (
+                    <RawViewer content={selectedBody} language={language} />
+                  ) : null}
+                </div>
+              )}
             </div>
           </div>
         )}
