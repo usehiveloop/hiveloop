@@ -50,12 +50,12 @@ func TestResolve_PlatformAgentCallsPickerByModel(t *testing.T) {
 		ProviderID: "moonshotai",
 		IsSystem:   true,
 	}
-	picker := &fakePicker{byModel: map[string]*model.Credential{"moonshotai/kimi-k2-instruct": sysCred}}
+	picker := &fakePicker{byModel: map[string]*model.Credential{"kimi-k2.5": sysCred}}
 
 	agent := &model.Agent{
 		ID:           uuid.New(),
 		CredentialID: nil,
-		Model:        "moonshotai/kimi-k2-instruct",
+		Model:        "kimi-k2.5",
 	}
 
 	got, err := credentials.Resolve(context.Background(), nil, picker, agent)
@@ -65,8 +65,8 @@ func TestResolve_PlatformAgentCallsPickerByModel(t *testing.T) {
 	if got.ID != sysCred.ID {
 		t.Errorf("got credential %s, want %s", got.ID, sysCred.ID)
 	}
-	if len(picker.modelCalls) != 1 || picker.modelCalls[0] != "moonshotai/kimi-k2-instruct" {
-		t.Errorf("picker model calls = %v, want [moonshotai/kimi-k2-instruct]", picker.modelCalls)
+	if len(picker.modelCalls) != 1 || picker.modelCalls[0] != "kimi-k2.5" {
+		t.Errorf("picker model calls = %v, want [kimi-k2.5]", picker.modelCalls)
 	}
 }
 
@@ -86,7 +86,7 @@ func TestResolve_PlatformAgentWithoutPickerErrors(t *testing.T) {
 	agent := &model.Agent{
 		ID:           uuid.New(),
 		CredentialID: nil,
-		Model:        "moonshotai/kimi-k2-instruct",
+		Model:        "kimi-k2.5",
 	}
 	_, err := credentials.Resolve(context.Background(), nil, nil, agent)
 	if err == nil {
@@ -100,7 +100,7 @@ func TestResolve_PickerErrorPropagates(t *testing.T) {
 	agent := &model.Agent{
 		ID:           uuid.New(),
 		CredentialID: nil,
-		Model:        "moonshotai/kimi-k2-instruct",
+		Model:        "kimi-k2.5",
 	}
 	_, err := credentials.Resolve(context.Background(), nil, picker, agent)
 	if !errors.Is(err, sentinel) {
