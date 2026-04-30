@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -36,6 +37,32 @@ func (h *SystemTaskHandler) serveCached(w http.ResponseWriter, cached *system.Co
 	})
 }
 
+// logForwardError classifies and logs an upstream forwarder error. Surfaces
+// the upstream HTTP status + truncated body for *system.UpstreamError so prod
+// logs show the provider's actual rejection (e.g. 401 invalid api key, 429,
+// model not found). Logs at Error severity so it shows up in default filters.
+func (h *SystemTaskHandler) logForwardError(logger *slog.Logger, err error, streaming bool) {
+	var upErr *system.UpstreamError
+	if errors.As(err, &upErr) {
+		body := upErr.Body
+		const maxBody = 512
+		if len(body) > maxBody {
+			body = body[:maxBody] + "…(truncated)"
+		}
+		logger.Error("system_task: upstream rejected request",
+			"err", err,
+			"streaming", streaming,
+			"upstream_status", upErr.StatusCode,
+			"upstream_body", body,
+		)
+		return
+	}
+	logger.Error("system_task: upstream unreachable",
+		"err", err,
+		"streaming", streaming,
+	)
+}
+
 func (h *SystemTaskHandler) handleForwardError(w http.ResponseWriter, err error, alreadyStreaming bool) {
 	// If we already started writing the SSE stream the response body has
 	// chunks in it; we can't switch to a JSON error. Emit a final SSE error
@@ -65,6 +92,7 @@ func (h *SystemTaskHandler) handleForwardError(w http.ResponseWriter, err error,
 // after a successful upstream call, never on cache hit.
 func (h *SystemTaskHandler) afterCompletion(
 	ctx context.Context,
+	logger *slog.Logger,
 	task *system.Task,
 	taskName, modelID string,
 	cred *model.Credential,
@@ -75,7 +103,9 @@ func (h *SystemTaskHandler) afterCompletion(
 	streaming bool,
 ) {
 	if cacheKey != "" && task.CacheTTL > 0 {
-		_ = h.cache.Set(ctx, cacheKey, res, task.CacheTTL)
+		if err := h.cache.Set(ctx, cacheKey, res, task.CacheTTL); err != nil {
+			logger.Warn("system_task: cache write failed", "err", err, "cache_key", cacheKey)
+		}
 	}
 	gen := model.Generation{
 		ID:             "gen_" + ulid.Make().String(),
@@ -94,11 +124,8 @@ func (h *SystemTaskHandler) afterCompletion(
 		CreatedAt:      time.Now(),
 	}
 	if err := h.db.WithContext(ctx).Create(&gen).Error; err != nil {
-		_ = err
+		logger.Error("system_task: generation row write failed", "err", err, "generation_id", gen.ID)
 	}
-	// Per-token cost lookup + credit Spend goes through the existing
-	// billing pipeline (a follow-up wires this into BillingTokenSpend like
-	// the proxy path already does).
 	_ = h.credits
 }
 
