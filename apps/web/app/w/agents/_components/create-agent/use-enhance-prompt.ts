@@ -10,6 +10,7 @@ import type { CreateAgentFormValues } from "./context"
 import type { SkillPreview, SubagentPreview, TriggerConfig } from "./types"
 
 interface BuildArgsInput {
+  brief: string
   values: CreateAgentFormValues
   selectedIntegrations: Set<string>
   selectedActions: Record<string, Set<string>>
@@ -19,7 +20,7 @@ interface BuildArgsInput {
 }
 
 function buildEnhanceArgs(input: BuildArgsInput): Record<string, unknown> {
-  const { values, selectedIntegrations, selectedActions, selectedSkills, selectedSubagents, triggers } = input
+  const { brief, values, selectedIntegrations, selectedActions, selectedSkills, selectedSubagents, triggers } = input
 
   const integrations: Record<string, { actions: string[] }> = {}
   for (const connectionId of selectedIntegrations) {
@@ -40,14 +41,10 @@ function buildEnhanceArgs(input: BuildArgsInput): Record<string, unknown> {
     return base
   })
 
-  // The visible "Instructions" textarea is bound to systemPrompt, not the
-  // form's `instructions` field — see agent-form.tsx.
-  const operatorInstructions = values.systemPrompt.trim() || values.instructions?.trim() || ""
-
   return {
     name: values.name.trim(),
     category: values.category.trim() || undefined,
-    instructions: operatorInstructions || undefined,
+    instructions: brief.trim() || undefined,
     skill_ids: Array.from(selectedSkills.keys()),
     subagent_ids: Array.from(selectedSubagents.keys()),
     integrations,
@@ -65,17 +62,13 @@ export function useEnhancePrompt() {
         toast.error("Give the agent a name first")
         return
       }
-      const written =
-        params.values.systemPrompt.trim() || params.values.instructions?.trim() || ""
-      if (!written) {
-        toast.error("Write a few lines of instructions before enhancing")
+      if (!params.brief.trim()) {
+        toast.error("Write a brief in the Brief tab before enhancing")
         return
       }
 
       try {
-        const result = await run(buildEnhanceArgs(params))
-        console.log("[enhance-prompt] accumulated prompt:\n", result.text)
-        console.log("[enhance-prompt] usage:", result.usage)
+        await run(buildEnhanceArgs(params))
       } catch (err) {
         const message = isSystemTaskError(err)
           ? err.error

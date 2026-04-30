@@ -46,8 +46,13 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !org.BYOK && (req.CredentialID != "" || req.Model != "") {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "credential_id and model are only allowed when BYOK is enabled for this workspace"})
+	if !org.BYOK && req.CredentialID != "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "credential_id is only allowed when BYOK is enabled for this workspace"})
+		return
+	}
+
+	if err := validateAgentModel(h.registry, req.Model); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -98,18 +103,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		hasCred = true
-	}
-
-	if hasCred && req.Model != "" && cred.ProviderID != "" {
-		provider, ok := h.registry.GetProvider(cred.ProviderID)
-		if ok {
-			if _, modelExists := provider.Models[req.Model]; !modelExists {
-				writeJSON(w, http.StatusBadRequest, map[string]string{
-					"error": fmt.Sprintf("model %q is not supported by provider %q", req.Model, cred.ProviderID),
-				})
-				return
-			}
-		}
 	}
 
 	// Validate json_schema in agent_config if present

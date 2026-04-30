@@ -8446,6 +8446,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all models across providers
+         * @description Returns the flattened catalog of every visible model, each entry tagged with its provider_id. Hidden routing-only models are excluded.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["modelSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/orgs": {
         parameters: {
             query?: never;
@@ -13400,6 +13439,7 @@ export interface components {
         };
         modelSummary: {
             cost?: components["schemas"]["Cost"];
+            description?: string;
             family?: string;
             id?: string;
             knowledge?: string;
@@ -13407,8 +13447,10 @@ export interface components {
             modalities?: components["schemas"]["Modalities"];
             name?: string;
             open_weights?: boolean;
+            provider_id?: string;
             reasoning?: boolean;
             release_date?: string;
+            speed?: string;
             status?: string;
             structured_output?: boolean;
             tool_call?: boolean;
