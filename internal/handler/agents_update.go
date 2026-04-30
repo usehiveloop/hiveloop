@@ -93,37 +93,20 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		updates["instructions"] = *req.Instructions
 	}
 
-	// If credential or model changes, re-validate compatibility
-	credID := agent.CredentialID
-	modelName := agent.Model
 	if req.CredentialID != nil {
 		var cred model.Credential
 		if err := h.db.Where("id = ? AND org_id = ? AND revoked_at IS NULL", *req.CredentialID, org.ID).First(&cred).Error; err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "credential not found or revoked"})
 			return
 		}
-		credID = &cred.ID
 		updates["credential_id"] = cred.ID
 	}
 	if req.Model != nil {
-		modelName = *req.Model
-		updates["model"] = *req.Model
-	}
-
-	if (req.CredentialID != nil || req.Model != nil) && credID != nil {
-		var cred model.Credential
-		h.db.Where("id = ?", *credID).First(&cred)
-		if cred.ProviderID != "" {
-			provider, ok := h.registry.GetProvider(cred.ProviderID)
-			if ok {
-				if _, exists := provider.Models[modelName]; !exists {
-					writeJSON(w, http.StatusBadRequest, map[string]string{
-						"error": fmt.Sprintf("model %q is not supported by provider %q", modelName, cred.ProviderID),
-					})
-					return
-				}
-			}
+		if err := validateAgentModel(h.registry, *req.Model); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
 		}
+		updates["model"] = *req.Model
 	}
 
 	if req.SandboxTemplateID != nil {

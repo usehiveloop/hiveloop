@@ -2,11 +2,13 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
 // loadAgentTriggers loads the routing triggers configured for one or more agents.
@@ -167,4 +169,21 @@ func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]ag
 	return result
 }
 
-
+// validateAgentModel checks that modelID refers to a model that exists in
+// some provider's catalog and is not hidden. Returns nil for an empty
+// modelID — callers decide whether to require the field. Hidden models are
+// reserved for internal routing and are never user-selectable.
+func validateAgentModel(reg *registry.Registry, modelID string) error {
+	if modelID == "" {
+		return nil
+	}
+	for _, p := range reg.AllProviders() {
+		if mdl, ok := p.Models[modelID]; ok {
+			if mdl.Hidden {
+				return fmt.Errorf("model %q is not selectable", modelID)
+			}
+			return nil
+		}
+	}
+	return fmt.Errorf("model %q is not in the catalog", modelID)
+}

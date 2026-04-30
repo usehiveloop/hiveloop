@@ -7361,6 +7361,29 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/models": {
+            "get": {
+                "description": "Returns the flattened catalog of every visible model, each entry tagged with its provider_id. Hidden routing-only models are excluded.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "providers"
+                ],
+                "summary": "List all models across providers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/internal_handler.modelSummary"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/orgs": {
             "post": {
                 "security": [
@@ -14137,6 +14160,9 @@ const docTemplate = `{
                 "cost": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_registry.Cost"
                 },
+                "description": {
+                    "type": "string"
+                },
                 "family": {
                     "type": "string"
                 },
@@ -14158,10 +14184,16 @@ const docTemplate = `{
                 "open_weights": {
                     "type": "boolean"
                 },
+                "provider_id": {
+                    "type": "string"
+                },
                 "reasoning": {
                     "type": "boolean"
                 },
                 "release_date": {
+                    "type": "string"
+                },
+                "speed": {
                     "type": "string"
                 },
                 "status": {

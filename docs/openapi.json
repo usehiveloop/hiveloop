@@ -8683,6 +8683,30 @@
         }
       }
     },
+    "/v1/models": {
+      "get": {
+        "description": "Returns the flattened catalog of every visible model, each entry tagged with its provider_id. Hidden routing-only models are excluded.",
+        "tags": [
+          "providers"
+        ],
+        "summary": "List all models across providers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/modelSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/orgs": {
       "post": {
         "security": [
@@ -16118,6 +16142,9 @@
           "cost": {
             "$ref": "#/components/schemas/Cost"
           },
+          "description": {
+            "type": "string"
+          },
           "family": {
             "type": "string"
           },
@@ -16139,10 +16166,16 @@
           "open_weights": {
             "type": "boolean"
           },
+          "provider_id": {
+            "type": "string"
+          },
           "reasoning": {
             "type": "boolean"
           },
           "release_date": {
+            "type": "string"
+          },
+          "speed": {
             "type": "string"
           },
           "status": {

@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { LlmKeyCard } from "@/components/llm-key-card"
-import { ProviderModelCombobox } from "@/components/provider-model-combobox"
+import { AllModelsCombobox } from "@/components/all-models-combobox"
 import { IntegrationLogo } from "@/components/integration-logo"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -90,23 +90,33 @@ export function AgentForm() {
   const sharedMemory = form.watch("sharedMemory")
   const permissions = form.watch("permissions")
 
-  const { enhance, isEnhancing } = useEnhancePrompt()
-  const handleEnhance = React.useCallback(() => {
-    void enhance({
-      values: form.getValues(),
-      selectedIntegrations,
-      selectedActions,
-      selectedSkills,
-      selectedSubagents,
-      triggers,
-    })
-  }, [enhance, form, selectedIntegrations, selectedActions, selectedSkills, selectedSubagents, triggers])
+  const { enhance, isEnhancing, output } = useEnhancePrompt()
+
+  React.useEffect(() => {
+    if (isEnhancing) {
+      form.setValue("systemPrompt", output)
+    }
+  }, [output, isEnhancing, form])
+
+  const handleEnhance = React.useCallback(
+    (brief: string) => {
+      void enhance({
+        brief,
+        values: form.getValues(),
+        selectedIntegrations,
+        selectedActions,
+        selectedSkills,
+        selectedSubagents,
+        triggers,
+      })
+    },
+    [enhance, form, selectedIntegrations, selectedActions, selectedSkills, selectedSubagents, triggers],
+  )
   const name = form.watch("name")
 
   React.useEffect(() => {
     if (!showLlmKey) {
       form.setValue("credentialId", "")
-      form.setValue("model", "")
     }
   }, [showLlmKey, form])
 
@@ -117,7 +127,6 @@ export function AgentForm() {
     { enabled: showLlmKey }
   )
   const credentials = credentialsData?.data ?? []
-  const selectedCredential = credentials.find((c) => c.id === credentialId)
 
   const { data: connectionsData } = $api.useQuery("get", "/v1/in/connections")
   const connections = connectionsData?.data ?? []
@@ -272,10 +281,20 @@ export function AgentForm() {
             />
           </Section>
 
+          <Section
+            title="Model"
+            description="The model your agent runs on. Pick one that matches the agent's task."
+          >
+            <AllModelsCombobox
+              value={model || null}
+              onSelect={(value) => form.setValue("model", value)}
+            />
+          </Section>
+
           {showLlmKey ? (
           <Section
             title="LLM key"
-            description="The AI provider credential and model your agent uses."
+            description="Pick a credential to bill this agent's usage to. The platform picks one automatically when no credential is selected."
           >
             <div className="flex flex-col gap-2">
               {credentialsLoading ? (
@@ -312,7 +331,6 @@ export function AgentForm() {
                       providerId={credential.provider_id ?? ""}
                       selected={credentialId === id}
                       onClick={() => {
-                        if (credentialId !== id) form.setValue("model", "")
                         form.setValue("credentialId", id)
                       }}
                     />
@@ -335,16 +353,6 @@ export function AgentForm() {
               )}
             </div>
 
-            {credentialId ? (
-              <div className="flex flex-col gap-2">
-                <Label className="text-[13px] font-medium">Model</Label>
-                <ProviderModelCombobox
-                  providerId={selectedCredential?.provider_id ?? ""}
-                  value={model || null}
-                  onSelect={(value) => form.setValue("model", value)}
-                />
-              </div>
-            ) : null}
           </Section>
           ) : null}
 
