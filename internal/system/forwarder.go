@@ -90,10 +90,7 @@ func (f *Forwarder) ForwardStream(ctx context.Context, call ForwardCall, w http.
 	if !call.Stream {
 		return nil, errors.New("ForwardStream: call.Stream must be true")
 	}
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		return nil, errors.New("ResponseWriter does not implement http.Flusher")
-	}
+	rc := http.NewResponseController(w)
 
 	resp, err := f.do(ctx, call)
 	if err != nil {
@@ -159,7 +156,7 @@ func (f *Forwarder) ForwardStream(ctx context.Context, call ForwardCall, w http.
 				if err := writeSSE(w, sseDelta{Delta: delta}); err != nil {
 					return nil, err
 				}
-				flusher.Flush()
+				_ = rc.Flush()
 			}
 		}
 	}
@@ -173,7 +170,7 @@ func (f *Forwarder) ForwardStream(ctx context.Context, call ForwardCall, w http.
 	}); err != nil {
 		return nil, err
 	}
-	flusher.Flush()
+	_ = rc.Flush()
 
 	return &CompletionResult{
 		Text:  textBuf.String(),
@@ -182,21 +179,15 @@ func (f *Forwarder) ForwardStream(ctx context.Context, call ForwardCall, w http.
 	}, nil
 }
 
-// EmitCachedSSE writes a Hiveloop-shaped SSE response from a cached result.
-// One delta chunk + one done chunk with cached:true. Used by the handler
-// when a streaming request hits the cache.
 func EmitCachedSSE(w http.ResponseWriter, cached *CompletionResult) error {
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		return errors.New("ResponseWriter does not implement http.Flusher")
-	}
+	rc := http.NewResponseController(w)
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	if err := writeSSE(w, sseDelta{Delta: cached.Text}); err != nil {
 		return err
 	}
-	flusher.Flush()
+	_ = rc.Flush()
 	if err := writeSSE(w, sseDone{
 		Done:   true,
 		Usage:  cached.Usage,
@@ -204,7 +195,7 @@ func EmitCachedSSE(w http.ResponseWriter, cached *CompletionResult) error {
 	}); err != nil {
 		return err
 	}
-	flusher.Flush()
+	_ = rc.Flush()
 	return nil
 }
 
