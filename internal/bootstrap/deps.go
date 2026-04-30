@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"time"
 
-	ph "github.com/posthog/posthog-go"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
@@ -34,7 +33,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/streaming"
 	"github.com/usehiveloop/hiveloop/internal/turso"
 
-	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 )
 
 // Deps holds all shared dependencies initialized during bootstrap.
@@ -65,7 +64,6 @@ type Deps struct {
 	Credits          *billing.CreditsService     // credit ledger service
 	Subscriptions    *subscription.Service       // wraps registry+credits with the renewal worker
 	S3Client         *storage.S3Client           // nil if AWS_S3_BUCKET_NAME not set
-	PostHog          ph.Client                   // nil if PostHog disabled
 }
 
 // New initializes all shared dependencies. The caller is responsible for
@@ -77,14 +75,21 @@ func New(ctx context.Context) (*Deps, error) {
 		return nil, fmt.Errorf("loading config: %w", err)
 	}
 
-	// 2. Logging
-	// Note: logging is NOT initialized here — the caller must do it before
-	// calling New() so that any errors during bootstrap are properly formatted.
+	// Sentry must initialize before DB and Redis so the GORM plugin and
+	// Redis hook can register their tracing callbacks at construction.
+	if err := sentryobs.Init(cfg, sentryobs.ClientOptions{
+		ServiceName: "platform",
+		Environment: cfg.Environment,
+	}); err != nil {
+		return nil, fmt.Errorf("initializing sentry: %w", err)
+	}
 
-	// 3. Database
 	database, err := db.New(cfg.DatabaseDSN())
 	if err != nil {
 		return nil, fmt.Errorf("connecting to database: %w", err)
+	}
+	if err := sentryobs.InstallGORMPlugin(database); err != nil {
+		return nil, fmt.Errorf("installing sentry gorm plugin: %w", err)
 	}
 	if err := model.AutoMigrate(database); err != nil {
 		return nil, fmt.Errorf("running migrations: %w", err)
@@ -142,6 +147,7 @@ func New(ctx context.Context) (*Deps, error) {
 		redisOpts.PoolTimeout = 4 * time.Second
 	}
 	redisClient := redis.NewClient(redisOpts)
+	sentryobs.InstallRedisHook(redisClient)
 	if err := redisClient.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("connecting to redis: %w", err)
 	}
@@ -276,21 +282,6 @@ func New(ctx context.Context) (*Deps, error) {
 		slog.Info("s3 storage ready", "bucket", cfg.S3Bucket)
 	}
 
-	// 19. PostHog error tracking (optional — disabled when POSTHOG_ENABLED=false
-	// or POSTHOG_API_KEY is empty). NewClient returns (nil, nil) in that case.
-	// The caller (main.go) is responsible for wrapping the slog handler once
-	// the service name is known (api vs worker vs proxy).
-	postHogClient, err := posthogobs.NewClient(cfg, posthogobs.ClientOptions{
-		ServiceName: "platform",
-		Environment: cfg.Environment,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("initializing posthog client: %w", err)
-	}
-	if postHogClient != nil {
-		slog.Info("posthog error tracking ready", "endpoint", cfg.PostHogEndpoint)
-	}
-
 	return &Deps{
 		Config:          cfg,
 		DB:              database,
@@ -317,18 +308,17 @@ func New(ctx context.Context) (*Deps, error) {
 		Credits:         credits,
 		Subscriptions:   subscription.NewService(database, billingRegistry, credits),
 		S3Client:        s3Client,
-		PostHog:         postHogClient,
 	}, nil
 }
 
-// Close releases all resources held by Deps. PostHog is closed LAST so it can
-// capture any errors produced by the other subsystems shutting down.
+// Close releases all resources held by Deps. Sentry is flushed LAST so it
+// can capture any errors produced by the other subsystems shutting down.
 func (d *Deps) Close() {
 	d.CacheManager.Memory().Purge()
 	if sqlDB, err := d.DB.DB(); err == nil {
 		_ = sqlDB.Close()
 	}
 	_ = d.Redis.Close()
-	posthogobs.Close(d.PostHog)
+	sentryobs.Close()
 	slog.Info("deps closed")
 }

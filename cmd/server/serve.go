@@ -20,7 +20,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
-	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 	"github.com/usehiveloop/hiveloop/internal/proxy"
 	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
 	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
@@ -102,7 +102,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	auditHandler := handler.NewAuditHandler(database)
 	generationHandler := handler.NewGenerationHandler(database)
 	reportingHandler := handler.NewReportingHandler(database)
-	proxyHandler := handler.NewProxyHandler(cacheManager, &proxy.CaptureTransport{Inner: proxy.NewTransport()})
+	proxyHandler := handler.NewProxyHandler(cacheManager, &proxy.CaptureTransport{Inner: sentryobs.WrapTransport(proxy.NewTransport())})
 
 	var conversationHandler *handler.ConversationHandler
 	if orchestrator != nil && agentPusher != nil {
@@ -161,7 +161,8 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
-	r.Use(posthogobs.Recoverer(deps.PostHog))
+	r.Use(sentryobs.Middleware())
+	r.Use(sentryobs.Recoverer())
 	r.Use(middleware.SecurityHeaders())
 	r.Use(middleware.CORS(cfg.CORSOrigins))
 	r.Use(middleware.RequestLog(logger))
@@ -219,7 +220,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 0,
 		IdleTimeout:  120 * time.Second,
-		ErrorLog:     posthogobs.NewStdlogBridge("api_server"),
+		ErrorLog:     sentryobs.NewStdlogBridge("api_server"),
 	}
 
 	goroutine.Go(ctx, func(context.Context) {

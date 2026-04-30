@@ -15,14 +15,11 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
-	posthogobs "github.com/usehiveloop/hiveloop/internal/observability/posthog"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 )
 
 func init() {
-	// Wire the middleware-based distinct ID extractor into the posthog
-	// package. Done at init so background goroutines that start before
-	// run() (e.g. memguard) still have a valid extractor installed.
-	posthogobs.SetDistinctIDExtractor(middleware.DistinctID)
+	sentryobs.SetUserExtractor(middleware.DistinctID)
 }
 
 // @title HiveLoop API
@@ -59,9 +56,6 @@ func main() {
 	}
 
 	if err := run(cmd); err != nil {
-		// run() already logs the fatal via slog.Error BEFORE deps.Close
-		// runs, so any wrapped PostHog client will have captured it. Here
-		// we only need to flag the exit code — no log needed.
 		os.Exit(1)
 	}
 }
@@ -82,38 +76,23 @@ func run(cmd string) error {
 
 	deps, err := bootstrap.New(ctx)
 	if err != nil {
-		// No PostHog client yet — log to stdout only.
 		slog.Error("bootstrap failed", "error", err)
 		return err
 	}
 	defer deps.Close()
 
-	// Wrap the global slog handler so every Error-level log mirrors to
-	// PostHog error tracking. This is a no-op when PostHog is disabled.
-	// Must happen AFTER bootstrap.New so the PostHog client exists, but
-	// BEFORE runServe/runWork so all subsequent errors are captured.
-	if deps.PostHog != nil {
-		wrapped := posthogobs.WrapSlogHandler(slog.Default().Handler(), deps.PostHog)
-		slog.SetDefault(slog.New(wrapped))
-	}
+	// Wrap slog AFTER bootstrap (Sentry is initialized) and BEFORE dispatch
+	// so every subsequent Error log is mirrored to Sentry.
+	slog.SetDefault(slog.New(sentryobs.WrapSlogHandler(slog.Default().Handler())))
 
-	posthogobs.CaptureEvent(deps.PostHog, ctx, "service_started", map[string]any{
-		"mode":    cmd,
-		"version": version,
-		"commit":  commit,
-	})
+	sentryobs.CaptureMessage(ctx, fmt.Sprintf("service_started mode=%s version=%s", cmd, version))
 
 	runErr := dispatch(ctx, cmd, deps)
 	if runErr != nil {
-		// Log the fatal through the wrapped slog handler BEFORE deps.Close
-		// flushes the PostHog client, so the exception is captured.
 		slog.Error("service exited with error", "mode", cmd, "error", runErr)
 	}
 
-	posthogobs.CaptureEvent(deps.PostHog, ctx, "service_stopped", map[string]any{
-		"mode":   cmd,
-		"errored": runErr != nil,
-	})
+	sentryobs.CaptureMessage(ctx, fmt.Sprintf("service_stopped mode=%s errored=%t", cmd, runErr != nil))
 
 	return runErr
 }
