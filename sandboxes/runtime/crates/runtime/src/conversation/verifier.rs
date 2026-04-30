@@ -134,7 +134,7 @@ pub(super) async fn run_if_enabled(
                 Confidence::High => "high",
                 Confidence::Low => "low",
             },
-            "reason": parsed.reason,
+            "instruction": parsed.instruction,
             "model": raw.model_used,
             "input_tokens": raw.input_tokens,
             "cached_input_tokens": raw.cached_input_tokens,
@@ -150,7 +150,7 @@ pub(super) async fn run_if_enabled(
 
     if should_reprompt {
         VerifierAction::Reprompt {
-            synthetic_prompt: synthesize_reprompt(&parsed.reason),
+            synthetic_prompt: synthesize_reprompt(&parsed.instruction),
         }
     } else {
         VerifierAction::Proceed
@@ -235,12 +235,13 @@ fn resolve_env(raw: &str) -> String {
 }
 
 /// Synthetic user message appended to history when the verifier asks for
-/// more work. Public for testing.
-pub(super) fn synthesize_reprompt(reason: &str) -> String {
+/// more work. The verifier's `instruction` field is the agent-facing
+/// directive — it's already phrased as actionable second-person guidance,
+/// so we inject it verbatim with a brief framing line. Public for testing.
+pub(super) fn synthesize_reprompt(instruction: &str) -> String {
     format!(
-        "The verifier flagged this turn as potentially incomplete: {}\nRe-check your work. \
-        If you've genuinely finished, say so explicitly. Otherwise continue the task.",
-        reason.trim()
+        "The previous turn was flagged as incomplete by the verifier.\n\n{}",
+        instruction.trim()
     )
 }
 
@@ -257,41 +258,28 @@ pub(super) struct VerifierProjection<'a> {
 #[derive(Serialize, Debug, Clone)]
 #[serde(tag = "role", rename_all = "snake_case")]
 pub(super) enum ProjectedMessage {
-    User {
-        text: String,
-    },
-    Assistant {
-        text: Option<String>,
-        tool_intents: Vec<ToolIntent>,
-    },
+    /// Real user-typed text. Passes through verbatim — never elided.
+    User { text: String },
+    /// Assistant text. Head/tail elided when long.
+    Assistant { text: String },
+    /// Tool call requested by the agent. `arguments` is the args JSON
+    /// serialized as a string and head/tail elided when long.
+    ToolCall { name: String, arguments: String },
+    /// Tool result. `content` is the result body head/tail elided when long.
+    ToolResult { content: String },
 }
 
-#[derive(Serialize, Debug, Clone)]
-pub(super) struct ToolIntent {
-    pub action: ToolAction,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub target: Option<String>,
-}
+/// Per-side character budget for head/tail elision applied to every
+/// projected field except [`ProjectedMessage::User::text`]. A string of
+/// length L is sent as `head[..N] + ELISION_MARKER + tail[L-N..]`
+/// when L > 2N + ELISION_MARKER.len(); otherwise verbatim.
+const HEAD_TAIL_CHARS: usize = 1000;
+const ELISION_MARKER: &str = "\n\n... [middle elided] ...\n\n";
 
-#[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub(super) enum ToolAction {
-    Read,
-    Write,
-    Execute,
-    Network,
-    AskUser,
-    Other,
-}
-
-const TARGET_MAX_LEN: usize = 32;
-
-/// Project a rig history slice into the verifier wire format. Only the
-/// suffix from `history_baseline_len` is included — that's just-this-turn.
-/// User messages from the broader conversation matter less for terminal
-/// verdict; the most recent user message is the one that comes through
-/// `commit_user_turn`, which writes into history *before* the baseline,
-/// so we walk the whole history but project all user/assistant text.
+/// Walk the rig history and produce the verifier wire format. User text is
+/// preserved verbatim. Assistant text, tool-call arguments, and tool
+/// results are head/tail-elided. Order is preserved: each rig content
+/// block becomes one projected message.
 pub(super) fn project_conversation<'a>(
     agent_system_prompt: &'a str,
     history: &[rig::message::Message],
@@ -304,51 +292,52 @@ pub(super) fn project_conversation<'a>(
     for msg in history {
         match msg {
             rig::message::Message::User { content } => {
-                let mut text_parts: Vec<String> = Vec::new();
-                for part in content.iter() {
-                    if let UserContent::Text(t) = part {
-                        if !t.text.is_empty() {
-                            text_parts.push(t.text.clone());
-                        }
-                    }
-                    // ToolResult intentionally dropped.
-                }
-                if !text_parts.is_empty() {
-                    messages.push(ProjectedMessage::User {
-                        text: text_parts.join("\n"),
-                    });
-                }
-            }
-            rig::message::Message::Assistant { content, .. } => {
-                let mut text_parts: Vec<String> = Vec::new();
-                let mut intents: Vec<ToolIntent> = Vec::new();
                 for part in content.iter() {
                     match part {
-                        AssistantContent::Text(t) if !t.text.is_empty() => {
-                            text_parts.push(t.text.clone());
+                        UserContent::Text(t) if !t.text.is_empty() => {
+                            messages.push(ProjectedMessage::User {
+                                text: t.text.clone(),
+                            });
                         }
-                        AssistantContent::ToolCall(call) => {
-                            intents.push(intent_for_tool(
-                                &call.function.name,
-                                &call.function.arguments,
-                            ));
+                        UserContent::ToolResult(result) => {
+                            let body = result
+                                .content
+                                .iter()
+                                .map(|p| match p {
+                                    rig::message::ToolResultContent::Text(t) => t.text.clone(),
+                                    other => format!("{other:?}"),
+                                })
+                                .collect::<Vec<_>>()
+                                .join("\n");
+                            messages.push(ProjectedMessage::ToolResult {
+                                content: head_tail_elide(&body, HEAD_TAIL_CHARS),
+                            });
                         }
                         _ => {}
                     }
                 }
-                let text = if text_parts.is_empty() {
-                    None
-                } else {
-                    Some(text_parts.join("\n"))
-                };
-                if text.is_some() || !intents.is_empty() {
-                    messages.push(ProjectedMessage::Assistant {
-                        text,
-                        tool_intents: intents,
-                    });
+            }
+            rig::message::Message::Assistant { content, .. } => {
+                for part in content.iter() {
+                    match part {
+                        AssistantContent::Text(t) if !t.text.is_empty() => {
+                            messages.push(ProjectedMessage::Assistant {
+                                text: head_tail_elide(&t.text, HEAD_TAIL_CHARS),
+                            });
+                        }
+                        AssistantContent::ToolCall(call) => {
+                            let args_str = serde_json::to_string(&call.function.arguments)
+                                .unwrap_or_else(|_| String::from("\"<unserializable>\""));
+                            messages.push(ProjectedMessage::ToolCall {
+                                name: call.function.name.clone(),
+                                arguments: head_tail_elide(&args_str, HEAD_TAIL_CHARS),
+                            });
+                        }
+                        _ => {}
+                    }
                 }
             }
-            rig::message::Message::System { .. } => {} // never projected here
+            rig::message::Message::System { .. } => {}
         }
     }
 
@@ -358,98 +347,18 @@ pub(super) fn project_conversation<'a>(
     }
 }
 
-/// Map a tool call to a coarse intent. Never includes tool name, full
-/// arguments, or output. Target is a single short noun phrase, capped to
-/// [`TARGET_MAX_LEN`] chars.
-fn intent_for_tool(name: &str, args: &serde_json::Value) -> ToolIntent {
-    let lower = name.to_ascii_lowercase();
-    // Order matters: Execute is checked before Read so "killshell" is not
-    // misclassified by a substring "ls" match.
-    let action = if matches_token(
-        &lower,
-        &["bash", "bashoutput", "killshell", "shell", "exec"],
-    ) {
-        ToolAction::Execute
-    } else if matches_token(
-        &lower,
-        &["write", "edit", "multiedit", "notebookedit", "create_file"],
-    ) {
-        ToolAction::Write
-    } else if matches_token(
-        &lower,
-        &["read", "ls", "glob", "ripgrep", "rip_grep", "grep"],
-    ) {
-        ToolAction::Read
-    } else if matches_token(&lower, &["webfetch", "websearch", "fetch", "http"]) {
-        ToolAction::Network
-    } else if matches_token(&lower, &["askuser", "ask_user_question"]) {
-        ToolAction::AskUser
-    } else {
-        ToolAction::Other
-    };
-
-    let target = match action {
-        ToolAction::Read | ToolAction::Write => path_target(args),
-        ToolAction::Execute => command_target(args),
-        ToolAction::Network => url_or_query_target(args),
-        ToolAction::AskUser | ToolAction::Other => None,
-    };
-    let target = target.map(|s| sanitize_target(&s));
-
-    ToolIntent { action, target }
-}
-
-/// Match `haystack` (already lowercased) against any of `tokens` either as
-/// the whole identifier or as an underscore-separated component. Avoids
-/// substring false positives like "killshell" matching "ls".
-fn matches_token(haystack: &str, tokens: &[&str]) -> bool {
-    tokens
-        .iter()
-        .any(|t| haystack == *t || haystack.split(['_', '-']).any(|p| p == *t))
-}
-
-fn path_target(args: &serde_json::Value) -> Option<String> {
-    let p = args
-        .get("path")
-        .or_else(|| args.get("file_path"))
-        .or_else(|| args.get("pattern"))
-        .and_then(|v| v.as_str())?;
-    Some(basename(p).to_string())
-}
-
-fn basename(p: &str) -> &str {
-    let trimmed = p.trim_end_matches('/');
-    match trimmed.rsplit_once('/') {
-        Some((_, last)) if !last.is_empty() => last,
-        _ => trimmed,
+/// Return `s` verbatim when short enough; otherwise the first `n_per_side`
+/// chars + [`ELISION_MARKER`] + the last `n_per_side` chars. Char-aware so
+/// multi-byte UTF-8 codepoints are never split.
+fn head_tail_elide(s: &str, n_per_side: usize) -> String {
+    let total_chars = s.chars().count();
+    let marker_chars = ELISION_MARKER.chars().count();
+    if total_chars <= 2 * n_per_side + marker_chars {
+        return s.to_string();
     }
-}
-
-fn command_target(args: &serde_json::Value) -> Option<String> {
-    let cmd = args.get("command").and_then(|v| v.as_str())?;
-    Some(cmd.split_whitespace().next().unwrap_or("").to_string())
-}
-
-fn url_or_query_target(args: &serde_json::Value) -> Option<String> {
-    if let Some(u) = args.get("url").and_then(|v| v.as_str()) {
-        // Take host (between :// and the first / or end).
-        if let Some(rest) = u.split("://").nth(1) {
-            return Some(rest.split('/').next().unwrap_or("").to_string());
-        }
-        return Some(u.to_string());
-    }
-    args.get("query")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-}
-
-fn sanitize_target(s: &str) -> String {
-    let cleaned: String = s
-        .chars()
-        .filter(|c| !c.is_control())
-        .take(TARGET_MAX_LEN)
-        .collect();
-    cleaned.trim().to_string()
+    let head: String = s.chars().take(n_per_side).collect();
+    let tail: String = s.chars().skip(total_chars - n_per_side).collect();
+    format!("{head}{ELISION_MARKER}{tail}")
 }
 
 #[cfg(test)]
@@ -483,82 +392,120 @@ mod tests {
         }
     }
 
+    fn user_tool_result(id: &str, body: &str) -> RigMessage {
+        RigMessage::User {
+            content: OneOrMany::one(UserContent::tool_result(
+                id.to_string(),
+                OneOrMany::one(rig::message::ToolResultContent::text(body)),
+            )),
+        }
+    }
+
     #[test]
-    fn project_drops_tool_results_and_keeps_intents() {
+    fn project_includes_tool_calls_and_results_in_order() {
         let history = vec![
             user("read file foo.txt"),
             assistant_tool_call("Read", serde_json::json!({"path":"/tmp/foo.txt"})),
-            // tool result message would normally appear here as a User
-            // ToolResult — we simulate by skipping it from history; the
-            // important assertion is that even if present it's not
-            // surfaced to the verifier.
+            user_tool_result("tr-1", "line a\nline b"),
             assistant_text("done"),
         ];
         let proj = project_conversation("sys", &history, 0);
-        assert_eq!(proj.messages.len(), 3);
+        assert_eq!(proj.messages.len(), 4);
+        assert!(matches!(&proj.messages[0], ProjectedMessage::User { .. }));
         match &proj.messages[1] {
-            ProjectedMessage::Assistant { text, tool_intents } => {
-                assert!(text.is_none());
-                assert_eq!(tool_intents.len(), 1);
-                assert_eq!(tool_intents[0].action, ToolAction::Read);
-                assert_eq!(tool_intents[0].target.as_deref(), Some("foo.txt"));
+            ProjectedMessage::ToolCall { name, arguments } => {
+                assert_eq!(name, "Read");
+                assert!(arguments.contains("/tmp/foo.txt"));
             }
-            _ => panic!("expected assistant message"),
+            _ => panic!("expected ToolCall"),
+        }
+        match &proj.messages[2] {
+            ProjectedMessage::ToolResult { content } => assert!(content.contains("line a")),
+            _ => panic!("expected ToolResult"),
+        }
+        assert!(matches!(&proj.messages[3], ProjectedMessage::Assistant { .. }));
+    }
+
+    #[test]
+    fn assistant_short_text_passes_through_verbatim() {
+        let history = vec![assistant_text("done")];
+        let proj = project_conversation("sys", &history, 0);
+        match &proj.messages[0] {
+            ProjectedMessage::Assistant { text } => assert_eq!(text, "done"),
+            _ => panic!(),
         }
     }
 
     #[test]
-    fn projection_serializes_without_tool_names_or_args() {
+    fn assistant_long_text_is_head_tail_elided() {
+        let head = "H".repeat(HEAD_TAIL_CHARS);
+        let middle = "M".repeat(5_000);
+        let tail = "T".repeat(HEAD_TAIL_CHARS);
+        let full = format!("{head}{middle}{tail}");
+        let history = vec![assistant_text(&full)];
+        let proj = project_conversation("sys", &history, 0);
+        match &proj.messages[0] {
+            ProjectedMessage::Assistant { text } => {
+                assert!(text.starts_with(&head));
+                assert!(text.ends_with(&tail));
+                assert!(text.contains(ELISION_MARKER));
+                assert!(!text.contains("MMMMMMMMMM"));
+            }
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn tool_call_args_are_head_tail_elided() {
+        let big = "x".repeat(5_000);
         let history = vec![assistant_tool_call(
-            "Bash",
-            serde_json::json!({"command":"rm -rf /tmp/secret","reasoning":"private"}),
+            "Write",
+            serde_json::json!({"path":"/repo/foo.rs","content":big}),
         )];
         let proj = project_conversation("sys", &history, 0);
-        let json = serde_json::to_string(&proj).unwrap();
-        // The literal tool name "Bash" can appear lowercased as part of the
-        // action mapping, but the args / sensitive path must not surface.
-        assert!(!json.contains("/tmp/secret"), "full path leaked: {json}");
-        assert!(!json.contains("private"), "extra args leaked: {json}");
-        assert!(!json.contains("reasoning"), "extra args leaked: {json}");
-        assert!(json.contains("execute"), "action missing: {json}");
-        assert!(json.contains("rm"), "command basename present: {json}");
-    }
-
-    #[test]
-    fn intent_mapping_table() {
-        let cases: Vec<(&str, ToolAction)> = vec![
-            ("Read", ToolAction::Read),
-            ("rip_grep", ToolAction::Read),
-            ("Write", ToolAction::Write),
-            ("Edit", ToolAction::Write),
-            ("MultiEdit", ToolAction::Write),
-            ("Bash", ToolAction::Execute),
-            ("KillShell", ToolAction::Execute),
-            ("WebFetch", ToolAction::Network),
-            ("ask_user_question", ToolAction::AskUser),
-            ("InternalCustomMcpThing", ToolAction::Other),
-        ];
-        for (name, expected) in cases {
-            let i = intent_for_tool(name, &serde_json::json!({}));
-            assert_eq!(i.action, expected, "for tool {name}");
+        match &proj.messages[0] {
+            ProjectedMessage::ToolCall { name, arguments } => {
+                assert_eq!(name, "Write");
+                assert!(arguments.starts_with('{'));
+                assert!(arguments.contains(ELISION_MARKER));
+                assert!(arguments.ends_with('}'));
+            }
+            _ => panic!(),
         }
     }
 
     #[test]
-    fn target_is_capped() {
-        let long = "a".repeat(200);
-        let i = intent_for_tool(
-            "Read",
-            &serde_json::json!({ "path": format!("/x/{}", long) }),
-        );
-        assert!(i.target.unwrap().len() <= TARGET_MAX_LEN);
+    fn tool_result_content_is_head_tail_elided() {
+        let big = "y".repeat(5_000);
+        let history = vec![user_tool_result("id", &big)];
+        let proj = project_conversation("sys", &history, 0);
+        match &proj.messages[0] {
+            ProjectedMessage::ToolResult { content } => {
+                assert!(content.contains(ELISION_MARKER));
+            }
+            _ => panic!(),
+        }
     }
 
     #[test]
-    fn synthesize_reprompt_format() {
-        let s = synthesize_reprompt("missing tests");
-        assert!(s.contains("missing tests"));
-        assert!(s.contains("Re-check"));
+    fn user_text_is_never_truncated() {
+        let big = "U".repeat(100_000);
+        let history = vec![user(&big)];
+        let proj = project_conversation("sys", &history, 0);
+        match &proj.messages[0] {
+            ProjectedMessage::User { text } => assert_eq!(text.len(), big.len()),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn synthesize_reprompt_uses_instruction_verbatim() {
+        let s = synthesize_reprompt(
+            "Run the failing test in foo_test.rs and update the assertion to match.",
+        );
+        assert!(s.contains("foo_test.rs"));
+        assert!(s.contains("update the assertion"));
+        assert!(s.contains("flagged as incomplete"));
     }
 
     #[test]

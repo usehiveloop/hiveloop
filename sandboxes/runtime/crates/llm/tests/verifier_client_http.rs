@@ -34,7 +34,7 @@ async fn happy_path_strict_outputs_and_cached_tokens() {
                 "choices": [{
                     "message": {
                         "role": "assistant",
-                        "content": r#"{"verdict":"users_turn","confidence":"high","reason":"ok"}"#,
+                        "content": r#"{"verdict":"users_turn","confidence":"high","instruction":""}"#,
                     }
                 }],
                 "usage": {

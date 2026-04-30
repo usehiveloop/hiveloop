@@ -95,6 +95,6 @@ async fn real_openai_clean_factual_turn_is_users_turn_or_completed() {
         matches!(parsed.verdict, Verdict::UsersTurn | Verdict::Completed),
         "expected users_turn or completed for clean factual answer; got {:?} ({})",
         parsed.verdict,
-        parsed.reason
+        parsed.instruction
     );
 }

@@ -41,8 +41,47 @@ pub struct VerifierModel {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum VerifierProvider {
+    // Wire format matches `core::ProviderType::OpenAI` ("open_ai") rather
+    // than the serde-default `"open_a_i"`. Without this override snake_case
+    // splits on every capital letter (O p e n _A _I). Keep aligned with
+    // `crates/core/src/provider.rs` so callers spell OpenAI the same way
+    // everywhere in bridge configs.
+    #[serde(rename = "open_ai")]
     OpenAI,
     Gemini,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn verifier_provider_openai_serializes_as_open_ai() {
+        assert_eq!(
+            serde_json::to_string(&VerifierProvider::OpenAI).unwrap(),
+            "\"open_ai\""
+        );
+    }
+
+    #[test]
+    fn verifier_provider_openai_deserializes_from_open_ai() {
+        let p: VerifierProvider = serde_json::from_str("\"open_ai\"").unwrap();
+        assert_eq!(p, VerifierProvider::OpenAI);
+    }
+
+    #[test]
+    fn verifier_provider_openai_rejects_legacy_open_a_i() {
+        let r: Result<VerifierProvider, _> = serde_json::from_str("\"open_a_i\"");
+        assert!(r.is_err(), "expected legacy spelling to fail");
+    }
+
+    #[test]
+    fn verifier_provider_gemini_unchanged() {
+        assert_eq!(
+            serde_json::to_string(&VerifierProvider::Gemini).unwrap(),
+            "\"gemini\""
+        );
+    }
 }
 
 fn default_max_reprompts() -> u32 {
