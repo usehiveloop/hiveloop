@@ -67,7 +67,7 @@ func AsynqMiddleware() asynq.MiddlewareFunc {
 				"retry_count": retryCount,
 			})
 			ctx = sentrygo.SetHubOnContext(ctx, hub)
-			applyUserToScope(ctx, hub.Scope())
+			applyAttribution(ctx, hub.Scope())
 
 			tx := sentrygo.StartTransaction(
 				ctx,

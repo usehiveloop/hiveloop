@@ -7,15 +7,25 @@ import (
 	sentrygo "github.com/getsentry/sentry-go"
 )
 
-type UserExtractor func(ctx context.Context) string
+type StringExtractor func(ctx context.Context) string
 
-var userExtractor atomic.Pointer[UserExtractor]
+var (
+	userExtractor atomic.Pointer[StringExtractor]
+	orgExtractor  atomic.Pointer[StringExtractor]
+)
 
-func SetUserExtractor(fn UserExtractor) {
+func SetUserExtractor(fn StringExtractor) {
 	if fn == nil {
 		return
 	}
 	userExtractor.Store(&fn)
+}
+
+func SetOrgExtractor(fn StringExtractor) {
+	if fn == nil {
+		return
+	}
+	orgExtractor.Store(&fn)
 }
 
 func resolveUserID(ctx context.Context) string {
@@ -29,10 +39,22 @@ func resolveUserID(ctx context.Context) string {
 	return (*extractor)(ctx)
 }
 
-func applyUserToScope(ctx context.Context, scope *sentrygo.Scope) {
-	id := resolveUserID(ctx)
-	if id == "" {
-		return
+func resolveOrgID(ctx context.Context) string {
+	if ctx == nil {
+		return ""
 	}
-	scope.SetUser(sentrygo.User{ID: id})
+	extractor := orgExtractor.Load()
+	if extractor == nil {
+		return ""
+	}
+	return (*extractor)(ctx)
+}
+
+func applyAttribution(ctx context.Context, scope *sentrygo.Scope) {
+	if id := resolveUserID(ctx); id != "" {
+		scope.SetUser(sentrygo.User{ID: id})
+	}
+	if id := resolveOrgID(ctx); id != "" {
+		scope.SetTag("org_id", id)
+	}
 }

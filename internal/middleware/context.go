@@ -108,6 +108,39 @@ func SetAdminAuditChanges(r *http.Request, changes AdminAuditChanges) {
 	}
 }
 
+// UserID resolves the authenticated user's UUID, or "" when the request is
+// unauthenticated or only carries an org identity (API key, sandbox proxy).
+func UserID(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	if user, ok := UserFromContext(ctx); ok && user != nil && user.ID != uuid.Nil {
+		return user.ID.String()
+	}
+	if claims, ok := AuthClaimsFromContext(ctx); ok && claims != nil && claims.UserID != "" {
+		return claims.UserID
+	}
+	return ""
+}
+
+// OrgID resolves the request's org UUID, falling back through proxy and
+// API-key claims. Returns "" when no org is bound to the context.
+func OrgID(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	if org, ok := OrgFromContext(ctx); ok && org != nil && org.ID != uuid.Nil {
+		return org.ID.String()
+	}
+	if claims, ok := ClaimsFromContext(ctx); ok && claims != nil && claims.OrgID != "" {
+		return claims.OrgID
+	}
+	if claims, ok := APIKeyClaimsFromContext(ctx); ok && claims != nil && claims.OrgID != "" {
+		return claims.OrgID
+	}
+	return ""
+}
+
 // DistinctID resolves a stable identifier for observability (error tracking,
 // analytics). The resolution order is:
 //
