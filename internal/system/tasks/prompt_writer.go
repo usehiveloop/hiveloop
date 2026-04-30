@@ -1,44 +1,20 @@
-// Package tasks holds the registered system task definitions. Each file
-// declares one task and self-registers via init(). To add a task: drop a
-// new file in this directory.
 package tasks
 
 import (
 	"github.com/usehiveloop/hiveloop/internal/system"
 )
 
-// PromptWriter takes the same payload the agent-create endpoint accepts —
-// name, category, instructions, skill_ids, subagent_ids, integrations,
-// triggers, tools, mcp_servers, sandbox_tools, permissions — and asks
-// Gemini 2.5 Flash to write the agent's system prompt as plain markdown.
-//
-// Resolve does the org-scoped DB lookups: skill IDs become {name,
-// description}, subagent IDs become {name, description, model}, integration
-// connection IDs become {provider, actions: [{slug, description}]} via the
-// actions catalog, trigger keys become display names + descriptions. The
-// template then ranges over the resolved structures so Gemini sees rich,
-// human-meaningful detail rather than opaque UUIDs.
-//
-// The streamed response IS the prompt — no JSON wrapper, no preamble.
-//
-// The target runtime is GLM 4.5/5.1 (the platform's default agent model),
-// so the gemini-side instructions are tuned to that audience: concrete,
-// workflow-driven, no filler.
 var PromptWriter = system.Task{
 	Name:        "prompt_writer",
-	Version:     "v3",
+	Version:     "v4",
 	Description: "Generate a workflow-specific system prompt for an agent that runs on GLM 4.5/5.1.",
 
-	ProviderGroup: "gemini",
-	ModelTier:     system.ModelNamed,
-	Model:         "gemini-2.5-flash",
+	ModelTier: system.ModelNamed,
+	Model:     "openai/gpt-5-nano",
 
 	SystemPrompt:       promptWriterSystemPrompt,
 	UserPromptTemplate: promptWriterUserTemplate,
 
-	// Args mirror the createAgentRequest fields the FE already builds. The
-	// resolver in prompt_writer_resolve.go turns IDs into rich structures
-	// keyed for the template.
 	Args: []system.ArgSpec{
 		{Name: "name", Type: system.ArgString, Required: true, MaxLen: 200},
 		{Name: "category", Type: system.ArgString, MaxLen: 200},
@@ -57,22 +33,12 @@ var PromptWriter = system.Task{
 
 	MaxOutputTokens: 4096,
 	DefaultStream:   true,
-	// Caching disabled. The args mutate on every keystroke in the agent
-	// draft form, hit rate is effectively zero, and stale resolved data
-	// (e.g. a renamed skill) would silently bleed into a cached prompt.
 }
 
 func init() { system.Register(PromptWriter) }
 
-// The system prompt below is deliberately blunt and structural. Gemini Flash
-// drifts toward filler ("You are a helpful AI assistant that…") if you give
-// it a soft brief. We want the produced prompt to read like an SRE playbook,
-// not a chatbot persona.
-//
-// Implementation note: this is a Go raw string, so it cannot contain a
-// backtick. Single quotes around identifiers in the body below are a
-// workaround — Gemini is told (in the rules section) to render those names
-// as markdown code spans in the produced prompt.
+// Raw string can't contain backticks — single-quoted identifiers below are
+// rendered as markdown code spans by Gemini per the rules section.
 const promptWriterSystemPrompt = `You write production system prompts for GLM 4.5/5.1 agents.
 
 GLM 4.5/5.1 is a tool-using agentic LLM. The prompt you produce is the agent's only durable instruction layer — no examples are appended, no additional priming. Treat it as a runbook that a real engineer would paste into a config file.
@@ -146,10 +112,6 @@ Acceptable phrasing always names the artifact and the moment:
 
 The user message gives you the agent's name, category, free-form operator instructions, plus structured lists of its skills (each with name + description), sub-agents (name + description + model), integrations (per-connection action lists with descriptions), triggers (type, payload shape, operator notes), built-in tools, and permissions. Use them all. If a section is empty, omit the corresponding section in your output (don't write "## Skills" followed by "(none)" — just leave the section out). The instructions field tells you what the agent's job is in the operator's words; translate it into the workflow, do not paste it.`
 
-// User template ranges over the resolved structures produced by
-// resolvePromptWriterArgs. Each section is gated so an empty list produces
-// no header at all — keeps the prompt the user message tight and stops
-// Gemini from reasoning about "(none)" placeholders.
 const promptWriterUserTemplate = `Agent name: {{.name}}
 {{with .category}}Category: {{.}}
 {{end}}

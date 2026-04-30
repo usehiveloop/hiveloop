@@ -18,10 +18,6 @@ interface BuildArgsInput {
   triggers: TriggerConfig[]
 }
 
-// Builds the args object the prompt_writer endpoint accepts. Mirrors the
-// shape `handleSubmit` builds for POST /v1/agents — minus the create-only
-// fields the resolver doesn't read (credential_id, model, system_prompt,
-// description, avatar_url, shared_memory).
 function buildEnhanceArgs(input: BuildArgsInput): Record<string, unknown> {
   const { values, selectedIntegrations, selectedActions, selectedSkills, selectedSubagents, triggers } = input
 
@@ -44,10 +40,14 @@ function buildEnhanceArgs(input: BuildArgsInput): Record<string, unknown> {
     return base
   })
 
+  // The visible "Instructions" textarea is bound to systemPrompt, not the
+  // form's `instructions` field — see agent-form.tsx.
+  const operatorInstructions = values.systemPrompt.trim() || values.instructions?.trim() || ""
+
   return {
     name: values.name.trim(),
     category: values.category.trim() || undefined,
-    instructions: values.instructions || undefined,
+    instructions: operatorInstructions || undefined,
     skill_ids: Array.from(selectedSkills.keys()),
     subagent_ids: Array.from(selectedSubagents.keys()),
     integrations,
@@ -65,7 +65,9 @@ export function useEnhancePrompt() {
         toast.error("Give the agent a name first")
         return
       }
-      if (!params.values.instructions?.trim()) {
+      const written =
+        params.values.systemPrompt.trim() || params.values.instructions?.trim() || ""
+      if (!written) {
         toast.error("Write a few lines of instructions before enhancing")
         return
       }
