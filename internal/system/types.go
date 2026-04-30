@@ -87,10 +87,8 @@ type Task struct {
 
 	DefaultStream bool
 
-	// CacheTTL is the lifetime of cached results for this task. Zero
-	// disables caching. Unset (zero default) means "no caching"; tasks that
-	// want the default 24h policy must say so explicitly. The handler uses
-	// the cache only when CacheTTL > 0.
+	ReasoningEffort string
+
 	CacheTTL time.Duration
 
 	// Resolve, when set, runs between ValidateArgs and template render.
@@ -128,6 +126,11 @@ type LLMRequest struct {
 	Stream         bool           `json:"stream,omitempty"`
 	ResponseFormat *responseSpec  `json:"response_format,omitempty"`
 	StreamOptions  *streamOptions `json:"stream_options,omitempty"`
+	Reasoning      *reasoningSpec `json:"reasoning,omitempty"`
+}
+
+type reasoningSpec struct {
+	Effort string `json:"effort,omitempty"`
 }
 
 type LLMMessage struct {

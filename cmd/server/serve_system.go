@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -22,7 +21,6 @@ import (
 func buildSystemTaskHandler(db *gorm.DB, deps *bootstrap.Deps, redisClient *redis.Client) *handler.SystemTaskHandler {
 	picker := credentials.NewPicker(db)
 	httpClient := &http.Client{
-		Timeout:   60 * time.Second,
 		Transport: &proxy.CaptureTransport{Inner: proxy.NewTransport()},
 	}
 	fwd := system.NewForwarder(httpClient)
