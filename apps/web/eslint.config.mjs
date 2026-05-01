@@ -23,6 +23,13 @@ const eslintConfig = defineConfig([
       "no-console": ["error", { allow: ["warn", "error"] }],
     },
   },
+  {
+    // Build/codegen scripts are CLI-shaped — console output is the point.
+    files: ["scripts/**/*.{ts,mts,tsx,js,mjs}"],
+    rules: {
+      "no-console": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

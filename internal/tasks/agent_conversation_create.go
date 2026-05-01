@@ -153,11 +153,5 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		}
 	}
 
-	logger.Info("agent conversation created",
-		"conversation_id", conv.ConversationId,
-		"sandbox_id", sb.ID,
-		"duration_ms", time.Since(started).Milliseconds(),
-	)
-
 	return nil
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
-	"time"
 
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
@@ -51,7 +50,6 @@ func (handler *SubscriptionDispatchHandler) Handle(ctx context.Context, task *as
 		return fmt.Errorf("unmarshal subscription dispatch payload: %w", err)
 	}
 
-	started := time.Now()
 	logger := slog.With(
 		"component", "subscription_dispatch",
 		"delivery_id", payload.DeliveryID,
@@ -111,10 +109,6 @@ func (handler *SubscriptionDispatchHandler) Handle(ctx context.Context, task *as
 	}
 	waitGroup.Wait()
 
-	logger.Info("subscription dispatch complete",
-		"subscription_count", len(subs),
-		"duration_ms", time.Since(started).Milliseconds(),
-	)
 	return nil
 }
 
@@ -129,12 +123,6 @@ func (handler *SubscriptionDispatchHandler) deliverOne(
 	content string,
 	fullMessage string,
 ) {
-	subLogger := logger.With(
-		"subscription_id", sub.ID,
-		"conversation_id", sub.ConversationID,
-		"agent_id", sub.AgentID,
-	)
-
 	var conv model.AgentConversation
 	if err := handler.db.Where("id = ?", sub.ConversationID).First(&conv).Error; err != nil {
 		logging.Capture(ctx, fmt.Errorf("load conversation %s: %w", sub.ConversationID, err))
@@ -170,8 +158,4 @@ func (handler *SubscriptionDispatchHandler) deliverOne(
 		logging.Capture(ctx, fmt.Errorf("send message to bridge conversation %s: %w", conv.BridgeConversationID, err))
 		return
 	}
-
-	subLogger.Info("subscription delivery complete",
-		"bridge_conversation_id", conv.BridgeConversationID,
-	)
 }

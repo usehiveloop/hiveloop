@@ -13,6 +13,14 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // Logging hygiene. Use a structured logger instead of raw console for
+    // anything operational. console.warn/console.error are tolerated as
+    // last-resort escape hatches; everything else is a build failure.
+    rules: {
+      "no-console": ["error", { allow: ["warn", "error"] }],
+    },
+  },
 ]);
 
 export default eslintConfig;
