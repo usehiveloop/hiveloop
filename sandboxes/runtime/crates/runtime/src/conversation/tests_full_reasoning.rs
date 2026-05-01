@@ -1,7 +1,3 @@
-//! Verifies the contract that `ResponseCompleted` carries `full_reasoning`
-//! alongside `full_response`, so downstream consumers can drop per-token
-//! `reasoning_delta` events from persistent storage without losing reasoning.
-
 use std::sync::Arc;
 
 use bridge_core::event::{BridgeEvent, BridgeEventType};
@@ -10,7 +6,27 @@ use tokio::sync::mpsc;
 use webhooks::EventBus;
 
 use super::finalize::emit_turn_complete_events;
-use super::stream_loop::{attempt_into_result, StreamAttempt};
+use super::stream_loop::{
+    attempt_into_result, handle_reasoning_delta, handle_text_delta, maybe_close_reasoning,
+    StreamAttempt,
+};
+
+fn fresh_attempt() -> StreamAttempt {
+    StreamAttempt {
+        accumulated_text: String::new(),
+        accumulated_reasoning: String::new(),
+        reasoning_active: false,
+        final_usage: rig::completion::Usage::new(),
+        final_history: None,
+        had_error: None,
+        any_progress: false,
+        hook_cancellation: None,
+    }
+}
+
+fn event_types(events: &[BridgeEvent]) -> Vec<&BridgeEventType> {
+    events.iter().map(|e| &e.event_type).collect()
+}
 
 fn make_event_bus() -> (Arc<EventBus>, mpsc::UnboundedReceiver<BridgeEvent>) {
     let (tx, rx) = mpsc::unbounded_channel();
@@ -85,9 +101,6 @@ async fn response_completed_payload_includes_full_reasoning() {
 
 #[tokio::test]
 async fn response_completed_with_empty_reasoning_emits_empty_string_not_null() {
-    // Non-streaming providers and models that don't reason populate the field
-    // with "" — downstream filters that drop reasoning_delta still get a
-    // present-but-empty key, never a missing one.
     let (bus, mut rx) = make_event_bus();
     let metrics = Arc::new(ConversationMetrics::new(
         "conv-2".into(),
@@ -119,12 +132,10 @@ async fn response_completed_with_empty_reasoning_emits_empty_string_not_null() {
 
 #[test]
 fn attempt_into_result_propagates_accumulated_reasoning() {
-    // The other half of the contract: StreamAttempt's accumulated reasoning
-    // must survive the conversion into PromptResponse so the upper layers
-    // (turn_classify → turn_success → emit_turn_complete_events) see it.
     let attempt = StreamAttempt {
         accumulated_text: "answer".into(),
         accumulated_reasoning: "thinking out loud".into(),
+        reasoning_active: false,
         final_usage: rig::completion::Usage::new(),
         final_history: Some(vec![]),
         had_error: None,
@@ -140,12 +151,10 @@ fn attempt_into_result_propagates_accumulated_reasoning() {
 
 #[test]
 fn attempt_into_result_propagates_reasoning_through_parse_error_recovery() {
-    // The parse-error recovery branch (`no message or tool call`, untagged
-    // enum) also funnels through the Ok(PromptResponse{...}) path. Reasoning
-    // accumulated up to the parse failure must still be carried.
     let attempt = StreamAttempt {
         accumulated_text: "partial".into(),
         accumulated_reasoning: "halfway through".into(),
+        reasoning_active: false,
         final_usage: rig::completion::Usage::new(),
         final_history: Some(vec![]),
         had_error: Some("no message or tool call in response".into()),
@@ -157,4 +166,95 @@ fn attempt_into_result_propagates_reasoning_through_parse_error_recovery() {
     let response = result.expect("recoverable parse error should still yield Ok");
     assert_eq!(response.reasoning, "halfway through");
     assert_eq!(response.output, "partial");
+}
+
+#[tokio::test]
+async fn lifecycle_reasoning_then_text_emits_started_completed_in_order() {
+    let (bus, mut rx) = make_event_bus();
+    let mut state = fresh_attempt();
+
+    handle_reasoning_delta(&mut state, &bus, "a", "c", "m", "thinking ".into());
+    handle_reasoning_delta(&mut state, &bus, "a", "c", "m", "more.".into());
+    handle_text_delta(&mut state, &bus, "a", "c", "m", "answer ".into());
+    handle_text_delta(&mut state, &bus, "a", "c", "m", "here.".into());
+    maybe_close_reasoning(&mut state, &bus, "a", "c", "m");
+
+    let events = drain(&mut rx);
+    let types = event_types(&events);
+    assert_eq!(
+        types,
+        vec![
+            &BridgeEventType::ReasoningStarted,
+            &BridgeEventType::ReasoningDelta,
+            &BridgeEventType::ReasoningDelta,
+            &BridgeEventType::ReasoningCompleted,
+            &BridgeEventType::ResponseChunk,
+            &BridgeEventType::ResponseChunk,
+        ],
+        "reasoning lifecycle must close before any response chunk emits"
+    );
+
+    let completed = events
+        .iter()
+        .find(|e| matches!(e.event_type, BridgeEventType::ReasoningCompleted))
+        .unwrap();
+    assert_eq!(
+        completed.data.get("full_reasoning").and_then(|v| v.as_str()),
+        Some("thinking more.")
+    );
+    assert!(!state.reasoning_active);
+}
+
+#[tokio::test]
+async fn lifecycle_reasoning_only_closes_on_loop_end() {
+    let (bus, mut rx) = make_event_bus();
+    let mut state = fresh_attempt();
+
+    handle_reasoning_delta(&mut state, &bus, "a", "c", "m", "thought.".into());
+    maybe_close_reasoning(&mut state, &bus, "a", "c", "m");
+
+    let events = drain(&mut rx);
+    assert_eq!(
+        event_types(&events),
+        vec![
+            &BridgeEventType::ReasoningStarted,
+            &BridgeEventType::ReasoningDelta,
+            &BridgeEventType::ReasoningCompleted,
+        ]
+    );
+}
+
+#[tokio::test]
+async fn lifecycle_text_only_emits_no_reasoning_events() {
+    let (bus, mut rx) = make_event_bus();
+    let mut state = fresh_attempt();
+
+    handle_text_delta(&mut state, &bus, "a", "c", "m", "hi".into());
+    maybe_close_reasoning(&mut state, &bus, "a", "c", "m");
+
+    let events = drain(&mut rx);
+    assert_eq!(event_types(&events), vec![&BridgeEventType::ResponseChunk]);
+}
+
+#[tokio::test]
+async fn lifecycle_double_close_is_idempotent() {
+    let (bus, mut rx) = make_event_bus();
+    let mut state = fresh_attempt();
+
+    handle_reasoning_delta(&mut state, &bus, "a", "c", "m", "x".into());
+    handle_text_delta(&mut state, &bus, "a", "c", "m", "y".into());
+    handle_text_delta(&mut state, &bus, "a", "c", "m", "z".into());
+    maybe_close_reasoning(&mut state, &bus, "a", "c", "m");
+
+    let events = drain(&mut rx);
+    assert_eq!(
+        event_types(&events),
+        vec![
+            &BridgeEventType::ReasoningStarted,
+            &BridgeEventType::ReasoningDelta,
+            &BridgeEventType::ReasoningCompleted,
+            &BridgeEventType::ResponseChunk,
+            &BridgeEventType::ResponseChunk,
+        ]
+    );
 }

@@ -39,8 +39,12 @@ pub enum BridgeEventType {
     ToolApprovalResolved,
     /// A background task (bash or subagent) completed.
     BackgroundTaskCompleted,
-    /// A reasoning/thinking text chunk from the model
+    /// The model started emitting reasoning/thinking text.
+    ReasoningStarted,
+    /// A reasoning/thinking text chunk from the model.
     ReasoningDelta,
+    /// The model finished emitting reasoning. Carries `full_reasoning`.
+    ReasoningCompleted,
     /// A subagent was spawned (foreground or background)
     SubAgentStarted,
     /// A subagent completed execution

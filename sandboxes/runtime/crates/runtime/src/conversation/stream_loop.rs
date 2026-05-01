@@ -6,6 +6,74 @@ use std::sync::Arc;
 use std::time::Duration;
 use webhooks::EventBus;
 
+pub(super) fn maybe_close_reasoning(
+    state: &mut StreamAttempt,
+    bus: &Arc<EventBus>,
+    agent_id: &str,
+    conversation_id: &str,
+    message_id: &str,
+) {
+    if !state.reasoning_active {
+        return;
+    }
+    bus.emit(BridgeEvent::new(
+        BridgeEventType::ReasoningCompleted,
+        agent_id,
+        conversation_id,
+        json!({
+            "message_id": message_id,
+            "full_reasoning": &state.accumulated_reasoning,
+        }),
+    ));
+    state.reasoning_active = false;
+}
+
+pub(super) fn handle_text_delta(
+    state: &mut StreamAttempt,
+    bus: &Arc<EventBus>,
+    agent_id: &str,
+    conversation_id: &str,
+    message_id: &str,
+    delta: String,
+) {
+    state.any_progress = true;
+    maybe_close_reasoning(state, bus, agent_id, conversation_id, message_id);
+    state.accumulated_text.push_str(&delta);
+    bus.emit(BridgeEvent::new(
+        BridgeEventType::ResponseChunk,
+        agent_id,
+        conversation_id,
+        json!({ "delta": delta, "message_id": message_id }),
+    ));
+}
+
+pub(super) fn handle_reasoning_delta(
+    state: &mut StreamAttempt,
+    bus: &Arc<EventBus>,
+    agent_id: &str,
+    conversation_id: &str,
+    message_id: &str,
+    delta: String,
+) {
+    state.any_progress = true;
+    if !state.reasoning_active {
+        state.reasoning_active = true;
+        bus.emit(BridgeEvent::new(
+            BridgeEventType::ReasoningStarted,
+            agent_id,
+            conversation_id,
+            json!({ "message_id": message_id }),
+        ));
+    }
+    state.accumulated_reasoning.push_str(&delta);
+    bus.emit(BridgeEvent::new(
+        BridgeEventType::ReasoningDelta,
+        agent_id,
+        conversation_id,
+        json!({ "delta": delta, "message_id": message_id }),
+    ));
+}
+
 use super::convert::is_retryable_stream_err;
 
 /// Maximum gap between SSE chunks before we declare the upstream stalled
@@ -42,6 +110,7 @@ fn first_chunk_timeout() -> Duration {
 pub(super) struct StreamAttempt {
     pub(super) accumulated_text: String,
     pub(super) accumulated_reasoning: String,
+    pub(super) reasoning_active: bool,
     pub(super) final_usage: rig::completion::Usage,
     pub(super) final_history: Option<Vec<rig::message::Message>>,
     pub(super) had_error: Option<String>,
@@ -82,6 +151,7 @@ pub(super) async fn run_streaming_with_retry(
         out = StreamAttempt {
             accumulated_text: String::new(),
             accumulated_reasoning: String::new(),
+            reasoning_active: false,
             final_usage: rig::completion::Usage::new(),
             final_history: None,
             had_error: None,
@@ -113,30 +183,24 @@ pub(super) async fn run_streaming_with_retry(
             };
             match item {
                 BridgeStreamItem::TextDelta(delta) => {
-                    out.any_progress = true;
-                    out.accumulated_text.push_str(&delta);
-                    event_bus_for_text.emit(BridgeEvent::new(
-                        BridgeEventType::ResponseChunk,
+                    handle_text_delta(
+                        &mut out,
+                        event_bus_for_text,
                         agent_id_for_text,
                         conversation_id_for_text,
-                        json!({
-                            "delta": &delta,
-                            "message_id": msg_id_clone,
-                        }),
-                    ));
+                        msg_id_clone,
+                        delta,
+                    );
                 }
                 BridgeStreamItem::ReasoningDelta(delta) => {
-                    out.any_progress = true;
-                    out.accumulated_reasoning.push_str(&delta);
-                    event_bus_for_text.emit(BridgeEvent::new(
-                        BridgeEventType::ReasoningDelta,
+                    handle_reasoning_delta(
+                        &mut out,
+                        event_bus_for_text,
                         agent_id_for_text,
                         conversation_id_for_text,
-                        json!({
-                            "delta": &delta,
-                            "message_id": msg_id_clone,
-                        }),
-                    ));
+                        msg_id_clone,
+                        delta,
+                    );
                 }
                 BridgeStreamItem::IntermediateUsage(usage) => {
                     // Per-HTTP-call usage from rig's multi-turn loop. Note:
@@ -177,6 +241,14 @@ pub(super) async fn run_streaming_with_retry(
                 }
             }
         }
+
+        maybe_close_reasoning(
+            &mut out,
+            event_bus_for_text,
+            agent_id_for_text,
+            conversation_id_for_text,
+            msg_id_clone,
+        );
 
         // Decide whether to retry. Two paths:
         // 1. Pre-progress retryable error (HTTP 429/5xx, connect reset before
