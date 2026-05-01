@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -13,7 +14,13 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/observe"
 )
 
-func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
+// credentialResolver abstracts the credential lookup for the director.
+// Extracted from *cache.Manager so tests can inject stubs without DB/KMS.
+type credentialResolver interface {
+	GetDecryptedCredentialByID(ctx context.Context, credentialID string) (*cache.DecryptedCredential, error)
+}
+
+func NewDirector(resolver credentialResolver) func(req *http.Request) {
 	return func(req *http.Request) {
 		claims, ok := middleware.ClaimsFromContext(req.Context())
 		if !ok {
@@ -22,7 +29,7 @@ func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
 			return
 		}
 
-		cred, err := cacheManager.GetDecryptedCredentialByID(req.Context(), claims.CredentialID)
+		cred, err := resolver.GetDecryptedCredentialByID(req.Context(), claims.CredentialID)
 		if err != nil {
 			logging.FromContext(req.Context()).Error("proxy director: credential lookup failed",
 				"credential_id", claims.CredentialID,
