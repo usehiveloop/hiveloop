@@ -77,7 +77,6 @@ func (c *Cleanup) CleanIdle(ctx context.Context) {
 		entryTime := time.UnixMilli(tsMs)
 
 		if entryTime.Before(cutoff) {
-			slog.Info("cleanup: removing idle stream", "conversation_id", convID, "last_event", entryTime)
 			c.bus.Delete(ctx, convID)
 		}
 	}

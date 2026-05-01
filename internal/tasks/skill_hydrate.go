@@ -47,7 +47,6 @@ func (h *SkillHydrateHandler) Handle(ctx context.Context, t *asynq.Task) error {
 				"hydration_error": msg,
 				"hydrated_at":     now,
 			})
-		slog.Error("skill hydrate failed", "skill_id", payload.SkillID, "error", err)
 		return fmt.Errorf("hydrate skill %s: %w", payload.SkillID, err)
 	}
 

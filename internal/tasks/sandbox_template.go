@@ -12,6 +12,7 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
@@ -37,7 +38,6 @@ func (h *SandboxTemplateBuildHandler) Handle(ctx context.Context, t *asynq.Task)
 	var tmpl model.SandboxTemplate
 	if err := h.db.First(&tmpl, "id = ?", payload.TemplateID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			slog.Warn("sandbox template build: template not found", "template_id", payload.TemplateID)
 			return nil
 		}
 		return fmt.Errorf("loading template: %w", err)
@@ -58,7 +58,6 @@ func (h *SandboxTemplateBuildHandler) HandleRetry(ctx context.Context, t *asynq.
 	var tmpl model.SandboxTemplate
 	if err := h.db.First(&tmpl, "id = ?", payload.TemplateID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			slog.Warn("sandbox template retry: template not found", "template_id", payload.TemplateID)
 			return nil
 		}
 		return fmt.Errorf("loading template: %w", err)
@@ -66,9 +65,8 @@ func (h *SandboxTemplateBuildHandler) HandleRetry(ctx context.Context, t *asynq.
 
 	// Delete existing snapshot if present
 	if tmpl.ExternalID != nil && *tmpl.ExternalID != "" {
-		slog.Info("retry: deleting existing snapshot", "external_id", *tmpl.ExternalID)
 		if err := h.orchestrator.DeleteTemplate(ctx, *tmpl.ExternalID); err != nil {
-			slog.Warn("retry: failed to delete existing snapshot", "external_id", *tmpl.ExternalID, "error", err)
+			logging.Capture(ctx, fmt.Errorf("delete existing snapshot %s: %w", *tmpl.ExternalID, err))
 		}
 	}
 
@@ -163,7 +161,7 @@ func (h *SandboxTemplateBuildHandler) buildTemplate(ctx context.Context, tmpl *m
 			"build_status": "failed",
 			"build_error":  errMsg,
 		})
-		slog.Error("sandbox template build failed", "template_id", tmpl.ID, "error", err)
+		slog.Error("sandbox template build failed", "template_id", tmpl.ID, "error", err.Error())
 		return nil
 	}
 

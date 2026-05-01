@@ -13,6 +13,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/registry"
@@ -109,7 +110,6 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 
 	task, ok := system.Lookup(taskName)
 	if !ok {
-		logger.Warn("system_task: unknown task")
 		writeJSON(w, http.StatusNotFound, systemTaskError{
 			Error:     fmt.Sprintf("system task %q is not defined", taskName),
 			ErrorCode: "task_not_found",
@@ -119,7 +119,6 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 
 	claims, ok := middleware.AuthClaimsFromContext(r.Context())
 	if !ok {
-		logger.Warn("system_task: missing auth claims")
 		writeJSON(w, http.StatusUnauthorized, systemTaskError{
 			Error:     "missing auth claims",
 			ErrorCode: "unauthorized",
@@ -128,7 +127,6 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 	}
 	orgID, err := uuid.Parse(claims.OrgID)
 	if err != nil {
-		logger.Warn("system_task: invalid org id in token", "err", err, "raw_org_id", claims.OrgID)
 		writeJSON(w, http.StatusUnauthorized, systemTaskError{
 			Error:     "invalid org id in token",
 			ErrorCode: "unauthorized",
@@ -136,11 +134,9 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logger = logger.With("org_id", orgID, "user_id", claims.UserID, "task_version", task.Version)
-	logger.Info("system_task: started")
 
 	var req systemTaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logger.Warn("system_task: invalid request body", "err", err)
 		writeJSON(w, http.StatusBadRequest, systemTaskError{
 			Error:     "invalid request body",
 			ErrorCode: "invalid_request_body",
@@ -149,10 +145,6 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if errs := system.ValidateArgs(req.Args, task.Args); len(errs) > 0 {
-		logger.Warn("system_task: arg validation failed",
-			"err", errs[0].Error(),
-			"failure_count", len(errs),
-		)
 		writeJSON(w, http.StatusBadRequest, systemTaskError{
 			Error:     errs[0].Error(),
 			ErrorCode: "invalid_args",
@@ -171,17 +163,13 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			var rerr *system.ResolveError
 			if errors.As(err, &rerr) {
-				logger.Warn("system_task: resolve rejected input",
-					"err", rerr.Message,
-					"error_code", rerr.Code,
-				)
 				writeJSON(w, http.StatusBadRequest, systemTaskError{
 					Error:     rerr.Message,
 					ErrorCode: rerr.Code,
 				})
 				return
 			}
-			logger.Error("system_task: resolve failed", "err", err)
+			logger.Error("system_task: resolve failed", "error", err)
 			writeJSON(w, http.StatusBadRequest, systemTaskError{
 				Error:     err.Error(),
 				ErrorCode: "invalid_args",
@@ -200,7 +188,7 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, credentials.ErrNoSystemCredential) {
 			logger.Error("system_task: no platform credential available",
-				"err", err,
+				"error", err,
 				"model", task.Model,
 				"provider_group", task.ProviderGroup,
 			)
@@ -210,7 +198,7 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		logger.Error("system_task: credential pick failed", "err", err)
+		logger.Error("system_task: credential pick failed", "error", err)
 		writeJSON(w, http.StatusInternalServerError, systemTaskError{
 			Error:     "failed to resolve system credential",
 			ErrorCode: "internal_error",
@@ -225,7 +213,7 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 
 	modelID, err := h.resolveModel(task, cred.ProviderID)
 	if err != nil {
-		logger.Error("system_task: model resolution failed", "err", err)
+		logger.Error("system_task: model resolution failed", "error", err)
 		writeJSON(w, http.StatusServiceUnavailable, systemTaskError{
 			Error:     err.Error(),
 			ErrorCode: "system_model_unavailable",
@@ -238,11 +226,10 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 	if h.cache != nil && task.CacheTTL > 0 {
 		key, err := system.CacheKey(task, modelID, resolvedArgs)
 		if err != nil {
-			logger.Warn("system_task: cache key build failed (skipping cache)", "err", err)
+			logging.Capture(r.Context(), fmt.Errorf("system_task: cache key build failed: %w", err))
 		} else {
 			cacheKey = key
 			if hit, ok, _ := h.cache.Get(r.Context(), key); ok {
-				logger.Info("system_task: cache hit", "cache_key", key)
 				h.serveCached(w, hit, stream)
 				return
 			}
@@ -251,7 +238,7 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 
 	apiKey, err := decryptCredentialKey(r.Context(), h.kms, cred)
 	if err != nil {
-		logger.Error("system_task: credential decrypt failed", "err", err)
+		logger.Error("system_task: credential decrypt failed", "error", err)
 		writeJSON(w, http.StatusInternalServerError, systemTaskError{
 			Error:     "failed to decrypt system credential",
 			ErrorCode: "internal_error",
@@ -261,7 +248,7 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 
 	llmReq, err := system.BuildLLMRequest(task, modelID, resolvedArgs, stream)
 	if err != nil {
-		logger.Error("system_task: build LLM request failed", "err", err)
+		logger.Error("system_task: build LLM request failed", "error", err)
 		writeJSON(w, http.StatusInternalServerError, systemTaskError{
 			Error:     "failed to build LLM request",
 			ErrorCode: "internal_error",
@@ -278,34 +265,22 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if stream {
-		logger.Info("system_task: forwarding (stream)")
 		res, err := h.forwarder.ForwardStream(r.Context(), call, w)
 		if err != nil {
 			h.logForwardError(logger, err, true)
 			h.handleForwardError(w, err, true)
 			return
 		}
-		logger.Info("system_task: completed",
-			"input_tokens", res.Usage.InputTokens,
-			"output_tokens", res.Usage.OutputTokens,
-			"upstream_model", res.Model,
-		)
 		h.afterCompletion(r.Context(), logger, &task, taskName, modelID, cred, orgID, claims.UserID, res, cacheKey, true)
 		return
 	}
 
-	logger.Info("system_task: forwarding (json)")
 	res, err := h.forwarder.ForwardJSON(r.Context(), call)
 	if err != nil {
 		h.logForwardError(logger, err, false)
 		h.handleForwardError(w, err, false)
 		return
 	}
-	logger.Info("system_task: completed",
-		"input_tokens", res.Usage.InputTokens,
-		"output_tokens", res.Usage.OutputTokens,
-		"upstream_model", res.Model,
-	)
 	writeJSON(w, http.StatusOK, systemTaskJSONResponse{
 		Text:  res.Text,
 		Usage: res.Usage,

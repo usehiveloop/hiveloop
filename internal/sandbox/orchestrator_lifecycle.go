@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -29,14 +30,10 @@ func (o *Orchestrator) RunSandboxLifecycle(ctx context.Context) {
 	} else {
 		for i := range idleRunning {
 			sb := &idleRunning[i]
-			slog.Info("sandbox lifecycle: stopping idle sandbox",
-				"sandbox_id", sb.ID,
-				"external_id", sb.ExternalID,
-				"idle_minutes", int(now.Sub(*sb.LastActiveAt).Minutes()),
-			)
 			if err := o.StopSandbox(ctx, sb); err != nil && !errors.Is(err, ErrSandboxNotFound) {
-				slog.Error("sandbox lifecycle: failed to stop idle sandbox",
+				slog.Warn("sandbox lifecycle: failed to stop idle sandbox",
 					"sandbox_id", sb.ID, "error", err)
+				logging.Capture(ctx, err)
 			}
 		}
 	}
@@ -51,14 +48,10 @@ func (o *Orchestrator) RunSandboxLifecycle(ctx context.Context) {
 	} else {
 		for i := range staleStopped {
 			sb := &staleStopped[i]
-			slog.Info("sandbox lifecycle: archiving stale stopped sandbox",
-				"sandbox_id", sb.ID,
-				"external_id", sb.ExternalID,
-				"stopped_hours", int(now.Sub(*sb.StoppedAt).Hours()),
-			)
 			if err := o.ArchiveSandbox(ctx, sb); err != nil && !errors.Is(err, ErrSandboxNotFound) {
-				slog.Error("sandbox lifecycle: failed to archive stopped sandbox",
+				slog.Warn("sandbox lifecycle: failed to archive stopped sandbox",
 					"sandbox_id", sb.ID, "error", err)
+				logging.Capture(ctx, err)
 			}
 		}
 	}

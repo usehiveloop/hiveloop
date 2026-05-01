@@ -2,7 +2,6 @@ package email
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/tasks"
@@ -28,7 +27,6 @@ func (s *AsynqSender) Send(_ context.Context, msg Message) error {
 		return err
 	}
 	if _, err := s.enqueuer.Enqueue(task); err != nil {
-		slog.Error("failed to enqueue email", "error", err, "to", msg.To)
 		return err
 	}
 	return nil
@@ -42,9 +40,6 @@ func (s *AsynqSender) SendTemplate(_ context.Context, msg TemplateMessage) error
 		return err
 	}
 	if _, err := s.enqueuer.Enqueue(task); err != nil {
-		slog.Error("failed to enqueue template email",
-			"error", err, "to", msg.To, "slug", msg.Slug,
-		)
 		return err
 	}
 	return nil

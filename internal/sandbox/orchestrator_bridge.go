@@ -24,11 +24,9 @@ func (o *Orchestrator) touchLastActive(sb *model.Sandbox) {
 	now := time.Now()
 	sb.LastActiveAt = &now
 	go func(id uuid.UUID) {
-		if err := o.db.Model(&model.Sandbox{}).
+		_ = o.db.Model(&model.Sandbox{}).
 			Where("id = ?", id).
-			Update("last_active_at", now).Error; err != nil {
-			slog.Debug("touchLastActive update failed", "sandbox_id", id, "error", err)
-		}
+			Update("last_active_at", now).Error
 	}(sb.ID)
 }
 
@@ -65,11 +63,7 @@ func (o *Orchestrator) waitForBridgeHealthy(ctx context.Context, sb *model.Sandb
 	client := &http.Client{Timeout: 5 * time.Second}
 	attempt := 0
 
-	slog.Info("waiting for bridge healthy",
-		"sandbox_id", sb.ID,
-		"health_url", healthURL,
-		"bridge_url", sb.BridgeURL,
-	)
+	slog.Info("waiting for bridge healthy", "sandbox_id", sb.ID)
 
 	for time.Now().Before(deadline) {
 		attempt++
@@ -83,16 +77,9 @@ func (o *Orchestrator) waitForBridgeHealthy(ctx context.Context, sb *model.Sandb
 		if err == nil {
 			resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
-				slog.Info("bridge healthy",
-					"sandbox_id", sb.ID,
-					"attempts", attempt,
-					"elapsed", time.Since(deadline.Add(-bridgeHealthTimeout)).String(),
-				)
+				slog.Info("bridge healthy", "sandbox_id", sb.ID, "attempts", attempt)
 				return nil
 			}
-			slog.Info("bridge health check: non-200", "status", resp.StatusCode, "attempt", attempt, "url", healthURL)
-		} else {
-			slog.Info("bridge health check: connection failed", "attempt", attempt, "url", healthURL, "error", err)
 		}
 
 		select {

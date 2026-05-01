@@ -51,7 +51,6 @@ func (h *CredentialHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if result.RowsAffected == 0 {
-		slog.Warn("credential not found or already revoked", "org_id", org.ID, "credential_id", credID)
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "credential not found or already revoked"})
 		return
 	}
@@ -63,18 +62,6 @@ func (h *CredentialHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
-	if status >= 500 {
-		if body, ok := v.(map[string]string); ok {
-			slog.Error("server error response",
-				"status", status,
-				"error", body["error"],
-			)
-		} else {
-			slog.Error("server error response",
-				"status", status,
-			)
-		}
-	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)

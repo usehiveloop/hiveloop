@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/trigger/dispatch"
 )
@@ -43,8 +44,6 @@ func NewCronTriggerPollHandler(db *gorm.DB, enqueuer enqueue.TaskEnqueuer) *Cron
 
 // Handle processes a TypeCronTriggerPoll periodic task.
 func (handler *CronTriggerPollHandler) Handle(ctx context.Context, _ *asynq.Task) error {
-	logger := slog.With("task", TypeCronTriggerPoll)
-
 	// Find all cron triggers that are due within the next 30 seconds.
 	// This gives sandbox creation time to warm up before the actual
 	// scheduled time arrives.
@@ -62,18 +61,12 @@ func (handler *CronTriggerPollHandler) Handle(ctx context.Context, _ *asynq.Task
 		return nil
 	}
 
-	logger.Info("cron poll: found due triggers", "count", len(dueTriggers))
-
 	enqueuedCount := 0
 	for _, trigger := range dueTriggers {
 		// Compute the next run time from the cron schedule.
 		schedule, parseErr := cronParser.Parse(trigger.CronSchedule)
 		if parseErr != nil {
-			logger.Error("cron poll: invalid schedule",
-				"trigger_id", trigger.ID,
-				"schedule", trigger.CronSchedule,
-				"error", parseErr,
-			)
+			logging.Capture(ctx, fmt.Errorf("invalid cron schedule on trigger %s (%q): %w", trigger.ID, trigger.CronSchedule, parseErr))
 			continue
 		}
 
@@ -92,10 +85,7 @@ func (handler *CronTriggerPollHandler) Handle(ctx context.Context, _ *asynq.Task
 				"last_run_at": now,
 			})
 		if result.RowsAffected == 0 {
-			// Another worker already claimed this trigger.
-			logger.Debug("cron poll: trigger already claimed",
-				"trigger_id", trigger.ID,
-			)
+			// Another worker already claimed this trigger. Pure noise — skip.
 			continue
 		}
 
@@ -106,33 +96,24 @@ func (handler *CronTriggerPollHandler) Handle(ctx context.Context, _ *asynq.Task
 			ScheduledAt:     scheduledAt,
 		})
 		if taskErr != nil {
-			logger.Error("cron poll: failed to build dispatch task",
-				"trigger_id", trigger.ID,
-				"error", taskErr,
-			)
+			logging.Capture(ctx, fmt.Errorf("build cron dispatch task for trigger %s: %w", trigger.ID, taskErr))
 			continue
 		}
 
 		if _, enqueueErr := handler.enqueuer.Enqueue(task); enqueueErr != nil {
-			logger.Error("cron poll: failed to enqueue dispatch task",
-				"trigger_id", trigger.ID,
-				"error", enqueueErr,
-			)
+			logging.Capture(ctx, fmt.Errorf("enqueue cron dispatch task for trigger %s: %w", trigger.ID, enqueueErr))
 			continue
 		}
 
 		enqueuedCount++
-		logger.Info("cron poll: dispatched",
-			"trigger_id", trigger.ID,
-			"scheduled_at", scheduledAt,
-			"next_run_at", nextRun,
-		)
 	}
 
-	logger.Info("cron poll: complete",
-		"due_triggers", len(dueTriggers),
-		"enqueued", enqueuedCount,
-	)
+	if enqueuedCount > 0 {
+		slog.Info("cron poll dispatched",
+			"due_triggers", len(dueTriggers),
+			"enqueued", enqueuedCount,
+		)
+	}
 	return nil
 }
 
@@ -161,14 +142,13 @@ func (handler *CronTriggerDispatchHandler) Handle(ctx context.Context, task *asy
 		return fmt.Errorf("unmarshal cron trigger dispatch payload: %w", err)
 	}
 
+	started := time.Now()
 	logger := slog.With(
 		"task", TypeCronTriggerDispatch,
 		"trigger_id", payload.RouterTriggerID,
 		"org_id", payload.OrgID,
 		"scheduled_at", payload.ScheduledAt,
 	)
-
-	logger.Info("cron dispatch: starting")
 
 	// Build a synthetic payload with schedule context so rules can
 	// optionally filter by time/day.
@@ -181,12 +161,10 @@ func (handler *CronTriggerDispatchHandler) Handle(ctx context.Context, task *asy
 	// Run the routing pipeline for this specific trigger.
 	dispatches, err := handler.dispatcher.RunForTrigger(ctx, payload.RouterTriggerID, syntheticPayload)
 	if err != nil {
-		logger.Error("cron dispatch: dispatcher failed", "error", err)
 		return fmt.Errorf("cron trigger dispatch: %w", err)
 	}
 
 	if len(dispatches) == 0 {
-		logger.Info("cron dispatch: no agents selected")
 		return nil
 	}
 
@@ -209,26 +187,21 @@ func (handler *CronTriggerDispatchHandler) Handle(ctx context.Context, task *asy
 			Instructions:    instructions,
 		})
 		if taskErr != nil {
-			logger.Error("cron dispatch: failed to build conversation create task",
-				"agent_id", agentDispatch.AgentID,
-				"error", taskErr,
-			)
+			logging.Capture(ctx, fmt.Errorf("build cron conversation task for agent %s: %w", agentDispatch.AgentID, taskErr))
 			continue
 		}
 
 		if _, enqErr := handler.enqueuer.Enqueue(convTask); enqErr != nil {
-			logger.Error("cron dispatch: failed to enqueue conversation create task",
-				"agent_id", agentDispatch.AgentID,
-				"error", enqErr,
-			)
+			logging.Capture(ctx, fmt.Errorf("enqueue cron conversation task for agent %s: %w", agentDispatch.AgentID, enqErr))
 			continue
 		}
 		enqueuedCount++
 	}
 
-	logger.Info("cron dispatch: complete",
+	logger.Info("cron dispatch complete",
 		"agents_dispatched", len(dispatches),
 		"conversations_enqueued", enqueuedCount,
+		"duration_ms", time.Since(started).Milliseconds(),
 	)
 	return nil
 }

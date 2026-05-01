@@ -28,7 +28,7 @@ func (o *Orchestrator) checkSandboxHealth(ctx context.Context, sb *model.Sandbox
 
 	providerStatus := string(status)
 	if providerStatus != sb.Status {
-		slog.Info("health check: status changed", "sandbox_id", sb.ID, "old", sb.Status, "new", providerStatus)
+		slog.Debug("health check: status changed", "sandbox_id", sb.ID, "old", sb.Status, "new", providerStatus)
 		o.db.Model(sb).Update("status", providerStatus)
 		sb.Status = providerStatus
 	}

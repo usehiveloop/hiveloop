@@ -101,7 +101,7 @@ func (h *BillingTokenSpendHandler) Handle(ctx context.Context, task *asynq.Task)
 	)
 	switch {
 	case err == nil:
-		slog.InfoContext(ctx, "billing: spend recorded",
+		slog.DebugContext(ctx, "billing spend recorded",
 			"org_id", payload.OrgID,
 			"generation_id", payload.GenerationID,
 			"credits", credits,
@@ -109,13 +109,9 @@ func (h *BillingTokenSpendHandler) Handle(ctx context.Context, task *asynq.Task)
 		)
 		return nil
 	case errors.Is(err, billing.ErrAlreadyRecorded):
-		slog.InfoContext(ctx, "billing: spend already recorded (idempotent replay)",
-			"org_id", payload.OrgID,
-			"generation_id", payload.GenerationID,
-		)
 		return nil
 	case errors.Is(err, billing.ErrInsufficientCredits):
-		slog.WarnContext(ctx, "billing: insufficient credits at deduction time",
+		slog.WarnContext(ctx, "billing insufficient credits at deduction time",
 			"org_id", payload.OrgID,
 			"generation_id", payload.GenerationID,
 			"credits", credits,

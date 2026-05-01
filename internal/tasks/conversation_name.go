@@ -55,8 +55,6 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 		Where("id = ?", payload.ConversationID).
 		First(&conv).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			slog.Info("conversation naming: conversation gone, skipping",
-				"conversation_id", payload.ConversationID)
 			return nil
 		}
 		return fmt.Errorf("load conversation: %w", err)
@@ -66,8 +64,6 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 		return nil
 	}
 	if conv.CredentialID == nil {
-		slog.Info("conversation naming: no credential, skipping",
-			"conversation_id", conv.ID)
 		return nil
 	}
 
@@ -76,8 +72,6 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 		Where("id = ? AND org_id = ?", *conv.CredentialID, conv.OrgID).
 		First(&credential).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			slog.Info("conversation naming: credential gone, skipping",
-				"conversation_id", conv.ID, "credential_id", *conv.CredentialID)
 			return nil
 		}
 		return fmt.Errorf("load credential: %w", err)
@@ -85,8 +79,6 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 
 	modelID, supportsTools, ok := pickCheapestModel(credential.ProviderID)
 	if !ok {
-		slog.Info("conversation naming: no model available for provider, skipping",
-			"conversation_id", conv.ID, "provider", credential.ProviderID)
 		return nil
 	}
 
@@ -95,8 +87,6 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 		return fmt.Errorf("load first message: %w", err)
 	}
 	if firstMessage == "" {
-		slog.Info("conversation naming: first message not yet persisted, retrying",
-			"conversation_id", conv.ID)
 		// Asynq will retry. Webhook ordering means message_received should be
 		// visible by the time this runs, but a redelivery edge case is possible.
 		return fmt.Errorf("first message not yet available")
@@ -115,8 +105,6 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 	}
 	title = cleanTitle(title)
 	if title == "" {
-		slog.Info("conversation naming: model returned empty title, skipping",
-			"conversation_id", conv.ID, "model", modelID)
 		return nil
 	}
 
@@ -132,7 +120,6 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 	slog.Info("conversation named",
 		"conversation_id", conv.ID,
 		"model", modelID,
-		"title", title,
 		"rows_updated", result.RowsAffected,
 	)
 	return nil

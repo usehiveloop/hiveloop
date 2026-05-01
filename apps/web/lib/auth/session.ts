@@ -27,7 +27,6 @@ async function getKey(): Promise<CryptoKey> {
     throw new Error("SESSION_SECRET env var is required")
   }
 
-  log.debug("deriving session encryption key")
   const raw = new TextEncoder().encode(secret)
   const base = await crypto.subtle.importKey("raw", raw, "HKDF", false, [
     "deriveKey",
@@ -41,7 +40,6 @@ async function getKey(): Promise<CryptoKey> {
     ["encrypt", "decrypt"]
   )
 
-  log.info("session encryption key derived successfully")
   return cachedKey
 }
 
@@ -50,7 +48,6 @@ async function getKey(): Promise<CryptoKey> {
 // ---------------------------------------------------------------------------
 
 export async function encrypt(data: SessionData): Promise<string> {
-  log.debug({ expires_at: data.expires_at }, "encrypting session data")
   const key = await getKey()
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const plaintext = new TextEncoder().encode(JSON.stringify(data))
@@ -64,9 +61,7 @@ export async function encrypt(data: SessionData): Promise<string> {
   buf.set(iv)
   buf.set(ciphertext, iv.length)
 
-  const encoded = btoa(String.fromCharCode(...buf))
-  log.debug({ cookie_length: encoded.length }, "session encrypted")
-  return encoded
+  return btoa(String.fromCharCode(...buf))
 }
 
 export async function decrypt(cookie: string): Promise<SessionData | null> {
@@ -83,7 +78,6 @@ export async function decrypt(cookie: string): Promise<SessionData | null> {
       ciphertext
     )
 
-    log.debug("session decrypted successfully")
     return JSON.parse(new TextDecoder().decode(plaintext)) as SessionData
   } catch (err) {
     log.warn({ err }, "session decrypt failed")

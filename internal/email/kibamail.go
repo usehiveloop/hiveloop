@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -85,11 +84,9 @@ func (s *KibamailSender) Send(ctx context.Context, msg Message) error {
 		Subject:  msg.Subject,
 		Text:     msg.Body,
 	}
-	res, err := s.send(ctx, body)
-	if err != nil {
+	if _, err := s.send(ctx, body); err != nil {
 		return wrapKibamailErr("send", err)
 	}
-	slog.Debug("kibamail: queued", "to", msg.To, "email_id", res.ID)
 	return nil
 }
 
@@ -126,13 +123,9 @@ func (s *KibamailSender) SendTemplate(ctx context.Context, msg TemplateMessage) 
 		},
 	}
 
-	res, err := s.send(ctx, body)
-	if err != nil {
+	if _, err := s.send(ctx, body); err != nil {
 		return wrapKibamailErr("send_template", err)
 	}
-	slog.Debug("kibamail: template queued",
-		"to", msg.To, "slug", msg.Slug, "email_id", res.ID,
-	)
 	return nil
 }
 

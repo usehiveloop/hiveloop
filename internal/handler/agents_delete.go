@@ -1,13 +1,15 @@
 package handler
 
 import (
-	"gorm.io/gorm"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/tasks"
@@ -50,15 +52,15 @@ func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := deleteAgentTriggers(h.db, agent.ID); err != nil {
-		slog.Error("failed to clean up agent triggers on delete", "agent_id", agent.ID, "error", err)
+		logging.Capture(r.Context(), fmt.Errorf("clean up agent triggers on delete agent_id=%s: %w", agent.ID, err))
 	}
 
 	if h.enqueuer != nil {
 		task, err := tasks.NewAgentCleanupTask(agent.ID)
 		if err != nil {
-			slog.Error("failed to create agent cleanup task", "agent_id", agent.ID, "error", err)
+			logging.Capture(r.Context(), fmt.Errorf("create agent cleanup task agent_id=%s: %w", agent.ID, err))
 		} else if _, err := h.enqueuer.Enqueue(task); err != nil {
-			slog.Error("failed to enqueue agent cleanup", "agent_id", agent.ID, "error", err)
+			logging.Capture(r.Context(), fmt.Errorf("enqueue agent cleanup agent_id=%s: %w", agent.ID, err))
 		}
 	}
 

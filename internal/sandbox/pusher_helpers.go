@@ -1,13 +1,14 @@
 package sandbox
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 
 	"github.com/google/uuid"
 
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -135,7 +136,7 @@ func (p *Pusher) loadBridgeSkills(agentID uuid.UUID) []bridgepkg.SkillDefinition
 		}
 		var def bridgepkg.SkillDefinition
 		if err := json.Unmarshal(version.Bundle, &def); err != nil {
-			slog.Warn("failed to unmarshal skill bundle", "skill_id", skill.ID, "error", err)
+			logging.Capture(context.Background(), fmt.Errorf("unmarshal skill bundle %s: %w", skill.ID, err))
 			continue
 		}
 		result = append(result, def)

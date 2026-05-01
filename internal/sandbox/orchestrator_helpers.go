@@ -4,36 +4,33 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"strings"
 
-
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 func disableProviderLifecycle(ctx context.Context, provider Provider, sb *model.Sandbox, externalID string) {
 	if err := provider.SetAutoStop(ctx, externalID, 0); err != nil {
-		slog.Warn("failed to disable provider auto-stop",
-			"sandbox_id", sb.ID, "external_id", externalID, "error", err)
+		logging.Capture(ctx, fmt.Errorf("disable provider auto-stop sandbox %s: %w", sb.ID, err))
 	}
 	if err := provider.SetAutoArchive(ctx, externalID, 0); err != nil {
-		slog.Warn("failed to disable provider auto-archive",
-			"sandbox_id", sb.ID, "external_id", externalID, "error", err)
+		logging.Capture(ctx, fmt.Errorf("disable provider auto-archive sandbox %s: %w", sb.ID, err))
 	}
 }
 
-func (o *Orchestrator) mergeUserEnvVars(envVars map[string]string, encrypted []byte) {
+func (o *Orchestrator) mergeUserEnvVars(ctx context.Context, envVars map[string]string, encrypted []byte) {
 	if o.encKey == nil || len(encrypted) == 0 {
 		return
 	}
 	decrypted, err := o.encKey.DecryptString(encrypted)
 	if err != nil {
-		slog.Warn("failed to decrypt user env vars, skipping", "error", err)
+		logging.Capture(ctx, fmt.Errorf("decrypt user env vars: %w", err))
 		return
 	}
 	var userVars map[string]string
 	if err := json.Unmarshal([]byte(decrypted), &userVars); err != nil {
-		slog.Warn("failed to parse user env vars, skipping", "error", err)
+		logging.Capture(ctx, fmt.Errorf("parse user env vars: %w", err))
 		return
 	}
 	for k, v := range userVars {
@@ -88,29 +85,10 @@ func (o *Orchestrator) cloneAgentRepositories(ctx context.Context, sb *model.San
 		repoPath := "/home/daytona/repos/" + repo.Name
 		cloneURL := "https://github.com/" + repo.ID + ".git"
 
-		slog.Info("cloning repository into sandbox",
-			"sandbox_id", sb.ID,
-			"repo", repo.ID,
-			"path", repoPath,
-		)
-
-		output, err := o.ExecuteCommand(ctx, sb,
-			fmt.Sprintf("git clone --depth=1 %s %s", cloneURL, repoPath))
-		if err != nil {
-			slog.Error("git clone failed",
-				"sandbox_id", sb.ID,
-				"repo", repo.ID,
-				"output", output,
-				"error", err,
-			)
+		if _, err := o.ExecuteCommand(ctx, sb,
+			fmt.Sprintf("git clone --depth=1 %s %s", cloneURL, repoPath)); err != nil {
 			return fmt.Errorf("cloning %s: %w", repo.ID, err)
 		}
-
-		slog.Info("repository cloned",
-			"sandbox_id", sb.ID,
-			"repo", repo.ID,
-			"path", repoPath,
-		)
 	}
 
 	return nil
@@ -118,20 +96,9 @@ func (o *Orchestrator) cloneAgentRepositories(ctx context.Context, sb *model.San
 
 func (o *Orchestrator) runSetupCommands(ctx context.Context, sb *model.Sandbox, commands []string) error {
 	for _, cmd := range commands {
-		output, err := o.ExecuteCommand(ctx, sb, cmd)
-		if err != nil {
-			slog.Error("setup command failed",
-				"sandbox_id", sb.ID,
-				"command", cmd,
-				"output", output,
-				"error", err,
-			)
+		if _, err := o.ExecuteCommand(ctx, sb, cmd); err != nil {
 			return fmt.Errorf("setup command failed: %s: %w", cmd, err)
 		}
-		slog.Info("setup command completed",
-			"sandbox_id", sb.ID,
-			"command", cmd,
-		)
 	}
 	return nil
 }

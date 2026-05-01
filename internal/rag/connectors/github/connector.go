@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
+	"fmt"
 	"sync/atomic"
 	"time"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
 )
 
@@ -123,16 +124,6 @@ func (c *GithubConnector) run(
 		c.finalCp.Store(&final)
 	}()
 
-	slog.Info("github run: start",
-		"repos", c.cfg.Repositories, "owner", c.cfg.RepoOwner,
-		"include_prs", c.cfg.IncludePRs, "include_issues", c.cfg.IncludeIssues,
-		"state", c.cfg.StateFilter, "stage", cp.Stage,
-		"window_start", start, "window_end", end,
-		"repos_remaining", len(cp.RepoIDsRemaining))
-	defer func() {
-		slog.Info("github run: end", "final_stage", cp.Stage)
-	}()
-
 	access := map[string]*interfaces.ExternalAccess{}
 
 	for cp.Stage != StageDone {
@@ -156,14 +147,11 @@ func (c *GithubConnector) run(
 		if !ok {
 			ext, err := c.computeRepoAccess(ctx, full)
 			if err != nil {
-				slog.Warn("github run: visibility fetch failed",
-					"repo", full, "err", err)
+				logging.Capture(ctx, fmt.Errorf("github visibility fetch repo=%s: %w", full, err))
 				out <- interfaces.NewDocFailure(entityFailure(full, "github: resolve repo visibility", err))
 				cp.CurrentRepoFullName = nil
 				continue
 			}
-			slog.Info("github run: visibility resolved",
-				"repo", full, "stage", cp.Stage, "page", cp.CurrPage)
 			access[full] = ext
 			acc = ext
 		}
@@ -177,8 +165,6 @@ func (c *GithubConnector) run(
 		default:
 			done = true
 		}
-		slog.Info("github run: page fetched",
-			"repo", full, "stage", cp.Stage, "page", cp.CurrPage, "done", done)
 		if !done {
 			continue
 		}

@@ -168,6 +168,6 @@ func setupProxyAndAuxRoutes(
 			r.Post("/screenshot", spiderHandler.Screenshot)
 			r.Post("/transform", spiderHandler.Transform)
 		})
-		slog.Info("spider routes registered (NO AUTH - temporary)")
+		slog.Warn("spider routes registered without authentication", "path", "/spider", "note", "temporary")
 	}
 }

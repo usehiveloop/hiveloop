@@ -66,11 +66,7 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		return fmt.Errorf("pushing agent to bridge: %w", err)
 	}
 
-	slog.Info("agent pushed to bridge",
-		"agent_id", agent.ID,
-		"agent_name", agent.Name,
-		"sandbox_id", sb.ID,
-	)
+	slog.Debug("agent pushed to bridge", "agent_id", agent.ID, "sandbox_id", sb.ID)
 
 	return nil
 }
