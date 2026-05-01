@@ -33,6 +33,11 @@ func PeriodicTaskConfigs(cfg *config.Config, ragSched *scheduler.Deps) []*asynq.
 			Opts:     []asynq.Option{asynq.Queue(QueuePeriodic), asynq.MaxRetry(2), asynq.Timeout(10 * time.Minute)},
 		},
 		{
+			Cronspec: "@every 30s",
+			Task:     asynq.NewTask(TypeBillingBatchProcess, nil),
+			Opts:     []asynq.Option{asynq.Queue(QueuePeriodic), asynq.MaxRetry(1), asynq.Timeout(5 * time.Minute)},
+		},
+		{
 			// Subscription renewal sweep. The handler enqueues per-sub
 			// renewal tasks which own the attempt counter — at most one
 			// attempt per subscription per RenewalRetryInterval is

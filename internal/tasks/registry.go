@@ -87,10 +87,8 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		mux.HandleFunc(TypeSkillHydrate, NewSkillHydrateHandler(deps.DB, deps.SkillFetcher).Handle)
 	}
 
-	// Billing token-spend: deducts credits for platform-keys LLM calls.
-	// Enqueued by the proxy's Generation middleware; handled here.
 	if deps.Credits != nil {
-		mux.HandleFunc(TypeBillingTokenSpend, NewBillingTokenSpendHandler(deps.Credits).Handle)
+		mux.HandleFunc(TypeBillingBatchProcess, NewBillingBatchProcessHandler(deps.DB, deps.Credits).Handle)
 		mux.HandleFunc(TypeCreditsExpire, NewCreditsExpireHandler(deps.Credits).Handle)
 	}
 
