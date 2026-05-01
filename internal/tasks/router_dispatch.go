@@ -117,11 +117,6 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		enqueuedCount++
 	}
 
-	logger.Info("router dispatch complete",
-		"agents_dispatched", len(dispatches),
-		"conversations_enqueued", enqueuedCount,
-		"duration_ms", time.Since(started).Milliseconds(),
-	)
 	return nil
 }
 
