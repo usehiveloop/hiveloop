@@ -126,7 +126,7 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		SandboxID:            sb.ID,
 	}
 	if err := handler.db.Create(&routerConv).Error; err != nil {
-		// Non-fatal: best-effort thread affinity.
+
 		logging.Capture(ctx, fmt.Errorf("store router conversation: %w", err))
 	} else {
 		rollbacks = append(rollbacks, func(cleanupCtx context.Context) {

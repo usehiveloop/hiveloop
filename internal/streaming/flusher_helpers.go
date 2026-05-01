@@ -58,7 +58,6 @@ func (f *Flusher) processPending(ctx context.Context) {
 		}
 		streamKey := f.bus.Prefix() + convID
 
-		// BUSYGROUP on existing consumer group is the expected path after first call.
 		_ = f.bus.Redis().XGroupCreateMkStream(ctx, streamKey, flusherGroup, "0").Err()
 
 		streams, err := f.bus.Redis().XReadGroup(ctx, &redis.XReadGroupArgs{

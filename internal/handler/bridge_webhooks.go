@@ -63,7 +63,6 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load sandbox to get the encrypted Bridge API key (webhook secret)
 	sbUUID, err := uuid.Parse(sandboxID)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid sandbox_id"})
@@ -80,14 +79,12 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Read body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read body"})
 		return
 	}
 
-	// Verify HMAC signature
 	if h.encKey != nil {
 		secret, err := h.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
 		if err != nil {
@@ -115,17 +112,14 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Parse batch of events
 	var events []webhookEvent
 	if err := json.Unmarshal(body, &events); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid webhook payload"})
 		return
 	}
 
-	// Update sandbox last_active_at
 	h.db.WithContext(ctx).Model(&sb).Update("last_active_at", time.Now())
 
-	// Process each event
 	for _, event := range events {
 		h.processEvent(ctx, &sb, &event)
 	}
@@ -134,14 +128,13 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandbox, event *webhookEvent) {
-	// Find our conversation record by Bridge conversation ID
+
 	var conv model.AgentConversation
 	if err := h.db.WithContext(ctx).Where("bridge_conversation_id = ? AND sandbox_id = ?",
 		event.ConversationID, sb.ID).First(&conv).Error; err != nil {
 		return
 	}
 
-	// Build the full event JSON for Redis (SSE clients receive this as-is).
 	redisPayload, _ := json.Marshal(map[string]any{
 		"event_id":        event.EventID,
 		"event_type":      event.EventType,
@@ -152,9 +145,6 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 		"data":            json.RawMessage(event.Data),
 	})
 
-	// Publish to Redis Streams for real-time delivery to SSE subscribers.
-	// The background flusher will batch-write to Postgres.
-	// If Redis is unavailable, fall back to direct Postgres write.
 	if h.eventBus != nil {
 		_, err := h.eventBus.Publish(ctx, conv.ID.String(), event.EventType, redisPayload)
 		if err != nil {
@@ -168,7 +158,6 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 		h.writeEventToPostgres(ctx, &conv, event)
 	}
 
-	// Update conversation state for terminal events
 	switch event.EventType {
 	case "ConversationEnded":
 		now := time.Now()

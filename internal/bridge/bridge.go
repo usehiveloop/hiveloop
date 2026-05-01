@@ -82,8 +82,6 @@ func doVoid(c *BridgeClient, ctx context.Context, method, path string, body any)
 	return nil
 }
 
-// --- Agent management (push endpoints) ---
-
 // PushAgents bulk-loads agent definitions into Bridge.
 func (c *BridgeClient) PushAgents(ctx context.Context, agents []AgentDefinition) error {
 	payload := struct {
@@ -125,8 +123,6 @@ func (c *BridgeClient) HydrateConversations(ctx context.Context, agentID string,
 	payload := HydrateConversationsRequest{Conversations: conversations}
 	return doVoid(c, ctx, http.MethodPost, "/push/agents/"+agentID+"/conversations", payload)
 }
-
-// --- Conversation operations ---
 
 // CreateConversation creates a new conversation for an agent with default settings.
 func (c *BridgeClient) CreateConversation(ctx context.Context, agentID string) (*CreateConversationResponse, error) {
@@ -179,7 +175,6 @@ func (c *BridgeClient) SSEStream(ctx context.Context, convID string) (io.ReadClo
 	req.Header.Set("Accept", "text/event-stream")
 	req.Header.Set("Cache-Control", "no-cache")
 
-	// Use a client without timeout for SSE (long-lived connection)
 	sseClient := &http.Client{Timeout: 0}
 	resp, err := sseClient.Do(req)
 	if err != nil {
@@ -205,8 +200,6 @@ func (c *BridgeClient) EndConversation(ctx context.Context, convID string) error
 	return doVoid(c, ctx, http.MethodDelete, "/conversations/"+convID, nil)
 }
 
-// --- Approval operations ---
-
 // ListApprovals lists pending approval requests for a conversation.
 func (c *BridgeClient) ListApprovals(ctx context.Context, agentID, convID string) ([]ApprovalRequest, error) {
 	result, err := doJSON[[]ApprovalRequest](c, ctx, http.MethodGet, "/agents/"+agentID+"/conversations/"+convID+"/approvals", nil)
@@ -226,8 +219,6 @@ func (c *BridgeClient) ResolveApproval(ctx context.Context, agentID, convID, req
 func (c *BridgeClient) BulkResolveApprovals(ctx context.Context, agentID, convID string, reply BulkApprovalReply) error {
 	return doVoid(c, ctx, http.MethodPost, "/agents/"+agentID+"/conversations/"+convID+"/approvals", reply)
 }
-
-// --- Health & metrics ---
 
 // HealthCheck checks if Bridge is healthy.
 func (c *BridgeClient) HealthCheck(ctx context.Context) error {

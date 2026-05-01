@@ -45,7 +45,7 @@ func (h *AdminHandler) UpdateCredential(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var req struct {
-		Label      *string `json:"label,omitempty"`
+		Label *string `json:"label,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
@@ -62,7 +62,6 @@ func (h *AdminHandler) UpdateCredential(w http.ResponseWriter, r *http.Request) 
 		}
 		updates["label"] = label
 	}
-
 
 	if len(updates) == 0 {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "no fields to update"})
@@ -158,7 +157,6 @@ func (h *AdminHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		updates["status"] = *req.Status
 	}
 
-	// Validate credential if changing
 	if req.CredentialID != nil {
 		credID, err := uuid.Parse(*req.CredentialID)
 		if err != nil {
@@ -173,7 +171,6 @@ func (h *AdminHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		updates["credential_id"] = credID
 	}
 
-	// Validate sandbox template if changing
 	if req.SandboxTemplateID != nil {
 		if *req.SandboxTemplateID == "" {
 			updates["sandbox_template_id"] = nil

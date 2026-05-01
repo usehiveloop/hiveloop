@@ -32,8 +32,6 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	var memberships []model.OrgMembership
 	h.db.Preload("Org").Where("user_id = ?", user.ID).Find(&memberships)
 
-	// Bulk-load full plan rows for every plan slug referenced by the user's
-	// orgs in one query, then map slug -> plan. Avoids an N+1 over plans.
 	plans := loadPlans(r.Context(), h.db, memberships)
 
 	orgs := make([]orgMemberDTO, 0, len(memberships))
@@ -71,8 +69,6 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// --- Email confirmation & password reset ---
-
 type confirmEmailRequest struct {
 	Token string `json:"token"`
 }
@@ -94,4 +90,3 @@ type changePasswordRequest struct {
 	CurrentPassword string `json:"current_password"`
 	NewPassword     string `json:"new_password"`
 }
-

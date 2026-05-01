@@ -17,10 +17,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// --------------------------------------------------------------------------
-// Test infrastructure
-// --------------------------------------------------------------------------
-
 type orgUpdateHarness struct {
 	db     *gorm.DB
 	router *chi.Mux
@@ -85,10 +81,6 @@ func (h *orgUpdateHarness) doPatch(t *testing.T, userID, orgID uuid.UUID, role s
 	h.router.ServeHTTP(rr, req)
 	return rr
 }
-
-// --------------------------------------------------------------------------
-// Tests
-// --------------------------------------------------------------------------
 
 func TestOrgUpdate_NameAndLogoSucceed(t *testing.T) {
 	h := newOrgUpdateHarness(t)
@@ -155,7 +147,6 @@ func TestOrgUpdate_EmptyLogoClears(t *testing.T) {
 	h := newOrgUpdateHarness(t)
 	org, user := h.createOrg(t, "admin")
 
-	// Seed an existing logo.
 	h.db.Model(&model.Org{}).Where("id = ?", org.ID).
 		Update("logo_url", "https://assets.usehiveloop.com/pub/o/abc/old.png")
 
@@ -223,14 +214,12 @@ func TestOrgUpdate_ResponseIncludesPlanInfo(t *testing.T) {
 	h := newOrgUpdateHarness(t)
 	org, user := h.createOrg(t, "admin")
 
-	// Seed a plan row that matches the org's default plan slug ("free") and
-	// confirm the patch response carries both plan_slug and plan_name.
 	plan := model.Plan{Slug: "free", Name: "Free", PriceCents: 0, Currency: "USD", Active: true}
 	if err := h.db.Where("slug = ?", plan.Slug).FirstOrCreate(&plan).Error; err != nil {
 		t.Fatalf("seed plan: %v", err)
 	}
 	t.Cleanup(func() {
-		// Only clean up if we created it — leave a pre-existing "free" plan alone.
+
 	})
 
 	rr := h.doPatch(t, user.ID, org.ID, "admin", map[string]any{

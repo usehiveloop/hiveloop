@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -32,14 +31,12 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate the refresh JWT.
 	userID, _, err := auth.ValidateRefreshToken(h.signingKey, req.RefreshToken)
 	if err != nil {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid refresh token"})
 		return
 	}
 
-	// Check the token hash in the database (revocation check + rotation).
 	tokenHash := hashToken(req.RefreshToken)
 	var storedToken model.RefreshToken
 	if err := h.db.Where("token_hash = ? AND revoked_at IS NULL", tokenHash).First(&storedToken).Error; err != nil {
@@ -52,11 +49,9 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Revoke the old refresh token (rotation).
 	now := time.Now()
 	h.db.Model(&storedToken).Update("revoked_at", &now)
 
-	// Get memberships to determine org/role.
 	var user model.User
 	if err := h.db.Where("id = ?", userID).First(&user).Error; err != nil {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "user not found"})
@@ -120,4 +115,3 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
-

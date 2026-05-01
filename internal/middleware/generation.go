@@ -182,14 +182,10 @@ func buildGeneration(r *http.Request, claims *TokenClaims, captured *observe.Cap
 		CreatedAt: time.Now().UTC(),
 	}
 
-	// Cost calculation using observe usage data
 	gen.Cost = calculateCost(reg, providerID, captured.Model, captured.Usage)
 
-	// Identity from context
-	// Attribution from token meta
 	extractAttribution(db, claims.JTI, &gen)
 
-	// IP address
 	if ip, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 		gen.IPAddress = &ip
 	} else {

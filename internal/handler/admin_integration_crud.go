@@ -16,7 +16,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
-// CreateInIntegration handles POST /admin/v1/in-integrations.
 // @Summary Create a platform integration
 // @Description Creates a new app-owned integration with OAuth credentials via Nango.
 // @Tags admin
@@ -44,33 +43,29 @@ func (h *AdminHandler) CreateInIntegration(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Validate provider exists in Nango
-	provider, ok := h.nango.GetProvider(req.Provider)
+	nangoProvider := nangoProviderName(req.Provider)
+	provider, ok := h.nango.GetProvider(nangoProvider)
 	if !ok {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("unsupported provider %q", req.Provider)})
 		return
 	}
 
-	// Validate provider has action definitions
 	if _, ok := h.catalog.GetProvider(req.Provider); !ok {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("provider %q has no action definitions", req.Provider)})
 		return
 	}
 
-	// Validate credentials against auth mode
 	if err := validateCredentials(provider, req.Credentials); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
-	// Generate unique key
 	uniqueKey := fmt.Sprintf("%s-%s", req.Provider, uuid.New().String()[:8])
 	nangoKey := "in_" + uniqueKey
 
-	// Create in Nango
 	nangoReq := nango.CreateIntegrationRequest{
 		UniqueKey:   nangoKey,
-		Provider:    req.Provider,
+		Provider:    nangoProvider,
 		Credentials: req.Credentials,
 	}
 	if err := h.nango.CreateIntegration(r.Context(), nangoReq); err != nil {
@@ -79,15 +74,13 @@ func (h *AdminHandler) CreateInIntegration(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Fetch integration details + template from Nango to build config
 	integResp, err := h.nango.GetIntegration(r.Context(), nangoKey)
 	if err != nil {
 		logging.FromContext(r.Context()).WarnContext(r.Context(), "admin: created in Nango but failed to fetch details", "error", err)
 	}
-	template, _ := h.nango.GetProviderTemplate(req.Provider)
+	template, _ := h.nango.GetProviderTemplate(nangoProvider)
 	nangoConfig := buildNangoConfig(integResp, template, h.nango.CallbackURL())
 
-	// Store locally
 	integ := model.InIntegration{
 		UniqueKey:   uniqueKey,
 		Provider:    req.Provider,
@@ -96,7 +89,6 @@ func (h *AdminHandler) CreateInIntegration(w http.ResponseWriter, r *http.Reques
 		NangoConfig: nangoConfig,
 	}
 	if err := h.db.Create(&integ).Error; err != nil {
-		// Rollback Nango on DB failure
 		_ = h.nango.DeleteIntegration(r.Context(), nangoKey)
 		if isDuplicateKeyError(err) {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "integration already exists for this provider"})
@@ -110,7 +102,6 @@ func (h *AdminHandler) CreateInIntegration(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusCreated, toAdminInIntegrationResponse(integ))
 }
 
-// GetInIntegration handles GET /admin/v1/in-integrations/{id}.
 // @Summary Get a platform integration
 // @Description Returns a single platform integration by ID.
 // @Tags admin
@@ -136,8 +127,6 @@ func (h *AdminHandler) GetInIntegration(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, toAdminInIntegrationResponse(integ))
 }
 
-
-// UpdateInIntegration handles PUT /admin/v1/in-integrations/{id}.
 // @Summary Update a platform integration
 // @Description Updates display name, credentials, or metadata for a platform integration.
 // @Tags admin
@@ -183,9 +172,9 @@ func (h *AdminHandler) UpdateInIntegration(w http.ResponseWriter, r *http.Reques
 		updates["meta"] = req.Meta
 	}
 
-	// If credentials are being updated, validate and push to Nango
 	if req.Credentials != nil {
-		provider, ok := h.nango.GetProvider(integ.Provider)
+		nangoProvider := nangoProviderName(integ.Provider)
+		provider, ok := h.nango.GetProvider(nangoProvider)
 		if !ok {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "provider no longer available"})
 			return
@@ -203,9 +192,8 @@ func (h *AdminHandler) UpdateInIntegration(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		// Refresh NangoConfig
 		integResp, _ := h.nango.GetIntegration(r.Context(), nangoKey)
-		template, _ := h.nango.GetProviderTemplate(integ.Provider)
+		template, _ := h.nango.GetProviderTemplate(nangoProvider)
 		updates["nango_config"] = buildNangoConfig(integResp, template, h.nango.CallbackURL())
 	}
 
@@ -224,7 +212,6 @@ func (h *AdminHandler) UpdateInIntegration(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, toAdminInIntegrationResponse(integ))
 }
 
-// DeleteInIntegration handles DELETE /admin/v1/in-integrations/{id}.
 // @Summary Delete a platform integration
 // @Description Soft-deletes a platform integration and removes it from Nango.
 // @Tags admin
@@ -247,13 +234,11 @@ func (h *AdminHandler) DeleteInIntegration(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Remove from Nango (best-effort)
 	nangoKey := "in_" + integ.UniqueKey
 	if err := h.nango.DeleteIntegration(r.Context(), nangoKey); err != nil {
 		logging.FromContext(r.Context()).WarnContext(r.Context(), "admin: failed to delete integration from Nango", "error", err, "key", nangoKey)
 	}
 
-	// Soft-delete locally
 	now := time.Now()
 	if err := h.db.Model(&integ).Update("deleted_at", now).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete integration"})

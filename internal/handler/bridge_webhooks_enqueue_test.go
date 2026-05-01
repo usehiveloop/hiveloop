@@ -11,19 +11,13 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
-// maybeEnqueueConversationNaming is best-effort — it should no-op (not
-// panic, not return an error, simply do nothing) when the enqueuer is not
-// configured, and should skip enqueuing when the conversation already has
-// a name. When the name is empty and an enqueuer is present, it should
-// enqueue exactly one conversation:name task.
-
 func TestMaybeEnqueueConversationNaming_NoEnqueuer(t *testing.T) {
 	handler := &BridgeWebhookHandler{enqueuer: nil}
 	handler.maybeEnqueueConversationNaming(context.Background(), &model.AgentConversation{
 		ID:   uuid.New(),
 		Name: "",
 	})
-	// No panic, no error — just a silent no-op. Nothing to assert beyond that.
+
 }
 
 func TestMaybeEnqueueConversationNaming_AlreadyNamed(t *testing.T) {

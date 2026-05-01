@@ -13,6 +13,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+
 // otpRequestDedupWindow swallows duplicate /auth/otp/request calls for the
 // same email that arrive within this window. It exists to fix the
 // "user receives two OTP emails for one action" bug caused by browser
@@ -35,15 +36,11 @@ func (h *AuthHandler) OTPRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Admin mode: reject non-admin emails
 	if h.adminMode && !h.platformAdminEmails[req.Email] {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
 		return
 	}
 
-	// Idempotency: if we just issued an active code for this email a few
-	// seconds ago, treat this as a duplicate submit and short-circuit.
-	// The previously-emailed code is still valid — no new code, no new email.
 	now := time.Now()
 	var recent model.OTPCode
 	dedupErr := h.db.
@@ -56,12 +53,10 @@ func (h *AuthHandler) OTPRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Invalidate any unused OTP codes for this email
 	h.db.Model(&model.OTPCode{}).
 		Where("email = ? AND used_at IS NULL", req.Email).
 		Update("used_at", now)
 
-	// Generate new code
 	plainCode, codeHash, err := model.GenerateOTPCode()
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to generate OTP code", "error", err)
@@ -80,7 +75,6 @@ func (h *AuthHandler) OTPRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send the code via email (asynq-queued, Kibamail-delivered, retried on failure).
 	if err := h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{
 		To:   req.Email,
 		Slug: email.TmplAuthOtpLogin,
@@ -90,8 +84,7 @@ func (h *AuthHandler) OTPRequest(w http.ResponseWriter, r *http.Request) {
 			"expiresIn": "10 minutes",
 		},
 	}); err != nil {
-		// Enqueue failure shouldn't break login — user can request a new code.
-		// Log loudly so it's paged on dashboards.
+
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to enqueue OTP email", "error", err, "email", req.Email)
 	}
 
@@ -124,7 +117,6 @@ func (h *AuthHandler) OTPVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Look up the OTP by hash
 	codeHash := model.HashOTPCode(req.Code)
 	var otp model.OTPCode
 	err := h.db.Where("email = ? AND token_hash = ? AND used_at IS NULL", req.Email, codeHash).First(&otp).Error
@@ -138,15 +130,13 @@ func (h *AuthHandler) OTPVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Mark code as used
 	now := time.Now()
 	h.db.Model(&otp).Update("used_at", &now)
 
-	// Find or create user
 	var user model.User
 	err = h.db.Where("email = ?", req.Email).First(&user).Error
 	if err != nil {
-		// New user — create account with org and welcome credit grant in one tx.
+
 		var org model.Org
 		txErr := h.db.Transaction(func(tx *gorm.DB) error {
 			user = model.User{
@@ -173,18 +163,15 @@ func (h *AuthHandler) OTPVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Existing user — ensure email is confirmed
 	if user.EmailConfirmedAt == nil {
 		h.db.Model(&user).Update("email_confirmed_at", &now)
 	}
 
-	// Admin mode check
 	if h.adminMode && !h.platformAdminEmails[user.Email] {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
 		return
 	}
 
-	// Get memberships and issue tokens
 	var memberships []model.OrgMembership
 	h.db.Preload("Org").Where("user_id = ?", user.ID).Find(&memberships)
 
@@ -196,9 +183,3 @@ func (h *AuthHandler) OTPVerify(w http.ResponseWriter, r *http.Request) {
 	logging.FromContext(r.Context()).InfoContext(r.Context(), "user logged in via OTP", "user_id", user.ID, "email", user.Email)
 	h.issueTokensAndRespond(r.Context(), w, http.StatusOK, user, memberships[0].OrgID.String(), memberships[0].Role)
 }
-
-// --- Helpers ---
-
-// firstNameFrom returns a best-effort first name for email personalization.
-// Falls back to the email local-part when the user hasn't provided a name,
-// then to a generic "there" so templates don't render "Hi ,".

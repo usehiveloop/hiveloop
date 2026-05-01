@@ -43,27 +43,22 @@ func (m *nangoMock) connKey(connectionID, providerConfigKey string) string {
 
 func (m *nangoMock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
-	// Strip query params for path matching, but keep them available via r.URL.Query()
 
-	// GET /providers
 	if path == "/providers" && r.Method == http.MethodGet {
 		m.handleGetProviders(w, r)
 		return
 	}
 
-	// POST /connect/sessions
 	if path == "/connect/sessions" && r.Method == http.MethodPost {
 		m.handleCreateConnectSession(w, r)
 		return
 	}
 
-	// POST /connection (create)
 	if path == "/connection" && r.Method == http.MethodPost {
 		m.handleCreateConnection(w, r)
 		return
 	}
 
-	// GET/DELETE /connection/{id}
 	if strings.HasPrefix(path, "/connection/") && !strings.Contains(path[len("/connection/"):], "/") {
 		connID := path[len("/connection/"):]
 		providerConfigKey := r.URL.Query().Get("provider_config_key")
@@ -77,16 +72,14 @@ func (m *nangoMock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// POST /integrations (create)
 	if path == "/integrations" && r.Method == http.MethodPost {
 		m.handleCreateIntegration(w, r)
 		return
 	}
 
-	// GET/PATCH/DELETE /integrations/{uniqueKey}
 	if strings.HasPrefix(path, "/integrations/") {
 		uniqueKey := path[len("/integrations/"):]
-		// Strip query params from key if present
+
 		if idx := strings.Index(uniqueKey, "?"); idx != -1 {
 			uniqueKey = uniqueKey[:idx]
 		}
@@ -103,7 +96,6 @@ func (m *nangoMock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Proxy requests: /proxy/*
 	if strings.HasPrefix(path, "/proxy/") {
 		m.handleProxy(w, r)
 		return
@@ -151,11 +143,11 @@ func (m *nangoMock) handleCreateConnection(w http.ResponseWriter, r *http.Reques
 
 	m.mu.Lock()
 	m.connections[m.connKey(connID, providerConfigKey)] = map[string]any{
-		"connection_id":      connID,
+		"connection_id":       connID,
 		"provider_config_key": providerConfigKey,
-		"provider":           "github",
-		"connection_config":  map[string]any{},
-		"credentials":        map[string]any{"access_token": "mock_token"},
+		"provider":            "github",
+		"connection_config":   map[string]any{},
+		"credentials":         map[string]any{"access_token": "mock_token"},
 	}
 	m.mu.Unlock()
 
@@ -190,7 +182,6 @@ func (m *nangoMock) handleCreateIntegration(w http.ResponseWriter, r *http.Reque
 
 	uniqueKey, _ := req["unique_key"].(string)
 
-	// If credentials include APP type, generate a webhook_secret like real Nango does.
 	creds, _ := req["credentials"].(map[string]any)
 	if creds != nil {
 		if credType, _ := creds["type"].(string); credType == "APP" {
@@ -237,7 +228,7 @@ func (m *nangoMock) handleUpdateIntegration(w http.ResponseWriter, r *http.Reque
 		}
 		if creds, exists := req["credentials"]; exists {
 			credsMap, _ := creds.(map[string]any)
-			// Regenerate webhook_secret on credential rotation for APP type
+
 			if credsMap != nil {
 				if credType, _ := credsMap["type"].(string); credType == "APP" {
 					credsMap["webhook_secret"] = fmt.Sprintf("%x", time.Now().UnixNano()) + "00000000000000000000000000000000000000000000000000"
@@ -268,6 +259,6 @@ func (m *nangoMock) handleDeleteIntegration(w http.ResponseWriter, uniqueKey str
 }
 
 func (m *nangoMock) handleProxy(w http.ResponseWriter, _ *http.Request) {
-	// Return a generic success response for proxy requests
+
 	_ = json.NewEncoder(w).Encode(map[string]any{"ok": true})
 }

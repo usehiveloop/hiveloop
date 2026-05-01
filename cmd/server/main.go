@@ -45,7 +45,6 @@ func main() {
 	memguard.CatchInterrupt()
 	disableCoreDumps()
 
-	// Determine subcommand (default: "serve" for backward compatibility)
 	cmd := "serve"
 	if len(os.Args) > 1 {
 		cmd = os.Args[1]
@@ -63,8 +62,7 @@ func main() {
 }
 
 func run(cmd string) error {
-	// Bootstrap shared deps (config, DB, Redis, KMS, cache, etc.)
-	// Logging must be initialized first.
+
 	cfg, err := loadConfigForLogging()
 	if err != nil {
 		slog.Error("fatal", "error", err)
@@ -83,8 +81,6 @@ func run(cmd string) error {
 	}
 	defer deps.Close(ctx)
 
-	// Wrap slog AFTER bootstrap (Sentry is initialized) and BEFORE dispatch
-	// so every subsequent Error log is mirrored to Sentry.
 	slog.SetDefault(slog.New(sentryobs.WrapSlogHandler(slog.Default().Handler())))
 
 	sentryobs.CaptureMessage(ctx, fmt.Sprintf("service_started mode=%s version=%s", cmd, version))
@@ -110,7 +106,7 @@ func dispatch(ctx context.Context, cmd string, deps *bootstrap.Deps) error {
 		return runWork(ctx, deps)
 
 	case "both":
-		// Run both server and worker in one process (for local dev).
+
 		enqueuer := enqueue.NewClient(deps.Config.AsynqRedisOpt())
 		defer enqueuer.Close()
 

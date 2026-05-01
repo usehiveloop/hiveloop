@@ -6,12 +6,6 @@ import (
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 )
 
-// applyImmortalDefault is the single place where every pushed agent gets its
-// ImmortalConfig auto-generated. The shape is the post-compaction-rewrite
-// Bridge ImmortalConfig: token_budget, retention_window, eviction_window,
-// expose_journal_tools. Bridge runs compaction with the agent's primary model;
-// no separate checkpoint provider any more.
-
 func unwrapImmortal(t *testing.T, w *bridgepkg.AgentConfig_Immortal) bridgepkg.ImmortalConfig {
 	t.Helper()
 	if w == nil {

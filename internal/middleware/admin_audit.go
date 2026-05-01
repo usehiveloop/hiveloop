@@ -21,25 +21,25 @@ import (
 // sensitiveKeys are fields whose values must be masked in admin audit logs.
 // Matching is case-insensitive and applies to any nesting depth.
 var sensitiveKeys = map[string]bool{
-	"password":          true,
-	"password_hash":     true,
-	"email":             true,
-	"token":             true,
-	"access_token":      true,
-	"refresh_token":     true,
-	"secret":            true,
-	"api_key":           true,
-	"key":               true,
-	"encrypted_key":     true,
-	"wrapped_dek":       true,
-	"session_token":     true,
-	"nango_secret_key":  true,
-	"key_hash":          true,
-	"key_prefix":        true,
-	"token_hash":        true,
-	"ban_reason":        true, // can contain PII
-	"ip_address":        true,
-	"allowed_origins":   true,
+	"password":           true,
+	"password_hash":      true,
+	"email":              true,
+	"token":              true,
+	"access_token":       true,
+	"refresh_token":      true,
+	"secret":             true,
+	"api_key":            true,
+	"key":                true,
+	"encrypted_key":      true,
+	"wrapped_dek":        true,
+	"session_token":      true,
+	"nango_secret_key":   true,
+	"key_hash":           true,
+	"key_prefix":         true,
+	"token_hash":         true,
+	"ban_reason":         true,
+	"ip_address":         true,
+	"allowed_origins":    true,
 	"encrypted_env_vars": true,
 }
 
@@ -59,28 +59,22 @@ func AdminAudit(db *gorm.DB, enqueuer ...enqueue.TaskEnqueuer) func(http.Handler
 			ctx := r.Context()
 			start := time.Now()
 
-			// Capture request body for mutating methods
 			var rawBody []byte
 			if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Body != nil {
 				rawBody, _ = io.ReadAll(r.Body)
 				r.Body = io.NopCloser(bytes.NewReader(rawBody))
 			}
 
-			// Place a shared audit bucket on the context so handlers can
-			// write their diff into it without needing to return a new request.
 			bucket := &AdminAuditBucket{}
 			r = WithAdminAuditBucket(r, bucket)
 
-			// Wrap response to capture status code
 			sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(sw, r)
 
-			// Only log mutating operations (skip reads)
 			if r.Method == http.MethodGet || r.Method == http.MethodHead {
 				return
 			}
 
-			// Build entry
 			entry := model.AdminAuditEntry{
 				Method:     r.Method,
 				Path:       r.URL.Path,
@@ -89,7 +83,6 @@ func AdminAudit(db *gorm.DB, enqueuer ...enqueue.TaskEnqueuer) func(http.Handler
 				CreatedAt:  time.Now(),
 			}
 
-			// Admin identity
 			if claims, ok := AuthClaimsFromContext(ctx); ok {
 				if uid, err := uuid.Parse(claims.UserID); err == nil {
 					entry.AdminID = uid
@@ -99,7 +92,6 @@ func AdminAudit(db *gorm.DB, enqueuer ...enqueue.TaskEnqueuer) func(http.Handler
 				entry.AdminEmail = maskEmail(user.Email)
 			}
 
-			// IP address
 			if ip, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 				entry.IPAddress = &ip
 			} else {
@@ -107,11 +99,8 @@ func AdminAudit(db *gorm.DB, enqueuer ...enqueue.TaskEnqueuer) func(http.Handler
 				entry.IPAddress = &addr
 			}
 
-			// Parse resource and action from path
 			entry.Resource, entry.ResourceID, entry.Action = parseAdminPath(r.Method, r.URL.Path)
 
-			// For PUT (update) requests, prefer the handler-computed diff over the raw body.
-			// This ensures we only log fields that actually changed, not the full form.
 			if len(bucket.Changes) > 0 {
 				sanitized := model.JSON(bucket.Changes)
 				maskMap(sanitized)
@@ -120,7 +109,6 @@ func AdminAudit(db *gorm.DB, enqueuer ...enqueue.TaskEnqueuer) func(http.Handler
 				entry.Payload = sanitizePayload(rawBody)
 			}
 
-			// Write via task queue if enqueuer is available, otherwise fall back to goroutine.
 			if len(enqueuer) > 0 && enqueuer[0] != nil {
 				if task, err := tasks.NewAdminAuditWriteTask(entry); err == nil {
 					if _, err := enqueuer[0].Enqueue(task); err != nil {
@@ -145,7 +133,7 @@ func AdminAudit(db *gorm.DB, enqueuer ...enqueue.TaskEnqueuer) func(http.Handler
 //	PUT  /admin/v1/orgs/abc-123      → resource="orgs",  resourceID="abc-123", action="update_org"
 //	DELETE /admin/v1/agents/abc-123   → resource="agents", resourceID="abc-123", action="delete_agent"
 func parseAdminPath(method, path string) (resource, resourceID, action string) {
-	// Strip /admin/v1/ prefix
+
 	path = strings.TrimPrefix(path, "/admin/v1/")
 	parts := strings.Split(path, "/")
 
@@ -155,7 +143,6 @@ func parseAdminPath(method, path string) (resource, resourceID, action string) {
 
 	resource = parts[0]
 
-	// Singular form for action naming
 	singular := strings.TrimSuffix(resource, "s")
 	if resource == "sandbox-templates" {
 		singular = "sandbox_template"
@@ -175,14 +162,14 @@ func parseAdminPath(method, path string) (resource, resourceID, action string) {
 
 	switch {
 	case len(parts) >= 3:
-		// /resource/{id}/action — e.g. /users/abc/ban
+
 		resourceID = parts[1]
 		action = parts[2] + "_" + singular
 	case len(parts) == 2 && parts[1] == "cleanup":
-		// /sandboxes/cleanup — special action, no resource ID
+
 		action = "cleanup_" + resource
 	case len(parts) == 2:
-		// /resource/{id} — method determines action
+
 		resourceID = parts[1]
 		switch method {
 		case http.MethodPut:
@@ -195,7 +182,7 @@ func parseAdminPath(method, path string) (resource, resourceID, action string) {
 			action = method + "_" + singular
 		}
 	case len(parts) == 1:
-		// /resource — e.g. POST /sandboxes/cleanup
+
 		if resource == "cleanup" {
 			resource = "sandboxes"
 			action = "cleanup_sandboxes"
@@ -250,4 +237,3 @@ func maskEmail(email string) string {
 	}
 	return string(local[0]) + "***" + string(local[len(local)-1]) + "@" + parts[1]
 }
-

@@ -42,7 +42,6 @@ func (h *SandboxTemplateBuildHandler) Handle(ctx context.Context, t *asynq.Task)
 		return fmt.Errorf("loading template: %w", err)
 	}
 
-	// Update status to building
 	h.db.Model(&tmpl).Update("build_status", "building")
 
 	return h.buildTemplate(ctx, &tmpl)
@@ -62,20 +61,17 @@ func (h *SandboxTemplateBuildHandler) HandleRetry(ctx context.Context, t *asynq.
 		return fmt.Errorf("loading template: %w", err)
 	}
 
-	// Delete existing snapshot if present
 	if tmpl.ExternalID != nil && *tmpl.ExternalID != "" {
 		if err := h.orchestrator.DeleteTemplate(ctx, *tmpl.ExternalID); err != nil {
 			logging.Capture(ctx, fmt.Errorf("delete existing snapshot %s: %w", *tmpl.ExternalID, err))
 		}
 	}
 
-	// Update commands if provided
 	if len(payload.BuildCommands) > 0 {
 		h.db.Model(&tmpl).Update("build_commands", strings.Join(payload.BuildCommands, "\n"))
 		tmpl.BuildCommands = strings.Join(payload.BuildCommands, "\n")
 	}
 
-	// Reset template status
 	h.db.Model(&tmpl).Updates(map[string]any{
 		"build_status": "building",
 		"external_id":  nil,
@@ -91,12 +87,11 @@ func (h *SandboxTemplateBuildHandler) HandleRetry(ctx context.Context, t *asynq.
 }
 
 func (h *SandboxTemplateBuildHandler) buildTemplate(ctx context.Context, tmpl *model.SandboxTemplate) error {
-	// Buffered log channel
+
 	logChan := make(chan string, 100)
 	var logMu sync.Mutex
 	var bufferedLogs []string
 
-	// Goroutine to flush logs every 3 seconds
 	done := make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(3 * time.Second)
@@ -128,7 +123,7 @@ func (h *SandboxTemplateBuildHandler) buildTemplate(ctx context.Context, tmpl *m
 		select {
 		case logChan <- line:
 		default:
-			// Channel full, skip log
+
 		}
 	}
 
@@ -142,10 +137,8 @@ func (h *SandboxTemplateBuildHandler) buildTemplate(ctx context.Context, tmpl *m
 		h.db.Model(tmpl).Updates(updates)
 	}
 
-	// Build the template with polling
 	externalID, err := h.orchestrator.BuildTemplateWithPolling(ctx, tmpl, onLog, onStatus)
 
-	// Signal flusher to stop and do final flush
 	close(done)
 	logMu.Lock()
 	if len(bufferedLogs) > 0 {

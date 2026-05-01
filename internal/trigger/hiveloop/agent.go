@@ -49,22 +49,18 @@ func (agent *RouterAgent) Route(
 ) (*RoutingResult, error) {
 	started := time.Now()
 
-	// Shared state accumulated by tool handlers across turns.
 	var selections []AgentSelection
 	var enrichments []PlannedEnrichment
 	planned := NewPlannedStepRegistry()
 
-	// Build tool handlers.
 	handlers := map[string]ToolHandler{
 		"route_to_agent":  NewRouteToAgentHandler(orgAgents, &selections),
 		"plan_enrichment": NewPlanEnrichmentHandler(connections, nil, planned, &enrichments),
 		"finalize":        NewFinalizeHandler(),
 	}
 
-	// Build tool definitions for the LLM.
 	tools := buildToolDefs(orgAgents, connections)
 
-	// Initial messages.
 	messages := []Message{
 		{Role: "system", Content: systemPrompt},
 		{Role: "user", Content: userMessage},
@@ -89,10 +85,8 @@ func (agent *RouterAgent) Route(
 			break
 		}
 
-		// Append assistant message to history.
 		messages = append(messages, assistantMsg)
 
-		// Execute each tool call.
 		for _, toolCall := range assistantMsg.ToolCalls {
 			handler, ok := handlers[toolCall.Name]
 			if !ok {
@@ -134,7 +128,6 @@ func (agent *RouterAgent) Route(
 		}
 	}
 
-	// Max turns reached — return whatever was collected.
 	return &RoutingResult{
 		SelectedAgents: selections,
 		EnrichmentPlan: enrichments,
@@ -145,14 +138,13 @@ func (agent *RouterAgent) Route(
 
 // buildToolDefs constructs the JSON Schema tool definitions passed to the LLM.
 func buildToolDefs(agents []model.Agent, connections []ConnectionWithActions) []ToolDef {
-	// route_to_agent — enum of valid agent IDs.
+
 	agentIDs := make([]string, len(agents))
 	for index, agent := range agents {
 		agentIDs[index] = agent.ID.String()
 	}
 	agentIDsJSON, _ := json.Marshal(agentIDs)
 
-	// plan_enrichment — enum of valid connection IDs.
 	connIDs := make([]string, len(connections))
 	for index, conn := range connections {
 		connIDs[index] = conn.Connection.ID.String()

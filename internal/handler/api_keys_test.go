@@ -89,11 +89,11 @@ func createTestOrg(t *testing.T, db *gorm.DB) model.Org {
 }
 
 type apiKeyTestHarness struct {
-	db       *gorm.DB
-	cache    *cache.APIKeyCache
-	manager  *cache.Manager
-	handler  *handler.APIKeyHandler
-	router   *chi.Mux
+	db      *gorm.DB
+	cache   *cache.APIKeyCache
+	manager *cache.Manager
+	handler *handler.APIKeyHandler
+	router  *chi.Mux
 }
 
 func newAPIKeyHarness(t *testing.T) *apiKeyTestHarness {
@@ -147,10 +147,6 @@ func (h *apiKeyTestHarness) doRequest(t *testing.T, method, path string, body an
 	return rr
 }
 
-// --------------------------------------------------------------------------
-// POST /v1/api-keys — Create
-// --------------------------------------------------------------------------
-
 func TestAPIKeyHandler_Create_Success(t *testing.T) {
 	h := newAPIKeyHarness(t)
 	org := createTestOrg(t, h.db)
@@ -169,7 +165,6 @@ func TestAPIKeyHandler_Create_Success(t *testing.T) {
 		t.Fatalf("decode response: %v", err)
 	}
 
-	// Plaintext key must be present and have correct prefix
 	key, ok := resp["key"].(string)
 	if !ok || !strings.HasPrefix(key, "hvl_sk_") {
 		t.Fatalf("expected key with hvl_sk_ prefix, got %v", resp["key"])
@@ -178,24 +173,20 @@ func TestAPIKeyHandler_Create_Success(t *testing.T) {
 		t.Fatalf("expected key length 71, got %d", len(key))
 	}
 
-	// Key prefix must be present
 	prefix, ok := resp["key_prefix"].(string)
 	if !ok || len(prefix) != 16 {
 		t.Fatalf("expected key_prefix length 16, got %v", resp["key_prefix"])
 	}
 
-	// Scopes
 	scopes, ok := resp["scopes"].([]any)
 	if !ok || len(scopes) != 2 {
 		t.Fatalf("expected 2 scopes, got %v", resp["scopes"])
 	}
 
-	// Name
 	if resp["name"] != "prod-key" {
 		t.Fatalf("expected name 'prod-key', got %v", resp["name"])
 	}
 
-	// Verify in DB
 	var dbKey model.APIKey
 	if err := h.db.Where("id = ?", resp["id"]).First(&dbKey).Error; err != nil {
 		t.Fatalf("key not found in DB: %v", err)
@@ -204,7 +195,6 @@ func TestAPIKeyHandler_Create_Success(t *testing.T) {
 		t.Fatalf("expected org ID %s, got %s", org.ID, dbKey.OrgID)
 	}
 
-	// Hash should match
 	expectedHash := model.HashAPIKey(key)
 	if dbKey.KeyHash != expectedHash {
 		t.Fatalf("stored hash does not match: expected %q, got %q", expectedHash, dbKey.KeyHash)
@@ -235,7 +225,6 @@ func TestAPIKeyHandler_Create_WithExpiry(t *testing.T) {
 		t.Fatal("expected expires_at in response")
 	}
 
-	// Should be approximately 30 days from now
 	expTime, err := time.Parse(time.RFC3339, expiresAt)
 	if err != nil {
 		t.Fatalf("parse expires_at: %v", err)
@@ -320,15 +309,10 @@ func TestAPIKeyHandler_Create_MissingOrg(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
-// GET /v1/api-keys — List
-// --------------------------------------------------------------------------
-
 func TestAPIKeyHandler_List_ReturnsKeys(t *testing.T) {
 	h := newAPIKeyHarness(t)
 	org := createTestOrg(t, h.db)
 
-	// Create two keys
 	for _, name := range []string{"key-alpha", "key-beta"} {
 		rr := h.doRequest(t, http.MethodPost, "/v1/api-keys", map[string]any{
 			"name":   name,
@@ -356,7 +340,6 @@ func TestAPIKeyHandler_List_ReturnsKeys(t *testing.T) {
 		t.Fatalf("expected at least 2 keys, got %d", len(page.Data))
 	}
 
-	// Verify plaintext key is NOT in the list response
 	for _, k := range page.Data {
 		if _, hasKey := k["key"]; hasKey {
 			t.Fatal("list response should NOT include plaintext key")
@@ -372,7 +355,6 @@ func TestAPIKeyHandler_List_IsolatedByOrg(t *testing.T) {
 	org1 := createTestOrg(t, h.db)
 	org2 := createTestOrg(t, h.db)
 
-	// Create key in org1
 	rr := h.doRequest(t, http.MethodPost, "/v1/api-keys", map[string]any{
 		"name":   "org1-key",
 		"scopes": []string{"all"},
@@ -381,7 +363,6 @@ func TestAPIKeyHandler_List_IsolatedByOrg(t *testing.T) {
 		t.Fatalf("create: expected 201, got %d", rr.Code)
 	}
 
-	// List from org2 — should NOT see org1's key
 	rr = h.doRequest(t, http.MethodGet, "/v1/api-keys", nil, &org2)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rr.Code)
@@ -433,7 +414,7 @@ func TestAPIKeyHandler_List_OrderedByCreatedDesc(t *testing.T) {
 		if rr.Code != http.StatusCreated {
 			t.Fatalf("create %s: expected 201, got %d", name, rr.Code)
 		}
-		// Small delay so created_at differs
+
 		time.Sleep(10 * time.Millisecond)
 	}
 
@@ -447,7 +428,6 @@ func TestAPIKeyHandler_List_OrderedByCreatedDesc(t *testing.T) {
 		t.Fatalf("expected at least 3 keys, got %d", len(page.Data))
 	}
 
-	// Most recent first
 	if page.Data[0]["name"] != "third" {
 		t.Fatalf("expected first entry to be 'third' (newest), got %v", page.Data[0]["name"])
 	}
@@ -457,7 +437,6 @@ func TestAPIKeyHandler_List_IncludesRevokedKeys(t *testing.T) {
 	h := newAPIKeyHarness(t)
 	org := createTestOrg(t, h.db)
 
-	// Create and revoke a key
 	rr := h.doRequest(t, http.MethodPost, "/v1/api-keys", map[string]any{
 		"name":   "will-revoke",
 		"scopes": []string{"all"},
@@ -467,7 +446,6 @@ func TestAPIKeyHandler_List_IncludesRevokedKeys(t *testing.T) {
 
 	h.doRequest(t, http.MethodDelete, "/v1/api-keys/"+created["id"].(string), nil, &org)
 
-	// List should include the revoked key
 	rr = h.doRequest(t, http.MethodGet, "/v1/api-keys", nil, &org)
 	var page struct {
 		Data []map[string]any `json:"data"`
@@ -488,15 +466,10 @@ func TestAPIKeyHandler_List_IncludesRevokedKeys(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
-// DELETE /v1/api-keys/{id} — Revoke
-// --------------------------------------------------------------------------
-
 func TestAPIKeyHandler_Revoke_Success(t *testing.T) {
 	h := newAPIKeyHarness(t)
 	org := createTestOrg(t, h.db)
 
-	// Create
 	rr := h.doRequest(t, http.MethodPost, "/v1/api-keys", map[string]any{
 		"name":   "to-revoke",
 		"scopes": []string{"all"},
@@ -507,7 +480,6 @@ func TestAPIKeyHandler_Revoke_Success(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(rr.Body).Decode(&created)
 
-	// Revoke
 	rr = h.doRequest(t, http.MethodDelete, "/v1/api-keys/"+created["id"].(string), nil, &org)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("revoke: expected 200, got %d; body: %s", rr.Code, rr.Body.String())
@@ -519,7 +491,6 @@ func TestAPIKeyHandler_Revoke_Success(t *testing.T) {
 		t.Fatalf("expected status 'revoked', got %q", body["status"])
 	}
 
-	// Verify in DB
 	var dbKey model.APIKey
 	if err := h.db.Where("id = ?", created["id"]).First(&dbKey).Error; err != nil {
 		t.Fatalf("key not found: %v", err)
@@ -533,7 +504,6 @@ func TestAPIKeyHandler_Revoke_InvalidatesCache(t *testing.T) {
 	h := newAPIKeyHarness(t)
 	org := createTestOrg(t, h.db)
 
-	// Create
 	rr := h.doRequest(t, http.MethodPost, "/v1/api-keys", map[string]any{
 		"name":   "cache-test",
 		"scopes": []string{"all"},
@@ -541,7 +511,6 @@ func TestAPIKeyHandler_Revoke_InvalidatesCache(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(rr.Body).Decode(&created)
 
-	// Pre-populate cache
 	keyHash := model.HashAPIKey(created["key"].(string))
 	h.cache.Set(keyHash, &cache.CachedAPIKey{
 		ID:     uuid.MustParse(created["id"].(string)),
@@ -549,15 +518,12 @@ func TestAPIKeyHandler_Revoke_InvalidatesCache(t *testing.T) {
 		Scopes: []string{"all"},
 	})
 
-	// Verify it's cached
 	if _, ok := h.cache.Get(keyHash); !ok {
 		t.Fatal("expected key to be cached before revoke")
 	}
 
-	// Revoke
 	h.doRequest(t, http.MethodDelete, "/v1/api-keys/"+created["id"].(string), nil, &org)
 
-	// Cache should be invalidated
 	if _, ok := h.cache.Get(keyHash); ok {
 		t.Fatal("expected key to be evicted from cache after revoke")
 	}
@@ -577,7 +543,6 @@ func TestAPIKeyHandler_Revoke_AlreadyRevoked(t *testing.T) {
 	h := newAPIKeyHarness(t)
 	org := createTestOrg(t, h.db)
 
-	// Create
 	rr := h.doRequest(t, http.MethodPost, "/v1/api-keys", map[string]any{
 		"name":   "double-revoke",
 		"scopes": []string{"all"},
@@ -585,10 +550,8 @@ func TestAPIKeyHandler_Revoke_AlreadyRevoked(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(rr.Body).Decode(&created)
 
-	// Revoke once
 	h.doRequest(t, http.MethodDelete, "/v1/api-keys/"+created["id"].(string), nil, &org)
 
-	// Revoke again — should get 404
 	rr = h.doRequest(t, http.MethodDelete, "/v1/api-keys/"+created["id"].(string), nil, &org)
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for already-revoked key, got %d", rr.Code)
@@ -600,7 +563,6 @@ func TestAPIKeyHandler_Revoke_WrongOrg(t *testing.T) {
 	org1 := createTestOrg(t, h.db)
 	org2 := createTestOrg(t, h.db)
 
-	// Create key in org1
 	rr := h.doRequest(t, http.MethodPost, "/v1/api-keys", map[string]any{
 		"name":   "org1-secret",
 		"scopes": []string{"all"},
@@ -608,13 +570,11 @@ func TestAPIKeyHandler_Revoke_WrongOrg(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(rr.Body).Decode(&created)
 
-	// Try to revoke from org2
 	rr = h.doRequest(t, http.MethodDelete, "/v1/api-keys/"+created["id"].(string), nil, &org2)
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 (wrong org), got %d", rr.Code)
 	}
 
-	// Verify key is NOT revoked in DB
 	var dbKey model.APIKey
 	h.db.Where("id = ?", created["id"]).First(&dbKey)
 	if dbKey.RevokedAt != nil {
@@ -631,15 +591,10 @@ func TestAPIKeyHandler_Revoke_MissingOrg(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
-// Full lifecycle: Create → List → Revoke → List
-// --------------------------------------------------------------------------
-
 func TestAPIKeyHandler_FullLifecycle(t *testing.T) {
 	h := newAPIKeyHarness(t)
 	org := createTestOrg(t, h.db)
 
-	// 1. Create
 	rr := h.doRequest(t, http.MethodPost, "/v1/api-keys", map[string]any{
 		"name":   "lifecycle-key",
 		"scopes": []string{"connect", "tokens"},
@@ -653,7 +608,6 @@ func TestAPIKeyHandler_FullLifecycle(t *testing.T) {
 	keyID := created["id"].(string)
 	plaintext := created["key"].(string)
 
-	// 2. List — should include the key
 	rr = h.doRequest(t, http.MethodGet, "/v1/api-keys", nil, &org)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("list: expected 200, got %d", rr.Code)
@@ -682,7 +636,6 @@ func TestAPIKeyHandler_FullLifecycle(t *testing.T) {
 		t.Fatal("created key not found in list")
 	}
 
-	// 3. Verify the key can authenticate
 	keyCache := cache.NewAPIKeyCache(100, 5*time.Minute)
 	var authedOrg *model.Org
 	authHandler := middleware.APIKeyAuth(h.db, keyCache, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -705,13 +658,11 @@ func TestAPIKeyHandler_FullLifecycle(t *testing.T) {
 		t.Fatalf("auth: expected org %s, got %s", org.ID, authedOrg.ID)
 	}
 
-	// 4. Revoke
 	rr = h.doRequest(t, http.MethodDelete, "/v1/api-keys/"+keyID, nil, &org)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("revoke: expected 200, got %d", rr.Code)
 	}
 
-	// 5. Verify the key can NO longer authenticate
 	keyCache2 := cache.NewAPIKeyCache(100, 5*time.Minute)
 	authHandler2 := middleware.APIKeyAuth(h.db, keyCache2, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called for revoked key")
@@ -725,7 +676,6 @@ func TestAPIKeyHandler_FullLifecycle(t *testing.T) {
 		t.Fatalf("auth after revoke: expected 401, got %d", authRR2.Code)
 	}
 
-	// 6. List — should still show the key (with revoked_at set)
 	rr = h.doRequest(t, http.MethodGet, "/v1/api-keys", nil, &org)
 	var afterPage struct {
 		Data []map[string]any `json:"data"`

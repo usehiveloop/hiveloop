@@ -12,10 +12,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// ---------------------------------------------------------------------------
-// Unit tests for helper functions (no DB needed)
-// ---------------------------------------------------------------------------
-
 func TestParseAdminPath(t *testing.T) {
 	tests := []struct {
 		method, path                     string
@@ -135,24 +131,17 @@ func TestMaskMap_NestedArrays(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Bucket-based context test (handler → middleware communication)
-// ---------------------------------------------------------------------------
-
 func TestAdminAuditBucket(t *testing.T) {
 	r := httptest.NewRequest("PUT", "/admin/v1/users/abc-123", nil)
 
-	// Middleware allocates bucket and places it on context
 	bucket := &AdminAuditBucket{}
 	r = WithAdminAuditBucket(r, bucket)
 
-	// Handler writes diff into the bucket (using the same r, no reassignment needed)
 	changes := AdminAuditChanges{
 		"name": map[string]any{"old": "Alice", "new": "Bob"},
 	}
 	SetAdminAuditChanges(r, changes)
 
-	// Middleware reads from the bucket pointer — sees the handler's writes
 	if bucket.Changes == nil {
 		t.Fatal("expected changes in bucket")
 	}
@@ -167,17 +156,13 @@ func TestAdminAuditBucket(t *testing.T) {
 
 func TestAdminAuditBucket_NoBucket(t *testing.T) {
 	r := httptest.NewRequest("PUT", "/admin/v1/users/abc-123", nil)
-	// No bucket on context — SetAdminAuditChanges should not panic
+
 	SetAdminAuditChanges(r, AdminAuditChanges{"name": "test"})
 	bucket := AdminAuditBucketFromContext(r.Context())
 	if bucket != nil {
 		t.Error("expected nil bucket on fresh context")
 	}
 }
-
-// ---------------------------------------------------------------------------
-// Integration test helpers
-// ---------------------------------------------------------------------------
 
 func connectTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -196,15 +181,11 @@ func connectTestDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-// ---------------------------------------------------------------------------
-// Integration: PUT uses handler diff (only changed fields)
-// ---------------------------------------------------------------------------
-
 func TestAdminAudit_PUT_UsesHandlerDiff(t *testing.T) {
 	db := connectTestDB(t)
 
 	innerHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Handler writes only the changed field into the bucket
+
 		SetAdminAuditChanges(r, AdminAuditChanges{
 			"name": map[string]any{"old": "Alice", "new": "Bob"},
 		})
@@ -236,7 +217,6 @@ func TestAdminAudit_PUT_UsesHandlerDiff(t *testing.T) {
 		t.Fatal("expected non-nil payload")
 	}
 
-	// Should have "name" with old/new
 	nameField, exists := written.Payload["name"]
 	if !exists {
 		t.Fatalf("expected 'name' in payload, got: %v", written.Payload)
@@ -252,7 +232,6 @@ func TestAdminAudit_PUT_UsesHandlerDiff(t *testing.T) {
 		t.Errorf("expected new=Bob, got %v", nameMap["new"])
 	}
 
-	// Should NOT have "email" — it was in the raw body but not in the diff
 	if _, exists := written.Payload["email"]; exists {
 		t.Errorf("email should NOT be in payload (wasn't changed), got: %v", written.Payload["email"])
 	}
@@ -261,10 +240,6 @@ func TestAdminAudit_PUT_UsesHandlerDiff(t *testing.T) {
 		t.Errorf("expected action=update_user, got %q", written.Action)
 	}
 }
-
-// ---------------------------------------------------------------------------
-// Integration: POST uses raw body (no handler diff)
-// ---------------------------------------------------------------------------
 
 func TestAdminAudit_POST_UsesRawBody(t *testing.T) {
 	db := connectTestDB(t)
@@ -302,10 +277,6 @@ func TestAdminAudit_POST_UsesRawBody(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Integration: GET requests not logged
-// ---------------------------------------------------------------------------
-
 func TestAdminAudit_GET_NotLogged(t *testing.T) {
 	db := connectTestDB(t)
 
@@ -337,15 +308,11 @@ func TestAdminAudit_GET_NotLogged(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Integration: PUT without handler diff falls back to raw body
-// ---------------------------------------------------------------------------
-
 func TestAdminAudit_PUT_NoChanges_UsesRawBody(t *testing.T) {
 	db := connectTestDB(t)
 
 	innerHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Handler does NOT write any changes (e.g. "no fields to update")
+
 		w.WriteHeader(http.StatusBadRequest)
 	})
 
@@ -379,10 +346,6 @@ func TestAdminAudit_PUT_NoChanges_UsesRawBody(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Integration: sensitive fields in handler diffs are masked
-// ---------------------------------------------------------------------------
-
 func TestAdminAudit_PUT_DiffFieldsMasked(t *testing.T) {
 	db := connectTestDB(t)
 
@@ -415,11 +378,10 @@ func TestAdminAudit_PUT_DiffFieldsMasked(t *testing.T) {
 		db.Where("id = ?", written.ID).Delete(&model.AdminAuditEntry{})
 	})
 
-	// email field should be masked
 	if written.Payload["email"] != maskValue {
 		t.Errorf("email diff should be masked, got %v", written.Payload["email"])
 	}
-	// name should still have old/new
+
 	nameField := written.Payload["name"]
 	if nameField == maskValue {
 		t.Error("name should NOT be masked")

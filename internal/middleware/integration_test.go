@@ -115,10 +115,6 @@ func (ah *authTestHelper) createTestOrg(t *testing.T, db *gorm.DB, name, role st
 	return org, jwtToken
 }
 
-// --------------------------------------------------------------------------
-// Auth — RSA JWT + real Postgres
-// --------------------------------------------------------------------------
-
 func TestIntegration_Auth_ValidToken(t *testing.T) {
 	db := connectTestDB(t)
 	ah := newAuthHelper(t)
@@ -204,7 +200,6 @@ func TestIntegration_Auth_InactiveOrg(t *testing.T) {
 
 	org, userJWT := ah.createTestOrg(t, db, "test-auth-inactive", "admin")
 
-	// Deactivate the org
 	if err := db.Model(&org).Update("active", false).Error; err != nil {
 		t.Fatalf("failed to deactivate org: %v", err)
 	}
@@ -233,10 +228,6 @@ func TestIntegration_Auth_InactiveOrg(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
-// Auth — JWT claims validation
-// --------------------------------------------------------------------------
-
 func TestIntegration_Auth_WrongIssuerRejected(t *testing.T) {
 	db := connectTestDB(t)
 	ah := newAuthHelper(t)
@@ -253,7 +244,6 @@ func TestIntegration_Auth_WrongIssuerRejected(t *testing.T) {
 	}
 	t.Cleanup(func() { cleanupOrg(t, db, orgID) })
 
-	// Mint JWT with wrong issuer
 	wrongJWT, err := auth.IssueAccessToken(ah.privKey, "wrong-issuer", ah.audience, uuid.New().String(), orgID.String(), "admin", time.Hour)
 	if err != nil {
 		t.Fatalf("issue token: %v", err)
@@ -276,10 +266,6 @@ func TestIntegration_Auth_WrongIssuerRejected(t *testing.T) {
 		t.Fatalf("expected 401, got %d; body: %s", rr.Code, rr.Body.String())
 	}
 }
-
-// --------------------------------------------------------------------------
-// Token Auth (ptok_ sandbox tokens) — unchanged, real Postgres
-// --------------------------------------------------------------------------
 
 func TestIntegration_TokenAuth_ValidToken(t *testing.T) {
 	db := connectTestDB(t)
@@ -563,10 +549,6 @@ func TestIntegration_TokenAuth_NoAuth(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
-// Audit — real Postgres
-// --------------------------------------------------------------------------
-
 func TestIntegration_Audit_WritesToPostgres(t *testing.T) {
 	db := connectTestDB(t)
 
@@ -672,10 +654,6 @@ func TestIntegration_Audit_MultipleRequestsFlushed(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
-// Rate Limiting — real Postgres, org loaded via context
-// --------------------------------------------------------------------------
-
 func TestIntegration_RateLimit_EnforcesLimit(t *testing.T) {
 	db := connectTestDB(t)
 
@@ -683,7 +661,7 @@ func TestIntegration_RateLimit_EnforcesLimit(t *testing.T) {
 	org := model.Org{
 		ID:        orgID,
 		Name:      "integration-ratelimit-org",
-		RateLimit: 1, // 1 per minute -> burst of 1
+		RateLimit: 1,
 		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
@@ -696,7 +674,6 @@ func TestIntegration_RateLimit_EnforcesLimit(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	// First request (uses burst)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
@@ -706,7 +683,6 @@ func TestIntegration_RateLimit_EnforcesLimit(t *testing.T) {
 		t.Fatalf("first request: expected 200, got %d", rr.Code)
 	}
 
-	// Second request should be rate limited
 	req2 := httptest.NewRequest(http.MethodGet, "/", nil)
 	req2 = middleware.WithOrg(req2, &org)
 	rr2 := httptest.NewRecorder()
@@ -751,7 +727,6 @@ func TestIntegration_RateLimit_IsolatedPerOrg(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	// Exhaust org1's limit
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req = middleware.WithOrg(req, &org1)
 	rr := httptest.NewRecorder()
@@ -766,7 +741,6 @@ func TestIntegration_RateLimit_IsolatedPerOrg(t *testing.T) {
 		t.Fatalf("org1 should be rate limited, got %d", rr.Code)
 	}
 
-	// Org2 should still be allowed
 	req = httptest.NewRequest(http.MethodGet, "/", nil)
 	req = middleware.WithOrg(req, &org2)
 	rr = httptest.NewRecorder()

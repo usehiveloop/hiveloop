@@ -162,7 +162,6 @@ func (handler *SpiderHandler) Transform(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Use the first item's URL as the input for tracking
 	input := ""
 	if len(params.Data) > 0 && params.Data[0].URL != "" {
 		input = params.Data[0].URL
@@ -223,7 +222,7 @@ func (handler *SpiderHandler) recordUsageCount(r *http.Request, toolName, input 
 		Status:        status,
 		ErrorMessage:  errorMessage,
 		TotalMs:       int(duration.Milliseconds()),
-		CreditsUsed:   resultCount, // 1 credit per result returned
+		CreditsUsed:   resultCount,
 		CreatedAt:     time.Now().UTC(),
 	}
 

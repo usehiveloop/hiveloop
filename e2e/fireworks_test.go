@@ -31,10 +31,6 @@ func fireworksSetup(t *testing.T, apiKey string) (*testHarness, string, string) 
 	return h, tok, proxyPath
 }
 
-// --------------------------------------------------------------------------
-// Fireworks: Non-streaming — Llama 3.3 70B
-// --------------------------------------------------------------------------
-
 func TestE2E_Fireworks_Llama70B_NonStreaming(t *testing.T) {
 	apiKey := requireFireworksKey(t)
 	h, tok, proxyPath := fireworksSetup(t, apiKey)
@@ -59,10 +55,6 @@ func TestE2E_Fireworks_Llama70B_NonStreaming(t *testing.T) {
 	}
 	t.Logf("Llama 70B response: %s", content)
 }
-
-// --------------------------------------------------------------------------
-// Fireworks: SSE streaming — Qwen3 8B
-// --------------------------------------------------------------------------
 
 func TestE2E_Fireworks_Qwen3_Streaming(t *testing.T) {
 	apiKey := requireFireworksKey(t)
@@ -91,10 +83,6 @@ func TestE2E_Fireworks_Qwen3_Streaming(t *testing.T) {
 	}
 	t.Logf("Qwen3 8B streaming (%d chunks): %s", len(chunks), content)
 }
-
-// --------------------------------------------------------------------------
-// Fireworks: Tool/function calling — Llama 3.3 70B
-// --------------------------------------------------------------------------
 
 func TestE2E_Fireworks_Llama70B_ToolCalls(t *testing.T) {
 	apiKey := requireFireworksKey(t)
@@ -151,10 +139,6 @@ func TestE2E_Fireworks_Llama70B_ToolCalls(t *testing.T) {
 		t.Fatal("no tool calls and no content in response")
 	}
 }
-
-// --------------------------------------------------------------------------
-// Fireworks: Streaming tool calls — Llama 3.3 70B
-// --------------------------------------------------------------------------
 
 func TestE2E_Fireworks_Llama70B_StreamingToolCalls(t *testing.T) {
 	apiKey := requireFireworksKey(t)
@@ -233,10 +217,6 @@ func TestE2E_Fireworks_Llama70B_StreamingToolCalls(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
-// Fireworks: DeepSeek V3.1 streaming
-// --------------------------------------------------------------------------
-
 func TestE2E_Fireworks_DeepSeekV3p1_Streaming(t *testing.T) {
 	apiKey := requireFireworksKey(t)
 	h, tok, proxyPath := fireworksSetup(t, apiKey)
@@ -261,15 +241,10 @@ func TestE2E_Fireworks_DeepSeekV3p1_Streaming(t *testing.T) {
 	t.Logf("DeepSeek V3.1 streaming (%d chunks): %s", len(chunks), content)
 }
 
-// --------------------------------------------------------------------------
-// Fireworks: Multi-turn conversation — Kimi K2
-// --------------------------------------------------------------------------
-
 func TestE2E_Fireworks_KimiK2_MultiTurn(t *testing.T) {
 	apiKey := requireFireworksKey(t)
 	h, tok, proxyPath := fireworksSetup(t, apiKey)
 
-	// Turn 1
 	payload1 := `{
 		"model": "accounts/fireworks/models/kimi-k2-instruct-0905",
 		"messages": [{"role": "user", "content": "The secret code is GAMMA-42. Remember it."}],
@@ -284,7 +259,6 @@ func TestE2E_Fireworks_KimiK2_MultiTurn(t *testing.T) {
 	_ = json.NewDecoder(rr1.Body).Decode(&resp1)
 	assistant1 := extractNonStreamContent(t, resp1)
 
-	// Turn 2
 	payload2 := fmt.Sprintf(`{
 		"model": "accounts/fireworks/models/kimi-k2-instruct-0905",
 		"messages": [
@@ -309,10 +283,6 @@ func TestE2E_Fireworks_KimiK2_MultiTurn(t *testing.T) {
 	}
 	t.Logf("Multi-turn verified: %s", answer)
 }
-
-// --------------------------------------------------------------------------
-// Fireworks: DeepSeek V3 non-streaming
-// --------------------------------------------------------------------------
 
 func TestE2E_Fireworks_DeepSeek_NonStreaming(t *testing.T) {
 	apiKey := requireFireworksKey(t)
@@ -342,10 +312,6 @@ func TestE2E_Fireworks_DeepSeek_NonStreaming(t *testing.T) {
 	t.Logf("DeepSeek V3 response: %s", content)
 }
 
-// --------------------------------------------------------------------------
-// Fireworks: Kimi K2.5 streaming (reasoning_content format)
-// --------------------------------------------------------------------------
-
 func TestE2E_Fireworks_KimiK2p5_Streaming(t *testing.T) {
 	apiKey := requireFireworksKey(t)
 	h, tok, proxyPath := fireworksSetup(t, apiKey)
@@ -367,7 +333,6 @@ func TestE2E_Fireworks_KimiK2p5_Streaming(t *testing.T) {
 		t.Fatal("no SSE chunks from Kimi K2.5")
 	}
 
-	// Kimi K2.5 uses reasoning_content in delta; extract both content and reasoning_content
 	var contentBuilder, reasoningBuilder strings.Builder
 	for _, chunk := range chunks {
 		if chunk == "[DONE]" {

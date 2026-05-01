@@ -125,7 +125,6 @@ func (handler *SandboxDriveHandler) Upload(writer http.ResponseWriter, request *
 			}
 		}
 
-		// Sandbox drive accepts any content type (no allowlist restriction)
 		assetID := uuid.New()
 		s3Key := fmt.Sprintf("drives/%s/%s/%s", agent.ID, assetID, fileHeader.Filename)
 

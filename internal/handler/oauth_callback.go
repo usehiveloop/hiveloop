@@ -53,7 +53,6 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 		return
 	}
 
-	// 1. Validate state (CSRF).
 	cookie, err := r.Cookie("oauth_state")
 	if err != nil || cookie.Value == "" || cookie.Value != r.URL.Query().Get("state") {
 		h.redirectError(w, r, "invalid_state")
@@ -61,7 +60,6 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 	}
 	h.clearStateCookie(w)
 
-	// 2. Read PKCE verifier.
 	verifierCookie, err := r.Cookie("oauth_verifier")
 	if err != nil || verifierCookie.Value == "" {
 		h.redirectError(w, r, "missing_verifier")
@@ -69,13 +67,11 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 	}
 	h.clearVerifierCookie(w)
 
-	// 3. Check for error from provider.
 	if errMsg := r.URL.Query().Get("error"); errMsg != "" {
 		h.redirectError(w, r, errMsg)
 		return
 	}
 
-	// 4. Exchange authorisation code for a token (with PKCE).
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		h.redirectError(w, r, "missing_code")
@@ -89,7 +85,6 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 		return
 	}
 
-	// 5. Fetch user profile from provider.
 	profile, err := h.fetchProfile(r.Context(), provider, token)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "oauth profile fetch failed", "provider", provider, "error", err)
@@ -97,7 +92,6 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 		return
 	}
 
-	// 6. If the provider didn't return an email (e.g. X/Twitter), generate a placeholder.
 	if profile.Email == "" {
 		name := profile.Name
 		if name == "" {
@@ -106,7 +100,6 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 		profile.Email = strings.ToLower(name) + placeholderEmailDomain
 	}
 
-	// 7. Find or create user + link OAuth account.
 	user, err := h.findOrCreateUser(provider, profile)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "oauth user creation failed", "provider", provider, "error", err)
@@ -114,7 +107,5 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 		return
 	}
 
-	// 8. Issue exchange token and redirect to frontend.
 	h.issueExchangeTokenAndRedirect(w, r, provider, user)
 }
-

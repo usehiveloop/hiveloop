@@ -48,17 +48,14 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	logger := slog.Default()
 
-	// Start cache invalidation subscriber (per-instance, real-time pub/sub)
 	goroutine.Go(ctx, func(ctx context.Context) {
 		if err := cacheManager.Invalidator().Subscribe(ctx); err != nil {
 			slog.Error("invalidation subscriber stopped", "error", err)
 		}
 	})
 
-	// Audit writer (buffered, non-blocking)
 	auditWriter := middleware.NewAuditWriter(ctx, database, 10000)
 
-	// Generation writer (buffered, non-blocking)
 	generationWriter := middleware.NewGenerationWriter(ctx, database, reg, 10000)
 
 	mcpHandler := handler.NewMCPHandler(database, signingKey, actionsCatalog, nangoClient, ctr)
@@ -171,7 +168,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, plansHandler, bridgeWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey)
 
-	// HTTP triggers: unauthenticated endpoint, trigger UUID acts as bearer token.
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
 	ragSourceHandler := handler.NewRAGSourceHandler(database, enqueuer, ragscheduler.HasPermSyncCapability, billing.NewCreditsService(database))
@@ -235,10 +231,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	<-ctx.Done()
 	slog.Info("shutting down")
 
-	// Shutdown intentionally decouples from the (already-cancelled) parent ctx
-	// but inherits its values so observability tags propagate. context.WithoutCancel
-	// strips cancellation while preserving values; the WithTimeout below bounds
-	// how long shutdown can take.
 	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 	defer cancel()
 

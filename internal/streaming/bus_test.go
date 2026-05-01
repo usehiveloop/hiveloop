@@ -35,7 +35,6 @@ func TestPublish_WritesToRedisStream(t *testing.T) {
 		t.Fatal("expected non-empty entry ID")
 	}
 
-	// Verify it's in the stream
 	msgs, err := rc.XRange(context.Background(), "conv:test-conv-1", "-", "+").Result()
 	if err != nil {
 		t.Fatalf("XRange: %v", err)
@@ -56,13 +55,13 @@ func TestPublish_ReturnsEntryID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Publish: %v", err)
 	}
-	// Redis entry IDs have format "{ms}-{seq}"
+
 	if len(id) < 3 {
 		t.Fatalf("invalid entry ID: %q", id)
 	}
 	for i, c := range id {
 		if c == '-' && i > 0 {
-			return // valid format
+			return
 		}
 	}
 	t.Fatalf("entry ID missing dash separator: %q", id)
@@ -90,9 +89,8 @@ func TestSubscribe_ReceivesNewEvents(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	ch := bus.Subscribe(ctx, "sub-test-1", "$") // new events only
+	ch := bus.Subscribe(ctx, "sub-test-1", "$")
 
-	// Publish after subscribing
 	go func() {
 		time.Sleep(200 * time.Millisecond)
 		_, _ = bus.Publish(ctx, "sub-test-1", "event_a", json.RawMessage(`{"n":1}`))
@@ -127,10 +125,9 @@ func TestSubscribe_ResumeFromCursor(t *testing.T) {
 		ids = append(ids, id)
 	}
 
-	// Subscribe from after event 3 (should get events 4 and 5)
 	subCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	ch := bus.Subscribe(subCtx, "resume-test", ids[2]) // after event 3
+	ch := bus.Subscribe(subCtx, "resume-test", ids[2])
 
 	var received []StreamEvent
 	for i := 0; i < 2; i++ {
@@ -161,7 +158,7 @@ func TestSubscribe_FullReplay(t *testing.T) {
 
 	subCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	ch := bus.Subscribe(subCtx, "replay-test", "0") // full replay
+	ch := bus.Subscribe(subCtx, "replay-test", "0")
 
 	var count int
 	for count < 5 {
@@ -182,7 +179,6 @@ func TestSubscribe_ContextCancellation(t *testing.T) {
 	ch := bus.Subscribe(ctx, "cancel-test", "$")
 	cancel()
 
-	// Channel should close
 	select {
 	case _, ok := <-ch:
 		if ok {
@@ -208,7 +204,7 @@ func TestReadRange_ReturnsCorrectWindow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadRange: %v", err)
 	}
-	if len(events) != 5 { // inclusive range: 2,3,4,5,6
+	if len(events) != 5 {
 		t.Fatalf("expected 5 events, got %d", len(events))
 	}
 	if events[0].ID != ids[2] || events[4].ID != ids[6] {
@@ -233,7 +229,7 @@ func TestTrim_ReducesStreamLength(t *testing.T) {
 	_ = bus.Trim(ctx, "trim-test", 100)
 
 	after, _ := bus.StreamLen(ctx, "trim-test")
-	if after > 200 { // MAXLEN ~ is approximate
+	if after > 200 {
 		t.Fatalf("expected ~100 entries after trim, got %d", after)
 	}
 }
@@ -261,7 +257,7 @@ func TestDelete_RemovesStream(t *testing.T) {
 }
 
 func TestPublish_RedisDown_ReturnsError(t *testing.T) {
-	client := redis.NewClient(&redis.Options{Addr: "localhost:19999"}) // non-existent
+	client := redis.NewClient(&redis.Options{Addr: "localhost:19999"})
 	bus := NewEventBus(client)
 
 	_, err := bus.Publish(context.Background(), "fail-test", "chunk", json.RawMessage(`{}`))

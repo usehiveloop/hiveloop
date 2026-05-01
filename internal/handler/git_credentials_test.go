@@ -70,7 +70,6 @@ func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarnes
 
 	gitCredsHandler := handler.NewGitCredentialsHandler(database, encKey, nangoClient)
 
-	// Create test org
 	orgID := uuid.New()
 	org := model.Org{
 		ID:        orgID,
@@ -82,7 +81,6 @@ func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarnes
 		t.Fatalf("create test org: %v", err)
 	}
 
-	// Create test agent
 	agentID := uuid.New()
 	agent := model.Agent{
 		ID:     agentID,
@@ -94,7 +92,6 @@ func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarnes
 		t.Fatalf("create test agent: %v", err)
 	}
 
-	// Create sandbox with encrypted bridge API key
 	bridgeKey := "test-bridge-api-key-for-git-creds"
 	encryptedKey, err := encKey.EncryptString(bridgeKey)
 	if err != nil {
@@ -115,7 +112,6 @@ func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarnes
 		t.Fatalf("create test sandbox: %v", err)
 	}
 
-	// Create a user (required FK for InConnection)
 	userID := uuid.New()
 	user := model.User{
 		ID:    userID,
@@ -126,7 +122,6 @@ func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarnes
 		t.Fatalf("create test user: %v", err)
 	}
 
-	// Create in_integration + in_connection for github-app
 	inIntegrationID := uuid.New()
 	inIntegration := model.InIntegration{
 		ID:          inIntegrationID,
@@ -243,7 +238,3 @@ func TestGitCredentials_CachesToken(t *testing.T) {
 		t.Fatalf("expected nango to be called once (cached), got %d calls", callCount)
 	}
 }
-
-// Note: Tests for invalid bearer token, missing auth, no GitHub connection,
-// and unknown agent were removed as they test library/framework behavior.
-// See USELESS_TESTS_RECOMMENDATIONS.md for details.

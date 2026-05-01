@@ -13,7 +13,7 @@ import (
 func TestAgentModels_CRUD(t *testing.T) {
 	h := newHarness(t)
 	suffix := uuid.New().String()[:8]
-	// --- Setup: org, credential ---
+
 	org := model.Org{Name: "e2e-agents-" + suffix}
 	h.db.Create(&org)
 	t.Cleanup(func() { h.db.Where("id = ?", org.ID).Delete(&model.Org{}) })
@@ -25,13 +25,12 @@ func TestAgentModels_CRUD(t *testing.T) {
 	h.db.Create(&cred)
 	t.Cleanup(func() { h.db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
 
-	// === SandboxTemplate ===
 	t.Run("SandboxTemplate_CRUD", func(t *testing.T) {
 		st := model.SandboxTemplate{
 			OrgID: &org.ID, Name: "python-ml-" + suffix, Slug: "hiveloop-tmpl-" + suffix,
 			BuildCommands: "pip install numpy pandas", BuildStatus: "pending",
 			Config: model.JSON{"cpu": "2", "memory": "4096"},
-			Tags: model.JSON{},
+			Tags:   model.JSON{},
 		}
 		h.db.Create(&st)
 		t.Cleanup(func() { h.db.Where("id = ?", st.ID).Delete(&model.SandboxTemplate{}) })
@@ -45,7 +44,6 @@ func TestAgentModels_CRUD(t *testing.T) {
 			t.Errorf("build_status: got %q", read.BuildStatus)
 		}
 
-		// Simulate build completion
 		extID := "daytona-tmpl-123"
 		h.db.Model(&read).Updates(map[string]any{"build_status": "ready", "external_id": extID})
 		var built model.SandboxTemplate
@@ -55,14 +53,13 @@ func TestAgentModels_CRUD(t *testing.T) {
 		}
 	})
 
-	// === Agent ===
 	t.Run("Agent_CRUD", func(t *testing.T) {
 		desc := "A test agent"
 		agent := model.Agent{
 			OrgID: &org.ID, Name: "test-agent-" + suffix,
 			Description: &desc, CredentialID: &cred.ID,
 			SystemPrompt: "You are a helpful assistant.", Model: "gpt-4o",
-			Tools: model.JSON{"0": map[string]any{"name": "read"}},
+			Tools:       model.JSON{"0": map[string]any{"name": "read"}},
 			AgentConfig: model.JSON{"max_tokens": float64(4096), "temperature": 0.3},
 			Permissions: model.JSON{"bash": "require_approval"}, Status: "active",
 		}
@@ -82,7 +79,6 @@ func TestAgentModels_CRUD(t *testing.T) {
 			t.Errorf("permissions.bash: got %v", bashPerm)
 		}
 
-		// Unique constraint
 		dup := model.Agent{
 			OrgID: &org.ID, Name: agent.Name,
 			CredentialID: &cred.ID, SystemPrompt: "dup", Model: "gpt-4o",
@@ -92,10 +88,10 @@ func TestAgentModels_CRUD(t *testing.T) {
 			t.Fatal("expected unique constraint violation")
 		}
 	})
-	// === Sandbox ===
+
 	t.Run("Sandbox_CRUD", func(t *testing.T) {
 		sandbox := model.Sandbox{
-			OrgID: &org.ID,
+			OrgID:      &org.ID,
 			ExternalID: "daytona-ws-" + suffix, BridgeURL: "https://sandbox.test:8080",
 			EncryptedBridgeAPIKey: []byte("encrypted-bridge-key"), Status: "creating",
 		}
@@ -117,7 +113,6 @@ func TestAgentModels_CRUD(t *testing.T) {
 		}
 	})
 
-	// === WorkspaceStorage ===
 	t.Run("WorkspaceStorage_CRUD", func(t *testing.T) {
 		ws := model.WorkspaceStorage{
 			OrgID: org.ID, TursoDatabaseName: "hiveloop-" + suffix,
@@ -132,7 +127,6 @@ func TestAgentModels_CRUD(t *testing.T) {
 			t.Errorf("storage_url mismatch")
 		}
 
-		// Unique per org
 		dup := model.WorkspaceStorage{OrgID: org.ID, TursoDatabaseName: "dup", StorageURL: "x", StorageAuthToken: "x"}
 		if err := h.db.Create(&dup).Error; err == nil {
 			h.db.Where("id = ?", dup.ID).Delete(&model.WorkspaceStorage{})
@@ -140,7 +134,6 @@ func TestAgentModels_CRUD(t *testing.T) {
 		}
 	})
 
-	// === AgentConversation + ConversationEvent ===
 	t.Run("AgentConversation_and_Events", func(t *testing.T) {
 		agent := model.Agent{
 			OrgID: &org.ID, Name: "conv-agent-" + suffix,
@@ -150,7 +143,7 @@ func TestAgentModels_CRUD(t *testing.T) {
 		t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
 
 		sandbox := model.Sandbox{
-			OrgID: &org.ID,
+			OrgID:      &org.ID,
 			ExternalID: "conv-ws-" + suffix, BridgeURL: "https://conv.test:8080",
 			EncryptedBridgeAPIKey: []byte("encrypted-bridge-key"), Status: "running",
 		}
@@ -216,7 +209,7 @@ func TestAgentModels_CascadeDelete(t *testing.T) {
 	h.db.Create(&agent)
 
 	sandbox := model.Sandbox{
-		OrgID: &org.ID,
+		OrgID:      &org.ID,
 		ExternalID: "cascade-ws-" + suffix, BridgeURL: "https://test:8080",
 		EncryptedBridgeAPIKey: []byte("encrypted-bridge-key"), Status: "running",
 	}
@@ -241,7 +234,6 @@ func TestAgentModels_CascadeDelete(t *testing.T) {
 	}
 	h.db.Create(&event)
 
-	// Delete org — everything cascades
 	h.db.Delete(&org)
 
 	checks := []struct {

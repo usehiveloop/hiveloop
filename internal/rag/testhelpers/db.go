@@ -1,10 +1,3 @@
-// Package testhelpers is the shared integration-test scaffolding for
-// the RAG subsystem. Every RAG test consumes `ConnectTestDB` plus the
-// fixtures in fixtures.go.
-//
-// The pattern is a public-API duplicate of the private helper at
-// internal/middleware/integration_test.go:31-60 (see TESTING.md for
-// why we do not share).
 package testhelpers
 
 import (

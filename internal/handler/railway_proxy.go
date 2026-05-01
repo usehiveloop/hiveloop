@@ -78,7 +78,6 @@ func (h *RailwayProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load the agent
 	var agent model.Agent
 	if err := h.db.Where("id = ? AND deleted_at IS NULL", agentID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -89,7 +88,6 @@ func (h *RailwayProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify the bearer token matches any sandbox's Bridge API key for this agent
 	var sandboxes []model.Sandbox
 	if err := h.db.Where("agent_id = ?", agentID).Find(&sandboxes).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up sandboxes"})
@@ -111,13 +109,11 @@ func (h *RailwayProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get Railway token (cached or fresh from Nango)
 	railwayToken, err := h.getRailwayToken(w, r, &agent, agentID)
 	if err != nil {
-		return // error already written to w
+		return
 	}
 
-	// Forward the request body to Railway's GraphQL API
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read request body"})

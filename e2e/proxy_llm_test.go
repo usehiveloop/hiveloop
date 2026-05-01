@@ -15,11 +15,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 )
 
-
-// --------------------------------------------------------------------------
-// E2E: Proxy non-streaming completion via OpenRouter → OpenAI
-// --------------------------------------------------------------------------
-
 func TestE2E_Proxy_OpenAI_NonStreaming(t *testing.T) {
 	apiKey := requireOpenRouterKey(t)
 	h := newHarness(t)
@@ -52,10 +47,6 @@ func TestE2E_Proxy_OpenAI_NonStreaming(t *testing.T) {
 	t.Logf("OpenAI response: %s", content)
 }
 
-// --------------------------------------------------------------------------
-// E2E: Proxy SSE streaming via OpenRouter → Anthropic Claude
-// --------------------------------------------------------------------------
-
 func TestE2E_Proxy_Anthropic_Streaming(t *testing.T) {
 	apiKey := requireOpenRouterKey(t)
 	h := newHarness(t)
@@ -77,13 +68,11 @@ func TestE2E_Proxy_Anthropic_Streaming(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// Parse SSE stream
 	chunks := parseSSEChunks(t, rr.Body.Bytes())
 	if len(chunks) == 0 {
 		t.Fatal("expected SSE chunks, got none")
 	}
 
-	// Collect all content deltas
 	var fullContent strings.Builder
 	for _, chunk := range chunks {
 		if chunk == "[DONE]" {
@@ -113,10 +102,6 @@ func TestE2E_Proxy_Anthropic_Streaming(t *testing.T) {
 	t.Logf("Anthropic streaming result (%d chunks): %s", len(chunks), result)
 }
 
-// --------------------------------------------------------------------------
-// E2E: Proxy SSE streaming via OpenRouter → Google Gemini
-// --------------------------------------------------------------------------
-
 func TestE2E_Proxy_Google_Streaming(t *testing.T) {
 	apiKey := requireOpenRouterKey(t)
 	h := newHarness(t)
@@ -145,10 +130,6 @@ func TestE2E_Proxy_Google_Streaming(t *testing.T) {
 	}
 	t.Logf("Google Gemini streaming result: %s", content)
 }
-
-// --------------------------------------------------------------------------
-// E2E: Tool calls via OpenRouter → OpenAI
-// --------------------------------------------------------------------------
 
 func TestE2E_Proxy_OpenAI_ToolCalls(t *testing.T) {
 	apiKey := requireOpenRouterKey(t)
@@ -197,7 +178,6 @@ func TestE2E_Proxy_OpenAI_ToolCalls(t *testing.T) {
 	choice := choices[0].(map[string]any)
 	msg := choice["message"].(map[string]any)
 
-	// The model should either call the tool or provide content
 	toolCalls, hasTools := msg["tool_calls"].([]any)
 	content, hasContent := msg["content"].(string)
 
@@ -213,7 +193,7 @@ func TestE2E_Proxy_OpenAI_ToolCalls(t *testing.T) {
 		if fn["name"] != "get_weather" {
 			t.Fatalf("expected get_weather tool call, got %s", fn["name"])
 		}
-		// Verify arguments contain "San Francisco"
+
 		args := fn["arguments"].(string)
 		if !strings.Contains(strings.ToLower(args), "san francisco") {
 			t.Logf("warning: tool args don't contain 'san francisco': %s", args)
@@ -222,10 +202,6 @@ func TestE2E_Proxy_OpenAI_ToolCalls(t *testing.T) {
 		t.Logf("Model responded with content instead of tool call: %s", content)
 	}
 }
-
-// --------------------------------------------------------------------------
-// E2E: Streaming tool calls via OpenRouter → Anthropic
-// --------------------------------------------------------------------------
 
 func TestE2E_Proxy_Anthropic_StreamingToolCalls(t *testing.T) {
 	apiKey := requireOpenRouterKey(t)
@@ -267,7 +243,6 @@ func TestE2E_Proxy_Anthropic_StreamingToolCalls(t *testing.T) {
 		t.Fatal("expected SSE chunks")
 	}
 
-	// Look for tool call deltas in the stream
 	var toolName string
 	var toolArgs strings.Builder
 	for _, chunk := range chunks {
@@ -303,15 +278,11 @@ func TestE2E_Proxy_Anthropic_StreamingToolCalls(t *testing.T) {
 			t.Fatalf("expected get_weather, got %s", toolName)
 		}
 	} else {
-		// Some models may respond with content instead
+
 		content := extractStreamContent(chunks)
 		t.Logf("Model responded with content instead of streaming tool call: %s", content)
 	}
 }
-
-// --------------------------------------------------------------------------
-// E2E: MiniMax via OpenRouter
-// --------------------------------------------------------------------------
 
 func TestE2E_Proxy_Meta_NonStreaming(t *testing.T) {
 	apiKey := requireOpenRouterKey(t)
@@ -345,10 +316,6 @@ func TestE2E_Proxy_Meta_NonStreaming(t *testing.T) {
 	t.Logf("Meta Llama response: %s", content)
 }
 
-// --------------------------------------------------------------------------
-// E2E: Multi-turn conversation via proxy
-// --------------------------------------------------------------------------
-
 func TestE2E_Proxy_MultiTurn(t *testing.T) {
 	apiKey := requireOpenRouterKey(t)
 	h := newHarness(t)
@@ -357,7 +324,6 @@ func TestE2E_Proxy_MultiTurn(t *testing.T) {
 	tok := h.mintToken(t, org, cred.ID)
 	proxyPath := "/v1/proxy/v1/chat/completions"
 
-	// Turn 1
 	payload1 := `{
 		"model": "openai/gpt-4.1-nano",
 		"messages": [{"role": "user", "content": "My name is Alice. Remember it."}],
@@ -372,7 +338,6 @@ func TestE2E_Proxy_MultiTurn(t *testing.T) {
 	_ = json.NewDecoder(rr1.Body).Decode(&resp1)
 	assistantMsg := extractNonStreamContent(t, resp1)
 
-	// Turn 2 — include conversation history
 	payload2 := fmt.Sprintf(`{
 		"model": "openai/gpt-4.1-nano",
 		"messages": [
@@ -396,15 +361,10 @@ func TestE2E_Proxy_MultiTurn(t *testing.T) {
 	t.Logf("Multi-turn verified: %s", answer)
 }
 
-// --------------------------------------------------------------------------
-// E2E: Verify sandbox token is NOT sent to upstream
-// --------------------------------------------------------------------------
-
 func TestE2E_Proxy_TokenStripped(t *testing.T) {
 	h := newHarness(t)
 	org := h.createOrg(t)
 
-	// Create a credential pointing to a test server that echoes headers
 	echoServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		w.Header().Set("Content-Type", "application/json")
@@ -428,7 +388,7 @@ func TestE2E_Proxy_TokenStripped(t *testing.T) {
 	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	receivedAuth := resp["received_auth"]
-	// Must contain the real API key, not the sandbox token
+
 	if !strings.Contains(receivedAuth, "sk-the-real-api-key") {
 		t.Fatalf("upstream should receive real API key, got: %s", receivedAuth)
 	}
@@ -437,10 +397,6 @@ func TestE2E_Proxy_TokenStripped(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
-// E2E: Tenant isolation — one org can't use another's credential
-// --------------------------------------------------------------------------
-
 func TestE2E_Proxy_TenantIsolation(t *testing.T) {
 	h := newHarness(t)
 	org1 := h.createOrg(t)
@@ -448,8 +404,6 @@ func TestE2E_Proxy_TenantIsolation(t *testing.T) {
 
 	cred1 := h.storeCredential(t, org1, "https://api.example.com", "bearer", "org1-secret")
 
-	// Mint token for org2 (which doesn't own cred1)
-	// We need to do this manually since mintToken validates credential ownership
 	tokenStr, jti, err := token.Mint(h.signingKey, org2.ID.String(), cred1.ID.String(), time.Hour)
 	if err != nil {
 		t.Fatalf("mint: %v", err)
@@ -464,7 +418,6 @@ func TestE2E_Proxy_TenantIsolation(t *testing.T) {
 	proxyPath := "/v1/proxy/test"
 	rr := h.proxyRequest(t, http.MethodGet, proxyPath, "ptok_"+tokenStr, nil)
 
-	// Should fail because org2 doesn't own cred1
 	if rr.Code == http.StatusOK {
 		t.Fatal("tenant isolation violated: org2 accessed org1's credential")
 	}

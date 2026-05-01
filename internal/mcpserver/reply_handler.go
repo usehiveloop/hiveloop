@@ -37,8 +37,8 @@ func NewReplyMCPHandler(db *gorm.DB, actionsCatalog *catalog.Catalog) *ReplyMCPH
 // StreamableHTTPHandler returns an HTTP handler for the reply MCP endpoint.
 func (handler *ReplyMCPHandler) StreamableHTTPHandler() http.Handler {
 	return mcpsdk.NewStreamableHTTPHandler(handler.serverFactory, &mcpsdk.StreamableHTTPOptions{
-		Stateless: true,
-		Logger:    slog.Default(),
+		Stateless:                  true,
+		Logger:                     slog.Default(),
 		DisableLocalhostProtection: true,
 	})
 }
@@ -49,7 +49,6 @@ func (handler *ReplyMCPHandler) serverFactory(request *http.Request) *mcpsdk.Ser
 		return emptyReplyServer()
 	}
 
-	// Load the in_connection to resolve the provider.
 	var connection model.InConnection
 	ctx := request.Context()
 	if err := handler.db.WithContext(ctx).Preload("InIntegration").
@@ -61,7 +60,6 @@ func (handler *ReplyMCPHandler) serverFactory(request *http.Request) *mcpsdk.Ser
 
 	provider := connection.InIntegration.Provider
 
-	// Get write actions for this provider from the catalog.
 	providerDef, ok := handler.catalog.GetProvider(provider)
 	if !ok {
 		logging.FromContext(ctx).WarnContext(ctx, "reply MCP: provider not in catalog", "provider", provider)
@@ -83,7 +81,6 @@ func (handler *ReplyMCPHandler) serverFactory(request *http.Request) *mcpsdk.Ser
 			description = actionDef.DisplayName
 		}
 
-		// Build input schema from the action's JSON Schema parameters.
 		var inputSchema map[string]any
 		if actionDef.Parameters != nil {
 			_ = json.Unmarshal(actionDef.Parameters, &inputSchema)
@@ -107,23 +104,12 @@ func (handler *ReplyMCPHandler) serverFactory(request *http.Request) *mcpsdk.Ser
 
 func makeReplyToolHandler(connectionID, provider, actionKey string) func(context.Context, *mcpsdk.CallToolRequest) (*mcpsdk.CallToolResult, error) {
 	return func(ctx context.Context, request *mcpsdk.CallToolRequest) (*mcpsdk.CallToolResult, error) {
-		// Extract params from the request arguments.
+
 		var params map[string]any
 		if request.Params.Arguments != nil {
 			paramsJSON, _ := json.Marshal(request.Params.Arguments)
 			_ = json.Unmarshal(paramsJSON, &params)
 		}
-
-		// In production, this executes via the Nango proxy:
-		// 1. Load Nango connection credentials from DB
-		// 2. Build upstream API request using the action's ExecutionConfig
-		// 3. Substitute params into path/query/body
-		// 4. Execute via Nango proxy endpoint
-		// 5. Return the upstream response
-		//
-		// The Nango proxy pattern is identical to what mcpserver/executor.go
-		// already does for integration tools. The reply handler just filters
-		// to write actions and scopes to the conversation's source connection.
 
 		return &mcpsdk.CallToolResult{
 			Content: []mcpsdk.Content{

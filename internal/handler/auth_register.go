@@ -14,6 +14,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
+
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req registerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -33,7 +34,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Admin mode: reject non-admin users
 	if h.adminMode && !h.platformAdminEmails[req.Email] {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
 		return
@@ -46,7 +46,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hash password.
 	hash, err := auth.HashPassword(req.Password)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to hash password", "error", err)
@@ -80,11 +79,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.autoConfirmEmail {
-		// Auto-confirm: mark email as confirmed immediately.
+
 		now := time.Now()
 		h.db.Model(&user).Update("email_confirmed_at", &now)
 	} else {
-		// Generate and store email verification token.
+
 		plainToken, tokenHash, err := model.GenerateVerificationToken()
 		if err != nil {
 			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to generate verification token", "error", err)
@@ -115,4 +114,3 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	logging.FromContext(r.Context()).InfoContext(r.Context(), "user registered", "user_id", user.ID, "email", user.Email)
 	h.issueTokensAndRespond(r.Context(), w, http.StatusCreated, user, org.ID.String(), "owner")
 }
-

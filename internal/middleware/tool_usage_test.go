@@ -68,7 +68,6 @@ func TestToolUsageWriter_WriteAndFlush(t *testing.T) {
 		CreatedAt: time.Now().UTC(),
 	})
 
-	// Shutdown flushes remaining entries
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	writer.Shutdown(ctx)
@@ -90,7 +89,6 @@ func TestToolUsageWriter_BatchFlush(t *testing.T) {
 
 	writer := middleware.NewToolUsageWriter(t.Context(), database, 1000)
 
-	// Write enough records to trigger a batch flush (batch size is 50)
 	for index := range 60 {
 		writer.Write(t.Context(), model.ToolUsage{
 			ID:        "tu_" + ulid.Make().String(),
@@ -123,7 +121,6 @@ func TestToolUsageWriter_ShutdownIdempotent(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Calling Shutdown twice should not panic
 	writer.Shutdown(ctx)
 	writer.Shutdown(ctx)
 }
@@ -136,13 +133,10 @@ func TestToolUsageWriter_DropWhenFull(t *testing.T) {
 		database.Where("org_id = ?", orgID).Delete(&model.ToolUsage{})
 	})
 
-	// Create writer with very small buffer
 	writer := middleware.NewToolUsageWriter(t.Context(), database, 2)
 
-	// Give the drain goroutine a moment to start
 	time.Sleep(10 * time.Millisecond)
 
-	// Write many records quickly — some should be dropped
 	for index := range 100 {
 		writer.Write(t.Context(), model.ToolUsage{
 			ID:        "tu_" + ulid.Make().String(),
@@ -160,8 +154,6 @@ func TestToolUsageWriter_DropWhenFull(t *testing.T) {
 	defer cancel()
 	writer.Shutdown(ctx)
 
-	// With a buffer of 2, we should have fewer than 100 records
-	// (some will be dropped). Just verify it didn't panic.
 	var count int64
 	database.Model(&model.ToolUsage{}).Where("org_id = ?", orgID).Count(&count)
 	if count > 100 {

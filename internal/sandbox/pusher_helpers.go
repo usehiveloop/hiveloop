@@ -24,7 +24,7 @@ func buildHiveLoopMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDe
 		headers := map[string]string{"Authorization": "Bearer " + token}
 		httpTransport.Headers = &headers
 	}
-	_ = transport.FromMcpTransport1(httpTransport) // marshals known struct; cannot fail in practice
+	_ = transport.FromMcpTransport1(httpTransport)
 
 	return bridgepkg.McpServerDefinition{
 		Name:      "hiveloop",

@@ -81,7 +81,7 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	refresh := req.RefreshFreqSeconds
 	if refresh == nil {
-		// NULL = manual-only; the scheduler's selector skips it.
+
 		d := defaultRefreshFreqSeconds
 		refresh = &d
 	}

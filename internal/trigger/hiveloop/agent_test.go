@@ -6,10 +6,6 @@ import (
 	"testing"
 )
 
-// --------------------------------------------------------------------------
-// Helper: build a CompletionResponse with tool calls
-// --------------------------------------------------------------------------
-
 func toolCallResponse(calls ...ToolCall) CompletionResponse {
 	return CompletionResponse{
 		Message: Message{
@@ -32,10 +28,6 @@ func enrichCall(connID, action, as string, params map[string]any) ToolCall {
 func finalizeCall() ToolCall {
 	return ToolCall{ID: "call-finalize", Name: "finalize", Arguments: "{}"}
 }
-
-// --------------------------------------------------------------------------
-// Agent loop tests
-// --------------------------------------------------------------------------
 
 func TestAgent_SingleRoute_NoEnrich(t *testing.T) {
 	mock := NewMockCompletionClient()
@@ -65,13 +57,13 @@ func TestAgent_SingleRoute_NoEnrich(t *testing.T) {
 func TestAgent_SingleRoute_WithEnrich(t *testing.T) {
 	mock := NewMockCompletionClient()
 	mock.OnMessage("review PR #456",
-		// Turn 1: route + plan enrichment
+
 		toolCallResponse(
 			routeCall("aaaaaaaa-0000-0000-0000-000000000001", 1),
 			enrichCall("cccccccc-0000-0000-0000-000000000001", "pulls_get", "pr_detail",
 				map[string]any{"owner": "acme", "repo": "api", "pull_number": 456}),
 		),
-		// Turn 2: chain enrichment + finalize
+
 		toolCallResponse(
 			enrichCall("cccccccc-0000-0000-0000-000000000001", "pulls_get_diff", "pr_diff",
 				map[string]any{"owner": "{{pr_detail.base.repo.owner.login}}", "repo": "{{pr_detail.base.repo.name}}", "pull_number": "{{pr_detail.number}}"}),
@@ -150,7 +142,7 @@ func TestAgent_EnrichChain_StepRef(t *testing.T) {
 	if len(result.EnrichmentPlan) != 2 {
 		t.Fatalf("expected 2 enrichments, got %d", len(result.EnrichmentPlan))
 	}
-	// Verify the second step references the first via {{pr.field}}
+
 	diffParams := result.EnrichmentPlan[1].Params
 	ownerParam, ok := diffParams["owner"].(string)
 	if !ok || ownerParam != "{{pr.base.repo.owner}}" {
@@ -161,11 +153,11 @@ func TestAgent_EnrichChain_StepRef(t *testing.T) {
 func TestAgent_InvalidAgent_Retry(t *testing.T) {
 	mock := NewMockCompletionClient()
 	mock.OnMessage("test retry",
-		// Turn 1: LLM sends bad agent ID
+
 		toolCallResponse(
 			routeCall("ffffffff-0000-0000-0000-000000000099", 1),
 		),
-		// Turn 2: LLM corrects after seeing error
+
 		toolCallResponse(
 			routeCall("aaaaaaaa-0000-0000-0000-000000000001", 1),
 			finalizeCall(),
@@ -189,13 +181,13 @@ func TestAgent_InvalidAgent_Retry(t *testing.T) {
 func TestAgent_MissingParam_Retry(t *testing.T) {
 	mock := NewMockCompletionClient()
 	mock.OnMessage("test param retry",
-		// Turn 1: LLM sends plan_enrichment with missing param
+
 		toolCallResponse(
 			routeCall("aaaaaaaa-0000-0000-0000-000000000001", 1),
 			enrichCall("cccccccc-0000-0000-0000-000000000001", "pulls_get", "pr",
-				map[string]any{"owner": "acme"}), // missing repo + pull_number
+				map[string]any{"owner": "acme"}),
 		),
-		// Turn 2: LLM retries with correct params after seeing schema in error
+
 		toolCallResponse(
 			enrichCall("cccccccc-0000-0000-0000-000000000001", "pulls_get", "pr",
 				map[string]any{"owner": "acme", "repo": "api", "pull_number": 456}),
@@ -218,7 +210,7 @@ func TestAgent_MissingParam_Retry(t *testing.T) {
 
 func TestAgent_MaxTurns_ReturnsPartial(t *testing.T) {
 	mock := NewMockCompletionClient()
-	// LLM never calls finalize — keeps routing forever
+
 	mock.OnMessage("infinite loop",
 		toolCallResponse(routeCall("aaaaaaaa-0000-0000-0000-000000000001", 1)),
 	)
@@ -228,7 +220,7 @@ func TestAgent_MaxTurns_ReturnsPartial(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Should have collected the route from the repeated first response
+
 	if len(result.SelectedAgents) == 0 {
 		t.Error("expected at least 1 agent from partial result")
 	}

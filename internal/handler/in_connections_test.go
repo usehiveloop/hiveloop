@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
 )
 
 type nangoConnMockConfig struct {

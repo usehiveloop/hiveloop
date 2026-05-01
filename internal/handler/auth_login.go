@@ -34,7 +34,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Per-account rate limiting: 5 failed attempts per 15 minutes.
 	if h.isLoginLocked(req.Email) {
 		logging.FromContext(r.Context()).WarnContext(r.Context(), "login rate limited", "email", req.Email)
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
@@ -58,13 +57,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	h.clearLoginFailures(req.Email)
 
-	// Admin mode: reject non-admin users
 	if h.adminMode && !h.platformAdminEmails[user.Email] {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
 		return
 	}
 
-	// Get user's memberships.
 	var memberships []model.OrgMembership
 	h.db.Preload("Org").Where("user_id = ?", user.ID).Find(&memberships)
 
@@ -73,7 +70,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine which org to scope the token to.
 	orgID := memberships[0].OrgID.String()
 	role := memberships[0].Role
 	if req.OrgID != "" {
@@ -95,4 +91,3 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	logging.FromContext(r.Context()).InfoContext(r.Context(), "user logged in", "user_id", user.ID, "email", user.Email)
 	h.issueTokensAndRespond(r.Context(), w, http.StatusOK, user, orgID, role)
 }
-
