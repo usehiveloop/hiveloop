@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -48,7 +48,7 @@ func (h *InConnectionHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 
 	nk := inNangoKey(conn.InIntegration.UniqueKey)
 	if err := h.nango.DeleteConnection(r.Context(), conn.NangoConnectionID, nk); err != nil {
-		slog.Error("nango: delete connection failed, proceeding with local revocation",
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "nango: delete connection failed, proceeding with local revocation",
 			"error", err, "connection_id", connID, "nango_connection_id", conn.NangoConnectionID)
 	}
 
@@ -66,6 +66,6 @@ func (h *InConnectionHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("in-connection revoked", "connection_id", conn.ID, "org_id", org.ID, "provider", conn.InIntegration.Provider)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "in-connection revoked", "connection_id", conn.ID, "org_id", org.ID, "provider", conn.InIntegration.Provider)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }

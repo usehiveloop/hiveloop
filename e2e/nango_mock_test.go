@@ -110,11 +110,11 @@ func (m *nangoMock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNotFound)
-	json.NewEncoder(w).Encode(map[string]any{"error": "mock: unknown route " + r.Method + " " + path})
+	_ = json.NewEncoder(w).Encode(map[string]any{"error": "mock: unknown route " + r.Method + " " + path})
 }
 
 func (m *nangoMock) handleGetProviders(w http.ResponseWriter, _ *http.Request) {
-	json.NewEncoder(w).Encode(map[string]any{
+	_ = json.NewEncoder(w).Encode(map[string]any{
 		"data": []map[string]any{
 			{"name": "github", "display_name": "GitHub", "auth_mode": "OAUTH2", "webhook_user_defined_secret": true},
 			{"name": "slack", "display_name": "Slack", "auth_mode": "OAUTH2"},
@@ -133,7 +133,7 @@ func (m *nangoMock) handleGetProviders(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (m *nangoMock) handleCreateConnectSession(w http.ResponseWriter, _ *http.Request) {
-	json.NewEncoder(w).Encode(map[string]any{
+	_ = json.NewEncoder(w).Encode(map[string]any{
 		"data": map[string]any{
 			"token":      "csess_mock_" + time.Now().Format("20060102150405"),
 			"expires_at": time.Now().Add(15 * time.Minute).Format(time.RFC3339),
@@ -144,7 +144,7 @@ func (m *nangoMock) handleCreateConnectSession(w http.ResponseWriter, _ *http.Re
 func (m *nangoMock) handleCreateConnection(w http.ResponseWriter, r *http.Request) {
 	body, _ := io.ReadAll(r.Body)
 	var req map[string]any
-	json.Unmarshal(body, &req)
+	_ = json.Unmarshal(body, &req)
 
 	connID, _ := req["connection_id"].(string)
 	providerConfigKey, _ := req["provider_config_key"].(string)
@@ -159,7 +159,7 @@ func (m *nangoMock) handleCreateConnection(w http.ResponseWriter, r *http.Reques
 	}
 	m.mu.Unlock()
 
-	json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
 }
 
 func (m *nangoMock) handleGetConnection(w http.ResponseWriter, connID, providerConfigKey string) {
@@ -169,10 +169,10 @@ func (m *nangoMock) handleGetConnection(w http.ResponseWriter, connID, providerC
 
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]any{"error": "connection not found"})
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": "connection not found"})
 		return
 	}
-	json.NewEncoder(w).Encode(conn)
+	_ = json.NewEncoder(w).Encode(conn)
 }
 
 func (m *nangoMock) handleDeleteConnection(w http.ResponseWriter, connID, providerConfigKey string) {
@@ -180,13 +180,13 @@ func (m *nangoMock) handleDeleteConnection(w http.ResponseWriter, connID, provid
 	delete(m.connections, m.connKey(connID, providerConfigKey))
 	m.mu.Unlock()
 
-	json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
 }
 
 func (m *nangoMock) handleCreateIntegration(w http.ResponseWriter, r *http.Request) {
 	body, _ := io.ReadAll(r.Body)
 	var req map[string]any
-	json.Unmarshal(body, &req)
+	_ = json.Unmarshal(body, &req)
 
 	uniqueKey, _ := req["unique_key"].(string)
 
@@ -208,7 +208,7 @@ func (m *nangoMock) handleCreateIntegration(w http.ResponseWriter, r *http.Reque
 	}
 	m.mu.Unlock()
 
-	json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
 }
 
 func (m *nangoMock) handleGetIntegration(w http.ResponseWriter, uniqueKey string) {
@@ -218,16 +218,16 @@ func (m *nangoMock) handleGetIntegration(w http.ResponseWriter, uniqueKey string
 
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]any{"error": "integration not found"})
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": "integration not found"})
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]any{"data": integ})
+	_ = json.NewEncoder(w).Encode(map[string]any{"data": integ})
 }
 
 func (m *nangoMock) handleUpdateIntegration(w http.ResponseWriter, r *http.Request, uniqueKey string) {
 	body, _ := io.ReadAll(r.Body)
 	var req map[string]any
-	json.Unmarshal(body, &req)
+	_ = json.Unmarshal(body, &req)
 
 	m.mu.Lock()
 	integ, ok := m.integrations[uniqueKey]
@@ -252,11 +252,11 @@ func (m *nangoMock) handleUpdateIntegration(w http.ResponseWriter, r *http.Reque
 
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]any{"error": "integration not found"})
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": "integration not found"})
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
 }
 
 func (m *nangoMock) handleDeleteIntegration(w http.ResponseWriter, uniqueKey string) {
@@ -264,10 +264,10 @@ func (m *nangoMock) handleDeleteIntegration(w http.ResponseWriter, uniqueKey str
 	delete(m.integrations, uniqueKey)
 	m.mu.Unlock()
 
-	json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
 }
 
 func (m *nangoMock) handleProxy(w http.ResponseWriter, _ *http.Request) {
 	// Return a generic success response for proxy requests
-	json.NewEncoder(w).Encode(map[string]any{"ok": true})
+	_ = json.NewEncoder(w).Encode(map[string]any{"ok": true})
 }

@@ -55,10 +55,10 @@ func RequestLog(logger *slog.Logger) func(http.Handler) http.Handler {
 			if reqID != "" {
 				attrs = append(attrs, slog.String("request_id", reqID))
 			}
-			if org, ok := OrgFromContext(r.Context()); ok {
+			if org, ok := OrgFromContext(ctx); ok {
 				attrs = append(attrs, slog.String("org_id", org.ID.String()))
 			}
-			if claims, ok := ClaimsFromContext(r.Context()); ok {
+			if claims, ok := ClaimsFromContext(ctx); ok {
 				attrs = append(attrs, slog.String("credential_id", claims.CredentialID))
 			}
 
@@ -69,7 +69,7 @@ func RequestLog(logger *slog.Logger) func(http.Handler) http.Handler {
 				level = slog.LevelWarn
 			}
 
-			logger.LogAttrs(r.Context(), level, "request", attrs...)
+			logger.LogAttrs(ctx, level, "request", attrs...)
 		})
 	}
 }

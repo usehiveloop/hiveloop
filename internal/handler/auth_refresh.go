@@ -89,7 +89,7 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h.issueTokensAndRespond(w, http.StatusOK, user, orgID, role)
+	h.issueTokensAndRespond(r.Context(), w, http.StatusOK, user, orgID, role)
 }
 
 // Logout handles POST /auth/logout.

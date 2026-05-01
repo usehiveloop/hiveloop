@@ -2,7 +2,6 @@ package handler
 
 import (
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
@@ -87,7 +87,7 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 
 	body, err := io.ReadAll(request.Body)
 	if err != nil {
-		slog.Error("http trigger: failed to read body",
+		logging.FromContext(request.Context()).ErrorContext(request.Context(), "http trigger: failed to read body",
 			"trigger_id", triggerID,
 			"error", err,
 		)
@@ -115,7 +115,7 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 		RouterTriggerID: &triggerID,
 	})
 	if err != nil {
-		slog.Error("http trigger: failed to build dispatch task",
+		logging.FromContext(request.Context()).ErrorContext(request.Context(), "http trigger: failed to build dispatch task",
 			"trigger_id", triggerID,
 			"error", err,
 		)
@@ -123,7 +123,7 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 	}
 
 	if _, enqueueErr := handler.enqueuer.Enqueue(task); enqueueErr != nil {
-		slog.Error("http trigger: failed to enqueue dispatch task",
+		logging.FromContext(request.Context()).ErrorContext(request.Context(), "http trigger: failed to enqueue dispatch task",
 			"trigger_id", triggerID,
 			"error", enqueueErr,
 		)

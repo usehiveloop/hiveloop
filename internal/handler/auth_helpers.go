@@ -1,10 +1,10 @@
 package handler
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -36,7 +37,7 @@ func planFromModel(p model.Plan) *planDTO {
 // loadPlans returns a slug -> *planDTO map for every plan slug referenced by
 // the given memberships. One bulk query, no N+1. Slugs without a matching
 // plan row are absent from the map (callers fall back to nil).
-func loadPlans(db *gorm.DB, memberships []model.OrgMembership) map[string]*planDTO {
+func loadPlans(ctx context.Context, db *gorm.DB, memberships []model.OrgMembership) map[string]*planDTO {
 	if len(memberships) == 0 {
 		return map[string]*planDTO{}
 	}
@@ -59,7 +60,7 @@ func loadPlans(db *gorm.DB, memberships []model.OrgMembership) map[string]*planD
 
 	var rows []model.Plan
 	if err := db.Where("slug IN ?", slugs).Find(&rows).Error; err != nil {
-		slog.Warn("loadPlans: failed to load plans", "error", err)
+		logging.FromContext(ctx).WarnContext(ctx, "loadPlans: failed to load plans", "error", err)
 		return map[string]*planDTO{}
 	}
 	out := make(map[string]*planDTO, len(rows))
@@ -136,17 +137,17 @@ func firstNameFrom(user model.User) string {
 	return "there"
 }
 
-func (h *AuthHandler) issueTokensAndRespond(w http.ResponseWriter, status int, user model.User, orgID, role string) {
+func (h *AuthHandler) issueTokensAndRespond(ctx context.Context, w http.ResponseWriter, status int, user model.User, orgID, role string) {
 	accessToken, err := auth.IssueAccessToken(h.privateKey, h.issuer, h.audience, user.ID.String(), orgID, role, h.accessTTL)
 	if err != nil {
-		slog.Error("failed to issue access token", "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to issue access token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
 
 	refreshToken, err := auth.IssueRefreshToken(h.signingKey, user.ID.String(), h.refreshTTL)
 	if err != nil {
-		slog.Error("failed to issue refresh token", "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to issue refresh token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -158,7 +159,7 @@ func (h *AuthHandler) issueTokensAndRespond(w http.ResponseWriter, status int, u
 		ExpiresAt: time.Now().Add(h.refreshTTL),
 	}
 	if err := h.db.Create(&storedRefresh).Error; err != nil {
-		slog.Error("failed to store refresh token", "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to store refresh token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -167,7 +168,7 @@ func (h *AuthHandler) issueTokensAndRespond(w http.ResponseWriter, status int, u
 	var memberships []model.OrgMembership
 	h.db.Preload("Org").Where("user_id = ?", user.ID).Find(&memberships)
 
-	plans := loadPlans(h.db, memberships)
+	plans := loadPlans(ctx, h.db, memberships)
 	orgs := make([]orgMemberDTO, 0, len(memberships))
 	for _, m := range memberships {
 		orgs = append(orgs, orgMemberDTO{

@@ -112,7 +112,7 @@ func AdminAudit(db *gorm.DB, enqueuer ...enqueue.TaskEnqueuer) func(http.Handler
 
 			// For PUT (update) requests, prefer the handler-computed diff over the raw body.
 			// This ensures we only log fields that actually changed, not the full form.
-			if bucket.Changes != nil && len(bucket.Changes) > 0 {
+			if len(bucket.Changes) > 0 {
 				sanitized := model.JSON(bucket.Changes)
 				maskMap(sanitized)
 				entry.Payload = sanitized

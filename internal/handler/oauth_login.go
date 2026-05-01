@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 
 	"golang.org/x/oauth2"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 )
 
 // @Summary Start GitHub OAuth login
@@ -48,7 +48,7 @@ func (h *OAuthHandler) beginLogin(w http.ResponseWriter, r *http.Request, cfg *o
 
 	state, err := randomHex(32)
 	if err != nil {
-		slog.Error("failed to generate oauth state", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to generate oauth state", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}

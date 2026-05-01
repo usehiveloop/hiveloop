@@ -3,19 +3,20 @@ package streaming
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 func (f *Flusher) flushStream(ctx context.Context, convID string) {
 	streamKey := f.bus.Prefix() + convID
 
-	f.bus.Redis().XGroupCreateMkStream(ctx, streamKey, flusherGroup, "0").Err()
+	// BUSYGROUP on existing consumer group is the expected path after first call.
+	_ = f.bus.Redis().XGroupCreateMkStream(ctx, streamKey, flusherGroup, "0").Err()
 
 	streams, err := f.bus.Redis().XReadGroup(ctx, &redis.XReadGroupArgs{
 		Group:    flusherGroup,
@@ -26,7 +27,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 	}).Result()
 	if err != nil && err != redis.Nil {
 		if ctx.Err() == nil {
-			slog.Error("flusher: XREADGROUP error", "conversation_id", convID, "error", err)
+			logging.FromContext(ctx).ErrorContext(ctx, "flusher: XREADGROUP error", "conversation_id", convID, "error", err)
 		}
 		return
 	}
@@ -41,7 +42,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 
 	convUUID, err := uuid.Parse(convID)
 	if err != nil {
-		slog.Error("flusher: invalid conversation ID", "conversation_id", convID, "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "flusher: invalid conversation ID", "conversation_id", convID, "error", err)
 		return
 	}
 
@@ -74,7 +75,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 			Data           json.RawMessage `json:"data"`
 		}
 		if err := json.Unmarshal([]byte(dataStr), &full); err != nil {
-			slog.Warn("flusher: failed to parse event payload", "conversation_id", convID, "error", err)
+			logging.FromContext(ctx).WarnContext(ctx, "flusher: failed to parse event payload", "conversation_id", convID, "error", err)
 			entryIDs = append(entryIDs, msg.ID)
 			continue
 		}
@@ -97,7 +98,9 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 				MessageID string `json:"message_id"`
 			}
 			if err := json.Unmarshal(full.Data, &d); err == nil && d.MessageID != "" {
-				f.bus.DropChunk(ctx, convID, d.MessageID)
+				if err := f.bus.DropChunk(ctx, convID, d.MessageID); err != nil {
+					logging.FromContext(ctx).WarnContext(ctx, "flusher: drop chunk failed", "conversation_id", convID, "message_id", d.MessageID, "error", err)
+				}
 			}
 		}
 
@@ -117,7 +120,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 	}
 
 	if err := f.db.CreateInBatches(events, 50).Error; err != nil {
-		slog.Error("flusher: batch insert failed", "conversation_id", convID, "count", len(events), "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "flusher: batch insert failed", "conversation_id", convID, "count", len(events), "error", err)
 		return
 	}
 
@@ -126,8 +129,12 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 	}
 
 	for _, mid := range recoveredMsgIDs {
-		f.bus.DropChunk(ctx, convID, mid)
+		if err := f.bus.DropChunk(ctx, convID, mid); err != nil {
+			logging.FromContext(ctx).WarnContext(ctx, "flusher: drop recovered chunk failed", "conversation_id", convID, "message_id", mid, "error", err)
+		}
 	}
 
-	f.bus.Trim(ctx, convID, trimMaxLen)
+	if err := f.bus.Trim(ctx, convID, trimMaxLen); err != nil {
+		logging.FromContext(ctx).WarnContext(ctx, "flusher: trim failed", "conversation_id", convID, "error", err)
+	}
 }

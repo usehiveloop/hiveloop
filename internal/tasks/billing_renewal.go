@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/billing/subscription"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 )
 
 // Cap on rows enqueued per sweep tick. Per-sub rate-limiting via
@@ -38,7 +38,7 @@ func (h *BillingRenewSweepHandler) Handle(ctx context.Context, _ *asynq.Task) er
 		return nil
 	}
 
-	slog.DebugContext(ctx, "billing sweep enqueuing renewals", "count", len(ids))
+	logging.FromContext(ctx).DebugContext(ctx, "billing sweep enqueuing renewals", "count", len(ids))
 	var firstErr error
 	for _, id := range ids {
 		payload, err := json.Marshal(BillingRenewSubscriptionPayload{SubscriptionID: id})
@@ -89,11 +89,11 @@ func (h *BillingRenewSubscriptionHandler) Handle(ctx context.Context, task *asyn
 
 	action, err := h.service.Renew(ctx, payload.SubscriptionID)
 	if err != nil {
-		slog.WarnContext(ctx, "billing renew attempt failed",
+		logging.FromContext(ctx).WarnContext(ctx, "billing renew attempt failed",
 			"subscription_id", payload.SubscriptionID, "action", action, "error", err)
 		return nil
 	}
-	slog.InfoContext(ctx, "billing renew applied",
+	logging.FromContext(ctx).InfoContext(ctx, "billing renew applied",
 		"subscription_id", payload.SubscriptionID, "action", action)
 	return nil
 }

@@ -181,7 +181,7 @@ func TestAdminAuditBucket_NoBucket(t *testing.T) {
 
 func connectTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := "postgres://hiveloop:localdev@localhost:5433/hiveloop?sslmode=disable"
+	dsn := "postgres://hiveloop:localdev@localhost:5433/hiveloop?sslmode=disable" // #nosec G101 -- local test DB fixture
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Skipf("skipping: cannot connect to test DB: %v", err)

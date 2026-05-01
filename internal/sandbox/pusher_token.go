@@ -3,10 +3,10 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/usehiveloop/hiveloop/internal/credentials"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/token"
 )
@@ -59,7 +59,7 @@ func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *m
 			agent.ID.String(), jti).
 		Update("revoked_at", now)
 
-	slog.Debug("agent token rotated", "agent_id", agent.ID, "jti", jti)
+	logging.FromContext(ctx).DebugContext(ctx, "agent token rotated", "agent_id", agent.ID, "jti", jti)
 
 	return nil
 }

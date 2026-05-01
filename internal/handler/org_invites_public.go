@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -108,7 +108,7 @@ func (h *OrgInviteHandler) Accept(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		slog.Error("accept invite", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "accept invite", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to accept invite"})
 		return
 	}
@@ -125,7 +125,7 @@ func (h *OrgInviteHandler) Accept(w http.ResponseWriter, r *http.Request) {
 				"role":           invite.Role,
 			},
 		}); err != nil {
-			slog.Error("send invite-accepted email", "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "send invite-accepted email", "error", err)
 		}
 	}
 
@@ -178,7 +178,7 @@ func (h *OrgInviteHandler) Decline(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	if err := h.db.Model(&model.OrgInvite{}).Where("id = ?", invite.ID).Update("revoked_at", &now).Error; err != nil {
-		slog.Error("decline invite", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "decline invite", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to decline invite"})
 		return
 	}

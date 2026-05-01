@@ -1,15 +1,15 @@
 package handler
 
 import (
-	"time"
 	"encoding/json"
-	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -161,7 +161,7 @@ func (h *AdminHandler) UpdateOrg(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.db.Where("id = ?", id).First(&org)
-	slog.Info("admin: org updated", "org_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: org updated", "org_id", id)
 	writeJSON(w, http.StatusOK, toAdminOrgResponse(org))
 }
 
@@ -188,7 +188,7 @@ func (h *AdminHandler) DeactivateOrg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("admin: org deactivated", "org_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: org deactivated", "org_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deactivated"})
 }
 
@@ -215,7 +215,7 @@ func (h *AdminHandler) ActivateOrg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("admin: org activated", "org_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: org activated", "org_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "activated"})
 }
 
@@ -287,6 +287,6 @@ func (h *AdminHandler) DeleteOrg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("admin: org deleted", "org_id", id, "name", org.Name)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: org deleted", "org_id", id, "name", org.Name)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

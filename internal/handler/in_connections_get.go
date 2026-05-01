@@ -1,12 +1,12 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -41,7 +41,7 @@ func (h *InConnectionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	nk := inNangoKey(conn.InIntegration.UniqueKey)
 	nangoResp, err := h.nango.GetConnection(r.Context(), conn.NangoConnectionID, nk)
 	if err != nil {
-		slog.Warn("nango: get connection failed, returning without provider_config",
+		logging.FromContext(r.Context()).WarnContext(r.Context(), "nango: get connection failed, returning without provider_config",
 			"error", err, "connection_id", connID, "nango_connection_id", conn.NangoConnectionID)
 	} else if nangoResp != nil {
 		pc := buildConnectionProviderConfig(nangoResp)

@@ -134,7 +134,7 @@ func TestSandboxTemplateAPI_CRUD(t *testing.T) {
 		BuildStatus   string         `json:"build_status"`
 		Config        map[string]any `json:"config"`
 	}
-	json.NewDecoder(rr.Body).Decode(&created)
+	_ = json.NewDecoder(rr.Body).Decode(&created)
 	if created.Name != "python-ml" {
 		t.Errorf("name: got %q", created.Name)
 	}
@@ -167,7 +167,7 @@ func TestSandboxTemplateAPI_CRUD(t *testing.T) {
 		Data    []any `json:"data"`
 		HasMore bool  `json:"has_more"`
 	}
-	json.NewDecoder(rr.Body).Decode(&listed)
+	_ = json.NewDecoder(rr.Body).Decode(&listed)
 	if len(listed.Data) < 1 {
 		t.Fatal("list should return at least 1 template")
 	}
@@ -185,7 +185,7 @@ func TestSandboxTemplateAPI_CRUD(t *testing.T) {
 		BuildCommands string `json:"build_commands"`
 		BuildStatus   string `json:"build_status"`
 	}
-	json.NewDecoder(rr.Body).Decode(&updated)
+	_ = json.NewDecoder(rr.Body).Decode(&updated)
 	if updated.Name != "python-ml-v2" {
 		t.Errorf("updated name: got %q", updated.Name)
 	}
@@ -256,7 +256,7 @@ func TestAgentAPI_CRUD(t *testing.T) {
 		Permissions  map[string]any `json:"permissions"`
 		Status       string         `json:"status"`
 	}
-	json.NewDecoder(rr.Body).Decode(&created)
+	_ = json.NewDecoder(rr.Body).Decode(&created)
 
 	t.Cleanup(func() {
 		h.db.Where("id = ?", created.ID).Delete(&model.Agent{})
@@ -301,7 +301,7 @@ func TestAgentAPI_CRUD(t *testing.T) {
 			Name string `json:"name"`
 		} `json:"data"`
 	}
-	json.NewDecoder(rr.Body).Decode(&listed)
+	_ = json.NewDecoder(rr.Body).Decode(&listed)
 	if len(listed.Data) < 1 {
 		t.Fatal("list should return at least 1 agent")
 	}
@@ -318,7 +318,7 @@ func TestAgentAPI_CRUD(t *testing.T) {
 		SystemPrompt string         `json:"system_prompt"`
 		AgentConfig  map[string]any `json:"agent_config"`
 	}
-	json.NewDecoder(rr.Body).Decode(&updated)
+	_ = json.NewDecoder(rr.Body).Decode(&updated)
 	if updated.SystemPrompt != "You are an updated support agent." {
 		t.Errorf("updated system_prompt: got %q", updated.SystemPrompt)
 	}
@@ -363,7 +363,7 @@ func TestAgentAPI_Validation(t *testing.T) {
 		t.Errorf("wrong provider model: expected 400, got %d: %s", rr.Code, rr.Body.String())
 	}
 	var errResp struct{ Error string }
-	json.NewDecoder(rr.Body).Decode(&errResp)
+	_ = json.NewDecoder(rr.Body).Decode(&errResp)
 	if errResp.Error == "" {
 		t.Error("expected error message about model/provider mismatch")
 	}
@@ -391,7 +391,7 @@ func TestAgentAPI_DuplicateName(t *testing.T) {
 		t.Fatalf("first create: expected 201, got %d: %s", rr.Code, rr.Body.String())
 	}
 	var first struct{ ID string }
-	json.NewDecoder(rr.Body).Decode(&first)
+	_ = json.NewDecoder(rr.Body).Decode(&first)
 	t.Cleanup(func() {
 		h.db.Where("id = ?", first.ID).Delete(&model.Agent{})
 	})
@@ -417,7 +417,7 @@ func TestAgentAPI_WithTemplate(t *testing.T) {
 		t.Fatalf("create template: %d: %s", rr.Code, rr.Body.String())
 	}
 	var tmpl struct{ ID string }
-	json.NewDecoder(rr.Body).Decode(&tmpl)
+	_ = json.NewDecoder(rr.Body).Decode(&tmpl)
 	t.Cleanup(func() {
 		h.db.Where("id = ?", tmpl.ID).Delete(&model.SandboxTemplate{})
 	})
@@ -445,7 +445,7 @@ func TestAgentAPI_WithTemplate(t *testing.T) {
 		ID                string  `json:"id"`
 		SandboxTemplateID *string `json:"sandbox_template_id"`
 	}
-	json.NewDecoder(rr.Body).Decode(&agent)
+	_ = json.NewDecoder(rr.Body).Decode(&agent)
 	t.Cleanup(func() {
 		h.db.Where("id = ?", agent.ID).Delete(&model.Agent{})
 	})

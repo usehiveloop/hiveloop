@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	testDBURL     = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+	testDBURL     = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 	testRedisAddr = "localhost:6379"
 )
 

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"log/slog"
 	"mime"
 	"net/http"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/storage"
@@ -154,7 +154,7 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 
 		if err := handler.storage.Upload(request.Context(), s3Key, file, contentType, fileHeader.Size); err != nil {
 			file.Close()
-			slog.Error("drive upload failed", "agent_id", agent.ID, "filename", fileHeader.Filename, "error", err)
+			logging.FromContext(request.Context()).ErrorContext(request.Context(), "drive upload failed", "agent_id", agent.ID, "filename", fileHeader.Filename, "error", err)
 			writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to upload file to storage"})
 			return
 		}
@@ -171,7 +171,7 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 		}
 		if err := handler.db.Create(&asset).Error; err != nil {
 			_ = handler.storage.Delete(request.Context(), s3Key)
-			slog.Error("drive asset db insert failed", "agent_id", agent.ID, "error", err)
+			logging.FromContext(request.Context()).ErrorContext(request.Context(), "drive asset db insert failed", "agent_id", agent.ID, "error", err)
 			writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to save asset record"})
 			return
 		}

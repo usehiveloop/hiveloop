@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"log/slog"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -27,21 +27,21 @@ type ToolUsageWriter struct {
 
 // NewToolUsageWriter creates a ToolUsageWriter with the given buffer size and starts
 // background flushing. Call Shutdown to flush remaining entries on exit.
-func NewToolUsageWriter(db *gorm.DB, bufferSize int) *ToolUsageWriter {
+func NewToolUsageWriter(ctx context.Context, db *gorm.DB, bufferSize int) *ToolUsageWriter {
 	writer := &ToolUsageWriter{
 		db:            db,
 		entries:       make(chan model.ToolUsage, bufferSize),
 		flushInterval: 500 * time.Millisecond,
 	}
 	writer.wg.Add(1)
-	go writer.drain()
+	go writer.drain(ctx)
 	return writer
 }
 
-func (writer *ToolUsageWriter) drain() {
+func (writer *ToolUsageWriter) drain(ctx context.Context) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			slog.Error("tool usage drain panicked",
+			logging.FromContext(ctx).ErrorContext(ctx, "tool usage drain panicked",
 				"panic", recovered,
 				"stack", string(debug.Stack()),
 			)
@@ -58,7 +58,7 @@ func (writer *ToolUsageWriter) drain() {
 			return
 		}
 		if err := writer.db.CreateInBatches(batch, toolUsageBatchSize).Error; err != nil {
-			slog.Error("tool usage batch write failed", "error", err, "count", len(batch))
+			logging.FromContext(ctx).ErrorContext(ctx, "tool usage batch write failed", "error", err, "count", len(batch))
 		}
 		batch = batch[:0]
 	}
@@ -90,11 +90,11 @@ func (writer *ToolUsageWriter) drain() {
 
 // Write queues a tool usage entry. It never blocks — if the buffer is full, the
 // entry is dropped and a warning is logged.
-func (writer *ToolUsageWriter) Write(usage model.ToolUsage) {
+func (writer *ToolUsageWriter) Write(ctx context.Context, usage model.ToolUsage) {
 	select {
 	case writer.entries <- usage:
 	default:
-		slog.Warn("tool usage buffer full, dropping entry", "id", usage.ID)
+		logging.FromContext(ctx).WarnContext(ctx, "tool usage buffer full, dropping entry", "id", usage.ID)
 	}
 }
 
@@ -114,6 +114,6 @@ func (writer *ToolUsageWriter) Shutdown(ctx context.Context) {
 	select {
 	case <-done:
 	case <-ctx.Done():
-		slog.Warn("tool usage shutdown timed out, some entries may be lost")
+		logging.FromContext(ctx).WarnContext(ctx, "tool usage shutdown timed out, some entries may be lost")
 	}
 }

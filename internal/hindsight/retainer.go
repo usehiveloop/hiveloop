@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"os"
 	"sort"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/streaming"
 )
@@ -58,8 +58,8 @@ func OrgBankID(orgID uuid.UUID) string {
 
 // Run starts the retainer loop. Blocks until ctx is cancelled.
 func (r *Retainer) Run(ctx context.Context) {
-	slog.Info("hindsight retainer started", "consumer", r.consumer)
-	defer slog.Info("hindsight retainer stopped", "consumer", r.consumer)
+	logging.FromContext(ctx).InfoContext(ctx, "hindsight retainer started", "consumer", r.consumer)
+	defer logging.FromContext(ctx).InfoContext(ctx, "hindsight retainer stopped", "consumer", r.consumer)
 
 	// Process pending (unacknowledged) entries from a previous crash first
 	r.processPending(ctx)
@@ -86,7 +86,7 @@ func (r *Retainer) Run(ctx context.Context) {
 func (r *Retainer) processAll(ctx context.Context) {
 	convIDs, err := r.bus.ActiveConversations(ctx)
 	if err != nil {
-		slog.Error("hindsight retainer: failed to get active conversations", "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "hindsight retainer: failed to get active conversations", "error", err)
 		return
 	}
 
@@ -103,8 +103,9 @@ func (r *Retainer) processAll(ctx context.Context) {
 func (r *Retainer) processStream(ctx context.Context, convID string) {
 	streamKey := r.bus.Prefix() + convID
 
-	// Ensure consumer group exists
-	r.bus.Redis().XGroupCreateMkStream(ctx, streamKey, retainerGroup, "0").Err()
+	// Ensure consumer group exists.
+	// BUSYGROUP on existing consumer group is the expected path after first call.
+	_ = r.bus.Redis().XGroupCreateMkStream(ctx, streamKey, retainerGroup, "0").Err()
 
 	// Read new messages
 	streams, err := r.bus.Redis().XReadGroup(ctx, &redis.XReadGroupArgs{
@@ -116,7 +117,7 @@ func (r *Retainer) processStream(ctx context.Context, convID string) {
 	}).Result()
 	if err != nil && err != redis.Nil {
 		if ctx.Err() == nil {
-			slog.Error("hindsight retainer: XREADGROUP error", "conversation_id", convID, "error", err)
+			logging.FromContext(ctx).ErrorContext(ctx, "hindsight retainer: XREADGROUP error", "conversation_id", convID, "error", err)
 		}
 		return
 	}
@@ -175,7 +176,7 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 
 	bankID := "org-" + agent.OrgID.String()
 	if err := r.ensureOrgBankConfigured(ctx, &agent); err != nil {
-		slog.Error("hindsight retainer: failed to ensure org bank",
+		logging.FromContext(ctx).ErrorContext(ctx, "hindsight retainer: failed to ensure org bank",
 			"agent_id", agent.ID, "org_id", agent.OrgID, "error", err)
 		return
 	}
@@ -183,7 +184,7 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 	// Build transcript from persisted events
 	transcript, err := r.buildTranscript(convID)
 	if err != nil {
-		slog.Error("hindsight retainer: failed to build transcript",
+		logging.FromContext(ctx).ErrorContext(ctx, "hindsight retainer: failed to build transcript",
 			"conversation_id", convID, "error", err)
 		return
 	}
@@ -211,7 +212,7 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 		Async: true,
 	})
 	if err != nil {
-		slog.Error("hindsight retainer: retain failed",
+		logging.FromContext(ctx).ErrorContext(ctx, "hindsight retainer: retain failed",
 			"conversation_id", convID,
 			"bank_id", bankID,
 			"error", err)
@@ -241,7 +242,7 @@ func (r *Retainer) buildTranscript(convID uuid.UUID) (string, error) {
 	for _, e := range events {
 		var data map[string]any
 		if len(e.Data) > 0 {
-			json.Unmarshal(e.Data, &data)
+			_ = json.Unmarshal(e.Data, &data)
 		}
 		if data == nil {
 			continue
@@ -300,7 +301,7 @@ func (r *Retainer) ensureOrgBankConfigured(ctx context.Context, agent *model.Age
 				return fmt.Errorf("recording org bank: %w", err)
 			}
 		}
-		slog.Info("hindsight retainer: org bank created",
+		logging.FromContext(ctx).InfoContext(ctx, "hindsight retainer: org bank created",
 			"bank_id", bankID, "org_id", agent.OrgID)
 		return nil
 	}
@@ -332,7 +333,8 @@ func (r *Retainer) processPending(ctx context.Context) {
 		}
 		streamKey := r.bus.Prefix() + convID
 
-		r.bus.Redis().XGroupCreateMkStream(ctx, streamKey, retainerGroup, "0").Err()
+		// BUSYGROUP on existing consumer group is the expected path after first call.
+		_ = r.bus.Redis().XGroupCreateMkStream(ctx, streamKey, retainerGroup, "0").Err()
 
 		streams, err := r.bus.Redis().XReadGroup(ctx, &redis.XReadGroupArgs{
 			Group:    retainerGroup,

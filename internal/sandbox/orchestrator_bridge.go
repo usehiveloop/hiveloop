@@ -3,22 +3,14 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
-
-func (o *Orchestrator) verifySandboxExists(ctx context.Context, sb *model.Sandbox) error {
-	if sb.ExternalID == "" {
-		return fmt.Errorf("no external ID")
-	}
-	_, err := o.provider.GetEndpoint(ctx, sb.ExternalID, BridgePort)
-	return err
-}
 
 func (o *Orchestrator) touchLastActive(sb *model.Sandbox) {
 	now := time.Now()
@@ -63,7 +55,7 @@ func (o *Orchestrator) waitForBridgeHealthy(ctx context.Context, sb *model.Sandb
 	client := &http.Client{Timeout: 5 * time.Second}
 	attempt := 0
 
-	slog.Info("waiting for bridge healthy", "sandbox_id", sb.ID)
+	logging.FromContext(ctx).InfoContext(ctx, "waiting for bridge healthy", "sandbox_id", sb.ID)
 
 	for time.Now().Before(deadline) {
 		attempt++
@@ -77,7 +69,7 @@ func (o *Orchestrator) waitForBridgeHealthy(ctx context.Context, sb *model.Sandb
 		if err == nil {
 			resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
-				slog.Info("bridge healthy", "sandbox_id", sb.ID, "attempts", attempt)
+				logging.FromContext(ctx).InfoContext(ctx, "bridge healthy", "sandbox_id", sb.ID, "attempts", attempt)
 				return nil
 			}
 		}

@@ -3,12 +3,12 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
 
 	"github.com/usehiveloop/hiveloop/internal/billing/subscription"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 )
 
@@ -66,7 +66,7 @@ func (h *SubscriptionHandler) InitUpgrade(w http.ResponseWriter, r *http.Request
 		case errors.Is(err, subscription.ErrNotAnUpgrade):
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "quote is not an upgrade"})
 		default:
-			slog.Error("init-upgrade: failed", "org_id", org.ID, "quote_id", quoteID, "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "init-upgrade: failed", "org_id", org.ID, "quote_id", quoteID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to start upgrade"})
 		}
 		return

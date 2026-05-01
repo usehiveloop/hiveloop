@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 
 	"github.com/hibiken/asynq"
+
+	"github.com/usehiveloop/hiveloop/internal/logging"
 )
 
 // EmailSenderFunc is a function that sends an ad-hoc email.
@@ -39,7 +40,7 @@ func (h *EmailSendHandler) Handle(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("send email to %s: %w", p.To, err)
 	}
 
-	slog.Debug("email sent", "to", p.To, "subject", p.Subject)
+	logging.FromContext(ctx).DebugContext(ctx, "email sent", "to", p.To, "subject", p.Subject)
 	return nil
 }
 
@@ -67,6 +68,6 @@ func (h *EmailSendTemplateHandler) Handle(ctx context.Context, t *asynq.Task) er
 		return fmt.Errorf("send template %s to %s: %w", p.Slug, p.To, err)
 	}
 
-	slog.Debug("email template sent", "to", p.To, "slug", p.Slug)
+	logging.FromContext(ctx).DebugContext(ctx, "email template sent", "to", p.To, "slug", p.Slug)
 	return nil
 }

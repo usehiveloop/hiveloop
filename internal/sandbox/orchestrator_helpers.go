@@ -42,7 +42,7 @@ func (o *Orchestrator) mergeUserEnvVars(ctx context.Context, envVars map[string]
 }
 
 func (o *Orchestrator) cloneAgentRepositories(ctx context.Context, sb *model.Sandbox, agent *model.Agent) error {
-	if agent.Resources == nil || len(agent.Resources) == 0 {
+	if len(agent.Resources) == 0 {
 		return nil
 	}
 

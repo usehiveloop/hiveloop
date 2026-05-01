@@ -2,15 +2,15 @@ package sandbox
 
 import (
 	"context"
-	"log/slog"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 func (o *Orchestrator) RunHealthCheck(ctx context.Context) {
 	var sandboxes []model.Sandbox
-	if err := o.db.Where("status = 'running'").Find(&sandboxes).Error; err != nil {
-		slog.Error("health check: failed to query sandboxes", "error", err)
+	if err := o.db.WithContext(ctx).Where("status = 'running'").Find(&sandboxes).Error; err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "health check: failed to query sandboxes", "error", err)
 		return
 	}
 
@@ -28,8 +28,8 @@ func (o *Orchestrator) checkSandboxHealth(ctx context.Context, sb *model.Sandbox
 
 	providerStatus := string(status)
 	if providerStatus != sb.Status {
-		slog.Debug("health check: status changed", "sandbox_id", sb.ID, "old", sb.Status, "new", providerStatus)
-		o.db.Model(sb).Update("status", providerStatus)
+		logging.FromContext(ctx).DebugContext(ctx, "health check: status changed", "sandbox_id", sb.ID, "old", sb.Status, "new", providerStatus)
+		o.db.WithContext(ctx).Model(sb).Update("status", providerStatus)
 		sb.Status = providerStatus
 	}
 }

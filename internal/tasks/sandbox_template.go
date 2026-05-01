@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"strings"
 	"sync"
 	"time"
@@ -161,7 +160,7 @@ func (h *SandboxTemplateBuildHandler) buildTemplate(ctx context.Context, tmpl *m
 			"build_status": "failed",
 			"build_error":  errMsg,
 		})
-		slog.Error("sandbox template build failed", "template_id", tmpl.ID, "error", err.Error())
+		logging.FromContext(ctx).ErrorContext(ctx, "sandbox template build failed", "template_id", tmpl.ID, "error", err.Error())
 		return nil
 	}
 
@@ -170,7 +169,7 @@ func (h *SandboxTemplateBuildHandler) buildTemplate(ctx context.Context, tmpl *m
 		"external_id":  externalID,
 		"build_error":  nil,
 	})
-	slog.Info("sandbox template built", "template_id", tmpl.ID, "external_id", externalID)
+	logging.FromContext(ctx).InfoContext(ctx, "sandbox template built", "template_id", tmpl.ID, "external_id", externalID)
 
 	return nil
 }

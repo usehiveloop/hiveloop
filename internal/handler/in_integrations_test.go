@@ -96,7 +96,7 @@ func newNangoMock(cfg *nangoMockConfig) http.Handler {
 		cfg.mu.Unlock()
 
 		if r.URL.Path == "/providers" && r.Method == http.MethodGet {
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": []map[string]any{
 					{"name": "github", "display_name": "GitHub", "auth_mode": "OAUTH2"},
 					{"name": "slack", "display_name": "Slack", "auth_mode": "OAUTH2"},
@@ -110,13 +110,13 @@ func newNangoMock(cfg *nangoMockConfig) http.Handler {
 			case http.MethodPost:
 				w.WriteHeader(cfg.createStatus)
 				if cfg.createStatus >= 400 {
-					json.NewEncoder(w).Encode(map[string]any{"error": "nango error"})
+					_ = json.NewEncoder(w).Encode(map[string]any{"error": "nango error"})
 					return
 				}
-				json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"unique_key": "test"}})
+				_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"unique_key": "test"}})
 			case http.MethodGet:
 				w.WriteHeader(cfg.getStatus)
-				json.NewEncoder(w).Encode(map[string]any{
+				_ = json.NewEncoder(w).Encode(map[string]any{
 					"data": map[string]any{
 						"unique_key": "test",
 						"logo":       "https://example.com/logo.png",
@@ -125,17 +125,17 @@ func newNangoMock(cfg *nangoMockConfig) http.Handler {
 			case http.MethodPatch:
 				w.WriteHeader(cfg.updateStatus)
 				if cfg.updateStatus >= 400 {
-					json.NewEncoder(w).Encode(map[string]any{"error": "nango error"})
+					_ = json.NewEncoder(w).Encode(map[string]any{"error": "nango error"})
 					return
 				}
-				json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"unique_key": "test"}})
+				_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"unique_key": "test"}})
 			case http.MethodDelete:
 				w.WriteHeader(cfg.deleteStatus)
 				if cfg.deleteStatus >= 400 {
-					json.NewEncoder(w).Encode(map[string]any{"error": "nango error"})
+					_ = json.NewEncoder(w).Encode(map[string]any{"error": "nango error"})
 					return
 				}
-				json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+				_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
 			}
 			return
 		}

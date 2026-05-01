@@ -19,7 +19,7 @@ func TestDispatch_ThreadAffinity_ExistingConv(t *testing.T) {
 
 	existingConvID := "conv-existing-123"
 	existingSandboxID := uuid.New()
-	store.StoreConversation(context.Background(), &model.RouterConversation{
+	_ = store.StoreConversation(context.Background(), &model.RouterConversation{
 		OrgID:                testOrgID,
 		AgentID:              testAgentA,
 		ConnectionID:         testConnID,

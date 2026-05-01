@@ -1,17 +1,17 @@
 package handler
 
 import (
-	"time"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/nango"
 )
@@ -74,7 +74,7 @@ func (h *AdminHandler) CreateInIntegration(w http.ResponseWriter, r *http.Reques
 		Credentials: req.Credentials,
 	}
 	if err := h.nango.CreateIntegration(r.Context(), nangoReq); err != nil {
-		slog.Error("admin: failed to create integration in Nango", "error", err, "provider", req.Provider)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "admin: failed to create integration in Nango", "error", err, "provider", req.Provider)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create integration in provider"})
 		return
 	}
@@ -82,7 +82,7 @@ func (h *AdminHandler) CreateInIntegration(w http.ResponseWriter, r *http.Reques
 	// Fetch integration details + template from Nango to build config
 	integResp, err := h.nango.GetIntegration(r.Context(), nangoKey)
 	if err != nil {
-		slog.Warn("admin: created in Nango but failed to fetch details", "error", err)
+		logging.FromContext(r.Context()).WarnContext(r.Context(), "admin: created in Nango but failed to fetch details", "error", err)
 	}
 	template, _ := h.nango.GetProviderTemplate(req.Provider)
 	nangoConfig := buildNangoConfig(integResp, template, h.nango.CallbackURL())
@@ -106,7 +106,7 @@ func (h *AdminHandler) CreateInIntegration(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	slog.Info("admin: in-integration created", "id", integ.ID, "provider", req.Provider)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: in-integration created", "id", integ.ID, "provider", req.Provider)
 	writeJSON(w, http.StatusCreated, toAdminInIntegrationResponse(integ))
 }
 
@@ -198,7 +198,7 @@ func (h *AdminHandler) UpdateInIntegration(w http.ResponseWriter, r *http.Reques
 		nangoKey := "in_" + integ.UniqueKey
 		nangoReq := nango.UpdateIntegrationRequest{Credentials: req.Credentials}
 		if err := h.nango.UpdateIntegration(r.Context(), nangoKey, nangoReq); err != nil {
-			slog.Error("admin: failed to update integration in Nango", "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "admin: failed to update integration in Nango", "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update credentials in provider"})
 			return
 		}
@@ -220,7 +220,7 @@ func (h *AdminHandler) UpdateInIntegration(w http.ResponseWriter, r *http.Reques
 	}
 
 	h.db.Where("id = ?", id).First(&integ)
-	slog.Info("admin: in-integration updated", "id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: in-integration updated", "id", id)
 	writeJSON(w, http.StatusOK, toAdminInIntegrationResponse(integ))
 }
 
@@ -250,7 +250,7 @@ func (h *AdminHandler) DeleteInIntegration(w http.ResponseWriter, r *http.Reques
 	// Remove from Nango (best-effort)
 	nangoKey := "in_" + integ.UniqueKey
 	if err := h.nango.DeleteIntegration(r.Context(), nangoKey); err != nil {
-		slog.Warn("admin: failed to delete integration from Nango", "error", err, "key", nangoKey)
+		logging.FromContext(r.Context()).WarnContext(r.Context(), "admin: failed to delete integration from Nango", "error", err, "key", nangoKey)
 	}
 
 	// Soft-delete locally
@@ -260,6 +260,6 @@ func (h *AdminHandler) DeleteInIntegration(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	slog.Info("admin: in-integration deleted", "id", id, "provider", integ.Provider)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: in-integration deleted", "id", id, "provider", integ.Provider)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

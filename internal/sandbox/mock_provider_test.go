@@ -192,12 +192,3 @@ func (m *mockProvider) registerSandbox(externalID string, status SandboxStatus) 
 	m.sandboxes[externalID] = &mockSandbox{name: externalID, status: status}
 }
 
-func (m *mockProvider) getStatus(externalID string) SandboxStatus {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	sb, ok := m.sandboxes[externalID]
-	if !ok {
-		return StatusError
-	}
-	return sb.status
-}

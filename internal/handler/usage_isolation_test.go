@@ -51,7 +51,7 @@ func TestUsageHandler_OrgIsolation(t *testing.T) {
 			Total int64 `json:"total"`
 		} `json:"credentials"`
 	}
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	if resp.Credentials.Total != 1 {
 		t.Errorf("org1 credentials.total: got %d, want 1 (should not see org2's data)", resp.Credentials.Total)

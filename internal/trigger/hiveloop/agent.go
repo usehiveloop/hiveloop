@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"time"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -84,7 +84,7 @@ func (agent *RouterAgent) Route(
 
 		assistantMsg := resp.Message
 		if len(assistantMsg.ToolCalls) == 0 {
-			slog.Warn("routing agent produced text instead of tool calls",
+			logging.FromContext(ctx).WarnContext(ctx, "routing agent produced text instead of tool calls",
 				"turn", turn+1, "content", truncate(assistantMsg.Content, 100))
 			break
 		}

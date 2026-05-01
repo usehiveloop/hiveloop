@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/hibiken/asynq"
 	"github.com/hibiken/asynqmon"
@@ -169,9 +170,10 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	slog.Info("asynq dashboard enabled at /asynq")
 
 	healthSrv := &http.Server{
-		Addr:     fmt.Sprintf(":%d", cfg.WorkerHealthPort),
-		Handler:  healthMux,
-		ErrorLog: sentryobs.NewStdlogBridge("worker_health_server"),
+		Addr:              fmt.Sprintf(":%d", cfg.WorkerHealthPort),
+		Handler:           healthMux,
+		ErrorLog:          sentryobs.NewStdlogBridge("worker_health_server"),
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 	goroutine.Go(ctx, func(context.Context) {
 		slog.Info("worker health server starting", "port", cfg.WorkerHealthPort)

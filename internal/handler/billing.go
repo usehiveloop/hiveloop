@@ -3,12 +3,12 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -95,7 +95,7 @@ func (h *BillingHandler) CreateCheckout(w http.ResponseWriter, r *http.Request) 
 
 	customerID, err := provider.EnsureCustomer(r.Context(), org.ID, email, org.Name)
 	if err != nil {
-		slog.Error("billing: failed to ensure customer", "provider", provider.Name(), "org_id", org.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "billing: failed to ensure customer", "provider", provider.Name(), "org_id", org.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create billing customer"})
 		return
 	}
@@ -124,7 +124,7 @@ func (h *BillingHandler) CreateCheckout(w http.ResponseWriter, r *http.Request) 
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "plan not available on this provider"})
 			return
 		}
-		slog.Error("billing: failed to create checkout", "provider", provider.Name(), "org_id", org.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "billing: failed to create checkout", "provider", provider.Name(), "org_id", org.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create checkout session"})
 		return
 	}

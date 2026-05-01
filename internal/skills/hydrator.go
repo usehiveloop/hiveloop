@@ -152,7 +152,7 @@ func findVersionBySHA(ctx context.Context, db *gorm.DB, skillID uuid.UUID, sha s
 // advisoryLockKey hashes a skill UUID down to a bigint for pg_advisory_xact_lock.
 // Collisions are harmless — two unrelated skills occasionally serializing is fine.
 func advisoryLockKey(skillID uuid.UUID) int64 {
-	return int64(binary.BigEndian.Uint64(skillID[:8]))
+	return int64(binary.BigEndian.Uint64(skillID[:8])) // #nosec G115 -- hash truncation; sign bit is part of the hash distribution
 }
 
 // shortSHA returns the first 7 characters of a commit SHA, or the whole string

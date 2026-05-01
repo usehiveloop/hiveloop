@@ -2,12 +2,12 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -45,7 +45,7 @@ func (h *ConversationHandler) SendMessage(w http.ResponseWriter, r *http.Request
 		var agent model.Agent
 		if err := h.db.Where("id = ?", conv.AgentID).First(&agent).Error; err == nil {
 			if err := h.pusher.RotateAgentToken(r.Context(), &agent, &conv.Sandbox); err != nil {
-				slog.Error("failed to rotate agent token", "agent_id", conv.AgentID, "error", err)
+				logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to rotate agent token", "agent_id", conv.AgentID, "error", err)
 				// Non-fatal — try sending with existing token
 			}
 		}
@@ -58,7 +58,7 @@ func (h *ConversationHandler) SendMessage(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := client.SendMessage(r.Context(), conv.BridgeConversationID, req.Content); err != nil {
-		slog.Error("failed to send message to bridge", "conversation_id", conv.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to send message to bridge", "conversation_id", conv.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to send message"})
 		return
 	}
@@ -90,7 +90,7 @@ func (h *ConversationHandler) Abort(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := client.AbortConversation(r.Context(), conv.BridgeConversationID); err != nil {
-		slog.Error("failed to abort conversation", "conversation_id", conv.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to abort conversation", "conversation_id", conv.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to abort"})
 		return
 	}
@@ -120,7 +120,7 @@ func (h *ConversationHandler) End(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := client.EndConversation(r.Context(), conv.BridgeConversationID); err != nil {
-		slog.Error("failed to end conversation in bridge", "conversation_id", conv.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to end conversation in bridge", "conversation_id", conv.ID, "error", err)
 		// Continue to update our DB even if Bridge fails
 	}
 
@@ -156,7 +156,7 @@ func (h *ConversationHandler) ListApprovals(w http.ResponseWriter, r *http.Reque
 
 	approvals, err := client.ListApprovals(r.Context(), conv.AgentID.String(), conv.BridgeConversationID)
 	if err != nil {
-		slog.Error("failed to list approvals", "conversation_id", conv.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to list approvals", "conversation_id", conv.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list approvals"})
 		return
 	}
@@ -208,7 +208,7 @@ func (h *ConversationHandler) ResolveApproval(w http.ResponseWriter, r *http.Req
 		decision = bridgepkg.ApprovalDecisionDeny
 	}
 	if err := client.ResolveApproval(r.Context(), conv.AgentID.String(), conv.BridgeConversationID, requestID, decision); err != nil {
-		slog.Error("failed to resolve approval", "conversation_id", conv.ID, "request_id", requestID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to resolve approval", "conversation_id", conv.ID, "request_id", requestID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to resolve approval"})
 		return
 	}

@@ -39,7 +39,7 @@ func TestInIntegrationHandler_List_Success(t *testing.T) {
 		Data    []map[string]any `json:"data"`
 		HasMore bool             `json:"has_more"`
 	}
-	json.NewDecoder(rr.Body).Decode(&page)
+	_ = json.NewDecoder(rr.Body).Decode(&page)
 	if len(page.Data) < 3 {
 		t.Fatalf("expected at least 3 integrations, got %d", len(page.Data))
 	}
@@ -62,7 +62,7 @@ func TestInIntegrationHandler_List_ExcludesDeleted(t *testing.T) {
 	var page struct {
 		Data []map[string]any `json:"data"`
 	}
-	json.NewDecoder(rr.Body).Decode(&page)
+	_ = json.NewDecoder(rr.Body).Decode(&page)
 	for _, item := range page.Data {
 		if item["id"] == integ.ID.String() {
 			t.Fatal("deleted integration should not appear in list")
@@ -98,7 +98,7 @@ func TestInIntegrationHandler_List_Pagination(t *testing.T) {
 		HasMore    bool             `json:"has_more"`
 		NextCursor *string          `json:"next_cursor"`
 	}
-	json.NewDecoder(rr.Body).Decode(&page1)
+	_ = json.NewDecoder(rr.Body).Decode(&page1)
 	if len(page1.Data) != 2 {
 		t.Fatalf("expected 2 items, got %d", len(page1.Data))
 	}
@@ -117,7 +117,7 @@ func TestInIntegrationHandler_List_Pagination(t *testing.T) {
 	var page2 struct {
 		Data []map[string]any `json:"data"`
 	}
-	json.NewDecoder(rr2.Body).Decode(&page2)
+	_ = json.NewDecoder(rr2.Body).Decode(&page2)
 	if len(page2.Data) != 2 {
 		t.Fatalf("expected 2 items on page 2, got %d", len(page2.Data))
 	}
@@ -134,7 +134,7 @@ func TestInIntegrationHandler_ListAvailable_Success(t *testing.T) {
 	}
 
 	var resp []map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	if len(resp) < 1 {
 		t.Fatal("expected at least 1 available integration")
 	}
@@ -163,7 +163,7 @@ func TestInIntegrationHandler_ListAvailable_ExcludesDeleted(t *testing.T) {
 	}
 
 	var resp []map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	for _, item := range resp {
 		if item["id"] == integ.ID.String() {
 			t.Fatal("deleted integration should not appear in available list")

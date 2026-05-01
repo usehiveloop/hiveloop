@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"log/slog"
 	"net"
 	"net/http"
 	"runtime/debug"
@@ -13,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -31,7 +31,7 @@ type AuditWriter struct {
 // background flushing. Call Shutdown to flush remaining entries on exit.
 // An optional flushInterval controls how often partial batches are flushed
 // (default 500ms).
-func NewAuditWriter(db *gorm.DB, bufferSize int, flushInterval ...time.Duration) *AuditWriter {
+func NewAuditWriter(ctx context.Context, db *gorm.DB, bufferSize int, flushInterval ...time.Duration) *AuditWriter {
 	interval := 500 * time.Millisecond
 	if len(flushInterval) > 0 {
 		interval = flushInterval[0]
@@ -42,14 +42,14 @@ func NewAuditWriter(db *gorm.DB, bufferSize int, flushInterval ...time.Duration)
 		flushInterval: interval,
 	}
 	aw.wg.Add(1)
-	go aw.drain()
+	go aw.drain(ctx)
 	return aw
 }
 
-func (aw *AuditWriter) drain() {
+func (aw *AuditWriter) drain(ctx context.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			slog.Error("audit drain panicked",
+			logging.FromContext(ctx).ErrorContext(ctx, "audit drain panicked",
 				"panic", r,
 				"stack", string(debug.Stack()),
 			)
@@ -66,7 +66,7 @@ func (aw *AuditWriter) drain() {
 			return
 		}
 		if err := aw.db.CreateInBatches(batch, auditBatchSize).Error; err != nil {
-			slog.Error("audit batch write failed", "error", err, "count", len(batch))
+			logging.FromContext(ctx).ErrorContext(ctx, "audit batch write failed", "error", err, "count", len(batch))
 		}
 		batch = batch[:0]
 	}
@@ -98,11 +98,11 @@ func (aw *AuditWriter) drain() {
 
 // Write queues an audit entry. It never blocks — if the buffer is full, the
 // entry is dropped and a warning is logged.
-func (aw *AuditWriter) Write(entry model.AuditEntry) {
+func (aw *AuditWriter) Write(ctx context.Context, entry model.AuditEntry) {
 	select {
 	case aw.entries <- entry:
 	default:
-		slog.Warn("audit buffer full, dropping entry", "action", entry.Action)
+		logging.FromContext(ctx).WarnContext(ctx, "audit buffer full, dropping entry", "action", entry.Action)
 	}
 }
 
@@ -119,7 +119,7 @@ func (aw *AuditWriter) Shutdown(ctx context.Context) {
 	select {
 	case <-done:
 	case <-ctx.Done():
-		slog.Warn("audit shutdown timed out, some entries may be lost")
+		logging.FromContext(ctx).WarnContext(ctx, "audit shutdown timed out, some entries may be lost")
 	}
 }
 
@@ -164,7 +164,7 @@ func Audit(aw *AuditWriter, action ...string) func(http.Handler) http.Handler {
 					}
 				}
 			}
-			aw.Write(entry)
+			aw.Write(r.Context(), entry)
 		})
 	}
 }

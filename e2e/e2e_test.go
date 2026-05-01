@@ -12,8 +12,6 @@
 package e2e
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -45,7 +43,7 @@ import (
 )
 
 const (
-	testDBURL      = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+	testDBURL      = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" //nolint:gosec // G101: local-only test fixture, not a real credential
 	testRedisAddr  = "localhost:6379"
 	testSigningKey = "e2e-signing-key-for-tests"
 )
@@ -133,7 +131,7 @@ func newHarness(t *testing.T) *testHarness {
 	signingKey := []byte(testSigningKey)
 
 	// Audit writer
-	aw := middleware.NewAuditWriter(db, 1000, 10*time.Millisecond)
+	aw := middleware.NewAuditWriter(t.Context(), db, 1000, 10*time.Millisecond)
 
 	// Build the full Chi router
 	r := chi.NewRouter()
@@ -250,7 +248,7 @@ func (h *testHarness) storeCredential(t *testing.T, org model.Org, baseURL, auth
 	var resp struct {
 		ID string `json:"id"`
 	}
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	var cred model.Credential
 	h.db.Where("id = ?", resp.ID).First(&cred)
@@ -275,7 +273,7 @@ func (h *testHarness) mintToken(t *testing.T, org model.Org, credID uuid.UUID) s
 	var resp struct {
 		Token string `json:"token"`
 	}
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	return resp.Token
 }
 
@@ -295,55 +293,6 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
-}
-
-// openRouterKeyCache memoises the validation result across tests within a run
-// so we only hit OpenRouter once, not once per test.
-var (
-	openRouterKeyValidated bool
-	openRouterKeyValid     bool
-	openRouterValidatedKey string
-)
-
-func requireOpenRouterKey(t *testing.T) string {
-	t.Helper()
-	loadEnv(t)
-	key := os.Getenv("OPENROUTER_API_KEY")
-	if key == "" {
-		t.Skip("OPENROUTER_API_KEY not set — skipping OpenRouter-dependent test")
-	}
-
-	// Validate the key once per run by calling OpenRouter's /auth/key
-	// endpoint. If OpenRouter says the key is invalid (e.g. rotated,
-	// revoked, or the CI secret hasn't been refreshed), skip instead of
-	// failing — the test environment, not the code, is broken.
-	if !openRouterKeyValidated || openRouterValidatedKey != key {
-		openRouterValidatedKey = key
-		openRouterKeyValidated = true
-		openRouterKeyValid = validateOpenRouterKey(key)
-	}
-	if !openRouterKeyValid {
-		t.Skip("OPENROUTER_API_KEY rejected by OpenRouter (rotate CI secret) — skipping")
-	}
-	return key
-}
-
-// validateOpenRouterKey hits OpenRouter's /auth/key endpoint with a short
-// timeout. Any non-2xx response means the key is not usable for the rest of
-// the suite.
-func validateOpenRouterKey(key string) bool {
-	req, err := http.NewRequest(http.MethodGet, "https://openrouter.ai/api/v1/auth/key", nil)
-	if err != nil {
-		return false
-	}
-	req.Header.Set("Authorization", "Bearer "+key)
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-	return resp.StatusCode >= 200 && resp.StatusCode < 300
 }
 
 // --------------------------------------------------------------------------
@@ -439,46 +388,6 @@ func TestE2E_TokenLifecycle(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
-// SSE parsing helpers
-// --------------------------------------------------------------------------
-
-func parseSSEChunks(t *testing.T, data []byte) []string {
-	t.Helper()
-	var chunks []string
-	scanner := bufio.NewScanner(bytes.NewReader(data))
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "data: ") {
-			chunk := strings.TrimPrefix(line, "data: ")
-			chunk = strings.TrimSpace(chunk)
-			if chunk != "" {
-				chunks = append(chunks, chunk)
-			}
-		}
-	}
-	return chunks
-}
-
-// extractNonStreamContent safely extracts content from a non-streaming chat completion response.
-func extractNonStreamContent(t *testing.T, resp map[string]any) string {
-	t.Helper()
-	choices, ok := resp["choices"].([]any)
-	if !ok || len(choices) == 0 {
-		t.Fatalf("no choices in response: %v", resp)
-	}
-	choice, ok := choices[0].(map[string]any)
-	if !ok {
-		t.Fatalf("invalid choice format: %v", choices[0])
-	}
-	msg, ok := choice["message"].(map[string]any)
-	if !ok {
-		t.Fatalf("no message in choice: %v", choice)
-	}
-	content, _ := msg["content"].(string)
-	return content
-}
-
 // decodePaginatedList decodes a paginated list response and returns the data array.
 func decodePaginatedList(t *testing.T, rr *httptest.ResponseRecorder) []map[string]any {
 	t.Helper()
@@ -492,27 +401,3 @@ func decodePaginatedList(t *testing.T, rr *httptest.ResponseRecorder) []map[stri
 	return resp.Data
 }
 
-func extractStreamContent(chunks []string) string {
-	var sb strings.Builder
-	for _, chunk := range chunks {
-		if chunk == "[DONE]" {
-			continue
-		}
-		var event map[string]any
-		if err := json.Unmarshal([]byte(chunk), &event); err != nil {
-			continue
-		}
-		choices, ok := event["choices"].([]any)
-		if !ok || len(choices) == 0 {
-			continue
-		}
-		delta, ok := choices[0].(map[string]any)["delta"].(map[string]any)
-		if !ok {
-			continue
-		}
-		if content, ok := delta["content"].(string); ok {
-			sb.WriteString(content)
-		}
-	}
-	return sb.String()
-}

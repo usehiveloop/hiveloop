@@ -2,13 +2,13 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -178,7 +178,7 @@ func (h *SandboxHandler) Exec(w http.ResponseWriter, r *http.Request) {
 			result.Error = err.Error()
 			result.ExitCode = 1
 			allSuccess = false
-			slog.Debug("sandbox exec: command failed", "sandbox_id", sb.ID, "command", cmd, "error", err)
+			logging.FromContext(r.Context()).DebugContext(r.Context(), "sandbox exec: command failed", "sandbox_id", sb.ID, "command", cmd, "error", err)
 			results = append(results, result)
 			break
 		}

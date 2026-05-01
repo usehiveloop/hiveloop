@@ -66,8 +66,3 @@ type meResponse struct {
 	Orgs            []orgMemberDTO `json:"orgs"`
 	IsPlatformAdmin bool           `json:"is_platform_admin"`
 }
-
-type statusResponse struct {
-	Status  string `json:"status"`
-	Message string `json:"message,omitempty"`
-}

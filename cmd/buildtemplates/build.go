@@ -44,7 +44,7 @@ func buildAndPush(ctx context.Context, flavor, bridgeVersion string, targetSizes
 	defer os.RemoveAll(tmpDir)
 
 	dockerfilePath := filepath.Join(tmpDir, "Dockerfile")
-	if err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0o644); err != nil {
+	if err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0o600); err != nil {
 		return fmt.Errorf("writing Dockerfile: %w", err)
 	}
 	log.Printf("Generated Dockerfile (flavor=%s):\n%s\n", flavor, dockerfile)

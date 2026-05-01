@@ -19,7 +19,7 @@ import (
 
 // testDBURL mirrors internal/middleware/integration_test.go:26 — the
 // hiveloop_test database on the dev Postgres instance at localhost:5433.
-const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 // ConnectTestDB opens a real Postgres connection, runs
 // `model.AutoMigrate` (which in turn calls `rag.AutoMigrate`), and

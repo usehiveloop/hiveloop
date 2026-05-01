@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"io"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -48,18 +48,6 @@ type nangoWebhook struct {
 	Payload           json.RawMessage `json:"payload,omitempty"`
 }
 
-type webhookPayload struct {
-	Type            string          `json:"type"`
-	Provider        string          `json:"provider"`
-	Operation       string          `json:"operation,omitempty"`
-	Success         *bool           `json:"success,omitempty"`
-	Payload         json.RawMessage `json:"payload,omitempty"`
-	OrgID           string          `json:"org_id"`
-	IntegrationID   string          `json:"integration_id,omitempty"`
-	IntegrationName string          `json:"integration_name,omitempty"`
-	ConnectionID    string          `json:"connection_id,omitempty"`
-}
-
 type webhookContext struct {
 	orgID        uuid.UUID
 	inConnection *model.InConnection
@@ -69,7 +57,7 @@ type webhookContext struct {
 func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		slog.Error("nango webhook: failed to read request body", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "nango webhook: failed to read request body", "error", err)
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read body"})
 		return
 	}
@@ -80,52 +68,29 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !verifyNangoSignature(body, h.nangoSecret, signature) {
-		slog.Warn("nango webhook: invalid signature")
+		logging.FromContext(r.Context()).WarnContext(r.Context(), "nango webhook: invalid signature")
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid signature"})
 		return
 	}
 
 	var wh nangoWebhook
 	if err := json.Unmarshal(body, &wh); err != nil {
-		slog.Error("nango webhook: failed to parse payload", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "nango webhook: failed to parse payload", "error", err)
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid webhook payload"})
 		return
 	}
 
-	wctx := h.identify(&wh)
+	wctx := h.identify(r.Context(), &wh)
 	if wctx == nil {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 		return
 	}
 
-	dispatchWebhookEvent(h.enqueuer, &wh, wctx)
+	dispatchWebhookEvent(r.Context(), h.enqueuer, &wh, wctx)
 
 	h.acknowledge(w)
 }
 
 func (h *NangoWebhookHandler) acknowledge(w http.ResponseWriter) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-}
-
-func (h *NangoWebhookHandler) buildEnrichedBody(wh *nangoWebhook, wctx *webhookContext) []byte {
-	provider := wh.Provider
-	payload := webhookPayload{
-		Type:      wh.Type,
-		Provider:  provider,
-		Operation: wh.Operation,
-		Success:   wh.Success,
-		Payload:   wh.Payload,
-		OrgID:     wctx.orgID.String(),
-	}
-	if wctx.inConnection != nil {
-		payload.IntegrationID = wctx.inConnection.InIntegrationID.String()
-		payload.IntegrationName = wctx.inConnection.InIntegration.DisplayName
-		payload.ConnectionID = wctx.inConnection.ID.String()
-		if provider == "" {
-			payload.Provider = wctx.inConnection.InIntegration.Provider
-		}
-	}
-
-	body, _ := json.Marshal(payload)
-	return body
 }

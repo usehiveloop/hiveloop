@@ -9,13 +9,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/hibiken/asynq"
 
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 )
 
 // WebhookForwardHandler delivers enriched webhook payloads to org endpoints.
@@ -64,14 +64,14 @@ func (h *WebhookForwardHandler) Handle(ctx context.Context, t *asynq.Task) error
 		return fmt.Errorf("forward request failed: %w", err)
 	}
 	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
+	_, _ = io.Copy(io.Discard, resp.Body)
 
 	if resp.StatusCode >= 500 {
 		// Returning an error causes Asynq to retry with exponential backoff.
 		return fmt.Errorf("org endpoint returned %d", resp.StatusCode)
 	}
 
-	slog.Debug("webhook forwarded",
+	logging.FromContext(ctx).DebugContext(ctx, "webhook forwarded",
 		"url", p.WebhookURL,
 		"status", resp.StatusCode,
 	)

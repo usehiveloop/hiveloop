@@ -23,7 +23,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/spider"
 )
 
-const spiderTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const spiderTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 
 type spiderTestHarness struct {
 	db          *gorm.DB
@@ -53,7 +53,7 @@ func newSpiderHarness(t *testing.T, spiderHandler http.Handler) *spiderTestHarne
 	t.Cleanup(mockServer.Close)
 
 	spiderClient := spider.NewClient(mockServer.URL, "test-spider-key")
-	usageWriter := middleware.NewToolUsageWriter(database, 1000)
+	usageWriter := middleware.NewToolUsageWriter(t.Context(), database, 1000)
 	t.Cleanup(func() {
 		usageWriter.Shutdown(t.Context())
 	})

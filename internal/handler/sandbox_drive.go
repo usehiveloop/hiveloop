@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"log/slog"
 	"mime"
 	"net/http"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/storage"
 )
@@ -69,7 +69,7 @@ func (handler *SandboxDriveHandler) resolveSandboxAgent(writer http.ResponseWrit
 
 	decryptedKey, err := handler.encKey.Decrypt(sandbox.EncryptedBridgeAPIKey)
 	if err != nil {
-		slog.Error("failed to decrypt bridge API key", "sandbox_id", sandboxID, "error", err)
+		logging.FromContext(request.Context()).ErrorContext(request.Context(), "failed to decrypt bridge API key", "sandbox_id", sandboxID, "error", err)
 		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to verify credentials"})
 		return uuid.Nil, nil, false
 	}
@@ -137,7 +137,7 @@ func (handler *SandboxDriveHandler) Upload(writer http.ResponseWriter, request *
 
 		if err := handler.storage.Upload(request.Context(), s3Key, file, contentType, fileHeader.Size); err != nil {
 			file.Close()
-			slog.Error("sandbox drive upload failed", "agent_id", agent.ID, "filename", fileHeader.Filename, "error", err)
+			logging.FromContext(request.Context()).ErrorContext(request.Context(), "sandbox drive upload failed", "agent_id", agent.ID, "filename", fileHeader.Filename, "error", err)
 			writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to upload file to storage"})
 			return
 		}
@@ -154,7 +154,7 @@ func (handler *SandboxDriveHandler) Upload(writer http.ResponseWriter, request *
 		}
 		if err := handler.db.Create(&asset).Error; err != nil {
 			_ = handler.storage.Delete(request.Context(), s3Key)
-			slog.Error("sandbox drive asset db insert failed", "agent_id", agent.ID, "error", err)
+			logging.FromContext(request.Context()).ErrorContext(request.Context(), "sandbox drive asset db insert failed", "agent_id", agent.ID, "error", err)
 			writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to save asset record"})
 			return
 		}
@@ -207,7 +207,7 @@ func (handler *SandboxDriveHandler) Get(writer http.ResponseWriter, request *htt
 
 	downloadURL, err := handler.storage.PresignedURL(request.Context(), asset.S3Key, 15*time.Minute)
 	if err != nil {
-		slog.Error("sandbox drive presign failed", "asset_id", asset.ID, "error", err)
+		logging.FromContext(request.Context()).ErrorContext(request.Context(), "sandbox drive presign failed", "asset_id", asset.ID, "error", err)
 		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to generate download URL"})
 		return
 	}
@@ -238,13 +238,13 @@ func (handler *SandboxDriveHandler) Delete(writer http.ResponseWriter, request *
 	}
 
 	if err := handler.storage.Delete(request.Context(), asset.S3Key); err != nil {
-		slog.Error("sandbox drive s3 delete failed", "asset_id", asset.ID, "error", err)
+		logging.FromContext(request.Context()).ErrorContext(request.Context(), "sandbox drive s3 delete failed", "asset_id", asset.ID, "error", err)
 		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to delete file from storage"})
 		return
 	}
 
 	if err := handler.db.Delete(&asset).Error; err != nil {
-		slog.Error("sandbox drive asset db delete failed", "asset_id", asset.ID, "error", err)
+		logging.FromContext(request.Context()).ErrorContext(request.Context(), "sandbox drive asset db delete failed", "asset_id", asset.ID, "error", err)
 		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to delete asset record"})
 		return
 	}

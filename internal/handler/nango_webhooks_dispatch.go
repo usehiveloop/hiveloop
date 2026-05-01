@@ -1,18 +1,20 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
-	"log/slog"
 	"strings"
 
 	"github.com/google/uuid"
 
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
 func dispatchWebhookEvent(
+	ctx context.Context,
 	enqueuer enqueue.TaskEnqueuer,
 	wh *nangoWebhook,
 	wctx *webhookContext,
@@ -33,8 +35,8 @@ func dispatchWebhookEvent(
 
 	deliveryID := wh.ConnectionID + ":" + uuid.New().String()
 
-	enqueueTriggerDispatch(enqueuer, providerName, metadata, deliveryID, wctx)
-	enqueueSubscriptionDispatch(enqueuer, providerName, metadata, deliveryID, wctx)
+	enqueueTriggerDispatch(ctx, enqueuer, providerName, metadata, deliveryID, wctx)
+	enqueueSubscriptionDispatch(ctx, enqueuer, providerName, metadata, deliveryID, wctx)
 }
 
 type eventMetadata struct {
@@ -74,6 +76,7 @@ func extractEventMetadata(wh *nangoWebhook, providerName string) (eventMetadata,
 }
 
 func enqueueTriggerDispatch(
+	ctx context.Context,
 	enqueuer enqueue.TaskEnqueuer,
 	providerName string,
 	metadata eventMetadata,
@@ -97,13 +100,13 @@ func enqueueTriggerDispatch(
 		PayloadJSON:  metadata.RawBody,
 	})
 	if err != nil {
-		slog.Error("trigger dispatch: failed to build task",
+		logging.FromContext(ctx).ErrorContext(ctx, "trigger dispatch: failed to build task",
 			"delivery_id", deliveryID, "error", err,
 		)
 		return
 	}
 	if _, err := enqueuer.Enqueue(task); err != nil {
-		slog.Error("trigger dispatch: failed to enqueue task",
+		logging.FromContext(ctx).ErrorContext(ctx, "trigger dispatch: failed to enqueue task",
 			"delivery_id", deliveryID, "error", err,
 		)
 		return
@@ -111,6 +114,7 @@ func enqueueTriggerDispatch(
 }
 
 func enqueueSubscriptionDispatch(
+	ctx context.Context,
 	enqueuer enqueue.TaskEnqueuer,
 	providerName string,
 	metadata eventMetadata,
@@ -124,7 +128,7 @@ func enqueueSubscriptionDispatch(
 		return
 	}
 
-	logger := slog.With(
+	logger := logging.FromContext(ctx).With(
 		"component", "subscription_dispatch_enqueue",
 		"delivery_id", deliveryID,
 		"provider", providerName,
@@ -143,11 +147,11 @@ func enqueueSubscriptionDispatch(
 		PayloadJSON:  metadata.RawBody,
 	})
 	if err != nil {
-		logger.Error("subscription dispatch: failed to build task", "error", err)
+		logger.ErrorContext(ctx, "subscription dispatch: failed to build task", "error", err)
 		return
 	}
 	if _, err := enqueuer.Enqueue(task); err != nil {
-		logger.Error("subscription dispatch: failed to enqueue task", "error", err)
+		logger.ErrorContext(ctx, "subscription dispatch: failed to enqueue task", "error", err)
 		return
 	}
 }

@@ -49,7 +49,7 @@ func TestE2E_Credential_Pagination(t *testing.T) {
 		NextCursor *string          `json:"next_cursor"`
 		HasMore    bool             `json:"has_more"`
 	}
-	json.NewDecoder(rr.Body).Decode(&page1)
+	_ = json.NewDecoder(rr.Body).Decode(&page1)
 
 	if len(page1.Data) != 2 {
 		t.Fatalf("page 1: expected 2 items, got %d", len(page1.Data))
@@ -85,7 +85,7 @@ func TestE2E_Credential_Pagination(t *testing.T) {
 		NextCursor *string          `json:"next_cursor"`
 		HasMore    bool             `json:"has_more"`
 	}
-	json.NewDecoder(rr.Body).Decode(&page2)
+	_ = json.NewDecoder(rr.Body).Decode(&page2)
 
 	if len(page2.Data) != 2 {
 		t.Fatalf("page 2: expected 2 items, got %d", len(page2.Data))
@@ -119,7 +119,7 @@ func TestE2E_Credential_Pagination(t *testing.T) {
 		NextCursor *string          `json:"next_cursor"`
 		HasMore    bool             `json:"has_more"`
 	}
-	json.NewDecoder(rr.Body).Decode(&page3)
+	_ = json.NewDecoder(rr.Body).Decode(&page3)
 
 	if len(page3.Data) != 1 {
 		t.Fatalf("page 3: expected 1 item, got %d", len(page3.Data))
@@ -189,7 +189,7 @@ func TestE2E_Credential_UsageStats(t *testing.T) {
 
 	echoServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"ok":true}`))
+		_, _ = w.Write([]byte(`{"ok":true}`))
 	}))
 	defer echoServer.Close()
 

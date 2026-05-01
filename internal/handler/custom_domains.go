@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -98,9 +98,9 @@ func (h *CustomDomainHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	acmeReg, err := h.registerAcmeDNS()
+	acmeReg, err := h.registerAcmeDNS(r.Context())
 	if err != nil {
-		slog.Error("acme-dns registration failed", "error", err, "domain", domain)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "acme-dns registration failed", "error", err, "domain", domain)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to register domain for certificate challenges"})
 		return
 	}
@@ -242,8 +242,8 @@ func (h *CustomDomainHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	cd.VerifiedAt = &now
 	h.db.Save(&cd)
 
-	if err := h.reloadCaddyConfig(); err != nil {
-		slog.Error("failed to reload Caddy config", "error", err, "domain", cd.Domain)
+	if err := h.reloadCaddyConfig(r.Context()); err != nil {
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to reload Caddy config", "error", err, "domain", cd.Domain)
 		// Domain is verified in DB even if Caddy reload fails — next verify/delete will retry
 		writeJSON(w, http.StatusOK, verifyDomainResponse{
 			Verified: true,
@@ -290,8 +290,8 @@ func (h *CustomDomainHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	h.db.Delete(&cd)
 
 	if wasVerified {
-		if err := h.reloadCaddyConfig(); err != nil {
-			slog.Error("failed to reload Caddy config after domain deletion", "error", err, "domain", cd.Domain)
+		if err := h.reloadCaddyConfig(r.Context()); err != nil {
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to reload Caddy config after domain deletion", "error", err, "domain", cd.Domain)
 		}
 	}
 

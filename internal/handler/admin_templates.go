@@ -2,13 +2,13 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -97,7 +97,7 @@ func (h *AdminHandler) DeleteSandboxTemplate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	slog.Info("admin: sandbox template deleted", "template_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: sandbox template deleted", "template_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 // CreateSandboxTemplate handles POST /admin/v1/sandbox-templates.
@@ -172,7 +172,7 @@ func (h *AdminHandler) CreateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	slog.Info("admin: public sandbox template registered", "template_id", tmpl.ID, "name", name, "slug", slug, "size", size)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: public sandbox template registered", "template_id", tmpl.ID, "name", name, "slug", slug, "size", size)
 	writeJSON(w, http.StatusCreated, toAdminSandboxTemplateResponse(tmpl))
 }
 
@@ -293,6 +293,6 @@ func (h *AdminHandler) UpdateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 	}
 
 	h.db.Where("id = ?", id).First(&tmpl)
-	slog.Info("admin: sandbox template updated", "template_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: sandbox template updated", "template_id", id)
 	writeJSON(w, http.StatusOK, toAdminSandboxTemplateResponse(tmpl))
 }

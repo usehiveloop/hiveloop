@@ -3,13 +3,13 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/storage"
@@ -89,7 +89,7 @@ func (h *UploadsHandler) Sign(w http.ResponseWriter, r *http.Request) {
 
 	out, err := h.presigner.Sign(r.Context(), signReq)
 	if err != nil {
-		slog.Warn("upload sign rejected", "user_id", user.ID, "asset_type", assetType, "error", err)
+		logging.FromContext(r.Context()).WarnContext(r.Context(), "upload sign rejected", "user_id", user.ID, "asset_type", assetType, "error", err)
 		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
 		return
 	}

@@ -171,7 +171,7 @@ func (d *Driver) GetStatus(ctx context.Context, externalID string) (sandbox.Sand
 	var result struct {
 		State string `json:"state"`
 	}
-	json.NewDecoder(resp.Body).Decode(&result)
+	_ = json.NewDecoder(resp.Body).Decode(&result)
 	return mapState(result.State), nil
 }
 

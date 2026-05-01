@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -274,7 +274,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": fmt.Sprintf("agent with name %q already exists in this workspace", req.Name)})
 			return
 		}
-		slog.Error("failed to create agent",
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create agent",
 			"error", err,
 			"org_id", org.ID,
 			"agent_name", req.Name,

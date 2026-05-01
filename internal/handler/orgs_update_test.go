@@ -70,7 +70,7 @@ func (h *orgUpdateHarness) doPatch(t *testing.T, userID, orgID uuid.UUID, role s
 	t.Helper()
 	buf := new(bytes.Buffer)
 	if body != nil {
-		json.NewEncoder(buf).Encode(body)
+		_ = json.NewEncoder(buf).Encode(body)
 	}
 	req := httptest.NewRequest(http.MethodPatch, "/v1/orgs/current", buf)
 	req.Header.Set("Content-Type", "application/json")

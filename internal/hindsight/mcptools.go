@@ -76,7 +76,7 @@ Do NOT recall and retain in the same turn — retained memories are not immediat
 				Budget string `json:"budget"`
 			}
 			if req.Params.Arguments != nil {
-				json.Unmarshal(req.Params.Arguments, &params)
+				_ = json.Unmarshal(req.Params.Arguments, &params)
 			}
 			if params.Query == "" {
 				return toolError("query is required"), nil
@@ -140,7 +140,7 @@ Write the content as a clear, specific factual statement. Bad: "User talked abou
 				Context string `json:"context"`
 			}
 			if req.Params.Arguments != nil {
-				json.Unmarshal(req.Params.Arguments, &params)
+				_ = json.Unmarshal(req.Params.Arguments, &params)
 			}
 			if params.Content == "" {
 				return toolError("content is required"), nil
@@ -191,7 +191,7 @@ Reflect is slower than recall (1-3 seconds) but produces deeper, more nuanced an
 				Query string `json:"query"`
 			}
 			if req.Params.Arguments != nil {
-				json.Unmarshal(req.Params.Arguments, &params)
+				_ = json.Unmarshal(req.Params.Arguments, &params)
 			}
 			if params.Query == "" {
 				return toolError("query is required"), nil

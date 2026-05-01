@@ -72,8 +72,8 @@ func TestPublish_TracksActiveConversation(t *testing.T) {
 	rc := setupTestRedis(t)
 	bus := NewEventBus(rc)
 
-	bus.Publish(context.Background(), "active-1", "chunk", json.RawMessage(`{}`))
-	bus.Publish(context.Background(), "active-2", "chunk", json.RawMessage(`{}`))
+	_, _ = bus.Publish(context.Background(), "active-1", "chunk", json.RawMessage(`{}`))
+	_, _ = bus.Publish(context.Background(), "active-2", "chunk", json.RawMessage(`{}`))
 
 	active, err := bus.ActiveConversations(context.Background())
 	if err != nil {
@@ -95,9 +95,9 @@ func TestSubscribe_ReceivesNewEvents(t *testing.T) {
 	// Publish after subscribing
 	go func() {
 		time.Sleep(200 * time.Millisecond)
-		bus.Publish(ctx, "sub-test-1", "event_a", json.RawMessage(`{"n":1}`))
-		bus.Publish(ctx, "sub-test-1", "event_b", json.RawMessage(`{"n":2}`))
-		bus.Publish(ctx, "sub-test-1", "event_c", json.RawMessage(`{"n":3}`))
+		_, _ = bus.Publish(ctx, "sub-test-1", "event_a", json.RawMessage(`{"n":1}`))
+		_, _ = bus.Publish(ctx, "sub-test-1", "event_b", json.RawMessage(`{"n":2}`))
+		_, _ = bus.Publish(ctx, "sub-test-1", "event_c", json.RawMessage(`{"n":3}`))
 	}()
 
 	var received []StreamEvent
@@ -156,7 +156,7 @@ func TestSubscribe_FullReplay(t *testing.T) {
 	ctx := context.Background()
 
 	for i := 0; i < 5; i++ {
-		bus.Publish(ctx, "replay-test", "chunk", json.RawMessage(`{}`))
+		_, _ = bus.Publish(ctx, "replay-test", "chunk", json.RawMessage(`{}`))
 	}
 
 	subCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -222,7 +222,7 @@ func TestTrim_ReducesStreamLength(t *testing.T) {
 	ctx := context.Background()
 
 	for i := 0; i < 1000; i++ {
-		bus.Publish(ctx, "trim-test", "chunk", json.RawMessage(`{}`))
+		_, _ = bus.Publish(ctx, "trim-test", "chunk", json.RawMessage(`{}`))
 	}
 
 	before, _ := bus.StreamLen(ctx, "trim-test")
@@ -230,7 +230,7 @@ func TestTrim_ReducesStreamLength(t *testing.T) {
 		t.Fatalf("expected 1000 entries, got %d", before)
 	}
 
-	bus.Trim(ctx, "trim-test", 100)
+	_ = bus.Trim(ctx, "trim-test", 100)
 
 	after, _ := bus.StreamLen(ctx, "trim-test")
 	if after > 200 { // MAXLEN ~ is approximate
@@ -243,9 +243,9 @@ func TestDelete_RemovesStream(t *testing.T) {
 	bus := NewEventBus(rc)
 	ctx := context.Background()
 
-	bus.Publish(ctx, "delete-test", "chunk", json.RawMessage(`{}`))
+	_, _ = bus.Publish(ctx, "delete-test", "chunk", json.RawMessage(`{}`))
 
-	bus.Delete(ctx, "delete-test")
+	_ = bus.Delete(ctx, "delete-test")
 
 	length, _ := bus.StreamLen(ctx, "delete-test")
 	if length != 0 {

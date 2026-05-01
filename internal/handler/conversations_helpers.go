@@ -2,12 +2,12 @@ package handler
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -40,40 +40,11 @@ func (h *ConversationHandler) loadConversation(w http.ResponseWriter, r *http.Re
 	return &conv, true
 }
 
-// getFlusher extracts http.Flusher from a ResponseWriter, unwrapping middleware wrappers if needed.
-func getFlusher(w http.ResponseWriter) (http.Flusher, bool) {
-	if f, ok := w.(http.Flusher); ok {
-		return f, true
-	}
-	// Try to unwrap (chi middleware wraps ResponseWriter)
-	type unwrapper interface {
-		Unwrap() http.ResponseWriter
-	}
-	if u, ok := w.(unwrapper); ok {
-		return getFlusher(u.Unwrap())
-	}
-	// Go 1.20+ http.ResponseController can flush any writer
-	rc := http.NewResponseController(w)
-	if rc.Flush() == nil {
-		return &responseControllerFlusher{rc: rc}, true
-	}
-	return nil, false
-}
-
-// responseControllerFlusher wraps http.ResponseController as an http.Flusher.
-type responseControllerFlusher struct {
-	rc *http.ResponseController
-}
-
-func (f *responseControllerFlusher) Flush() {
-	f.rc.Flush()
-}
-
 // getBridgeClient returns a Bridge client for the conversation's sandbox.
 func (h *ConversationHandler) getBridgeClient(w http.ResponseWriter, r *http.Request, conv *model.AgentConversation) (*bridgepkg.BridgeClient, bool) {
 	client, err := h.orchestrator.GetBridgeClient(r.Context(), &conv.Sandbox)
 	if err != nil {
-		slog.Error("failed to get bridge client", "conversation_id", conv.ID, "sandbox_id", conv.SandboxID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to get bridge client", "conversation_id", conv.ID, "sandbox_id", conv.SandboxID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to connect to sandbox"})
 		return nil, false
 	}

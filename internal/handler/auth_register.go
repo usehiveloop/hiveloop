@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +49,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Hash password.
 	hash, err := auth.HashPassword(req.Password)
 	if err != nil {
-		slog.Error("failed to hash password", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to hash password", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -74,7 +74,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return orgErr
 	})
 	if err != nil {
-		slog.Error("failed to register user", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to register user", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create account"})
 		return
 	}
@@ -87,7 +87,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		// Generate and store email verification token.
 		plainToken, tokenHash, err := model.GenerateVerificationToken()
 		if err != nil {
-			slog.Error("failed to generate verification token", "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to generate verification token", "error", err)
 		} else {
 			verification := model.EmailVerification{
 				UserID:    user.ID,
@@ -95,7 +95,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 				ExpiresAt: time.Now().Add(24 * time.Hour),
 			}
 			if err := h.db.Create(&verification).Error; err != nil {
-				slog.Error("failed to store verification token", "error", err)
+				logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to store verification token", "error", err)
 			} else {
 				confirmURL := fmt.Sprintf("%s/auth/confirm-email?token=%s", h.frontendURL, plainToken)
 				_ = h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{
@@ -112,7 +112,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	slog.Info("user registered", "user_id", user.ID, "email", user.Email)
-	h.issueTokensAndRespond(w, http.StatusCreated, user, org.ID.String(), "owner")
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "user registered", "user_id", user.ID, "email", user.Email)
+	h.issueTokensAndRespond(r.Context(), w, http.StatusCreated, user, org.ID.String(), "owner")
 }
 

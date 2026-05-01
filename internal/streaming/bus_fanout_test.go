@@ -26,7 +26,7 @@ func TestSubscribe_SingleTapPerConversation(t *testing.T) {
 		t.Fatalf("expected 1 active tap for the shared conversation, got %d", got)
 	}
 
-	bus.Publish(ctx, "shared-conv", "shared_event", json.RawMessage(`{"n":1}`))
+	_, _ = bus.Publish(ctx, "shared-conv", "shared_event", json.RawMessage(`{"n":1}`))
 
 	var wg sync.WaitGroup
 	received := make([]string, numSubs)

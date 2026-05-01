@@ -21,7 +21,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/skills"
 )
 
-const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 func connectDB(t *testing.T) *gorm.DB {
 	t.Helper()

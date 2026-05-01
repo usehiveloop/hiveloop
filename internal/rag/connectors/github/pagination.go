@@ -14,13 +14,6 @@ func nextPageNumber(h http.Header) (int, bool) {
 	return relPageNumber(h, "next")
 }
 
-// lastPageNumber extracts the rel="last" page number — used for cheap
-// total-count estimation by paging at per_page=1, where the last page
-// number equals the total item count.
-func lastPageNumber(h http.Header) (int, bool) {
-	return relPageNumber(h, "last")
-}
-
 func relPageNumber(h http.Header, rel string) (int, bool) {
 	link := h.Get("Link")
 	if link == "" {

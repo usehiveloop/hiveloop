@@ -3,7 +3,6 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -43,7 +42,7 @@ func (o *Orchestrator) StartResourceChecker(ctx context.Context) {
 		return
 	}
 
-	slog.Info("sandbox resource checker started", "interval", interval)
+	logging.FromContext(ctx).InfoContext(ctx, "sandbox resource checker started", "interval", interval)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -62,7 +61,7 @@ func (o *Orchestrator) StartResourceChecker(ctx context.Context) {
 func (o *Orchestrator) RunResourceCheck(ctx context.Context) {
 	var sandboxes []model.Sandbox
 	if err := o.db.Where("status = 'running'").Find(&sandboxes).Error; err != nil {
-		slog.Error("resource check: failed to query sandboxes", "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "resource check: failed to query sandboxes", "error", err)
 		return
 	}
 

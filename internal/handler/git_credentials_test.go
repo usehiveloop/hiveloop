@@ -20,7 +20,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
-const gitCredsTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const gitCredsTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 
 func testSymmetricKey(t *testing.T) *crypto.SymmetricKey {
 	t.Helper()
@@ -179,7 +179,7 @@ func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarnes
 func TestGitCredentials_Success(t *testing.T) {
 	nangoHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"provider": "github-app",
 			"credentials": map[string]any{
 				"access_token": "ghs_test_installation_token",
@@ -217,7 +217,7 @@ func TestGitCredentials_CachesToken(t *testing.T) {
 	nangoHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"provider": "github-app",
 			"credentials": map[string]any{
 				"access_token": "ghs_cached_token",

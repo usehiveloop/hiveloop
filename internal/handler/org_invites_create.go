@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -74,7 +74,7 @@ func (h *OrgInviteHandler) Create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		slog.Error("lookup user for invite", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "lookup user for invite", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -90,14 +90,14 @@ func (h *OrgInviteHandler) Create(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		slog.Error("lookup existing invite", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "lookup existing invite", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
 
 	plaintext, tokenHash, err := model.GenerateInviteToken()
 	if err != nil {
-		slog.Error("generate invite token", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "generate invite token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -115,7 +115,7 @@ func (h *OrgInviteHandler) Create(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "invite already pending"})
 			return
 		}
-		slog.Error("create invite", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "create invite", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create invite"})
 		return
 	}
@@ -137,7 +137,7 @@ func (h *OrgInviteHandler) Create(w http.ResponseWriter, r *http.Request) {
 			"expiresIn":   "7 days",
 		},
 	}); err != nil {
-		slog.Error("send invite email", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "send invite email", "error", err)
 	}
 
 	writeJSON(w, http.StatusCreated, toInviteResponse(invite))

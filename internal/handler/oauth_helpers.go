@@ -22,7 +22,11 @@ func fetchGitHubProfile(ctx context.Context, token *oauth2.Token) (*oauthProfile
 	client := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
 
 	// GET /user
-	resp, err := client.Get("https://api.github.com/user")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.github.com/user", nil)
+	if err != nil {
+		return nil, fmt.Errorf("building github user request: %w", err)
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetching github user: %w", err)
 	}
@@ -65,7 +69,11 @@ func fetchGitHubProfile(ctx context.Context, token *oauth2.Token) (*oauthProfile
 }
 
 func fetchGitHubPrimaryEmail(ctx context.Context, client *http.Client) (string, error) {
-	resp, err := client.Get("https://api.github.com/user/emails")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.github.com/user/emails", nil)
+	if err != nil {
+		return "", fmt.Errorf("building github emails request: %w", err)
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("fetching github emails: %w", err)
 	}
@@ -96,7 +104,11 @@ func fetchGitHubPrimaryEmail(ctx context.Context, client *http.Client) (string, 
 func fetchGoogleProfile(ctx context.Context, token *oauth2.Token) (*oauthProfile, error) {
 	client := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
 
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://www.googleapis.com/oauth2/v2/userinfo", nil)
+	if err != nil {
+		return nil, fmt.Errorf("building google userinfo request: %w", err)
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetching google userinfo: %w", err)
 	}
@@ -130,7 +142,11 @@ func fetchGoogleProfile(ctx context.Context, token *oauth2.Token) (*oauthProfile
 func fetchXProfile(ctx context.Context, token *oauth2.Token) (*oauthProfile, error) {
 	client := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
 
-	resp, err := client.Get("https://api.twitter.com/2/users/me?user.fields=id,name,username")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.twitter.com/2/users/me?user.fields=id,name,username", nil)
+	if err != nil {
+		return nil, fmt.Errorf("building x user request: %w", err)
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetching x user: %w", err)
 	}

@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/skills"
 )
@@ -50,6 +50,6 @@ func (h *SkillHydrateHandler) Handle(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("hydrate skill %s: %w", payload.SkillID, err)
 	}
 
-	slog.Info("skill hydrated", "skill_id", payload.SkillID)
+	logging.FromContext(ctx).InfoContext(ctx, "skill hydrated", "skill_id", payload.SkillID)
 	return nil
 }

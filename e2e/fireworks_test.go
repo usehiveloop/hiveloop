@@ -52,7 +52,7 @@ func TestE2E_Fireworks_Llama70B_NonStreaming(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	content := extractNonStreamContent(t, resp)
 	if content == "" {
 		t.Fatal("empty response")
@@ -127,7 +127,7 @@ func TestE2E_Fireworks_Llama70B_ToolCalls(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	choices := resp["choices"].([]any)
 	msg := choices[0].(map[string]any)["message"].(map[string]any)
 
@@ -281,7 +281,7 @@ func TestE2E_Fireworks_KimiK2_MultiTurn(t *testing.T) {
 		t.Fatalf("turn 1: expected 200, got %d: %s", rr1.Code, rr1.Body.String())
 	}
 	var resp1 map[string]any
-	json.NewDecoder(rr1.Body).Decode(&resp1)
+	_ = json.NewDecoder(rr1.Body).Decode(&resp1)
 	assistant1 := extractNonStreamContent(t, resp1)
 
 	// Turn 2
@@ -301,7 +301,7 @@ func TestE2E_Fireworks_KimiK2_MultiTurn(t *testing.T) {
 		t.Fatalf("turn 2: expected 200, got %d: %s", rr2.Code, rr2.Body.String())
 	}
 	var resp2 map[string]any
-	json.NewDecoder(rr2.Body).Decode(&resp2)
+	_ = json.NewDecoder(rr2.Body).Decode(&resp2)
 	answer := extractNonStreamContent(t, resp2)
 
 	if !strings.Contains(strings.ToUpper(answer), "GAMMA-42") {
@@ -331,7 +331,7 @@ func TestE2E_Fireworks_DeepSeek_NonStreaming(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	content := extractNonStreamContent(t, resp)
 	if content == "" {
 		t.Fatal("empty response from DeepSeek")

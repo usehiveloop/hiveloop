@@ -29,7 +29,7 @@ func TestInConnectionHandler_Revoke_Success(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(mockCfg))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -77,7 +77,7 @@ func TestInConnectionHandler_Revoke_NotFound(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -107,7 +107,7 @@ func TestInConnectionHandler_Revoke_WrongUser(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -144,7 +144,7 @@ func TestInConnectionHandler_Revoke_AlreadyRevoked(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -182,7 +182,7 @@ func TestInConnectionHandler_Revoke_NangoFailure(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(mockCfg))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()

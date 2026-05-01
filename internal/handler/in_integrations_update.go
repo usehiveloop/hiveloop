@@ -3,12 +3,12 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/nango"
 )
@@ -52,14 +52,14 @@ func (h *InIntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 			Credentials: req.Credentials,
 		}
 		if err := h.nango.UpdateIntegration(r.Context(), nk, nangoReq); err != nil {
-			slog.Error("nango in-integration update failed", "error", err, "integration_id", integ.ID)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "nango in-integration update failed", "error", err, "integration_id", integ.ID)
 			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to update integration in Nango: " + err.Error()})
 			return
 		}
 
 		integResp, fetchErr := h.nango.GetIntegration(r.Context(), nk)
 		if fetchErr != nil {
-			slog.Warn("failed to fetch nango in-integration details for config rebuild", "error", fetchErr, "nango_key", nk)
+			logging.FromContext(r.Context()).WarnContext(r.Context(), "failed to fetch nango in-integration details for config rebuild", "error", fetchErr, "nango_key", nk)
 		} else {
 			template, _ := h.nango.GetProviderTemplate(nangoProviderName(integ.Provider))
 			integ.NangoConfig = buildNangoConfig(integResp, template, h.nango.CallbackURL())
@@ -78,7 +78,7 @@ func (h *InIntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(updates) > 0 {
 		if err := h.db.Model(&integ).Updates(updates).Error; err != nil {
-			slog.Error("failed to update in-integration", "error", err, "integration_id", integ.ID)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to update in-integration", "error", err, "integration_id", integ.ID)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update integration"})
 			return
 		}
@@ -86,6 +86,6 @@ func (h *InIntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	h.db.Where("id = ?", integ.ID).First(&integ)
 
-	slog.Info("in-integration updated", "integration_id", integ.ID, "credentials_updated", req.Credentials != nil)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "in-integration updated", "integration_id", integ.ID, "credentials_updated", req.Credentials != nil)
 	writeJSON(w, http.StatusOK, toInIntegrationResponse(integ))
 }

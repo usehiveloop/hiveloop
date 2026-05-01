@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
@@ -47,7 +46,7 @@ func (h *AgentCleanupHandler) Handle(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("hard-deleting agent: %w", err)
 	}
 
-	slog.Info("agent cleanup complete", "agent_id", agent.ID)
+	logging.FromContext(ctx).InfoContext(ctx, "agent cleanup complete", "agent_id", agent.ID)
 	return nil
 }
 

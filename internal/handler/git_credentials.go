@@ -3,7 +3,6 @@ package handler
 import (
 	"crypto/subtle"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/nango"
 )
@@ -129,7 +129,7 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	var integration model.InIntegration
 	if err := h.db.Where("id = ?", conn.InIntegrationID).First(&integration).Error; err != nil {
-		slog.Error("git-credentials: failed to load integration", "integration_id", conn.InIntegrationID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "git-credentials: failed to load integration", "integration_id", conn.InIntegrationID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load integration"})
 		return
 	}
@@ -138,7 +138,7 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	providerConfigKey := "in_" + integration.UniqueKey
 	nangoConn, err := h.nango.GetConnection(r.Context(), conn.NangoConnectionID, providerConfigKey)
 	if err != nil {
-		slog.Error("git-credentials: failed to fetch from nango",
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "git-credentials: failed to fetch from nango",
 			"agent_id", agentID,
 			"connection_id", conn.ID,
 			"error", err,

@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	defaultSubagentTimeoutForegroundSecs = 900
-	defaultSubagentTimeoutBackgroundSecs = 1800
+	defaultSubagentTimeoutForegroundSecs = 1800
+	defaultSubagentTimeoutBackgroundSecs = 3600
 	historyStripPinRecent                = 5
 	historyStripAgeThreshold             = 3
 )
@@ -50,10 +50,15 @@ func applyHistoryStripDefault(cfg *bridgepkg.AgentConfig) {
 	pinErrors := true
 	pinRecent := historyStripPinRecent
 	ageThreshold := historyStripAgeThreshold
-	cfg.HistoryStrip = &bridgepkg.HistoryStripConfig{
+	hs := bridgepkg.HistoryStripConfig{
 		Enabled:        &enabled,
 		PinErrors:      &pinErrors,
 		PinRecentCount: &pinRecent,
 		AgeThreshold:   &ageThreshold,
 	}
+	var wrapped bridgepkg.AgentConfig_HistoryStrip
+	if err := wrapped.FromHistoryStripConfig(hs); err != nil {
+		return
+	}
+	cfg.HistoryStrip = &wrapped
 }

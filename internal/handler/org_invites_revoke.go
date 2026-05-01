@@ -3,7 +3,6 @@ package handler
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -44,7 +44,7 @@ func (h *OrgInviteHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "invite not found"})
 			return
 		}
-		slog.Error("load invite for revoke", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "load invite for revoke", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -59,7 +59,7 @@ func (h *OrgInviteHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	if err := h.db.Model(&invite).Update("revoked_at", &now).Error; err != nil {
-		slog.Error("revoke invite", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "revoke invite", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to revoke invite"})
 		return
 	}
@@ -95,7 +95,7 @@ func (h *OrgInviteHandler) Resend(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "invite not found"})
 			return
 		}
-		slog.Error("load invite for resend", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "load invite for resend", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -110,7 +110,7 @@ func (h *OrgInviteHandler) Resend(w http.ResponseWriter, r *http.Request) {
 
 	plaintext, tokenHash, err := model.GenerateInviteToken()
 	if err != nil {
-		slog.Error("generate invite token", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "generate invite token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -120,7 +120,7 @@ func (h *OrgInviteHandler) Resend(w http.ResponseWriter, r *http.Request) {
 		"token_hash": tokenHash,
 		"expires_at": newExpiry,
 	}).Error; err != nil {
-		slog.Error("update invite on resend", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "update invite on resend", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to resend invite"})
 		return
 	}
@@ -140,7 +140,7 @@ func (h *OrgInviteHandler) Resend(w http.ResponseWriter, r *http.Request) {
 			"expiresIn":   "7 days",
 		},
 	}); err != nil {
-		slog.Error("resend invite email", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "resend invite email", "error", err)
 	}
 
 	writeJSON(w, http.StatusOK, toInviteResponse(invite))

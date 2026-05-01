@@ -8,7 +8,7 @@ import (
 )
 
 func buildRepoContext(resources model.JSON) string {
-	if resources == nil || len(resources) == 0 {
+	if len(resources) == 0 {
 		return ""
 	}
 

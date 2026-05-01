@@ -3,7 +3,6 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"strings"
 	"time"
 
@@ -55,7 +54,7 @@ func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTem
 			"build_status": "failed",
 			"build_error":  errMsg,
 		})
-		slog.Error("template build failed", "template_id", tmpl.ID, "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "template build failed", "template_id", tmpl.ID, "error", err)
 		return
 	}
 
@@ -64,7 +63,7 @@ func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTem
 		"external_id":  externalID,
 		"build_error":  nil,
 	})
-	slog.Info("template built", "template_id", tmpl.ID, "external_id", externalID)
+	logging.FromContext(ctx).InfoContext(ctx, "template built", "template_id", tmpl.ID, "external_id", externalID)
 }
 
 func (o *Orchestrator) BuildTemplateWithLogs(ctx context.Context, tmpl *model.SandboxTemplate, onLog func(string)) (string, error) {
@@ -99,7 +98,7 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 
 		switch status.State {
 		case "active", "ready":
-			slog.Info("snapshot build completed", "external_id", externalID, "state", status.State)
+			logging.FromContext(ctx).InfoContext(ctx, "snapshot build completed", "external_id", externalID, "state", status.State)
 			if onStatus != nil {
 				onStatus("ready", "")
 			}
@@ -121,7 +120,7 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 				}
 				errMsg = fmt.Sprintf("%s\n%s", errMsg, status.ErrorReason)
 			}
-			slog.Error("snapshot build failed", "external_id", externalID, "error", errMsg)
+			logging.FromContext(ctx).ErrorContext(ctx, "snapshot build failed", "external_id", externalID, "error", errMsg)
 			if onStatus != nil {
 				onStatus("failed", errMsg)
 			}
@@ -129,7 +128,7 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 		case "building", "pending", "":
 			// per-tick state; no log
 		default:
-			slog.Warn("unknown snapshot state", "external_id", externalID, "state", status.State)
+			logging.FromContext(ctx).WarnContext(ctx, "unknown snapshot state", "external_id", externalID, "state", status.State)
 		}
 	}
 

@@ -2,21 +2,22 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-func (h *CustomDomainHandler) registerAcmeDNS() (*acmeDNSRegisterResponse, error) {
+func (h *CustomDomainHandler) registerAcmeDNS(ctx context.Context) (*acmeDNSRegisterResponse, error) {
 	if h.cfg.AcmeDNSAPIURL == "" {
 		return nil, fmt.Errorf("ACME_DNS_API_URL not configured")
 	}
 
-	req, err := http.NewRequest("POST", h.cfg.AcmeDNSAPIURL+"/register", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.cfg.AcmeDNSAPIURL+"/register", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func (h *CustomDomainHandler) registerAcmeDNS() (*acmeDNSRegisterResponse, error
 	return &result, nil
 }
 
-func (h *CustomDomainHandler) reloadCaddyConfig() error {
+func (h *CustomDomainHandler) reloadCaddyConfig(ctx context.Context) error {
 	if h.cfg.CaddyAdminURL == "" {
 		return fmt.Errorf("CADDY_ADMIN_URL not configured")
 	}
@@ -58,7 +59,7 @@ func (h *CustomDomainHandler) reloadCaddyConfig() error {
 		return fmt.Errorf("failed to marshal Caddy config: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", h.cfg.CaddyAdminURL+"/load", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.cfg.CaddyAdminURL+"/load", bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -76,7 +77,7 @@ func (h *CustomDomainHandler) reloadCaddyConfig() error {
 		return fmt.Errorf("caddy /load returned %d: %s", resp.StatusCode, string(respBody))
 	}
 
-	slog.Info("caddy config reloaded", "custom_domains", len(domains))
+	logging.FromContext(ctx).InfoContext(ctx, "caddy config reloaded", "custom_domains", len(domains))
 	return nil
 }
 

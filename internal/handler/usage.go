@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/sourcegraph/conc/pool"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 )
 
@@ -199,7 +199,7 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err := p.Wait(); err != nil {
-		slog.Error("usage queries failed", "org_id", orgID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "usage queries failed", "org_id", orgID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load usage data"})
 		return
 	}

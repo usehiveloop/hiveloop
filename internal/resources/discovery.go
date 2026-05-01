@@ -120,7 +120,7 @@ func (d *Discovery) Discover(
 		resources = append(resources, resource)
 	}
 
-	logging.FromContext(ctx).Info("resource discovery completed",
+	logging.FromContext(ctx).InfoContext(ctx, "resource discovery completed",
 		"total_raw_items", len(data),
 		"valid_resources", len(resources),
 	)

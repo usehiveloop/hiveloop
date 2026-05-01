@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/registry"
 	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
@@ -117,7 +117,7 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 		return fmt.Errorf("update name: %w", result.Error)
 	}
 
-	slog.Info("conversation named",
+	logging.FromContext(ctx).InfoContext(ctx, "conversation named",
 		"conversation_id", conv.ID,
 		"model", modelID,
 		"rows_updated", result.RowsAffected,

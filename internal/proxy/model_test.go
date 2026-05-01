@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"strings"
@@ -90,7 +91,7 @@ func TestExtractModel_EmptyBody(t *testing.T) {
 }
 
 func TestExtractModel_NotJSON(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPost, "http://example.com", strings.NewReader("hello world"))
+	req, _ := http.NewRequestWithContext(t.Context(), http.MethodPost, "http://example.com", strings.NewReader("hello world"))
 	req.Header.Set("Content-Type", "text/plain")
 
 	got := ExtractModel(req)
@@ -100,7 +101,7 @@ func TestExtractModel_NotJSON(t *testing.T) {
 }
 
 func TestExtractModel_GETRequest(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "http://example.com", nil)
+	req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://example.com", nil)
 	req.Header.Set("Content-Type", "application/json")
 
 	got := ExtractModel(req)
@@ -157,7 +158,7 @@ func TestExtractModel_LargeBody(t *testing.T) {
 }
 
 func TestExtractModel_NilBody(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPost, "http://example.com", nil)
+	req, _ := http.NewRequestWithContext(t.Context(), http.MethodPost, "http://example.com", nil)
 	req.Header.Set("Content-Type", "application/json")
 
 	got := ExtractModel(req)
@@ -187,7 +188,7 @@ func TestExtractModel_ArraysBeforeModel(t *testing.T) {
 }
 
 func makePostRequest(body string) *http.Request {
-	req, _ := http.NewRequest(http.MethodPost, "http://example.com/v1/chat/completions", io.NopCloser(bytes.NewBufferString(body)))
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "http://example.com/v1/chat/completions", io.NopCloser(bytes.NewBufferString(body)))
 	req.Header.Set("Content-Type", "application/json")
 	return req
 }

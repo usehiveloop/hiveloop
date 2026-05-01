@@ -2,12 +2,12 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -46,7 +46,7 @@ func (h *CredentialHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		Update("revoked_at", &now)
 
 	if result.Error != nil {
-		slog.Error("failed to revoke credential", "error", result.Error, "org_id", org.ID, "credential_id", credID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to revoke credential", "error", result.Error, "org_id", org.ID, "credential_id", credID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to revoke"})
 		return
 	}
@@ -57,7 +57,7 @@ func (h *CredentialHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 
 	_ = h.cacheManager.InvalidateCredential(r.Context(), credID)
 
-	slog.Info("credential revoked", "org_id", org.ID, "credential_id", credID)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "credential revoked", "org_id", org.ID, "credential_id", credID)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }
 

@@ -2,8 +2,9 @@ package streaming
 
 import (
 	"context"
-	"log/slog"
 	"time"
+
+	"github.com/usehiveloop/hiveloop/internal/logging"
 )
 
 const (
@@ -24,8 +25,8 @@ func NewCleanup(bus *EventBus) *Cleanup {
 
 // Run starts the cleanup loop. It blocks until ctx is cancelled.
 func (c *Cleanup) Run(ctx context.Context) {
-	slog.Info("stream cleanup started")
-	defer slog.Info("stream cleanup stopped")
+	logging.FromContext(ctx).InfoContext(ctx, "stream cleanup started")
+	defer logging.FromContext(ctx).InfoContext(ctx, "stream cleanup stopped")
 
 	ticker := time.NewTicker(cleanupInterval)
 	defer ticker.Stop()
@@ -44,7 +45,7 @@ func (c *Cleanup) Run(ctx context.Context) {
 func (c *Cleanup) CleanIdle(ctx context.Context) {
 	convIDs, err := c.bus.ActiveConversations(ctx)
 	if err != nil {
-		slog.Error("cleanup: failed to get active conversations", "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "cleanup: failed to get active conversations", "error", err)
 		return
 	}
 
@@ -61,7 +62,9 @@ func (c *Cleanup) CleanIdle(ctx context.Context) {
 		msgs, err := c.bus.Redis().XRevRangeN(ctx, streamKey, "+", "-", 1).Result()
 		if err != nil || len(msgs) == 0 {
 			// Stream is empty or gone — remove from active set
-			c.bus.Delete(ctx, convID)
+			if delErr := c.bus.Delete(ctx, convID); delErr != nil {
+				logging.FromContext(ctx).WarnContext(ctx, "cleanup delete failed", "error", delErr, "conv_id", convID)
+			}
 			continue
 		}
 
@@ -77,7 +80,9 @@ func (c *Cleanup) CleanIdle(ctx context.Context) {
 		entryTime := time.UnixMilli(tsMs)
 
 		if entryTime.Before(cutoff) {
-			c.bus.Delete(ctx, convID)
+			if err := c.bus.Delete(ctx, convID); err != nil {
+				logging.FromContext(ctx).WarnContext(ctx, "cleanup delete failed", "error", err, "conv_id", convID)
+			}
 		}
 	}
 }

@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -61,7 +61,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
 	plainToken, tokenHash, err := model.GenerateResetToken()
 	if err != nil {
-		slog.Error("failed to generate reset token", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to generate reset token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -72,7 +72,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: time.Now().Add(1 * time.Hour),
 	}
 	if err := h.db.Create(&reset).Error; err != nil {
-		slog.Error("failed to store reset token", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to store reset token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -88,7 +88,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
-	slog.Info("password reset requested", "email", user.Email)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "password reset requested", "email", user.Email)
 	writeJSON(w, http.StatusOK, genericResponse)
 }
 
@@ -128,7 +128,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	newHash, err := auth.HashPassword(req.NewPassword)
 	if err != nil {
-		slog.Error("failed to hash password", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to hash password", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -156,12 +156,12 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		slog.Error("failed to reset password", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to reset password", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
 
-	slog.Info("password reset completed", "user_id", reset.UserID)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "password reset completed", "user_id", reset.UserID)
 
 	// Notify the user their password has been changed. This is a security
 	// alert — if they didn't reset, they need to act immediately.
@@ -235,7 +235,7 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	newHash, err := auth.HashPassword(req.NewPassword)
 	if err != nil {
-		slog.Error("failed to hash password", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to hash password", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -254,12 +254,12 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		slog.Error("failed to change password", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to change password", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
 
-	slog.Info("password changed", "user_id", user.ID)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "password changed", "user_id", user.ID)
 
 	// Security alert: notify the user their password has been changed.
 	_ = h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{

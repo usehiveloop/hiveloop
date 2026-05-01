@@ -67,7 +67,7 @@ func (d *Driver) ExecuteCommand(ctx context.Context, externalID string, command 
 		ExitCode int    `json:"exitCode"`
 		Result   string `json:"result"`
 	}
-	json.Unmarshal(respBody, &result)
+	_ = json.Unmarshal(respBody, &result)
 
 	if result.ExitCode != 0 {
 		return result.Result, fmt.Errorf("command exited with code %d: %s", result.ExitCode, result.Result)

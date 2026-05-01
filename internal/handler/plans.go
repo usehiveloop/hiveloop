@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -31,7 +31,7 @@ func (h *PlansHandler) List(w http.ResponseWriter, r *http.Request) {
 	if err := h.db.Where("active = ?", true).
 		Order("price_cents ASC, slug ASC").
 		Find(&plans).Error; err != nil {
-		slog.Error("plans list: query failed", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "plans list: query failed", "error", err)
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to load plans"})
 		return
 	}
