@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -132,6 +133,14 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		updates["skills"] = req.Skills
 	}
 	if req.Integrations != nil {
+		if err := validateAgentIntegrationsExclusivity(h.db, org.ID, req.Integrations); err != nil {
+			if errors.Is(err, errGitHubAppExclusive) {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to validate integrations"})
+			return
+		}
 		updates["integrations"] = req.Integrations
 	}
 	if req.AgentConfig != nil {

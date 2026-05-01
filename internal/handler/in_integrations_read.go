@@ -76,7 +76,7 @@ func (h *InIntegrationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Warn("failed to fetch nango in-integration", "error", err, "integration_id", integ.ID)
 	} else {
-		template, _ := h.nango.GetProviderTemplate(integ.Provider)
+		template, _ := h.nango.GetProviderTemplate(nangoProviderName(integ.Provider))
 		integ.NangoConfig = buildNangoConfig(integResp, template, h.nango.CallbackURL())
 	}
 

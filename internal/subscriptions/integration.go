@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"sort"
+	"strings"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -67,12 +67,33 @@ func (resolver *AgentProviderResolver) Providers(ctx context.Context, agent *mod
 // HasProvider reports whether the agent has at least one active connection
 // for the given provider. Convenience wrapper used by the subscribe service
 // before permitting a resource subscription.
+//
+// Variant providers satisfy their canonical parent: an agent connected via
+// "github-app-code-reviews" satisfies a check for "github-app", because the
+// catalog declares subscribable resources under the canonical "github-app"
+// key. Matches the suffix-strip convention in catalog.GetProviderTriggersForVariant.
 func (resolver *AgentProviderResolver) HasProvider(ctx context.Context, agent *model.Agent, provider string) (bool, error) {
 	providers, err := resolver.Providers(ctx, agent)
 	if err != nil {
 		return false, err
 	}
-	return slices.Contains(providers, provider), nil
+	for _, p := range providers {
+		if p == provider {
+			return true, nil
+		}
+		stripped := p
+		for {
+			idx := strings.LastIndex(stripped, "-")
+			if idx <= 0 {
+				break
+			}
+			stripped = stripped[:idx]
+			if stripped == provider {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 // extractConnectionIDs parses Agent.Integrations (JSONB keyed by connection UUID)
