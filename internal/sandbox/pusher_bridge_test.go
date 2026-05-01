@@ -9,17 +9,12 @@ import (
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/model"
-	subagents "github.com/usehiveloop/hiveloop/internal/sub-agents"
 )
 
 func TestPusherBuildAgentDefinition(t *testing.T) {
 	db := setupPusherTestDB(t)
 	encKey := testPusherEncKey(t)
 	signingKey := []byte("test-signing-key-for-pusher-test")
-
-	if err := subagents.Seed(db); err != nil {
-		t.Fatalf("seed subagents: %v", err)
-	}
 
 	org := model.Org{ID: uuid.New(), Name: "test-pusher-org", Active: true}
 	db.Create(&org)

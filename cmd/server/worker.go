@@ -19,21 +19,11 @@ import (
 	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 	"github.com/usehiveloop/hiveloop/internal/skills"
-	subagents "github.com/usehiveloop/hiveloop/internal/sub-agents"
 	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
 func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	cfg := deps.Config
-
-	// Seed subagents on startup — idempotent, runs on every worker boot.
-	goroutine.Go(ctx, func(context.Context) {
-		if err := subagents.Seed(deps.DB); err != nil {
-			slog.Error("failed to seed subagents", "error", err)
-			return
-		}
-		slog.Info("subagents seeded")
-	})
 
 	// Start long-running stream consumers as goroutines
 	// (sub-second ticks, not suitable for Asynq periodic tasks)
