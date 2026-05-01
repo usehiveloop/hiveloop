@@ -25,3 +25,5 @@ mod tests;
 mod tests_layout;
 #[cfg(test)]
 mod tests_roundtrip;
+#[cfg(test)]
+mod tests_full_reasoning;
