@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { wrapMiddlewareWithSentry } from "@sentry/nextjs"
 
 const SESSION_COOKIE = "__session"
 
@@ -22,3 +23,5 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: ["/w/:path*", "/auth"],
 }
+
+export default wrapMiddlewareWithSentry(middleware)

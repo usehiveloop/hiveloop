@@ -1,5 +1,6 @@
 "use client"
 
+import * as Sentry from "@sentry/nextjs"
 import { useCallback, useRef, useState } from "react"
 import { fetchEventSource } from "@microsoft/fetch-event-source"
 
@@ -88,6 +89,7 @@ export function useSystemTaskStream(taskName: string) {
             try {
               frame = JSON.parse(ev.data) as SystemTaskFrame
             } catch {
+              Sentry.captureException(new Error(`SSE parse failure: ${ev.data?.slice(0, 200)}`))
               return
             }
             if (frame.delta) {

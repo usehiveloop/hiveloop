@@ -2,6 +2,7 @@ package streaming
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"runtime/debug"
 	"time"
@@ -9,6 +10,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"context"
 	"encoding/json"
+
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 )
 
 func (t *convTap) attach() (*subscriber, string) {
@@ -32,6 +35,7 @@ func (t *convTap) run() {
 				"panic", r,
 				"stack", string(debug.Stack()),
 			)
+			sentryobs.CaptureException(context.Background(), fmt.Errorf("conv tap panic: %v\n\n%s", r, string(debug.Stack())))
 		}
 		t.mu.Lock()
 		for s := range t.subscribers {

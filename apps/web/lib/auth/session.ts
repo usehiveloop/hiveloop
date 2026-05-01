@@ -1,4 +1,5 @@
 import { cookies } from "next/headers"
+import * as Sentry from "@sentry/nextjs"
 import { log } from "@/lib/logger"
 
 const COOKIE_NAME = "__session"
@@ -81,6 +82,8 @@ export async function decrypt(cookie: string): Promise<SessionData | null> {
     return JSON.parse(new TextDecoder().decode(plaintext)) as SessionData
   } catch (err) {
     log.warn({ err }, "session decrypt failed")
+    // Tampering signal — capture to Sentry as potential attack indicator
+    Sentry.captureException(err instanceof Error ? err : new Error("session decrypt failed"))
     return null
   }
 }

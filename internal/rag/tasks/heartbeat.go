@@ -3,6 +3,8 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"runtime/debug"
 	"sync/atomic"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/logging"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
@@ -46,7 +49,17 @@ func startHeartbeat(
 	h.stopFn = cancel
 
 	go func() {
-		defer close(h.stoppedCh)
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error("rag heartbeat panicked",
+					"attempt_id", attemptID,
+					"panic", r,
+					"stack", string(debug.Stack()),
+				)
+				sentryobs.CaptureException(context.Background(), fmt.Errorf("rag heartbeat panic: %v\n\n%s", r, string(debug.Stack())))
+			}
+			close(h.stoppedCh)
+		}()
 		t := time.NewTicker(tick)
 		defer t.Stop()
 		for {

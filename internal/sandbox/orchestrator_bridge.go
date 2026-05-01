@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 )
 
 func (o *Orchestrator) verifySandboxExists(ctx context.Context, sb *model.Sandbox) error {
@@ -24,6 +26,16 @@ func (o *Orchestrator) touchLastActive(sb *model.Sandbox) {
 	now := time.Now()
 	sb.LastActiveAt = &now
 	go func(id uuid.UUID) {
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error("touchLastActive panicked",
+					"sandbox_id", id,
+					"panic", r,
+					"stack", string(debug.Stack()),
+				)
+				sentryobs.CaptureException(context.Background(), fmt.Errorf("touchLastActive panic: %v\n\n%s", r, string(debug.Stack())))
+			}
+		}()
 		_ = o.db.Model(&model.Sandbox{}).
 			Where("id = ?", id).
 			Update("last_active_at", now).Error

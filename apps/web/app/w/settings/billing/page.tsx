@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import * as Sentry from "@sentry/nextjs"
 import { toast } from "sonner"
 import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
@@ -33,7 +34,8 @@ function formatMoney(minor: number, currency: string) {
       currency,
       maximumFractionDigits: currency === "NGN" || currency === "JPY" ? 0 : 2,
     }).format(value)
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err instanceof Error ? err : new Error("formatMoney failed"))
     return `${value} ${currency}`
   }
 }
@@ -46,7 +48,8 @@ function formatDate(iso: string | undefined) {
       month: "short",
       day: "numeric",
     })
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err instanceof Error ? err : new Error("formatDate failed"))
     return iso
   }
 }

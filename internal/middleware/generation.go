@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/observe"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
@@ -58,6 +60,7 @@ func (gw *GenerationWriter) drain() {
 				"panic", r,
 				"stack", string(debug.Stack()),
 			)
+			sentryobs.CaptureException(context.Background(), fmt.Errorf("generation drain panic: %v\n\n%s", r, string(debug.Stack())))
 		}
 		gw.wg.Done()
 	}()

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"encoding/json"
+
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 )
 
 // Subscribe returns a channel that yields events from a conversation stream.
@@ -39,6 +41,7 @@ func (b *EventBus) Subscribe(ctx context.Context, convID string, cursor string) 
 					"panic", r,
 					"stack", string(debug.Stack()),
 				)
+				sentryobs.CaptureException(context.Background(), fmt.Errorf("event bus subscriber panic: %v\n\n%s", r, string(debug.Stack())))
 			}
 			closeChannelSafely(userCh)
 		}()

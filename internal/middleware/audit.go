@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 )
 
 const auditBatchSize = 50
@@ -53,6 +55,7 @@ func (aw *AuditWriter) drain() {
 				"panic", r,
 				"stack", string(debug.Stack()),
 			)
+			sentryobs.CaptureException(context.Background(), fmt.Errorf("audit drain panic: %v\n\n%s", r, string(debug.Stack())))
 		}
 		aw.wg.Done()
 	}()

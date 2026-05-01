@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
@@ -100,6 +102,16 @@ func (h *SandboxTemplateBuildHandler) buildTemplate(ctx context.Context, tmpl *m
 	// Goroutine to flush logs every 3 seconds
 	done := make(chan struct{})
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error("sandbox template log flusher panicked",
+					"template_id", tmpl.ID,
+					"panic", r,
+					"stack", string(debug.Stack()),
+				)
+				sentryobs.CaptureException(context.Background(), fmt.Errorf("sandbox template log flusher panic: %v\n\n%s", r, string(debug.Stack())))
+			}
+		}()
 		ticker := time.NewTicker(3 * time.Second)
 		defer ticker.Stop()
 		for {
@@ -162,6 +174,7 @@ func (h *SandboxTemplateBuildHandler) buildTemplate(ctx context.Context, tmpl *m
 			"build_error":  errMsg,
 		})
 		slog.Error("sandbox template build failed", "template_id", tmpl.ID, "error", err.Error())
+		sentryobs.CaptureException(ctx, fmt.Errorf("sandbox template build failed: %w", err))
 		return nil
 	}
 

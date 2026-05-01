@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"runtime/debug"
 	"sync"
 
 	"github.com/hibiken/asynq"
@@ -13,6 +14,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 	"github.com/usehiveloop/hiveloop/internal/subscriptions"
 )
@@ -103,6 +105,17 @@ func (handler *SubscriptionDispatchHandler) Handle(ctx context.Context, task *as
 	waitGroup.Add(len(subs))
 	for _, sub := range subs {
 		go func(sub model.ConversationSubscription) {
+			defer func() {
+				if r := recover(); r != nil {
+					slog.Error("subscription dispatch deliverOne panicked",
+						"delivery_id", payload.DeliveryID,
+						"sub_id", sub.ID,
+						"panic", r,
+						"stack", string(debug.Stack()),
+					)
+					sentryobs.CaptureException(context.Background(), fmt.Errorf("subscription dispatch deliverOne panic: %v\n\n%s", r, string(debug.Stack())))
+				}
+			}()
 			defer waitGroup.Done()
 			handler.deliverOne(ctx, logger, sub, content, fullMessage)
 		}(sub)

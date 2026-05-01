@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/daytonaio/daytona/libs/sdk-go/pkg/types"
 
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 )
 
 func (d *Driver) BuildSnapshot(ctx context.Context, opts sandbox.BuildSnapshotOpts) (string, error) {
@@ -80,6 +83,16 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 
 	if logChan != nil {
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					slog.Error("snapshot log channel drainer panicked",
+						"snapshot_name", snapshot.Name,
+						"panic", r,
+						"stack", string(debug.Stack()),
+					)
+					sentryobs.CaptureException(context.Background(), fmt.Errorf("snapshot log channel drainer panic: %v\n\n%s", r, string(debug.Stack())))
+				}
+			}()
 			for line := range logChan {
 				if onLog != nil {
 					onLog(line)

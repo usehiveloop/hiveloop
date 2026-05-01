@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import {
   getSessionFromHeader,
   stripSessionCookie,
@@ -166,6 +167,7 @@ async function handler(
     reqLog.info({ status: upstream.status }, "upstream response received")
   } catch (err) {
     reqLog.error({ err, upstream_url: url.toString() }, "upstream fetch failed")
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)))
     return NextResponse.json({ error: "upstream_unavailable" }, { status: 502 })
   }
 

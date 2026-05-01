@@ -13,6 +13,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/billing/subscription"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 )
 
 // Cap on rows enqueued per sweep tick. Per-sub rate-limiting via
@@ -91,6 +92,10 @@ func (h *BillingRenewSubscriptionHandler) Handle(ctx context.Context, task *asyn
 	if err != nil {
 		slog.WarnContext(ctx, "billing renew attempt failed",
 			"subscription_id", payload.SubscriptionID, "action", action, "error", err)
+		// Swallowed so asynq doesn't retry within the same hour; the next
+		// sweep tick re-enqueues if still due + under cap. Capture to Sentry
+		// for visibility into systemic failures (Paystack outages, etc.).
+		sentryobs.CaptureException(ctx, fmt.Errorf("billing renew attempt %s failed: %w", action, err))
 		return nil
 	}
 	slog.InfoContext(ctx, "billing renew applied",

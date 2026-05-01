@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { wrapMiddlewareWithSentry } from "@sentry/nextjs"
 
 const SESSION_COOKIE = "__zeus_session"
 
@@ -29,3 +30,5 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: ["/", "/dashboard/:path*", "/auth"],
 }
+
+export default wrapMiddlewareWithSentry(middleware)
