@@ -103,3 +103,14 @@ func toInIntegrationAvailableResponse(integ model.InIntegration) inIntegrationAv
 func inNangoKey(uniqueKey string) string {
 	return "in_" + uniqueKey
 }
+
+// nangoProviderName maps our internal provider key to the Nango catalog
+// provider name. Most providers map 1:1; github-app-code-reviews is a second
+// GitHub App identity differentiated only by integration unique_key, so it
+// uses Nango's canonical github-app provider.
+func nangoProviderName(provider string) string {
+	if provider == "github-app-code-reviews" {
+		return "github-app"
+	}
+	return provider
+}

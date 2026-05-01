@@ -51,7 +51,11 @@ function getConfigurableResources(connection: unknown): ConfigurableResource[] {
 
 function buildSourceConfig(provider: string, picks: ResourceItem[]): Record<string, unknown> {
   const lowered = provider.toLowerCase()
-  if (lowered === "github" || lowered === "github-app") {
+  if (
+    lowered === "github" ||
+    lowered === "github-app" ||
+    lowered === "github-app-code-reviews"
+  ) {
     // Resource ids are GitHub full_names ("owner/repo"); the connector
     // takes a single repo_owner + bare repo names.
     const owner = picks[0]?.id.split("/")[0] ?? ""

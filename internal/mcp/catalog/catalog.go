@@ -101,18 +101,18 @@ const (
 type ActionDef struct {
 	DisplayName    string           `json:"display_name"`
 	Description    string           `json:"description"`
-	Access         string           `json:"access"`                        // "read" or "write"
-	ResourceType   string           `json:"resource_type"`                 // e.g. "channel", "repo", "" if none
-	Parameters     json.RawMessage  `json:"parameters"`                    // JSON Schema
-	Execution      *ExecutionConfig `json:"execution,omitempty"`           // How to execute this action via Nango proxy
-	ResponseSchema string           `json:"response_schema,omitempty"`     // Ref into Schemas map
+	Access         string           `json:"access"`                    // "read" or "write"
+	ResourceType   string           `json:"resource_type"`             // e.g. "channel", "repo", "" if none
+	Parameters     json.RawMessage  `json:"parameters"`                // JSON Schema
+	Execution      *ExecutionConfig `json:"execution,omitempty"`       // How to execute this action via Nango proxy
+	ResponseSchema string           `json:"response_schema,omitempty"` // Ref into Schemas map
 }
 
 // SchemaDefinition is a flattened response/payload schema with top-level properties only.
 type SchemaDefinition struct {
-	Type       string                          `json:"type"`
-	Properties map[string]SchemaPropertyDef    `json:"properties,omitempty"`
-	Items      *SchemaRef                      `json:"items,omitempty"` // for array types
+	Type       string                       `json:"type"`
+	Properties map[string]SchemaPropertyDef `json:"properties,omitempty"`
+	Items      *SchemaRef                   `json:"items,omitempty"` // for array types
 }
 
 // SchemaPropertyDef describes a single property in a schema.
@@ -178,10 +178,11 @@ type ProviderTriggers struct {
 // into the subscribed conversation.
 //
 // Example (github_pull_request):
-//   id_pattern:         "^(?P<owner>[\\w.-]+)/(?P<repo>[\\w.-]+)#(?P<number>\\d+)$"
-//   id_example:         "hiveloop/hiveloop#99"
-//   canonical_template: "github/{owner}/{repo}/pull/{number}"
-//   → agent input "hiveloop/hiveloop#99" becomes canonical key "github/hiveloop/hiveloop/pull/99"
+//
+//	id_pattern:         "^(?P<owner>[\\w.-]+)/(?P<repo>[\\w.-]+)#(?P<number>\\d+)$"
+//	id_example:         "hiveloop/hiveloop#99"
+//	canonical_template: "github/{owner}/{repo}/pull/{number}"
+//	→ agent input "hiveloop/hiveloop#99" becomes canonical key "github/hiveloop/hiveloop/pull/99"
 type SubscribableResource struct {
 	DisplayName       string   `json:"display_name"`
 	Description       string   `json:"description,omitempty"`
@@ -203,10 +204,10 @@ type ProviderSubscribableResources struct {
 
 // Catalog holds all providers and their actions/triggers, indexed for fast lookup.
 type Catalog struct {
-	providers            map[string]*ProviderActions
-	triggers             map[string]*ProviderTriggers
-	subscribableByType   map[string]subscribableEntry             // resource_type → provider + def
-	subscribableByProv   map[string]map[string]SubscribableResource
+	providers          map[string]*ProviderActions
+	triggers           map[string]*ProviderTriggers
+	subscribableByType map[string]subscribableEntry // resource_type → provider + def
+	subscribableByProv map[string]map[string]SubscribableResource
 }
 
 // subscribableEntry holds a subscribable resource definition together with
@@ -345,6 +346,18 @@ func mustParse() *Catalog {
 			}
 			c.subscribableByProv[psr.Provider][resourceType] = def
 		}
+	}
+
+	// github-app-code-reviews is a second GitHub App used solely so a separate
+	// bot identity can review PRs opened by the primary github-app. It shares
+	// every action, trigger, and subscribable resource with github-app, so we
+	// alias it here rather than duplicating JSON files (which would also
+	// collide on the global subscribable resource_type uniqueness check).
+	if p, ok := c.providers["github-app"]; ok {
+		c.providers["github-app-code-reviews"] = p
+	}
+	if r, ok := c.subscribableByProv["github-app"]; ok {
+		c.subscribableByProv["github-app-code-reviews"] = r
 	}
 
 	return c

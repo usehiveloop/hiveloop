@@ -37,7 +37,7 @@ func (h *InIntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Credentials != nil {
-		provider, found := h.nango.GetProvider(integ.Provider)
+		provider, found := h.nango.GetProvider(nangoProviderName(integ.Provider))
 		if !found {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("unknown provider %q", integ.Provider)})
 			return
@@ -61,7 +61,7 @@ func (h *InIntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 		if fetchErr != nil {
 			slog.Warn("failed to fetch nango in-integration details for config rebuild", "error", fetchErr, "nango_key", nk)
 		} else {
-			template, _ := h.nango.GetProviderTemplate(integ.Provider)
+			template, _ := h.nango.GetProviderTemplate(nangoProviderName(integ.Provider))
 			integ.NangoConfig = buildNangoConfig(integResp, template, h.nango.CallbackURL())
 		}
 	}
