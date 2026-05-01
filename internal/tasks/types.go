@@ -11,7 +11,6 @@ const (
 	TypeEmailSend                 = "email:send"
 	TypeEmailSendTemplate         = "email:send_template"
 	TypeAgentCleanup              = "agent:cleanup"
-	TypeBillingTokenSpend         = "billing:token_spend"
 	TypeSandboxTemplateBuild      = "sandbox_template:build"
 	TypeSandboxTemplateRetryBuild = "sandbox_template:retry"
 	TypeSkillHydrate              = "skill:hydrate"
@@ -30,6 +29,7 @@ const (
 	TypeCronTriggerPoll          = "periodic:cron_trigger_poll"
 	TypeSandboxLifecycle         = "periodic:sandbox_lifecycle"
 	TypeCreditsExpire            = "periodic:credits_expire"
+	TypeBillingBatchProcess      = "periodic:billing_batch_process"
 	TypeBillingRenewSweep        = "periodic:billing_renew_sweep"
 
 	// On-demand task enqueued by the sweep for each due subscription.

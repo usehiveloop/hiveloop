@@ -107,38 +107,45 @@ func GrantWithTx(tx *gorm.DB, orgID uuid.UUID, amount int64, reason, refType, re
 // lock on the org record inside a transaction. This trades throughput per-org
 // for correctness: we never oversubscribe the balance.
 func (s *CreditsService) Spend(orgID uuid.UUID, amount int64, reason, refType, refID string) error {
-	if amount <= 0 {
-		return fmt.Errorf("spend amount must be positive (got %d)", amount)
-	}
-
 	err := s.db.Transaction(func(tx *gorm.DB) error {
-		var org model.Org
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ?", orgID).First(&org).Error; err != nil {
-			return fmt.Errorf("lock org: %w", err)
-		}
-
-		current, err := sumBalance(tx, orgID)
-		if err != nil {
-			return err
-		}
-		if current < amount {
-			return ErrInsufficientCredits
-		}
-
-		return tx.Create(&model.CreditLedgerEntry{
-			OrgID:   orgID,
-			Amount:  -amount,
-			Reason:  reason,
-			RefType: refType,
-			RefID:   refID,
-		}).Error
+		return SpendWithTx(tx, orgID, amount, reason, refType, refID)
 	})
 	if isUniqueViolation(err) {
 		return ErrAlreadyRecorded
 	}
 	return err
 }
+
+// Caller translates SQLSTATE 23505 to ErrAlreadyRecorded via IsUniqueViolation.
+func SpendWithTx(tx *gorm.DB, orgID uuid.UUID, amount int64, reason, refType, refID string) error {
+	if amount <= 0 {
+		return fmt.Errorf("spend amount must be positive (got %d)", amount)
+	}
+
+	var org model.Org
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("id = ?", orgID).First(&org).Error; err != nil {
+		return fmt.Errorf("lock org: %w", err)
+	}
+
+	current, err := sumBalance(tx, orgID)
+	if err != nil {
+		return err
+	}
+	if current < amount {
+		return ErrInsufficientCredits
+	}
+
+	return tx.Create(&model.CreditLedgerEntry{
+		OrgID:   orgID,
+		Amount:  -amount,
+		Reason:  reason,
+		RefType: refType,
+		RefID:   refID,
+	}).Error
+}
+
+func IsUniqueViolation(err error) bool { return isUniqueViolation(err) }
 
 // isUniqueViolation reports whether err is a Postgres unique_violation
 // (SQLSTATE 23505). Used to detect idempotency-key collisions without

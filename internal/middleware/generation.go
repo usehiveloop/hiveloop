@@ -13,7 +13,6 @@ import (
 	"github.com/oklog/ulid/v2"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/observe"
@@ -128,16 +127,7 @@ func (gw *GenerationWriter) Shutdown(ctx context.Context) {
 	}
 }
 
-// Generation returns middleware that captures observability data for proxy
-// requests. It sets up the CapturedData on the request context before the
-// proxy runs, then after the response builds a Generation record and queues
-// it for writing.
-//
-// When enqueuer is non-nil AND the token's credential is a system credential
-// (claims.IsSystem), it ALSO enqueues a BillingTokenSpend task after the
-// response so the async worker deducts credits from the org's ledger. BYOK
-// calls skip the task — they don't consume credits for inference.
-func Generation(gw *GenerationWriter, db *gorm.DB, enqueuer enqueue.TaskEnqueuer) func(http.Handler) http.Handler {
+func Generation(gw *GenerationWriter, db *gorm.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -147,27 +137,15 @@ func Generation(gw *GenerationWriter, db *gorm.DB, enqueuer enqueue.TaskEnqueuer
 				return
 			}
 
-			// Look up credential's provider_id.
 			providerID := lookupProviderID(db, claims.CredentialID)
 
-			// Set up captured data on context for the CaptureTransport to fill.
-			captured := &observe.CapturedData{
-				ProviderID: providerID,
-			}
+			captured := &observe.CapturedData{ProviderID: providerID}
 			r = r.WithContext(observe.WithCapturedData(ctx, captured))
 
 			next.ServeHTTP(w, r)
 
-			// After response: build and queue generation record.
 			gen := buildGeneration(r, claims, captured, providerID, gw.reg, db)
 			gw.Write(gen)
-
-			// Platform-keys metering: deduct credits asynchronously when
-			// this call was backed by a system credential and actually
-			// consumed tokens. BYOK calls skip entirely.
-			if enqueuer != nil && claims.IsSystem && (gen.InputTokens > 0 || gen.OutputTokens > 0) {
-				enqueueBillingTokenSpend(ctx, enqueuer, claims.OrgID, gen)
-			}
 		})
 	}
 }
@@ -187,6 +165,7 @@ func buildGeneration(r *http.Request, claims *TokenClaims, captured *observe.Cap
 		Model:        captured.Model,
 		RequestPath:  r.URL.Path,
 		IsStreaming:  captured.IsStreaming,
+		IsSystem:     claims.IsSystem,
 
 		InputTokens:     captured.Usage.InputTokens,
 		OutputTokens:    captured.Usage.OutputTokens,

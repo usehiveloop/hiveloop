@@ -128,14 +128,13 @@ func setupProxyAndAuxRoutes(
 	auditWriter *middleware.AuditWriter,
 	generationWriter *middleware.GenerationWriter,
 	ctr *counter.Counter,
-	enqueuer enqueue.TaskEnqueuer,
 ) {
 	r.Route("/v1/proxy", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, database))
 		r.Use(middleware.RequireCredits(deps.Credits))
 		r.Use(middleware.RemainingCheck(ctr))
 		r.Use(middleware.Audit(auditWriter, "proxy.request"))
-		r.Use(middleware.Generation(generationWriter, database, enqueuer))
+		r.Use(middleware.Generation(generationWriter, database))
 		r.Handle("/*", proxyHandler)
 	})
 
