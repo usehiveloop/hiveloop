@@ -83,14 +83,6 @@ func (h *AdminHandler) ListInConnections(w http.ResponseWriter, r *http.Request)
 // @Security BearerAuth
 // @Router /admin/v1/in-integration-providers [get]
 func (h *AdminHandler) ListInIntegrationProviders(w http.ResponseWriter, r *http.Request) {
-	supported := h.catalog.ListProviders()
-	supportedSet := make(map[string]struct{}, len(supported))
-	for _, name := range supported {
-		supportedSet[name] = struct{}{}
-	}
-
-	providers := h.nango.GetProviders()
-
 	type providerInfo struct {
 		Name                     string `json:"name"`
 		DisplayName              string `json:"display_name"`
@@ -98,14 +90,24 @@ func (h *AdminHandler) ListInIntegrationProviders(w http.ResponseWriter, r *http
 		WebhookUserDefinedSecret bool   `json:"webhook_user_defined_secret,omitempty"`
 	}
 
-	resp := make([]providerInfo, 0, len(supported))
-	for _, p := range providers {
-		if _, ok := supportedSet[p.Name]; !ok {
+	displayNameOverride := map[string]string{
+		"github-app-code-reviews": "GitHub App (Code Reviews)",
+	}
+
+	resp := make([]providerInfo, 0)
+	for _, name := range h.catalog.ListProviders() {
+		nangoName := nangoProviderName(name)
+		p, ok := h.nango.GetProvider(nangoName)
+		if !ok {
 			continue
 		}
+		display := p.DisplayName
+		if override, ok := displayNameOverride[name]; ok {
+			display = override
+		}
 		resp = append(resp, providerInfo{
-			Name:                     p.Name,
-			DisplayName:              p.DisplayName,
+			Name:                     name,
+			DisplayName:              display,
 			AuthMode:                 p.AuthMode,
 			WebhookUserDefinedSecret: p.WebhookUserDefinedSecret,
 		})
