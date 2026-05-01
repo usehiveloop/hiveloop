@@ -63,6 +63,25 @@ func NewManager(
 	}
 }
 
+// GetDecryptedCredentialByID looks up a credential by id alone, reading the
+// owning org from the row.
+func (m *Manager) GetDecryptedCredentialByID(ctx context.Context, credentialID string) (*DecryptedCredential, error) {
+	var orgIDOnly struct {
+		OrgID uuid.UUID `gorm:"column:org_id"`
+	}
+	if err := m.db.WithContext(ctx).
+		Table("credentials").
+		Select("org_id").
+		Where("id = ? AND revoked_at IS NULL", credentialID).
+		Take(&orgIDOnly).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("credential not found or revoked")
+		}
+		return nil, fmt.Errorf("db lookup: %w", err)
+	}
+	return m.GetDecryptedCredential(ctx, credentialID, orgIDOnly.OrgID)
+}
+
 // GetDecryptedCredential resolves a credential through the 3-tier cache.
 // L1 hit → ~0.01ms, L2 hit → ~0.5ms, L3 hit → ~3-8ms.
 // Uses singleflight to deduplicate concurrent requests for the same credential.
