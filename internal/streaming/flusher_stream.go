@@ -64,6 +64,10 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 			entryIDs = append(entryIDs, msg.ID)
 			continue
 		}
+		if eventType == "reasoning_delta" {
+			entryIDs = append(entryIDs, msg.ID)
+			continue
+		}
 
 		var full struct {
 			EventID        string          `json:"event_id"`
