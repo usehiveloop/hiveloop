@@ -101,6 +101,9 @@ func AutoMigrate(db *gorm.DB) error {
 	// GIN index for generation tags array filtering
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_gen_tags ON generations USING GIN (tags)")
 
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_generations_unbilled ON generations (created_at)
+		WHERE billed_at IS NULL AND is_system = TRUE AND (input_tokens > 0 OR output_tokens > 0)`)
+
 	// Drop old FK constraint on router_triggers that referenced the connections table.
 	// RouterTrigger.ConnectionID now references in_connections.
 	db.Exec(`ALTER TABLE router_triggers DROP CONSTRAINT IF EXISTS fk_router_triggers_connection`)
