@@ -38,6 +38,7 @@ func (handler *ReplyMCPHandler) StreamableHTTPHandler() http.Handler {
 	return mcpsdk.NewStreamableHTTPHandler(handler.serverFactory, &mcpsdk.StreamableHTTPOptions{
 		Stateless: true,
 		Logger:    slog.Default(),
+		DisableLocalhostProtection: true,
 	})
 }
 
