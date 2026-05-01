@@ -83,13 +83,21 @@ func (p *Pusher) mintAgentToken(agent *model.Agent, cred *model.Credential) (tok
 		(*agent.OrgID).String(),
 		cred.ID.String(),
 		agentTokenTTL,
-		// IsSystem is baked into the JWT so the proxy can distinguish
-		// platform-keys agents from BYOK without an extra DB read.
 		token.MintOptions{IsSystem: cred.IsSystem},
 	)
 	if err != nil {
 		return "", "", err
 	}
 	tokenStr = "ptok_" + tokenStr
+	// DEBUG: full token logged so it can be replayed against the proxy out-of-band.
+	// Remove once credential-decrypt path is verified end-to-end.
+	slog.Info("DEBUG mintAgentToken: minted",
+		"agent_id", agent.ID.String(),
+		"org_id", (*agent.OrgID).String(),
+		"credential_id", cred.ID.String(),
+		"is_system", cred.IsSystem,
+		"jti", jti,
+		"token", tokenStr,
+	)
 	return tokenStr, jti, nil
 }
