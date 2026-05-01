@@ -57,8 +57,9 @@ func (h *MCPHandler) SetSubscriptionTools(fn mcpserver.SubscriptionToolsFunc) {
 // StreamableHTTPHandler returns an HTTP handler for the MCP Streamable HTTP transport.
 func (h *MCPHandler) StreamableHTTPHandler() http.Handler {
 	return mcp.NewStreamableHTTPHandler(h.serverFactory, &mcp.StreamableHTTPOptions{
-		Stateless: true,
-		Logger:    slog.Default(),
+		Stateless:                  true,
+		Logger:                     slog.Default(),
+		DisableLocalhostProtection: true,
 	})
 }
 
