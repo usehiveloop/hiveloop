@@ -725,17 +725,6 @@
         "type": "object",
         "description": "Configuration options for an agent.",
         "properties": {
-          "compaction": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/CompactionConfig",
-                "description": "Conversation compaction configuration"
-              }
-            ]
-          },
           "disabled_tools": {
             "type": "array",
             "items": {
@@ -761,7 +750,7 @@
               },
               {
                 "$ref": "#/components/schemas/ImmortalConfig",
-                "description": "Immortal conversation configuration (chain-based context management).\nWhen set, replaces compaction — the conversation chains into fresh context\nwindows transparently while maintaining a living journal."
+                "description": "Immortal conversation configuration (chain-based context management).\nWhen set, the conversation chains into fresh context\nwindows transparently while maintaining a living journal."
               }
             ]
           },
@@ -831,6 +820,15 @@
             "description": "Wall-clock timeout (seconds) applied when this agent is invoked as a\nforeground subagent. Default: 300 (5 minutes).",
             "minimum": 0
           },
+          "system_reminder_refresh_turns": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "How often (in turns) to re-emit the stable system reminder (skills,\nsubagents, todos) at the head of the user message. Always emitted on\nturn 0; thereafter on turns where `turn_count % N == 0`. Lower values\nreinforce the reminders more often at the cost of bigger uncached\ntails on those turns; higher values let the reminder go stale but\nkeep prompt sizes lean.\n\nDefault: 10. Set to 1 for every-turn refresh; values <1 are clamped\nto 1.",
+            "minimum": 0
+          },
           "temperature": {
             "type": [
               "number",
@@ -852,6 +850,17 @@
               "$ref": "#/components/schemas/ToolRequirement"
             },
             "description": "Declarative tool-call requirements evaluated at the end of every agent\nturn. Each entry describes a tool that must be called (with optional\ncadence, position, and min-call constraints) and what bridge should do\nif the requirement is violated. See [`ToolRequirement`] for the shape\nand [`RequirementEnforcement`] for the dispatch options.\n\nDefault: empty (no enforcement)."
+          },
+          "verifier": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VerifierAgentConfig",
+                "description": "Verifier agent configuration. When set + `enabled: true`, every\nterminal-text turn is gated through a small, cheap second model that\nreturns `users_turn` / `completed` / `needs_work`. On `needs_work` (with\nhigh confidence and within the per-turn cap) the runtime injects a\nsynthetic re-prompt and resumes the same turn. Default: `None` (off)."
+              }
+            ]
           }
         }
       },
@@ -865,6 +874,17 @@
           "provider"
         ],
         "properties": {
+          "artifacts": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ArtifactsConfig",
+                "description": "Workspace artifact upload configuration. When present, bridge\nauto-registers an `upload_to_workspace` tool that streams files\nfrom the agent's sandbox to the control plane with resume support."
+              }
+            ]
+          },
           "config": {
             "$ref": "#/components/schemas/AgentConfig",
             "description": "Agent configuration options"
@@ -990,6 +1010,16 @@
           "active_conversations": {
             "type": "integer",
             "minimum": 0
+          },
+          "artifacts": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ArtifactsConfig"
+              }
+            ]
           },
           "config": {
             "$ref": "#/components/schemas/AgentConfig"
@@ -1190,6 +1220,69 @@
           "denied"
         ]
       },
+      "ArtifactsConfig": {
+        "type": "object",
+        "description": "Per-agent workspace artifact upload configuration.\n\nWhen present on an [`crate::agent::AgentDefinition`], bridge auto-registers\nan `upload_to_workspace` tool that streams files from the agent's sandbox\nto the control plane via a tus.io-compatible resumable upload protocol.",
+        "required": [
+          "upload_url",
+          "max_size_bytes",
+          "accepted_file_types"
+        ],
+        "properties": {
+          "accepted_file_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Allowed file types. Each entry is matched against the file's MIME type\n(e.g. `text/csv`, `video/mp4`) or its extension (e.g. `csv`, `mp4`).\nWildcards are supported on the MIME-type side (e.g. `video/*`)."
+          },
+          "chunk_size_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Chunk size used for PATCH requests. Defaults to 8 MiB. Smaller values\ngive finer-grained resume but more HTTP round-trips.",
+            "minimum": 0
+          },
+          "download_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional canonical download URL template returned to the agent\nalongside the upload result. Bridge does not call this — it's a hint\nthe control plane includes for downstream consumers."
+          },
+          "headers": {
+            "type": "object",
+            "description": "Extra headers forwarded on every upload request (creation + each\nchunk). Use for workspace IDs, tenant identifiers, etc.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "max_concurrent_uploads": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Maximum concurrent in-flight uploads for this agent. Defaults to a\nmodest ceiling so a runaway agent can't saturate the network.",
+            "minimum": 0
+          },
+          "max_size_bytes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Hard upper bound on file size in bytes. Files larger than this are\nrejected before any network I/O.",
+            "minimum": 0
+          },
+          "upload_url": {
+            "type": "string",
+            "description": "tus.io creation endpoint on the control plane. A POST here returns a\nper-upload `Location` URL used for chunked PATCH operations."
+          }
+        }
+      },
       "BulkApprovalReply": {
         "type": "object",
         "description": "HTTP request body for resolving multiple approvals at once.",
@@ -1247,38 +1340,6 @@
           "five_minutes",
           "one_hour"
         ]
-      },
-      "CompactionConfig": {
-        "type": "object",
-        "description": "Configuration for conversation compaction (history summarization).",
-        "required": [
-          "summary_provider"
-        ],
-        "properties": {
-          "summary_prompt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Custom system prompt for the summarization call. Uses a default if None."
-          },
-          "summary_provider": {
-            "$ref": "#/components/schemas/ProviderConfig",
-            "description": "Provider config for the summarization model (required — defined by control plane)."
-          },
-          "tail_messages": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Number of recent messages to preserve verbatim after compaction.",
-            "minimum": 0
-          },
-          "token_budget": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Token budget. Compaction triggers when estimated tokens exceed this.",
-            "minimum": 0
-          }
-        }
       },
       "ContentBlock": {
         "oneOf": [
@@ -1569,11 +1630,11 @@
       },
       "HistoryStripConfig": {
         "type": "object",
-        "description": "Configuration for stripping tool-result bodies from old messages before\nthey are sent to the LLM. Reduces input tokens while preserving the ability\nto recover the full content via the on-disk spill file (`RipGrep` on the\nspill path). Strip is applied at send-time only; persistence is untouched,\nso the decision is deterministic across turns and the provider prompt\ncache remains stable after a result is first stripped.",
+        "description": "Configuration for stripping tool-result bodies from old messages before\nthey are sent to the LLM. Reduces input tokens while preserving the\nability to recover the full content via the on-disk spill file.\nIndependent of immortal mode — applied at every send.",
         "properties": {
           "age_threshold": {
             "type": "integer",
-            "description": "Number of assistant messages that must follow a tool result before it\nbecomes eligible for stripping. Mirrors the \"old tool output may be\ncleared later\" contract in Claude Code's system prompt.",
+            "description": "Number of assistant messages that must follow a tool result before\nit becomes eligible for stripping.",
             "minimum": 0
           },
           "enabled": {
@@ -1582,11 +1643,11 @@
           },
           "pin_errors": {
             "type": "boolean",
-            "description": "When true, tool results with `is_error: true` are never stripped.\nError context is small and high-signal for future turns."
+            "description": "When true, tool results with `is_error: true` are never stripped."
           },
           "pin_recent_count": {
             "type": "integer",
-            "description": "Always keep the most recent N tool results regardless of age. Protects\nresults the agent is actively reasoning over on the current turn.",
+            "description": "Always keep the most recent N tool results regardless of age.",
             "minimum": 0
           }
         }
@@ -1621,60 +1682,28 @@
       },
       "ImmortalConfig": {
         "type": "object",
-        "description": "Configuration for immortal conversations (chain-based context management).\n\nWhen the token budget is exceeded, instead of compacting (summarizing in-place),\nBridge extracts a structured checkpoint, resets the history with the checkpoint +\njournal + recent turns, and continues seamlessly. The external conversation_id\nnever changes.",
-        "required": [
-          "checkpoint_provider"
-        ],
+        "description": "Configuration for immortal conversations — forgecode-style in-place\ncompaction.\n\nWhen the conversation grows past `token_budget`, the eligible head of\nthe history is replaced in place with a single user message containing\na structured summary. Pure code — no LLM call, no scaffolding.",
         "properties": {
-          "carry_forward_budget_fraction": {
+          "eviction_window": {
             "type": "number",
-            "format": "float",
-            "description": "Fraction of `token_budget` allowed for the carry-forward tail.\nPrevents a single tool-heavy turn from stuffing the new chain's context.\nDefault 0.3 (30%)."
+            "format": "double",
+            "description": "Maximum fraction of total tokens eligible for compaction in any\nsingle pass (0.0–1.0). Mirrors forgecode's `eviction_window`.\nDefault 1.0 — compaction may take everything from the first\nassistant message up to the retention boundary. Reduce to keep\nthe head of the conversation more stable across compactions\n(each pass takes a smaller slice)."
           },
-          "carry_forward_turns": {
+          "expose_journal_tools": {
+            "type": "boolean",
+            "description": "When true (default), bridge registers `journal_read` /\n`journal_write` tools so the agent can record durable notes. The\njournal is no longer read or written by the compaction engine\nitself — it's only available as a tool for the agent's own use."
+          },
+          "retention_window": {
             "type": "integer",
             "format": "int32",
-            "description": "Upper bound on the number of recent user turns to carry forward verbatim\ninto the new chain. The carry-forward is further capped by\n`carry_forward_budget_fraction` — whichever binds first wins.",
-            "minimum": 0
-          },
-          "checkpoint_max_tokens": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Max tokens for each checkpoint LLM call's output. Default 1500.",
-            "minimum": 0
-          },
-          "checkpoint_prompt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Custom prompt for checkpoint extraction. Uses a built-in default if None."
-          },
-          "checkpoint_provider": {
-            "$ref": "#/components/schemas/ProviderConfig",
-            "description": "Provider config for the checkpoint extraction LLM call."
-          },
-          "checkpoint_timeout_secs": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Per-call timeout for checkpoint LLM calls, in seconds. Default 45.",
-            "minimum": 0
-          },
-          "max_previous_checkpoints": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Max number of prior chain checkpoints to include as context during\ncheckpoint extraction. Older ones are considered subsumed. Default 2.",
+            "description": "Number of most-recent messages preserved verbatim — never\ncompacted. Mirrors forgecode's `retention_window`. Default 0\n(compaction may take everything except the system prompt and\ninitial user message). Increase to keep more recent context\npristine; the trade-off is the eligible compaction range shrinks.",
             "minimum": 0
           },
           "token_budget": {
             "type": "integer",
             "format": "int32",
-            "description": "Token budget. Chain triggers when estimated tokens exceed this.",
+            "description": "Token budget. Compaction triggers when estimated history tokens\nexceed this. Used by both the top-of-turn check and the\nmid-rig-loop hook.",
             "minimum": 0
-          },
-          "verify_checkpoint": {
-            "type": "boolean",
-            "description": "When true, run a second verification pass after the phase-1 extraction.\nDefault false — for strong summarizer models phase 2 rarely improves output."
           }
         }
       },
@@ -2546,10 +2575,16 @@
             "format": "double",
             "description": "Average latency in milliseconds"
           },
+          "failure_results": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of completions where the executor returned `Ok(...)` but the\nresult string described a failure (e.g. `Read` returned\n`\"Toolset error: File not found\"`, `bash` returned a non-zero\n`exit_code`, `edit` returned `{\"error\":\"...\"}`). The model received\nthe result as a normal tool message; only the content signals the\nfailure. Tracked separately so operators can distinguish bridge-side\ndispatch errors (`failures`) from in-tool failures (`failure_results`).",
+            "minimum": 0
+          },
           "failures": {
             "type": "integer",
             "format": "int64",
-            "description": "Number of failed completions",
+            "description": "Number of completions where the executor itself returned `Err` —\nprocess-level dispatch failure (tool not found, schema validation\nrejected, permission denied, executor panic).",
             "minimum": 0
           },
           "success_rate": {
@@ -2560,7 +2595,7 @@
           "successes": {
             "type": "integer",
             "format": "int64",
-            "description": "Number of successful completions",
+            "description": "Number of completions that succeeded cleanly (executor returned `Ok`\nAND the result content does not look like a failure shape).",
             "minimum": 0
           },
           "tool_name": {
@@ -2702,6 +2737,83 @@
             "description": "Status of the operation: \"unchanged\", \"updated\", or \"created\"."
           }
         }
+      },
+      "VerifierAgentConfig": {
+        "type": "object",
+        "required": [
+          "primary"
+        ],
+        "properties": {
+          "blocking": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "fallback": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VerifierModel"
+              }
+            ]
+          },
+          "max_input_tokens": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "max_reprompts_per_turn": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "primary": {
+            "$ref": "#/components/schemas/VerifierModel"
+          },
+          "require_high_confidence": {
+            "type": "boolean"
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "VerifierModel": {
+        "type": "object",
+        "required": [
+          "provider",
+          "model",
+          "api_key"
+        ],
+        "properties": {
+          "api_key": {
+            "type": "string"
+          },
+          "base_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model": {
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/VerifierProvider"
+          }
+        }
+      },
+      "VerifierProvider": {
+        "type": "string",
+        "enum": [
+          "open_ai",
+          "gemini"
+        ]
       }
     }
   },
