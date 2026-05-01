@@ -4,6 +4,14 @@ Changes to Bridge.
 
 ---
 
+## v0.22.3 (2026-05-01)
+
+### Added
+
+- **`full_reasoning` on `response_completed` events.** Mirrors `full_response`: reasoning_delta chunks are accumulated through `StreamAttempt.accumulated_reasoning`, threaded through `PromptResponse → classify_turn_result → emit_turn_complete_events`, and emitted alongside `full_response` on the `ResponseCompleted` SSE event. Lets downstream consumers drop `reasoning_delta` events from persistent storage without losing reasoning content — same pattern already used for `response_chunk → message_end.full_response`.
+
+---
+
 ## v0.22.2 (2026-04-30)
 
 ### Changed
