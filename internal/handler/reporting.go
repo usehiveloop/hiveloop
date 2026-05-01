@@ -73,7 +73,6 @@ func (h *ReportingHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse date_part
 	datePart := r.URL.Query().Get("date_part")
 	if datePart == "" {
 		datePart = "day"
@@ -83,7 +82,6 @@ func (h *ReportingHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse group_by
 	var groupCols []string
 	var selectGroupCols []string
 	if gb := r.URL.Query().Get("group_by"); gb != "" {
@@ -99,7 +97,6 @@ func (h *ReportingHandler) Get(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Build SELECT
 	periodExpr := fmt.Sprintf("date_trunc('%s', created_at) AS period", datePart)
 
 	selectParts := []string{
@@ -119,7 +116,6 @@ func (h *ReportingHandler) Get(w http.ResponseWriter, r *http.Request) {
 		"COUNT(*) FILTER (WHERE error_type != '' AND error_type IS NOT NULL) AS error_count",
 	)
 
-	// Build GROUP BY
 	groupParts := []string{"period"}
 	groupParts = append(groupParts, groupCols...)
 
@@ -129,7 +125,6 @@ func (h *ReportingHandler) Get(w http.ResponseWriter, r *http.Request) {
 	)
 	args := []any{org.ID}
 
-	// Date range filters
 	if sd := r.URL.Query().Get("start_date"); sd != "" {
 		t, err := time.Parse("2006-01-02", sd)
 		if err != nil {
@@ -145,12 +140,11 @@ func (h *ReportingHandler) Get(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid end_date format (YYYY-MM-DD)"})
 			return
 		}
-		// End date is inclusive — add 1 day
+
 		query += " AND created_at < ?"
 		args = append(args, t.AddDate(0, 0, 1))
 	}
 
-	// Dimension filters
 	if m := r.URL.Query().Get("model"); m != "" {
 		query += " AND model = ?"
 		args = append(args, m)
@@ -180,7 +174,6 @@ func (h *ReportingHandler) Get(w http.ResponseWriter, r *http.Request) {
 		strings.Join(groupParts, ", "),
 	)
 
-	// Limit results
 	query += " LIMIT 1000"
 
 	type rawRow struct {
@@ -207,7 +200,6 @@ func (h *ReportingHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Format response
 	format := "2006-01-02"
 	if datePart == "hour" {
 		format = "2006-01-02T15:00:00Z"

@@ -14,13 +14,13 @@ import (
 // cgroupCommand is the shell command executed inside each sandbox to collect
 // cgroup v2 resource stats. Output is 7 lines in a fixed order:
 //
-//	1. memory.max        (bytes)
-//	2. memory.current    (bytes)
-//	3. memory.peak       (bytes)
-//	4. cpu.max           (e.g. "100000 100000")
-//	5. usage_usec <val>
-//	6. nr_throttled <val>
-//	7. pids.current
+//  1. memory.max        (bytes)
+//  2. memory.current    (bytes)
+//  3. memory.peak       (bytes)
+//  4. cpu.max           (e.g. "100000 100000")
+//  5. usage_usec <val>
+//  6. nr_throttled <val>
+//  7. pids.current
 const cgroupCommand = `cat /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory.current /sys/fs/cgroup/memory.peak && cat /sys/fs/cgroup/cpu.max && grep -E "usage_usec|nr_throttled" /sys/fs/cgroup/cpu.stat && cat /sys/fs/cgroup/pids.current`
 
 // resourceStats holds parsed cgroup resource data from a sandbox.
@@ -118,7 +118,6 @@ func parseCgroupOutput(output string) (*resourceStats, error) {
 	stats := &resourceStats{}
 	var err error
 
-	// Line 0: memory.max (can be "max" for unlimited)
 	if lines[0] == "max" {
 		stats.MemoryLimitBytes = 0
 	} else {
@@ -128,22 +127,18 @@ func parseCgroupOutput(output string) (*resourceStats, error) {
 		}
 	}
 
-	// Line 1: memory.current
 	stats.MemoryUsedBytes, err = strconv.ParseInt(lines[1], 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("parsing memory.current %q: %w", lines[1], err)
 	}
 
-	// Line 2: memory.peak
 	stats.MemoryPeakBytes, err = strconv.ParseInt(lines[2], 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("parsing memory.peak %q: %w", lines[2], err)
 	}
 
-	// Line 3: cpu.max (e.g. "100000 100000")
 	stats.CPUQuota = lines[3]
 
-	// Line 4: "usage_usec <value>"
 	usageParts := strings.Fields(lines[4])
 	if len(usageParts) == 2 && usageParts[0] == "usage_usec" {
 		stats.CPUUsageUsec, err = strconv.ParseInt(usageParts[1], 10, 64)
@@ -152,7 +147,6 @@ func parseCgroupOutput(output string) (*resourceStats, error) {
 		}
 	}
 
-	// Line 5: "nr_throttled <value>"
 	throttledParts := strings.Fields(lines[5])
 	if len(throttledParts) == 2 && throttledParts[0] == "nr_throttled" {
 		stats.CPUThrottledCount, err = strconv.ParseInt(throttledParts[1], 10, 64)
@@ -161,7 +155,6 @@ func parseCgroupOutput(output string) (*resourceStats, error) {
 		}
 	}
 
-	// Line 6: pids.current
 	stats.PIDCount, err = strconv.ParseInt(strings.TrimSpace(lines[6]), 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("parsing pids.current %q: %w", lines[6], err)

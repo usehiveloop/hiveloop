@@ -57,8 +57,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// provider_prompts is optional; validate only when the caller actually
-	// supplied entries so a system_prompt-only agent is allowed.
 	if len(req.ProviderPrompts) > 0 {
 		if errMsg := req.ProviderPrompts.Validate(); errMsg != "" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
@@ -66,7 +64,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// category is optional; if provided it must match a known catalog ID.
 	if req.Category != nil && *req.Category != "" && !isValidAgentCategory(*req.Category) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid category %q", *req.Category)})
 		return
@@ -79,7 +76,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Validate permission keys are recognized built-in tool IDs
 	if len(req.Permissions) > 0 {
 		permKeys := make(map[string]string, len(req.Permissions))
 		for key, val := range req.Permissions {
@@ -106,7 +102,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		hasCred = true
 	}
 
-	// Validate json_schema in agent_config if present
 	if errMsg := validateJSONSchema(req.AgentConfig); errMsg != "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
 		return
@@ -121,9 +116,8 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate sandbox template if provided
 	var sandboxTemplateID *interface{ String() string }
-	_ = sandboxTemplateID // unused, we parse directly
+	_ = sandboxTemplateID
 	agent := model.Agent{
 		OrgID:           &org.ID,
 		Name:            req.Name,
@@ -166,7 +160,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		agent.SandboxTemplateID = &tmpl.ID
 	}
 
-	// Validate trigger inputs per trigger_type (webhook | http | cron).
 	if errMsg := validateAgentTriggers(h.db, org.ID, req.Triggers); errMsg != "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
 		return
@@ -190,7 +183,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Parse subagent IDs up front.
 	var subagentUUIDs []uuid.UUID
 	if len(req.SubagentIDs) > 0 {
 		subagentUUIDs = make([]uuid.UUID, 0, len(req.SubagentIDs))
@@ -209,7 +201,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Use a transaction so agent + trigger + skill + subagent attachments are created atomically.
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&agent).Error; err != nil {
 			return err
@@ -262,7 +253,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Create webhook triggers.
 		if err := createAgentTriggers(tx, org.ID, agent.ID, req.Triggers); err != nil {
 			return fmt.Errorf("create triggers: %w", err)
 		}

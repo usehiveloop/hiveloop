@@ -21,10 +21,6 @@ import (
 // 5-field cron format (minute hour dom month dow).
 var cronParser = cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
 
-// ---------------------------------------------------------------------------
-// Periodic poller: finds due cron triggers and enqueues dispatch tasks
-// ---------------------------------------------------------------------------
-
 // CronTriggerPollHandler runs every 30 seconds and finds cron triggers that
 // are due to fire. For each, it atomically advances NextRunAt and enqueues a
 // CronTriggerDispatch task.
@@ -43,9 +39,7 @@ func NewCronTriggerPollHandler(db *gorm.DB, enqueuer enqueue.TaskEnqueuer) *Cron
 
 // Handle processes a TypeCronTriggerPoll periodic task.
 func (handler *CronTriggerPollHandler) Handle(ctx context.Context, _ *asynq.Task) error {
-	// Find all cron triggers that are due within the next 30 seconds.
-	// This gives sandbox creation time to warm up before the actual
-	// scheduled time arrives.
+
 	lookAhead := time.Now().Add(30 * time.Second)
 
 	var dueTriggers []model.RouterTrigger
@@ -62,7 +56,7 @@ func (handler *CronTriggerPollHandler) Handle(ctx context.Context, _ *asynq.Task
 
 	enqueuedCount := 0
 	for _, trigger := range dueTriggers {
-		// Compute the next run time from the cron schedule.
+
 		schedule, parseErr := cronParser.Parse(trigger.CronSchedule)
 		if parseErr != nil {
 			logging.Capture(ctx, fmt.Errorf("invalid cron schedule on trigger %s (%q): %w", trigger.ID, trigger.CronSchedule, parseErr))
@@ -73,9 +67,6 @@ func (handler *CronTriggerPollHandler) Handle(ctx context.Context, _ *asynq.Task
 		nextRun := schedule.Next(scheduledAt)
 		now := time.Now()
 
-		// Atomically claim this trigger by advancing NextRunAt.
-		// The WHERE next_run_at = ? clause prevents duplicate fires if
-		// another worker already claimed it.
 		result := handler.db.WithContext(ctx).
 			Model(&model.RouterTrigger{}).
 			Where("id = ? AND next_run_at = ?", trigger.ID, trigger.NextRunAt).
@@ -84,11 +75,10 @@ func (handler *CronTriggerPollHandler) Handle(ctx context.Context, _ *asynq.Task
 				"last_run_at": now,
 			})
 		if result.RowsAffected == 0 {
-			// Another worker already claimed this trigger. Pure noise — skip.
+
 			continue
 		}
 
-		// Enqueue the dispatch task.
 		task, taskErr := NewCronTriggerDispatchTask(CronTriggerDispatchPayload{
 			RouterTriggerID: trigger.ID,
 			OrgID:           trigger.OrgID,
@@ -116,10 +106,6 @@ func (handler *CronTriggerPollHandler) Handle(ctx context.Context, _ *asynq.Task
 	return nil
 }
 
-// ---------------------------------------------------------------------------
-// Single cron trigger dispatch: runs the routing pipeline for one fire
-// ---------------------------------------------------------------------------
-
 // CronTriggerDispatchHandler processes a single cron trigger fire. It loads
 // the trigger, builds a synthetic payload with schedule context, runs the
 // routing pipeline (reusing the same RouterDispatcher as webhooks), and
@@ -141,15 +127,12 @@ func (handler *CronTriggerDispatchHandler) Handle(ctx context.Context, task *asy
 		return fmt.Errorf("unmarshal cron trigger dispatch payload: %w", err)
 	}
 
-	// Build a synthetic payload with schedule context so rules can
-	// optionally filter by time/day.
 	syntheticPayload := map[string]any{
 		"scheduled_at": payload.ScheduledAt.Format(time.RFC3339),
 		"trigger_type": "cron",
 		"trigger_id":   payload.RouterTriggerID.String(),
 	}
 
-	// Run the routing pipeline for this specific trigger.
 	dispatches, err := handler.dispatcher.RunForTrigger(ctx, payload.RouterTriggerID, syntheticPayload)
 	if err != nil {
 		return fmt.Errorf("cron trigger dispatch: %w", err)
@@ -159,7 +142,6 @@ func (handler *CronTriggerDispatchHandler) Handle(ctx context.Context, task *asy
 		return nil
 	}
 
-	// Enqueue a conversation creation job for each dispatch.
 	deliveryID := fmt.Sprintf("cron:%s:%s", payload.RouterTriggerID, payload.ScheduledAt.Format(time.RFC3339))
 	enqueuedCount := 0
 	for _, agentDispatch := range dispatches {

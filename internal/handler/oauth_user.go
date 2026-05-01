@@ -17,10 +17,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// oauthProfile holds the normalised user info fetched from an OAuth provider.
-
-// provider (e.g. X/Twitter) does not return a user email.
-
 // isPlaceholderEmail reports whether the email is a generated placeholder.
 func (h *OAuthHandler) issueTokensAndRespond(ctx context.Context, w http.ResponseWriter, status int, user model.User, orgID, role string, memberships []model.OrgMembership) {
 	accessToken, err := auth.IssueAccessToken(h.privateKey, h.issuer, h.audience, user.ID.String(), orgID, role, h.accessTTL)
@@ -37,7 +33,6 @@ func (h *OAuthHandler) issueTokensAndRespond(ctx context.Context, w http.Respons
 		return
 	}
 
-	// Store refresh token hash for revocation tracking.
 	sum := sha256.Sum256([]byte(refreshToken))
 	storedRefresh := model.RefreshToken{
 		UserID:    user.ID,
@@ -73,16 +68,12 @@ func (h *OAuthHandler) issueTokensAndRespond(ctx context.Context, w http.Respons
 	})
 }
 
-// ---------------------------------------------------------------------------
-// Account linking
-// ---------------------------------------------------------------------------
-
 func (h *OAuthHandler) findOrCreateUser(provider string, profile *oauthProfile) (*model.User, error) {
-	// 1. Check if this OAuth account already exists.
+
 	var existing model.OAuthAccount
 	err := h.db.Where("provider = ? AND provider_user_id = ?", provider, profile.ProviderUserID).First(&existing).Error
 	if err == nil {
-		// Returning user — just load them.
+
 		var user model.User
 		if err := h.db.Where("id = ?", existing.UserID).First(&user).Error; err != nil {
 			return nil, fmt.Errorf("loading linked user: %w", err)
@@ -90,13 +81,12 @@ func (h *OAuthHandler) findOrCreateUser(provider string, profile *oauthProfile) 
 		return &user, nil
 	}
 
-	// 2. No existing link — check if a user with this email exists.
 	email := strings.ToLower(strings.TrimSpace(profile.Email))
 	var user model.User
 	err = h.db.Where("email = ?", email).First(&user).Error
 
 	if err == nil {
-		// User exists — link the provider.
+
 		oauthAcct := model.OAuthAccount{
 			UserID:         user.ID,
 			Provider:       provider,
@@ -105,7 +95,7 @@ func (h *OAuthHandler) findOrCreateUser(provider string, profile *oauthProfile) 
 		if err := h.db.Create(&oauthAcct).Error; err != nil {
 			return nil, fmt.Errorf("linking oauth account: %w", err)
 		}
-		// Mark email as confirmed if not already and provider verified it.
+
 		if user.EmailConfirmedAt == nil && !isPlaceholderEmail(email) {
 			now := time.Now()
 			h.db.Model(&user).Update("email_confirmed_at", &now)
@@ -114,7 +104,6 @@ func (h *OAuthHandler) findOrCreateUser(provider string, profile *oauthProfile) 
 		return &user, nil
 	}
 
-	// 3. Brand new user — create everything in a transaction.
 	now := time.Now()
 	name := profile.Name
 	if name == "" {
@@ -158,10 +147,6 @@ func (h *OAuthHandler) findOrCreateUser(provider string, profile *oauthProfile) 
 	return &user, nil
 }
 
-// ---------------------------------------------------------------------------
-// Provider profile fetchers
-// ---------------------------------------------------------------------------
-
 func (h *OAuthHandler) fetchProfile(ctx context.Context, provider string, token *oauth2.Token) (*oauthProfile, error) {
 	switch provider {
 	case "github":
@@ -174,4 +159,3 @@ func (h *OAuthHandler) fetchProfile(ctx context.Context, provider string, token 
 		return nil, fmt.Errorf("unknown provider: %s", provider)
 	}
 }
-

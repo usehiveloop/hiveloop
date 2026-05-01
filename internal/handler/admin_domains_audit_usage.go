@@ -92,6 +92,7 @@ func (h *AdminHandler) DeleteCustomDomain(w http.ResponseWriter, r *http.Request
 	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: custom domain deleted", "domain_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
+
 // ListAudit handles GET /admin/v1/audit.
 // @Summary List all audit entries
 // @Description Returns audit entries across all organizations.
@@ -137,6 +138,7 @@ func (h *AdminHandler) ListAudit(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]any{"data": entries, "has_more": hasMore})
 }
+
 // ListAdminAudit handles GET /admin/v1/admin-audit.
 // @Summary List admin audit entries
 // @Description Returns mutating operations performed via the admin API. Payloads are sanitized — sensitive fields are masked at write time.
@@ -212,6 +214,7 @@ func (h *AdminHandler) ListUsage(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]any{"data": results})
 }
+
 // ListWorkspaceStorage handles GET /admin/v1/workspace-storage.
 // @Summary List all workspace storage
 // @Description Returns all provisioned workspace databases.

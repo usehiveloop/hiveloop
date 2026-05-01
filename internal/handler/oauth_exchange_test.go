@@ -70,14 +70,13 @@ func TestOAuth_Exchange_UsedToken_NoNewSession(t *testing.T) {
 		UserID:    user.ID,
 		TokenHash: hash,
 		ExpiresAt: time.Now().Add(5 * time.Minute),
-		UsedAt:    &now, // already used
+		UsedAt:    &now,
 	}
 	if err := h.db.Create(&et).Error; err != nil {
 		t.Fatalf("create exchange token: %v", err)
 	}
 	t.Cleanup(func() { h.db.Where("id = ?", et.ID).Delete(&model.OAuthExchangeToken{}) })
 
-	// Count refresh tokens before
 	var tokenCountBefore int64
 	h.db.Model(&model.RefreshToken{}).Where("user_id = ?", user.ID).Count(&tokenCountBefore)
 
@@ -86,7 +85,6 @@ func TestOAuth_Exchange_UsedToken_NoNewSession(t *testing.T) {
 		t.Fatalf("expected 401, got %d; body: %s", rr.Code, rr.Body.String())
 	}
 
-	// Verify no new refresh token was created
 	var tokenCountAfter int64
 	h.db.Model(&model.RefreshToken{}).Where("user_id = ?", user.ID).Count(&tokenCountAfter)
 	if tokenCountAfter != tokenCountBefore {
@@ -97,7 +95,6 @@ func TestOAuth_Exchange_UsedToken_NoNewSession(t *testing.T) {
 func TestOAuth_Exchange_EmailConfirmedField(t *testing.T) {
 	h := newOAuthHarness(t)
 
-	// User with confirmed email
 	confirmedUser := createOAuthTestUser(t, h.db,
 		fmt.Sprintf("confirmed-%s@test.com", uuid.New().String()[:8]),
 		"Confirmed", "google", fmt.Sprintf("goog-%s", uuid.New().String()[:8]))
@@ -116,7 +113,6 @@ func TestOAuth_Exchange_EmailConfirmedField(t *testing.T) {
 		t.Errorf("expected email_confirmed=true, got %v", user1["email_confirmed"])
 	}
 
-	// User with placeholder email (unconfirmed)
 	placeholderUser := createOAuthTestUser(t, h.db,
 		fmt.Sprintf("xuser-%s@placeholder-email.com", uuid.New().String()[:8]),
 		"X User", "x", fmt.Sprintf("x-%s", uuid.New().String()[:8]))

@@ -43,7 +43,6 @@ func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Soft-delete: set deleted_at timestamp
 	now := time.Now()
 	if err := h.db.Model(&agent).Update("deleted_at", &now).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete agent"})

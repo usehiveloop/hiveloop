@@ -32,7 +32,6 @@ func AddMemoryTools(server *mcp.Server, agent *model.Agent, client *Client) {
 	bankID := "org-" + agent.OrgID.String()
 	agentTag := "agent:" + agent.ID.String()
 
-	// Tag filter: SharedMemory=true sees everything, false sees only own memories
 	var tagGroups []any
 	if !agent.SharedMemory {
 		tagGroups = []any{
@@ -40,7 +39,6 @@ func AddMemoryTools(server *mcp.Server, agent *model.Agent, client *Client) {
 		}
 	}
 
-	// --- memory_recall ---
 	server.AddTool(
 		&mcp.Tool{
 			Name: "memory_recall",
@@ -99,7 +97,6 @@ Do NOT recall and retain in the same turn — retained memories are not immediat
 		},
 	)
 
-	// --- memory_retain ---
 	server.AddTool(
 		&mcp.Tool{
 			Name: "memory_retain",
@@ -162,7 +159,6 @@ Write the content as a clear, specific factual statement. Bad: "User talked abou
 		},
 	)
 
-	// --- memory_reflect ---
 	server.AddTool(
 		&mcp.Tool{
 			Name: "memory_reflect",

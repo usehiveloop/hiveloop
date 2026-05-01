@@ -48,7 +48,7 @@ func BuildServer(
 	}, nil)
 
 	for _, scope := range scopes {
-		// Load connection from in_connections
+
 		var provider, providerCfgKey, nangoConnID string
 
 		var conn model.InConnection
@@ -61,7 +61,6 @@ func BuildServer(
 		providerCfgKey = fmt.Sprintf("in_%s", conn.InIntegration.UniqueKey)
 		nangoConnID = conn.NangoConnectionID
 
-		// Skip providers that are accessed via proxy instead of MCP.
 		if providerDef, ok := cat.GetProvider(provider); ok && !providerDef.ShouldPushToMCP() {
 			continue
 		}
@@ -81,7 +80,6 @@ func BuildServer(
 			toolName := provider + "_" + actionKey
 			inputSchema := buildInputSchema(action.Parameters)
 
-			// Capture loop variables for closure
 			capturedAction := action
 			capturedProvider := provider
 			capturedCfgKey := providerCfgKey
@@ -96,7 +94,7 @@ func BuildServer(
 					InputSchema: inputSchema,
 				},
 				func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-					// Decrement request counter before execution
+
 					if ctr != nil {
 						result, err := ctr.Decrement(ctx, counter.TokKey(capturedJTI))
 						if err != nil {
@@ -111,7 +109,6 @@ func BuildServer(
 						}
 					}
 
-					// Parse params from request
 					var params map[string]any
 					if req.Params.Arguments != nil {
 						if err := json.Unmarshal(req.Params.Arguments, &params); err != nil {
@@ -124,7 +121,6 @@ func BuildServer(
 						}
 					}
 
-					// Execute the action
 					result, err := ExecuteAction(
 						ctx,
 						nangoClient,
@@ -144,7 +140,6 @@ func BuildServer(
 						}, nil
 					}
 
-					// Return raw JSON response as text content
 					jsonBytes, err := json.Marshal(result)
 					if err != nil {
 						return &mcp.CallToolResult{
@@ -165,7 +160,6 @@ func BuildServer(
 		}
 	}
 
-	// Register memory tools if callback provided
 	if addMemoryTools != nil {
 		agentID, _ := token.Meta["agent_id"].(string)
 		if agentID != "" {
@@ -173,7 +167,6 @@ func BuildServer(
 		}
 	}
 
-	// Register subscription tools if callback provided
 	if addSubscriptionTools != nil {
 		addSubscriptionTools(server, token, db)
 	}

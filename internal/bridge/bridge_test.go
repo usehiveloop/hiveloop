@@ -185,7 +185,6 @@ func TestCreateConversationWithOptions_SerialisesMcpServers(t *testing.T) {
 		t.Errorf("conversation_id: got %q", resp.ConversationId)
 	}
 
-	// Verify both provider and mcp_servers were serialised into the request body.
 	if receivedBody["provider"] == nil {
 		t.Error("expected provider in request body")
 	}
@@ -405,7 +404,6 @@ func TestErrorHandling(t *testing.T) {
 
 	c := NewBridgeClient(srv.URL, "key")
 
-	// All methods should return errors on 4xx
 	err := c.UpsertAgent(context.Background(), "missing", AgentDefinition{})
 	if err == nil {
 		t.Fatal("expected error")
@@ -493,4 +491,3 @@ func TestGetMetrics(t *testing.T) {
 		t.Errorf("uptime: got %d", metrics.Global.UptimeSecs)
 	}
 }
-

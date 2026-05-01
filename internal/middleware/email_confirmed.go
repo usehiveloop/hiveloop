@@ -16,7 +16,7 @@ import (
 func RequireEmailConfirmed(db *gorm.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// API key auth bypasses email confirmation.
+
 			if _, ok := APIKeyClaimsFromContext(r.Context()); ok {
 				next.ServeHTTP(w, r)
 				return
@@ -24,7 +24,7 @@ func RequireEmailConfirmed(db *gorm.DB) func(http.Handler) http.Handler {
 
 			claims, ok := AuthClaimsFromContext(r.Context())
 			if !ok {
-				// No auth claims at all — let downstream middleware handle 401.
+
 				next.ServeHTTP(w, r)
 				return
 			}

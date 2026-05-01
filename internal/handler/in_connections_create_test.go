@@ -164,7 +164,3 @@ func TestInConnectionHandler_Create_WithMeta(t *testing.T) {
 		t.Fatalf("expected meta.resources to be set, got %v", resp["meta"])
 	}
 }
-
-// Note: Tests for missing nango_connection_id, integration not found, deleted integration
-// were removed as they test library/framework behavior without business logic verification.
-// See USELESS_TESTS_RECOMMENDATIONS.md for details.

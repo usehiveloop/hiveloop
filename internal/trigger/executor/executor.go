@@ -1,6 +1,3 @@
-// Package executor takes AgentDispatch instructions from the router dispatcher
-// and creates/continues Bridge conversations with per-conversation MCP tools
-// for reply, agent integrations, and shared memory.
 package executor
 
 import (
@@ -42,7 +39,6 @@ func (executor *Executor) Execute(ctx context.Context, dispatches []dispatch.Age
 		return nil
 	}
 
-	// Group by priority.
 	groups := groupByPriority(dispatches)
 	for _, group := range groups {
 		var waitGroup sync.WaitGroup
@@ -66,12 +62,11 @@ func (executor *Executor) Execute(ctx context.Context, dispatches []dispatch.Age
 }
 
 func (executor *Executor) executeOne(ctx context.Context, agentDispatch dispatch.AgentDispatch) error {
-	// Continue existing conversation.
+
 	if agentDispatch.RunIntent == "continue" {
 		return executor.continueConversation(ctx, agentDispatch)
 	}
 
-	// New conversation flow.
 	return executor.createConversation(ctx, agentDispatch)
 }
 
@@ -85,19 +80,17 @@ func (executor *Executor) continueConversation(ctx context.Context, agentDispatc
 		return fmt.Errorf("getting bridge client for continuation: %w", err)
 	}
 
-	// Build a concise update message from the new event's refs.
 	updateMessage := buildContinuationMessage(agentDispatch)
 	return client.SendMessage(ctx, agentDispatch.ExistingConversationID, updateMessage)
 }
 
 func (executor *Executor) createConversation(ctx context.Context, agentDispatch dispatch.AgentDispatch) error {
-	// 1. Load agent.
+
 	var agent model.Agent
 	if err := executor.db.Where("id = ? AND deleted_at IS NULL", agentDispatch.AgentID).First(&agent).Error; err != nil {
 		return fmt.Errorf("loading agent %s: %w", agentDispatch.AgentID, err)
 	}
 
-	// 2. Provision a dedicated sandbox and get a Bridge client.
 	sb, err := executor.orchestrator.CreateDedicatedSandbox(ctx, &agent)
 	if err != nil {
 		return fmt.Errorf("creating dedicated sandbox for %s: %w", agent.Name, err)
@@ -107,10 +100,8 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 		return fmt.Errorf("getting bridge client for %s: %w", agent.Name, err)
 	}
 
-	// 3. Build per-conversation MCP list.
 	mcpServers := executor.buildMCPList(agentDispatch)
 
-	// 4. Build provider override from agent's credential.
 	provider := executor.buildProvider(&agent)
 	var providerWrapped *bridgepkg.CreateConversationRequest_Provider
 	if provider != nil {
@@ -121,7 +112,6 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 		providerWrapped = &w
 	}
 
-	// 5. Create conversation with per-conv MCPs.
 	conv, err := client.CreateConversationWithOptions(ctx, agent.ID.String(), bridgepkg.CreateConversationRequest{
 		Provider:   providerWrapped,
 		McpServers: &mcpServers,
@@ -130,7 +120,6 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 		return fmt.Errorf("creating conversation for %s: %w", agent.Name, err)
 	}
 
-	// 6. Store RouterConversation for thread affinity.
 	if err := executor.db.Create(&model.RouterConversation{
 		OrgID:                agentDispatch.ReplyOrgID,
 		RouterTriggerID:      agentDispatch.RouterTriggerID,
@@ -143,7 +132,6 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 		logging.Capture(ctx, fmt.Errorf("store router conversation: %w", err))
 	}
 
-	// 7. Build and send instructions.
 	instructionSource := "flat_refs"
 	if agentDispatch.EnrichedMessage != "" {
 		instructionSource = "enriched"
@@ -163,14 +151,9 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 	return nil
 }
 
-// --------------------------------------------------------------------------
-// MCP list builder
-// --------------------------------------------------------------------------
-
 func (executor *Executor) buildMCPList(agentDispatch dispatch.AgentDispatch) []bridgepkg.McpServerDefinition {
 	var servers []bridgepkg.McpServerDefinition
 
-	// Reply MCP: exposes the source channel's write tools.
 	if executor.cfg != nil && executor.cfg.MCPBaseURL != "" {
 		replyURL := fmt.Sprintf("%s/reply/%s", executor.cfg.MCPBaseURL, agentDispatch.ReplyConnectionID)
 		servers = append(servers, bridgepkg.McpServerDefinition{
@@ -179,7 +162,6 @@ func (executor *Executor) buildMCPList(agentDispatch dispatch.AgentDispatch) []b
 		})
 	}
 
-	// Memory MCP: shared team namespace.
 	if agentDispatch.MemoryTeam != "" && executor.cfg != nil && executor.cfg.HindsightAPIURL != "" {
 		memoryURL := fmt.Sprintf("%s/memory/%s", executor.cfg.MCPBaseURL, agentDispatch.AgentID)
 		servers = append(servers, bridgepkg.McpServerDefinition{
@@ -205,39 +187,27 @@ func buildMcpTransport(url, token string) bridgepkg.McpTransport {
 	return transport
 }
 
-// --------------------------------------------------------------------------
-// Provider override builder
-// --------------------------------------------------------------------------
-
 func (executor *Executor) buildProvider(agent *model.Agent) *bridgepkg.ProviderConfig {
 	if agent.CredentialID == nil {
 		return nil
 	}
-	// In production, we'd load the credential and build a proper override.
-	// For system agents or agents without credentials, return nil (use agent default).
+
 	return nil
 }
-
-// --------------------------------------------------------------------------
-// Instructions builder
-// --------------------------------------------------------------------------
 
 func buildInstructions(agentDispatch dispatch.AgentDispatch) string {
 	var builder strings.Builder
 
-	// Persona preamble.
 	if agentDispatch.RouterPersona != "" {
 		builder.WriteString(agentDispatch.RouterPersona)
 		builder.WriteString("\n\n---\n\n")
 	}
 
-	// Prefer enriched message over flat refs.
 	if agentDispatch.EnrichedMessage != "" {
 		builder.WriteString(agentDispatch.EnrichedMessage)
 		return builder.String()
 	}
 
-	// Trigger-level instructions (cron/http triggers).
 	if agentDispatch.TriggerInstructions != "" {
 		builder.WriteString(dispatch.SubstituteRefs(agentDispatch.TriggerInstructions, agentDispatch.Refs))
 		if len(agentDispatch.Refs) > 0 {
@@ -249,7 +219,6 @@ func buildInstructions(agentDispatch dispatch.AgentDispatch) string {
 		return builder.String()
 	}
 
-	// Fallback: flat refs.
 	for key, value := range agentDispatch.Refs {
 		builder.WriteString(fmt.Sprintf("%s: %s\n", key, value))
 	}
@@ -265,10 +234,6 @@ func buildContinuationMessage(agentDispatch dispatch.AgentDispatch) string {
 	}
 	return builder.String()
 }
-
-// --------------------------------------------------------------------------
-// Priority grouping
-// --------------------------------------------------------------------------
 
 func groupByPriority(dispatches []dispatch.AgentDispatch) [][]dispatch.AgentDispatch {
 	if len(dispatches) == 0 {

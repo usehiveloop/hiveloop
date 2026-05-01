@@ -39,18 +39,15 @@ func (h *ConversationHandler) SendMessage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Lazy token rotation — refresh if near expiry before sending.
-	// Skip for system agent conversations (per-conversation token override TODO).
 	if h.pusher != nil && conv.CredentialID == nil && h.pusher.NeedsTokenRotation(conv.AgentID.String()) {
 		var agent model.Agent
 		if err := h.db.Where("id = ?", conv.AgentID).First(&agent).Error; err == nil {
 			if err := h.pusher.RotateAgentToken(r.Context(), &agent, &conv.Sandbox); err != nil {
 				logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to rotate agent token", "agent_id", conv.AgentID, "error", err)
-				// Non-fatal — try sending with existing token
+
 			}
 		}
 	}
-	// TODO: Add per-conversation token rotation for system agents when Bridge supports it
 
 	client, ok := h.getBridgeClient(w, r, conv)
 	if !ok {
@@ -121,7 +118,7 @@ func (h *ConversationHandler) End(w http.ResponseWriter, r *http.Request) {
 
 	if err := client.EndConversation(r.Context(), conv.BridgeConversationID); err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to end conversation in bridge", "conversation_id", conv.ID, "error", err)
-		// Continue to update our DB even if Bridge fails
+
 	}
 
 	now := time.Now()
@@ -187,7 +184,7 @@ func (h *ConversationHandler) ResolveApproval(w http.ResponseWriter, r *http.Req
 	requestID := chi.URLParam(r, "requestID")
 
 	var req struct {
-		Decision string `json:"decision"` // "approve" or "deny"
+		Decision string `json:"decision"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})

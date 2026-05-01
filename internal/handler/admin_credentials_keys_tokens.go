@@ -125,7 +125,6 @@ func (h *AdminHandler) RevokeCredential(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }
 
-
 // ListAPIKeys handles GET /admin/v1/api-keys.
 // @Summary List all API keys
 // @Description Returns API keys across all organizations.
@@ -209,7 +208,6 @@ func (h *AdminHandler) RevokeAPIKey(w http.ResponseWriter, r *http.Request) {
 	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: api key revoked", "api_key_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }
-
 
 // ListTokens handles GET /admin/v1/tokens.
 // @Summary List all proxy tokens

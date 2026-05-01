@@ -18,9 +18,9 @@ func NewProxyHandler(cacheManager *cache.Manager, transport http.RoundTripper) h
 	rp := &httputil.ReverseProxy{
 		Director:      director,
 		Transport:     transport,
-		FlushInterval: -1, // immediate SSE streaming
+		FlushInterval: -1,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			// Check if the director set an error
+
 			if proxyErr := r.Header.Get("X-Proxy-Error"); proxyErr != "" {
 				http.Error(w, `{"error":"`+proxyErr+`"}`, http.StatusBadGateway)
 				return

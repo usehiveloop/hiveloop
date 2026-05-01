@@ -100,6 +100,7 @@ func (h *AdminHandler) DeleteSandboxTemplate(w http.ResponseWriter, r *http.Requ
 	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: sandbox template deleted", "template_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
+
 // CreateSandboxTemplate handles POST /admin/v1/sandbox-templates.
 // @Summary Register a public sandbox template
 // @Description Registers a pre-built Daytona snapshot as a public (platform-wide) sandbox template.
@@ -155,13 +156,13 @@ func (h *AdminHandler) CreateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 	}
 
 	tmpl := model.SandboxTemplate{
-		OrgID:        nil, // public template
+		OrgID:        nil,
 		Name:         name,
 		Description:  description,
 		Slug:         slug,
 		Tags:         tags,
 		Size:         size,
-		ExternalID:   &slug, // slug IS the Daytona snapshot name
+		ExternalID:   &slug,
 		BaseImageRef: trimmedRef(req.BaseImageRef),
 		BuildStatus:  "ready",
 		Config:       model.JSON{},
@@ -261,7 +262,7 @@ func (h *AdminHandler) UpdateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		updates["slug"] = slug
-		updates["external_id"] = slug // slug IS the Daytona snapshot name
+		updates["external_id"] = slug
 		updates["build_status"] = "ready"
 	}
 	if req.Tags != nil {

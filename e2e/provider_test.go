@@ -11,10 +11,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
-// --------------------------------------------------------------------------
-// E2E: Provider list endpoint
-// --------------------------------------------------------------------------
-
 func TestE2E_Provider_List(t *testing.T) {
 	h := newHarness(t)
 
@@ -39,7 +35,6 @@ func TestE2E_Provider_List(t *testing.T) {
 		t.Fatalf("expected at least 8 providers, got %d", len(providers))
 	}
 
-	// Verify well-known providers are present
 	known := map[string]bool{"openai": false, "anthropic": false, "google": false}
 	for _, p := range providers {
 		if _, ok := known[p.ID]; ok {
@@ -52,7 +47,6 @@ func TestE2E_Provider_List(t *testing.T) {
 		}
 	}
 
-	// Verify model_count > 0 for openai
 	for _, p := range providers {
 		if p.ID == "openai" && p.ModelCount == 0 {
 			t.Error("openai should have model_count > 0")
@@ -61,10 +55,6 @@ func TestE2E_Provider_List(t *testing.T) {
 
 	t.Logf("Listed %d providers", len(providers))
 }
-
-// --------------------------------------------------------------------------
-// E2E: Provider detail endpoint
-// --------------------------------------------------------------------------
 
 func TestE2E_Provider_Get(t *testing.T) {
 	h := newHarness(t)
@@ -96,7 +86,6 @@ func TestE2E_Provider_Get(t *testing.T) {
 		t.Fatal("expected models for openai")
 	}
 
-	// Check that a gpt-5 family model exists in the curated catalog
 	found := false
 	for _, m := range provider.Models {
 		if strings.Contains(m.ID, "gpt-5") {
@@ -111,10 +100,6 @@ func TestE2E_Provider_Get(t *testing.T) {
 	t.Logf("OpenAI has %d models", len(provider.Models))
 }
 
-// --------------------------------------------------------------------------
-// E2E: Provider not found
-// --------------------------------------------------------------------------
-
 func TestE2E_Provider_NotFound(t *testing.T) {
 	h := newHarness(t)
 
@@ -126,10 +111,6 @@ func TestE2E_Provider_NotFound(t *testing.T) {
 		t.Fatalf("expected 404, got %d", rr.Code)
 	}
 }
-
-// --------------------------------------------------------------------------
-// E2E: Provider models endpoint
-// --------------------------------------------------------------------------
 
 func TestE2E_Provider_Models(t *testing.T) {
 	h := newHarness(t)
@@ -163,7 +144,6 @@ func TestE2E_Provider_Models(t *testing.T) {
 		t.Fatal("expected models for anthropic")
 	}
 
-	// Verify Claude model exists and has cost/limit data
 	for _, m := range models {
 		if strings.Contains(m.ID, "claude") {
 			if m.Cost == nil {
@@ -180,14 +160,6 @@ func TestE2E_Provider_Models(t *testing.T) {
 
 	t.Logf("Anthropic has %d models", len(models))
 }
-
-// --------------------------------------------------------------------------
-// E2E: Registry URL matching
-// --------------------------------------------------------------------------
-
-// --------------------------------------------------------------------------
-// E2E: Provider list returns sorted by ID
-// --------------------------------------------------------------------------
 
 func TestE2E_Provider_Sorted(t *testing.T) {
 	h := newHarness(t)
@@ -212,10 +184,6 @@ func TestE2E_Provider_Sorted(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
-// E2E: Registry stats
-// --------------------------------------------------------------------------
-
 func TestE2E_Registry_Stats(t *testing.T) {
 	reg := registry.Global()
 
@@ -232,15 +200,10 @@ func TestE2E_Registry_Stats(t *testing.T) {
 	t.Logf("Registry: %d providers, %d models", providers, models)
 }
 
-// --------------------------------------------------------------------------
-// E2E: Credential list shows provider_id
-// --------------------------------------------------------------------------
-
 func TestE2E_Credential_ListShowsProviderID(t *testing.T) {
 	h := newHarness(t)
 	org := h.createOrg(t)
 
-	// Create a credential with an explicit provider_id
 	body := `{"label":"openai-test","provider_id":"openai","base_url":"https://api.openai.com/v1","auth_scheme":"bearer","api_key":"sk-test"}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -251,7 +214,6 @@ func TestE2E_Credential_ListShowsProviderID(t *testing.T) {
 		t.Fatalf("create: expected 201, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// List and verify provider_id
 	req = httptest.NewRequest(http.MethodGet, "/v1/credentials", nil)
 	req = middleware.WithOrg(req, &org)
 	rr = httptest.NewRecorder()

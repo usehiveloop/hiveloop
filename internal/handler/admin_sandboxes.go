@@ -180,7 +180,6 @@ func (h *AdminHandler) CleanupSandboxes(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Find all sandboxes in error state or stopped for > 24h
 	var sandboxes []model.Sandbox
 	cutoff := time.Now().Add(-24 * time.Hour)
 	h.db.Where("status = 'error' OR (status = 'stopped' AND updated_at < ?)", cutoff).Find(&sandboxes)

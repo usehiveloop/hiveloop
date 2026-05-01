@@ -6,14 +6,9 @@ import (
 	"net/http"
 	"time"
 
-
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
-
-// oauthProfile holds the normalised user info fetched from an OAuth provider.
-
-// provider (e.g. X/Twitter) does not return a user email.
 
 // isPlaceholderEmail reports whether the email is a generated placeholder.
 func (h *OAuthHandler) issueExchangeTokenAndRedirect(w http.ResponseWriter, r *http.Request, provider string, user *model.User) {
@@ -38,10 +33,6 @@ func (h *OAuthHandler) issueExchangeTokenAndRedirect(w http.ResponseWriter, r *h
 	redirectURL := fmt.Sprintf("%s/oauth/%s/callback?token=%s", h.frontendURL, provider, plaintext)
 	http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
 }
-
-// ---------------------------------------------------------------------------
-// Exchange endpoint — swap the one-time token for access + refresh tokens.
-// ---------------------------------------------------------------------------
 
 type exchangeRequest struct {
 	Token string `json:"token"`
@@ -80,7 +71,6 @@ func (h *OAuthHandler) Exchange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Mark as used.
 	now := time.Now()
 	if err := h.db.Model(&et).Update("used_at", &now).Error; err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to mark exchange token as used", "error", err)
@@ -88,7 +78,6 @@ func (h *OAuthHandler) Exchange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load user.
 	var user model.User
 	if err := h.db.Where("id = ?", et.UserID).First(&user).Error; err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "oauth exchange: user not found", "user_id", et.UserID, "error", err)
@@ -96,7 +85,6 @@ func (h *OAuthHandler) Exchange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load memberships.
 	var memberships []model.OrgMembership
 	h.db.Preload("Org").Where("user_id = ?", user.ID).Find(&memberships)
 
@@ -110,8 +98,3 @@ func (h *OAuthHandler) Exchange(w http.ResponseWriter, r *http.Request) {
 
 	h.issueTokensAndRespond(r.Context(), w, http.StatusOK, user, orgID, role, memberships)
 }
-
-// ---------------------------------------------------------------------------
-// Token issuance (mirrors AuthHandler.issueTokensAndRespond)
-// ---------------------------------------------------------------------------
-

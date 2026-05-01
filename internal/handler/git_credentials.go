@@ -60,14 +60,12 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract bearer token from Authorization header
 	bearerToken := extractBearerToken(r)
 	if bearerToken == "" {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing authorization"})
 		return
 	}
 
-	// Load the agent
 	var agent model.Agent
 	if err := h.db.Where("id = ? AND deleted_at IS NULL", agentID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -78,7 +76,6 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify the bearer token matches any sandbox's Bridge API key for this agent
 	var sandboxes []model.Sandbox
 	if err := h.db.Where("agent_id = ?", agentID).Find(&sandboxes).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up sandboxes"})
@@ -100,7 +97,6 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check cache
 	if entry, ok := h.cache.Get(agentID); ok {
 		writeGitCredentials(w, entry.token)
 		return
@@ -134,7 +130,6 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch fresh token from Nango
 	providerConfigKey := "in_" + integration.UniqueKey
 	nangoConn, err := h.nango.GetConnection(r.Context(), conn.NangoConnectionID, providerConfigKey)
 	if err != nil {
@@ -158,7 +153,6 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cache and respond
 	h.cache.Add(agentID, &gitTokenEntry{
 		token:    accessToken,
 		cachedAt: time.Now(),

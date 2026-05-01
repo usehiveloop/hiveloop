@@ -135,7 +135,6 @@ func TestAgentDelete_SoftDeletesAndEnqueuesCleanup(t *testing.T) {
 		t.Fatal("deleted_at should be set")
 	}
 
-	// Cleanup task should be enqueued
 	h.enqueuer.AssertEnqueued(t, tasks.TypeAgentCleanup)
 }
 
@@ -146,7 +145,6 @@ func TestAgentDelete_HiddenFromListAndGet(t *testing.T) {
 
 	h.doRequest(t, "DELETE", "/v1/agents/"+agent.ID.String(), user.ID, org.ID)
 
-	// List should not include it
 	rr := h.doRequest(t, "GET", "/v1/agents", user.ID, org.ID)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("list: expected 200, got %d", rr.Code)
@@ -162,7 +160,6 @@ func TestAgentDelete_HiddenFromListAndGet(t *testing.T) {
 		}
 	}
 
-	// Get should return 404
 	rr = h.doRequest(t, "GET", "/v1/agents/"+agent.ID.String(), user.ID, org.ID)
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("get: expected 404, got %d: %s", rr.Code, rr.Body.String())
@@ -200,7 +197,6 @@ func TestAgentDelete_UpdateReturns404ForSoftDeleted(t *testing.T) {
 	org, user := h.createTestOrg(t)
 	agent := h.createTestAgent(t, org.ID, "update-del-"+uuid.New().String()[:8])
 
-	// Soft-delete
 	now := time.Now()
 	h.db.Model(&agent).Update("deleted_at", &now)
 

@@ -12,10 +12,9 @@ import (
 func TestOTP_FullFlow_NewUser(t *testing.T) {
 	h := newOTPHarness(t)
 	testEmail := "otp-new-user@test.hiveloop.com"
-	h.cleanup(t, testEmail) // Remove stale data from prior runs
+	h.cleanup(t, testEmail)
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 
-	// Step 1: Request OTP
 	rr := h.doRequest(t, "POST", "/auth/otp/request", map[string]string{"email": testEmail})
 	if rr.Code != http.StatusOK {
 		t.Fatalf("OTP request: expected 200, got %d: %s", rr.Code, rr.Body.String())
@@ -44,7 +43,6 @@ func TestOTP_FullFlow_NewUser(t *testing.T) {
 		t.Fatal("could not recover OTP code from hash — hash mismatch")
 	}
 
-	// Step 3: Verify OTP — should create user and return tokens
 	rr = h.doRequest(t, "POST", "/auth/otp/verify", map[string]string{
 		"email": testEmail,
 		"code":  plainCode,
@@ -87,7 +85,6 @@ func TestOTP_FullFlow_NewUser(t *testing.T) {
 		t.Fatal("OTP should be marked as used")
 	}
 
-	// Step 5: Replay same code — should fail
 	rr = h.doRequest(t, "POST", "/auth/otp/verify", map[string]string{
 		"email": testEmail,
 		"code":  plainCode,
@@ -102,7 +99,6 @@ func TestOTP_FullFlow_ExistingUser(t *testing.T) {
 	testEmail := "otp-existing@test.hiveloop.com"
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 
-	// Pre-create user with org
 	user := model.User{Email: testEmail, Name: "Existing"}
 	if err := h.db.Create(&user).Error; err != nil {
 		t.Fatalf("create user: %v", err)
@@ -119,13 +115,11 @@ func TestOTP_FullFlow_ExistingUser(t *testing.T) {
 		h.db.Where("id = ?", org.ID).Delete(&model.Org{})
 	})
 
-	// Request + recover code
 	h.doRequest(t, "POST", "/auth/otp/request", map[string]string{"email": testEmail})
 	var otp model.OTPCode
 	h.db.Where("email = ? AND used_at IS NULL", testEmail).First(&otp)
 	plainCode := recoverCode(t, otp.TokenHash)
 
-	// Verify — should return 200 (existing user), not 201
 	rr := h.doRequest(t, "POST", "/auth/otp/verify", map[string]string{
 		"email": testEmail,
 		"code":  plainCode,
@@ -140,4 +134,3 @@ func TestOTP_FullFlow_ExistingUser(t *testing.T) {
 		t.Fatal("missing access_token")
 	}
 }
-

@@ -19,12 +19,12 @@ import (
 // lifecycleHarness sets up the full chain for lifecycle tests.
 type lifecycleHarness struct {
 	*testHarness
-	org      model.Org
-	cred     model.Credential
-	agent    model.Agent
-	sandbox  model.Sandbox
-	conv     model.AgentConversation
-	router   *chi.Mux
+	org     model.Org
+	cred    model.Credential
+	agent   model.Agent
+	sandbox model.Sandbox
+	conv    model.AgentConversation
+	router  *chi.Mux
 }
 
 func newLifecycleHarness(t *testing.T) *lifecycleHarness {
@@ -51,7 +51,7 @@ func newLifecycleHarness(t *testing.T) *lifecycleHarness {
 	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
 
 	sandbox := model.Sandbox{
-		OrgID: &org.ID,
+		OrgID:      &org.ID,
 		ExternalID: "lc-ext-" + suffix, BridgeURL: "https://test:25434",
 		EncryptedBridgeAPIKey: []byte("enc-key"), Status: "running",
 	}
@@ -68,7 +68,6 @@ func newLifecycleHarness(t *testing.T) *lifecycleHarness {
 		h.db.Where("id = ?", conv.ID).Delete(&model.AgentConversation{})
 	})
 
-	// Add some events
 	now := time.Now()
 	events := []model.ConversationEvent{
 		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e1", EventType: "ConversationCreated", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 1, Data: model.RawJSON(`{}`)},
@@ -80,7 +79,6 @@ func newLifecycleHarness(t *testing.T) *lifecycleHarness {
 		h.db.Create(&events[i])
 	}
 
-	// Build router with conversation + sandbox handlers
 	convHandler := handler.NewConversationHandler(h.db, nil, nil, nil)
 	sandboxHandler := handler.NewSandboxHandler(h.db, nil)
 
@@ -117,8 +115,6 @@ func (lh *lifecycleHarness) request(t *testing.T, method, path string) *httptest
 	lh.router.ServeHTTP(rr, req)
 	return rr
 }
-
-// === Conversation Events API Tests ===
 
 func TestListEvents_AllEvents(t *testing.T) {
 	lh := newLifecycleHarness(t)
@@ -197,8 +193,6 @@ func TestListEvents_IncludesPayload(t *testing.T) {
 	}
 }
 
-// === Sandbox Management Tests ===
-
 func TestListSandboxes(t *testing.T) {
 	lh := newLifecycleHarness(t)
 
@@ -252,7 +246,6 @@ func TestListSandboxes_FilterByStatus(t *testing.T) {
 	}
 }
 
-
 func TestGetSandbox(t *testing.T) {
 	lh := newLifecycleHarness(t)
 
@@ -285,13 +278,10 @@ func TestGetSandbox_NotFound(t *testing.T) {
 	}
 }
 
-// === Token Rotation Tests ===
-
 func TestTokenRotation_NeedsRotation(t *testing.T) {
 	lh := newLifecycleHarness(t)
 	suffix := uuid.New().String()[:8]
 
-	// Create a token that expires in 2 hours (within 3h rotation window)
 	tok := model.Token{
 		OrgID: lh.org.ID, CredentialID: lh.cred.ID,
 		JTI:       "expiring-" + suffix,
@@ -301,7 +291,6 @@ func TestTokenRotation_NeedsRotation(t *testing.T) {
 	lh.db.Create(&tok)
 	t.Cleanup(func() { lh.db.Where("jti = ?", tok.JTI).Delete(&model.Token{}) })
 
-	// Query: should this agent's token be rotated?
 	var count int64
 	lh.db.Model(&model.Token{}).Where(
 		"meta->>'agent_id' = ? AND meta->>'type' = 'agent_proxy' AND revoked_at IS NULL AND expires_at < ?",
@@ -317,7 +306,6 @@ func TestTokenRotation_NoRotationNeeded(t *testing.T) {
 	lh := newLifecycleHarness(t)
 	suffix := uuid.New().String()[:8]
 
-	// Create a token that expires in 20 hours (outside rotation window)
 	tok := model.Token{
 		OrgID: lh.org.ID, CredentialID: lh.cred.ID,
 		JTI:       "fresh-" + suffix,
@@ -339,5 +327,5 @@ func TestTokenRotation_NoRotationNeeded(t *testing.T) {
 }
 
 func init() {
-	_ = strings.NewReader // ensure import
+	_ = strings.NewReader
 }

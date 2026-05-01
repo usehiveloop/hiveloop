@@ -60,7 +60,6 @@ func newSpiderHarness(t *testing.T, spiderHandler http.Handler) *spiderTestHarne
 
 	spiderH := handler.NewSpiderHandler(spiderClient, usageWriter, database)
 
-	// Create test org
 	orgID := uuid.New()
 	org := model.Org{
 		ID:        orgID,
@@ -72,7 +71,6 @@ func newSpiderHarness(t *testing.T, spiderHandler http.Handler) *spiderTestHarne
 		t.Fatalf("create test org: %v", err)
 	}
 
-	// Create test credential (needed for token foreign key)
 	credID := uuid.New()
 	cred := model.Credential{
 		ID:           credID,
@@ -86,7 +84,6 @@ func newSpiderHarness(t *testing.T, spiderHandler http.Handler) *spiderTestHarne
 		t.Fatalf("create test credential: %v", err)
 	}
 
-	// Create test token with agent_id in meta
 	agentID := uuid.New()
 	tokenJTI := uuid.New().String()
 	token := model.Token{
@@ -108,7 +105,6 @@ func newSpiderHarness(t *testing.T, spiderHandler http.Handler) *spiderTestHarne
 		database.Where("id = ?", orgID).Delete(&model.Org{})
 	})
 
-	// Set up router with claims injection (simulating TokenAuth middleware)
 	router := chi.NewRouter()
 	router.Route("/v1/spider", func(r chi.Router) {
 		r.Use(func(next http.Handler) http.Handler {
@@ -150,8 +146,6 @@ func (harness *spiderTestHarness) doRequest(t *testing.T, path string, body any)
 	harness.router.ServeHTTP(recorder, req)
 	return recorder
 }
-
-// ---------- Crawl ----------
 
 func TestSpiderCrawl_Success(t *testing.T) {
 	var captured struct {
@@ -239,8 +233,6 @@ func TestSpiderCrawl_SpiderError(t *testing.T) {
 	}
 }
 
-// ---------- Search ----------
-
 func TestSpiderSearch_Success(t *testing.T) {
 	spiderAPI := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -285,8 +277,6 @@ func TestSpiderSearch_MissingQuery(t *testing.T) {
 	}
 }
 
-// ---------- Links ----------
-
 func TestSpiderLinks_Success(t *testing.T) {
 	spiderAPI := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -306,8 +296,6 @@ func TestSpiderLinks_Success(t *testing.T) {
 	}
 }
 
-// ---------- Screenshot ----------
-
 func TestSpiderScreenshot_Success(t *testing.T) {
 	spiderAPI := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -326,8 +314,6 @@ func TestSpiderScreenshot_Success(t *testing.T) {
 		t.Fatalf("expected 200, got %d; body: %s", recorder.Code, recorder.Body.String())
 	}
 }
-
-// ---------- Transform ----------
 
 func TestSpiderTransform_Success(t *testing.T) {
 	spiderAPI := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -365,8 +351,6 @@ func TestSpiderTransform_EmptyData(t *testing.T) {
 	}
 }
 
-// ---------- Usage Tracking ----------
-
 func TestSpiderCrawl_RecordsUsage(t *testing.T) {
 	spiderAPI := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -386,13 +370,10 @@ func TestSpiderCrawl_RecordsUsage(t *testing.T) {
 		t.Fatalf("expected 200, got %d; body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	// Flush the usage writer to ensure records are written
 	harness.usageWriter.Shutdown(t.Context())
 
-	// Wait briefly for the batch to flush
 	time.Sleep(100 * time.Millisecond)
 
-	// Query the database for the usage record
 	var usages []model.ToolUsage
 	if err := harness.db.Where("org_id = ? AND tool_name = ?", harness.orgID, "crawl").Find(&usages).Error; err != nil {
 		t.Fatalf("query tool_usages: %v", err)
@@ -442,7 +423,6 @@ func TestSpiderCrawl_RecordsErrorUsage(t *testing.T) {
 		t.Fatalf("expected 502, got %d", recorder.Code)
 	}
 
-	// Flush the usage writer
 	harness.usageWriter.Shutdown(t.Context())
 	time.Sleep(100 * time.Millisecond)
 

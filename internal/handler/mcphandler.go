@@ -79,19 +79,17 @@ func (h *MCPHandler) serverFactory(r *http.Request) *mcp.Server {
 
 	ctx := r.Context()
 	srv, err := h.ServerCache.GetOrBuild(claims.JTI, func() (*mcp.Server, time.Time, error) {
-		// Load token record with scopes
+
 		var token model.Token
 		if err := h.db.WithContext(ctx).Where("jti = ?", claims.JTI).First(&token).Error; err != nil {
 			return nil, time.Time{}, err
 		}
 
-		// Parse scopes from JSONB
 		scopes, err := parseTokenScopes(token.Scopes)
 		if err != nil {
 			return nil, time.Time{}, err
 		}
 
-		// Build MCP server from scopes
 		srv, err := mcpserver.BuildServer(ctx, &token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools, h.subscriptionTools)
 		if err != nil {
 			return nil, time.Time{}, err
@@ -151,8 +149,6 @@ func parseTokenScopes(scopesJSON model.JSON) ([]mcppkg.TokenScope, error) {
 		return nil, nil
 	}
 
-	// The scopes column may be stored as {"scopes": [...]} or directly as [...]
-	// Try the wrapper format first
 	if scopeArr, ok := scopesJSON["scopes"]; ok {
 		raw, err := json.Marshal(scopeArr)
 		if err != nil {

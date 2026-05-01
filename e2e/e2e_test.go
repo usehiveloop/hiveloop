@@ -1,14 +1,3 @@
-// Package e2e contains end-to-end tests that proxy real LLM API requests
-// through the full proxy stack: credential storage → token minting →
-// streaming reverse proxy → upstream LLM provider (via OpenRouter).
-//
-// These tests require:
-//   - Running Docker Compose stack (Postgres, Redis)
-//   - OPENROUTER_API_KEY env var set in .env or environment
-//
-// The tests store the OpenRouter key as a credential (encrypted via AEAD KMS),
-// mint a sandbox token, then proxy requests through the reverse proxy to
-// OpenRouter, which fans out to Anthropic, OpenAI, Google, etc.
 package e2e
 
 import (
@@ -63,7 +52,7 @@ type testHarness struct {
 
 func loadEnv(t *testing.T) {
 	t.Helper()
-	// Load .env file if it exists
+
 	data, err := os.ReadFile("../.env")
 	if err != nil {
 		return
@@ -84,10 +73,8 @@ func newHarness(t *testing.T) *testHarness {
 	t.Helper()
 	loadEnv(t)
 
-	// Allow loopback addresses for test httptest servers
 	proxy.AllowLoopback = true
 
-	// DB
 	dsn := envOr("DATABASE_URL", testDBURL)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -104,20 +91,17 @@ func newHarness(t *testing.T) *testHarness {
 	}
 	t.Cleanup(func() { sqlDB.Close() })
 
-	// Redis
 	rc := redis.NewClient(&redis.Options{Addr: envOr("REDIS_ADDR", testRedisAddr)})
 	if err := rc.Ping(context.Background()).Err(); err != nil {
 		t.Fatalf("Redis not reachable: %v", err)
 	}
 	t.Cleanup(func() { rc.Close() })
 
-	// KMS (AEAD wrapper for tests)
 	kms, err := crypto.NewAEADWrapper(t.Context(), "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "e2e-test-key")
 	if err != nil {
 		t.Fatalf("cannot create AEAD wrapper: %v", err)
 	}
 
-	// Cache
 	cfg := cache.Config{
 		MemMaxSize: 1000,
 		MemTTL:     5 * time.Minute,
@@ -130,28 +114,20 @@ func newHarness(t *testing.T) *testHarness {
 
 	signingKey := []byte(testSigningKey)
 
-	// Audit writer
 	aw := middleware.NewAuditWriter(t.Context(), db, 1000, 10*time.Millisecond)
 
-	// Build the full Chi router
 	r := chi.NewRouter()
 
-	// Request-cap counter
 	ctr := counter.New(rc, db)
 
-	// Actions catalog
 	actionsCatalog := catalog.Global()
 
-	// Credential + token + identity handlers
 	credHandler := handler.NewCredentialHandler(db, kms, cm, ctr)
 	tokenHandler := handler.NewTokenHandler(db, signingKey, cm, ctr, actionsCatalog, "", nil)
 
-	// Provider handler
 	reg := registry.Global()
 	providerHandler := handler.NewProviderHandler(reg, db)
 
-	// Connect handlers
-	// Nango mock — no external Nango instance required
 	nangoMockServer := newNangoMock(t)
 	nangoClient := nango.NewClient(nangoMockServer.URL(), "mock-secret-key")
 	if err := nangoClient.FetchProviders(context.Background()); err != nil {
@@ -160,9 +136,6 @@ func newHarness(t *testing.T) *testHarness {
 
 	t.Logf("Nango provider cache loaded: %d providers", len(nangoClient.GetProviders()))
 
-	// Integration + connection handlers
-
-	// Management routes (no JWT auth in E2E — we set org on context directly)
 	r.Route("/v1", func(r chi.Router) {
 		r.Post("/credentials", credHandler.Create)
 		r.Get("/credentials", credHandler.List)
@@ -174,14 +147,12 @@ func newHarness(t *testing.T) *testHarness {
 		r.Get("/providers/{id}/models", providerHandler.Models)
 	})
 
-	// Connect API (session-authenticated)
 	r.Route("/v1/widget", func(r chi.Router) {
 
 		r.Route("/integrations", func(r chi.Router) {
 		})
 	})
 
-	// Proxy route (token auth + identity rate limits + request caps + audit)
 	proxyHandler := handler.NewProxyHandler(cm, proxy.NewTransport())
 	r.Route("/v1/proxy", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, db))
@@ -295,21 +266,15 @@ func envOr(key, fallback string) string {
 	return fallback
 }
 
-// --------------------------------------------------------------------------
-// E2E: Credential lifecycle (no LLM key needed)
-// --------------------------------------------------------------------------
-
 func TestE2E_CredentialLifecycle(t *testing.T) {
 	h := newHarness(t)
 	org := h.createOrg(t)
 
-	// Create
 	cred := h.storeCredential(t, org, "https://api.example.com", "bearer", "sk-fake-key-12345")
 	if cred.ID == uuid.Nil {
 		t.Fatal("credential not created")
 	}
 
-	// List
 	req := httptest.NewRequest(http.MethodGet, "/v1/credentials", nil)
 	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
@@ -328,7 +293,6 @@ func TestE2E_CredentialLifecycle(t *testing.T) {
 		t.Fatal("created credential not in list")
 	}
 
-	// Revoke
 	req = httptest.NewRequest(http.MethodDelete, "/v1/credentials/"+cred.ID.String(), nil)
 	req = middleware.WithOrg(req, &org)
 	rr = httptest.NewRecorder()
@@ -337,7 +301,6 @@ func TestE2E_CredentialLifecycle(t *testing.T) {
 		t.Fatalf("revoke: expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// Verify revoked credential can't be used for new tokens
 	body := fmt.Sprintf(`{"credential_id":%q,"ttl":"1h"}`, cred.ID.String())
 	req = httptest.NewRequest(http.MethodPost, "/v1/tokens", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -349,29 +312,22 @@ func TestE2E_CredentialLifecycle(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
-// E2E: Token mint + revoke lifecycle (no LLM key needed)
-// --------------------------------------------------------------------------
-
 func TestE2E_TokenLifecycle(t *testing.T) {
 	h := newHarness(t)
 	org := h.createOrg(t)
 	cred := h.storeCredential(t, org, "https://api.example.com", "bearer", "sk-fake-key-12345")
 
-	// Mint
 	tok := h.mintToken(t, org, cred.ID)
 	if !strings.HasPrefix(tok, "ptok_") {
 		t.Fatalf("expected ptok_ prefix, got %s", tok[:10])
 	}
 
-	// Extract JTI for revocation
 	jwtStr := strings.TrimPrefix(tok, "ptok_")
 	claims, err := token.Validate(h.signingKey, jwtStr)
 	if err != nil {
 		t.Fatalf("validate minted token: %v", err)
 	}
 
-	// Revoke
 	req := httptest.NewRequest(http.MethodDelete, "/v1/tokens/"+claims.ID, nil)
 	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
@@ -380,7 +336,6 @@ func TestE2E_TokenLifecycle(t *testing.T) {
 		t.Fatalf("revoke token: expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// Verify revoked token is rejected by proxy
 	proxyPath := "/v1/proxy/v1/chat/completions"
 	rr = h.proxyRequest(t, http.MethodPost, proxyPath, tok, strings.NewReader(`{}`))
 	if rr.Code != http.StatusUnauthorized {
@@ -400,4 +355,3 @@ func decodePaginatedList(t *testing.T, rr *httptest.ResponseRecorder) []map[stri
 	}
 	return resp.Data
 }
-

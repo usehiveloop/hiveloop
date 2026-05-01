@@ -65,9 +65,7 @@ func (h *SystemTaskHandler) logForwardError(logger *slog.Logger, err error, stre
 }
 
 func (h *SystemTaskHandler) handleForwardError(w http.ResponseWriter, err error, alreadyStreaming bool) {
-	// If we already started writing the SSE stream the response body has
-	// chunks in it; we can't switch to a JSON error. Emit a final SSE error
-	// frame so the client knows the stream died.
+
 	if alreadyStreaming {
 		fmt.Fprintf(w, "data: {\"error\":\"upstream\"}\n\n")
 		if f, ok := w.(http.Flusher); ok {

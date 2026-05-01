@@ -43,14 +43,12 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Look up user. Always return 200 regardless (anti-enumeration).
 	var user model.User
 	if err := h.db.Where("email = ?", req.Email).First(&user).Error; err != nil {
 		writeJSON(w, http.StatusOK, genericResponse)
 		return
 	}
 
-	// Rate limit: max 3 per user per 15 minutes.
 	var count int64
 	cutoff := time.Now().Add(-15 * time.Minute)
 	h.db.Model(&model.PasswordReset{}).Where("user_id = ? AND created_at > ?", user.ID, cutoff).Count(&count)
@@ -141,13 +139,13 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		if err := tx.Model(&model.User{}).Where("id = ?", reset.UserID).Update("password_hash", newHash).Error; err != nil {
 			return err
 		}
-		// Revoke all refresh tokens for this user (invalidate all sessions).
+
 		if err := tx.Model(&model.RefreshToken{}).
 			Where("user_id = ? AND revoked_at IS NULL", reset.UserID).
 			Update("revoked_at", &now).Error; err != nil {
 			return err
 		}
-		// Invalidate all other pending reset tokens for this user.
+
 		if err := tx.Model(&model.PasswordReset{}).
 			Where("user_id = ? AND used_at IS NULL AND id != ?", reset.UserID, reset.ID).
 			Update("used_at", &now).Error; err != nil {
@@ -163,8 +161,6 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	logging.FromContext(r.Context()).InfoContext(r.Context(), "password reset completed", "user_id", reset.UserID)
 
-	// Notify the user their password has been changed. This is a security
-	// alert — if they didn't reset, they need to act immediately.
 	var user model.User
 	if err := h.db.Where("id = ?", reset.UserID).First(&user).Error; err == nil {
 		_ = h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{
@@ -245,7 +241,7 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		if err := tx.Model(&user).Update("password_hash", newHash).Error; err != nil {
 			return err
 		}
-		// Revoke all refresh tokens (forces re-login on all devices).
+
 		if err := tx.Model(&model.RefreshToken{}).
 			Where("user_id = ? AND revoked_at IS NULL", user.ID).
 			Update("revoked_at", &now).Error; err != nil {
@@ -261,7 +257,6 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	logging.FromContext(r.Context()).InfoContext(r.Context(), "password changed", "user_id", user.ID)
 
-	// Security alert: notify the user their password has been changed.
 	_ = h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{
 		To:   user.Email,
 		Slug: email.TmplAuthPasswordChanged,
@@ -277,10 +272,7 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// --- Login rate limiting ---
-
 const (
 	maxLoginFailures   = 5
 	loginLockoutWindow = 15 * time.Minute
 )
-

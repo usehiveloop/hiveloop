@@ -49,8 +49,7 @@ func (h *BillingRenewSweepHandler) Handle(ctx context.Context, _ *asynq.Task) er
 			continue
 		}
 		task := asynq.NewTask(TypeBillingRenewSubscription, payload)
-		// MaxRetry=0: Service.Renew owns retry semantics via row counter.
-		// Unique on sub id so duplicate sweep ticks can't double-enqueue.
+
 		_, err = h.enqueuer.Enqueue(task,
 			asynq.Queue(QueueDefault),
 			asynq.MaxRetry(0),

@@ -12,7 +12,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-
 // UpdateUser handles PUT /admin/v1/users/{id}.
 // @Summary Update a user
 // @Description Updates user name and/or email with validation.
@@ -66,7 +65,7 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid email format"})
 			return
 		}
-		// Check uniqueness
+
 		var existing model.User
 		if err := h.db.Where("email = ? AND id != ?", email, user.ID).First(&existing).Error; err == nil {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "email already in use by another user"})
@@ -80,7 +79,6 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Compute diff for audit (only what actually changed)
 	old := map[string]any{"name": user.Name, "email": user.Email}
 	setAuditDiff(r, old, updates)
 

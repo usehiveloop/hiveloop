@@ -1,10 +1,5 @@
 package handler
 
-// Internal test (package handler, not handler_test) so it can exercise the
-// unexported createUserDefaultOrg helper directly. Tests run against the
-// same Postgres used by handler_test (mirrored connectInternalTestDB below
-// because the package_test helper isn't reachable from this package).
-
 import (
 	"os"
 	"testing"
@@ -43,10 +38,7 @@ func connectInternalTestDB(t *testing.T) *gorm.DB {
 
 func seedFreePlan(t *testing.T, db *gorm.DB, welcome int64) {
 	t.Helper()
-	// The plans.slug column has a unique index. Hard-delete any
-	// pre-existing 'free' plan from earlier tests so we always start
-	// from a known state. Tests in this package run serially (no
-	// t.Parallel), so this is race-free.
+
 	if err := db.Unscoped().Where("slug = ?", billing.FreePlanSlug).Delete(&model.Plan{}).Error; err != nil {
 		t.Fatalf("clear existing free plan: %v", err)
 	}
@@ -158,12 +150,10 @@ func TestCreateUserDefaultOrg_ZeroWelcomeCreditsSkipsGrant(t *testing.T) {
 }
 
 func TestCreateUserDefaultOrg_NoFreePlanRowSucceeds(t *testing.T) {
-	// Self-hosted deployments may not seed the plan catalog. The helper must
-	// still succeed: signup completes, just without a welcome grant.
+
 	db := connectInternalTestDB(t)
 	credits := billing.NewCreditsService(db)
 
-	// Make sure no free-plan row exists for this test.
 	db.Unscoped().Where("slug = ?", billing.FreePlanSlug).Delete(&model.Plan{})
 
 	user := seedSignupUser(t, db)

@@ -43,8 +43,6 @@ linters-settings:
           - "!**/cmd/fetchactions-*/**"
           - "!**/skills/upload/**"
           - "!**/internal/rag/vectorstore/spike/**"
-          # Legitimate bridge: stdlib log.Logger used to redirect third-party
-          # logs (e.g. http.Server.ErrorLog) into our slog/sentry pipeline.
           - "!**/internal/observability/sentry/stdlog.go"
         allow:
           - "log/slog"
@@ -85,8 +83,7 @@ issues:
         - forbidigo
         - depguard
         - sloglint
-    # CLI tools — log/fmt.Println are legitimate user-facing terminal output,
-    # and global slog at startup/shutdown predates per-request logger context.
+    # CLI tools — log/fmt.Println are legitimate user-facing terminal output.
     - path: cmd/sandbox-exec/
       linters: [forbidigo, depguard, sloglint]
     - path: cmd/verify-devbox/
@@ -100,10 +97,12 @@ issues:
     # Build-tagged spike binaries.
     - path: internal/rag/vectorstore/spike/
       linters: [forbidigo, depguard]
-    # Observability internals — these wrap slog and sit beneath the logging
-    # package, so they cannot import internal/logging without an import cycle.
     - path: internal/observability/sentry/
       linters: [sloglint]
+    - path: internal/handler/admin_types_update\.go
+      linters: [unused]
+    - path: internal/handler/auth_types\.go
+      linters: [unused]
 
 run:
   timeout: 5m

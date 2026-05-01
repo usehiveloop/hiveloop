@@ -99,10 +99,6 @@ func (m *mockProvider) GetEndpoint(_ context.Context, externalID string, port in
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Honor the existence check even when endpointOverride is set so tests
-	// can simulate "provider lost the workspace" by omitting registerSandbox.
-	// Without this, verifySandboxExists → GetEndpoint always succeeds and
-	// the recreate branch of EnsureSystemSandbox is unreachable.
 	if _, exists := m.sandboxes[externalID]; !exists {
 		return "", fmt.Errorf("sandbox not found: %s", externalID)
 	}
@@ -177,8 +173,6 @@ func (m *mockProvider) ExecuteCommand(ctx context.Context, externalID string, co
 	return "", nil
 }
 
-// --- helpers for assertions ---
-
 func (m *mockProvider) count() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -191,4 +185,3 @@ func (m *mockProvider) registerSandbox(externalID string, status SandboxStatus) 
 	defer m.mu.Unlock()
 	m.sandboxes[externalID] = &mockSandbox{name: externalID, status: status}
 }
-

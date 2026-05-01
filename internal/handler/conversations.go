@@ -96,8 +96,6 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Credit gate. One conversation = one credit. Token-based accounting
-	// happens downstream at the LLM proxy layer — out of scope here.
 	if h.credits != nil {
 		if err := h.credits.Spend(org.ID, 1, billing.ReasonAgentRun, "conversation", ""); err != nil {
 			if errors.Is(err, billing.ErrInsufficientCredits) {
@@ -114,7 +112,6 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	agentID := chi.URLParam(r, "agentID")
 
-	// Load agent with associations
 	var agent model.Agent
 	if err := h.db.Preload("Credential").
 		Where("id = ? AND org_id = ? AND status = 'active'", agentID, org.ID).First(&agent).Error; err != nil {

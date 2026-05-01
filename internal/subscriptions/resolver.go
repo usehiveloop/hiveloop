@@ -41,7 +41,7 @@ func ResolveEventResourceKey(
 	provider, eventType, eventAction string,
 	payload map[string]any,
 ) (string, bool) {
-	_ = logger // logging removed by chore: clean up logs; parameter retained for callers
+	_ = logger
 
 	def, ok := lookupTriggerDef(cat, provider, eventType, eventAction)
 	if !ok {
@@ -58,7 +58,6 @@ func ResolveEventResourceKey(
 	if !ok {
 		return "", false
 	}
-
 
 	return key, true
 }
@@ -117,7 +116,7 @@ func lookupTriggerDef(cat *catalog.Catalog, provider, eventType, eventAction str
 		if def, exists := pt.Triggers[key]; exists {
 			return &def, true
 		}
-		// Fall through to bare eventType (for actionless events like push).
+
 		if eventAction != "" {
 			if def, exists := pt.Triggers[eventType]; exists {
 				return &def, true

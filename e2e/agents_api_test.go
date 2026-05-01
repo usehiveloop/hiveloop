@@ -20,9 +20,9 @@ import (
 // agentAPIHarness extends testHarness with agent-related routes.
 type agentAPIHarness struct {
 	*testHarness
-	org      model.Org
-	cred     model.Credential
-	router   *chi.Mux
+	org    model.Org
+	cred   model.Credential
+	router *chi.Mux
 }
 
 func newAgentAPIHarness(t *testing.T) *agentAPIHarness {
@@ -31,7 +31,6 @@ func newAgentAPIHarness(t *testing.T) *agentAPIHarness {
 
 	suffix := uuid.New().String()[:8]
 
-	// Create org with BYOK so credential_id + model are accepted on agent create.
 	org := model.Org{Name: "e2e-agent-api-" + suffix, BYOK: true}
 	if err := h.db.Create(&org).Error; err != nil {
 		t.Fatalf("create org: %v", err)
@@ -40,7 +39,6 @@ func newAgentAPIHarness(t *testing.T) *agentAPIHarness {
 		h.db.Where("id = ?", org.ID).Delete(&model.Org{})
 	})
 
-	// Create credential (for agents to reference)
 	cred := model.Credential{
 		OrgID:        org.ID,
 		Label:        "test-openai-" + suffix,
@@ -57,11 +55,9 @@ func newAgentAPIHarness(t *testing.T) *agentAPIHarness {
 		h.db.Where("id = ?", cred.ID).Delete(&model.Credential{})
 	})
 
-	// Create identity (agents must be tied to an identity)
 	t.Cleanup(func() {
 	})
 
-	// Build router with agent routes (no auth middleware — we inject org context directly)
 	reg := registry.Global()
 	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(h.db, nil, nil)
 	agentHandler := handler.NewAgentHandler(h.db, reg, nil)
@@ -111,13 +107,10 @@ func (h *agentAPIHarness) request(t *testing.T, method, path, body string) *http
 	return rr
 }
 
-// === Sandbox Template Tests ===
-
 func TestSandboxTemplateAPI_CRUD(t *testing.T) {
 	t.Skip("sandbox template CRUD not supported in test harness")
 	h := newAgentAPIHarness(t)
 
-	// Create
 	rr := h.request(t, http.MethodPost, "/v1/sandbox-templates", `{
 		"name": "python-ml",
 		"build_commands": "pip install numpy pandas scikit-learn",
@@ -152,13 +145,11 @@ func TestSandboxTemplateAPI_CRUD(t *testing.T) {
 		h.db.Where("id = ?", created.ID).Delete(&model.SandboxTemplate{})
 	})
 
-	// Get
 	rr = h.request(t, http.MethodGet, "/v1/sandbox-templates/"+created.ID, "")
 	if rr.Code != http.StatusOK {
 		t.Fatalf("get: expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// List
 	rr = h.request(t, http.MethodGet, "/v1/sandbox-templates", "")
 	if rr.Code != http.StatusOK {
 		t.Fatalf("list: expected 200, got %d", rr.Code)
@@ -172,7 +163,6 @@ func TestSandboxTemplateAPI_CRUD(t *testing.T) {
 		t.Fatal("list should return at least 1 template")
 	}
 
-	// Update
 	rr = h.request(t, http.MethodPut, "/v1/sandbox-templates/"+created.ID, `{
 		"name": "python-ml-v2",
 		"build_commands": "pip install numpy pandas scikit-learn torch"
@@ -193,13 +183,11 @@ func TestSandboxTemplateAPI_CRUD(t *testing.T) {
 		t.Errorf("build_status should reset to pending after command change: got %q", updated.BuildStatus)
 	}
 
-	// Delete
 	rr = h.request(t, http.MethodDelete, "/v1/sandbox-templates/"+created.ID, "")
 	if rr.Code != http.StatusOK {
 		t.Fatalf("delete: expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// Verify deleted
 	rr = h.request(t, http.MethodGet, "/v1/sandbox-templates/"+created.ID, "")
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("get after delete: expected 404, got %d", rr.Code)
@@ -209,26 +197,21 @@ func TestSandboxTemplateAPI_CRUD(t *testing.T) {
 func TestSandboxTemplateAPI_Validation(t *testing.T) {
 	h := newAgentAPIHarness(t)
 
-	// Missing name
 	rr := h.request(t, http.MethodPost, "/v1/sandbox-templates", `{"build_commands": "echo hi"}`)
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("missing name: expected 400, got %d", rr.Code)
 	}
 
-	// Not found
 	rr = h.request(t, http.MethodGet, "/v1/sandbox-templates/"+uuid.New().String(), "")
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("not found: expected 404, got %d", rr.Code)
 	}
 }
 
-// === Agent Tests ===
-
 func TestAgentAPI_CRUD(t *testing.T) {
 	h := newAgentAPIHarness(t)
 	suffix := uuid.New().String()[:8]
 
-	// Create
 	body := fmt.Sprintf(`{
 		"name": "support-agent-%s",
 		"description": "Customer support bot",
@@ -284,13 +267,11 @@ func TestAgentAPI_CRUD(t *testing.T) {
 		t.Errorf("permissions.bash: got %v", created.Permissions["bash"])
 	}
 
-	// Get
 	rr = h.request(t, http.MethodGet, "/v1/agents/"+created.ID, "")
 	if rr.Code != http.StatusOK {
 		t.Fatalf("get: expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// List
 	rr = h.request(t, http.MethodGet, "/v1/agents", "")
 	if rr.Code != http.StatusOK {
 		t.Fatalf("list: expected 200, got %d", rr.Code)
@@ -306,7 +287,6 @@ func TestAgentAPI_CRUD(t *testing.T) {
 		t.Fatal("list should return at least 1 agent")
 	}
 
-	// Update
 	rr = h.request(t, http.MethodPut, "/v1/agents/"+created.ID, `{
 		"system_prompt": "You are an updated support agent.",
 		"agent_config": {"max_tokens": 8192}
@@ -323,13 +303,11 @@ func TestAgentAPI_CRUD(t *testing.T) {
 		t.Errorf("updated system_prompt: got %q", updated.SystemPrompt)
 	}
 
-	// Delete
 	rr = h.request(t, http.MethodDelete, "/v1/agents/"+created.ID, "")
 	if rr.Code != http.StatusOK {
 		t.Fatalf("delete: expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// Verify deleted
 	rr = h.request(t, http.MethodGet, "/v1/agents/"+created.ID, "")
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("get after delete: expected 404, got %d", rr.Code)
@@ -339,13 +317,11 @@ func TestAgentAPI_CRUD(t *testing.T) {
 func TestAgentAPI_Validation(t *testing.T) {
 	h := newAgentAPIHarness(t)
 
-	// Missing required fields (name is required)
 	rr := h.request(t, http.MethodPost, "/v1/agents", `{}`)
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("missing fields: expected 400, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// Non-existent credential
 	rr = h.request(t, http.MethodPost, "/v1/agents", fmt.Sprintf(`{
 		"name": "test", "credential_id": %q,
 		"system_prompt": "test", "model": "gpt-5.4"
@@ -354,7 +330,6 @@ func TestAgentAPI_Validation(t *testing.T) {
 		t.Errorf("bad credential: expected 400, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// Model not supported by provider
 	rr = h.request(t, http.MethodPost, "/v1/agents", fmt.Sprintf(`{
 		"name": "test", "credential_id": %q,
 		"system_prompt": "test", "model": "claude-opus-4-20250514"
@@ -368,7 +343,6 @@ func TestAgentAPI_Validation(t *testing.T) {
 		t.Error("expected error message about model/provider mismatch")
 	}
 
-	// Not found
 	rr = h.request(t, http.MethodGet, "/v1/agents/"+uuid.New().String(), "")
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("not found: expected 404, got %d", rr.Code)
@@ -385,7 +359,6 @@ func TestAgentAPI_DuplicateName(t *testing.T) {
 		"system_prompt": "test", "model": "gpt-5.4"
 	}`, name, h.cred.ID.String())
 
-	// First create succeeds
 	rr := h.request(t, http.MethodPost, "/v1/agents", body)
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("first create: expected 201, got %d: %s", rr.Code, rr.Body.String())
@@ -396,7 +369,6 @@ func TestAgentAPI_DuplicateName(t *testing.T) {
 		h.db.Where("id = ?", first.ID).Delete(&model.Agent{})
 	})
 
-	// Second create with same name fails
 	rr = h.request(t, http.MethodPost, "/v1/agents", body)
 	if rr.Code != http.StatusConflict {
 		t.Errorf("duplicate name: expected 409, got %d: %s", rr.Code, rr.Body.String())
@@ -408,7 +380,6 @@ func TestAgentAPI_WithTemplate(t *testing.T) {
 	h := newAgentAPIHarness(t)
 	suffix := uuid.New().String()[:8]
 
-	// Create template first
 	rr := h.request(t, http.MethodPost, "/v1/sandbox-templates", `{
 		"name": "tmpl-for-agent",
 		"build_commands": "echo setup"
@@ -422,13 +393,11 @@ func TestAgentAPI_WithTemplate(t *testing.T) {
 		h.db.Where("id = ?", tmpl.ID).Delete(&model.SandboxTemplate{})
 	})
 
-	// Mark template as ready (normally done by background build)
 	h.db.Model(&model.SandboxTemplate{}).Where("id = ?", tmpl.ID).Updates(map[string]any{
 		"build_status": "ready",
 		"external_id":  "test-snapshot-id",
 	})
 
-	// Create agent with template
 	body := fmt.Sprintf(`{
 		"name": "agent-with-tmpl-%s",
 		"credential_id": %q,
@@ -454,7 +423,6 @@ func TestAgentAPI_WithTemplate(t *testing.T) {
 		t.Errorf("sandbox_template_id: got %v, want %q", agent.SandboxTemplateID, tmpl.ID)
 	}
 
-	// Cannot delete template while agent references it
 	rr = h.request(t, http.MethodDelete, "/v1/sandbox-templates/"+tmpl.ID, "")
 	if rr.Code != http.StatusConflict {
 		t.Errorf("delete template in use: expected 409, got %d: %s", rr.Code, rr.Body.String())

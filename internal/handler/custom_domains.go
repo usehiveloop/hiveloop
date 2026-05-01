@@ -244,7 +244,7 @@ func (h *CustomDomainHandler) Verify(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.reloadCaddyConfig(r.Context()); err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to reload Caddy config", "error", err, "domain", cd.Domain)
-		// Domain is verified in DB even if Caddy reload fails — next verify/delete will retry
+
 		writeJSON(w, http.StatusOK, verifyDomainResponse{
 			Verified: true,
 			Message:  "Domain verified. TLS provisioning will retry shortly.",

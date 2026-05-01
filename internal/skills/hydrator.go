@@ -1,5 +1,3 @@
-// Package skills turns external skill sources (inline-authored, git repos)
-// into immutable SkillVersion rows that bridge can consume at agent-run time.
 package skills
 
 import (
@@ -55,8 +53,6 @@ func HydrateFromGit(ctx context.Context, db *gorm.DB, fetcher *GitFetcher, skill
 		return nil, fmt.Errorf("resolve ref: %w", err)
 	}
 
-	// Fast path outside of any transaction — avoids taking a lock when
-	// the version already exists.
 	if existing, err := findVersionBySHA(ctx, db, skillID, sha); err != nil {
 		return nil, err
 	} else if existing != nil {
@@ -69,7 +65,6 @@ func HydrateFromGit(ctx context.Context, db *gorm.DB, fetcher *GitFetcher, skill
 			return fmt.Errorf("acquire advisory lock: %w", err)
 		}
 
-		// Re-check after the lock in case another worker hydrated this SHA.
 		if existing, err := findVersionBySHA(ctx, tx, skillID, sha); err != nil {
 			return err
 		} else if existing != nil {

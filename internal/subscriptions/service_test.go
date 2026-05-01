@@ -15,10 +15,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/subscriptions"
 )
 
-// The service test needs a real Postgres. When DATABASE_URL isn't set and the
-// default test DB isn't reachable, we skip — same policy as other DB-dependent
-// tests in this repo (e.g. internal/cache).
-
 const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 func connectOrSkip(t *testing.T) *gorm.DB {
@@ -217,7 +213,6 @@ func TestSubscribe_MissingIntegration(t *testing.T) {
 	orgID, agentID, convID, cleanup := seedAgentWithGitHub(t, db)
 	t.Cleanup(cleanup)
 
-	// Remove the github-app integration from the agent by overwriting with empty.
 	if err := db.Model(&model.Agent{}).Where("id = ?", agentID).Update("integrations", model.JSON{}).Error; err != nil {
 		t.Fatalf("clearing agent integrations: %v", err)
 	}

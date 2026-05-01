@@ -142,4 +142,3 @@ func createTestCred(t *testing.T, db *gorm.DB, orgID uuid.UUID) model.Credential
 	t.Cleanup(func() { db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
 	return cred
 }
-

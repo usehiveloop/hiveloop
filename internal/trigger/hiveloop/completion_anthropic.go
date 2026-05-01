@@ -24,7 +24,7 @@ func NewAnthropicCompletionClient(apiKey string) *AnthropicCompletionClient {
 }
 
 func (c *AnthropicCompletionClient) ChatCompletion(ctx context.Context, req CompletionRequest) (*CompletionResponse, error) {
-	// Extract system message (Anthropic handles it separately).
+
 	var systemPrompt string
 	var messages []anthropic.MessageParam
 	for _, message := range req.Messages {
@@ -56,7 +56,6 @@ func (c *AnthropicCompletionClient) ChatCompletion(ctx context.Context, req Comp
 		}
 	}
 
-	// Build tools.
 	var tools []anthropic.ToolUnionParam
 	for _, tool := range req.Tools {
 		var schema anthropic.ToolInputSchemaParam
@@ -86,7 +85,7 @@ func (c *AnthropicCompletionClient) ChatCompletion(ctx context.Context, req Comp
 			{Text: systemPrompt},
 		}
 	}
-	// Force tool use: Anthropic's equivalent of ToolChoice: "required".
+
 	if req.ToolChoice == "required" {
 		params.ToolChoice = anthropic.ToolChoiceUnionParam{
 			OfAny: &anthropic.ToolChoiceAnyParam{

@@ -71,8 +71,6 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 		return
 	}
 
-	// Verify shared secret if configured. SecretKey stores a bcrypt hash; the
-	// caller sends plaintext via one of the accepted transports.
 	if trigger.SecretKey != "" {
 		provided := extractTriggerSecret(request)
 		if provided == "" {
@@ -95,13 +93,10 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 		return
 	}
 
-	// If no body is provided, use an empty JSON object so the dispatcher
-	// can still extract refs and evaluate conditions.
 	if len(body) == 0 {
 		body = []byte("{}")
 	}
 
-	// Return 200 immediately, then dispatch asynchronously.
 	writeJSON(writer, http.StatusOK, map[string]string{"status": "ok"})
 
 	deliveryID := triggerID.String() + ":" + uuid.New().String()

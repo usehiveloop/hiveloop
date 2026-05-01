@@ -1,8 +1,5 @@
 //go:build llm
 
-// Helpers shared by the llm-tagged e2e tests (proxy_llm_test.go,
-// fireworks_test.go). They live in this file (rather than e2e_test.go) so
-// the default `go test ./e2e/...` build doesn't see them as unused.
 package e2e
 
 import (
@@ -32,10 +29,6 @@ func requireOpenRouterKey(t *testing.T) string {
 		t.Skip("OPENROUTER_API_KEY not set — skipping OpenRouter-dependent test")
 	}
 
-	// Validate the key once per run by calling OpenRouter's /auth/key
-	// endpoint. If OpenRouter says the key is invalid (e.g. rotated,
-	// revoked, or the CI secret hasn't been refreshed), skip instead of
-	// failing — the test environment, not the code, is broken.
 	if !openRouterKeyValidated || openRouterValidatedKey != key {
 		openRouterValidatedKey = key
 		openRouterKeyValidated = true
@@ -64,10 +57,6 @@ func validateOpenRouterKey(key string) bool {
 	defer resp.Body.Close()
 	return resp.StatusCode >= 200 && resp.StatusCode < 300
 }
-
-// --------------------------------------------------------------------------
-// SSE parsing helpers
-// --------------------------------------------------------------------------
 
 func parseSSEChunks(t *testing.T, data []byte) []string {
 	t.Helper()
@@ -129,4 +118,3 @@ func extractStreamContent(chunks []string) string {
 	}
 	return sb.String()
 }
-

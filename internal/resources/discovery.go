@@ -1,5 +1,3 @@
-// Package resources provides resource discovery for integration providers.
-// It fetches available resources from provider APIs via Nango proxy.
 package resources
 
 import (
@@ -52,13 +50,11 @@ func (d *Discovery) Discover(
 		"nango_connection_id", nangoConnectionID,
 	)
 
-	// Get resource definition from catalog
 	resDef, ok := d.catalog.GetResourceDef(provider, resourceType)
 	if !ok {
 		return nil, fmt.Errorf("resource type %q not configured for provider %q", resourceType, provider)
 	}
 
-	// Build the request configuration
 	method := http.MethodGet
 	queryParams := make(map[string]string)
 	var body map[string]interface{}
@@ -82,7 +78,6 @@ func (d *Discovery) Discover(
 		}
 	}
 
-	// IMPORTANT: Never send body for GET requests
 	if method == http.MethodGet {
 		body = nil
 	}
@@ -93,12 +88,11 @@ func (d *Discovery) Discover(
 		return nil, fmt.Errorf("discovery request failed: %w", err)
 	}
 
-	// Extract the data array from response
 	var data []interface{}
 	if resDef.RequestConfig != nil && resDef.RequestConfig.ResponsePath != "" {
 		data = extractPath(resp, resDef.RequestConfig.ResponsePath)
 	} else if arr, ok := resp["_raw"].([]interface{}); ok {
-		// Empty response_path means direct array response (e.g., GitHub)
+
 		data = arr
 	}
 
@@ -106,7 +100,6 @@ func (d *Discovery) Discover(
 		return nil, fmt.Errorf("could not extract data: response_path not configured or _raw array not found")
 	}
 
-	// Transform into standardized AvailableResource format using configured fields only
 	resources := make([]AvailableResource, 0, len(data))
 	for _, item := range data {
 		obj, ok := item.(map[string]interface{})
@@ -132,13 +125,12 @@ func (d *Discovery) Discover(
 
 // extractResource extracts a standardized AvailableResource using configured fields only.
 func extractResource(obj map[string]interface{}, resourceType string, resDef *catalog.ResourceDef) AvailableResource {
-	// Extract ID using configured IDField only
+
 	id := ""
 	if resDef.IDField != "" {
 		id = extractString(obj, resDef.IDField)
 	}
 
-	// Extract name using configured NameField only
 	name := ""
 	if resDef.NameField != "" {
 		name = extractString(obj, resDef.NameField)

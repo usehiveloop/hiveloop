@@ -137,7 +137,6 @@ func Audit(aw *AuditWriter, action ...string) func(http.Handler) http.Handler {
 			sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(sw, r)
 
-			// Build audit entry after handler completes
 			entry := model.AuditEntry{
 				Action:   a,
 				Metadata: model.JSON{"method": r.Method, "path": r.URL.Path, "status": sw.status, "latency_ms": time.Since(start).Milliseconds()},
@@ -157,7 +156,7 @@ func Audit(aw *AuditWriter, action ...string) func(http.Handler) http.Handler {
 				if credID, err := uuid.Parse(claims.CredentialID); err == nil {
 					entry.CredentialID = &credID
 				}
-				// For proxy routes, org may not be in context — extract from claims
+
 				if entry.OrgID == uuid.Nil {
 					if orgID, err := uuid.Parse(claims.OrgID); err == nil {
 						entry.OrgID = orgID

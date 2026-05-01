@@ -87,8 +87,7 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 		return fmt.Errorf("load first message: %w", err)
 	}
 	if firstMessage == "" {
-		// Asynq will retry. Webhook ordering means message_received should be
-		// visible by the time this runs, but a redelivery edge case is possible.
+
 		return fmt.Errorf("first message not yet available")
 	}
 
@@ -108,7 +107,6 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 		return nil
 	}
 
-	// Only write if still empty — protects a human rename that raced with us.
 	result := handler.db.WithContext(ctx).
 		Model(&model.AgentConversation{}).
 		Where("id = ? AND (name IS NULL OR name = '')", conv.ID).
@@ -251,12 +249,11 @@ func cleanTitle(raw string) string {
 	title = strings.Trim(title, `"'“”‘’`)
 	title = strings.TrimSpace(title)
 	title = strings.TrimRight(title, ".!?,:;")
-	// Collapse newlines — the model is supposed to return a single line, but
-	// fall-through to the first non-empty line if it didn't.
+
 	if idx := strings.IndexByte(title, '\n'); idx >= 0 {
 		title = strings.TrimSpace(title[:idx])
 	}
-	// Guard against runaway output.
+
 	const maxTitleLen = 120
 	if len(title) > maxTitleLen {
 		title = title[:maxTitleLen]
