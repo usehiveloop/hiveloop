@@ -43,6 +43,13 @@ func connectInternalTestDB(t *testing.T) *gorm.DB {
 
 func seedFreePlan(t *testing.T, db *gorm.DB, welcome int64) {
 	t.Helper()
+	// The plans.slug column has a unique index. Hard-delete any
+	// pre-existing 'free' plan from earlier tests so we always start
+	// from a known state. Tests in this package run serially (no
+	// t.Parallel), so this is race-free.
+	if err := db.Unscoped().Where("slug = ?", billing.FreePlanSlug).Delete(&model.Plan{}).Error; err != nil {
+		t.Fatalf("clear existing free plan: %v", err)
+	}
 	plan := model.Plan{
 		ID:             uuid.New(),
 		Slug:           billing.FreePlanSlug,
