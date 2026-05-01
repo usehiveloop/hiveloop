@@ -51,46 +51,23 @@ func ResolveEventResourceKey(
 		"event_action", eventAction,
 	)
 
-	logger.Info("resolver: lookup starting")
-
 	def, ok := lookupTriggerDef(cat, provider, eventType, eventAction)
 	if !ok {
-		logger.Info("resolver: no trigger def found in catalog, dropping",
-			"event_key_tried_1", eventKey(eventType, eventAction),
-			"event_key_tried_2", eventType,
-		)
 		return "", false
 	}
-	logger.Info("resolver: trigger def found",
-		"display_name", def.DisplayName,
-		"resource_type", def.ResourceType,
-		"resource_key_template", def.ResourceKeyTemplate,
-		"ref_count", len(def.Refs),
-	)
 
 	if def.ResourceKeyTemplate == "" {
-		logger.Info("resolver: trigger def has no resource_key_template, dropping")
 		return "", false
 	}
 
-	refs, missing := dispatch.ExtractRefs(payload, def.Refs)
-	logger.Info("resolver: refs extracted",
-		"refs_found", len(refs),
-		"refs_missing", len(missing),
-		"refs", refs,
-		"missing", missing,
-	)
+	refs, _ := dispatch.ExtractRefs(payload, def.Refs)
 
 	key, ok := substituteTemplate(def.ResourceKeyTemplate, refs)
 	if !ok {
-		logger.Warn("resolver: template substitution failed, dropping",
-			"template", def.ResourceKeyTemplate,
-			"available_refs", refs,
-		)
 		return "", false
 	}
 
-	logger.Info("resolver: resource_key resolved", "resource_key", key)
+
 	return key, true
 }
 

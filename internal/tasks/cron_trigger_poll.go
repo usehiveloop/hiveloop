@@ -198,11 +198,6 @@ func (handler *CronTriggerDispatchHandler) Handle(ctx context.Context, task *asy
 		enqueuedCount++
 	}
 
-	logger.Info("cron dispatch complete",
-		"agents_dispatched", len(dispatches),
-		"conversations_enqueued", enqueuedCount,
-		"duration_ms", time.Since(started).Milliseconds(),
-	)
 	return nil
 }
 
