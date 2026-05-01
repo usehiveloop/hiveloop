@@ -142,14 +142,6 @@ func (handler *CronTriggerDispatchHandler) Handle(ctx context.Context, task *asy
 		return fmt.Errorf("unmarshal cron trigger dispatch payload: %w", err)
 	}
 
-	started := time.Now()
-	logger := slog.With(
-		"task", TypeCronTriggerDispatch,
-		"trigger_id", payload.RouterTriggerID,
-		"org_id", payload.OrgID,
-		"scheduled_at", payload.ScheduledAt,
-	)
-
 	// Build a synthetic payload with schedule context so rules can
 	// optionally filter by time/day.
 	syntheticPayload := map[string]any{

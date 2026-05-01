@@ -43,7 +43,6 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		return fmt.Errorf("unmarshal payload: %w", err)
 	}
 
-	started := time.Now()
 	logger := slog.With(
 		"delivery_id", payload.DeliveryID,
 		"agent_id", payload.AgentID,

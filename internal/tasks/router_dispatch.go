@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"time"
 
 	"github.com/hibiken/asynq"
 
@@ -42,7 +41,6 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		return fmt.Errorf("unmarshal router dispatch payload: %w", err)
 	}
 
-	started := time.Now()
 	logger := slog.With(
 		"delivery_id", payload.DeliveryID,
 		"org_id", payload.OrgID,
