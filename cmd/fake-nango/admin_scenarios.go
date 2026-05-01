@@ -69,7 +69,7 @@ func fireGitHub(st *store, wh *webhookSender) http.HandlerFunc {
 			return
 		}
 		body, headers := buildGitHubForward(req)
-		wh.fireForward(req.Target, body, headers)
+		wh.fireForward(r.Context(), req.Target, body, headers)
 		st.recordCall("WEBHOOK", "github/"+req.EventType)
 		writeJSON(w, http.StatusOK, map[string]any{"status": "ok"})
 	}

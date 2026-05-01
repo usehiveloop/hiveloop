@@ -135,10 +135,10 @@ func TestRouteToAgent_DuplicateAccepted(t *testing.T) {
 	var selections []AgentSelection
 	handler := NewRouteToAgentHandler(testAgents(), &selections)
 
-	handler(context.Background(), "call-1", marshalArgs(routeToAgentArgs{
+	_, _, _ = handler(context.Background(), "call-1", marshalArgs(routeToAgentArgs{
 		AgentID: "aaaaaaaa-0000-0000-0000-000000000001", Priority: 1, Reason: "first",
 	}))
-	handler(context.Background(), "call-2", marshalArgs(routeToAgentArgs{
+	_, _, _ = handler(context.Background(), "call-2", marshalArgs(routeToAgentArgs{
 		AgentID: "aaaaaaaa-0000-0000-0000-000000000001", Priority: 2, Reason: "second",
 	}))
 

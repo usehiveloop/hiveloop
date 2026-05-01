@@ -18,7 +18,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/turso"
 )
 
-const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -61,14 +61,14 @@ func mockTursoServer(t *testing.T) *httptest.Server {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path != "" && r.URL.Path[len(r.URL.Path)-9:] == "databases":
 			var body struct{ Name, Group string }
-			json.NewDecoder(r.Body).Decode(&body)
+			_ = json.NewDecoder(r.Body).Decode(&body)
 			w.WriteHeader(200)
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"database": map[string]any{"Name": body.Name, "DbId": "db-" + body.Name, "Hostname": body.Name + ".turso.io"},
 			})
 		case r.Method == http.MethodPost:
 			w.WriteHeader(200)
-			json.NewEncoder(w).Encode(map[string]string{"jwt": "mock-turso-jwt"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"jwt": "mock-turso-jwt"})
 		case r.Method == http.MethodDelete:
 			w.WriteHeader(200)
 		default:
@@ -84,7 +84,7 @@ func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 	bridgeSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/health" {
 			w.WriteHeader(200)
-			w.Write([]byte(`{"status":"ok"}`))
+			_, _ = w.Write([]byte(`{"status":"ok"}`))
 			return
 		}
 		w.WriteHeader(404)

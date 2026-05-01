@@ -132,7 +132,7 @@ func TestListEvents_AllEvents(t *testing.T) {
 		Data    []json.RawMessage `json:"data"`
 		HasMore bool              `json:"has_more"`
 	}
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	if len(resp.Data) != 4 {
 		t.Fatalf("expected 4 events, got %d", len(resp.Data))
@@ -152,7 +152,7 @@ func TestListEvents_FilterByType(t *testing.T) {
 			EventType string `json:"event_type"`
 		} `json:"data"`
 	}
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	if len(resp.Data) != 1 {
 		t.Fatalf("expected 1 MessageReceived event, got %d", len(resp.Data))
@@ -185,13 +185,13 @@ func TestListEvents_IncludesPayload(t *testing.T) {
 			Data      json.RawMessage `json:"data"`
 		} `json:"data"`
 	}
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	if len(resp.Data) != 1 {
 		t.Fatalf("expected 1 event, got %d", len(resp.Data))
 	}
 	var data map[string]any
-	json.Unmarshal(resp.Data[0].Data, &data)
+	_ = json.Unmarshal(resp.Data[0].Data, &data)
 	if data["content"] != "hi" {
 		t.Errorf("content: got %v", data["content"])
 	}
@@ -213,7 +213,7 @@ func TestListSandboxes(t *testing.T) {
 			Status string `json:"status"`
 		} `json:"data"`
 	}
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	if len(resp.Data) < 1 {
 		t.Fatal("expected at least 1 sandbox")
@@ -243,7 +243,7 @@ func TestListSandboxes_FilterByStatus(t *testing.T) {
 	var resp struct {
 		Data []struct{ Status string } `json:"data"`
 	}
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	for _, s := range resp.Data {
 		if s.Status != "running" {
@@ -266,7 +266,7 @@ func TestGetSandbox(t *testing.T) {
 		Status     string `json:"status"`
 		ExternalID string `json:"external_id"`
 	}
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	if resp.ID != lh.sandbox.ID.String() {
 		t.Errorf("id mismatch")

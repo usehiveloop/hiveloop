@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/billing/subscription"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -85,7 +85,7 @@ func (h *SubscriptionHandler) PreviewChange(w http.ResponseWriter, r *http.Reque
 		case errors.Is(err, subscription.ErrPeriodEnded):
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "current period has ended; please wait for renewal"})
 		default:
-			slog.Error("preview-change: failed", "org_id", org.ID, "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "preview-change: failed", "org_id", org.ID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to compute preview"})
 		}
 		return
@@ -161,7 +161,7 @@ func (h *SubscriptionHandler) ApplyChange(w http.ResponseWriter, r *http.Request
 			errors.Is(err, subscription.ErrUnsupportedChannel):
 			writeJSON(w, http.StatusPaymentRequired, map[string]string{"error": err.Error()})
 		default:
-			slog.Error("apply-change: failed", "org_id", org.ID, "quote_id", quoteID, "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "apply-change: failed", "org_id", org.ID, "quote_id", quoteID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to apply change"})
 		}
 		return
@@ -219,7 +219,7 @@ func (h *SubscriptionHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, subscription.ErrCannotCancel):
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "already canceled"})
 		default:
-			slog.Error("cancel: failed", "org_id", org.ID, "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "cancel: failed", "org_id", org.ID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to cancel"})
 		}
 		return
@@ -252,7 +252,7 @@ func (h *SubscriptionHandler) Resume(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, subscription.ErrCannotResume):
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "subscription is not active"})
 		default:
-			slog.Error("resume: failed", "org_id", org.ID, "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "resume: failed", "org_id", org.ID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to resume"})
 		}
 		return

@@ -237,7 +237,7 @@ func (dispatcher *RouterDispatcher) dispatchForTrigger(ctx context.Context, matc
 		return nil, nil
 	}
 
-	dispatcher.logger.Debug("trigger matched",
+	dispatcher.logger.DebugContext(ctx, "trigger matched",
 		"trigger_id", trigger.ID,
 		"event_key", eventKey,
 		"routing_mode", routingMode,
@@ -273,7 +273,7 @@ func (dispatcher *RouterDispatcher) dispatchForTrigger(ctx context.Context, matc
 	if len(selectedAgents) > 0 {
 		intentSummary = selectedAgents[0].Reason
 	}
-	dispatcher.store.StoreDecision(ctx, &model.RoutingDecision{
+	if err := dispatcher.store.StoreDecision(ctx, &model.RoutingDecision{
 		OrgID:           input.OrgID,
 		RouterTriggerID: trigger.ID,
 		RoutingMode:     routingMode,
@@ -283,7 +283,13 @@ func (dispatcher *RouterDispatcher) dispatchForTrigger(ctx context.Context, matc
 		SelectedAgents:  agentIDs,
 		EnrichmentSteps: len(enrichmentPlan),
 		LatencyMs:       int(time.Since(routingStart).Milliseconds()),
-	})
+	}); err != nil {
+		dispatcher.logger.WarnContext(ctx, "store routing decision failed",
+			"error", err,
+			"trigger_id", trigger.ID,
+			"event_key", eventKey,
+		)
+	}
 
 	return dispatches, nil
 }

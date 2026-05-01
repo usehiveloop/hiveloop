@@ -1,12 +1,12 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/nango"
@@ -55,7 +55,7 @@ func (h *InConnectionHandler) CreateConnectSession(w http.ResponseWriter, r *htt
 
 	sess, err := h.nango.CreateConnectSession(r.Context(), nangoReq)
 	if err != nil {
-		slog.Error("nango connect session creation failed", "error", err, "integration_id", integ.ID, "user_id", user.ID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "nango connect session creation failed", "error", err, "integration_id", integ.ID, "user_id", user.ID)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to create connect session: " + err.Error()})
 		return
 	}
@@ -105,7 +105,7 @@ func (h *InConnectionHandler) CreateReconnectSession(w http.ResponseWriter, r *h
 		IntegrationID: nk,
 	})
 	if err != nil {
-		slog.Error("nango reconnect session creation failed", "error", err, "connection_id", conn.ID, "user_id", user.ID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "nango reconnect session creation failed", "error", err, "connection_id", conn.ID, "user_id", user.ID)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to create reconnect session: " + err.Error()})
 		return
 	}

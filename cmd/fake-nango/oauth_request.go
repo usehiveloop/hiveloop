@@ -65,7 +65,7 @@ func oauth2CC(st *store, h *hub, wh *webhookSender) http.HandlerFunc {
 		conn := completeConnection(st, key, "OAUTH2_CC", map[string]any{
 			"access_token": "fake_cc_token_" + newID(),
 		})
-		notifyAndWebhook(h, wh, st, key, conn, wsClientID, "OAUTH2_CC")
+		notifyAndWebhook(r.Context(), h, wh, st, key, conn, wsClientID, "OAUTH2_CC")
 		writeJSON(w, http.StatusOK, map[string]any{"connectionId": conn.ID, "providerConfigKey": key})
 	}
 }
@@ -78,7 +78,7 @@ func oauthOutbound(st *store, h *hub, wh *webhookSender) http.HandlerFunc {
 			"access_token":    "ghs_fake_outbound_" + newID(),
 			"installation_id": "42",
 		})
-		notifyAndWebhook(h, wh, st, key, conn, wsClientID, "APP")
+		notifyAndWebhook(r.Context(), h, wh, st, key, conn, wsClientID, "APP")
 		writeJSON(w, http.StatusOK, map[string]any{"connectionId": conn.ID, "providerConfigKey": key})
 	}
 }

@@ -41,7 +41,7 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		return fmt.Errorf("unmarshal router dispatch payload: %w", err)
 	}
 
-	logger := slog.With(
+	logger := logging.FromContext(ctx).With(
 		"delivery_id", payload.DeliveryID,
 		"org_id", payload.OrgID,
 		"provider", payload.Provider,

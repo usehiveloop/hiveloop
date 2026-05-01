@@ -1,12 +1,12 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -42,12 +42,12 @@ func (h *TokenHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		Update("revoked_at", &now)
 
 	if result.Error != nil {
-		slog.Error("failed to revoke token", "error", result.Error, "org_id", org.ID, "jti", jti)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to revoke token", "error", result.Error, "org_id", org.ID, "jti", jti)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to revoke token"})
 		return
 	}
 	if result.RowsAffected == 0 {
-		slog.Warn("token not found or already revoked", "org_id", org.ID, "jti", jti)
+		logging.FromContext(r.Context()).WarnContext(r.Context(), "token not found or already revoked", "org_id", org.ID, "jti", jti)
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "token not found or already revoked"})
 		return
 	}
@@ -60,6 +60,6 @@ func (h *TokenHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		h.serverCache.Evict(jti)
 	}
 
-	slog.Info("token revoked", "org_id", org.ID, "jti", jti)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "token revoked", "org_id", org.ID, "jti", jti)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }

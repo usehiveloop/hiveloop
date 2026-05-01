@@ -2,10 +2,11 @@ package cache
 
 import (
 	"context"
-	"log/slog"
 	"sync"
 
 	"github.com/redis/go-redis/v9"
+
+	"github.com/usehiveloop/hiveloop/internal/logging"
 )
 
 const (
@@ -90,7 +91,7 @@ func (inv *Invalidator) Subscribe(ctx context.Context) error {
 					inv.apiKeyCache.Invalidate(msg.Payload)
 				}
 			default:
-				slog.Warn("unknown invalidation channel", "channel", msg.Channel)
+				logging.FromContext(ctx).WarnContext(ctx, "unknown invalidation channel", "channel", msg.Channel)
 			}
 		}
 	}

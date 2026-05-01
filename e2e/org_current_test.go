@@ -37,7 +37,7 @@ func TestOrgCurrent(t *testing.T) {
 	var created struct {
 		ID string `json:"id"`
 	}
-	json.NewDecoder(createRR.Body).Decode(&created)
+	_ = json.NewDecoder(createRR.Body).Decode(&created)
 
 	t.Cleanup(func() {
 		oh.db.Where("org_id = ?", created.ID).Delete(&model.OrgMembership{})
@@ -57,7 +57,7 @@ func TestOrgCurrent(t *testing.T) {
 		Name   string `json:"name"`
 		Active bool   `json:"active"`
 	}
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	if resp.ID != created.ID {
 		t.Errorf("id: got %q, want %q", resp.ID, created.ID)
@@ -95,7 +95,7 @@ func TestOrgCreateDuplicateName(t *testing.T) {
 		t.Fatalf("first create: expected 201, got %d: %s", rr1.Code, rr1.Body.String())
 	}
 	var org1 struct{ ID string }
-	json.NewDecoder(rr1.Body).Decode(&org1)
+	_ = json.NewDecoder(rr1.Body).Decode(&org1)
 
 	t.Cleanup(func() {
 		oh.db.Where("org_id = ?", org1.ID).Delete(&model.OrgMembership{})
@@ -135,7 +135,7 @@ func TestOrgCreateMultiple(t *testing.T) {
 	var org1 struct {
 		ID string `json:"id"`
 	}
-	json.NewDecoder(rr1.Body).Decode(&org1)
+	_ = json.NewDecoder(rr1.Body).Decode(&org1)
 
 	rr2 := oh.orgRequest(t, http.MethodPost, "/v1/orgs", fmt.Sprintf(`{"name":%q}`, name2), tok)
 	if rr2.Code != http.StatusCreated {
@@ -144,7 +144,7 @@ func TestOrgCreateMultiple(t *testing.T) {
 	var org2 struct {
 		ID string `json:"id"`
 	}
-	json.NewDecoder(rr2.Body).Decode(&org2)
+	_ = json.NewDecoder(rr2.Body).Decode(&org2)
 
 	if org1.ID == org2.ID {
 		t.Error("two orgs should have different IDs")

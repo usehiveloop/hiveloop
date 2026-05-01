@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -12,6 +11,7 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -200,10 +200,10 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	if req.Triggers != nil {
 		if err := deleteAgentTriggers(h.db, agent.ID); err != nil {
-			slog.Error("failed to delete old triggers during update", "agent_id", agent.ID, "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to delete old triggers during update", "agent_id", agent.ID, "error", err)
 		}
 		if err := createAgentTriggers(h.db, org.ID, agent.ID, *req.Triggers); err != nil {
-			slog.Error("failed to create new triggers during update", "agent_id", agent.ID, "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create new triggers during update", "agent_id", agent.ID, "error", err)
 		}
 	}
 
@@ -226,7 +226,7 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 			}
 			return nil
 		}); err != nil {
-			slog.Error("failed to sync skills during update", "agent_id", agent.ID, "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to sync skills during update", "agent_id", agent.ID, "error", err)
 		}
 	}
 

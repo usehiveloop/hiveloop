@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -60,14 +60,14 @@ func (h *AdminHandler) Impersonate(w http.ResponseWriter, r *http.Request) {
 
 	accessToken, err := auth.IssueAccessToken(h.privateKey, h.issuer, h.audience, targetUser.ID.String(), orgID, role, h.accessTTL)
 	if err != nil {
-		slog.Error("impersonate: failed to issue access token", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "impersonate: failed to issue access token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
 
 	refreshToken, err := auth.IssueRefreshToken(h.signingKey, targetUser.ID.String(), h.refreshTTL)
 	if err != nil {
-		slog.Error("impersonate: failed to issue refresh token", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "impersonate: failed to issue refresh token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -78,7 +78,7 @@ func (h *AdminHandler) Impersonate(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: time.Now().Add(h.refreshTTL),
 	}
 	if err := h.db.Create(&storedRefresh).Error; err != nil {
-		slog.Error("impersonate: failed to store refresh token", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "impersonate: failed to store refresh token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -105,7 +105,7 @@ func (h *AdminHandler) Impersonate(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	slog.Info("admin impersonating user", "admin_email", adminEmail, "target_user_id", targetUser.ID, "target_email", targetUser.Email)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin impersonating user", "admin_email", adminEmail, "target_user_id", targetUser.ID, "target_email", targetUser.Email)
 
 	writeJSON(w, http.StatusOK, authResponse{
 		AccessToken:  accessToken,

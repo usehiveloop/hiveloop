@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -113,7 +113,7 @@ func (h *AdminHandler) BanUser(w http.ResponseWriter, r *http.Request) {
 	h.db.Model(&model.RefreshToken{}).Where("user_id = ? AND revoked_at IS NULL", user.ID).
 		Update("revoked_at", now)
 
-	slog.Info("admin: user banned", "user_id", id, "reason", req.Reason)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: user banned", "user_id", id, "reason", req.Reason)
 
 	user.BannedAt = &now
 	user.BanReason = req.Reason
@@ -157,7 +157,7 @@ func (h *AdminHandler) UnbanUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("admin: user unbanned", "user_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: user unbanned", "user_id", id)
 
 	user.BannedAt = nil
 	user.BanReason = ""
@@ -199,7 +199,7 @@ func (h *AdminHandler) ConfirmUserEmail(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	slog.Info("admin: user email confirmed", "user_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: user email confirmed", "user_id", id)
 
 	user.EmailConfirmedAt = &now
 	writeJSON(w, http.StatusOK, toAdminUserResponse(user))
@@ -259,6 +259,6 @@ func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("admin: user deleted", "user_id", id, "email", user.Email)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: user deleted", "user_id", id, "email", user.Email)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

@@ -29,7 +29,7 @@ func TestInConnectionHandler_Get_Success(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -54,7 +54,7 @@ func TestInConnectionHandler_Get_Success(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	if resp["id"] != connID.String() {
 		t.Fatalf("expected id=%s, got %v", connID.String(), resp["id"])
 	}
@@ -68,7 +68,7 @@ func TestInConnectionHandler_Get_NotFound(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -98,7 +98,7 @@ func TestInConnectionHandler_Get_WrongUser(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -135,7 +135,7 @@ func TestInConnectionHandler_Get_RevokedNotFound(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -172,7 +172,7 @@ func TestInConnectionHandler_Get_WithNangoProviderConfig(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -197,7 +197,7 @@ func TestInConnectionHandler_Get_WithNangoProviderConfig(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	pc, ok := resp["provider_config"].(map[string]any)
 	if !ok || pc == nil {
 		t.Fatal("expected provider_config to be present")
@@ -218,7 +218,7 @@ func TestInConnectionHandler_Get_NangoFailure(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(mockCfg))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -243,7 +243,7 @@ func TestInConnectionHandler_Get_NangoFailure(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	if resp["id"] != connID.String() {
 		t.Fatalf("expected connection id, got %v", resp["id"])
 	}

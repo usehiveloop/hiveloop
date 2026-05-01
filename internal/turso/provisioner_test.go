@@ -16,7 +16,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 func setupDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -61,9 +61,9 @@ func TestProvisioner_EnsureStorage(t *testing.T) {
 				Name  string `json:"name"`
 				Group string `json:"group"`
 			}
-			json.NewDecoder(r.Body).Decode(&body)
+			_ = json.NewDecoder(r.Body).Decode(&body)
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"database": map[string]any{
 					"Name":     body.Name,
 					"DbId":     "db-" + body.Name,
@@ -72,10 +72,10 @@ func TestProvisioner_EnsureStorage(t *testing.T) {
 			})
 		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/auth/tokens"):
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{"jwt": "mock-jwt-token"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"jwt": "mock-jwt-token"})
 		case r.Method == http.MethodDelete:
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{"database": "deleted"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"database": "deleted"})
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -96,6 +96,7 @@ func TestProvisioner_EnsureStorage(t *testing.T) {
 	if !strings.HasPrefix(storageURL, "libsql://") {
 		t.Errorf("storage URL should start with libsql://, got %q", storageURL)
 	}
+	// #nosec G101 -- test fixture, not a real token
 	if authToken != "mock-jwt-token" {
 		t.Errorf("auth token: got %q", authToken)
 	}

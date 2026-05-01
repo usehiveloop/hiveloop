@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 )
 
@@ -34,7 +35,7 @@ func oauthCallback(st *store, h *hub, wh *webhookSender) http.HandlerFunc {
 		}
 		st.putConnection(conn)
 
-		notifyAndWebhook(h, wh, st, sess.ProviderConfigKey, conn, sess.WSClientID, sess.AuthMode)
+		notifyAndWebhook(r.Context(), h, wh, st, sess.ProviderConfigKey, conn, sess.WSClientID, sess.AuthMode)
 		renderAuthHTML(w, "")
 	}
 }
@@ -56,11 +57,11 @@ func defaultCreds(sess *oauthSession) map[string]any {
 	}
 }
 
-func notifyAndWebhook(h *hub, wh *webhookSender, st *store, providerConfigKey string, conn *connection, wsClientID, authMode string) {
+func notifyAndWebhook(ctx context.Context, h *hub, wh *webhookSender, st *store, providerConfigKey string, conn *connection, wsClientID, authMode string) {
 	if wsClientID != "" {
 		h.sendSuccess(wsClientID, providerConfigKey, conn.ID)
 	}
-	wh.fireAuth(authWebhook{
+	wh.fireAuth(ctx, authWebhook{
 		From:              "nango",
 		Type:              "auth",
 		ConnectionID:      conn.ID,

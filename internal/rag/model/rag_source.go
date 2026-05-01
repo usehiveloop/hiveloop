@@ -169,7 +169,7 @@ func (s *RAGSource) NangoProviderConfigKey() string {
 // Config returns `{}` when the map is nil/empty so the column's
 // not-null-default-'{}' behavior is preserved at the interface boundary.
 func (s *RAGSource) Config() json.RawMessage {
-	if s.ConfigValue == nil || len(s.ConfigValue) == 0 {
+	if len(s.ConfigValue) == 0 {
 		return json.RawMessage(`{}`)
 	}
 	raw, err := json.Marshal(s.ConfigValue)

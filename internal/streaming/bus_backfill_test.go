@@ -13,10 +13,8 @@ func TestSubscribe_LateJoinerGetsBackfillThenLive(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	var preIDs []string
 	for i := 0; i < 3; i++ {
-		id, _ := bus.Publish(ctx, "late-join", "pre", json.RawMessage(`{}`))
-		preIDs = append(preIDs, id)
+		_, _ = bus.Publish(ctx, "late-join", "pre", json.RawMessage(`{}`))
 	}
 
 	ch := bus.Subscribe(ctx, "late-join", "0")
@@ -24,7 +22,7 @@ func TestSubscribe_LateJoinerGetsBackfillThenLive(t *testing.T) {
 	go func() {
 		time.Sleep(300 * time.Millisecond)
 		for i := 0; i < 3; i++ {
-			bus.Publish(ctx, "late-join", "post", json.RawMessage(`{}`))
+			_, _ = bus.Publish(ctx, "late-join", "post", json.RawMessage(`{}`))
 		}
 	}()
 
@@ -61,7 +59,7 @@ func TestSubscribe_LiveOnlyCursor(t *testing.T) {
 	defer cancel()
 
 	for i := 0; i < 3; i++ {
-		bus.Publish(ctx, "live-only", "old", json.RawMessage(`{}`))
+		_, _ = bus.Publish(ctx, "live-only", "old", json.RawMessage(`{}`))
 	}
 
 	ch := bus.Subscribe(ctx, "live-only", "$")
@@ -69,7 +67,7 @@ func TestSubscribe_LiveOnlyCursor(t *testing.T) {
 
 	go func() {
 		time.Sleep(200 * time.Millisecond)
-		bus.Publish(ctx, "live-only", "new", json.RawMessage(`{}`))
+		_, _ = bus.Publish(ctx, "live-only", "new", json.RawMessage(`{}`))
 	}()
 
 	select {

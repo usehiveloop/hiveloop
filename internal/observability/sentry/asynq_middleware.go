@@ -12,7 +12,7 @@ import (
 
 func AsynqMiddleware() asynq.MiddlewareFunc {
 	return func(next asynq.Handler) asynq.Handler {
-		return asynq.HandlerFunc(func(ctx context.Context, task *asynq.Task) error {
+		return asynq.HandlerFunc(func(ctx context.Context, task *asynq.Task) error { //nolint:contextcheck // asynq invokes the handler with its own context; we re-derive sentry+transaction contexts below.
 			if !Enabled() {
 				return next.ProcessTask(ctx, taskWithUnwrappedPayload(task))
 			}
@@ -77,7 +77,7 @@ func AsynqMiddleware() asynq.MiddlewareFunc {
 			}
 
 			var handlerErr error
-			runHandlerWithPanicCapture(processCtx, hub, transaction, task, taskID, queueName, func() {
+			runHandlerWithPanicCapture(processCtx, hub, transaction, task, taskID, queueName, func() { //nolint:contextcheck // processCtx is derived from ctx via sentry transaction.
 				handlerErr = next.ProcessTask(processCtx, handlerTask) //nolint:contextcheck
 			})
 

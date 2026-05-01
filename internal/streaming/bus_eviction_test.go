@@ -41,7 +41,7 @@ func TestSubscribe_ContextCancelClosesChannel(t *testing.T) {
 	}
 closed:
 
-	bus.Publish(context.Background(), "cancel-one", "still-alive", json.RawMessage(`{}`))
+	_, _ = bus.Publish(context.Background(), "cancel-one", "still-alive", json.RawMessage(`{}`))
 	select {
 	case ev, ok := <-chB:
 		if !ok {
@@ -83,7 +83,7 @@ func TestSubscribe_SlowConsumerEviction(t *testing.T) {
 	}()
 
 	for i := 0; i < 300; i++ {
-		bus.Publish(ctx, "slow-test", "event", json.RawMessage(`{}`))
+		_, _ = bus.Publish(ctx, "slow-test", "event", json.RawMessage(`{}`))
 	}
 
 	time.Sleep(1 * time.Second)

@@ -3,12 +3,12 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"gorm.io/gorm"
 )
@@ -139,7 +139,7 @@ func (h *MarketplaceHandler) AdminUpdate(w http.ResponseWriter, r *http.Request)
 	}
 
 	h.db.Preload("Publisher").Where("id = ?", id).First(&ma)
-	slog.Info("admin: marketplace agent updated", "marketplace_id", ma.ID)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: marketplace agent updated", "marketplace_id", ma.ID)
 	writeJSON(w, http.StatusOK, toMarketplaceAgentResponse(ma))
 }
 
@@ -165,7 +165,7 @@ func (h *MarketplaceHandler) AdminDelete(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	slog.Info("admin: marketplace agent deleted", "marketplace_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: marketplace agent deleted", "marketplace_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
@@ -186,6 +186,6 @@ func (h *MarketplaceHandler) BustCache(w http.ResponseWriter, r *http.Request) {
 		deleted++
 	}
 
-	slog.Info("admin: marketplace cache busted", "keys_deleted", deleted)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: marketplace cache busted", "keys_deleted", deleted)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "keys_deleted": fmt.Sprintf("%d", deleted)})
 }

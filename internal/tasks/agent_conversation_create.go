@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/hibiken/asynq"
@@ -43,12 +42,6 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 		return fmt.Errorf("unmarshal payload: %w", err)
 	}
 
-	logger := slog.With(
-		"delivery_id", payload.DeliveryID,
-		"agent_id", payload.AgentID,
-		"org_id", payload.OrgID,
-	)
-
 	var rollbacks []func(context.Context)
 	defer func() {
 		if handlerErr == nil {
@@ -80,7 +73,6 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 	if err := handler.db.Where("id = ? AND deleted_at IS NULL", payload.AgentID).First(&agent).Error; err != nil {
 		return fmt.Errorf("loading agent %s: %w", payload.AgentID, err)
 	}
-	logger = logger.With("agent_name", agent.Name)
 
 	sb, err := handler.orchestrator.CreateDedicatedSandbox(ctx, &agent)
 	if err != nil {

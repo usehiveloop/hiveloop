@@ -162,7 +162,7 @@ func debitWebsiteCredits(ctx context.Context, deps *Deps, src *ragmodel.RAGSourc
 		"rag_website_crawl", "rag_source_attempt_credit", a.ID.String(),
 	)
 	if err != nil && !errors.Is(err, billing.ErrAlreadyRecorded) {
-		logging.FromContext(ctx).Warn("rag finalize: credit spend failed",
+		logging.FromContext(ctx).WarnContext(ctx, "rag finalize: credit spend failed",
 			"source_id", src.ID, "attempt_id", a.ID, "amount", amount, "error", err)
 	}
 }

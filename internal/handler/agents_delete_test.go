@@ -94,7 +94,7 @@ func (h *agentDeleteHarness) doRequestWithBody(t *testing.T, method, path string
 	var reqBody *bytes.Buffer
 	if body != nil {
 		reqBody = new(bytes.Buffer)
-		json.NewEncoder(reqBody).Encode(body)
+		_ = json.NewEncoder(reqBody).Encode(body)
 	} else {
 		reqBody = new(bytes.Buffer)
 	}
@@ -121,7 +121,7 @@ func TestAgentDelete_SoftDeletesAndEnqueuesCleanup(t *testing.T) {
 	}
 
 	var resp map[string]string
-	json.Unmarshal(rr.Body.Bytes(), &resp)
+	_ = json.Unmarshal(rr.Body.Bytes(), &resp)
 	if resp["status"] != "deleted" {
 		t.Fatalf("expected status=deleted, got %v", resp["status"])
 	}
@@ -152,7 +152,7 @@ func TestAgentDelete_HiddenFromListAndGet(t *testing.T) {
 		t.Fatalf("list: expected 200, got %d", rr.Code)
 	}
 	var listResp map[string]any
-	json.Unmarshal(rr.Body.Bytes(), &listResp)
+	_ = json.Unmarshal(rr.Body.Bytes(), &listResp)
 	if data, ok := listResp["data"].([]any); ok {
 		for _, raw := range data {
 			agentMap := raw.(map[string]any)

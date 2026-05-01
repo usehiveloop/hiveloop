@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
@@ -41,11 +41,6 @@ func (h *ConversationHandler) SetEnqueuer(enqueuer enqueue.TaskEnqueuer) {
 // conversation and rejects with 402 when the balance is exhausted.
 func (h *ConversationHandler) SetCredits(credits *billing.CreditsService) {
 	h.credits = credits
-}
-
-type createConversationRequest struct {
-	ToolNames      []string `json:"tool_names,omitempty"`
-	McpServerNames []string `json:"mcp_server_names,omitempty"`
 }
 
 type conversationResponse struct {
@@ -111,7 +106,7 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 				})
 				return
 			}
-			slog.Error("credits: spend failed", "org_id", org.ID, "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "credits: spend failed", "org_id", org.ID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to check credits"})
 			return
 		}
@@ -140,12 +135,12 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	sb, err := h.orchestrator.CreateDedicatedSandbox(ctx, &agent)
 	if err != nil {
-		slog.Error("failed to create dedicated sandbox", "agent_id", agent.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create dedicated sandbox", "agent_id", agent.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
 		return
 	}
 	if err := h.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
-		slog.Error("failed to push agent to dedicated sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to push agent to dedicated sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to initialize agent in sandbox"})
 		return
 	}
@@ -158,7 +153,7 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	bridgeResp, err := client.CreateConversation(ctx, agent.ID.String())
 	if err != nil {
-		slog.Error("failed to create conversation in bridge", "agent_id", agent.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create conversation in bridge", "agent_id", agent.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create conversation"})
 		return
 	}
@@ -177,7 +172,7 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	h.db.Model(sb).Update("last_active_at", time.Now())
 
-	slog.Info("conversation created",
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "conversation created",
 		"conversation_id", conv.ID,
 		"agent_id", agent.ID,
 		"sandbox_id", sb.ID,

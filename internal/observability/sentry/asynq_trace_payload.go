@@ -28,13 +28,19 @@ func WrapPayloadWithCurrentTrace(ctx context.Context, body []byte) []byte {
 }
 
 func encodeTracePayload(traceHeader, baggageHeader string, body []byte) []byte {
+	// Length-prefix is uint16 — bound headers to avoid overflow on malformed input.
+	// In practice sentry trace/baggage headers are well under 64KB.
+	const maxHeaderLen = 65535
+	if len(traceHeader) > maxHeaderLen || len(baggageHeader) > maxHeaderLen {
+		return body
+	}
 	encoded := make([]byte, 0, tracePayloadHeaderSize+len(traceHeader)+len(baggageHeader)+len(body))
 	encoded = append(encoded, tracePayloadMagic[:]...)
 	var lengthBuf [2]byte
-	binary.BigEndian.PutUint16(lengthBuf[:], uint16(len(traceHeader)))
+	binary.BigEndian.PutUint16(lengthBuf[:], uint16(len(traceHeader))) // #nosec G115 -- bounded above by maxHeaderLen
 	encoded = append(encoded, lengthBuf[:]...)
 	encoded = append(encoded, traceHeader...)
-	binary.BigEndian.PutUint16(lengthBuf[:], uint16(len(baggageHeader)))
+	binary.BigEndian.PutUint16(lengthBuf[:], uint16(len(baggageHeader))) // #nosec G115 -- bounded above by maxHeaderLen
 	encoded = append(encoded, lengthBuf[:]...)
 	encoded = append(encoded, baggageHeader...)
 	encoded = append(encoded, body...)

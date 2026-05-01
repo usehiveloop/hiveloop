@@ -136,8 +136,12 @@ func (c *BridgeClient) CreateConversation(ctx context.Context, agentID string) (
 // CreateConversationWithProvider creates a new conversation with a per-conversation
 // provider override. Convenience wrapper around CreateConversationWithOptions.
 func (c *BridgeClient) CreateConversationWithProvider(ctx context.Context, agentID string, provider ProviderConfig) (*CreateConversationResponse, error) {
+	var wrapped CreateConversationRequest_Provider
+	if err := wrapped.FromProviderConfig(provider); err != nil {
+		return nil, err
+	}
 	return c.CreateConversationWithOptions(ctx, agentID, CreateConversationRequest{
-		Provider: &provider,
+		Provider: &wrapped,
 	})
 }
 

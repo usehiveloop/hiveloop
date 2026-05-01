@@ -1,16 +1,18 @@
 package db
 
 import (
+	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"github.com/usehiveloop/hiveloop/internal/logging"
 )
 
-func New(databaseURL string) (*gorm.DB, error) {
+func New(ctx context.Context, databaseURL string) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(databaseURL), &gorm.Config{
 		Logger:                 logger.Default.LogMode(logger.Silent),
 		SkipDefaultTransaction: true,
@@ -28,6 +30,6 @@ func New(databaseURL string) (*gorm.DB, error) {
 	sqlDB.SetMaxIdleConns(5)
 	sqlDB.SetConnMaxLifetime(30 * time.Minute)
 
-	slog.Info("connected to database")
+	logging.FromContext(ctx).InfoContext(ctx, "connected to database")
 	return db, nil
 }

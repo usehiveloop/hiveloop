@@ -2,13 +2,13 @@ package streaming
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 )
 
 const (
@@ -44,8 +44,8 @@ func NewFlusher(bus *EventBus, db *gorm.DB) *Flusher {
 
 // Run starts the flusher loop. It blocks until ctx is cancelled.
 func (f *Flusher) Run(ctx context.Context) {
-	slog.Info("stream flusher started", "consumer", f.consumer)
-	defer slog.Info("stream flusher stopped", "consumer", f.consumer)
+	logging.FromContext(ctx).InfoContext(ctx, "stream flusher started", "consumer", f.consumer)
+	defer logging.FromContext(ctx).InfoContext(ctx, "stream flusher stopped", "consumer", f.consumer)
 
 	f.processPending(ctx)
 
@@ -70,7 +70,7 @@ func (f *Flusher) Run(ctx context.Context) {
 func (f *Flusher) flushAll(ctx context.Context) {
 	convIDs, err := f.bus.ActiveConversations(ctx)
 	if err != nil {
-		slog.Error("flusher: failed to get active conversations", "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "flusher: failed to get active conversations", "error", err)
 		return
 	}
 

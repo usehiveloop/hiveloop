@@ -77,7 +77,7 @@ func TestAgentModels_CRUD(t *testing.T) {
 		if read.Credential.ID != cred.ID {
 			t.Error("credential association not loaded")
 		}
-		bashPerm, _ := read.Permissions["bash"]
+		bashPerm := read.Permissions["bash"]
 		if bashPerm != "require_approval" {
 			t.Errorf("permissions.bash: got %v", bashPerm)
 		}

@@ -60,7 +60,7 @@ func (c *AnthropicCompletionClient) ChatCompletion(ctx context.Context, req Comp
 	var tools []anthropic.ToolUnionParam
 	for _, tool := range req.Tools {
 		var schema anthropic.ToolInputSchemaParam
-		json.Unmarshal(tool.Parameters, &schema)
+		_ = json.Unmarshal(tool.Parameters, &schema)
 		tools = append(tools, anthropic.ToolUnionParam{
 			OfTool: &anthropic.ToolParam{
 				Name:        tool.Name,

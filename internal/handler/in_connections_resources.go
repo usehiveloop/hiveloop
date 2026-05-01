@@ -2,12 +2,12 @@ package handler
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -57,7 +57,7 @@ func (h *InConnectionHandler) ListResources(w http.ResponseWriter, r *http.Reque
 
 	result, err := h.discovery.Discover(r.Context(), provider, resourceType, nangoProviderConfigKey, conn.NangoConnectionID)
 	if err != nil {
-		slog.Error("resource discovery failed",
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "resource discovery failed",
 			"connection_id", connID,
 			"provider", provider,
 			"resource_type", resourceType,

@@ -65,7 +65,7 @@ func (h *agentCreateHarness) createOrgWithBYOK(t *testing.T, byok bool) (model.O
 func (h *agentCreateHarness) post(t *testing.T, userID, orgID uuid.UUID, body any) *httptest.ResponseRecorder {
 	t.Helper()
 	buf := new(bytes.Buffer)
-	json.NewEncoder(buf).Encode(body)
+	_ = json.NewEncoder(buf).Encode(body)
 	req := httptest.NewRequest("POST", "/v1/agents", buf)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Org-ID", orgID.String())

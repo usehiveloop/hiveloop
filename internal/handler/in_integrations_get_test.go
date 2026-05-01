@@ -22,7 +22,7 @@ func TestInIntegrationHandler_Get_Success(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	if resp["id"] != integ.ID.String() {
 		t.Fatalf("expected id=%s, got %v", integ.ID.String(), resp["id"])
 	}

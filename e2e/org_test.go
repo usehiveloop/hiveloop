@@ -98,31 +98,6 @@ func (oh *orgHarness) registerUser(t *testing.T, email, password, name string) a
 	return resp
 }
 
-func (oh *orgHarness) loginUser(t *testing.T, email, password string, orgID string) authResponseDTO {
-	t.Helper()
-
-	var body string
-	if orgID != "" {
-		body = fmt.Sprintf(`{"email":%q,"password":%q,"org_id":%q}`, email, password, orgID)
-	} else {
-		body = fmt.Sprintf(`{"email":%q,"password":%q}`, email, password)
-	}
-	req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-	oh.orgRouter.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("POST /auth/login: expected 200, got %d: %s", rr.Code, rr.Body.String())
-	}
-
-	var resp authResponseDTO
-	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
-		t.Fatalf("decode login response: %v", err)
-	}
-	return resp
-}
-
 func (oh *orgHarness) issueToken(t *testing.T, userID, orgID, role string) string {
 	t.Helper()
 	tok, err := auth.IssueAccessToken(oh.privateKey, orgTestIssuer, orgTestAudience, userID, orgID, role, 15*time.Minute)

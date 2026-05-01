@@ -19,6 +19,6 @@ func (sw slogWriter) Write(payload []byte) (int, error) {
 	if length := len(message); length > 0 && message[length-1] == '\n' {
 		message = message[:length-1]
 	}
-	sw.logger.Error(sw.component+" stdlog", "message", message)
+	sw.logger.Error("stdlog", "component", sw.component, "message", message)
 	return len(payload), nil
 }

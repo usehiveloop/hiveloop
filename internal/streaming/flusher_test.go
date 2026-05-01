@@ -16,7 +16,7 @@ import (
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := "postgres://hiveloop:localdev@localhost:5433/hiveloop?sslmode=disable"
+	dsn := "postgres://hiveloop:localdev@localhost:5433/hiveloop?sslmode=disable" // #nosec G101 -- local test DB fixture
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Discard})
 	if err != nil {
 		t.Skipf("Postgres not available: %v", err)
@@ -109,7 +109,7 @@ func TestFlusher_BatchWritesToPostgres(t *testing.T) {
 
 	for i := 0; i < 50; i++ {
 		data := json.RawMessage(`{"n":` + string(rune('0'+i%10)) + `}`)
-		bus.Publish(ctx, convID.String(), "response_completed", data)
+		_, _ = bus.Publish(ctx, convID.String(), "response_completed", data)
 	}
 
 	flusher.flushStream(ctx, convID.String())
@@ -127,9 +127,9 @@ func TestFlusher_SkipsResponseChunks(t *testing.T) {
 	ctx := context.Background()
 
 	for i := 0; i < 20; i++ {
-		bus.Publish(ctx, convID.String(), "response_chunk", json.RawMessage(`{}`))
+		_, _ = bus.Publish(ctx, convID.String(), "response_chunk", json.RawMessage(`{}`))
 	}
-	bus.Publish(ctx, convID.String(), "response_completed", json.RawMessage(`{}`))
+	_, _ = bus.Publish(ctx, convID.String(), "response_completed", json.RawMessage(`{}`))
 
 	flusher.flushStream(ctx, convID.String())
 

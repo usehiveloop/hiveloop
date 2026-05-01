@@ -19,7 +19,7 @@ import (
 // default test DB isn't reachable, we skip — same policy as other DB-dependent
 // tests in this repo (e.g. internal/cache).
 
-const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 func connectOrSkip(t *testing.T) *gorm.DB {
 	t.Helper()

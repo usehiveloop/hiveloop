@@ -90,7 +90,7 @@ func (h *verifyHarness) seedPlan(t *testing.T, slug string, priceCents int64, mo
 func (h *verifyHarness) post(t *testing.T, userID, orgID uuid.UUID, body any) *httptest.ResponseRecorder {
 	t.Helper()
 	buf := new(bytes.Buffer)
-	json.NewEncoder(buf).Encode(body)
+	_ = json.NewEncoder(buf).Encode(body)
 	req := httptest.NewRequest("POST", "/v1/billing/verify", buf)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Org-ID", orgID.String())
@@ -134,7 +134,7 @@ func TestBillingVerify_CreatesSubscriptionWithMatchingAmount(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 	var resp map[string]string
-	json.Unmarshal(rr.Body.Bytes(), &resp)
+	_ = json.Unmarshal(rr.Body.Bytes(), &resp)
 	if resp["status"] != "active" {
 		t.Errorf("status = %q, want active", resp["status"])
 	}
@@ -236,7 +236,7 @@ func TestBillingVerify_NonSuccessReturnsStatus(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 	var resp map[string]string
-	json.Unmarshal(rr.Body.Bytes(), &resp)
+	_ = json.Unmarshal(rr.Body.Bytes(), &resp)
 	if resp["status"] != "past_due" {
 		t.Errorf("status = %q, want past_due", resp["status"])
 	}

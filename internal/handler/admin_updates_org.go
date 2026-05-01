@@ -2,13 +2,13 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -94,6 +94,6 @@ func (h *AdminHandler) UpdateOrgFull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.db.Where("id = ?", id).First(&org)
-	slog.Info("admin: org updated", "org_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: org updated", "org_id", id)
 	writeJSON(w, http.StatusOK, toAdminOrgResponse(org))
 }

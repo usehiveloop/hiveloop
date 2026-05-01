@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/tasks"
@@ -71,7 +71,7 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 	// Read the raw body.
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		slog.Error("incoming webhook: failed to read body",
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "incoming webhook: failed to read body",
 			"provider", provider,
 			"error", err,
 		)
@@ -120,7 +120,7 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 		PayloadJSON:  body,
 	})
 	if err != nil {
-		slog.Error("incoming webhook: failed to build dispatch task",
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "incoming webhook: failed to build dispatch task",
 			"provider", provider,
 			"error", err,
 		)
@@ -128,7 +128,7 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if _, err := h.enqueuer.Enqueue(task); err != nil {
-		slog.Error("incoming webhook: failed to enqueue dispatch task",
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "incoming webhook: failed to enqueue dispatch task",
 			"provider", provider,
 			"error", err,
 		)

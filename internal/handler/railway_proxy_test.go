@@ -21,7 +21,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
-const railwayTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const railwayTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 
 type railwayTestHarness struct {
 	db          *gorm.DB
@@ -172,7 +172,7 @@ func TestRailwayProxy_ForwardsRequestAndToken(t *testing.T) {
 
 	nangoHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"provider": "railway",
 			"credentials": map[string]any{
 				"access_token": "railway_test_token_abc",
@@ -188,7 +188,7 @@ func TestRailwayProxy_ForwardsRequestAndToken(t *testing.T) {
 		mu.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"data": map[string]any{
 				"me": map[string]any{"name": "Test User"},
 			},
@@ -247,7 +247,7 @@ func TestRailwayProxy_CachesTokenByOrg(t *testing.T) {
 		nangoCallCount++
 		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"provider":    "railway",
 			"credentials": map[string]any{"access_token": "cached_railway_token"},
 		})
@@ -255,7 +255,7 @@ func TestRailwayProxy_CachesTokenByOrg(t *testing.T) {
 
 	railwayHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"data":{}}`))
+		_, _ = w.Write([]byte(`{"data":{}}`))
 	})
 
 	harness := newRailwayHarness(t, nangoHandler, railwayHandler)

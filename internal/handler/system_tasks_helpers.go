@@ -125,7 +125,7 @@ func (h *SystemTaskHandler) afterCompletion(
 		CreatedAt:      time.Now(),
 	}
 	if err := h.db.WithContext(ctx).Create(&gen).Error; err != nil {
-		logger.Error("system_task: generation row write failed", "error", err, "generation_id", gen.ID)
+		logger.ErrorContext(ctx, "system_task: generation row write failed", "error", err, "generation_id", gen.ID)
 	}
 	_ = h.credits
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/usehiveloop/hiveloop/internal/logging"
@@ -65,7 +64,7 @@ func (o *Orchestrator) ArchiveSandbox(ctx context.Context, sb *model.Sandbox) er
 	sb.Status = string(StatusArchived)
 	sb.BridgeURLExpiresAt = nil
 
-	slog.Info("sandbox archived", "sandbox_id", sb.ID, "external_id", sb.ExternalID)
+	logging.FromContext(ctx).InfoContext(ctx, "sandbox archived", "sandbox_id", sb.ID, "external_id", sb.ExternalID)
 	return nil
 }
 

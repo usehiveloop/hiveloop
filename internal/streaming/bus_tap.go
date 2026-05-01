@@ -1,14 +1,15 @@
 package streaming
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
-	"log/slog"
 	"runtime/debug"
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"context"
-	"encoding/json"
+
+	"github.com/usehiveloop/hiveloop/internal/logging"
 )
 
 func (t *convTap) attach() (*subscriber, string) {
@@ -27,7 +28,7 @@ func (t *convTap) run() {
 	defer close(t.done)
 	defer func() {
 		if r := recover(); r != nil {
-			slog.Error("conv tap panicked",
+			logging.FromContext(t.stopCtx).ErrorContext(t.stopCtx, "conv tap panicked",
 				"conversation_id", t.convID,
 				"panic", r,
 				"stack", string(debug.Stack()),
@@ -62,7 +63,7 @@ func (t *convTap) run() {
 			if t.stopCtx.Err() != nil {
 				return
 			}
-			slog.Error("conv tap XREAD error",
+			logging.FromContext(t.stopCtx).ErrorContext(t.stopCtx, "conv tap XREAD error",
 				"conversation_id", t.convID, "error", err)
 			select {
 			case <-t.stopCtx.Done():

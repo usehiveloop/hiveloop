@@ -31,7 +31,7 @@ func TestInIntegrationHandler_Create_Success(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	if resp["provider"] != "github" {
 		t.Fatalf("expected provider=github, got %v", resp["provider"])
 	}

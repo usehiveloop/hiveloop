@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"net/http/httputil"
 
 	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/proxy"
 )
 
@@ -25,7 +25,7 @@ func NewProxyHandler(cacheManager *cache.Manager, transport http.RoundTripper) h
 				http.Error(w, `{"error":"`+proxyErr+`"}`, http.StatusBadGateway)
 				return
 			}
-			slog.Error("proxy upstream error",
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "proxy upstream error",
 				"error", err,
 				"method", r.Method,
 				"path", r.URL.Path,

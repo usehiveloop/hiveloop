@@ -50,7 +50,7 @@ func (handler *SubscriptionDispatchHandler) Handle(ctx context.Context, task *as
 		return fmt.Errorf("unmarshal subscription dispatch payload: %w", err)
 	}
 
-	logger := slog.With(
+	logger := logging.FromContext(ctx).With(
 		"component", "subscription_dispatch",
 		"delivery_id", payload.DeliveryID,
 		"org_id", payload.OrgID,

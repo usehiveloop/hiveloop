@@ -39,7 +39,7 @@ func TestOAuth_Exchange_Success(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	if resp["access_token"] == nil || resp["access_token"] == "" {
 		t.Error("missing access_token")
@@ -110,7 +110,7 @@ func TestOAuth_Exchange_EmailConfirmedField(t *testing.T) {
 
 	rr1 := h.doRequest(t, http.MethodPost, "/oauth/exchange", map[string]string{"token": plaintext1})
 	var resp1 map[string]any
-	json.NewDecoder(rr1.Body).Decode(&resp1)
+	_ = json.NewDecoder(rr1.Body).Decode(&resp1)
 	user1 := resp1["user"].(map[string]any)
 	if user1["email_confirmed"] != true {
 		t.Errorf("expected email_confirmed=true, got %v", user1["email_confirmed"])
@@ -127,7 +127,7 @@ func TestOAuth_Exchange_EmailConfirmedField(t *testing.T) {
 
 	rr2 := h.doRequest(t, http.MethodPost, "/oauth/exchange", map[string]string{"token": plaintext2})
 	var resp2 map[string]any
-	json.NewDecoder(rr2.Body).Decode(&resp2)
+	_ = json.NewDecoder(rr2.Body).Decode(&resp2)
 	user2 := resp2["user"].(map[string]any)
 	if user2["email_confirmed"] != false {
 		t.Errorf("expected email_confirmed=false for placeholder email, got %v", user2["email_confirmed"])

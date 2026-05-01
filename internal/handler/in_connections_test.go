@@ -40,7 +40,7 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 		cfg.mu.Unlock()
 
 		if r.URL.Path == "/providers" && r.Method == http.MethodGet {
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": []map[string]any{
 					{"name": "github", "display_name": "GitHub", "auth_mode": "OAUTH2"},
 					{"name": "slack", "display_name": "Slack", "auth_mode": "OAUTH2"},
@@ -53,10 +53,10 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 		if r.URL.Path == "/connect/sessions" && r.Method == http.MethodPost {
 			w.WriteHeader(cfg.connectStatus)
 			if cfg.connectStatus >= 400 {
-				json.NewEncoder(w).Encode(map[string]any{"error": "nango error"})
+				_ = json.NewEncoder(w).Encode(map[string]any{"error": "nango error"})
 				return
 			}
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": map[string]any{
 					"token":      "test-connect-token",
 					"expires_at": time.Now().Add(15 * time.Minute).Format(time.RFC3339),
@@ -68,10 +68,10 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 		if strings.HasPrefix(r.URL.Path, "/connection/") && r.Method == http.MethodGet {
 			w.WriteHeader(cfg.getConnStatus)
 			if cfg.getConnStatus >= 400 {
-				json.NewEncoder(w).Encode(map[string]any{"error": "nango error"})
+				_ = json.NewEncoder(w).Encode(map[string]any{"error": "nango error"})
 				return
 			}
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"provider":          "github",
 				"connection_config": map[string]any{"org": "hiveloop"},
 				"credentials":       map[string]any{"access_token": "gho_xxxx"},
@@ -82,10 +82,10 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 		if strings.HasPrefix(r.URL.Path, "/connection/") && r.Method == http.MethodDelete {
 			w.WriteHeader(cfg.deleteConnStatus)
 			if cfg.deleteConnStatus >= 400 {
-				json.NewEncoder(w).Encode(map[string]any{"error": "nango error"})
+				_ = json.NewEncoder(w).Encode(map[string]any{"error": "nango error"})
 				return
 			}
-			json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+			_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
 			return
 		}
 

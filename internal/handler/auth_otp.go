@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 // otpRequestDedupWindow swallows duplicate /auth/otp/request calls for the
@@ -64,7 +64,7 @@ func (h *AuthHandler) OTPRequest(w http.ResponseWriter, r *http.Request) {
 	// Generate new code
 	plainCode, codeHash, err := model.GenerateOTPCode()
 	if err != nil {
-		slog.Error("failed to generate OTP code", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to generate OTP code", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -75,7 +75,7 @@ func (h *AuthHandler) OTPRequest(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: time.Now().Add(otpExpiry),
 	}
 	if err := h.db.Create(&otp).Error; err != nil {
-		slog.Error("failed to store OTP code", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to store OTP code", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -92,7 +92,7 @@ func (h *AuthHandler) OTPRequest(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		// Enqueue failure shouldn't break login — user can request a new code.
 		// Log loudly so it's paged on dashboards.
-		slog.Error("failed to enqueue OTP email", "error", err, "email", req.Email)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to enqueue OTP email", "error", err, "email", req.Email)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -163,13 +163,13 @@ func (h *AuthHandler) OTPVerify(w http.ResponseWriter, r *http.Request) {
 			return orgErr
 		})
 		if txErr != nil {
-			slog.Error("failed to create user via OTP", "error", txErr)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create user via OTP", "error", txErr)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create account"})
 			return
 		}
 
-		slog.Info("user created via OTP", "user_id", user.ID, "email", user.Email)
-		h.issueTokensAndRespond(w, http.StatusCreated, user, org.ID.String(), "owner")
+		logging.FromContext(r.Context()).InfoContext(r.Context(), "user created via OTP", "user_id", user.ID, "email", user.Email)
+		h.issueTokensAndRespond(r.Context(), w, http.StatusCreated, user, org.ID.String(), "owner")
 		return
 	}
 
@@ -193,8 +193,8 @@ func (h *AuthHandler) OTPVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("user logged in via OTP", "user_id", user.ID, "email", user.Email)
-	h.issueTokensAndRespond(w, http.StatusOK, user, memberships[0].OrgID.String(), memberships[0].Role)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "user logged in via OTP", "user_id", user.ID, "email", user.Email)
+	h.issueTokensAndRespond(r.Context(), w, http.StatusOK, user, memberships[0].OrgID.String(), memberships[0].Role)
 }
 
 // --- Helpers ---

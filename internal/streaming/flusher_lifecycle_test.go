@@ -17,7 +17,7 @@ func TestFlusher_AcksAfterFlush(t *testing.T) {
 	_, convID := createTestConversation(t, db)
 	ctx := context.Background()
 
-	bus.Publish(ctx, convID.String(), "chunk", json.RawMessage(`{}`))
+	_, _ = bus.Publish(ctx, convID.String(), "chunk", json.RawMessage(`{}`))
 	flusher.flushStream(ctx, convID.String())
 
 	pending, err := rc.XPending(ctx, bus.streamKey(convID.String()), flusherGroup).Result()
@@ -43,7 +43,7 @@ func TestFlusher_DoesNotAckOnDBError(t *testing.T) {
 	ctx := context.Background()
 
 	convID := uuid.New().String()
-	bus.Publish(ctx, convID, "chunk", json.RawMessage(`{}`))
+	_, _ = bus.Publish(ctx, convID, "chunk", json.RawMessage(`{}`))
 
 	rc.XGroupCreateMkStream(ctx, bus.streamKey(convID), flusherGroup, "0")
 
@@ -61,7 +61,7 @@ func TestFlusher_TrimsAfterFlush(t *testing.T) {
 	ctx := context.Background()
 
 	for i := 0; i < 600; i++ {
-		bus.Publish(ctx, convID.String(), "chunk", json.RawMessage(`{}`))
+		_, _ = bus.Publish(ctx, convID.String(), "chunk", json.RawMessage(`{}`))
 	}
 
 	flusher.flushStream(ctx, convID.String())
@@ -77,7 +77,7 @@ func TestFlusher_GracefulShutdown(t *testing.T) {
 	_, convID := createTestConversation(t, db)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	bus.Publish(ctx, convID.String(), "chunk", json.RawMessage(`{}`))
+	_, _ = bus.Publish(ctx, convID.String(), "chunk", json.RawMessage(`{}`))
 
 	done := make(chan struct{})
 	go func() {

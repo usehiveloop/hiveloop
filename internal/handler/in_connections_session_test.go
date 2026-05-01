@@ -30,7 +30,7 @@ func TestInConnectionHandler_CreateConnectSession_Success(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(mockCfg))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -52,7 +52,7 @@ func TestInConnectionHandler_CreateConnectSession_Success(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	if resp["token"] == nil || resp["token"] == "" {
 		t.Fatal("expected token in response")
 	}
@@ -66,7 +66,7 @@ func TestInConnectionHandler_CreateConnectSession_Success(t *testing.T) {
 	for i, p := range mockCfg.capturedPaths {
 		if p == "/connect/sessions" && mockCfg.capturedMethods[i] == http.MethodPost {
 			var reqBody map[string]any
-			json.Unmarshal(mockCfg.capturedBodies[i], &reqBody)
+			_ = json.Unmarshal(mockCfg.capturedBodies[i], &reqBody)
 			if endUser, ok := reqBody["end_user"].(map[string]any); ok {
 				if endUser["id"] == user.ID.String() {
 					found = true
@@ -86,7 +86,7 @@ func TestInConnectionHandler_CreateConnectSession_IntegrationNotFound(t *testing
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -118,7 +118,7 @@ func TestInConnectionHandler_CreateConnectSession_NangoFailure(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(mockCfg))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()

@@ -5,11 +5,11 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/observe"
 	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 )
@@ -46,7 +46,7 @@ func (ct *CaptureTransport) RoundTrip(req *http.Request) (*http.Response, error)
 			captured.ErrorType = classifyTransportError(err)
 			captured.ErrorMessage = err.Error()
 		}
-		slog.Error("proxy upstream transport error",
+		logging.FromContext(req.Context()).ErrorContext(req.Context(), "proxy upstream transport error",
 			"method", req.Method,
 			"host", req.URL.Host,
 			"path", req.URL.Path,
@@ -85,7 +85,7 @@ func (ct *CaptureTransport) RoundTrip(req *http.Request) (*http.Response, error)
 		}
 		// 4xx are normal user-facing errors; 5xx warrant capture.
 		if resp.StatusCode >= 500 {
-			slog.Error("proxy upstream 5xx response",
+			logging.FromContext(req.Context()).ErrorContext(req.Context(), "proxy upstream 5xx response",
 				"method", req.Method,
 				"host", req.URL.Host,
 				"path", req.URL.Path,

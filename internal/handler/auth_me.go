@@ -34,7 +34,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 
 	// Bulk-load full plan rows for every plan slug referenced by the user's
 	// orgs in one query, then map slug -> plan. Avoids an N+1 over plans.
-	plans := loadPlans(h.db, memberships)
+	plans := loadPlans(r.Context(), h.db, memberships)
 
 	orgs := make([]orgMemberDTO, 0, len(memberships))
 	for _, m := range memberships {

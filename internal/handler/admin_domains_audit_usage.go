@@ -1,12 +1,12 @@
 package handler
 
 import (
-	"github.com/google/uuid"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -89,7 +89,7 @@ func (h *AdminHandler) DeleteCustomDomain(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	slog.Info("admin: custom domain deleted", "domain_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: custom domain deleted", "domain_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 // ListAudit handles GET /admin/v1/audit.
@@ -258,6 +258,6 @@ func (h *AdminHandler) DeleteWorkspaceStorage(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	slog.Info("admin: workspace storage deleted", "storage_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: workspace storage deleted", "storage_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

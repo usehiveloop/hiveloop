@@ -26,14 +26,14 @@ func mockTursoServer(t *testing.T) *httptest.Server {
 				Name  string `json:"name"`
 				Group string `json:"group"`
 			}
-			json.NewDecoder(r.Body).Decode(&body)
+			_ = json.NewDecoder(r.Body).Decode(&body)
 			if body.Name == "" {
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(`{"error":"name required"}`))
+				_, _ = w.Write([]byte(`{"error":"name required"}`))
 				return
 			}
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"database": map[string]any{
 					"Name":     body.Name,
 					"DbId":     "db-" + body.Name,
@@ -44,7 +44,7 @@ func mockTursoServer(t *testing.T) *httptest.Server {
 		// Create token
 		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/auth/tokens"):
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{
+			_ = json.NewEncoder(w).Encode(map[string]string{
 				"jwt": "eyJ0eXAiOiJKV1QiLCJhbGciOiJFZERTQSJ9.mock-token",
 			})
 
@@ -53,7 +53,7 @@ func mockTursoServer(t *testing.T) *httptest.Server {
 			parts := strings.Split(r.URL.Path, "/")
 			dbName := parts[len(parts)-1]
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"database": map[string]any{
 					"Name":     dbName,
 					"DbId":     "db-" + dbName,
@@ -64,7 +64,7 @@ func mockTursoServer(t *testing.T) *httptest.Server {
 		// Delete database
 		case r.Method == http.MethodDelete && strings.Contains(r.URL.Path, "/databases/"):
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{"database": "deleted"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"database": "deleted"})
 
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -141,7 +141,7 @@ func TestDeleteDatabase(t *testing.T) {
 func TestCreateDatabase_Error(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte(`{"error":"database already exists"}`))
+		_, _ = w.Write([]byte(`{"error":"database already exists"}`))
 	}))
 	defer srv.Close()
 
@@ -170,7 +170,7 @@ func TestAuthHeaderSent(t *testing.T) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"database": map[string]any{"Name": "x", "DbId": "x", "Hostname": "x.turso.io"},
 		})
 	}))

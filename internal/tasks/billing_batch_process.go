@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 )
 
 const (
@@ -99,7 +99,7 @@ func (h *BillingBatchProcessHandler) Handle(ctx context.Context, _ *asynq.Task) 
 	}
 
 	if processed > 0 {
-		slog.Info("billing batch processed",
+		logging.FromContext(ctx).InfoContext(ctx, "billing batch processed",
 			"rows", processed,
 			"orgs_deducted", deducted,
 		)

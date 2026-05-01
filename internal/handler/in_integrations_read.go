@@ -1,12 +1,12 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -74,7 +74,7 @@ func (h *InIntegrationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	nk := inNangoKey(integ.UniqueKey)
 	integResp, err := h.nango.GetIntegration(r.Context(), nk)
 	if err != nil {
-		slog.Warn("failed to fetch nango in-integration", "error", err, "integration_id", integ.ID)
+		logging.FromContext(r.Context()).WarnContext(r.Context(), "failed to fetch nango in-integration", "error", err, "integration_id", integ.ID)
 	} else {
 		template, _ := h.nango.GetProviderTemplate(nangoProviderName(integ.Provider))
 		integ.NangoConfig = buildNangoConfig(integResp, template, h.nango.CallbackURL())

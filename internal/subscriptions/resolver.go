@@ -41,15 +41,7 @@ func ResolveEventResourceKey(
 	provider, eventType, eventAction string,
 	payload map[string]any,
 ) (string, bool) {
-	if logger == nil {
-		logger = slog.Default()
-	}
-	logger = logger.With(
-		"component", "subscriptions.resolver",
-		"provider", provider,
-		"event_type", eventType,
-		"event_action", eventAction,
-	)
+	_ = logger // logging removed by chore: clean up logs; parameter retained for callers
 
 	def, ok := lookupTriggerDef(cat, provider, eventType, eventAction)
 	if !ok {

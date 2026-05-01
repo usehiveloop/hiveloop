@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/cache"
 	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/proxy"
 	"github.com/usehiveloop/hiveloop/internal/registry"
@@ -141,12 +141,12 @@ func (h *AdminSystemCredentialsHandler) Create(w http.ResponseWriter, r *http.Re
 		WrappedDEK:   wrappedDEK,
 	}
 	if err := h.db.WithContext(r.Context()).Create(&cred).Error; err != nil {
-		slog.Error("admin: failed to create system credential", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "admin: failed to create system credential", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to store credential"})
 		return
 	}
 
-	slog.Info("admin: system credential created", "credential_id", cred.ID, "provider_id", cred.ProviderID, "label", cred.Label)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: system credential created", "credential_id", cred.ID, "provider_id", cred.ProviderID, "label", cred.Label)
 	writeJSON(w, http.StatusCreated, toSystemCredentialResponse(cred))
 }
 
@@ -205,7 +205,7 @@ func (h *AdminSystemCredentialsHandler) Revoke(w http.ResponseWriter, r *http.Re
 		_ = h.cacheManager.InvalidateCredential(r.Context(), id)
 	}
 
-	slog.Info("admin: system credential revoked", "credential_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: system credential revoked", "credential_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }
 

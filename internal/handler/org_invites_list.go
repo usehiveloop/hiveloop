@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -29,7 +29,7 @@ func (h *OrgInviteHandler) List(w http.ResponseWriter, r *http.Request) {
 		Where("org_id = ? AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > ?", org.ID, time.Now()).
 		Order("created_at DESC").
 		Find(&invites).Error; err != nil {
-		slog.Error("list invites", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "list invites", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list invites"})
 		return
 	}
@@ -61,7 +61,7 @@ func (h *OrgInviteHandler) ListMembers(w http.ResponseWriter, r *http.Request) {
 		Where("org_id = ?", org.ID).
 		Order("created_at ASC").
 		Find(&memberships).Error; err != nil {
-		slog.Error("list members", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "list members", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list members"})
 		return
 	}

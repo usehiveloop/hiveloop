@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/spider"
@@ -53,7 +53,7 @@ func (handler *SpiderHandler) Crawl(w http.ResponseWriter, r *http.Request) {
 	handler.recordUsage(r, "crawl", params.URL, results, err, duration)
 
 	if err != nil {
-		slog.Error("spider crawl failed", "error", err, "url", params.URL)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "spider crawl failed", "error", err, "url", params.URL)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "spider crawl failed: " + err.Error()})
 		return
 	}
@@ -85,7 +85,7 @@ func (handler *SpiderHandler) Search(w http.ResponseWriter, r *http.Request) {
 	handler.recordUsageCount(r, "search", params.Search, resultCount, err, duration)
 
 	if err != nil {
-		slog.Error("spider search failed", "error", err, "query", params.Search)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "spider search failed", "error", err, "query", params.Search)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "spider search failed: " + err.Error()})
 		return
 	}
@@ -113,7 +113,7 @@ func (handler *SpiderHandler) Links(w http.ResponseWriter, r *http.Request) {
 	handler.recordUsage(r, "links", params.URL, results, err, duration)
 
 	if err != nil {
-		slog.Error("spider links failed", "error", err, "url", params.URL)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "spider links failed", "error", err, "url", params.URL)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "spider links failed: " + err.Error()})
 		return
 	}
@@ -141,7 +141,7 @@ func (handler *SpiderHandler) Screenshot(w http.ResponseWriter, r *http.Request)
 	handler.recordUsage(r, "screenshot", params.URL, results, err, duration)
 
 	if err != nil {
-		slog.Error("spider screenshot failed", "error", err, "url", params.URL)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "spider screenshot failed", "error", err, "url", params.URL)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "spider screenshot failed: " + err.Error()})
 		return
 	}
@@ -179,7 +179,7 @@ func (handler *SpiderHandler) Transform(w http.ResponseWriter, r *http.Request) 
 	handler.recordUsageCount(r, "transform", input, resultCount, err, duration)
 
 	if err != nil {
-		slog.Error("spider transform failed", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "spider transform failed", "error", err)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "spider transform failed: " + err.Error()})
 		return
 	}
@@ -234,7 +234,7 @@ func (handler *SpiderHandler) recordUsageCount(r *http.Request, toolName, input 
 		usage.IPAddress = &addr
 	}
 
-	handler.usageWriter.Write(usage)
+	handler.usageWriter.Write(r.Context(), usage)
 }
 
 // lookupAgentID extracts the agent_id from the token's meta JSONB field.

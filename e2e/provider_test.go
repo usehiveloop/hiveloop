@@ -203,7 +203,7 @@ func TestE2E_Provider_Sorted(t *testing.T) {
 	var providers []struct {
 		ID string `json:"id"`
 	}
-	json.NewDecoder(rr.Body).Decode(&providers)
+	_ = json.NewDecoder(rr.Body).Decode(&providers)
 
 	for i := 1; i < len(providers); i++ {
 		if providers[i].ID < providers[i-1].ID {

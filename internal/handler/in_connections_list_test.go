@@ -29,7 +29,7 @@ func TestInConnectionHandler_List_Success(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -64,7 +64,7 @@ func TestInConnectionHandler_List_Success(t *testing.T) {
 	var page struct {
 		Data []map[string]any `json:"data"`
 	}
-	json.NewDecoder(rr.Body).Decode(&page)
+	_ = json.NewDecoder(rr.Body).Decode(&page)
 	if len(page.Data) != 2 {
 		t.Fatalf("expected 2 connections, got %d", len(page.Data))
 	}
@@ -80,7 +80,7 @@ func TestInConnectionHandler_List_UserIsolation(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -114,7 +114,7 @@ func TestInConnectionHandler_List_UserIsolation(t *testing.T) {
 	var page struct {
 		Data []map[string]any `json:"data"`
 	}
-	json.NewDecoder(rr.Body).Decode(&page)
+	_ = json.NewDecoder(rr.Body).Decode(&page)
 	for _, item := range page.Data {
 		if item["nango_connection_id"] == "user1-conn" {
 			t.Fatal("user2 should not see user1's connection")
@@ -132,7 +132,7 @@ func TestInConnectionHandler_List_ExcludesRevoked(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -158,7 +158,7 @@ func TestInConnectionHandler_List_ExcludesRevoked(t *testing.T) {
 	var page struct {
 		Data []map[string]any `json:"data"`
 	}
-	json.NewDecoder(rr.Body).Decode(&page)
+	_ = json.NewDecoder(rr.Body).Decode(&page)
 	for _, item := range page.Data {
 		if item["id"] == connID.String() {
 			t.Fatal("revoked connection should not appear in list")
@@ -176,7 +176,7 @@ func TestInConnectionHandler_List_Pagination(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -210,7 +210,7 @@ func TestInConnectionHandler_List_Pagination(t *testing.T) {
 		HasMore    bool             `json:"has_more"`
 		NextCursor *string          `json:"next_cursor"`
 	}
-	json.NewDecoder(rr.Body).Decode(&page1)
+	_ = json.NewDecoder(rr.Body).Decode(&page1)
 	if len(page1.Data) != 2 {
 		t.Fatalf("expected 2 items, got %d", len(page1.Data))
 	}
@@ -229,7 +229,7 @@ func TestInConnectionHandler_List_FilterByProvider(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -260,7 +260,7 @@ func TestInConnectionHandler_List_FilterByProvider(t *testing.T) {
 	var page struct {
 		Data []map[string]any `json:"data"`
 	}
-	json.NewDecoder(rr.Body).Decode(&page)
+	_ = json.NewDecoder(rr.Body).Decode(&page)
 	if len(page.Data) != 1 {
 		t.Fatalf("expected 1 github connection, got %d", len(page.Data))
 	}

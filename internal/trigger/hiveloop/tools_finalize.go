@@ -25,7 +25,7 @@ func extractRequiredParams(action catalog.ActionDef) []string {
 	var schema struct {
 		Required []string `json:"required"`
 	}
-	json.Unmarshal(action.Parameters, &schema)
+	_ = json.Unmarshal(action.Parameters, &schema)
 	return schema.Required
 }
 
@@ -40,7 +40,7 @@ func formatParamSchema(action catalog.ActionDef) string {
 		} `json:"properties"`
 		Required []string `json:"required"`
 	}
-	json.Unmarshal(action.Parameters, &schema)
+	_ = json.Unmarshal(action.Parameters, &schema)
 
 	requiredSet := make(map[string]bool)
 	for _, name := range schema.Required {

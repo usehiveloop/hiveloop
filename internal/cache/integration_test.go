@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	testDBURL     = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+	testDBURL     = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 	testRedisAddr = "localhost:6379"
 )
 

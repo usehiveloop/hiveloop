@@ -19,10 +19,6 @@ func toolCallResponse(calls ...ToolCall) CompletionResponse {
 	}
 }
 
-func tc(name, argsJSON string) ToolCall {
-	return ToolCall{ID: "call-" + name, Name: name, Arguments: argsJSON}
-}
-
 func routeCall(agentID string, priority int) ToolCall {
 	args, _ := json.Marshal(routeToAgentArgs{AgentID: agentID, Priority: priority, Reason: "test"})
 	return ToolCall{ID: "call-route-" + agentID[:8], Name: "route_to_agent", Arguments: string(args)}

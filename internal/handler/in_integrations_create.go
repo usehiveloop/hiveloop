@@ -3,11 +3,11 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/nango"
@@ -60,7 +60,7 @@ func (h *InIntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Credentials: req.Credentials,
 	}
 	if err := h.nango.CreateIntegration(r.Context(), nangoReq); err != nil {
-		slog.Error("nango in-integration creation failed", "error", err, "provider", req.Provider)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "nango in-integration creation failed", "error", err, "provider", req.Provider)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to create integration in Nango: " + err.Error()})
 		return
 	}
@@ -68,7 +68,7 @@ func (h *InIntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var nangoConfig model.JSON
 	integResp, err := h.nango.GetIntegration(r.Context(), nk)
 	if err != nil {
-		slog.Warn("failed to fetch nango in-integration details for config", "error", err, "nango_key", nk)
+		logging.FromContext(r.Context()).WarnContext(r.Context(), "failed to fetch nango in-integration details for config", "error", err, "nango_key", nk)
 	} else {
 		template, _ := h.nango.GetProviderTemplate(nangoProviderName(req.Provider))
 		nangoConfig = buildNangoConfig(integResp, template, h.nango.CallbackURL())
@@ -84,11 +84,11 @@ func (h *InIntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.Create(&integ).Error; err != nil {
-		slog.Error("failed to store in-integration", "error", err, "provider", req.Provider)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to store in-integration", "error", err, "provider", req.Provider)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create integration"})
 		return
 	}
 
-	slog.Info("in-integration created", "integration_id", integ.ID, "provider", req.Provider)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "in-integration created", "integration_id", integ.ID, "provider", req.Provider)
 	writeJSON(w, http.StatusCreated, toInIntegrationResponse(integ))
 }

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -64,6 +63,6 @@ func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	slog.Info("agent soft-deleted", "agent_id", agent.ID, "org_id", org.ID)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "agent soft-deleted", "agent_id", agent.ID, "org_id", org.ID)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

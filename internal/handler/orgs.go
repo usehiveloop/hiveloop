@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -120,7 +120,7 @@ func (h *OrgHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		slog.Error("failed to create org", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create org", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create organization"})
 		return
 	}
@@ -192,14 +192,14 @@ func (h *OrgHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.Model(&model.Org{}).Where("id = ?", ctxOrg.ID).Updates(updates).Error; err != nil {
-		slog.Error("failed to update org", "org_id", ctxOrg.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to update org", "org_id", ctxOrg.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update organization"})
 		return
 	}
 
 	var org model.Org
 	if err := h.db.First(&org, "id = ?", ctxOrg.ID).Error; err != nil {
-		slog.Error("failed to reload org after update", "org_id", ctxOrg.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to reload org after update", "org_id", ctxOrg.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to reload organization"})
 		return
 	}

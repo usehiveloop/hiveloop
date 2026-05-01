@@ -3,13 +3,13 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"log/slog"
+	"time"
 
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/credentials"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	subagents "github.com/usehiveloop/hiveloop/internal/sub-agents"
-	"time"
 )
 
 func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
@@ -47,9 +47,9 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		return fmt.Errorf("storing proxy token: %w", err)
 	}
 
-	def := p.buildAgentDefinition(agent, cred, proxyToken, jti)
+	def := p.buildAgentDefinition(ctx, agent, cred, proxyToken, jti)
 
-	subagentDefs, err := p.buildSubagentDefinitions(agent, cred)
+	subagentDefs, err := p.buildSubagentDefinitions(ctx, agent, cred)
 	if err != nil {
 		return fmt.Errorf("building subagent definitions: %w", err)
 	}
@@ -66,13 +66,13 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		return fmt.Errorf("pushing agent to bridge: %w", err)
 	}
 
-	slog.Debug("agent pushed to bridge", "agent_id", agent.ID, "sandbox_id", sb.ID)
+	logging.FromContext(ctx).DebugContext(ctx, "agent pushed to bridge", "agent_id", agent.ID, "sandbox_id", sb.ID)
 
 	return nil
 }
 
-func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential, proxyToken, jti string) bridgepkg.AgentDefinition {
-	providerType := bridgepkg.Custom
+func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, cred *model.Credential, proxyToken, jti string) bridgepkg.AgentDefinition {
+	providerType := bridgepkg.ProviderTypeCustom
 	if pt, ok := providerTypeMap[cred.ProviderID]; ok {
 		providerType = pt
 	}
@@ -102,7 +102,7 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 	permissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
 
 	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), cred.ProviderID, agent.Model)
-	applyImmortalDefault(def.Config, def.Provider, cred.ProviderID, agent.Model)
+	applyImmortalDefault(def.Config, def.Provider, cred.ProviderID, agent.Model, permissions)
 	applyHistoryStripDefault(def.Config)
 	applyToolRequirementsDefault(def.Config, permissions)
 
@@ -131,7 +131,7 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 
 	mcpServers := decodeJSONAs[[]bridgepkg.McpServerDefinition](agent.McpServers)
 
-	hasIntegrations := agent.Integrations != nil && len(agent.Integrations) > 0
+	hasIntegrations := len(agent.Integrations) > 0
 	if hasIntegrations && p.cfg.MCPBaseURL != "" && jti != "" {
 		ourMCP := buildHiveLoopMCPServer(p.cfg.MCPBaseURL, jti, proxyToken)
 		if mcpServers == nil {
@@ -145,7 +145,7 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 		def.McpServers = mcpServers
 	}
 
-	if bridgeSkills := p.loadBridgeSkills(agent.ID); len(bridgeSkills) > 0 {
+	if bridgeSkills := p.loadBridgeSkills(ctx, agent.ID); len(bridgeSkills) > 0 {
 		def.Skills = &bridgeSkills
 	}
 

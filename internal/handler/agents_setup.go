@@ -2,13 +2,13 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/lib/pq"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -111,7 +111,7 @@ func (h *AgentHandler) UpdateSetup(w http.ResponseWriter, r *http.Request) {
 		}
 		encrypted, err := h.encKey.EncryptString(string(envJSON))
 		if err != nil {
-			slog.Error("failed to encrypt env vars", "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to encrypt env vars", "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to encrypt environment variables"})
 			return
 		}

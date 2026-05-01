@@ -33,7 +33,7 @@ func formAuthHandler(st *store, wh *webhookSender, route string) http.HandlerFun
 			"type":    mode,
 			"api_key": "fake_api_key_" + newID(),
 		})
-		wh.fireAuth(authWebhook{
+		wh.fireAuth(r.Context(), authWebhook{
 			From:              "nango",
 			Type:              "auth",
 			ConnectionID:      conn.ID,

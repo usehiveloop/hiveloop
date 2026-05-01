@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -116,7 +115,7 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if status, msg := h.precheckWebsiteCredits(src, org.ID); status != 0 {
+	if status, msg := h.precheckWebsiteCredits(r.Context(), src, org.ID); status != 0 {
 		writeJSON(w, status, errorResponse{Error: msg})
 		return
 	}
@@ -126,12 +125,12 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusConflict, errorResponse{Error: "a RAG source already exists for this connection"})
 			return
 		}
-		slog.Error("failed to create rag source", "error", err, "org_id", org.ID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create rag source", "error", err, "org_id", org.ID)
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to create source"})
 		return
 	}
 
-	slog.Info("rag source created", "source_id", src.ID, "org_id", org.ID, "kind", src.KindValue)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "rag source created", "source_id", src.ID, "org_id", org.ID, "kind", src.KindValue)
 	h.dispatchInitialIngest(r.Context(), src)
 	writeJSON(w, http.StatusCreated, toRAGSourceResponse(src))
 }
@@ -155,7 +154,7 @@ func (h *RAGSourceHandler) dispatchInitialIngest(ctx context.Context, src *ragmo
 	}
 }
 
-func (h *RAGSourceHandler) precheckWebsiteCredits(src *ragmodel.RAGSource, orgID uuid.UUID) (int, string) {
+func (h *RAGSourceHandler) precheckWebsiteCredits(ctx context.Context, src *ragmodel.RAGSource, orgID uuid.UUID) (int, string) {
 	if src.KindValue != ragmodel.RAGSourceKindWebsite || h.credits == nil {
 		return 0, ""
 	}
@@ -166,7 +165,7 @@ func (h *RAGSourceHandler) precheckWebsiteCredits(src *ragmodel.RAGSource, orgID
 	required := int64(cfg.MaxPages) * billing.WebsitePagePriceCredits
 	bal, err := h.credits.Balance(orgID)
 	if err != nil {
-		slog.Error("rag source create: balance lookup failed", "org_id", orgID, "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "rag source create: balance lookup failed", "org_id", orgID, "error", err)
 		return http.StatusInternalServerError, "failed to check credit balance"
 	}
 	if bal < required {

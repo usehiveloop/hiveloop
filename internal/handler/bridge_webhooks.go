@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -92,7 +91,7 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if h.encKey != nil {
 		secret, err := h.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
 		if err != nil {
-			slog.Error("webhook: failed to decrypt bridge api key", "sandbox_id", sandboxID, "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "webhook: failed to decrypt bridge api key", "sandbox_id", sandboxID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "signature verification failed"})
 			return
 		}
@@ -159,7 +158,7 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 	if h.eventBus != nil {
 		_, err := h.eventBus.Publish(ctx, conv.ID.String(), event.EventType, redisPayload)
 		if err != nil {
-			slog.Warn("webhook: Redis publish failed, falling back to direct DB write",
+			logging.FromContext(ctx).WarnContext(ctx, "webhook: Redis publish failed, falling back to direct DB write",
 				"conversation_id", conv.ID,
 				"error", err,
 			)
@@ -179,12 +178,12 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 		})
 	case "AgentError":
 		h.db.WithContext(ctx).Model(&conv).Update("status", "error")
-		slog.Warn("webhook: agent error",
+		logging.FromContext(ctx).WarnContext(ctx, "webhook: agent error",
 			"conversation_id", conv.ID,
 			"error", string(event.Data),
 		)
 	case "message_received":
-		h.maybeEnqueueConversationNaming(&conv)
+		h.maybeEnqueueConversationNaming(ctx, &conv)
 	}
 }
 
@@ -194,7 +193,7 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 // this is best-effort — if the enqueuer isn't configured or enqueue fails, we
 // log and move on. The frontend falls back to deriving a title from the
 // message content.
-func (h *BridgeWebhookHandler) maybeEnqueueConversationNaming(conv *model.AgentConversation) {
+func (h *BridgeWebhookHandler) maybeEnqueueConversationNaming(ctx context.Context, conv *model.AgentConversation) {
 	if h.enqueuer == nil {
 		return
 	}
@@ -203,11 +202,11 @@ func (h *BridgeWebhookHandler) maybeEnqueueConversationNaming(conv *model.AgentC
 	}
 	task, err := tasks.NewConversationNameTask(conv.ID)
 	if err != nil {
-		logging.Capture(context.Background(), fmt.Errorf("build conversation naming task: %w", err))
+		logging.Capture(ctx, fmt.Errorf("build conversation naming task: %w", err))
 		return
 	}
 	if _, err := h.enqueuer.Enqueue(task); err != nil {
-		logging.Capture(context.Background(), fmt.Errorf("enqueue conversation naming task: %w", err))
+		logging.Capture(ctx, fmt.Errorf("enqueue conversation naming task: %w", err))
 	}
 }
 
@@ -227,7 +226,7 @@ func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *m
 		Data:                 model.RawJSON(event.Data),
 	}
 	if err := h.db.WithContext(ctx).Create(&dbEvent).Error; err != nil {
-		slog.Error("webhook: failed to store event",
+		logging.FromContext(ctx).ErrorContext(ctx, "webhook: failed to store event",
 			"event_type", event.EventType,
 			"conversation_id", conv.ID,
 			"error", err,

@@ -1,25 +1,26 @@
 package handler
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"log/slog"
 	"strings"
 
 	"github.com/google/uuid"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-func (h *NangoWebhookHandler) identify(wh *nangoWebhook) *webhookContext {
+func (h *NangoWebhookHandler) identify(ctx context.Context, wh *nangoWebhook) *webhookContext {
 	if strings.HasPrefix(wh.ProviderConfigKey, "in_") {
 		return h.identifyInIntegration(wh)
 	}
 
 	orgID, _, ok := parseProviderConfigKey(wh.ProviderConfigKey)
 	if !ok {
-		slog.Warn("nango webhook: unable to parse provider config key",
+		logging.FromContext(ctx).WarnContext(ctx, "nango webhook: unable to parse provider config key",
 			"provider_config_key", wh.ProviderConfigKey,
 			"type", wh.Type,
 		)

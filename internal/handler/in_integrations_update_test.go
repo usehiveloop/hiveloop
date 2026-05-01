@@ -26,7 +26,7 @@ func TestInIntegrationHandler_Update_DisplayName(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	if resp["display_name"] != "Updated GitHub" {
 		t.Fatalf("expected display_name=Updated GitHub, got %v", resp["display_name"])
 	}

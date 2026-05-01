@@ -167,7 +167,7 @@ func TestCaptureTransport_Streaming_Anthropic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	io.ReadAll(resp.Body)
+	_, _ = io.ReadAll(resp.Body)
 	resp.Body.Close()
 
 	if captured.Usage.InputTokens != 150 {
@@ -266,7 +266,7 @@ func TestCaptureTransport_NoCapturedContext(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	req, _ := http.NewRequest("GET", upstream.URL, nil)
+	req, _ := http.NewRequestWithContext(t.Context(), "GET", upstream.URL, nil)
 	ct := &CaptureTransport{Inner: http.DefaultTransport}
 	resp, err := ct.RoundTrip(req)
 	if err != nil {
@@ -286,9 +286,12 @@ func TestCaptureTransport_ConnectionError(t *testing.T) {
 	req, _ := http.NewRequestWithContext(ctx, "POST", "http://127.0.0.1:1", nil)
 
 	ct := &CaptureTransport{Inner: http.DefaultTransport}
-	_, err := ct.RoundTrip(req)
+	resp, err := ct.RoundTrip(req)
 	if err == nil {
 		t.Fatal("expected transport error")
+	}
+	if resp != nil {
+		resp.Body.Close()
 	}
 
 	if captured.ErrorType != "connection_error" {

@@ -2,13 +2,13 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -149,12 +149,12 @@ func (h *MarketplaceHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.Create(&ma).Error; err != nil {
-		slog.Error("failed to create marketplace agent", "error", err, "agent_id", agent.ID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create marketplace agent", "error", err, "agent_id", agent.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create marketplace listing"})
 		return
 	}
 
 	ma.Publisher = *user
-	slog.Info("marketplace agent created", "marketplace_id", ma.ID, "agent_id", agent.ID, "publisher_id", user.ID)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "marketplace agent created", "marketplace_id", ma.ID, "agent_id", agent.ID, "publisher_id", user.ID)
 	writeJSON(w, http.StatusCreated, toMarketplaceAgentResponse(ma))
 }

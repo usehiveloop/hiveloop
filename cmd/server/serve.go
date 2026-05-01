@@ -56,10 +56,10 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	})
 
 	// Audit writer (buffered, non-blocking)
-	auditWriter := middleware.NewAuditWriter(database, 10000)
+	auditWriter := middleware.NewAuditWriter(ctx, database, 10000)
 
 	// Generation writer (buffered, non-blocking)
-	generationWriter := middleware.NewGenerationWriter(database, reg, 10000)
+	generationWriter := middleware.NewGenerationWriter(ctx, database, reg, 10000)
 
 	mcpHandler := handler.NewMCPHandler(database, signingKey, actionsCatalog, nangoClient, ctr)
 	if cfg.HindsightAPIURL != "" {
