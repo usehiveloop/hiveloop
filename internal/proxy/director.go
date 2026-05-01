@@ -43,11 +43,28 @@ func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
 			return
 		}
 		// SSRF hardening: drop cloud-metadata-related headers.
+		// CF-* and X-Forwarded-*: the inbound is fronted by Cloudflare, so those
+		// headers are added by CF on the way in. Forwarding them to a different
+		// CF-protected upstream (e.g. crof.ai, openai via CF) trips Cloudflare
+		// Error 1000 ("DNS points to prohibited IP") because CF treats incoming
+		// CF-Connecting-IP from a non-CF source as a forged header.
 		for _, h := range []string{
 			"Metadata-Flavor",
 			"X-Aws-Ec2-Metadata-Token",
 			"X-Aws-Ec2-Metadata-Token-Ttl-Seconds",
 			"Metadata",
+			"CF-Connecting-IP",
+			"CF-Connecting-IPv6",
+			"CF-Ray",
+			"CF-Visitor",
+			"CF-IPCountry",
+			"CF-Worker",
+			"CDN-Loop",
+			"True-Client-IP",
+			"X-Forwarded-For",
+			"X-Forwarded-Proto",
+			"X-Forwarded-Host",
+			"X-Real-IP",
 		} {
 			req.Header.Del(h)
 		}
