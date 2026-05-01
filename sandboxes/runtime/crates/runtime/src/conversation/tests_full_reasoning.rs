@@ -109,7 +109,20 @@ async fn response_completed_with_empty_reasoning_emits_empty_string_not_null() {
     ));
 
     emit_turn_complete_events(
-        &bus, "agent-2", "conv-2", "msg-2", "ok", "", 1, 0, 0, 0, &metrics, 1, &[], &None,
+        &bus,
+        "agent-2",
+        "conv-2",
+        "msg-2",
+        "ok",
+        "",
+        1,
+        0,
+        0,
+        0,
+        &metrics,
+        1,
+        &[],
+        &None,
     )
     .await;
 
@@ -199,7 +212,10 @@ async fn lifecycle_reasoning_then_text_emits_started_completed_in_order() {
         .find(|e| matches!(e.event_type, BridgeEventType::ReasoningCompleted))
         .unwrap();
     assert_eq!(
-        completed.data.get("full_reasoning").and_then(|v| v.as_str()),
+        completed
+            .data
+            .get("full_reasoning")
+            .and_then(|v| v.as_str()),
         Some("thinking more.")
     );
     assert!(!state.reasoning_active);

@@ -34,10 +34,7 @@ fn bridge_event_type_all_variants_roundtrip() {
             BridgeEventType::BackgroundTaskCompleted,
             "\"background_task_completed\"",
         ),
-        (
-            BridgeEventType::ReasoningStarted,
-            "\"reasoning_started\"",
-        ),
+        (BridgeEventType::ReasoningStarted, "\"reasoning_started\""),
         (BridgeEventType::ReasoningDelta, "\"reasoning_delta\""),
         (
             BridgeEventType::ReasoningCompleted,

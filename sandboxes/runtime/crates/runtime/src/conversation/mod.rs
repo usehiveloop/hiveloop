@@ -22,8 +22,8 @@ pub use run::run_conversation;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
+mod tests_full_reasoning;
+#[cfg(test)]
 mod tests_layout;
 #[cfg(test)]
 mod tests_roundtrip;
-#[cfg(test)]
-mod tests_full_reasoning;
