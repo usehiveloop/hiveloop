@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -111,30 +112,39 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateAgentIntegrationsExclusivity(h.db, org.ID, req.Integrations); err != nil {
+		if errors.Is(err, errGitHubAppExclusive) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to validate integrations"})
+		return
+	}
+
 	// Validate sandbox template if provided
 	var sandboxTemplateID *interface{ String() string }
 	_ = sandboxTemplateID // unused, we parse directly
 	agent := model.Agent{
-		OrgID:        &org.ID,
-		Name:         req.Name,
-		Description:  req.Description,
-		AvatarURL:    req.AvatarURL,
-		Category:     req.Category,
+		OrgID:           &org.ID,
+		Name:            req.Name,
+		Description:     req.Description,
+		AvatarURL:       req.AvatarURL,
+		Category:        req.Category,
 		SystemPrompt:    req.SystemPrompt,
 		ProviderPrompts: req.ProviderPrompts,
 		Instructions:    req.Instructions,
 		Model:           req.Model,
-		Tools:        defaultJSON(req.Tools),
-		McpServers:   defaultJSON(req.McpServers),
-		Skills:       defaultJSON(req.Skills),
-		Integrations: defaultJSON(req.Integrations),
-		AgentConfig:  defaultJSON(req.AgentConfig),
-		Permissions:  defaultJSON(req.Permissions),
-		Resources:    defaultJSON(req.Resources),
-		Team:         req.Team,
-		SharedMemory: req.SharedMemory,
-		SandboxTools: pq.StringArray(req.SandboxTools),
-		Status:       "active",
+		Tools:           defaultJSON(req.Tools),
+		McpServers:      defaultJSON(req.McpServers),
+		Skills:          defaultJSON(req.Skills),
+		Integrations:    defaultJSON(req.Integrations),
+		AgentConfig:     defaultJSON(req.AgentConfig),
+		Permissions:     defaultJSON(req.Permissions),
+		Resources:       defaultJSON(req.Resources),
+		Team:            req.Team,
+		SharedMemory:    req.SharedMemory,
+		SandboxTools:    pq.StringArray(req.SandboxTools),
+		Status:          "active",
 	}
 	if hasCred {
 		agent.CredentialID = &cred.ID
