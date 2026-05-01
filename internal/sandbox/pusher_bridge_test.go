@@ -59,14 +59,36 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	db.Create(&agent)
 	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
 
-	var subagentRecords []model.Agent
-	db.Where("agent_type = 'subagent' AND is_system = true AND name IN ?",
-		[]string{"codebase-explorer", "codebase-summarizer", "critic"}).
-		Find(&subagentRecords)
-
-	if len(subagentRecords) != 3 {
-		t.Fatalf("expected 3 subagents seeded, got %d", len(subagentRecords))
+	// Build 3 subagents inline (the YAML startup seeder was removed in
+	// dabf2a07 — tests now own their own fixtures). Suffix names with a
+	// per-run uuid so concurrent / repeated runs don't collide on the
+	// (is_system, name) unique index.
+	suffix := "-" + uuid.New().String()[:8]
+	subagentNames := []string{"codebase-explorer" + suffix, "codebase-summarizer" + suffix, "critic" + suffix}
+	subagentPerms := model.JSON{
+		"RipGrep": "allow", "AstGrep": "allow", "Read": "allow",
+		"Glob": "allow", "LS": "allow", "bash": "allow", "skill": "allow",
 	}
+	subagentRecords := make([]model.Agent, 0, len(subagentNames))
+	for _, name := range subagentNames {
+		sub := model.Agent{
+			ID: uuid.New(), Name: name, Model: "kimi-k2",
+			SystemPrompt: "subagent for tests", Status: "active",
+			AgentType: "subagent", IsSystem: false,
+			Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
+			Integrations: model.JSON{}, AgentConfig: model.JSON{},
+			Permissions: subagentPerms,
+		}
+		if err := db.Create(&sub).Error; err != nil {
+			t.Fatalf("creating subagent %s: %v", name, err)
+		}
+		subagentRecords = append(subagentRecords, sub)
+	}
+	t.Cleanup(func() {
+		for _, sub := range subagentRecords {
+			db.Where("id = ?", sub.ID).Delete(&model.Agent{})
+		}
+	})
 
 	for _, sub := range subagentRecords {
 		db.Create(&model.AgentSubagent{AgentID: agent.ID, SubagentID: sub.ID})
@@ -194,7 +216,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		subNames[sub.Name] = sub
 	}
 
-	for _, name := range []string{"codebase-explorer", "codebase-summarizer", "critic"} {
+	for _, name := range subagentNames {
 		sub, ok := subNames[name]
 		if !ok {
 			t.Errorf("subagent %q not found", name)
