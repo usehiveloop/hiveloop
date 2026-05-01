@@ -6,7 +6,6 @@ package executor
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"sort"
 	"strings"
 	"sync"
@@ -59,7 +58,7 @@ func (executor *Executor) Execute(ctx context.Context, dispatches []dispatch.Age
 
 		for _, err := range errors {
 			if err != nil {
-				slog.Error("executor agent dispatch failed", "error", err.Error())
+				logging.FromContext(ctx).ErrorContext(ctx, "executor agent dispatch failed", "error", err.Error())
 			}
 		}
 	}
@@ -113,10 +112,18 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 
 	// 4. Build provider override from agent's credential.
 	provider := executor.buildProvider(&agent)
+	var providerWrapped *bridgepkg.CreateConversationRequest_Provider
+	if provider != nil {
+		var w bridgepkg.CreateConversationRequest_Provider
+		if err := w.FromProviderConfig(*provider); err != nil {
+			return fmt.Errorf("wrapping provider override: %w", err)
+		}
+		providerWrapped = &w
+	}
 
 	// 5. Create conversation with per-conv MCPs.
 	conv, err := client.CreateConversationWithOptions(ctx, agent.ID.String(), bridgepkg.CreateConversationRequest{
-		Provider:   provider,
+		Provider:   providerWrapped,
 		McpServers: &mcpServers,
 	})
 	if err != nil {
@@ -147,7 +154,7 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 		return fmt.Errorf("sending instructions to %s: %w", agent.Name, err)
 	}
 
-	slog.Info("executor conversation created",
+	logging.FromContext(ctx).InfoContext(ctx, "executor conversation created",
 		"agent_id", agentDispatch.AgentID,
 		"conversation_id", conv.ConversationId,
 		"resource_key", agentDispatch.ResourceKey,
@@ -194,7 +201,7 @@ func buildMcpTransport(url, token string) bridgepkg.McpTransport {
 		headers := map[string]string{"Authorization": "Bearer " + token}
 		httpTransport.Headers = &headers
 	}
-	transport.FromMcpTransport1(httpTransport)
+	_ = transport.FromMcpTransport1(httpTransport)
 	return transport
 }
 

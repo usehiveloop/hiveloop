@@ -106,11 +106,11 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 
 	proxyToken := "ptok_test_token"
 	jti := uuid.New().String()
-	def := pusher.buildAgentDefinition(&agent, &cred, proxyToken, jti)
+	def := pusher.buildAgentDefinition(t.Context(), &agent, &cred, proxyToken, jti)
 
 	assertEqual(t, "name", def.Name, "Test Railway Agent")
 	assertEqual(t, "model", def.Provider.Model, "kimi-k2")
-	assertEqual(t, "provider_type", string(def.Provider.ProviderType), string(bridgepkg.OpenAi))
+	assertEqual(t, "provider_type", string(def.Provider.ProviderType), string(bridgepkg.ProviderTypeOpenAi))
 	assertContains(t, "base_url", *def.Provider.BaseUrl, "proxy.test.com")
 	assertEqual(t, "api_key", def.Provider.ApiKey, proxyToken)
 
@@ -176,7 +176,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		t.Errorf("config.max_turns: expected 250, got %v", def.Config.MaxTurns)
 	}
 
-	subDefs, err := pusher.buildSubagentDefinitions(&agent, &cred)
+	subDefs, err := pusher.buildSubagentDefinitions(t.Context(), &agent, &cred)
 	if err != nil {
 		t.Fatalf("buildSubagentDefinitions: %v", err)
 	}

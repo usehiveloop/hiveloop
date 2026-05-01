@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -106,7 +105,7 @@ type systemTaskError struct {
 // @Router /v1/system/tasks/{taskName} [post]
 func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 	taskName := chi.URLParam(r, "taskName")
-	logger := slog.With("task", taskName)
+	logger := logging.FromContext(r.Context()).With("task", taskName)
 
 	task, ok := system.Lookup(taskName)
 	if !ok {

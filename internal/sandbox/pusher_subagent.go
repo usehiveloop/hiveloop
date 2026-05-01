@@ -1,6 +1,7 @@
 package sandbox
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -10,9 +11,9 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/token"
 )
 
-func (p *Pusher) buildSubagentDefinitions(parent *model.Agent, parentCred *model.Credential) ([]bridgepkg.AgentDefinition, error) {
+func (p *Pusher) buildSubagentDefinitions(ctx context.Context, parent *model.Agent, parentCred *model.Credential) ([]bridgepkg.AgentDefinition, error) {
 	var links []model.AgentSubagent
-	if err := p.db.Where("agent_id = ?", parent.ID).Find(&links).Error; err != nil {
+	if err := p.db.WithContext(ctx).Where("agent_id = ?", parent.ID).Find(&links).Error; err != nil {
 		return nil, fmt.Errorf("querying agent_subagents: %w", err)
 	}
 	if len(links) == 0 {
@@ -25,7 +26,7 @@ func (p *Pusher) buildSubagentDefinitions(parent *model.Agent, parentCred *model
 	}
 
 	var subagents []model.Agent
-	if err := p.db.Where("id IN ?", subagentIDs).Find(&subagents).Error; err != nil {
+	if err := p.db.WithContext(ctx).Where("id IN ?", subagentIDs).Find(&subagents).Error; err != nil {
 		return nil, fmt.Errorf("loading subagents: %w", err)
 	}
 
@@ -42,7 +43,7 @@ func (p *Pusher) buildSubagentDefinitions(parent *model.Agent, parentCred *model
 			return nil, fmt.Errorf("minting proxy token for subagent %s: %w", sub.ID, err)
 		}
 
-		defs = append(defs, p.buildAgentDefinition(&sub, parentCred, proxyTok.TokenString, proxyTok.JTI))
+		defs = append(defs, p.buildAgentDefinition(ctx, &sub, parentCred, proxyTok.TokenString, proxyTok.JTI))
 	}
 
 	return defs, nil

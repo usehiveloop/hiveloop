@@ -1,12 +1,12 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -113,7 +113,7 @@ func (h *AdminHandler) ArchiveAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("admin: agent archived", "agent_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: agent archived", "agent_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "archived"})
 }
 
@@ -145,6 +145,6 @@ func (h *AdminHandler) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("admin: agent deleted", "agent_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: agent deleted", "agent_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

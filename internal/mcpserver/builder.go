@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/counter"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	mcppkg "github.com/usehiveloop/hiveloop/internal/mcp"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -32,6 +32,7 @@ type SubscriptionToolsFunc func(server *mcp.Server, token *model.Token, db *gorm
 // If addSubscriptionTools is non-nil, it is called to register subscribe_to_events
 // on the same server after memory tools are registered.
 func BuildServer(
+	ctx context.Context,
 	token *model.Token,
 	scopes []mcppkg.TokenScope,
 	cat *catalog.Catalog,
@@ -68,12 +69,12 @@ func BuildServer(
 		for _, actionKey := range scope.Actions {
 			action, ok := cat.GetAction(provider, actionKey)
 			if !ok {
-				slog.Warn("skipping unknown action", "provider", provider, "action", actionKey)
+				logging.FromContext(ctx).WarnContext(ctx, "skipping unknown action", "provider", provider, "action", actionKey)
 				continue
 			}
 
 			if action.Execution == nil {
-				slog.Warn("skipping action without execution config", "provider", provider, "action", actionKey)
+				logging.FromContext(ctx).WarnContext(ctx, "skipping action without execution config", "provider", provider, "action", actionKey)
 				continue
 			}
 
@@ -99,7 +100,7 @@ func BuildServer(
 					if ctr != nil {
 						result, err := ctr.Decrement(ctx, counter.TokKey(capturedJTI))
 						if err != nil {
-							slog.Error("counter decrement failed", "error", err, "jti", capturedJTI)
+							logging.FromContext(ctx).ErrorContext(ctx, "counter decrement failed", "error", err, "jti", capturedJTI)
 						} else if result == counter.DecrExhausted {
 							return &mcp.CallToolResult{
 								Content: []mcp.Content{

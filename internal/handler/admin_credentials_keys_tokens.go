@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -121,7 +121,7 @@ func (h *AdminHandler) RevokeCredential(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	slog.Info("admin: credential revoked", "credential_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: credential revoked", "credential_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }
 
@@ -206,7 +206,7 @@ func (h *AdminHandler) RevokeAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("admin: api key revoked", "api_key_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: api key revoked", "api_key_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }
 
@@ -291,6 +291,6 @@ func (h *AdminHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("admin: token revoked", "token_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: token revoked", "token_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }

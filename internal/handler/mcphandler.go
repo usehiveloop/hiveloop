@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/counter"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	mcppkg "github.com/usehiveloop/hiveloop/internal/mcp"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/mcpserver"
@@ -72,14 +73,15 @@ func (h *MCPHandler) SSEHandler() http.Handler {
 func (h *MCPHandler) serverFactory(r *http.Request) *mcp.Server {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
-		slog.Error("mcp: no claims in context")
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "mcp: no claims in context")
 		return nil
 	}
 
+	ctx := r.Context()
 	srv, err := h.ServerCache.GetOrBuild(claims.JTI, func() (*mcp.Server, time.Time, error) {
 		// Load token record with scopes
 		var token model.Token
-		if err := h.db.Where("jti = ?", claims.JTI).First(&token).Error; err != nil {
+		if err := h.db.WithContext(ctx).Where("jti = ?", claims.JTI).First(&token).Error; err != nil {
 			return nil, time.Time{}, err
 		}
 
@@ -90,7 +92,7 @@ func (h *MCPHandler) serverFactory(r *http.Request) *mcp.Server {
 		}
 
 		// Build MCP server from scopes
-		srv, err := mcpserver.BuildServer(&token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools, h.subscriptionTools)
+		srv, err := mcpserver.BuildServer(ctx, &token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools, h.subscriptionTools)
 		if err != nil {
 			return nil, time.Time{}, err
 		}
@@ -98,7 +100,7 @@ func (h *MCPHandler) serverFactory(r *http.Request) *mcp.Server {
 		return srv, token.ExpiresAt, nil
 	})
 	if err != nil {
-		slog.Error("mcp: failed to build server", "error", err, "jti", claims.JTI)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "mcp: failed to build server", "error", err, "jti", claims.JTI)
 		return nil
 	}
 

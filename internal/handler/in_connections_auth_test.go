@@ -27,7 +27,7 @@ func TestInConnectionHandler_MissingUserContext(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()

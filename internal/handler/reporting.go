@@ -234,9 +234,5 @@ func (h *ReportingHandler) Get(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if result == nil {
-		result = []reportRow{}
-	}
-
 	writeJSON(w, http.StatusOK, result)
 }

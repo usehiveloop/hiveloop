@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -123,12 +123,12 @@ func (h *APIKeyHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.Create(&apiKey).Error; err != nil {
-		slog.Error("failed to create api key", "error", err, "org_id", org.ID, "name", req.Name)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create api key", "error", err, "org_id", org.ID, "name", req.Name)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create api key"})
 		return
 	}
 
-	slog.Info("api key created", "org_id", org.ID, "key_id", apiKey.ID, "name", req.Name, "scopes", req.Scopes)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "api key created", "org_id", org.ID, "key_id", apiKey.ID, "name", req.Name, "scopes", req.Scopes)
 
 	resp := createAPIKeyResponse{
 		ID:        apiKey.ID.String(),
@@ -260,7 +260,7 @@ func (h *APIKeyHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	if err := h.db.Model(&apiKey).Update("revoked_at", &now).Error; err != nil {
-		slog.Error("failed to revoke api key", "error", err, "org_id", org.ID, "key_id", keyID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to revoke api key", "error", err, "org_id", org.ID, "key_id", keyID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to revoke api key"})
 		return
 	}
@@ -269,6 +269,6 @@ func (h *APIKeyHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 
 	_ = h.cacheManager.InvalidateAPIKey(r.Context(), apiKey.KeyHash)
 
-	slog.Info("api key revoked", "org_id", org.ID, "key_id", keyID)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "api key revoked", "org_id", org.ID, "key_id", keyID)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }

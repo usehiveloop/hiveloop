@@ -5,7 +5,6 @@ import (
 	"crypto/subtle"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/nango"
 )
@@ -158,7 +158,7 @@ func (h *RailwayProxyHandler) getRailwayToken(w http.ResponseWriter, r *http.Req
 
 	var integration model.InIntegration
 	if err := h.db.Where("id = ?", conn.InIntegrationID).First(&integration).Error; err != nil {
-		slog.Error("railway-proxy: failed to load integration", "integration_id", conn.InIntegrationID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "railway-proxy: failed to load integration", "integration_id", conn.InIntegrationID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load integration"})
 		return "", fmt.Errorf("integration error")
 	}
@@ -166,7 +166,7 @@ func (h *RailwayProxyHandler) getRailwayToken(w http.ResponseWriter, r *http.Req
 	providerConfigKey := "in_" + integration.UniqueKey
 	nangoConn, err := h.nango.GetConnection(r.Context(), conn.NangoConnectionID, providerConfigKey)
 	if err != nil {
-		slog.Error("railway-proxy: failed to fetch from nango",
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "railway-proxy: failed to fetch from nango",
 			"agent_id", agentID,
 			"connection_id", conn.ID,
 			"error", err,
@@ -208,7 +208,7 @@ func (h *RailwayProxyHandler) proxyToRailway(w http.ResponseWriter, r *http.Requ
 
 	resp, err := h.client.Do(req)
 	if err != nil {
-		slog.Error("railway-proxy: upstream request failed", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "railway-proxy: upstream request failed", "error", err)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "railway api request failed"})
 		return
 	}
@@ -220,5 +220,5 @@ func (h *RailwayProxyHandler) proxyToRailway(w http.ResponseWriter, r *http.Requ
 		}
 	}
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	_, _ = io.Copy(w, resp.Body)
 }

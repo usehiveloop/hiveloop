@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -118,7 +118,7 @@ func (h *ConversationHandler) streamFromRedis(w http.ResponseWriter, r *http.Req
 			frame := fmt.Sprintf("id: %s\nevent: %s\ndata: %s\n\n",
 				event.ID, event.EventType, string(trimmed))
 			if err := writeSSEFrame(w, rc, frame); err != nil {
-				slog.Debug("SSE client disconnected", "conversation_id", convID)
+				logging.FromContext(r.Context()).DebugContext(r.Context(), "SSE client disconnected", "conversation_id", convID)
 				return
 			}
 
@@ -131,13 +131,13 @@ func (h *ConversationHandler) streamFromRedis(w http.ResponseWriter, r *http.Req
 			// Re-verify that the caller still owns this conversation.
 			// Drops silently if membership/key was revoked since connect.
 			if !h.stillAuthorized(r.Context(), convID, orgID) {
-				slog.Info("SSE auth recheck failed, closing stream",
+				logging.FromContext(r.Context()).InfoContext(r.Context(), "SSE auth recheck failed, closing stream",
 					"conversation_id", convID)
 				return
 			}
 
 		case <-maxAge.C:
-			slog.Debug("SSE max age reached, closing for reconnect",
+			logging.FromContext(r.Context()).DebugContext(r.Context(), "SSE max age reached, closing for reconnect",
 				"conversation_id", convID)
 			return
 

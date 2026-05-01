@@ -2,13 +2,13 @@ package tasks
 
 import (
 	"context"
-	"log/slog"
 	"time"
 
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 	"github.com/usehiveloop/hiveloop/internal/streaming"
@@ -30,7 +30,7 @@ func (h *TokenCleanupHandler) Handle(ctx context.Context, _ *asynq.Task) error {
 	h.db.WithContext(ctx).Where("expires_at < ? OR used_at < ?", cutoff, cutoff).Delete(&model.EmailVerification{})
 	h.db.WithContext(ctx).Where("expires_at < ? OR used_at < ?", cutoff, cutoff).Delete(&model.PasswordReset{})
 	h.db.WithContext(ctx).Where("expires_at < ? OR used_at < ?", cutoff, cutoff).Delete(&model.OAuthExchangeToken{})
-	slog.Debug("cleaned up expired verification/reset tokens")
+	logging.FromContext(ctx).DebugContext(ctx, "cleaned up expired verification/reset tokens")
 	return nil
 }
 

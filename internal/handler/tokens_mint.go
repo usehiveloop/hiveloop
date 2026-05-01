@@ -2,13 +2,13 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/mcp"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -140,7 +140,7 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		Meta:           req.Meta,
 	}
 	if err := h.db.Create(&tokenRecord).Error; err != nil {
-		slog.Error("failed to store token", "error", err, "org_id", org.ID, "credential_id", req.CredentialID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to store token", "error", err, "org_id", org.ID, "credential_id", req.CredentialID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to store token"})
 		return
 	}
@@ -150,7 +150,7 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		_ = h.counter.SeedToken(r.Context(), jti, *tokenRecord.Remaining, ttl)
 	}
 
-	slog.Info("token minted", "org_id", org.ID, "credential_id", req.CredentialID, "jti", jti, "ttl", ttl.String(), "scopes", len(req.Scopes))
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "token minted", "org_id", org.ID, "credential_id", req.CredentialID, "jti", jti, "ttl", ttl.String(), "scopes", len(req.Scopes))
 
 	resp := mintTokenResponse{
 		Token:     "ptok_" + tokenStr,

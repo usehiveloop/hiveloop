@@ -1,9 +1,9 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -11,6 +11,7 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	ragdb "github.com/usehiveloop/hiveloop/internal/rag/db"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
@@ -59,7 +60,7 @@ func (h *RAGSourceHandler) TriggerSync(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to build ingest task"})
 		return
 	}
-	h.dispatchTrigger(w, src, task, ragtasks.TypeRagIngest)
+	h.dispatchTrigger(r.Context(), w, src, task, ragtasks.TypeRagIngest)
 }
 
 // @Summary Trigger an immediate prune
@@ -81,7 +82,7 @@ func (h *RAGSourceHandler) TriggerPrune(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to build prune task"})
 		return
 	}
-	h.dispatchTrigger(w, src, task, ragtasks.TypeRagPrune)
+	h.dispatchTrigger(r.Context(), w, src, task, ragtasks.TypeRagPrune)
 }
 
 // @Summary Trigger an immediate permission sync
@@ -109,7 +110,7 @@ func (h *RAGSourceHandler) TriggerPermSync(w http.ResponseWriter, r *http.Reques
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to build perm_sync task"})
 		return
 	}
-	h.dispatchTrigger(w, src, task, ragtasks.TypeRagPermSync)
+	h.dispatchTrigger(r.Context(), w, src, task, ragtasks.TypeRagPermSync)
 }
 
 func (h *RAGSourceHandler) loadSourceForTrigger(w http.ResponseWriter, r *http.Request) (*ragmodel.RAGSource, int) {
@@ -140,6 +141,7 @@ func (h *RAGSourceHandler) loadSourceForTrigger(w http.ResponseWriter, r *http.R
 }
 
 func (h *RAGSourceHandler) dispatchTrigger(
+	ctx context.Context,
 	w http.ResponseWriter,
 	src *ragmodel.RAGSource,
 	task *asynq.Task,
@@ -151,7 +153,7 @@ func (h *RAGSourceHandler) dispatchTrigger(
 		if errors.Is(err, asynq.ErrDuplicateTask) {
 			dedup = true
 		} else {
-			slog.Error("rag trigger enqueue failed", "task_type", taskType, "source_id", src.ID, "error", err)
+			logging.FromContext(ctx).ErrorContext(ctx, "rag trigger enqueue failed", "task_type", taskType, "source_id", src.ID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to enqueue task"})
 			return
 		}

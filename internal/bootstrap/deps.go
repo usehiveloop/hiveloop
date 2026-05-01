@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -21,6 +20,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/db"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -84,7 +84,7 @@ func New(ctx context.Context) (*Deps, error) {
 		return nil, fmt.Errorf("initializing sentry: %w", err)
 	}
 
-	database, err := db.New(cfg.DatabaseDSN())
+	database, err := db.New(ctx, cfg.DatabaseDSN())
 	if err != nil {
 		return nil, fmt.Errorf("connecting to database: %w", err)
 	}
@@ -102,7 +102,7 @@ func New(ctx context.Context) (*Deps, error) {
 	// Picker resolves system credentials for agents whose credential_id is
 	// nil (platform-keys mode). Shared across handlers and sandbox.Pusher.
 	credentialPicker := credentials.NewPicker(database)
-	slog.Info("database ready")
+	logging.FromContext(ctx).InfoContext(ctx, "database ready")
 
 	// 4. KMS wrapper
 	var kms *crypto.KeyWrapper
@@ -117,7 +117,7 @@ func New(ctx context.Context) (*Deps, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating %s KMS wrapper: %w", cfg.KMSType, err)
 	}
-	slog.Info("kms wrapper ready", "type", cfg.KMSType)
+	logging.FromContext(ctx).InfoContext(ctx, "kms wrapper ready", "type", cfg.KMSType)
 
 	// 5. Redis
 	var redisOpts *redis.Options
@@ -151,7 +151,7 @@ func New(ctx context.Context) (*Deps, error) {
 	if err := redisClient.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("connecting to redis: %w", err)
 	}
-	slog.Info("redis ready",
+	logging.FromContext(ctx).InfoContext(ctx, "redis ready",
 		"pool_size", redisOpts.PoolSize,
 		"min_idle_conns", redisOpts.MinIdleConns,
 	)
@@ -167,11 +167,11 @@ func New(ctx context.Context) (*Deps, error) {
 		HardExpiry: 15 * time.Minute,
 	}
 	cacheManager := cache.Build(cacheCfg, redisClient, kms, database, apiKeyCache)
-	slog.Info("cache manager ready")
+	logging.FromContext(ctx).InfoContext(ctx, "cache manager ready")
 
 	// 7. Request-cap counter
 	ctr := counter.New(redisClient, database)
-	slog.Info("request counter ready")
+	logging.FromContext(ctx).InfoContext(ctx, "request counter ready")
 
 	// 8. Signing key
 	signingKey := []byte(cfg.JWTSigningKey)
@@ -181,11 +181,11 @@ func New(ctx context.Context) (*Deps, error) {
 	if err != nil {
 		return nil, fmt.Errorf("loading auth RSA key: %w", err)
 	}
-	slog.Info("embedded auth ready")
+	logging.FromContext(ctx).InfoContext(ctx, "embedded auth ready")
 
 	// 10. Provider registry
 	reg := registry.Global()
-	slog.Info("provider registry ready", "providers", reg.ProviderCount(), "models", reg.ModelCount())
+	logging.FromContext(ctx).InfoContext(ctx, "provider registry ready", "providers", reg.ProviderCount(), "models", reg.ModelCount())
 
 	// 11. Nango client
 	if cfg.NangoEndpoint == "" || cfg.NangoSecretKey == "" {
@@ -195,19 +195,19 @@ func New(ctx context.Context) (*Deps, error) {
 	if err := nangoClient.FetchProviders(ctx); err != nil {
 		return nil, fmt.Errorf("fetching Nango provider catalog: %w", err)
 	}
-	slog.Info("nango client ready", "providers", len(nangoClient.GetProviders()))
+	logging.FromContext(ctx).InfoContext(ctx, "nango client ready", "providers", len(nangoClient.GetProviders()))
 
 	// 12. Actions catalog
 	actionsCatalog := catalog.Global()
-	slog.Info("actions catalog ready", "providers", len(actionsCatalog.ListProviders()))
+	logging.FromContext(ctx).InfoContext(ctx, "actions catalog ready", "providers", len(actionsCatalog.ListProviders()))
 
 	// 12b. Spider client (optional)
 	var spiderClient *spider.Client
 	var toolUsageWriter *middleware.ToolUsageWriter
 	if cfg.SpiderAPIKey != "" {
 		spiderClient = spider.NewClient(cfg.SpiderBaseURL, cfg.SpiderAPIKey)
-		toolUsageWriter = middleware.NewToolUsageWriter(database, 10000)
-		slog.Info("spider client ready")
+		toolUsageWriter = middleware.NewToolUsageWriter(ctx, database, 10000)
+		logging.FromContext(ctx).InfoContext(ctx, "spider client ready")
 	}
 
 	// 13. Sandbox encryption key
@@ -236,12 +236,12 @@ func New(ctx context.Context) (*Deps, error) {
 		if cfg.TursoAPIToken != "" && cfg.TursoOrgSlug != "" {
 			tursoClient := turso.NewClient(cfg.TursoAPIToken, cfg.TursoOrgSlug)
 			tursoProvisioner = turso.NewProvisioner(tursoClient, cfg.TursoGroup, database)
-			slog.Info("turso provisioner ready")
+			logging.FromContext(ctx).InfoContext(ctx, "turso provisioner ready")
 		}
 
 		orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, tursoProvisioner, sandboxEncKey, cfg)
 		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg, credentialPicker)
-		slog.Info("sandbox orchestrator ready")
+		logging.FromContext(ctx).InfoContext(ctx, "sandbox orchestrator ready")
 	}
 
 	// 15. Event streaming
@@ -266,9 +266,9 @@ func New(ctx context.Context) (*Deps, error) {
 		billingRegistry.Register(paystack.New(paystack.Config{
 			SecretKey: cfg.PaystackSecretKey,
 		}))
-		slog.Info("paystack provider registered")
+		logging.FromContext(ctx).InfoContext(ctx, "paystack provider registered")
 	}
-	slog.Info("billing ready", "providers", billingRegistry.Names())
+	logging.FromContext(ctx).InfoContext(ctx, "billing ready", "providers", billingRegistry.Names())
 
 	// 18. S3 storage (agent drive — optional)
 	var s3Client *storage.S3Client
@@ -277,7 +277,7 @@ func New(ctx context.Context) (*Deps, error) {
 		if err != nil {
 			return nil, fmt.Errorf("creating S3 client: %w", err)
 		}
-		slog.Info("s3 storage ready", "bucket", cfg.S3Bucket)
+		logging.FromContext(ctx).InfoContext(ctx, "s3 storage ready", "bucket", cfg.S3Bucket)
 	}
 
 	return &Deps{
@@ -311,12 +311,12 @@ func New(ctx context.Context) (*Deps, error) {
 
 // Close releases all resources held by Deps. Sentry is flushed LAST so it
 // can capture any errors produced by the other subsystems shutting down.
-func (d *Deps) Close() {
+func (d *Deps) Close(ctx context.Context) {
 	d.CacheManager.Memory().Purge()
 	if sqlDB, err := d.DB.DB(); err == nil {
 		_ = sqlDB.Close()
 	}
 	_ = d.Redis.Close()
 	sentryobs.Close()
-	slog.Info("deps closed")
+	logging.FromContext(ctx).InfoContext(ctx, "deps closed")
 }

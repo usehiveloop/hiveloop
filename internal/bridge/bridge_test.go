@@ -30,7 +30,7 @@ func TestHealthCheck(t *testing.T) {
 			t.Errorf("auth header: got %q", r.Header.Get("Authorization"))
 		}
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+		_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
 	}))
 	defer srv.Close()
 
@@ -65,9 +65,9 @@ func TestUpsertAgent(t *testing.T) {
 			t.Errorf("content-type: got %q", r.Header.Get("Content-Type"))
 		}
 
-		json.NewDecoder(r.Body).Decode(&received)
+		_ = json.NewDecoder(r.Body).Decode(&received)
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "created"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "created"})
 	}))
 	defer srv.Close()
 
@@ -79,7 +79,7 @@ func TestUpsertAgent(t *testing.T) {
 		SystemPrompt: "You are helpful",
 		Provider: ProviderConfig{
 			Model:        "gpt-4o",
-			ProviderType: OpenAi,
+			ProviderType: ProviderTypeOpenAi,
 			ApiKey:       "ptok_test",
 		},
 	}
@@ -103,7 +103,7 @@ func TestRemoveAgentDefinition(t *testing.T) {
 			t.Errorf("path: got %q", r.URL.Path)
 		}
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "removed"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "removed"})
 	}))
 	defer srv.Close()
 
@@ -123,7 +123,7 @@ func TestCreateConversation(t *testing.T) {
 			t.Errorf("path: got %q", r.URL.Path)
 		}
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(CreateConversationResponse{
+		_ = json.NewEncoder(w).Encode(CreateConversationResponse{
 			ConversationId: "conv-abc",
 			StreamUrl:      "/conversations/conv-abc/stream",
 		})
@@ -146,9 +146,9 @@ func TestCreateConversation(t *testing.T) {
 func TestCreateConversationWithOptions_SerialisesMcpServers(t *testing.T) {
 	var receivedBody map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewDecoder(r.Body).Decode(&receivedBody)
+		_ = json.NewDecoder(r.Body).Decode(&receivedBody)
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(CreateConversationResponse{
+		_ = json.NewEncoder(w).Encode(CreateConversationResponse{
 			ConversationId: "conv-mcp",
 			StreamUrl:      "/conversations/conv-mcp/stream",
 		})
@@ -157,19 +157,23 @@ func TestCreateConversationWithOptions_SerialisesMcpServers(t *testing.T) {
 
 	headers := map[string]string{"Authorization": "Bearer tok-123"}
 	var transport McpTransport
-	transport.FromMcpTransport1(McpTransport1{
+	_ = transport.FromMcpTransport1(McpTransport1{
 		Type:    StreamableHttp,
 		Url:     "https://mcp.example.com/test-mcp/run-42",
 		Headers: &headers,
 	})
 
 	client := NewBridgeClient(srv.URL, "key")
+	var providerOverride CreateConversationRequest_Provider
+	if err := providerOverride.FromProviderConfig(ProviderConfig{
+		ProviderType: ProviderTypeAnthropic,
+		Model:        "claude-sonnet-4-6",
+		ApiKey:       "sk-test",
+	}); err != nil {
+		t.Fatalf("wrap provider override: %v", err)
+	}
 	resp, err := client.CreateConversationWithOptions(context.Background(), "agent-1", CreateConversationRequest{
-		Provider: &ProviderConfig{
-			ProviderType: Anthropic,
-			Model:        "claude-sonnet-4-6",
-			ApiKey:       "sk-test",
-		},
+		Provider: &providerOverride,
 		McpServers: &[]McpServerDefinition{
 			{Name: "test-mcp", Transport: transport},
 		},
@@ -202,12 +206,12 @@ func TestSendMessage(t *testing.T) {
 			t.Errorf("path: got %q", r.URL.Path)
 		}
 		var req SendMessageRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 		if req.Content != nil {
 			receivedContent = *req.Content
 		}
 		w.WriteHeader(http.StatusAccepted)
-		json.NewEncoder(w).Encode(map[string]string{"status": "accepted"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "accepted"})
 	}))
 	defer srv.Close()
 
@@ -227,7 +231,7 @@ func TestAbortConversation(t *testing.T) {
 			t.Errorf("path: got %q", r.URL.Path)
 		}
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "aborted"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "aborted"})
 	}))
 	defer srv.Close()
 
@@ -247,7 +251,7 @@ func TestEndConversation(t *testing.T) {
 			t.Errorf("path: got %q", r.URL.Path)
 		}
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "ended"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ended"})
 	}))
 	defer srv.Close()
 
@@ -264,7 +268,7 @@ func TestListApprovals(t *testing.T) {
 			t.Errorf("path: got %q", r.URL.Path)
 		}
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode([]ApprovalRequest{
+		_ = json.NewEncoder(w).Encode([]ApprovalRequest{
 			{Id: "req-1", ToolName: "bash"},
 			{Id: "req-2", ToolName: "write"},
 		})
@@ -291,10 +295,10 @@ func TestResolveApproval(t *testing.T) {
 			t.Errorf("path: got %q", r.URL.Path)
 		}
 		var req ApprovalReply
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 		receivedDecision = req.Decision
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "approved"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "approved"})
 	}))
 	defer srv.Close()
 
@@ -320,7 +324,7 @@ func TestRotateAPIKey(t *testing.T) {
 		var body struct {
 			APIKey string `json:"api_key"`
 		}
-		json.NewDecoder(r.Body).Decode(&body)
+		_ = json.NewDecoder(r.Body).Decode(&body)
 		receivedKey = body.APIKey
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -362,7 +366,7 @@ func TestSSEStream(t *testing.T) {
 			"data: {\"type\":\"done\"}\n\n",
 		}
 		for _, e := range events {
-			w.Write([]byte(e))
+			_, _ = w.Write([]byte(e))
 			flusher.Flush()
 		}
 	}))
@@ -395,7 +399,7 @@ func TestSSEStream(t *testing.T) {
 func TestErrorHandling(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"error":{"code":"agent_not_found","message":"agent not found"}}`))
+		_, _ = w.Write([]byte(`{"error":{"code":"agent_not_found","message":"agent not found"}}`))
 	}))
 	defer srv.Close()
 
@@ -430,19 +434,19 @@ func TestAuthHeaderSentOnAllRequests(t *testing.T) {
 		authHeaders[r.Method+" "+r.URL.Path] = r.Header.Get("Authorization")
 		mu.Unlock()
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{}`))
+		_, _ = w.Write([]byte(`{}`))
 	}))
 	defer srv.Close()
 
 	c := NewBridgeClient(srv.URL, "secret-bearer")
 	ctx := context.Background()
 
-	c.HealthCheck(ctx)
-	c.UpsertAgent(ctx, "a", AgentDefinition{})
-	c.RemoveAgentDefinition(ctx, "a")
-	c.SendMessage(ctx, "c", "hi")
-	c.AbortConversation(ctx, "c")
-	c.EndConversation(ctx, "c")
+	_ = c.HealthCheck(ctx)
+	_ = c.UpsertAgent(ctx, "a", AgentDefinition{})
+	_ = c.RemoveAgentDefinition(ctx, "a")
+	_ = c.SendMessage(ctx, "c", "hi")
+	_ = c.AbortConversation(ctx, "c")
+	_ = c.EndConversation(ctx, "c")
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -464,7 +468,7 @@ func TestGetMetrics(t *testing.T) {
 			t.Errorf("path: got %q", r.URL.Path)
 		}
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(MetricsResponse{
+		_ = json.NewEncoder(w).Encode(MetricsResponse{
 			Global: GlobalMetrics{
 				TotalAgents:              3,
 				TotalActiveConversations: 5,

@@ -3,11 +3,11 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -19,7 +19,7 @@ import (
 func (h *OAuthHandler) issueExchangeTokenAndRedirect(w http.ResponseWriter, r *http.Request, provider string, user *model.User) {
 	plaintext, hash, err := model.GenerateExchangeToken()
 	if err != nil {
-		slog.Error("failed to generate exchange token", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to generate exchange token", "error", err)
 		h.redirectError(w, r, "internal_error")
 		return
 	}
@@ -30,7 +30,7 @@ func (h *OAuthHandler) issueExchangeTokenAndRedirect(w http.ResponseWriter, r *h
 		ExpiresAt: time.Now().Add(5 * time.Minute),
 	}
 	if err := h.db.Create(&exchangeToken).Error; err != nil {
-		slog.Error("failed to store exchange token", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to store exchange token", "error", err)
 		h.redirectError(w, r, "internal_error")
 		return
 	}
@@ -83,7 +83,7 @@ func (h *OAuthHandler) Exchange(w http.ResponseWriter, r *http.Request) {
 	// Mark as used.
 	now := time.Now()
 	if err := h.db.Model(&et).Update("used_at", &now).Error; err != nil {
-		slog.Error("failed to mark exchange token as used", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to mark exchange token as used", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -91,7 +91,7 @@ func (h *OAuthHandler) Exchange(w http.ResponseWriter, r *http.Request) {
 	// Load user.
 	var user model.User
 	if err := h.db.Where("id = ?", et.UserID).First(&user).Error; err != nil {
-		slog.Error("oauth exchange: user not found", "user_id", et.UserID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "oauth exchange: user not found", "user_id", et.UserID, "error", err)
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "user not found"})
 		return
 	}
@@ -108,7 +108,7 @@ func (h *OAuthHandler) Exchange(w http.ResponseWriter, r *http.Request) {
 	orgID := memberships[0].OrgID.String()
 	role := memberships[0].Role
 
-	h.issueTokensAndRespond(w, http.StatusOK, user, orgID, role, memberships)
+	h.issueTokensAndRespond(r.Context(), w, http.StatusOK, user, orgID, role, memberships)
 }
 
 // ---------------------------------------------------------------------------

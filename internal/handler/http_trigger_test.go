@@ -25,7 +25,7 @@ import (
 
 func connectHTTPTriggerTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+	dsn := "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: gormlogger.Discard,
 	})
@@ -176,7 +176,7 @@ func TestHTTPTrigger_ValidRequest_Returns200AndEnqueues(t *testing.T) {
 
 // TestHTTPTrigger_ValidBearer_Returns200 verifies that valid Bearer token authentication works.
 func TestHTTPTrigger_ValidBearer_Returns200(t *testing.T) {
-	secret := "test-webhook-secret-key"
+	secret := "test-webhook-secret-key" // #nosec G101 -- test fixture, not a real secret
 	harness := newHTTPTriggerHarness(t)
 	trigger := harness.createTrigger(t, "http", secret)
 

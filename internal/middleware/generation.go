@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"log/slog"
 	"net"
 	"net/http"
 	"runtime/debug"
@@ -14,6 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/observe"
 	"github.com/usehiveloop/hiveloop/internal/registry"
@@ -34,7 +34,7 @@ type GenerationWriter struct {
 // background flushing. Call Shutdown to flush remaining entries on exit.
 // An optional flushInterval controls how often partial batches are flushed
 // (default 500ms).
-func NewGenerationWriter(db *gorm.DB, reg *registry.Registry, bufferSize int, flushInterval ...time.Duration) *GenerationWriter {
+func NewGenerationWriter(ctx context.Context, db *gorm.DB, reg *registry.Registry, bufferSize int, flushInterval ...time.Duration) *GenerationWriter {
 	interval := 500 * time.Millisecond
 	if len(flushInterval) > 0 {
 		interval = flushInterval[0]
@@ -46,14 +46,14 @@ func NewGenerationWriter(db *gorm.DB, reg *registry.Registry, bufferSize int, fl
 		flushInterval: interval,
 	}
 	gw.wg.Add(1)
-	go gw.drain()
+	go gw.drain(ctx)
 	return gw
 }
 
-func (gw *GenerationWriter) drain() {
+func (gw *GenerationWriter) drain(ctx context.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			slog.Error("generation drain panicked",
+			logging.FromContext(ctx).ErrorContext(ctx, "generation drain panicked",
 				"panic", r,
 				"stack", string(debug.Stack()),
 			)
@@ -70,7 +70,7 @@ func (gw *GenerationWriter) drain() {
 			return
 		}
 		if err := gw.db.CreateInBatches(batch, generationBatchSize).Error; err != nil {
-			slog.Error("generation batch write failed", "error", err, "count", len(batch))
+			logging.FromContext(ctx).ErrorContext(ctx, "generation batch write failed", "error", err, "count", len(batch))
 		}
 		batch = batch[:0]
 	}
@@ -102,11 +102,11 @@ func (gw *GenerationWriter) drain() {
 
 // Write queues a generation entry. It never blocks — if the buffer is full, the
 // entry is dropped and a warning is logged.
-func (gw *GenerationWriter) Write(gen model.Generation) {
+func (gw *GenerationWriter) Write(ctx context.Context, gen model.Generation) {
 	select {
 	case gw.entries <- gen:
 	default:
-		slog.Warn("generation buffer full, dropping entry", "id", gen.ID)
+		logging.FromContext(ctx).WarnContext(ctx, "generation buffer full, dropping entry", "id", gen.ID)
 	}
 }
 
@@ -123,7 +123,7 @@ func (gw *GenerationWriter) Shutdown(ctx context.Context) {
 	select {
 	case <-done:
 	case <-ctx.Done():
-		slog.Warn("generation shutdown timed out, some entries may be lost")
+		logging.FromContext(ctx).WarnContext(ctx, "generation shutdown timed out, some entries may be lost")
 	}
 }
 
@@ -145,7 +145,7 @@ func Generation(gw *GenerationWriter, db *gorm.DB) func(http.Handler) http.Handl
 			next.ServeHTTP(w, r)
 
 			gen := buildGeneration(r, claims, captured, providerID, gw.reg, db)
-			gw.Write(gen)
+			gw.Write(ctx, gen)
 		})
 	}
 }

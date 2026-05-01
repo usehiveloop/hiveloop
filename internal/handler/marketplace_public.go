@@ -67,7 +67,7 @@ func (h *MarketplaceHandler) List(w http.ResponseWriter, r *http.Request) {
 	if cached, err := h.redis.Get(r.Context(), cacheKey).Bytes(); err == nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-Cache", "HIT")
-		w.Write(cached)
+		_, _ = w.Write(cached)
 		return
 	}
 
@@ -130,7 +130,7 @@ func (h *MarketplaceHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Cache", "MISS")
-	w.Write(body)
+	_, _ = w.Write(body)
 }
 
 // GetBySlug handles GET /v1/marketplace/agents/{slug}.
@@ -149,7 +149,7 @@ func (h *MarketplaceHandler) GetBySlug(w http.ResponseWriter, r *http.Request) {
 	if cached, err := h.redis.Get(r.Context(), cacheKey).Bytes(); err == nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-Cache", "HIT")
-		w.Write(cached)
+		_, _ = w.Write(cached)
 		return
 	}
 
@@ -168,7 +168,7 @@ func (h *MarketplaceHandler) GetBySlug(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Cache", "MISS")
-	w.Write(body)
+	_, _ = w.Write(body)
 }
 
 func (h *MarketplaceHandler) listCacheKey(r *http.Request) string {

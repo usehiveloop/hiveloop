@@ -369,7 +369,7 @@ func TestE2E_Proxy_MultiTurn(t *testing.T) {
 		t.Fatalf("turn 1: expected 200, got %d: %s", rr1.Code, rr1.Body.String())
 	}
 	var resp1 map[string]any
-	json.NewDecoder(rr1.Body).Decode(&resp1)
+	_ = json.NewDecoder(rr1.Body).Decode(&resp1)
 	assistantMsg := extractNonStreamContent(t, resp1)
 
 	// Turn 2 — include conversation history
@@ -388,7 +388,7 @@ func TestE2E_Proxy_MultiTurn(t *testing.T) {
 		t.Fatalf("turn 2: expected 200, got %d: %s", rr2.Code, rr2.Body.String())
 	}
 	var resp2 map[string]any
-	json.NewDecoder(rr2.Body).Decode(&resp2)
+	_ = json.NewDecoder(rr2.Body).Decode(&resp2)
 	answer := extractNonStreamContent(t, resp2)
 	if !strings.Contains(strings.ToLower(answer), "alice") {
 		t.Fatalf("expected 'Alice' in response, got: %s", answer)
@@ -425,7 +425,7 @@ func TestE2E_Proxy_TokenStripped(t *testing.T) {
 	}
 
 	var resp map[string]string
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	receivedAuth := resp["received_auth"]
 	// Must contain the real API key, not the sandbox token

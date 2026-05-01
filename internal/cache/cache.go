@@ -105,10 +105,6 @@ func (m *Manager) GetDecryptedCredential(ctx context.Context, credentialID strin
 	}
 
 	// Singleflight: collapse concurrent requests for same credential
-	type result struct {
-		cred *DecryptedCredential
-		err  error
-	}
 	v, err, _ := m.flight.Do(credentialID, func() (any, error) {
 		return m.resolveFromLowerTiers(ctx, credentialID, orgID)
 	})

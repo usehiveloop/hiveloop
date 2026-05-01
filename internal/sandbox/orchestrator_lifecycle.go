@@ -3,7 +3,6 @@ package sandbox
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"time"
 
 	"github.com/usehiveloop/hiveloop/internal/logging"
@@ -26,12 +25,12 @@ func (o *Orchestrator) RunSandboxLifecycle(ctx context.Context) {
 		string(StatusRunning),
 		idleCutoff,
 	).Find(&idleRunning).Error; err != nil {
-		slog.Error("sandbox lifecycle: query idle running sandboxes failed", "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "sandbox lifecycle: query idle running sandboxes failed", "error", err)
 	} else {
 		for i := range idleRunning {
 			sb := &idleRunning[i]
 			if err := o.StopSandbox(ctx, sb); err != nil && !errors.Is(err, ErrSandboxNotFound) {
-				slog.Warn("sandbox lifecycle: failed to stop idle sandbox",
+				logging.FromContext(ctx).WarnContext(ctx, "sandbox lifecycle: failed to stop idle sandbox",
 					"sandbox_id", sb.ID, "error", err)
 				logging.Capture(ctx, err)
 			}
@@ -44,12 +43,12 @@ func (o *Orchestrator) RunSandboxLifecycle(ctx context.Context) {
 		string(StatusStopped),
 		archiveCutoff,
 	).Find(&staleStopped).Error; err != nil {
-		slog.Error("sandbox lifecycle: query stale stopped sandboxes failed", "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "sandbox lifecycle: query stale stopped sandboxes failed", "error", err)
 	} else {
 		for i := range staleStopped {
 			sb := &staleStopped[i]
 			if err := o.ArchiveSandbox(ctx, sb); err != nil && !errors.Is(err, ErrSandboxNotFound) {
-				slog.Warn("sandbox lifecycle: failed to archive stopped sandbox",
+				logging.FromContext(ctx).WarnContext(ctx, "sandbox lifecycle: failed to archive stopped sandbox",
 					"sandbox_id", sb.ID, "error", err)
 				logging.Capture(ctx, err)
 			}

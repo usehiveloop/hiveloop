@@ -3,9 +3,9 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -37,6 +37,6 @@ func (o *Orchestrator) WakeSandbox(ctx context.Context, sb *model.Sandbox) (*mod
 		return nil, fmt.Errorf("bridge not healthy after wake: %w", err)
 	}
 
-	slog.Info("sandbox woken", "sandbox_id", sb.ID, "external_id", sb.ExternalID)
+	logging.FromContext(ctx).InfoContext(ctx, "sandbox woken", "sandbox_id", sb.ID, "external_id", sb.ExternalID)
 	return sb, nil
 }

@@ -2,13 +2,13 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/skills"
 	"github.com/usehiveloop/hiveloop/internal/tasks"
@@ -95,7 +95,7 @@ func (h *AdminHandler) CreateSkill(w http.ResponseWriter, r *http.Request) {
 			req.Bundle.Description = *skill.Description
 		}
 		if _, err := skills.HydrateInline(r.Context(), h.db, skill.ID, req.Bundle, "v1"); err != nil {
-			slog.Error("admin: failed to hydrate inline skill", "skill_id", skill.ID, "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "admin: failed to hydrate inline skill", "skill_id", skill.ID, "error", err)
 		}
 		_ = h.db.First(&skill, "id = ?", skill.ID).Error
 	} else if req.SourceType == model.SkillSourceGit {

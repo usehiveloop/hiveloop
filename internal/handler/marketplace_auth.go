@@ -2,13 +2,13 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -105,7 +105,7 @@ func (h *MarketplaceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.db.Preload("Publisher").Where("id = ?", id).First(&ma)
-	slog.Info("marketplace agent updated", "marketplace_id", ma.ID, "publisher_id", user.ID)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "marketplace agent updated", "marketplace_id", ma.ID, "publisher_id", user.ID)
 	writeJSON(w, http.StatusOK, toMarketplaceAgentResponse(ma))
 }
 
@@ -148,6 +148,6 @@ func (h *MarketplaceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("marketplace agent deleted", "marketplace_id", ma.ID, "publisher_id", user.ID)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "marketplace agent deleted", "marketplace_id", ma.ID, "publisher_id", user.ID)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

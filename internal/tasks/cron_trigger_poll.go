@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"strings"
 	"time"
 
@@ -109,7 +108,7 @@ func (handler *CronTriggerPollHandler) Handle(ctx context.Context, _ *asynq.Task
 	}
 
 	if enqueuedCount > 0 {
-		slog.Info("cron poll dispatched",
+		logging.FromContext(ctx).InfoContext(ctx, "cron poll dispatched",
 			"due_triggers", len(dueTriggers),
 			"enqueued", enqueuedCount,
 		)

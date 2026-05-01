@@ -2,12 +2,11 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"strings"
 
-
 	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -37,7 +36,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Per-account rate limiting: 5 failed attempts per 15 minutes.
 	if h.isLoginLocked(req.Email) {
-		slog.Warn("login rate limited", "email", req.Email)
+		logging.FromContext(r.Context()).WarnContext(r.Context(), "login rate limited", "email", req.Email)
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		return
 	}
@@ -45,14 +44,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var user model.User
 	if err := h.db.Where("email = ?", req.Email).First(&user).Error; err != nil {
 		h.recordLoginFailure(req.Email)
-		slog.Warn("login failed", "email", req.Email, "reason", "invalid_credentials")
+		logging.FromContext(r.Context()).WarnContext(r.Context(), "login failed", "email", req.Email, "reason", "invalid_credentials")
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		return
 	}
 
 	if user.PasswordHash == "" || !auth.CheckPassword(user.PasswordHash, req.Password) {
 		h.recordLoginFailure(req.Email)
-		slog.Warn("login failed", "email", req.Email, "reason", "invalid_credentials")
+		logging.FromContext(r.Context()).WarnContext(r.Context(), "login failed", "email", req.Email, "reason", "invalid_credentials")
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		return
 	}
@@ -93,7 +92,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	slog.Info("user logged in", "user_id", user.ID, "email", user.Email)
-	h.issueTokensAndRespond(w, http.StatusOK, user, orgID, role)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "user logged in", "user_id", user.ID, "email", user.Email)
+	h.issueTokensAndRespond(r.Context(), w, http.StatusOK, user, orgID, role)
 }
 

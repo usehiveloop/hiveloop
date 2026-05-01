@@ -33,7 +33,7 @@ func TestEnrichActions_RailwayDeploymentFailed(t *testing.T) {
 	nangoServer := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		bodyBytes, _ := io.ReadAll(request.Body)
 		var bodyMap map[string]any
-		json.Unmarshal(bodyBytes, &bodyMap)
+		_ = json.Unmarshal(bodyBytes, &bodyMap)
 
 		mu.Lock()
 		captured = append(captured, capturedRequest{
@@ -46,7 +46,7 @@ func TestEnrichActions_RailwayDeploymentFailed(t *testing.T) {
 		mu.Unlock()
 
 		writer.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(writer).Encode(map[string]any{"data": "mock-result"})
+		_ = json.NewEncoder(writer).Encode(map[string]any{"data": "mock-result"})
 	}))
 	defer nangoServer.Close()
 

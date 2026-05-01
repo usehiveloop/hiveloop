@@ -3,7 +3,6 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/usehiveloop/hiveloop/internal/logging"
@@ -142,7 +141,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		}
 	}
 
-	slog.Info("sandbox created",
+	logging.FromContext(ctx).InfoContext(ctx, "sandbox created",
 		"sandbox_id", sb.ID,
 		"external_id", info.ExternalID,
 	)

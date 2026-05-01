@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/cache"
 	"github.com/usehiveloop/hiveloop/internal/counter"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/proxy"
@@ -178,12 +178,12 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.Create(&cred).Error; err != nil {
-		slog.Error("failed to store credential", "error", err, "org_id", org.ID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to store credential", "error", err, "org_id", org.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to store credential"})
 		return
 	}
 
-	slog.Info("credential created", "org_id", org.ID, "credential_id", cred.ID, "provider_id", req.ProviderID, "label", req.Label)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "credential created", "org_id", org.ID, "credential_id", cred.ID, "provider_id", req.ProviderID, "label", req.Label)
 
 	if cred.Remaining != nil && h.counter != nil {
 		_ = h.counter.SeedCredential(r.Context(), cred.ID.String(), *cred.Remaining)

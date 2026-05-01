@@ -75,7 +75,9 @@ func probeMinIO(endpoint string, timeout time.Duration) error {
 	}
 	url := strings.TrimRight(endpoint, "/") + "/minio/health/ready"
 	client := &http.Client{Timeout: timeout}
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err
 	}

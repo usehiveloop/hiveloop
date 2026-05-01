@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -30,18 +30,18 @@ func (h *InIntegrationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	nk := inNangoKey(integ.UniqueKey)
 	if err := h.nango.DeleteIntegration(r.Context(), nk); err != nil {
-		slog.Error("nango in-integration deletion failed", "error", err, "integration_id", integ.ID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "nango in-integration deletion failed", "error", err, "integration_id", integ.ID)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to delete integration from Nango: " + err.Error()})
 		return
 	}
 
 	now := time.Now()
 	if err := h.db.Model(&integ).Update("deleted_at", now).Error; err != nil {
-		slog.Error("failed to soft-delete in-integration", "error", err, "integration_id", integ.ID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to soft-delete in-integration", "error", err, "integration_id", integ.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete integration"})
 		return
 	}
 
-	slog.Info("in-integration deleted", "integration_id", integ.ID, "provider", integ.Provider)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "in-integration deleted", "integration_id", integ.ID, "provider", integ.Provider)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

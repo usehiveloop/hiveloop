@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -83,7 +83,7 @@ func (h *BillingHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		ExpectedOrgID: org.ID,
 	})
 	if err != nil {
-		slog.Error("billing verify: resolve failed", "provider", body.Provider, "reference", body.Reference, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "billing verify: resolve failed", "provider", body.Provider, "reference", body.Reference, "error", err)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "could not resolve checkout"})
 		return
 	}
@@ -105,7 +105,7 @@ func (h *BillingHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if res.PaidAmountMinor != plan.PriceCents {
-		slog.Warn("billing verify: amount mismatch",
+		logging.FromContext(r.Context()).WarnContext(r.Context(), "billing verify: amount mismatch",
 			"reference", body.Reference,
 			"paid", res.PaidAmountMinor,
 			"expected", plan.PriceCents,
@@ -123,7 +123,7 @@ func (h *BillingHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.upsertFreshSubscription(body.Provider, org.ID, plan, res); err != nil {
-		slog.Error("billing verify: upsert failed", "provider", body.Provider, "org_id", org.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "billing verify: upsert failed", "provider", body.Provider, "org_id", org.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to record subscription"})
 		return
 	}

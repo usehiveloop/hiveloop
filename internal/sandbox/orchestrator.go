@@ -3,7 +3,6 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"gorm.io/gorm"
@@ -11,6 +10,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/turso"
 )
@@ -82,7 +82,7 @@ func (o *Orchestrator) StartHealthChecker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("sandbox health checker stopped")
+			logging.FromContext(ctx).InfoContext(ctx, "sandbox health checker stopped")
 			return
 		case <-ticker.C:
 			o.RunHealthCheck(ctx)

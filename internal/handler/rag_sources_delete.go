@@ -2,12 +2,12 @@ package handler
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	ragdb "github.com/usehiveloop/hiveloop/internal/rag/db"
 )
@@ -43,11 +43,11 @@ func (h *RAGSourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.Delete(src).Error; err != nil {
-		slog.Error("failed to delete rag source", "error", err, "source_id", src.ID, "org_id", org.ID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to delete rag source", "error", err, "source_id", src.ID, "org_id", org.ID)
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to delete source"})
 		return
 	}
 
-	slog.Info("rag source deleted", "source_id", src.ID, "org_id", org.ID)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "rag source deleted", "source_id", src.ID, "org_id", org.ID)
 	w.WriteHeader(http.StatusNoContent)
 }

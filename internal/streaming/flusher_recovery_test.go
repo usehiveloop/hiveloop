@@ -21,9 +21,9 @@ func TestFlusher_RecoversChunksWhenCompletionMissing(t *testing.T) {
 		chunk, _ := json.Marshal(map[string]any{
 			"data": map[string]any{"delta": p, "message_id": messageID},
 		})
-		bus.Publish(ctx, convID.String(), "response_chunk", chunk)
+		_, _ = bus.Publish(ctx, convID.String(), "response_chunk", chunk)
 	}
-	bus.Publish(ctx, convID.String(), "done", json.RawMessage(`{}`))
+	_, _ = bus.Publish(ctx, convID.String(), "done", json.RawMessage(`{}`))
 
 	flusher.flushStream(ctx, convID.String())
 
@@ -68,14 +68,14 @@ func TestFlusher_DropsAccumulatorOnCompletion(t *testing.T) {
 	chunk, _ := json.Marshal(map[string]any{
 		"data": map[string]any{"delta": "hi", "message_id": messageID},
 	})
-	bus.Publish(ctx, convID.String(), "response_chunk", chunk)
+	_, _ = bus.Publish(ctx, convID.String(), "response_chunk", chunk)
 
 	completion, _ := json.Marshal(map[string]any{
 		"event_id": uuid.New().String(),
 		"data":     map[string]any{"message_id": messageID, "full_response": "hi there"},
 	})
-	bus.Publish(ctx, convID.String(), "response_completed", completion)
-	bus.Publish(ctx, convID.String(), "done", json.RawMessage(`{}`))
+	_, _ = bus.Publish(ctx, convID.String(), "response_completed", completion)
+	_, _ = bus.Publish(ctx, convID.String(), "done", json.RawMessage(`{}`))
 
 	flusher.flushStream(ctx, convID.String())
 

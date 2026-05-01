@@ -12,7 +12,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-const pusherTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const pusherTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 func TestBuildScopesFromIntegrations(t *testing.T) {
 	scopes := buildScopesFromIntegrations(model.JSON{})

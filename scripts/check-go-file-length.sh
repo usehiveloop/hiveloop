@@ -23,7 +23,7 @@ MAX_LINES="${MAX_GO_FILE_LINES:-300}"
 ALLOWLIST="scripts/file-length-allowlist.txt"
 
 # Generated / vendored / external code — skipped entirely.
-EXCLUDE_REGEX='(^\./vendor/|^\./\.ignored/|\.pb\.go$|_gen\.go$|^\./docs/docs\.go$)'
+EXCLUDE_REGEX='(^\./vendor/|^\./\.ignored/|^\./\.claude/|\.pb\.go$|_gen\.go$|^\./docs/docs\.go$)'
 
 # Extract just the path entries from the allowlist (strip comments & blanks)
 # and keep them in a temp file for fast grep-based membership checks.

@@ -1,12 +1,12 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"strings"
 
 	"golang.org/x/oauth2"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 )
 
 // @Summary GitHub OAuth callback
@@ -84,7 +84,7 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 
 	token, err := cfg.Exchange(r.Context(), code, oauth2.VerifierOption(verifierCookie.Value))
 	if err != nil {
-		slog.Error("oauth code exchange failed", "provider", provider, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "oauth code exchange failed", "provider", provider, "error", err)
 		h.redirectError(w, r, "exchange_failed")
 		return
 	}
@@ -92,7 +92,7 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 	// 5. Fetch user profile from provider.
 	profile, err := h.fetchProfile(r.Context(), provider, token)
 	if err != nil {
-		slog.Error("oauth profile fetch failed", "provider", provider, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "oauth profile fetch failed", "provider", provider, "error", err)
 		h.redirectError(w, r, "profile_fetch_failed")
 		return
 	}
@@ -109,7 +109,7 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 	// 7. Find or create user + link OAuth account.
 	user, err := h.findOrCreateUser(provider, profile)
 	if err != nil {
-		slog.Error("oauth user creation failed", "provider", provider, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "oauth user creation failed", "provider", provider, "error", err)
 		h.redirectError(w, r, "account_creation_failed")
 		return
 	}

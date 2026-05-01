@@ -26,30 +26,30 @@ func newWebhookSender(secret, target string) *webhookSender {
 	}
 }
 
-func (s *webhookSender) fireForward(target string, body forwardWebhook, providerHeaders map[string]string) {
+func (s *webhookSender) fireForward(ctx context.Context, target string, body forwardWebhook, providerHeaders map[string]string) {
 	dst := s.target
 	if target != "" {
 		dst = target
 	}
-	s.send(dst, body, providerHeaders)
+	s.send(ctx, dst, body, providerHeaders)
 }
 
-func (s *webhookSender) fireAuth(body authWebhook) {
-	s.send(s.target, body, nil)
+func (s *webhookSender) fireAuth(ctx context.Context, body authWebhook) {
+	s.send(ctx, s.target, body, nil)
 }
 
 // send signs the body with the dual-header scheme real Nango uses
 // (X-Nango-Signature is sha256(secret + body); X-Nango-Hmac-Sha256 is the
 // proper HMAC). The backend at nango_webhooks_identify.go:118 verifies the
 // HMAC one — without these headers it returns 401.
-func (s *webhookSender) send(dst string, body any, providerHeaders map[string]string) {
+func (s *webhookSender) send(ctx context.Context, dst string, body any, providerHeaders map[string]string) {
 	raw, err := json.Marshal(body)
 	if err != nil {
 		slog.Error("webhook marshal failed", "error", err)
 		return
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, dst, bytes.NewReader(raw))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, dst, bytes.NewReader(raw))
 	if err != nil {
 		slog.Error("webhook request build failed", "error", err)
 		return

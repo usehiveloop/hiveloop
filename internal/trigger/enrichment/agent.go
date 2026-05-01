@@ -100,7 +100,7 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 		assistantMsg := resp.Message
 
 		if len(assistantMsg.ToolCalls) == 0 {
-			logger.Warn("enrichment llm produced text instead of tool calls",
+			logger.WarnContext(ctx, "enrichment llm produced text instead of tool calls",
 				"turn", turn+1,
 			)
 			break
@@ -111,7 +111,7 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 		for _, toolCall := range assistantMsg.ToolCalls {
 			handler, ok := handlers[toolCall.Name]
 			if !ok {
-				logger.Warn("enrichment unknown tool called",
+				logger.WarnContext(ctx, "enrichment unknown tool called",
 					"tool", toolCall.Name,
 				)
 				messages = append(messages, hiveloop.Message{
@@ -157,7 +157,7 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 	totalLatency := int(time.Since(started).Milliseconds())
 	if composedMessage == "" {
 		composedMessage = buildFallbackMessage(input, fetchResults)
-		logger.Warn("enrichment max turns reached, using fallback compose",
+		logger.WarnContext(ctx, "enrichment max turns reached, using fallback compose",
 			"max_turns", agent.maxTurns,
 			"total_fetches", fetchCount,
 			"total_latency_ms", totalLatency,

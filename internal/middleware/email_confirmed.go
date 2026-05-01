@@ -34,7 +34,7 @@ func RequireEmailConfirmed(db *gorm.DB) func(http.Handler) http.Handler {
 				slog.Warn("email confirmed check: user not found", "user_id", claims.UserID, "error", err)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
-				json.NewEncoder(w).Encode(map[string]string{
+				_ = json.NewEncoder(w).Encode(map[string]string{
 					"error":   "email_not_confirmed",
 					"message": "Please confirm your email address before accessing this resource.",
 				})
@@ -45,7 +45,7 @@ func RequireEmailConfirmed(db *gorm.DB) func(http.Handler) http.Handler {
 				slog.Warn("email confirmed check: account banned", "user_id", claims.UserID)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
-				json.NewEncoder(w).Encode(map[string]string{
+				_ = json.NewEncoder(w).Encode(map[string]string{
 					"error":   "account_banned",
 					"message": "Your account has been suspended.",
 				})
@@ -56,7 +56,7 @@ func RequireEmailConfirmed(db *gorm.DB) func(http.Handler) http.Handler {
 				slog.Warn("email confirmed check: email not confirmed", "user_id", claims.UserID)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
-				json.NewEncoder(w).Encode(map[string]string{
+				_ = json.NewEncoder(w).Encode(map[string]string{
 					"error":   "email_not_confirmed",
 					"message": "Please confirm your email address before accessing this resource.",
 				})

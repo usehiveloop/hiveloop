@@ -135,7 +135,7 @@ func TestOTP_FullFlow_ExistingUser(t *testing.T) {
 	}
 
 	var authResp map[string]any
-	json.Unmarshal(rr.Body.Bytes(), &authResp)
+	_ = json.Unmarshal(rr.Body.Bytes(), &authResp)
 	if authResp["access_token"] == nil || authResp["access_token"] == "" {
 		t.Fatal("missing access_token")
 	}

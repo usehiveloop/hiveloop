@@ -30,7 +30,7 @@ func TestInConnectionHandler_Create_Success(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(mockCfg))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -55,7 +55,7 @@ func TestInConnectionHandler_Create_Success(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	if resp["in_integration_id"] != integ.ID.String() {
 		t.Fatalf("expected in_integration_id=%s, got %v", integ.ID.String(), resp["in_integration_id"])
 	}
@@ -85,7 +85,7 @@ func TestInConnectionHandler_Create_DuplicateUserIntegration(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -132,7 +132,7 @@ func TestInConnectionHandler_Create_WithMeta(t *testing.T) {
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	nangoClient.FetchProviders(context.Background())
+	_ = nangoClient.FetchProviders(context.Background())
 
 	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
 	r := chi.NewRouter()
@@ -158,7 +158,7 @@ func TestInConnectionHandler_Create_WithMeta(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	meta, ok := resp["meta"].(map[string]any)
 	if !ok || meta["resources"] == nil {
 		t.Fatalf("expected meta.resources to be set, got %v", resp["meta"])

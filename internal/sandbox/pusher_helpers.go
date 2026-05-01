@@ -24,7 +24,7 @@ func buildHiveLoopMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDe
 		headers := map[string]string{"Authorization": "Bearer " + token}
 		httpTransport.Headers = &headers
 	}
-	transport.FromMcpTransport1(httpTransport)
+	_ = transport.FromMcpTransport1(httpTransport) // marshals known struct; cannot fail in practice
 
 	return bridgepkg.McpServerDefinition{
 		Name:      "hiveloop",
@@ -68,15 +68,8 @@ func buildScopesFromIntegrations(integrations model.JSON) []map[string]any {
 	return scopes
 }
 
-func ptrToString(id *uuid.UUID) string {
-	if id == nil {
-		return ""
-	}
-	return id.String()
-}
-
 func decodeJSONAs[T any](j model.JSON) *T {
-	if j == nil || len(j) == 0 {
+	if len(j) == 0 {
 		return nil
 	}
 	b, err := json.Marshal(j)
@@ -90,9 +83,9 @@ func decodeJSONAs[T any](j model.JSON) *T {
 	return &result
 }
 
-func (p *Pusher) loadBridgeSkills(agentID uuid.UUID) []bridgepkg.SkillDefinition {
+func (p *Pusher) loadBridgeSkills(ctx context.Context, agentID uuid.UUID) []bridgepkg.SkillDefinition {
 	var links []model.AgentSkill
-	if err := p.db.Where("agent_id = ?", agentID).Find(&links).Error; err != nil || len(links) == 0 {
+	if err := p.db.WithContext(ctx).Where("agent_id = ?", agentID).Find(&links).Error; err != nil || len(links) == 0 {
 		return nil
 	}
 
@@ -102,7 +95,7 @@ func (p *Pusher) loadBridgeSkills(agentID uuid.UUID) []bridgepkg.SkillDefinition
 	}
 
 	var skills []model.Skill
-	if err := p.db.Where("id IN ?", skillIDs).Find(&skills).Error; err != nil {
+	if err := p.db.WithContext(ctx).Where("id IN ?", skillIDs).Find(&skills).Error; err != nil {
 		return nil
 	}
 
@@ -117,7 +110,7 @@ func (p *Pusher) loadBridgeSkills(agentID uuid.UUID) []bridgepkg.SkillDefinition
 	}
 
 	var versions []model.SkillVersion
-	if err := p.db.Where("id IN ?", versionIDs).Find(&versions).Error; err != nil {
+	if err := p.db.WithContext(ctx).Where("id IN ?", versionIDs).Find(&versions).Error; err != nil {
 		return nil
 	}
 	versionByID := make(map[uuid.UUID]model.SkillVersion, len(versions))
@@ -136,7 +129,7 @@ func (p *Pusher) loadBridgeSkills(agentID uuid.UUID) []bridgepkg.SkillDefinition
 		}
 		var def bridgepkg.SkillDefinition
 		if err := json.Unmarshal(version.Bundle, &def); err != nil {
-			logging.Capture(context.Background(), fmt.Errorf("unmarshal skill bundle %s: %w", skill.ID, err))
+			logging.Capture(ctx, fmt.Errorf("unmarshal skill bundle %s: %w", skill.ID, err))
 			continue
 		}
 		result = append(result, def)

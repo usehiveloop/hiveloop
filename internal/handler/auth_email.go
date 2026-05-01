@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -48,7 +48,7 @@ func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	// (after an email change, for example) should not resend welcome.
 	var user model.User
 	if err := h.db.Where("id = ?", verification.UserID).First(&user).Error; err != nil {
-		slog.Error("failed to load user for confirmation", "error", err, "user_id", verification.UserID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to load user for confirmation", "error", err, "user_id", verification.UserID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -71,7 +71,7 @@ func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		slog.Error("failed to confirm email", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to confirm email", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -86,7 +86,7 @@ func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	slog.Info("email confirmed", "user_id", verification.UserID)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "email confirmed", "user_id", verification.UserID)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "confirmed"})
 }
 
@@ -140,7 +140,7 @@ func (h *AuthHandler) ResendConfirmation(w http.ResponseWriter, r *http.Request)
 
 	plainToken, tokenHash, err := model.GenerateVerificationToken()
 	if err != nil {
-		slog.Error("failed to generate verification token", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to generate verification token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -151,7 +151,7 @@ func (h *AuthHandler) ResendConfirmation(w http.ResponseWriter, r *http.Request)
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 	if err := h.db.Create(&verification).Error; err != nil {
-		slog.Error("failed to store verification token", "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to store verification token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}

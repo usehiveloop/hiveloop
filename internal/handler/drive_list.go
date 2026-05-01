@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -80,7 +80,7 @@ func (handler *DriveHandler) Get(writer http.ResponseWriter, request *http.Reque
 
 	downloadURL, err := handler.storage.PresignedURL(request.Context(), asset.S3Key, 15*time.Minute)
 	if err != nil {
-		slog.Error("drive presign failed", "asset_id", asset.ID, "error", err)
+		logging.FromContext(request.Context()).ErrorContext(request.Context(), "drive presign failed", "asset_id", asset.ID, "error", err)
 		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to generate download URL"})
 		return
 	}
@@ -111,13 +111,13 @@ func (handler *DriveHandler) Delete(writer http.ResponseWriter, request *http.Re
 	}
 
 	if err := handler.storage.Delete(request.Context(), asset.S3Key); err != nil {
-		slog.Error("drive s3 delete failed", "asset_id", asset.ID, "error", err)
+		logging.FromContext(request.Context()).ErrorContext(request.Context(), "drive s3 delete failed", "asset_id", asset.ID, "error", err)
 		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to delete file from storage"})
 		return
 	}
 
 	if err := handler.db.Delete(&asset).Error; err != nil {
-		slog.Error("drive asset db delete failed", "asset_id", asset.ID, "error", err)
+		logging.FromContext(request.Context()).ErrorContext(request.Context(), "drive asset db delete failed", "asset_id", asset.ID, "error", err)
 		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to delete asset record"})
 		return
 	}

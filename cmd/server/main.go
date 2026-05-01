@@ -52,6 +52,7 @@ func main() {
 	}
 
 	if cmd == "version" {
+		// nolint:forbidigo // legitimate user-facing CLI version output
 		fmt.Printf("hiveloop %s (%s)\n", version, commit)
 		return
 	}
@@ -80,7 +81,7 @@ func run(cmd string) error {
 		slog.Error("bootstrap failed", "error", err)
 		return err
 	}
-	defer deps.Close()
+	defer deps.Close(ctx)
 
 	// Wrap slog AFTER bootstrap (Sentry is initialized) and BEFORE dispatch
 	// so every subsequent Error log is mirrored to Sentry.

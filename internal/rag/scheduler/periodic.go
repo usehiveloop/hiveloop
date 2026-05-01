@@ -99,7 +99,7 @@ func (d *Deps) handleWatchdog(ctx context.Context, _ *asynq.Task) error {
 		return err
 	}
 	if n > 0 {
-		logging.FromContext(ctx).Warn("rag scheduler watchdog failed stuck attempts", "count", n)
+		logging.FromContext(ctx).WarnContext(ctx, "rag scheduler watchdog failed stuck attempts", "count", n)
 	}
 	return nil
 }

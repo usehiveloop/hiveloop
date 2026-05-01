@@ -89,7 +89,7 @@ func fireForward(st *store, wh *webhookSender) http.HandlerFunc {
 			ProviderConfigKey: req.ProviderConfigKey,
 			Payload:           req.Payload,
 		}
-		wh.fireForward(req.Target, body, req.ProviderHeaders)
+		wh.fireForward(r.Context(), req.Target, body, req.ProviderHeaders)
 		st.recordCall("WEBHOOK", "forward/"+req.ProviderConfigKey)
 		writeJSON(w, http.StatusOK, map[string]any{"status": "ok"})
 	}

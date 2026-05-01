@@ -16,7 +16,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-const toolUsageTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const toolUsageTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 func connectToolUsageTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -42,9 +42,9 @@ func TestToolUsageWriter_WriteAndFlush(t *testing.T) {
 		database.Where("org_id = ?", orgID).Delete(&model.ToolUsage{})
 	})
 
-	writer := middleware.NewToolUsageWriter(database, 100)
+	writer := middleware.NewToolUsageWriter(t.Context(), database, 100)
 
-	writer.Write(model.ToolUsage{
+	writer.Write(t.Context(), model.ToolUsage{
 		ID:        "tu_" + ulid.Make().String(),
 		OrgID:     orgID,
 		AgentID:   uuid.New().String(),
@@ -56,7 +56,7 @@ func TestToolUsageWriter_WriteAndFlush(t *testing.T) {
 		CreatedAt: time.Now().UTC(),
 	})
 
-	writer.Write(model.ToolUsage{
+	writer.Write(t.Context(), model.ToolUsage{
 		ID:        "tu_" + ulid.Make().String(),
 		OrgID:     orgID,
 		AgentID:   uuid.New().String(),
@@ -88,11 +88,11 @@ func TestToolUsageWriter_BatchFlush(t *testing.T) {
 		database.Where("org_id = ?", orgID).Delete(&model.ToolUsage{})
 	})
 
-	writer := middleware.NewToolUsageWriter(database, 1000)
+	writer := middleware.NewToolUsageWriter(t.Context(), database, 1000)
 
 	// Write enough records to trigger a batch flush (batch size is 50)
 	for index := range 60 {
-		writer.Write(model.ToolUsage{
+		writer.Write(t.Context(), model.ToolUsage{
 			ID:        "tu_" + ulid.Make().String(),
 			OrgID:     orgID,
 			AgentID:   uuid.New().String(),
@@ -118,7 +118,7 @@ func TestToolUsageWriter_BatchFlush(t *testing.T) {
 func TestToolUsageWriter_ShutdownIdempotent(t *testing.T) {
 	database := connectToolUsageTestDB(t)
 
-	writer := middleware.NewToolUsageWriter(database, 100)
+	writer := middleware.NewToolUsageWriter(t.Context(), database, 100)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -137,14 +137,14 @@ func TestToolUsageWriter_DropWhenFull(t *testing.T) {
 	})
 
 	// Create writer with very small buffer
-	writer := middleware.NewToolUsageWriter(database, 2)
+	writer := middleware.NewToolUsageWriter(t.Context(), database, 2)
 
 	// Give the drain goroutine a moment to start
 	time.Sleep(10 * time.Millisecond)
 
 	// Write many records quickly — some should be dropped
 	for index := range 100 {
-		writer.Write(model.ToolUsage{
+		writer.Write(t.Context(), model.ToolUsage{
 			ID:        "tu_" + ulid.Make().String(),
 			OrgID:     orgID,
 			AgentID:   uuid.New().String(),

@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -22,17 +22,17 @@ import (
 // provider (e.g. X/Twitter) does not return a user email.
 
 // isPlaceholderEmail reports whether the email is a generated placeholder.
-func (h *OAuthHandler) issueTokensAndRespond(w http.ResponseWriter, status int, user model.User, orgID, role string, memberships []model.OrgMembership) {
+func (h *OAuthHandler) issueTokensAndRespond(ctx context.Context, w http.ResponseWriter, status int, user model.User, orgID, role string, memberships []model.OrgMembership) {
 	accessToken, err := auth.IssueAccessToken(h.privateKey, h.issuer, h.audience, user.ID.String(), orgID, role, h.accessTTL)
 	if err != nil {
-		slog.Error("failed to issue access token", "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to issue access token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
 
 	refreshToken, err := auth.IssueRefreshToken(h.signingKey, user.ID.String(), h.refreshTTL)
 	if err != nil {
-		slog.Error("failed to issue refresh token", "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to issue refresh token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -45,7 +45,7 @@ func (h *OAuthHandler) issueTokensAndRespond(w http.ResponseWriter, status int, 
 		ExpiresAt: time.Now().Add(h.refreshTTL),
 	}
 	if err := h.db.Create(&storedRefresh).Error; err != nil {
-		slog.Error("failed to store refresh token", "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to store refresh token", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}

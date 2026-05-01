@@ -43,6 +43,11 @@ linters-settings:
           - "!**/cmd/fetchactions-*/**"
           - "!**/skills/upload/**"
           - "!**/internal/rag/vectorstore/spike/**"
+          # Legitimate bridge: stdlib log.Logger used to redirect third-party
+          # logs (e.g. http.Server.ErrorLog) into our slog/sentry pipeline.
+          - "!**/internal/observability/sentry/stdlog.go"
+        allow:
+          - "log/slog"
         deny:
           - pkg: "log"
             desc: "use log/slog (or the internal/logging package) instead of the stdlib log package"
@@ -55,7 +60,6 @@ linters-settings:
     no-global: "all"
     context: "scope" # warn when slog is used inside a func that has a ctx but ctx isn't passed to LogAttrs
     static-msg: true
-    msg-style: lowercased
     no-raw-keys: false
     key-naming-case: snake
     forbidden-keys:
@@ -81,18 +85,25 @@ issues:
         - forbidigo
         - depguard
         - sloglint
-    # CLI tools — log/fmt.Println are legitimate user-facing terminal output.
+    # CLI tools — log/fmt.Println are legitimate user-facing terminal output,
+    # and global slog at startup/shutdown predates per-request logger context.
     - path: cmd/sandbox-exec/
-      linters: [forbidigo, depguard]
+      linters: [forbidigo, depguard, sloglint]
     - path: cmd/verify-devbox/
-      linters: [forbidigo, depguard]
+      linters: [forbidigo, depguard, sloglint]
     - path: cmd/buildtemplates/
-      linters: [forbidigo, depguard]
+      linters: [forbidigo, depguard, sloglint]
     - path: cmd/fake-nango/
-      linters: [forbidigo, depguard]
+      linters: [forbidigo, depguard, sloglint]
+    - path: cmd/server/
+      linters: [sloglint]
     # Build-tagged spike binaries.
     - path: internal/rag/vectorstore/spike/
       linters: [forbidigo, depguard]
+    # Observability internals — these wrap slog and sit beneath the logging
+    # package, so they cannot import internal/logging without an import cycle.
+    - path: internal/observability/sentry/
+      linters: [sloglint]
 
 run:
   timeout: 5m

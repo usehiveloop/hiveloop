@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -124,7 +124,7 @@ func (h *AdminHandler) StopSandbox(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("admin: sandbox stopped", "sandbox_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: sandbox stopped", "sandbox_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "stopped"})
 }
 
@@ -161,7 +161,7 @@ func (h *AdminHandler) DeleteSandbox(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("admin: sandbox deleted", "sandbox_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: sandbox deleted", "sandbox_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
@@ -188,13 +188,13 @@ func (h *AdminHandler) CleanupSandboxes(w http.ResponseWriter, r *http.Request) 
 	deleted := 0
 	for _, sb := range sandboxes {
 		if err := h.orchestrator.DeleteSandbox(r.Context(), &sb); err != nil {
-			slog.Warn("admin: cleanup failed for sandbox", "sandbox_id", sb.ID, "error", err)
+			logging.FromContext(r.Context()).WarnContext(r.Context(), "admin: cleanup failed for sandbox", "sandbox_id", sb.ID, "error", err)
 			continue
 		}
 		deleted++
 	}
 
-	slog.Info("admin: sandbox cleanup", "found", len(sandboxes), "deleted", deleted)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: sandbox cleanup", "found", len(sandboxes), "deleted", deleted)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"found":   len(sandboxes),
 		"deleted": deleted,

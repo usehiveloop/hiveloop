@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -132,7 +132,7 @@ func (h *AdminHandler) EndConversation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("admin: conversation ended", "conversation_id", id)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: conversation ended", "conversation_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ended"})
 }
 // ListGenerations handles GET /admin/v1/generations.

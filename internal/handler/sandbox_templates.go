@@ -21,13 +21,6 @@ func commandsToString(cmds []string) string {
 	return strings.Join(cmds, "\n")
 }
 
-func commandsToArray(cmdStr string) []string {
-	if cmdStr == "" {
-		return []string{}
-	}
-	return strings.Split(cmdStr, "\n")
-}
-
 // TemplateBuildable is the interface for building sandbox templates.
 type TemplateBuildable interface {
 	BuildTemplate(ctx context.Context, tmpl *model.SandboxTemplate)

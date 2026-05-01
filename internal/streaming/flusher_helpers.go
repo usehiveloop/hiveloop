@@ -3,11 +3,11 @@ package streaming
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -25,7 +25,7 @@ func (f *Flusher) accumulateChunk(ctx context.Context, convID, dataStr string) {
 		return
 	}
 	if err := f.bus.AppendChunk(ctx, convID, envelope.Data.MessageID, envelope.Data.Delta); err != nil {
-		slog.Warn("flusher: failed to accumulate chunk", "conversation_id", convID, "error", err)
+		logging.FromContext(ctx).WarnContext(ctx, "flusher: failed to accumulate chunk", "conversation_id", convID, "error", err)
 	}
 }
 
@@ -58,7 +58,8 @@ func (f *Flusher) processPending(ctx context.Context) {
 		}
 		streamKey := f.bus.Prefix() + convID
 
-		f.bus.Redis().XGroupCreateMkStream(ctx, streamKey, flusherGroup, "0").Err()
+		// BUSYGROUP on existing consumer group is the expected path after first call.
+		_ = f.bus.Redis().XGroupCreateMkStream(ctx, streamKey, flusherGroup, "0").Err()
 
 		streams, err := f.bus.Redis().XReadGroup(ctx, &redis.XReadGroupArgs{
 			Group:    flusherGroup,

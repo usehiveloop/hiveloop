@@ -150,7 +150,7 @@ func (c *Client) FetchProviders(ctx context.Context) error {
 	c.templates = templates
 	c.mu.Unlock()
 
-	logging.FromContext(ctx).Info("nango client initialized", "providers", len(catalog))
+	logging.FromContext(ctx).InfoContext(ctx, "nango client initialized", "providers", len(catalog))
 	return nil
 }
 

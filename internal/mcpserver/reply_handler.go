@@ -12,6 +12,7 @@ import (
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -50,10 +51,11 @@ func (handler *ReplyMCPHandler) serverFactory(request *http.Request) *mcpsdk.Ser
 
 	// Load the in_connection to resolve the provider.
 	var connection model.InConnection
-	if err := handler.db.Preload("InIntegration").
+	ctx := request.Context()
+	if err := handler.db.WithContext(ctx).Preload("InIntegration").
 		Where("id = ? AND revoked_at IS NULL", connectionID).
 		First(&connection).Error; err != nil {
-		slog.Warn("reply MCP: connection not found", "connection_id", connectionID, "error", err)
+		logging.FromContext(ctx).WarnContext(ctx, "reply MCP: connection not found", "connection_id", connectionID, "error", err)
 		return emptyReplyServer()
 	}
 
@@ -62,7 +64,7 @@ func (handler *ReplyMCPHandler) serverFactory(request *http.Request) *mcpsdk.Ser
 	// Get write actions for this provider from the catalog.
 	providerDef, ok := handler.catalog.GetProvider(provider)
 	if !ok {
-		slog.Warn("reply MCP: provider not in catalog", "provider", provider)
+		logging.FromContext(ctx).WarnContext(ctx, "reply MCP: provider not in catalog", "provider", provider)
 		return emptyReplyServer()
 	}
 
@@ -84,7 +86,7 @@ func (handler *ReplyMCPHandler) serverFactory(request *http.Request) *mcpsdk.Ser
 		// Build input schema from the action's JSON Schema parameters.
 		var inputSchema map[string]any
 		if actionDef.Parameters != nil {
-			json.Unmarshal(actionDef.Parameters, &inputSchema)
+			_ = json.Unmarshal(actionDef.Parameters, &inputSchema)
 		}
 		if inputSchema == nil {
 			inputSchema = map[string]any{"type": "object", "properties": map[string]any{}}
@@ -109,7 +111,7 @@ func makeReplyToolHandler(connectionID, provider, actionKey string) func(context
 		var params map[string]any
 		if request.Params.Arguments != nil {
 			paramsJSON, _ := json.Marshal(request.Params.Arguments)
-			json.Unmarshal(paramsJSON, &params)
+			_ = json.Unmarshal(paramsJSON, &params)
 		}
 
 		// In production, this executes via the Nango proxy:
