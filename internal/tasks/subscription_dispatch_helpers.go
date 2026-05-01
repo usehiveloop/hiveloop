@@ -121,17 +121,3 @@ func truncateFieldValue(value string, maxBytes int) string {
 	return value[:maxBytes] + "…(truncated)"
 }
 
-func topLevelKeys(payload map[string]any) []string {
-	keys := make([]string, 0, len(payload))
-	for key := range payload {
-		keys = append(keys, key)
-	}
-	return keys
-}
-
-func previewString(s string, limit int) string {
-	if len(s) <= limit {
-		return s
-	}
-	return s[:limit] + fmt.Sprintf("…(+%d bytes)", len(s)-limit)
-}

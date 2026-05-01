@@ -41,12 +41,6 @@ func (t *convTap) run() {
 		t.mu.Unlock()
 	}()
 
-	slog.Info("conv tap started",
-		"stream_key", t.streamKey,
-		"conversation_id", t.convID,
-		"start_cursor", t.cursor,
-	)
-
 	for {
 		if t.stopCtx.Err() != nil {
 			return

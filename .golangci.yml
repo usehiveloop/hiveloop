@@ -11,11 +11,58 @@ linters:
     - noctx
     - copyloopvar
     - contextcheck
+    - forbidigo
+    - depguard
+    - sloglint
 
 linters-settings:
   gosec:
     excludes:
       - G104 # unhandled errors on deferred close — acceptable in this codebase
+
+  forbidigo:
+    # Logging hygiene: keep noisy stdlib loggers out of library/handler code.
+    # CLI tools (cmd/*) and build-tagged spike binaries are exempted via the
+    # exclude-rules section below.
+    forbid:
+      - p: ^log\.(Print|Printf|Println|Fatal|Fatalf|Fatalln|Panic|Panicf|Panicln)$
+        msg: "use log/slog (or logging.FromContext / logging.Capture) instead of the stdlib log package"
+      - p: ^fmt\.(Println|Printf|Print)$
+        msg: "use log/slog (or logging.FromContext) instead of fmt.Println/Printf for logging"
+
+  depguard:
+    rules:
+      no-stdlib-log:
+        list-mode: lax
+        files:
+          - "$all"
+          - "!**/cmd/sandbox-exec/**"
+          - "!**/cmd/verify-devbox/**"
+          - "!**/cmd/buildtemplates/**"
+          - "!**/cmd/fake-nango/**"
+          - "!**/cmd/fetchactions-*/**"
+          - "!**/skills/upload/**"
+          - "!**/internal/rag/vectorstore/spike/**"
+        deny:
+          - pkg: "log"
+            desc: "use log/slog (or the internal/logging package) instead of the stdlib log package"
+
+  sloglint:
+    # Enforce attribute style and ban msg formatting.
+    no-mixed-args: true
+    kv-only: false
+    attr-only: false
+    no-global: "all"
+    context: "scope" # warn when slog is used inside a func that has a ctx but ctx isn't passed to LogAttrs
+    static-msg: true
+    msg-style: lowercased
+    no-raw-keys: false
+    key-naming-case: snake
+    forbidden-keys:
+      - level
+      - msg
+      - source
+      - time
 
 issues:
   exclude-dirs:
@@ -26,6 +73,26 @@ issues:
     - cmd/fetchactions-oas3
     - skills/upload
     - .ignored
+
+  exclude-rules:
+    # Tests can use anything they want for test output and assertions.
+    - path: _test\.go
+      linters:
+        - forbidigo
+        - depguard
+        - sloglint
+    # CLI tools — log/fmt.Println are legitimate user-facing terminal output.
+    - path: cmd/sandbox-exec/
+      linters: [forbidigo, depguard]
+    - path: cmd/verify-devbox/
+      linters: [forbidigo, depguard]
+    - path: cmd/buildtemplates/
+      linters: [forbidigo, depguard]
+    - path: cmd/fake-nango/
+      linters: [forbidigo, depguard]
+    # Build-tagged spike binaries.
+    - path: internal/rag/vectorstore/spike/
+      linters: [forbidigo, depguard]
 
 run:
   timeout: 5m

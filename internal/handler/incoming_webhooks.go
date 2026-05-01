@@ -53,10 +53,6 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 
 	connectionID, err := uuid.Parse(connectionIDStr)
 	if err != nil {
-		slog.Warn("incoming webhook: invalid connection ID",
-			"provider", provider,
-			"connection_id_raw", connectionIDStr,
-		)
 		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid connection ID"})
 		return
 	}
@@ -68,9 +64,6 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 		providerTriggers, hasTriggers = cat.GetProviderTriggersForVariant(provider)
 	}
 	if !hasTriggers || providerTriggers.WebhookConfig == nil || !providerTriggers.WebhookConfig.WebhookURLRequired {
-		slog.Warn("incoming webhook: provider not configured for direct webhooks",
-			"provider", provider,
-		)
 		writeJSON(w, http.StatusNotFound, errorResponse{Error: "provider not configured for direct webhooks"})
 		return
 	}
@@ -96,21 +89,11 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 	if err := h.db.Preload("InIntegration").
 		Where("id = ? AND revoked_at IS NULL", connectionID).
 		First(&connection).Error; err != nil {
-		slog.Warn("incoming webhook: connection not found",
-			"provider", provider,
-			"connection_id", connectionID,
-			"error", err,
-		)
 		writeJSON(w, http.StatusNotFound, errorResponse{Error: "connection not found"})
 		return
 	}
 
 	if connection.InIntegration.DeletedAt != nil {
-		slog.Warn("incoming webhook: integration deleted",
-			"provider", provider,
-			"connection_id", connectionID,
-			"integration_id", connection.InIntegrationID,
-		)
 		writeJSON(w, http.StatusNotFound, errorResponse{Error: "integration not found"})
 		return
 	}
@@ -118,24 +101,10 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 	// Infer event type from the raw payload.
 	eventType, eventAction := inferDirectWebhookEvent(provider, body)
 	if eventType == "" {
-		slog.Warn("incoming webhook: could not determine event type",
-			"provider", provider,
-			"connection_id", connectionID,
-			"body_size", len(body),
-		)
 		// Still return 200 to avoid the provider retrying.
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ignored", "reason": "unknown event type"})
 		return
 	}
-
-	slog.Info("incoming webhook: received",
-		"provider", provider,
-		"connection_id", connectionID,
-		"org_id", connection.OrgID,
-		"event_type", eventType,
-		"event_action", eventAction,
-		"body_size", len(body),
-	)
 
 	// Return 200 immediately, then dispatch asynchronously.
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -165,14 +134,6 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 		)
 		return
 	}
-
-	slog.Info("incoming webhook: dispatched",
-		"provider", provider,
-		"event_type", eventType,
-		"event_action", eventAction,
-		"delivery_id", deliveryID,
-		"connection_id", connectionID,
-	)
 }
 
 // inferDirectWebhookEvent extracts the event type and action from a raw

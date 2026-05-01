@@ -51,7 +51,6 @@ func (h *InIntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 		nangoReq := nango.UpdateIntegrationRequest{
 			Credentials: req.Credentials,
 		}
-		slog.Info("updating nango in-integration credentials", "integration_id", integ.ID, "nango_key", nk)
 		if err := h.nango.UpdateIntegration(r.Context(), nk, nangoReq); err != nil {
 			slog.Error("nango in-integration update failed", "error", err, "integration_id", integ.ID)
 			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to update integration in Nango: " + err.Error()})

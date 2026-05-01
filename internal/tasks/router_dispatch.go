@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/hibiken/asynq"
 
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/trigger/dispatch"
 	"github.com/usehiveloop/hiveloop/internal/trigger/enrichment"
 )
@@ -40,7 +42,7 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		return fmt.Errorf("unmarshal router dispatch payload: %w", err)
 	}
 
-	// Build a logger with the delivery ID attached to every message in this flow.
+	started := time.Now()
 	logger := slog.With(
 		"delivery_id", payload.DeliveryID,
 		"org_id", payload.OrgID,
@@ -49,21 +51,13 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		"connection_id", payload.ConnectionID,
 	)
 
-	logger.Info("webhook received",
-		"payload_bytes", len(payload.PayloadJSON),
-		"payload", string(payload.PayloadJSON),
-	)
-
 	// Decode the raw webhook payload.
 	var webhookPayload map[string]any
 	if err := json.Unmarshal(payload.PayloadJSON, &webhookPayload); err != nil {
-		logger.Error("failed to unmarshal webhook payload", "error", err)
 		return fmt.Errorf("unmarshal webhook payload: %w", err)
 	}
 
 	// Run dispatcher: match triggers, evaluate rules, select agents.
-	logger.Info("dispatcher starting")
-
 	var dispatches []dispatch.AgentDispatch
 	var dispatchErr error
 	if payload.RouterTriggerID != nil {
@@ -82,27 +76,11 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		dispatches, dispatchErr = handler.dispatcher.Run(ctx, input)
 	}
 	if dispatchErr != nil {
-		logger.Error("dispatcher failed", "error", dispatchErr)
 		return fmt.Errorf("router dispatch: %w", dispatchErr)
 	}
 
 	if len(dispatches) == 0 {
-		logger.Info("dispatcher matched no agents")
 		return nil
-	}
-
-	// Log each dispatch decision.
-	for dispatchIndex, agentDispatch := range dispatches {
-		logger.Info("dispatcher selected agent",
-			"dispatch_index", dispatchIndex,
-			"agent_id", agentDispatch.AgentID,
-			"routing_mode", agentDispatch.RoutingMode,
-			"run_intent", agentDispatch.RunIntent,
-			"priority", agentDispatch.Priority,
-			"resource_key", agentDispatch.ResourceKey,
-			"trigger_id", agentDispatch.RouterTriggerID,
-			"ref_count", len(agentDispatch.Refs),
-		)
 	}
 
 	// Run deterministic enrichment for new conversations (best effort).
@@ -116,39 +94,33 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		}
 
 		instructions := buildDispatchInstructions(agentDispatch)
-		task, taskErr := NewAgentConversationCreateTask(AgentConversationCreatePayload{
+		convTask, taskErr := NewAgentConversationCreateTask(AgentConversationCreatePayload{
 			AgentID:         agentDispatch.AgentID,
-			OrgID:          agentDispatch.ReplyOrgID,
-			DeliveryID:     payload.DeliveryID,
-			ConnectionID:   agentDispatch.ReplyConnectionID,
+			OrgID:           agentDispatch.ReplyOrgID,
+			DeliveryID:      payload.DeliveryID,
+			ConnectionID:    agentDispatch.ReplyConnectionID,
 			RouterTriggerID: agentDispatch.RouterTriggerID,
-			ResourceKey:    agentDispatch.ResourceKey,
-			RouterPersona:  agentDispatch.RouterPersona,
-			MemoryTeam:     agentDispatch.MemoryTeam,
-			Instructions:   instructions,
+			ResourceKey:     agentDispatch.ResourceKey,
+			RouterPersona:   agentDispatch.RouterPersona,
+			MemoryTeam:      agentDispatch.MemoryTeam,
+			Instructions:    instructions,
 		})
 		if taskErr != nil {
-			logger.Error("failed to build conversation create task",
-				"agent_id", agentDispatch.AgentID,
-				"error", taskErr,
-			)
+			logging.Capture(ctx, fmt.Errorf("build conversation create task for agent %s: %w", agentDispatch.AgentID, taskErr))
 			continue
 		}
 
-		if _, enqErr := handler.enqueuer.Enqueue(task); enqErr != nil {
-			logger.Error("failed to enqueue conversation create task",
-				"agent_id", agentDispatch.AgentID,
-				"error", enqErr,
-			)
+		if _, enqErr := handler.enqueuer.Enqueue(convTask); enqErr != nil {
+			logging.Capture(ctx, fmt.Errorf("enqueue conversation create task for agent %s: %w", agentDispatch.AgentID, enqErr))
 			continue
 		}
 		enqueuedCount++
 	}
 
-	logger.Info("pipeline complete",
+	logger.Info("router dispatch complete",
 		"agents_dispatched", len(dispatches),
 		"conversations_enqueued", enqueuedCount,
-		"enriched", len(dispatches) > 0 && dispatches[0].EnrichedMessage != "",
+		"duration_ms", time.Since(started).Milliseconds(),
 	)
 	return nil
 }
@@ -158,7 +130,6 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 // but never prevent the agent from running.
 func (handler *RouterDispatchHandler) runDeterministicEnrichment(ctx context.Context, logger *slog.Logger, dispatches []dispatch.AgentDispatch, payload TriggerDispatchPayload) {
 	if handler.deterministicEnricher == nil {
-		logger.Debug("enrichment skipped: no deterministic enricher configured")
 		return
 	}
 
@@ -171,7 +142,6 @@ func (handler *RouterDispatchHandler) runDeterministicEnrichment(ctx context.Con
 		}
 	}
 	if !hasNewConversations {
-		logger.Debug("enrichment skipped: all dispatches are continuations")
 		return
 	}
 
@@ -189,27 +159,19 @@ func (handler *RouterDispatchHandler) runDeterministicEnrichment(ctx context.Con
 
 	composedMessage, err := handler.deterministicEnricher.Enrich(ctx, enrichInput, logger)
 	if err != nil {
-		logger.Warn("deterministic enrichment failed", "error", err)
+		logging.Capture(ctx, fmt.Errorf("deterministic enrichment: %w", err))
 		return
 	}
 	if composedMessage == "" {
-		logger.Info("deterministic enrichment produced no message")
 		return
 	}
 
 	// Apply the enriched message to all new-conversation dispatches.
-	enrichedCount := 0
 	for index := range dispatches {
 		if dispatches[index].RunIntent == "normal" {
 			dispatches[index].EnrichedMessage = composedMessage
-			enrichedCount++
 		}
 	}
-
-	logger.Info("deterministic enrichment applied",
-		"dispatches_enriched", enrichedCount,
-		"composed_message_bytes", len(composedMessage),
-	)
 }
 
 // buildDispatchInstructions mirrors the executor's buildInstructions logic
@@ -245,4 +207,3 @@ func buildDispatchInstructions(agentDispatch dispatch.AgentDispatch) string {
 
 	return builder.String()
 }
-

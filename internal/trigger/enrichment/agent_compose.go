@@ -9,7 +9,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 
-func newComposeHandler(composedMessage *string, logger *slog.Logger) hiveloop.ToolHandler {
+func newComposeHandler(composedMessage *string, _ *slog.Logger) hiveloop.ToolHandler {
 	return func(_ context.Context, _ string, raw json.RawMessage) (string, bool, error) {
 		var args struct {
 			Message string `json:"message"`
@@ -21,11 +21,6 @@ func newComposeHandler(composedMessage *string, logger *slog.Logger) hiveloop.To
 			return "", false, fmt.Errorf("message is required")
 		}
 		*composedMessage = args.Message
-
-		logger.Info("enrichment: compose called",
-			"message_bytes", len(args.Message),
-			"message_preview", truncateString(args.Message, 300),
-		)
 
 		return "Message composed.", true, nil
 	}

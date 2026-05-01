@@ -163,7 +163,6 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 	var conv model.AgentConversation
 	if err := r.db.Preload("Agent").
 		Where("id = ?", convID).First(&conv).Error; err != nil {
-		slog.Debug("hindsight retainer: conversation not found", "conversation_id", convID)
 		return
 	}
 
@@ -217,10 +216,6 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 			"error", err)
 		return
 	}
-
-	slog.Debug("hindsight retainer: retained conversation",
-		"conversation_id", convID,
-		"bank_id", bankID)
 }
 
 // buildTranscript reconstructs the conversation from persisted events.

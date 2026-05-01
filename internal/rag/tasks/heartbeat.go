@@ -2,13 +2,14 @@ package tasks
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
 	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
@@ -77,7 +78,6 @@ func writeHeartbeat(ctx context.Context, db *gorm.DB, attemptID uuid.UUID, progr
 		Where("id = ? AND status = ?", attemptID, ragmodel.IndexingStatusInProgress).
 		Updates(updates)
 	if res.Error != nil {
-		slog.Warn("rag heartbeat write failed",
-			"attempt_id", attemptID, "err", res.Error)
+		logging.Capture(ctx, fmt.Errorf("rag heartbeat write attempt=%s: %w", attemptID, res.Error))
 	}
 }

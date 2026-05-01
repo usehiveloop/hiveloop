@@ -59,11 +59,7 @@ func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *m
 			agent.ID.String(), jti).
 		Update("revoked_at", now)
 
-	slog.Info("agent token rotated",
-		"agent_id", agent.ID,
-		"new_jti", jti,
-		"expires_at", expiresAt.Format(time.RFC3339),
-	)
+	slog.Debug("agent token rotated", "agent_id", agent.ID, "jti", jti)
 
 	return nil
 }

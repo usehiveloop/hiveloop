@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -16,7 +16,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		var err error
 		storageURL, authToken, err = o.turso.EnsureStorage(ctx, org.ID)
 		if err != nil {
-			slog.Warn("turso storage provisioning failed, continuing without libsql", "error", err)
+			logging.Capture(ctx, fmt.Errorf("turso storage provisioning: %w", err))
 		}
 	}
 
@@ -55,7 +55,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	}
 
 	if agent != nil {
-		o.mergeUserEnvVars(envVars, agent.EncryptedEnvVars)
+		o.mergeUserEnvVars(ctx, envVars, agent.EncryptedEnvVars)
 	}
 
 	snapshotID := o.resolveSnapshot(agent)
@@ -90,12 +90,6 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		return nil, fmt.Errorf("getting sandbox endpoint: %w", err)
 	}
 
-	slog.Info("got bridge endpoint",
-		"sandbox_id", sb.ID,
-		"external_id", info.ExternalID,
-		"bridge_url", bridgeURL,
-	)
-
 	now := time.Now()
 	expiresAt := now.Add(bridgeURLTTL)
 	if err := o.db.Model(&sb).Updates(map[string]any{
@@ -115,7 +109,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	sb.LastActiveAt = &now
 
 	if _, execErr := o.provider.ExecuteCommand(ctx, info.ExternalID, "mkdir -p /home/daytona/.bridge"); execErr != nil {
-		slog.Warn("failed to create bridge storage dir", "sandbox_id", sb.ID, "error", execErr)
+		logging.Capture(ctx, fmt.Errorf("create bridge storage dir sandbox %s: %w", sb.ID, execErr))
 	}
 
 	if err := o.waitForBridgeHealthy(ctx, &sb); err != nil {

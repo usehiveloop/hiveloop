@@ -59,7 +59,6 @@ func (h *InIntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Provider:    req.Provider,
 		Credentials: req.Credentials,
 	}
-	slog.Info("creating in-integration in nango", "provider", req.Provider, "nango_key", nk)
 	if err := h.nango.CreateIntegration(r.Context(), nangoReq); err != nil {
 		slog.Error("nango in-integration creation failed", "error", err, "provider", req.Provider)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to create integration in Nango: " + err.Error()})

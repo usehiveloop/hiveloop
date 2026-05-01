@@ -52,13 +52,6 @@ func (b *EventBus) Subscribe(ctx context.Context, convID string, cursor string) 
 		sub, attachCursor := tap.attach()
 		defer b.detachSubscriber(convID, tap, sub)
 
-		slog.Info("eventbus.Subscribe: attached",
-			"stream_key", tap.streamKey,
-			"cursor", backfillFrom,
-			"attach_cursor", attachCursor,
-			"conversation_id", convID,
-		)
-
 		if backfillFrom != "$" {
 			if err := b.backfill(ctx, convID, backfillFrom, attachCursor, userCh); err != nil {
 				if ctx.Err() != nil {

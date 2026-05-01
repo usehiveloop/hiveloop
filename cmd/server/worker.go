@@ -56,7 +56,6 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	var workerSender email.Sender = &email.LogSender{}
 	if cfg.KibamailAPIKey != "" {
 		workerSender = email.NewKibamailSender(cfg.KibamailAPIKey, cfg.KibamailFromAddress, cfg.KibamailFromName)
-		slog.Info("kibamail sender configured", "from", cfg.KibamailFromAddress, "from_name", cfg.KibamailFromName)
 	} else {
 		slog.Warn("KIBAMAIL_API_KEY not set — emails will be logged only")
 	}
@@ -130,7 +129,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 			if _, err := scheduler.Register(pc.Cronspec, pc.Task, pc.Opts...); err != nil {
 				return fmt.Errorf("registering periodic task %s: %w", pc.Task.Type(), err)
 			}
-			slog.Info("registered periodic task", "type", pc.Task.Type(), "cron", pc.Cronspec)
+			slog.Debug("registered periodic task", "type", pc.Task.Type(), "cron", pc.Cronspec)
 		}
 		goroutine.Go(ctx, func(ctx context.Context) {
 			if err := scheduler.Run(); err != nil {

@@ -237,8 +237,6 @@ func New(ctx context.Context) (*Deps, error) {
 			tursoClient := turso.NewClient(cfg.TursoAPIToken, cfg.TursoOrgSlug)
 			tursoProvisioner = turso.NewProvisioner(tursoClient, cfg.TursoGroup, database)
 			slog.Info("turso provisioner ready")
-		} else {
-			slog.Info("turso not configured, sandboxes will run without libsql storage")
 		}
 
 		orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, tursoProvisioner, sandboxEncKey, cfg)

@@ -104,12 +104,6 @@ func (handler *ReplyMCPHandler) serverFactory(request *http.Request) *mcpsdk.Ser
 
 func makeReplyToolHandler(connectionID, provider, actionKey string) func(context.Context, *mcpsdk.CallToolRequest) (*mcpsdk.CallToolResult, error) {
 	return func(ctx context.Context, request *mcpsdk.CallToolRequest) (*mcpsdk.CallToolResult, error) {
-		slog.Info("reply MCP: tool called",
-			"connection_id", connectionID,
-			"provider", provider,
-			"tool", actionKey,
-		)
-
 		// Extract params from the request arguments.
 		var params map[string]any
 		if request.Params.Arguments != nil {

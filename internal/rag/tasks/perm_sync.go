@@ -3,11 +3,11 @@ package tasks
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/hibiken/asynq"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
@@ -80,8 +80,7 @@ func drainPermSyncStream(
 	}
 	for item := range stream {
 		if item.Failure != nil {
-			slog.Warn("perm_sync per-doc failure",
-				"source_id", src.ID, "msg", item.Failure.FailureMessage)
+			logging.Capture(ctx, fmt.Errorf("perm_sync per-doc failure source=%s: %s", src.ID, item.Failure.FailureMessage))
 			continue
 		}
 		if item.Access == nil || item.Access.ExternalAccess == nil {

@@ -182,7 +182,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			UseTLS: cfg.QdrantUseTLS, APIKey: cfg.QdrantAPIKey,
 		})
 		if err != nil {
-			slog.Error("rag search: dial qdrant failed — /v1/rag/search disabled", "err", err)
+			slog.Error("rag search: dial qdrant failed — /v1/rag/search disabled", "error", err)
 			return err
 		}
 		embedder := embedclient.NewEmbedder(embedclient.EmbedderConfig{

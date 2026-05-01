@@ -3,12 +3,12 @@ package scheduler
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
 
@@ -69,37 +69,25 @@ func (d *Deps) Register(mux *asynq.ServeMux) {
 }
 
 func (d *Deps) handleScanIngest(ctx context.Context, _ *asynq.Task) error {
-	n, err := ScanIngestDue(ctx, d.DB, d.Enq, d.Cfg)
-	if err != nil {
-		slog.Error("rag scheduler: ingest scan", "err", err, "enqueued", n)
+	if _, err := ScanIngestDue(ctx, d.DB, d.Enq, d.Cfg); err != nil {
+		logging.Capture(ctx, fmt.Errorf("rag scheduler ingest scan: %w", err))
 		return err
-	}
-	if n > 0 {
-		slog.Info("rag scheduler: ingest scan", "enqueued", n)
 	}
 	return nil
 }
 
 func (d *Deps) handleScanPermSync(ctx context.Context, _ *asynq.Task) error {
-	n, err := ScanPermSyncDue(ctx, d.DB, d.Enq, d.Cfg, d.Supports)
-	if err != nil {
-		slog.Error("rag scheduler: perm_sync scan", "err", err, "enqueued", n)
+	if _, err := ScanPermSyncDue(ctx, d.DB, d.Enq, d.Cfg, d.Supports); err != nil {
+		logging.Capture(ctx, fmt.Errorf("rag scheduler perm_sync scan: %w", err))
 		return err
-	}
-	if n > 0 {
-		slog.Info("rag scheduler: perm_sync scan", "enqueued", n)
 	}
 	return nil
 }
 
 func (d *Deps) handleScanPrune(ctx context.Context, _ *asynq.Task) error {
-	n, err := ScanPruneDue(ctx, d.DB, d.Enq, d.Cfg, d.Supports)
-	if err != nil {
-		slog.Error("rag scheduler: prune scan", "err", err, "enqueued", n)
+	if _, err := ScanPruneDue(ctx, d.DB, d.Enq, d.Cfg, d.Supports); err != nil {
+		logging.Capture(ctx, fmt.Errorf("rag scheduler prune scan: %w", err))
 		return err
-	}
-	if n > 0 {
-		slog.Info("rag scheduler: prune scan", "enqueued", n)
 	}
 	return nil
 }
@@ -107,11 +95,11 @@ func (d *Deps) handleScanPrune(ctx context.Context, _ *asynq.Task) error {
 func (d *Deps) handleWatchdog(ctx context.Context, _ *asynq.Task) error {
 	n, err := ScanStuckAttempts(ctx, d.DB, d.Cfg)
 	if err != nil {
-		slog.Error("rag scheduler: watchdog", "err", err, "failed_attempts", n)
+		logging.Capture(ctx, fmt.Errorf("rag scheduler watchdog: %w", err))
 		return err
 	}
 	if n > 0 {
-		slog.Warn("rag scheduler: watchdog failed stuck attempts", "count", n)
+		logging.FromContext(ctx).Warn("rag scheduler watchdog failed stuck attempts", "count", n)
 	}
 	return nil
 }

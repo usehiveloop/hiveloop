@@ -71,7 +71,7 @@ func (h *WebhookForwardHandler) Handle(ctx context.Context, t *asynq.Task) error
 		return fmt.Errorf("org endpoint returned %d", resp.StatusCode)
 	}
 
-	slog.Info("webhook forwarded",
+	slog.Debug("webhook forwarded",
 		"url", p.WebhookURL,
 		"status", resp.StatusCode,
 	)

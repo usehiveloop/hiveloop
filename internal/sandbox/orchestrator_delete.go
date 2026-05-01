@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -33,8 +34,7 @@ func (o *Orchestrator) StopSandbox(ctx context.Context, sb *model.Sandbox) error
 
 func (o *Orchestrator) DeleteSandbox(ctx context.Context, sb *model.Sandbox) error {
 	if err := o.provider.DeleteSandbox(ctx, sb.ExternalID); err != nil && !errors.Is(err, ErrSandboxNotFound) {
-		slog.Warn("failed to delete sandbox from provider",
-			"sandbox_id", sb.ID, "external_id", sb.ExternalID, "error", err)
+		logging.Capture(ctx, fmt.Errorf("delete sandbox %s from provider: %w", sb.ID, err))
 	}
 	return o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}).Error
 }
@@ -70,8 +70,6 @@ func (o *Orchestrator) ArchiveSandbox(ctx context.Context, sb *model.Sandbox) er
 }
 
 func (o *Orchestrator) purgeMissingSandbox(sb *model.Sandbox) error {
-	slog.Info("sandbox missing upstream, purging local row",
-		"sandbox_id", sb.ID, "external_id", sb.ExternalID)
 	if err := o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}).Error; err != nil {
 		return fmt.Errorf("purging missing sandbox %s: %w", sb.ID, err)
 	}
@@ -79,7 +77,6 @@ func (o *Orchestrator) purgeMissingSandbox(sb *model.Sandbox) error {
 }
 
 func (o *Orchestrator) UnarchiveSandbox(ctx context.Context, sb *model.Sandbox) (*model.Sandbox, error) {
-	slog.Info("unarchiving sandbox", "sandbox_id", sb.ID, "external_id", sb.ExternalID)
 	o.db.Model(sb).Update("status", string(StatusStarting))
 	sb.Status = string(StatusStarting)
 

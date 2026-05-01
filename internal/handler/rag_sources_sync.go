@@ -151,7 +151,7 @@ func (h *RAGSourceHandler) dispatchTrigger(
 		if errors.Is(err, asynq.ErrDuplicateTask) {
 			dedup = true
 		} else {
-			slog.Error("rag trigger enqueue failed", "task_type", taskType, "source_id", src.ID, "err", err)
+			slog.Error("rag trigger enqueue failed", "task_type", taskType, "source_id", src.ID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to enqueue task"})
 			return
 		}

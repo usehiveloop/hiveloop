@@ -3,13 +3,13 @@ package scheduler
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
 
@@ -35,8 +35,7 @@ func ScanIngestDue(
 			return enqueued, ctx.Err()
 		}
 		if err := enqueueIngest(enq, id, uniqueTTL); err != nil {
-			slog.Error("rag scheduler: enqueue ingest failed",
-				"source_id", id, "err", err)
+			logging.Capture(ctx, fmt.Errorf("rag scheduler enqueue ingest source=%s: %w", id, err))
 			if firstErr == nil {
 				firstErr = err
 			}

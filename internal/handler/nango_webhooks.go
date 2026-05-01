@@ -74,16 +74,8 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("nango webhook: received",
-		"body_size", len(body),
-		"content_type", r.Header.Get("Content-Type"),
-		"has_signature", r.Header.Get("X-Nango-Hmac-Sha256") != "",
-		"raw_body", string(body),
-	)
-
 	signature := r.Header.Get("X-Nango-Hmac-Sha256")
 	if signature == "" {
-		slog.Warn("nango webhook: missing signature header")
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing signature header"})
 		return
 	}
@@ -95,25 +87,13 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	var wh nangoWebhook
 	if err := json.Unmarshal(body, &wh); err != nil {
-		slog.Error("nango webhook: failed to parse payload", "error", err, "body", string(body))
+		slog.Error("nango webhook: failed to parse payload", "error", err)
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid webhook payload"})
 		return
 	}
 
-	slog.Info("nango webhook: parsed",
-		"type", wh.Type,
-		"from", wh.From,
-		"provider", wh.Provider,
-		"provider_config_key", wh.ProviderConfigKey,
-		"nango_connection_id", wh.ConnectionID,
-		"operation", wh.Operation,
-		"success", wh.Success,
-		"payload_size", len(wh.Payload),
-	)
-
 	wctx := h.identify(&wh)
 	if wctx == nil {
-		slog.Info("nango webhook: no forwarding target, acknowledging")
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 		return
 	}

@@ -38,7 +38,7 @@ func (h *BillingRenewSweepHandler) Handle(ctx context.Context, _ *asynq.Task) er
 		return nil
 	}
 
-	slog.InfoContext(ctx, "billing sweep: enqueuing renewals", "count", len(ids))
+	slog.DebugContext(ctx, "billing sweep enqueuing renewals", "count", len(ids))
 	var firstErr error
 	for _, id := range ids {
 		payload, err := json.Marshal(BillingRenewSubscriptionPayload{SubscriptionID: id})
@@ -89,11 +89,11 @@ func (h *BillingRenewSubscriptionHandler) Handle(ctx context.Context, task *asyn
 
 	action, err := h.service.Renew(ctx, payload.SubscriptionID)
 	if err != nil {
-		slog.WarnContext(ctx, "billing renew: attempt failed",
+		slog.WarnContext(ctx, "billing renew attempt failed",
 			"subscription_id", payload.SubscriptionID, "action", action, "error", err)
 		return nil
 	}
-	slog.InfoContext(ctx, "billing renew: applied",
+	slog.InfoContext(ctx, "billing renew applied",
 		"subscription_id", payload.SubscriptionID, "action", action)
 	return nil
 }
