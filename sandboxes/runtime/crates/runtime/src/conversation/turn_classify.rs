@@ -7,13 +7,12 @@ use webhooks::EventBus;
 use super::turn_result::TurnResultCtx;
 use crate::token_tracker;
 
-/// Tuple of (response_text, input_tokens, cached_input_tokens, output_tokens).
-/// `response_text == None` signals a recoverable empty response; `Err` signals
-/// a fatal error that caused the turn to abort.
-pub(super) type ClassifiedResponse = (Option<String>, u64, u64, u64);
+/// (response_text, reasoning, input_tokens, cached_input_tokens, output_tokens).
+/// `response_text == None` signals a recoverable empty response.
+pub(super) type ClassifiedResponse = (Option<String>, String, u64, u64, u64);
 
 /// Classify the spawned task's result into a usable response, a recoverable
-/// empty response (`Ok((None, _, _, _))`), or a fatal error (`Err(())`).
+/// empty response (`Ok((None, _, _, _, _))`), or a fatal error (`Err(())`).
 ///
 /// On the fatal path this function also emits the standard `AgentError /
 /// Done / TurnCompleted` event triple, truncates persisted messages, and
@@ -35,7 +34,13 @@ pub(super) async fn classify_turn_result(
             let ct = prompt_response.total_usage.cached_input_tokens;
             let it = total_in.saturating_sub(ct);
             let ot = prompt_response.total_usage.output_tokens;
-            Ok((Some(prompt_response.output), it, ct, ot))
+            Ok((
+                Some(prompt_response.output),
+                prompt_response.reasoning,
+                it,
+                ct,
+                ot,
+            ))
         }
         Err(e) => {
             let error_msg = format!("{}", e);
@@ -48,7 +53,7 @@ pub(super) async fn classify_turn_result(
                     error = %e,
                     "agent response could not be parsed, attempting recovery"
                 );
-                Ok((None, 0u64, 0u64, 0u64))
+                Ok((None, String::new(), 0u64, 0u64, 0u64))
             } else {
                 ctx.persisted_messages
                     .lock()

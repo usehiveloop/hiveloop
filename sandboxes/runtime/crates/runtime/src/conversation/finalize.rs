@@ -98,6 +98,7 @@ pub(super) async fn emit_turn_complete_events(
     conversation_id: &str,
     msg_id: &str,
     response: &str,
+    reasoning: &str,
     latency_ms: u64,
     initial_input_tokens: u64,
     initial_cached_input_tokens: u64,
@@ -107,7 +108,6 @@ pub(super) async fn emit_turn_complete_events(
     history: &[rig::message::Message],
     journal_state: &Option<Arc<tools::journal::JournalState>>,
 ) {
-    // Signal completion
     event_bus.emit(BridgeEvent::new(
         BridgeEventType::ResponseCompleted,
         agent_id,
@@ -120,6 +120,7 @@ pub(super) async fn emit_turn_complete_events(
             "model": &conversation_metrics.model,
             "timestamp": chrono::Utc::now().to_rfc3339(),
             "full_response": response,
+            "full_reasoning": reasoning,
         }),
     ));
     event_bus.emit(BridgeEvent::new(

@@ -41,6 +41,7 @@ fn first_chunk_timeout() -> Duration {
 /// Accumulator for a single attempt of the streaming LLM call.
 pub(super) struct StreamAttempt {
     pub(super) accumulated_text: String,
+    pub(super) accumulated_reasoning: String,
     pub(super) final_usage: rig::completion::Usage,
     pub(super) final_history: Option<Vec<rig::message::Message>>,
     pub(super) had_error: Option<String>,
@@ -80,6 +81,7 @@ pub(super) async fn run_streaming_with_retry(
 
         out = StreamAttempt {
             accumulated_text: String::new(),
+            accumulated_reasoning: String::new(),
             final_usage: rig::completion::Usage::new(),
             final_history: None,
             had_error: None,
@@ -125,6 +127,7 @@ pub(super) async fn run_streaming_with_retry(
                 }
                 BridgeStreamItem::ReasoningDelta(delta) => {
                     out.any_progress = true;
+                    out.accumulated_reasoning.push_str(&delta);
                     event_bus_for_text.emit(BridgeEvent::new(
                         BridgeEventType::ReasoningDelta,
                         agent_id_for_text,
@@ -275,6 +278,7 @@ pub(super) fn attempt_into_result(
             (
                 Ok(llm::PromptResponse {
                     output: attempt.accumulated_text,
+                    reasoning: attempt.accumulated_reasoning,
                     total_usage: attempt.final_usage,
                 }),
                 enriched_history,
@@ -309,6 +313,7 @@ pub(super) fn attempt_into_result(
         (
             Ok(llm::PromptResponse {
                 output: attempt.accumulated_text,
+                reasoning: attempt.accumulated_reasoning,
                 total_usage: attempt.final_usage,
             }),
             enriched_history,

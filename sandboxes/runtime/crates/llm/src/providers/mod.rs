@@ -100,6 +100,7 @@ impl BridgeAgent {
 /// Response from a prompt with extended details (token usage).
 pub struct PromptResponse {
     pub output: String,
+    pub reasoning: String,
     pub total_usage: rig::completion::Usage,
 }
 

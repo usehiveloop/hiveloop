@@ -29,6 +29,7 @@ macro_rules! dispatch_prompt {
             .await
             .map(|resp| crate::providers::PromptResponse {
                 output: resp.output,
+                reasoning: String::new(),
                 total_usage: resp.usage,
             })
     }};
