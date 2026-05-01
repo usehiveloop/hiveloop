@@ -26,7 +26,7 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 		TriggerType  string         `gorm:"column:trigger_type"`
 		ConnID       *uuid.UUID     `gorm:"column:conn_id"`
 		Provider     *string        `gorm:"column:provider"`
-		TriggerKeys  pq.StringArray `gorm:"column:trigger_keys"`
+		TriggerKeys  pq.StringArray `gorm:"column:trigger_keys;type:text[]"`
 		Enabled      bool           `gorm:"column:enabled"`
 		Conditions   model.RawJSON  `gorm:"column:conditions"`
 		CronSchedule string         `gorm:"column:cron_schedule"`
