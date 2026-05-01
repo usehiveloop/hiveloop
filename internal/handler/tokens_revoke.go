@@ -52,10 +52,8 @@ func (h *TokenHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Propagate revocation through cache tiers
 	_ = h.cacheManager.InvalidateToken(r.Context(), jti, 24*time.Hour)
 
-	// Evict cached MCP server for this token
 	if h.serverCache != nil {
 		h.serverCache.Evict(jti)
 	}

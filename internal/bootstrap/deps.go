@@ -39,44 +39,42 @@ import (
 // Deps holds all shared dependencies initialized during bootstrap.
 // Both the API server and the Asynq worker use this struct.
 type Deps struct {
-	Config         *config.Config
-	DB             *gorm.DB
-	Redis          *redis.Client
-	KMS            *crypto.KeyWrapper
-	CacheManager   *cache.Manager
-	APIKeyCache    *cache.APIKeyCache
-	Counter        *counter.Counter
-	NangoClient    *nango.Client
-	Registry       *registry.Registry
-	ActionsCatalog *catalog.Catalog
-	RSAKey         *rsa.PrivateKey
+	Config          *config.Config
+	DB              *gorm.DB
+	Redis           *redis.Client
+	KMS             *crypto.KeyWrapper
+	CacheManager    *cache.Manager
+	APIKeyCache     *cache.APIKeyCache
+	Counter         *counter.Counter
+	NangoClient     *nango.Client
+	Registry        *registry.Registry
+	ActionsCatalog  *catalog.Catalog
+	RSAKey          *rsa.PrivateKey
 	SigningKey      []byte
-	SandboxEncKey  *crypto.SymmetricKey
-	Orchestrator   *sandbox.Orchestrator
-	AgentPusher    *sandbox.Pusher
-	EventBus       *streaming.EventBus
-	Flusher        *streaming.Flusher
-	Cleanup        *streaming.Cleanup
-	Retainer         *hindsight.Retainer         // nil if Hindsight not configured
-	SpiderClient     *spider.Client              // nil if spider not configured
-	ToolUsageWriter  *middleware.ToolUsageWriter // nil if spider not configured
-	BillingRegistry  *billing.Registry           // always non-nil; may have zero providers
-	Credits          *billing.CreditsService     // credit ledger service
-	Subscriptions    *subscription.Service       // wraps registry+credits with the renewal worker
-	S3Client         *storage.S3Client           // nil if AWS_S3_BUCKET_NAME not set
+	SandboxEncKey   *crypto.SymmetricKey
+	Orchestrator    *sandbox.Orchestrator
+	AgentPusher     *sandbox.Pusher
+	EventBus        *streaming.EventBus
+	Flusher         *streaming.Flusher
+	Cleanup         *streaming.Cleanup
+	Retainer        *hindsight.Retainer         // nil if Hindsight not configured
+	SpiderClient    *spider.Client              // nil if spider not configured
+	ToolUsageWriter *middleware.ToolUsageWriter // nil if spider not configured
+	BillingRegistry *billing.Registry           // always non-nil; may have zero providers
+	Credits         *billing.CreditsService     // credit ledger service
+	Subscriptions   *subscription.Service       // wraps registry+credits with the renewal worker
+	S3Client        *storage.S3Client           // nil if AWS_S3_BUCKET_NAME not set
 }
 
 // New initializes all shared dependencies. The caller is responsible for
 // closing resources via Deps.Close().
 func New(ctx context.Context) (*Deps, error) {
-	// 1. Config
+
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, fmt.Errorf("loading config: %w", err)
 	}
 
-	// Sentry must initialize before DB and Redis so the GORM plugin and
-	// Redis hook can register their tracing callbacks at construction.
 	if err := sentryobs.Init(cfg, sentryobs.ClientOptions{
 		ServiceName: "platform",
 		Environment: cfg.Environment,
@@ -94,17 +92,14 @@ func New(ctx context.Context) (*Deps, error) {
 	if err := model.AutoMigrate(database); err != nil {
 		return nil, fmt.Errorf("running migrations: %w", err)
 	}
-	// Ensure the platform org exists — it owns every system credential
-	// (is_system = true). Idempotent.
+
 	if err := credentials.SeedPlatformOrg(database); err != nil {
 		return nil, fmt.Errorf("seeding platform org: %w", err)
 	}
-	// Picker resolves system credentials for agents whose credential_id is
-	// nil (platform-keys mode). Shared across handlers and sandbox.Pusher.
+
 	credentialPicker := credentials.NewPicker(database)
 	logging.FromContext(ctx).InfoContext(ctx, "database ready")
 
-	// 4. KMS wrapper
 	var kms *crypto.KeyWrapper
 	switch cfg.KMSType {
 	case "aead":
@@ -119,7 +114,6 @@ func New(ctx context.Context) (*Deps, error) {
 	}
 	logging.FromContext(ctx).InfoContext(ctx, "kms wrapper ready", "type", cfg.KMSType)
 
-	// 5. Redis
 	var redisOpts *redis.Options
 	if cfg.RedisURL != "" {
 		redisOpts, err = redis.ParseURL(cfg.RedisURL)
@@ -133,10 +127,7 @@ func New(ctx context.Context) (*Deps, error) {
 			DB:       cfg.RedisDB,
 		}
 	}
-	// Explicit pool sizing: the SSE fan-out holds one blocked XREAD
-	// connection per active conversation per pod. Default (10 * GOMAXPROCS)
-	// starves under multi-tenant load. Callers can override via
-	// REDIS_POOL_SIZE env var through config.
+
 	if redisOpts.PoolSize == 0 {
 		redisOpts.PoolSize = 500
 	}
@@ -156,7 +147,6 @@ func New(ctx context.Context) (*Deps, error) {
 		"min_idle_conns", redisOpts.MinIdleConns,
 	)
 
-	// 6. Cache manager
 	apiKeyCache := cache.NewAPIKeyCache(5000, 5*time.Minute)
 	cacheCfg := cache.Config{
 		MemMaxSize: cfg.MemCacheMaxSize,
@@ -169,25 +159,20 @@ func New(ctx context.Context) (*Deps, error) {
 	cacheManager := cache.Build(cacheCfg, redisClient, kms, database, apiKeyCache)
 	logging.FromContext(ctx).InfoContext(ctx, "cache manager ready")
 
-	// 7. Request-cap counter
 	ctr := counter.New(redisClient, database)
 	logging.FromContext(ctx).InfoContext(ctx, "request counter ready")
 
-	// 8. Signing key
 	signingKey := []byte(cfg.JWTSigningKey)
 
-	// 9. RSA key for embedded auth
 	rsaKey, err := auth.LoadRSAPrivateKey(cfg.AuthRSAPrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("loading auth RSA key: %w", err)
 	}
 	logging.FromContext(ctx).InfoContext(ctx, "embedded auth ready")
 
-	// 10. Provider registry
 	reg := registry.Global()
 	logging.FromContext(ctx).InfoContext(ctx, "provider registry ready", "providers", reg.ProviderCount(), "models", reg.ModelCount())
 
-	// 11. Nango client
 	if cfg.NangoEndpoint == "" || cfg.NangoSecretKey == "" {
 		return nil, fmt.Errorf("NANGO_ENDPOINT and NANGO_SECRET_KEY are required")
 	}
@@ -197,11 +182,9 @@ func New(ctx context.Context) (*Deps, error) {
 	}
 	logging.FromContext(ctx).InfoContext(ctx, "nango client ready", "providers", len(nangoClient.GetProviders()))
 
-	// 12. Actions catalog
 	actionsCatalog := catalog.Global()
 	logging.FromContext(ctx).InfoContext(ctx, "actions catalog ready", "providers", len(actionsCatalog.ListProviders()))
 
-	// 12b. Spider client (optional)
 	var spiderClient *spider.Client
 	var toolUsageWriter *middleware.ToolUsageWriter
 	if cfg.SpiderAPIKey != "" {
@@ -210,7 +193,6 @@ func New(ctx context.Context) (*Deps, error) {
 		logging.FromContext(ctx).InfoContext(ctx, "spider client ready")
 	}
 
-	// 13. Sandbox encryption key
 	var sandboxEncKey *crypto.SymmetricKey
 	if cfg.SandboxEncryptionKey != "" {
 		sandboxEncKey, err = crypto.NewSymmetricKey(cfg.SandboxEncryptionKey)
@@ -219,7 +201,6 @@ func New(ctx context.Context) (*Deps, error) {
 		}
 	}
 
-	// 14. Sandbox orchestrator (optional)
 	var orchestrator *sandbox.Orchestrator
 	var agentPusher *sandbox.Pusher
 	if cfg.SandboxProviderKey != "" && sandboxEncKey != nil {
@@ -244,22 +225,16 @@ func New(ctx context.Context) (*Deps, error) {
 		logging.FromContext(ctx).InfoContext(ctx, "sandbox orchestrator ready")
 	}
 
-	// 15. Event streaming
 	eventBus := streaming.NewEventBus(redisClient)
 	flusher := streaming.NewFlusher(eventBus, database)
 	cleanup := streaming.NewCleanup(eventBus)
 
-	// 16. Hindsight retainer (optional)
 	var retainer *hindsight.Retainer
 	if cfg.HindsightAPIURL != "" {
 		hClient := hindsight.NewClient(cfg.HindsightAPIURL)
 		retainer = hindsight.NewRetainer(eventBus, database, hClient)
 	}
 
-	// 17. Billing — provider-agnostic. The registry starts empty; individual
-	// providers (Stripe, Paddle, Polar, etc.) register themselves when their
-	// env vars are present. The credit ledger service works regardless of
-	// whether any provider is registered.
 	billingRegistry := billing.NewRegistry()
 	credits := billing.NewCreditsService(database)
 	if cfg.PaystackSecretKey != "" {
@@ -270,7 +245,6 @@ func New(ctx context.Context) (*Deps, error) {
 	}
 	logging.FromContext(ctx).InfoContext(ctx, "billing ready", "providers", billingRegistry.Names())
 
-	// 18. S3 storage (agent drive — optional)
 	var s3Client *storage.S3Client
 	if cfg.S3Bucket != "" {
 		s3Client, err = storage.NewS3Client(cfg.S3Bucket, cfg.S3Region, cfg.S3Endpoint, cfg.S3AccessKey, cfg.S3SecretKey)
@@ -292,7 +266,7 @@ func New(ctx context.Context) (*Deps, error) {
 		Registry:        reg,
 		ActionsCatalog:  actionsCatalog,
 		RSAKey:          rsaKey,
-		SigningKey:       signingKey,
+		SigningKey:      signingKey,
 		SandboxEncKey:   sandboxEncKey,
 		Orchestrator:    orchestrator,
 		AgentPusher:     agentPusher,

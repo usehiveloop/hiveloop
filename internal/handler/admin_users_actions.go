@@ -103,7 +103,7 @@ func (h *AdminHandler) BanUser(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	if err := h.db.Model(&user).Updates(map[string]any{
-		"banned_at": now,
+		"banned_at":  now,
 		"ban_reason": req.Reason,
 	}).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to ban user"})
@@ -150,7 +150,7 @@ func (h *AdminHandler) UnbanUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.Model(&user).Updates(map[string]any{
-		"banned_at": nil,
+		"banned_at":  nil,
 		"ban_reason": "",
 	}).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to unban user"})

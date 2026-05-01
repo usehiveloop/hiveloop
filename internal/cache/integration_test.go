@@ -82,7 +82,7 @@ func createTestCredential(t *testing.T, db *gorm.DB, kms *crypto.KeyWrapper, org
 	if err != nil {
 		t.Fatalf("kms wrap: %v", err)
 	}
-	// Zero plaintext DEK
+
 	for i := range dek {
 		dek[i] = 0
 	}
@@ -134,10 +134,6 @@ func buildManager(t *testing.T, redisClient *redis.Client, kms *crypto.KeyWrappe
 	return cache.Build(cfg, redisClient, kms, db, nil)
 }
 
-// --------------------------------------------------------------------------
-// L1 Memory Cache — unit tests (no external services)
-// --------------------------------------------------------------------------
-
 func TestMemoryCache_SetGetRoundtrip(t *testing.T) {
 	mc := cache.NewMemoryCache(100, 5*time.Minute)
 
@@ -188,10 +184,10 @@ func TestMemoryCache_Invalidate(t *testing.T) {
 }
 
 func TestMemoryCache_HardExpiry(t *testing.T) {
-	mc := cache.NewMemoryCache(100, time.Hour) // long LRU TTL
+	mc := cache.NewMemoryCache(100, time.Hour)
 	mc.Set("cred-1", &cache.CachedCredential{
 		Enclave:    memguard.NewEnclave([]byte("key")),
-		HardExpiry: time.Now().Add(-time.Second), // already expired
+		HardExpiry: time.Now().Add(-time.Second),
 	})
 	_, ok := mc.Get("cred-1")
 	if ok {
@@ -215,10 +211,6 @@ func TestMemoryCache_Purge(t *testing.T) {
 		t.Fatalf("expected 0 entries after purge, got %d", mc.Len())
 	}
 }
-
-// --------------------------------------------------------------------------
-// L2 Redis Cache — integration tests hitting real Redis
-// --------------------------------------------------------------------------
 
 func TestIntegration_RedisCache_SetGetRoundtrip(t *testing.T) {
 	rc := connectTestRedis(t)
@@ -309,7 +301,6 @@ func TestIntegration_RedisCache_ValuesAreEncrypted(t *testing.T) {
 		OrgID:        uuid.New().String(),
 	})
 
-	// Read raw value from Redis — must not contain plaintext API key
 	raw, err := rc.Get(ctx, "pbcred:"+credID).Result()
 	if err != nil {
 		t.Fatalf("raw redis get: %v", err)
@@ -331,10 +322,6 @@ func findSubstring(s, sub string) bool {
 	}
 	return false
 }
-
-// --------------------------------------------------------------------------
-// Revoked Token Cache — integration tests hitting real Redis
-// --------------------------------------------------------------------------
 
 func TestIntegration_RevokedTokenCache_MarkAndCheck(t *testing.T) {
 	rc := connectTestRedis(t)
@@ -363,17 +350,12 @@ func TestIntegration_RevokedTokenCache_MarkAndCheck(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
-// Cross-Instance Invalidation — integration tests hitting real Redis pub/sub
-// --------------------------------------------------------------------------
-
 func TestIntegration_Invalidation_CredentialPubSub(t *testing.T) {
 	rc := connectTestRedis(t)
 	memCache := cache.NewMemoryCache(100, 5*time.Minute)
 	dekCache := cache.NewDEKCache(100, 5*time.Minute)
 	inv := cache.NewInvalidator(rc, memCache, dekCache, nil)
 
-	// Pre-populate L1
 	credID := uuid.New().String()
 	memCache.Set(credID, &cache.CachedCredential{
 		Enclave:    memguard.NewEnclave([]byte("secret")),
@@ -381,24 +363,21 @@ func TestIntegration_Invalidation_CredentialPubSub(t *testing.T) {
 	})
 	dekCache.Set(credID, memguard.NewEnclave([]byte("dek-bytes")))
 
-	// Start subscriber in background
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	subReady := make(chan struct{})
 	go func() {
-		// Give a tiny moment for subscribe to register
+
 		close(subReady)
 		_ = inv.Subscribe(ctx)
 	}()
 	<-subReady
-	time.Sleep(100 * time.Millisecond) // let pub/sub register
+	time.Sleep(100 * time.Millisecond)
 
-	// Publish invalidation from "another instance" (same Redis, simulates multi-instance)
 	if err := inv.PublishCredentialInvalidation(context.Background(), credID); err != nil {
 		t.Fatalf("publish: %v", err)
 	}
 
-	// Wait for message delivery
 	time.Sleep(200 * time.Millisecond)
 
 	if _, ok := memCache.Get(credID); ok {
@@ -441,10 +420,6 @@ func TestIntegration_Invalidation_TokenPubSub(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
-// Full Cache Manager — integration tests hitting Postgres + KMS + Redis
-// --------------------------------------------------------------------------
-
 func TestIntegration_CacheManager_L3ColdPath(t *testing.T) {
 	db := connectTestDB(t)
 	rc := connectTestRedis(t)
@@ -454,7 +429,6 @@ func TestIntegration_CacheManager_L3ColdPath(t *testing.T) {
 	org := createTestOrg(t, db)
 	cred := createTestCredential(t, db, kms, org.ID, "sk-test-cold-path-key")
 
-	// Cold call — must go through L3 (Postgres + KMS)
 	result, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org.ID)
 	if err != nil {
 		t.Fatalf("get credential: %v", err)
@@ -479,13 +453,11 @@ func TestIntegration_CacheManager_L1HitAfterColdPath(t *testing.T) {
 	org := createTestOrg(t, db)
 	cred := createTestCredential(t, db, kms, org.ID, "sk-test-l1-promotion")
 
-	// First call: L3 cold path (promotes to L2 + L1)
 	_, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org.ID)
 	if err != nil {
 		t.Fatalf("first get: %v", err)
 	}
 
-	// Verify L1 is populated
 	cached, ok := mgr.Memory().Get(cred.ID.String())
 	if !ok {
 		t.Fatal("expected L1 to be populated after cold path")
@@ -499,7 +471,6 @@ func TestIntegration_CacheManager_L1HitAfterColdPath(t *testing.T) {
 	}
 	buf.Destroy()
 
-	// Second call: should hit L1 (no KMS or DB calls)
 	result, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org.ID)
 	if err != nil {
 		t.Fatalf("second get: %v", err)
@@ -518,19 +489,16 @@ func TestIntegration_CacheManager_L2HitAfterL1Eviction(t *testing.T) {
 	org := createTestOrg(t, db)
 	cred := createTestCredential(t, db, kms, org.ID, "sk-test-l2-hit")
 
-	// Cold path → promotes to L1 + L2
 	_, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org.ID)
 	if err != nil {
 		t.Fatalf("first get: %v", err)
 	}
 
-	// Evict from L1 only
 	mgr.Memory().Invalidate(cred.ID.String())
 	if _, ok := mgr.Memory().Get(cred.ID.String()); ok {
 		t.Fatal("L1 should be empty after invalidation")
 	}
 
-	// Next call should hit L2 (Redis) and re-promote to L1
 	result, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org.ID)
 	if err != nil {
 		t.Fatalf("get after L1 eviction: %v", err)
@@ -539,7 +507,6 @@ func TestIntegration_CacheManager_L2HitAfterL1Eviction(t *testing.T) {
 		t.Fatalf("expected 'sk-test-l2-hit', got %q", result.APIKey)
 	}
 
-	// L1 should be repopulated
 	if _, ok := mgr.Memory().Get(cred.ID.String()); !ok {
 		t.Fatal("L1 should be repopulated from L2")
 	}
@@ -568,7 +535,6 @@ func TestIntegration_CacheManager_RevokedCredentialNotServed(t *testing.T) {
 	org := createTestOrg(t, db)
 	cred := createTestCredential(t, db, kms, org.ID, "sk-revoked-key")
 
-	// Revoke the credential in Postgres
 	now := time.Now()
 	db.Model(&cred).Update("revoked_at", &now)
 
@@ -587,30 +553,25 @@ func TestIntegration_CacheManager_InvalidateCredential(t *testing.T) {
 	org := createTestOrg(t, db)
 	cred := createTestCredential(t, db, kms, org.ID, "sk-invalidate-test")
 
-	// Populate all tiers
 	_, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org.ID)
 	if err != nil {
 		t.Fatalf("initial get: %v", err)
 	}
 
-	// Invalidate across all tiers
 	if err := mgr.InvalidateCredential(context.Background(), cred.ID.String()); err != nil {
 		t.Fatalf("invalidate: %v", err)
 	}
 
-	// L1 should be empty
 	if _, ok := mgr.Memory().Get(cred.ID.String()); ok {
 		t.Fatal("L1 should be empty after InvalidateCredential")
 	}
 
-	// Redis should be empty
 	redisCache := cache.NewRedisCache(rc, 10*time.Minute)
 	got, _ := redisCache.Get(context.Background(), cred.ID.String())
 	if got != nil {
 		t.Fatal("L2 should be empty after InvalidateCredential")
 	}
 
-	// But L3 still has it — so a fresh get should re-populate from DB
 	result, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org.ID)
 	if err != nil {
 		t.Fatalf("get after invalidate: %v", err)
@@ -630,7 +591,6 @@ func TestIntegration_CacheManager_TokenRevocation_ThreeTier(t *testing.T) {
 	jti := "jti-" + uuid.New().String()
 	credID := uuid.New()
 
-	// Create a token record in Postgres (not revoked)
 	tokenRecord := model.Token{
 		ID:           uuid.New(),
 		OrgID:        org.ID,
@@ -638,7 +598,7 @@ func TestIntegration_CacheManager_TokenRevocation_ThreeTier(t *testing.T) {
 		JTI:          jti,
 		ExpiresAt:    time.Now().Add(time.Hour),
 	}
-	// Create a dummy credential first (foreign key)
+
 	dummyCred := model.Credential{
 		ID: credID, OrgID: org.ID, Label: "dummy",
 		BaseURL: "https://example.com", AuthScheme: "bearer",
@@ -651,7 +611,6 @@ func TestIntegration_CacheManager_TokenRevocation_ThreeTier(t *testing.T) {
 		db.Where("id = ?", dummyCred.ID).Delete(&model.Credential{})
 	})
 
-	// Not revoked yet
 	revoked, err := mgr.IsTokenRevoked(context.Background(), jti)
 	if err != nil {
 		t.Fatalf("is revoked: %v", err)
@@ -660,12 +619,10 @@ func TestIntegration_CacheManager_TokenRevocation_ThreeTier(t *testing.T) {
 		t.Fatal("should not be revoked yet")
 	}
 
-	// Revoke via cache manager
 	if err := mgr.InvalidateToken(context.Background(), jti, time.Hour); err != nil {
 		t.Fatalf("invalidate token: %v", err)
 	}
 
-	// Should now be revoked (L1 in-memory set)
 	revoked, err = mgr.IsTokenRevoked(context.Background(), jti)
 	if err != nil {
 		t.Fatalf("is revoked after invalidate: %v", err)
@@ -674,7 +631,6 @@ func TestIntegration_CacheManager_TokenRevocation_ThreeTier(t *testing.T) {
 		t.Fatal("should be revoked after InvalidateToken")
 	}
 
-	// Verify it's in Redis too
 	rtc := cache.NewRevokedTokenCache(rc)
 	inRedis, _ := rtc.IsRevoked(context.Background(), jti)
 	if !inRedis {
@@ -692,7 +648,6 @@ func TestIntegration_CacheManager_IsTokenRevoked_PromotesFromDB(t *testing.T) {
 	jti := "jti-db-" + uuid.New().String()
 	credID := uuid.New()
 
-	// Create credential + token (already revoked in DB)
 	revokedAt := time.Now()
 	dummyCred := model.Credential{
 		ID: credID, OrgID: org.ID, Label: "dummy",
@@ -714,7 +669,6 @@ func TestIntegration_CacheManager_IsTokenRevoked_PromotesFromDB(t *testing.T) {
 		db.Where("id = ?", dummyCred.ID).Delete(&model.Credential{})
 	})
 
-	// First check — goes to L3 (Postgres), finds revoked, promotes to L2 + L1
 	revoked, err := mgr.IsTokenRevoked(context.Background(), jti)
 	if err != nil {
 		t.Fatalf("is revoked: %v", err)
@@ -723,7 +677,6 @@ func TestIntegration_CacheManager_IsTokenRevoked_PromotesFromDB(t *testing.T) {
 		t.Fatal("should detect revocation from DB")
 	}
 
-	// Second check — should be served from L1 (in-memory set)
 	revoked, err = mgr.IsTokenRevoked(context.Background(), jti)
 	if err != nil {
 		t.Fatalf("is revoked second: %v", err)
@@ -743,7 +696,6 @@ func TestIntegration_CacheManager_OrgIsolation(t *testing.T) {
 	org2 := createTestOrg(t, db)
 	cred := createTestCredential(t, db, kms, org1.ID, "sk-org1-secret")
 
-	// Org1 can access its own credential
 	result, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org1.ID)
 	if err != nil {
 		t.Fatalf("org1 get: %v", err)
@@ -752,7 +704,6 @@ func TestIntegration_CacheManager_OrgIsolation(t *testing.T) {
 		t.Fatalf("expected 'sk-org1-secret', got %q", result.APIKey)
 	}
 
-	// Org2 cannot access org1's credential
 	_, err = mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org2.ID)
 	if err == nil {
 		t.Fatal("org2 should NOT be able to access org1's credential")
@@ -768,7 +719,6 @@ func TestIntegration_CacheManager_ConcurrentAccess(t *testing.T) {
 	org := createTestOrg(t, db)
 	cred := createTestCredential(t, db, kms, org.ID, "sk-concurrent-test")
 
-	// 20 goroutines hitting the same credential simultaneously
 	const workers = 20
 	errs := make(chan error, workers)
 	for range workers {

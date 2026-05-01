@@ -41,9 +41,6 @@ func oauthRequest(st *store, defaultMode string) http.HandlerFunc {
 			ConnectionID:      connID,
 		})
 
-		// Skip the simulated provider redirect — call straight back to /oauth/callback
-		// with the same shape a real provider would. Saves one hop and keeps the
-		// agent flow deterministic.
 		cb := url.URL{Path: "/oauth/callback"}
 		params := cb.Query()
 		params.Set("state", state)

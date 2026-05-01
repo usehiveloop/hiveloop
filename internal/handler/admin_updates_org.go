@@ -58,7 +58,7 @@ func (h *AdminHandler) UpdateOrgFull(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name cannot be empty"})
 			return
 		}
-		// Check uniqueness
+
 		var existing model.Org
 		if err := h.db.Where("name = ? AND id != ?", name, org.ID).First(&existing).Error; err == nil {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "org name already in use"})

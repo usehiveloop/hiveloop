@@ -53,14 +53,13 @@ func (h *OAuthHandler) beginLogin(w http.ResponseWriter, r *http.Request, cfg *o
 		return
 	}
 
-	// Generate PKCE verifier (required by X, harmless for GitHub/Google).
 	verifier := oauth2.GenerateVerifier()
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state",
 		Value:    state,
 		Path:     "/oauth/",
-		MaxAge:   600, // 10 minutes
+		MaxAge:   600,
 		HttpOnly: true,
 		Secure:   h.secure,
 		SameSite: http.SameSiteLaxMode,
@@ -77,4 +76,3 @@ func (h *OAuthHandler) beginLogin(w http.ResponseWriter, r *http.Request, cfg *o
 
 	http.Redirect(w, r, cfg.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier)), http.StatusTemporaryRedirect)
 }
-

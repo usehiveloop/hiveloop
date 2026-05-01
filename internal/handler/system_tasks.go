@@ -287,7 +287,3 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 	})
 	h.afterCompletion(r.Context(), logger, &task, taskName, modelID, cred, orgID, claims.UserID, res, cacheKey, false)
 }
-
-// (Helper methods serveCached, handleForwardError, afterCompletion,
-// resolveModel, pickCheapestActiveModel, and decryptCredentialKey live in
-// system_tasks_helpers.go.)

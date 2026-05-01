@@ -18,7 +18,6 @@ func TestExtractModel_OpenAIFormat(t *testing.T) {
 		t.Errorf("expected %q, got %q", "gpt-4o", got)
 	}
 
-	// Body must still be fully readable
 	remaining, _ := io.ReadAll(req.Body)
 	if string(remaining) != body {
 		t.Errorf("body should be intact after extraction, got %q", string(remaining))
@@ -41,7 +40,7 @@ func TestExtractModel_AnthropicFormat(t *testing.T) {
 }
 
 func TestExtractModel_GoogleFormat(t *testing.T) {
-	// Google often puts model in the URL path, but some request formats include it in body
+
 	body := `{"model":"gemini-1.5-pro","contents":[{"role":"user","parts":[{"text":"hello"}]}]}`
 	req := makePostRequest(body)
 
@@ -119,7 +118,6 @@ func TestExtractModel_MalformedJSON(t *testing.T) {
 		t.Errorf("expected empty string for malformed JSON, got %q", got)
 	}
 
-	// Body should still be readable
 	remaining, _ := io.ReadAll(req.Body)
 	if string(remaining) != body {
 		t.Errorf("body should be intact")
@@ -137,9 +135,9 @@ func TestExtractModel_ModelNotString(t *testing.T) {
 }
 
 func TestExtractModel_LargeBody(t *testing.T) {
-	// Model field first, then a large payload
+
 	prefix := `{"model":"gpt-4o","messages":[{"role":"user","content":"`
-	// Create content larger than maxPeekBytes
+
 	content := strings.Repeat("x", maxPeekBytes*2)
 	suffix := `"}]}`
 	body := prefix + content + suffix
@@ -150,7 +148,6 @@ func TestExtractModel_LargeBody(t *testing.T) {
 		t.Errorf("expected %q, got %q", "gpt-4o", got)
 	}
 
-	// Entire body must be readable (peeked portion + remaining)
 	remaining, _ := io.ReadAll(req.Body)
 	if string(remaining) != body {
 		t.Errorf("body length mismatch: want %d, got %d", len(body), len(remaining))

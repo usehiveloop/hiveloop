@@ -9,19 +9,13 @@ import (
 	"testing"
 	"time"
 
-
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 )
-
-// --------------------------------------------------------------------------
-// E2E: Credential list pagination
-// --------------------------------------------------------------------------
 
 func TestE2E_Credential_Pagination(t *testing.T) {
 	h := newHarness(t)
 	org := h.createOrg(t)
 
-	// Create 5 credentials
 	for i := 0; i < 5; i++ {
 		body := fmt.Sprintf(`{"label":"page-cred-%d","provider_id":"openai","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-page-%d"}`, i, i)
 		req := httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(body))
@@ -32,10 +26,9 @@ func TestE2E_Credential_Pagination(t *testing.T) {
 		if rr.Code != http.StatusCreated {
 			t.Fatalf("create credential %d: expected 201, got %d: %s", i, rr.Code, rr.Body.String())
 		}
-		time.Sleep(5 * time.Millisecond) // ensure distinct created_at
+		time.Sleep(5 * time.Millisecond)
 	}
 
-	// Page 1: limit=2
 	req := httptest.NewRequest(http.MethodGet, "/v1/credentials?limit=2", nil)
 	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
@@ -61,17 +54,13 @@ func TestE2E_Credential_Pagination(t *testing.T) {
 		t.Fatal("page 1: expected next_cursor to be set")
 	}
 
-	// Verify descending order (newest first) — compare label suffix since created_at
-	// may have same second-level precision in RFC3339
 	label0 := page1.Data[0]["label"].(string)
 	label1 := page1.Data[1]["label"].(string)
 	if label0 < label1 {
-		// Labels are page-cred-0..4; newer ones have higher numbers (created later)
-		// In descending order, higher number should come first
+
 		t.Logf("labels: %s, %s (order may vary depending on exact timing)", label0, label1)
 	}
 
-	// Page 2: use cursor
 	req = httptest.NewRequest(http.MethodGet, "/v1/credentials?limit=2&cursor="+*page1.NextCursor, nil)
 	req = middleware.WithOrg(req, &org)
 	rr = httptest.NewRecorder()
@@ -94,7 +83,6 @@ func TestE2E_Credential_Pagination(t *testing.T) {
 		t.Fatal("page 2: expected has_more=true")
 	}
 
-	// No overlap between pages
 	page1IDs := map[string]bool{}
 	for _, item := range page1.Data {
 		page1IDs[item["id"].(string)] = true
@@ -105,7 +93,6 @@ func TestE2E_Credential_Pagination(t *testing.T) {
 		}
 	}
 
-	// Page 3: should have 1 item and has_more=false
 	req = httptest.NewRequest(http.MethodGet, "/v1/credentials?limit=2&cursor="+*page2.NextCursor, nil)
 	req = middleware.WithOrg(req, &org)
 	rr = httptest.NewRecorder()
@@ -134,15 +121,10 @@ func TestE2E_Credential_Pagination(t *testing.T) {
 	t.Logf("Pagination verified: 5 credentials across 3 pages (2+2+1)")
 }
 
-// --------------------------------------------------------------------------
-// E2E: Invalid pagination params
-// --------------------------------------------------------------------------
-
 func TestE2E_Pagination_InvalidParams(t *testing.T) {
 	h := newHarness(t)
 	org := h.createOrg(t)
 
-	// Invalid limit
 	req := httptest.NewRequest(http.MethodGet, "/v1/credentials?limit=-1", nil)
 	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
@@ -151,7 +133,6 @@ func TestE2E_Pagination_InvalidParams(t *testing.T) {
 		t.Fatalf("invalid limit: expected 400, got %d", rr.Code)
 	}
 
-	// Invalid cursor
 	req = httptest.NewRequest(http.MethodGet, "/v1/credentials?cursor=not-valid-base64!!", nil)
 	req = middleware.WithOrg(req, &org)
 	rr = httptest.NewRecorder()
@@ -160,7 +141,6 @@ func TestE2E_Pagination_InvalidParams(t *testing.T) {
 		t.Fatalf("invalid cursor: expected 400, got %d", rr.Code)
 	}
 
-	// Limit capped at 100
 	for i := 0; i < 3; i++ {
 		body := fmt.Sprintf(`{"label":"cap-test-%d","provider_id":"openai","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-%d"}`, i, i)
 		req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(body))
@@ -176,12 +156,8 @@ func TestE2E_Pagination_InvalidParams(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("limit cap: expected 200, got %d", rr.Code)
 	}
-	// Should work without error (limit capped to 100 internally)
-}
 
-// --------------------------------------------------------------------------
-// E2E: Credential usage stats (request_count + last_used_at)
-// --------------------------------------------------------------------------
+}
 
 func TestE2E_Credential_UsageStats(t *testing.T) {
 	h := newHarness(t)
@@ -193,15 +169,12 @@ func TestE2E_Credential_UsageStats(t *testing.T) {
 	}))
 	defer echoServer.Close()
 
-	// Create 2 credentials
 	cred1 := h.storeCredential(t, org, echoServer.URL, "bearer", "sk-stats-1")
 	cred2 := h.storeCredential(t, org, echoServer.URL, "bearer", "sk-stats-2")
 
-	// Mint tokens
 	tok1 := h.mintToken(t, org, cred1.ID)
 	tok2 := h.mintToken(t, org, cred2.ID)
 
-	// Make 3 proxy requests via cred1
 	for i := 0; i < 3; i++ {
 		rr := h.proxyRequest(t, http.MethodGet, "/v1/proxy/test", tok1, nil)
 		if rr.Code != http.StatusOK {
@@ -209,16 +182,13 @@ func TestE2E_Credential_UsageStats(t *testing.T) {
 		}
 	}
 
-	// Make 1 proxy request via cred2
 	rr := h.proxyRequest(t, http.MethodGet, "/v1/proxy/test", tok2, nil)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("proxy cred2 request: expected 200, got %d", rr.Code)
 	}
 
-	// Wait for audit writer to flush
 	time.Sleep(200 * time.Millisecond)
 
-	// List credentials — should include usage stats
 	req := httptest.NewRequest(http.MethodGet, "/v1/credentials", nil)
 	req = middleware.WithOrg(req, &org)
 	rr = httptest.NewRecorder()
@@ -233,7 +203,6 @@ func TestE2E_Credential_UsageStats(t *testing.T) {
 		statsMap[c["id"].(string)] = c
 	}
 
-	// cred1 should have request_count=3
 	c1 := statsMap[cred1.ID.String()]
 	if c1 == nil {
 		t.Fatal("cred1 not found in list")
@@ -246,7 +215,6 @@ func TestE2E_Credential_UsageStats(t *testing.T) {
 		t.Fatal("cred1: expected last_used_at to be set")
 	}
 
-	// cred2 should have request_count=1
 	c2 := statsMap[cred2.ID.String()]
 	if c2 == nil {
 		t.Fatal("cred2 not found in list")
@@ -258,10 +226,6 @@ func TestE2E_Credential_UsageStats(t *testing.T) {
 
 	t.Logf("Credential usage stats verified: cred1=%d, cred2=%d", rc1, rc2)
 }
-
-// --------------------------------------------------------------------------
-// E2E: Credential with no proxy requests has zero usage stats
-// --------------------------------------------------------------------------
 
 func TestE2E_Credential_ZeroUsageStats(t *testing.T) {
 	h := newHarness(t)

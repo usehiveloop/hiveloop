@@ -58,17 +58,15 @@ func (c *Cleanup) CleanIdle(ctx context.Context) {
 
 		streamKey := c.bus.Prefix() + convID
 
-		// Check the last entry in the stream
 		msgs, err := c.bus.Redis().XRevRangeN(ctx, streamKey, "+", "-", 1).Result()
 		if err != nil || len(msgs) == 0 {
-			// Stream is empty or gone — remove from active set
+
 			if delErr := c.bus.Delete(ctx, convID); delErr != nil {
 				logging.FromContext(ctx).WarnContext(ctx, "cleanup delete failed", "error", delErr, "conv_id", convID)
 			}
 			continue
 		}
 
-		// Parse timestamp from the Redis entry ID (format: "1712019600000-0")
 		entryID := msgs[0].ID
 		var tsMs int64
 		for i := 0; i < len(entryID); i++ {

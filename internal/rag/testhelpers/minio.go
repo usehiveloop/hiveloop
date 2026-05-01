@@ -1,14 +1,5 @@
 package testhelpers
 
-// MinIO bucket lifecycle for RAG integration tests.
-//
-// Docker Compose provisions a MinIO instance on 127.0.0.1:9000 with
-// credentials minioadmin/minioadmin. `make test-services-up` also
-// pre-creates `hiveloop-rag-test`. This file exists so tests that use a
-// custom bucket (or want to cleanly isolate state per-test via an S3
-// prefix) can create it on the fly, and so a loud clean failure is
-// produced when MinIO isn't up — per Hard Rule #7 of TESTING.md.
-
 import (
 	"context"
 	"errors"
@@ -120,7 +111,7 @@ func EnsureBucket(ctx context.Context, cfg MinIOConfig, bucket string) error {
 	if err == nil {
 		return nil
 	}
-	// If the bucket was just created concurrently, accept it.
+
 	var owned *types.BucketAlreadyOwnedByYou
 	var exists *types.BucketAlreadyExists
 	if errors.As(err, &owned) || errors.As(err, &exists) {

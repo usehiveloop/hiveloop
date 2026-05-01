@@ -32,8 +32,7 @@ func openAttempt(
 		TimeStarted:      &now,
 	}
 	if !fromBeginning {
-		// Without inheriting the prior attempt's checkpoint a crashed
-		// run cannot resume from where it left off.
+
 		if cp := lastCheckpointPointer(ctx, db, src.ID); cp != "" {
 			a.CheckpointPointer = &cp
 		}
@@ -90,7 +89,6 @@ func finalizeAttempt(
 	}
 	updates["status"] = terminal
 
-	// A failed run keeps the previous checkpoint so the next attempt can resume.
 	if runErr == nil && runnable != nil {
 		if cp, err := runnable.FinalCheckpoint(); err == nil && len(cp) > 0 {
 			s := string(cp)
@@ -106,8 +104,7 @@ func finalizeAttempt(
 	}
 
 	if terminal == ragmodel.IndexingStatusFailed {
-		// First-run failure: flip out of INITIAL_INDEXING so the UI
-		// stops spinning. Successful retries restore ACTIVE below.
+
 		if src.Status == ragmodel.RAGSourceStatusInitialIndexing {
 			if err := db.WithContext(ctx).
 				Model(&ragmodel.RAGSource{}).
@@ -122,9 +119,7 @@ func finalizeAttempt(
 	srcUpd := map[string]any{
 		"updated_at": now,
 	}
-	// last_successful_index_time defines the next poll window's lower
-	// bound. A 0-doc INITIAL run that stamps it traps the source in a
-	// 5-min window that finds nothing on every subsequent tick.
+
 	if stats.docsBatched > 0 || src.Status != ragmodel.RAGSourceStatusInitialIndexing {
 		srcUpd["last_successful_index_time"] = now
 	}

@@ -49,20 +49,18 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		"connection_id", payload.ConnectionID,
 	)
 
-	// Decode the raw webhook payload.
 	var webhookPayload map[string]any
 	if err := json.Unmarshal(payload.PayloadJSON, &webhookPayload); err != nil {
 		return fmt.Errorf("unmarshal webhook payload: %w", err)
 	}
 
-	// Run dispatcher: match triggers, evaluate rules, select agents.
 	var dispatches []dispatch.AgentDispatch
 	var dispatchErr error
 	if payload.RouterTriggerID != nil {
-		// Direct trigger dispatch (HTTP/cron): bypass trigger matching.
+
 		dispatches, dispatchErr = handler.dispatcher.RunForTrigger(ctx, *payload.RouterTriggerID, webhookPayload)
 	} else {
-		// Standard webhook dispatch: match triggers by event key.
+
 		input := dispatch.RouterDispatchInput{
 			Provider:     payload.Provider,
 			EventType:    payload.EventType,
@@ -81,14 +79,12 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		return nil
 	}
 
-	// Run deterministic enrichment for new conversations (best effort).
 	handler.runDeterministicEnrichment(ctx, logger, dispatches, payload)
 
-	// Enqueue a conversation creation job for each dispatch.
 	enqueuedCount := 0
 	for _, agentDispatch := range dispatches {
 		if agentDispatch.RunIntent != "normal" {
-			continue // TODO: handle "continue" intent separately
+			continue
 		}
 
 		instructions := buildDispatchInstructions(agentDispatch)
@@ -126,7 +122,6 @@ func (handler *RouterDispatchHandler) runDeterministicEnrichment(ctx context.Con
 		return
 	}
 
-	// Only enrich if there are new conversations to create.
 	hasNewConversations := false
 	for _, agentDispatch := range dispatches {
 		if agentDispatch.RunIntent == "normal" {
@@ -138,7 +133,6 @@ func (handler *RouterDispatchHandler) runDeterministicEnrichment(ctx context.Con
 		return
 	}
 
-	// Use refs from the first dispatch (all dispatches share the same event).
 	refs := dispatches[0].Refs
 
 	enrichInput := enrichment.DeterministicEnrichInput{
@@ -159,7 +153,6 @@ func (handler *RouterDispatchHandler) runDeterministicEnrichment(ctx context.Con
 		return
 	}
 
-	// Apply the enriched message to all new-conversation dispatches.
 	for index := range dispatches {
 		if dispatches[index].RunIntent == "normal" {
 			dispatches[index].EnrichedMessage = composedMessage
@@ -182,7 +175,6 @@ func buildDispatchInstructions(agentDispatch dispatch.AgentDispatch) string {
 		return builder.String()
 	}
 
-	// Trigger-level instructions (cron/http triggers).
 	if agentDispatch.TriggerInstructions != "" {
 		builder.WriteString(dispatch.SubstituteRefs(agentDispatch.TriggerInstructions, agentDispatch.Refs))
 		if len(agentDispatch.Refs) > 0 {

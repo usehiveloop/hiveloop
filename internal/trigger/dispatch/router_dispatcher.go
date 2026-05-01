@@ -30,18 +30,18 @@ type RouterDispatchInput struct {
 // AgentDispatch is the output for one agent that should receive the event.
 // The executor creates a Bridge conversation for each dispatch.
 type AgentDispatch struct {
-	AgentID         uuid.UUID
-	Priority        int
-	RoutingMode     string // "rule" or "triage"
-	EnrichmentPlan     []hiveloop.PlannedEnrichment
-	ReplyConnectionID  uuid.UUID // in_connections ID for the source channel
-	ReplyOrgID         uuid.UUID
-	ResourceKey        string
-	RunIntent       string // "normal" (new conv) or "continue" (existing conv)
-	RouterTriggerID uuid.UUID
-	RouterPersona   string
-	MemoryTeam      string
-	Refs            map[string]string
+	AgentID           uuid.UUID
+	Priority          int
+	RoutingMode       string // "rule" or "triage"
+	EnrichmentPlan    []hiveloop.PlannedEnrichment
+	ReplyConnectionID uuid.UUID // in_connections ID for the source channel
+	ReplyOrgID        uuid.UUID
+	ResourceKey       string
+	RunIntent         string // "normal" (new conv) or "continue" (existing conv)
+	RouterTriggerID   uuid.UUID
+	RouterPersona     string
+	MemoryTeam        string
+	Refs              map[string]string
 
 	// Set by the enrichment agent — replaces flat refs in instructions.
 	EnrichedMessage string
@@ -81,7 +81,6 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 		eventKey = input.EventType + "." + input.EventAction
 	}
 
-	// 1. Find matching router triggers.
 	triggerMatches, err := dispatcher.store.FindMatchingTriggers(ctx, input.OrgID, input.ConnectionID, []string{eventKey})
 	if err != nil {
 		return nil, fmt.Errorf("finding matching triggers: %w", err)
@@ -116,7 +115,7 @@ func (dispatcher *RouterDispatcher) RunForTrigger(ctx context.Context, triggerID
 		payload = map[string]any{}
 	}
 
-	eventKey := match.Trigger.TriggerType // "http" or "cron"
+	eventKey := match.Trigger.TriggerType
 
 	input := RouterDispatchInput{
 		Provider:  match.Trigger.TriggerType,
@@ -133,7 +132,6 @@ func (dispatcher *RouterDispatcher) RunForTrigger(ctx context.Context, triggerID
 		return nil, err
 	}
 
-	// For cron/http triggers, inject the trigger's instructions into each dispatch.
 	if match.Trigger.Instructions != "" {
 		for index := range dispatches {
 			if dispatches[index].RunIntent == "normal" {
@@ -151,15 +149,12 @@ func (dispatcher *RouterDispatcher) dispatchForTrigger(ctx context.Context, matc
 	trigger := match.Trigger
 	router := match.Router
 
-	// 1. Extract refs from payload.
 	triggerDef := dispatcher.lookupTriggerDef(input.Provider, eventKey)
 	refs, _ := extractRefs(input.Payload, triggerDef.Refs)
 
-	// 2. Resolve resource key.
 	resourceDef := dispatcher.lookupResourceDef(trigger, triggerDef)
 	resourceKey := resolveRouterResourceKey(resourceDef, refs)
 
-	// 3. Thread affinity: check for existing conversation.
 	connectionID := input.ConnectionID
 	existingConv, err := dispatcher.store.FindExistingConversation(ctx, input.OrgID, connectionID, resourceKey)
 	if err != nil {
@@ -179,7 +174,6 @@ func (dispatcher *RouterDispatcher) dispatchForTrigger(ctx context.Context, matc
 		}}, nil
 	}
 
-	// 4. Route: rule-based or LLM triage.
 	var selectedAgents []hiveloop.AgentSelection
 	var enrichmentPlan []hiveloop.PlannedEnrichment
 	routingMode := trigger.RoutingMode
@@ -209,13 +203,12 @@ func (dispatcher *RouterDispatcher) dispatchForTrigger(ctx context.Context, matc
 
 		systemPrompt := hiveloop.BuildRoutingPrompt(router.Persona, orgAgents, connections, recentDecisions)
 
-		// Build user message from event context.
 		userMessage := buildTriageUserMessage(input, refs)
 
 		result, triageErr := dispatcher.agent.Route(ctx, systemPrompt, userMessage, orgAgents, connections)
 		if triageErr != nil {
 			logging.Capture(ctx, fmt.Errorf("triage routing: %w", triageErr))
-			// Fall through to default agent.
+
 		} else {
 			selectedAgents = result.SelectedAgents
 			enrichmentPlan = result.EnrichmentPlan
@@ -224,7 +217,6 @@ func (dispatcher *RouterDispatcher) dispatchForTrigger(ctx context.Context, matc
 
 	routingLatency := time.Since(routingStart).Milliseconds()
 
-	// 5. Fallback to default agent if no agents selected.
 	if len(selectedAgents) == 0 && router.DefaultAgentID != nil {
 		selectedAgents = []hiveloop.AgentSelection{{
 			AgentID:  *router.DefaultAgentID,
@@ -245,7 +237,6 @@ func (dispatcher *RouterDispatcher) dispatchForTrigger(ctx context.Context, matc
 		"agents_selected", len(selectedAgents),
 	)
 
-	// 6. Build dispatches.
 	var dispatches []AgentDispatch
 	for _, selection := range selectedAgents {
 		dispatches = append(dispatches, AgentDispatch{
@@ -264,7 +255,6 @@ func (dispatcher *RouterDispatcher) dispatchForTrigger(ctx context.Context, matc
 		})
 	}
 
-	// 7. Store routing decision.
 	agentIDs := make(pq.StringArray, len(selectedAgents))
 	for index, selection := range selectedAgents {
 		agentIDs[index] = selection.AgentID.String()
@@ -300,10 +290,6 @@ func (dispatcher *RouterDispatcher) LoadConnections(ctx context.Context, orgID u
 	return dispatcher.store.LoadOrgConnections(ctx, orgID, uuid.Nil)
 }
 
-// --------------------------------------------------------------------------
-// Helpers
-// --------------------------------------------------------------------------
-
 func (dispatcher *RouterDispatcher) lookupTriggerDef(provider, eventKey string) catalog.TriggerDef {
 	providerTriggers, ok := dispatcher.catalog.GetProviderTriggers(provider)
 	if !ok {
@@ -321,7 +307,7 @@ func (dispatcher *RouterDispatcher) lookupResourceDef(trigger model.RouterTrigge
 	if triggerDef.ResourceType == "" {
 		return nil
 	}
-	// Same provider resolution issue as lookupTriggerDef — simplified for now.
+
 	return nil
 }
 
@@ -333,19 +319,17 @@ func resolveRouterResourceKey(resourceDef *catalog.ResourceDef, refs map[string]
 }
 
 func buildTriageUserMessage(input RouterDispatchInput, refs map[string]string) string {
-	// Build a concise event summary for the LLM.
+
 	msg := fmt.Sprintf("Provider: %s\nEvent: %s", input.Provider, input.EventType)
 	if input.EventAction != "" {
 		msg += "." + input.EventAction
 	}
 	msg += "\n"
 
-	// Include key refs.
 	for key, value := range refs {
 		msg += fmt.Sprintf("%s: %s\n", key, value)
 	}
 
-	// Include message text if present (Slack mentions, GitHub comments, etc.).
 	if text, ok := refs["text"]; ok {
 		msg += fmt.Sprintf("\nMessage: %s\n", text)
 	}

@@ -124,7 +124,7 @@ func (h *AdminSystemCredentialsHandler) Create(w http.ResponseWriter, r *http.Re
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "key wrapping failed"})
 		return
 	}
-	// Scrub the DEK from memory as soon as it's wrapped.
+
 	for i := range dek {
 		dek[i] = 0
 	}

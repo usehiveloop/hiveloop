@@ -1,7 +1,3 @@
-// Package enrichment implements a context-gathering agent that runs between
-// webhook trigger matching and specialist agent invocation. It fetches data
-// from connected integrations via the Nango proxy, chains cross-platform
-// lookups, and composes a rich first message for the specialist agent.
 package enrichment
 
 import (

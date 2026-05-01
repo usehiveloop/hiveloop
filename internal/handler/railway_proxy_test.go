@@ -59,10 +59,9 @@ func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler h
 	t.Cleanup(railwayMock.Close)
 
 	railwayProxyHandler := handler.NewRailwayProxyHandler(database, encKey, nangoClient)
-	// Override the upstream URL for testing
+
 	handler.SetRailwayUpstreamURL(railwayProxyHandler, railwayMock.URL)
 
-	// Create test org
 	orgID := uuid.New()
 	org := model.Org{
 		ID:        orgID,
@@ -74,7 +73,6 @@ func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler h
 		t.Fatalf("create test org: %v", err)
 	}
 
-	// Create test agent
 	agentID := uuid.New()
 	agent := model.Agent{
 		ID:     agentID,
@@ -86,7 +84,6 @@ func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler h
 		t.Fatalf("create test agent: %v", err)
 	}
 
-	// Create sandbox
 	bridgeKey := "test-bridge-api-key-for-railway"
 	encryptedKey, err := encKey.EncryptString(bridgeKey)
 	if err != nil {
@@ -107,7 +104,6 @@ func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler h
 		t.Fatalf("create test sandbox: %v", err)
 	}
 
-	// Create a user (required FK for InConnection)
 	userID := uuid.New()
 	user := model.User{
 		ID:    userID,
@@ -118,7 +114,6 @@ func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler h
 		t.Fatalf("create test user: %v", err)
 	}
 
-	// Create in_integration + in_connection for railway
 	inIntegrationID := uuid.New()
 	inIntegration := model.InIntegration{
 		ID:          inIntegrationID,
@@ -313,7 +308,6 @@ func TestRailwayProxy_NoRailwayConnection(t *testing.T) {
 
 	harness := newRailwayHarness(t, nangoHandler, railwayHandler)
 
-	// Delete railway connection
 	harness.db.Where("org_id = ?", harness.orgID).Delete(&model.InConnection{})
 
 	req := httptest.NewRequest(http.MethodPost,

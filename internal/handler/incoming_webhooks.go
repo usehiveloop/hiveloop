@@ -57,7 +57,6 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Verify provider has triggers with webhook_config in the catalog.
 	cat := catalog.Global()
 	providerTriggers, hasTriggers := cat.GetProviderTriggers(provider)
 	if !hasTriggers {
@@ -68,7 +67,6 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Read the raw body.
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "incoming webhook: failed to read body",
@@ -84,7 +82,6 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Resolve connection → integration → org.
 	var connection model.InConnection
 	if err := h.db.Preload("InIntegration").
 		Where("id = ? AND revoked_at IS NULL", connectionID).
@@ -98,15 +95,13 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Infer event type from the raw payload.
 	eventType, eventAction := inferDirectWebhookEvent(provider, body)
 	if eventType == "" {
-		// Still return 200 to avoid the provider retrying.
+
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ignored", "reason": "unknown event type"})
 		return
 	}
 
-	// Return 200 immediately, then dispatch asynchronously.
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 
 	deliveryID := connectionID.String() + ":" + uuid.New().String()

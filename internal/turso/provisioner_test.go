@@ -43,7 +43,6 @@ func TestProvisioner_EnsureStorage(t *testing.T) {
 	db := setupDB(t)
 	suffix := uuid.New().String()[:8]
 
-	// Create org
 	org := model.Org{Name: "turso-test-" + suffix}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("create org: %v", err)
@@ -53,7 +52,6 @@ func TestProvisioner_EnsureStorage(t *testing.T) {
 		db.Where("id = ?", org.ID).Delete(&model.Org{})
 	})
 
-	// Mock Turso server
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/databases"):
@@ -88,7 +86,6 @@ func TestProvisioner_EnsureStorage(t *testing.T) {
 
 	ctx := context.Background()
 
-	// First call should create the database
 	storageURL, authToken, err := provisioner.EnsureStorage(ctx, org.ID)
 	if err != nil {
 		t.Fatalf("EnsureStorage (first call): %v", err)
@@ -101,7 +98,6 @@ func TestProvisioner_EnsureStorage(t *testing.T) {
 		t.Errorf("auth token: got %q", authToken)
 	}
 
-	// Verify record in DB
 	var ws model.WorkspaceStorage
 	if err := db.Where("org_id = ?", org.ID).First(&ws).Error; err != nil {
 		t.Fatalf("workspace storage not found in DB: %v", err)
@@ -113,7 +109,6 @@ func TestProvisioner_EnsureStorage(t *testing.T) {
 		t.Errorf("DB name should start with hiveloop-, got %q", ws.TursoDatabaseName)
 	}
 
-	// Second call should return existing (idempotent)
 	storageURL2, authToken2, err := provisioner.EnsureStorage(ctx, org.ID)
 	if err != nil {
 		t.Fatalf("EnsureStorage (second call): %v", err)
@@ -125,7 +120,6 @@ func TestProvisioner_EnsureStorage(t *testing.T) {
 		t.Errorf("second call should return same token")
 	}
 
-	// Verify only one record exists
 	var count int64
 	db.Model(&model.WorkspaceStorage{}).Where("org_id = ?", org.ID).Count(&count)
 	if count != 1 {
@@ -137,7 +131,6 @@ func TestProvisioner_DeleteStorage(t *testing.T) {
 	db := setupDB(t)
 	suffix := uuid.New().String()[:8]
 
-	// Create org + storage record
 	org := model.Org{Name: "turso-del-" + suffix}
 	db.Create(&org)
 	t.Cleanup(func() {
@@ -153,7 +146,6 @@ func TestProvisioner_DeleteStorage(t *testing.T) {
 	}
 	db.Create(&ws)
 
-	// Mock Turso server
 	var deletedDB string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodDelete {
@@ -175,12 +167,10 @@ func TestProvisioner_DeleteStorage(t *testing.T) {
 		t.Fatalf("DeleteStorage: %v", err)
 	}
 
-	// Verify Turso API was called with correct DB name
 	if deletedDB != ws.TursoDatabaseName {
 		t.Errorf("deleted wrong DB: got %q, want %q", deletedDB, ws.TursoDatabaseName)
 	}
 
-	// Verify record removed from DB
 	var count int64
 	db.Model(&model.WorkspaceStorage{}).Where("org_id = ?", org.ID).Count(&count)
 	if count != 0 {

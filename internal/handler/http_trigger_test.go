@@ -19,10 +19,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
-// --------------------------------------------------------------------------
-// Test infrastructure
-// --------------------------------------------------------------------------
-
 func connectHTTPTriggerTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	dsn := "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
@@ -32,7 +28,7 @@ func connectHTTPTriggerTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Skipf("skipping: test database not available: %v", err)
 	}
-	// Migrate tables in dependency order — orgs → routers → router_triggers.
+
 	if err := database.AutoMigrate(&model.Org{}); err != nil {
 		t.Fatalf("auto-migrate orgs: %v", err)
 	}
@@ -61,7 +57,6 @@ func newHTTPTriggerHarness(t *testing.T) *httpTriggerHarness {
 	orgID := uuid.New()
 	routerID := uuid.New()
 
-	// Create org first (routers FK → orgs), then the router.
 	if err := database.Create(&model.Org{ID: orgID, Name: "test-org-" + orgID.String()}).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
@@ -133,10 +128,6 @@ func (harness *httpTriggerHarness) doPostWithQuery(t *testing.T, triggerID, quer
 	return recorder
 }
 
-// --------------------------------------------------------------------------
-// Tests
-// --------------------------------------------------------------------------
-
 // TestHTTPTrigger_ValidRequest_Returns200AndEnqueues verifies that a valid HTTP trigger request
 // correctly enqueues a router dispatch task with the expected payload.
 func TestHTTPTrigger_ValidRequest_Returns200AndEnqueues(t *testing.T) {
@@ -150,7 +141,6 @@ func TestHTTPTrigger_ValidRequest_Returns200AndEnqueues(t *testing.T) {
 		t.Fatalf("status: got %d, want 200", recorder.Code)
 	}
 
-	// Should have enqueued a router dispatch task.
 	harness.mock.AssertEnqueued(t, tasks.TypeRouterDispatch)
 
 	enqueuedTasks := harness.mock.Tasks()
@@ -158,7 +148,6 @@ func TestHTTPTrigger_ValidRequest_Returns200AndEnqueues(t *testing.T) {
 		t.Fatalf("expected 1 enqueued task, got %d", len(enqueuedTasks))
 	}
 
-	// Verify the payload has RouterTriggerID set.
 	var payload tasks.TriggerDispatchPayload
 	if err := json.Unmarshal(enqueuedTasks[0].Payload, &payload); err != nil {
 		t.Fatalf("unmarshal payload: %v", err)
@@ -203,7 +192,3 @@ func TestHTTPTrigger_NoSecret_AcceptsAnyRequest(t *testing.T) {
 	}
 	harness.mock.AssertEnqueued(t, tasks.TypeRouterDispatch)
 }
-
-// Note: Tests for empty body, invalid trigger ID, missing/invalid secrets, and extractTriggerSecret
-// were removed as they test library/framework behavior rather than business logic.
-// See USELESS_TESTS_RECOMMENDATIONS.md for details.

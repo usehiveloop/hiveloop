@@ -89,9 +89,9 @@ func (h *AdminHandler) Impersonate(w http.ResponseWriter, r *http.Request) {
 		adminEmail = admin.Email
 	}
 	middleware.SetAdminAuditChanges(r, middleware.AdminAuditChanges{
-		"action":        map[string]any{"old": nil, "new": "impersonate"},
-		"target_user_id":    map[string]any{"old": nil, "new": targetUser.ID.String()},
-		"target_email":      map[string]any{"old": nil, "new": targetUser.Email},
+		"action":             map[string]any{"old": nil, "new": "impersonate"},
+		"target_user_id":     map[string]any{"old": nil, "new": targetUser.ID.String()},
+		"target_email":       map[string]any{"old": nil, "new": targetUser.Email},
 		"impersonator_email": map[string]any{"old": nil, "new": adminEmail},
 	})
 

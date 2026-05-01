@@ -1,7 +1,5 @@
 package handler
 
-// --- Request / Response types ---
-
 type registerRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -65,4 +63,9 @@ type meResponse struct {
 	User            userResponse   `json:"user"`
 	Orgs            []orgMemberDTO `json:"orgs"`
 	IsPlatformAdmin bool           `json:"is_platform_admin"`
+}
+
+type statusResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
 }

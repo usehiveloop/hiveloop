@@ -64,7 +64,7 @@ func fakeGitHubServer(t *testing.T, sha string, tarballBody []byte) *httptest.Se
 	mux.HandleFunc("/repos/", func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/repos/")
 		parts := strings.Split(path, "/")
-		// parts: owner, repo, kind, ref
+
 		if len(parts) < 4 {
 			http.Error(w, "bad path", http.StatusNotFound)
 			return
@@ -151,7 +151,7 @@ func TestHydrateFromGit(t *testing.T) {
 
 	repoURL := "https://github.com/usehiveloop/skill-greet"
 	skill := &model.Skill{
-		OrgID:      nil, // public
+		OrgID:      nil,
 		Slug:       "git-test-" + uuid.New().String()[:8],
 		Name:       "greet",
 		SourceType: model.SkillSourceGit,
@@ -162,7 +162,7 @@ func TestHydrateFromGit(t *testing.T) {
 	if err := db.Create(skill).Error; err != nil {
 		t.Fatalf("create skill: %v", err)
 	}
-	_ = orgID // retained for symmetry; public skill has no org
+	_ = orgID
 
 	sv, err := skills.HydrateFromGit(context.Background(), db, fetcher, skill.ID)
 	if err != nil {
@@ -189,7 +189,6 @@ func TestHydrateFromGit(t *testing.T) {
 		t.Errorf("references = %+v", parsed.References)
 	}
 
-	// Second call must return the existing version (dedupe).
 	sv2, err := skills.HydrateFromGit(context.Background(), db, fetcher, skill.ID)
 	if err != nil {
 		t.Fatalf("second HydrateFromGit: %v", err)
@@ -198,7 +197,6 @@ func TestHydrateFromGit(t *testing.T) {
 		t.Errorf("expected dedupe (same id), got %v and %v", sv.ID, sv2.ID)
 	}
 
-	// Only one version should exist in the DB.
 	var count int64
 	if err := db.Model(&model.SkillVersion{}).Where("skill_id = ?", skill.ID).Count(&count).Error; err != nil {
 		t.Fatalf("count versions: %v", err)

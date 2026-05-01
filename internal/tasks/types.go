@@ -22,15 +22,15 @@ const (
 	TypeCronTriggerDispatch       = "cron_trigger:dispatch"
 
 	// Periodic tasks (scheduled by the worker)
-	TypeTokenCleanup             = "periodic:token_cleanup"
-	TypeStreamCleanup            = "periodic:stream_cleanup"
-	TypeSandboxHealthCheck       = "periodic:sandbox_health_check"
-	TypeSandboxResourceCheck     = "periodic:sandbox_resource_check"
-	TypeCronTriggerPoll          = "periodic:cron_trigger_poll"
-	TypeSandboxLifecycle         = "periodic:sandbox_lifecycle"
-	TypeCreditsExpire            = "periodic:credits_expire"
-	TypeBillingBatchProcess      = "periodic:billing_batch_process"
-	TypeBillingRenewSweep        = "periodic:billing_renew_sweep"
+	TypeTokenCleanup         = "periodic:token_cleanup"
+	TypeStreamCleanup        = "periodic:stream_cleanup"
+	TypeSandboxHealthCheck   = "periodic:sandbox_health_check"
+	TypeSandboxResourceCheck = "periodic:sandbox_resource_check"
+	TypeCronTriggerPoll      = "periodic:cron_trigger_poll"
+	TypeSandboxLifecycle     = "periodic:sandbox_lifecycle"
+	TypeCreditsExpire        = "periodic:credits_expire"
+	TypeBillingBatchProcess  = "periodic:billing_batch_process"
+	TypeBillingRenewSweep    = "periodic:billing_renew_sweep"
 
 	// On-demand task enqueued by the sweep for each due subscription.
 	TypeBillingRenewSubscription = "billing:renew_subscription"

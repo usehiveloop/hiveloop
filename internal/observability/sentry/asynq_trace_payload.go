@@ -28,8 +28,7 @@ func WrapPayloadWithCurrentTrace(ctx context.Context, body []byte) []byte {
 }
 
 func encodeTracePayload(traceHeader, baggageHeader string, body []byte) []byte {
-	// Length-prefix is uint16 — bound headers to avoid overflow on malformed input.
-	// In practice sentry trace/baggage headers are well under 64KB.
+
 	const maxHeaderLen = 65535
 	if len(traceHeader) > maxHeaderLen || len(baggageHeader) > maxHeaderLen {
 		return body

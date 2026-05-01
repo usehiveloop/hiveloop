@@ -26,8 +26,6 @@ import (
 func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	cfg := deps.Config
 
-	// Start long-running stream consumers as goroutines
-	// (sub-second ticks, not suitable for Asynq periodic tasks)
 	goroutine.Go(ctx, func(ctx context.Context) { deps.Flusher.Run(ctx) })
 
 	if deps.Retainer != nil {
@@ -35,15 +33,8 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		slog.Info("hindsight memory retainer started")
 	}
 
-	// Stream cleanup, sandbox health/resource checks, and token cleanup
-	// are now Asynq periodic tasks — no more goroutines here.
-
-	// Asynq server
 	redisOpt := cfg.AsynqRedisOpt()
 
-	// Email sender: Kibamail when configured, LogSender otherwise. The
-	// worker is the only process that actually hits Kibamail — handlers
-	// enqueue, the worker drains with built-in retries.
 	var workerSender email.Sender = &email.LogSender{}
 	if cfg.KibamailAPIKey != "" {
 		workerSender = email.NewKibamailSender(cfg.KibamailAPIKey, cfg.KibamailFromAddress, cfg.KibamailFromName)
@@ -76,14 +67,14 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 				Variables: variables,
 			})
 		},
-		SkillFetcher: skills.NewGitFetcher(cfg.GitHubToken),
-		NangoClient:  deps.NangoClient,
-		CacheManager: deps.CacheManager,
+		SkillFetcher:  skills.NewGitFetcher(cfg.GitHubToken),
+		NangoClient:   deps.NangoClient,
+		CacheManager:  deps.CacheManager,
 		Credits:       deps.Credits,
 		Subscriptions: deps.Subscriptions,
 		Enqueuer:      enqueuer,
-		Rag:          ragDeps,
-		RagScheduler: ragSched,
+		Rag:           ragDeps,
+		RagScheduler:  ragSched,
 	}
 
 	mux := tasks.NewServeMux(workerDeps)
@@ -92,18 +83,17 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	srv := asynq.NewServer(redisOpt, asynq.Config{
 		Concurrency: cfg.AsynqConcurrency,
 		Queues: map[string]int{
-			tasks.QueueCritical:    6,
-			tasks.QueueDefault:     3,
-			tasks.QueuePeriodic:    2,
-			ragtasks.QueueRagWork:  2,
-			tasks.QueueBulk:        1,
+			tasks.QueueCritical:   6,
+			tasks.QueueDefault:    3,
+			tasks.QueuePeriodic:   2,
+			ragtasks.QueueRagWork: 2,
+			tasks.QueueBulk:       1,
 		},
 		Logger:          newAsynqLogger(),
 		ShutdownTimeout: cfg.AsynqShutdownTimeout,
 		ErrorHandler:    sentryobs.AsynqErrorHandler(),
 	})
 
-	// Start Asynq server in background
 	errCh := make(chan error, 1)
 	goroutine.Go(ctx, func(ctx context.Context) {
 		slog.Info("asynq worker starting", "concurrency", cfg.AsynqConcurrency)
@@ -129,7 +119,6 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		})
 	}
 
-	// Worker health check server
 	healthMux := http.NewServeMux()
 	healthMux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -160,7 +149,6 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		_, _ = w.Write([]byte(`{"status":"ok","service":"worker"}`))
 	})
 
-	// Asynq dashboard
 	dashboard := asynqmon.New(asynqmon.Options{
 		RootPath:     "/asynq",
 		RedisConnOpt: redisOpt,
@@ -182,7 +170,6 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		}
 	})
 
-	// Wait for shutdown
 	select {
 	case <-ctx.Done():
 	case err := <-errCh:
@@ -191,10 +178,6 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 
 	slog.Info("worker shutting down")
 
-	// Shutdown intentionally decouples from the (already-cancelled) parent ctx
-	// but inherits its values so observability tags propagate. context.WithoutCancel
-	// strips cancellation while preserving values; the WithTimeout below bounds
-	// how long shutdown can take.
 	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cfg.AsynqShutdownTimeout)
 	defer cancel()
 
@@ -232,5 +215,3 @@ func (l *asynqLogger) Error(args ...any) {
 func (l *asynqLogger) Fatal(args ...any) {
 	slog.Error(fmt.Sprint(args...))
 }
-
-

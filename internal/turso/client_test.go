@@ -13,14 +13,14 @@ import (
 func mockTursoServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify auth header
+
 		if r.Header.Get("Authorization") != "Bearer test-token" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
 		switch {
-		// Create database
+
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/databases"):
 			var body struct {
 				Name  string `json:"name"`
@@ -41,14 +41,12 @@ func mockTursoServer(t *testing.T) *httptest.Server {
 				},
 			})
 
-		// Create token
 		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/auth/tokens"):
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]string{
 				"jwt": "eyJ0eXAiOiJKV1QiLCJhbGciOiJFZERTQSJ9.mock-token",
 			})
 
-		// Get database
 		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/databases/"):
 			parts := strings.Split(r.URL.Path, "/")
 			dbName := parts[len(parts)-1]
@@ -61,7 +59,6 @@ func mockTursoServer(t *testing.T) *httptest.Server {
 				},
 			})
 
-		// Delete database
 		case r.Method == http.MethodDelete && strings.Contains(r.URL.Path, "/databases/"):
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]string{"database": "deleted"})

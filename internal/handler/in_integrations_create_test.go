@@ -79,8 +79,3 @@ func TestInIntegrationHandler_Create_NangoFailure(t *testing.T) {
 		t.Fatalf("expected 502, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
-
-// Note: Tests for missing provider, missing display_name, unknown provider,
-// duplicate provider, and invalid credentials were removed as they test
-// validation library behavior without verifying business logic.
-// See USELESS_TESTS_RECOMMENDATIONS.md for details.

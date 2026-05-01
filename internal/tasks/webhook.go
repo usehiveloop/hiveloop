@@ -67,7 +67,7 @@ func (h *WebhookForwardHandler) Handle(ctx context.Context, t *asynq.Task) error
 	_, _ = io.Copy(io.Discard, resp.Body)
 
 	if resp.StatusCode >= 500 {
-		// Returning an error causes Asynq to retry with exponential backoff.
+
 		return fmt.Errorf("org endpoint returned %d", resp.StatusCode)
 	}
 

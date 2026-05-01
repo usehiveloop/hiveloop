@@ -32,7 +32,6 @@ func TestCaptureTransport_NonStreaming_OpenAI(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	// Body must still be readable
 	body, _ := io.ReadAll(resp.Body)
 	if !strings.Contains(string(body), "chatcmpl-123") {
 		t.Error("response body should be intact")

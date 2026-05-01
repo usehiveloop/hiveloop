@@ -61,7 +61,6 @@ func (r *Retainer) Run(ctx context.Context) {
 	logging.FromContext(ctx).InfoContext(ctx, "hindsight retainer started", "consumer", r.consumer)
 	defer logging.FromContext(ctx).InfoContext(ctx, "hindsight retainer stopped", "consumer", r.consumer)
 
-	// Process pending (unacknowledged) entries from a previous crash first
 	r.processPending(ctx)
 
 	ticker := time.NewTicker(retainerBlockTime)
@@ -103,11 +102,8 @@ func (r *Retainer) processAll(ctx context.Context) {
 func (r *Retainer) processStream(ctx context.Context, convID string) {
 	streamKey := r.bus.Prefix() + convID
 
-	// Ensure consumer group exists.
-	// BUSYGROUP on existing consumer group is the expected path after first call.
 	_ = r.bus.Redis().XGroupCreateMkStream(ctx, streamKey, retainerGroup, "0").Err()
 
-	// Read new messages
 	streams, err := r.bus.Redis().XReadGroup(ctx, &redis.XReadGroupArgs{
 		Group:    retainerGroup,
 		Consumer: r.consumer,
@@ -138,7 +134,6 @@ func (r *Retainer) processStream(ctx context.Context, convID string) {
 		}
 	}
 
-	// ACK all entries regardless — we only care about response_completed as a trigger
 	if len(entryIDs) > 0 {
 		r.bus.Redis().XAck(ctx, streamKey, retainerGroup, entryIDs...)
 	}
@@ -147,7 +142,6 @@ func (r *Retainer) processStream(ctx context.Context, convID string) {
 		return
 	}
 
-	// Wait briefly for the DB flusher to persist events
 	time.Sleep(flusherSettleDelay)
 
 	convUUID, err := uuid.Parse(convID)
@@ -160,7 +154,7 @@ func (r *Retainer) processStream(ctx context.Context, convID string) {
 
 // retainConversation builds the full transcript and retains it to Hindsight.
 func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
-	// Load conversation with agent
+
 	var conv model.AgentConversation
 	if err := r.db.Preload("Agent").
 		Where("id = ?", convID).First(&conv).Error; err != nil {
@@ -169,7 +163,6 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 
 	agent := conv.Agent
 
-	// Skip agents without an org (system agents)
 	if agent.OrgID == nil {
 		return
 	}
@@ -181,7 +174,6 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 		return
 	}
 
-	// Build transcript from persisted events
 	transcript, err := r.buildTranscript(convID)
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "hindsight retainer: failed to build transcript",
@@ -192,14 +184,12 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 		return
 	}
 
-	// Build context string for Hindsight
 	agentContext := agent.Name
 	if agent.Description != nil && *agent.Description != "" {
 		agentContext += " (" + *agent.Description + ")"
 	}
 	agentContext += " agent conversation"
 
-	// Retain
 	_, err = r.client.Retain(ctx, bankID, &RetainRequest{
 		Items: []RetainItem{{
 			Content:           transcript,
@@ -233,7 +223,6 @@ func (r *Retainer) buildTranscript(convID uuid.UUID) (string, error) {
 		return "", nil
 	}
 
-	// Sort by sequence_number
 	sort.Slice(events, func(i, j int) bool {
 		return events[i].SequenceNumber < events[j].SequenceNumber
 	})
@@ -333,7 +322,6 @@ func (r *Retainer) processPending(ctx context.Context) {
 		}
 		streamKey := r.bus.Prefix() + convID
 
-		// BUSYGROUP on existing consumer group is the expected path after first call.
 		_ = r.bus.Redis().XGroupCreateMkStream(ctx, streamKey, retainerGroup, "0").Err()
 
 		streams, err := r.bus.Redis().XReadGroup(ctx, &redis.XReadGroupArgs{
@@ -346,12 +334,9 @@ func (r *Retainer) processPending(ctx context.Context) {
 			continue
 		}
 
-		// Re-process the stream
 		r.processStream(ctx, convID)
 	}
 }
-
-// extractSequenceNumber pulls the sequence_number from an event payload.
 
 // isDuplicateKey checks if an error is a Postgres unique constraint violation.
 func isDuplicateKey(err error) bool {

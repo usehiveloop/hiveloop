@@ -101,7 +101,3 @@ func TestInIntegrationHandler_Update_NangoFailure(t *testing.T) {
 		t.Fatalf("expected 502, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
-
-// Note: TestInIntegrationHandler_Update_NotFound was removed as it tests
-// library/framework behavior (404 status code) without business logic.
-// See USELESS_TESTS_RECOMMENDATIONS.md for details.

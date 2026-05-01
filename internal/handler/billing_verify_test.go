@@ -80,7 +80,7 @@ func (h *verifyHarness) seedPlan(t *testing.T, slug string, priceCents int64, mo
 		t.Fatalf("create plan: %v", err)
 	}
 	t.Cleanup(func() {
-		// Drop any subs that pointed at this plan first to avoid FK violations.
+
 		h.db.Where("plan_id = ?", plan.ID).Delete(&model.Subscription{})
 		h.db.Where("id = ?", plan.ID).Delete(&model.Plan{})
 	})
@@ -164,7 +164,7 @@ func TestBillingVerify_AmountMismatchReturns402(t *testing.T) {
 
 	h.provider.NextResolveResult = &billing.ResolveCheckoutResult{
 		Status:          billing.StatusActive,
-		PaidAmountMinor: plan.PriceCents - 1, // off by one
+		PaidAmountMinor: plan.PriceCents - 1,
 		Currency:        plan.Currency,
 		Reference:       "ref_short",
 		PaidAt:          paidAt(),

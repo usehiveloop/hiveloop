@@ -177,7 +177,6 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		updates["sandbox_tools"] = pq.StringArray(req.SandboxTools)
 	}
 
-	// Validate trigger inputs per trigger_type (webhook | http | cron).
 	if req.Triggers != nil {
 		if errMsg := validateAgentTriggers(h.db, org.ID, *req.Triggers); errMsg != "" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})

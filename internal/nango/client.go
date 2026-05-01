@@ -22,17 +22,17 @@ type Client struct {
 	secretKey  string
 	httpClient *http.Client
 	mu         sync.RWMutex
-	providers  map[string]Provider        // cached provider catalog
-	templates  map[string]map[string]any  // raw provider templates for config extraction
+	providers  map[string]Provider       // cached provider catalog
+	templates  map[string]map[string]any // raw provider templates for config extraction
 }
 
 // Provider represents a Nango integration provider from the catalog.
 type Provider struct {
-	Name                    string `json:"name"`
-	DisplayName             string `json:"display_name"`
-	AuthMode                string `json:"auth_mode"`
-	ClientRegistration      string `json:"client_registration,omitempty"` // for MCP_OAUTH2
-	WebhookUserDefinedSecret bool  `json:"webhook_user_defined_secret,omitempty"`
+	Name                     string `json:"name"`
+	DisplayName              string `json:"display_name"`
+	AuthMode                 string `json:"auth_mode"`
+	ClientRegistration       string `json:"client_registration,omitempty"` // for MCP_OAUTH2
+	WebhookUserDefinedSecret bool   `json:"webhook_user_defined_secret,omitempty"`
 }
 
 // Credentials is a union type covering all Nango auth modes.
@@ -105,13 +105,11 @@ func (c *Client) FetchProviders(ctx context.Context) error {
 		return fmt.Errorf("fetching providers: %w", err)
 	}
 
-	// Nango returns {"data": [...]} for the providers list
 	rawData, ok := resp["data"]
 	if !ok {
 		return fmt.Errorf("unexpected provider response: missing 'data' key")
 	}
 
-	// Re-marshal and unmarshal to get typed providers
 	b, err := json.Marshal(rawData)
 	if err != nil {
 		return fmt.Errorf("marshaling provider data: %w", err)
@@ -122,7 +120,6 @@ func (c *Client) FetchProviders(ctx context.Context) error {
 		return fmt.Errorf("unmarshaling providers: %w", err)
 	}
 
-	// Also store raw templates for config extraction (need these before building catalog)
 	var rawProviders []map[string]any
 	if err := json.Unmarshal(b, &rawProviders); err != nil {
 		return fmt.Errorf("unmarshaling raw provider templates: %w", err)
@@ -134,7 +131,6 @@ func (c *Client) FetchProviders(ctx context.Context) error {
 		}
 	}
 
-	// Build catalog with webhook_user_defined_secret populated from templates
 	catalog := make(map[string]Provider, len(providers))
 	for _, p := range providers {
 		if tmpl, ok := templates[p.Name]; ok {
@@ -266,7 +262,6 @@ func (c *Client) CreateConnectSession(ctx context.Context, req CreateConnectSess
 		return nil, err
 	}
 
-	// Nango returns {"data": {"token": "...", "expires_at": "..."}}
 	data, ok := resp["data"].(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("unexpected connect session response: missing 'data' key")
@@ -321,8 +316,6 @@ func (c *Client) ProxyRequest(ctx context.Context, method, providerConfigKey, co
 func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerConfigKey, connectionID, path string, queryParams map[string]string, body any, headers map[string]string) (map[string]any, error) {
 	var bodyReader io.Reader
 
-	// Use reflection to check if body is effectively nil or empty
-	// This handles typed nils (map[string]interface{}(nil)) and empty collections
 	isEmptyBody := body == nil
 	if !isEmptyBody {
 		v := reflect.ValueOf(body)
@@ -342,7 +335,6 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 		bodyReader = bytes.NewReader(jsonBody)
 	}
 
-	// Build query string
 	query := ""
 	if len(queryParams) > 0 {
 		q := make([]string, 0, len(queryParams))
@@ -367,7 +359,6 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 		req.Header.Set(k, v)
 	}
 
-	// Set Nango proxy headers
 	req.Header.Set("Authorization", "Bearer "+c.secretKey)
 	req.Header.Set("Provider-Config-Key", providerConfigKey)
 	req.Header.Set("Connection-Id", connectionID)
@@ -395,10 +386,9 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 		return nil, nil
 	}
 
-	// Try to parse as JSON
 	var result map[string]any
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		// Return raw response if not JSON
+
 		return map[string]any{"_raw": string(respBody)}, nil
 	}
 

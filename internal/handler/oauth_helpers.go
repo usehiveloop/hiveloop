@@ -10,18 +10,12 @@ import (
 	"strconv"
 
 	"golang.org/x/oauth2"
-
 )
-
-// oauthProfile holds the normalised user info fetched from an OAuth provider.
-
-// provider (e.g. X/Twitter) does not return a user email.
 
 // isPlaceholderEmail reports whether the email is a generated placeholder.
 func fetchGitHubProfile(ctx context.Context, token *oauth2.Token) (*oauthProfile, error) {
 	client := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
 
-	// GET /user
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.github.com/user", nil)
 	if err != nil {
 		return nil, fmt.Errorf("building github user request: %w", err)
@@ -48,7 +42,6 @@ func fetchGitHubProfile(ctx context.Context, token *oauth2.Token) (*oauthProfile
 
 	email := ghUser.Email
 
-	// If email is not public, fetch from /user/emails.
 	if email == "" {
 		email, err = fetchGitHubPrimaryEmail(ctx, client)
 		if err != nil {
@@ -174,14 +167,10 @@ func fetchXProfile(ctx context.Context, token *oauth2.Token) (*oauthProfile, err
 
 	return &oauthProfile{
 		ProviderUserID: body.Data.ID,
-		Email:          "", // X does not provide email via API v2
+		Email:          "",
 		Name:           name,
 	}, nil
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 func (h *OAuthHandler) redirectError(w http.ResponseWriter, r *http.Request, errCode string) {
 	h.clearStateCookie(w)

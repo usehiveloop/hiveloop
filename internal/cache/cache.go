@@ -86,11 +86,11 @@ func (m *Manager) GetDecryptedCredentialByID(ctx context.Context, credentialID s
 // L1 hit → ~0.01ms, L2 hit → ~0.5ms, L3 hit → ~3-8ms.
 // Uses singleflight to deduplicate concurrent requests for the same credential.
 func (m *Manager) GetDecryptedCredential(ctx context.Context, credentialID string, orgID uuid.UUID) (*DecryptedCredential, error) {
-	// L1: Check in-memory cache
+
 	if cached, ok := m.memory.Get(credentialID); ok && cached.OrgID == orgID {
 		buf, err := cached.Enclave.Open()
 		if err != nil {
-			// Enclave corrupted — fall through to lower tiers
+
 			m.memory.Invalidate(credentialID)
 		} else {
 			apiKey := make([]byte, buf.Size())
@@ -104,7 +104,6 @@ func (m *Manager) GetDecryptedCredential(ctx context.Context, credentialID strin
 		}
 	}
 
-	// Singleflight: collapse concurrent requests for same credential
 	v, err, _ := m.flight.Do(credentialID, func() (any, error) {
 		return m.resolveFromLowerTiers(ctx, credentialID, orgID)
 	})
@@ -116,18 +115,18 @@ func (m *Manager) GetDecryptedCredential(ctx context.Context, credentialID strin
 
 // resolveFromLowerTiers checks L2 then L3, promoting results upward.
 func (m *Manager) resolveFromLowerTiers(ctx context.Context, credentialID string, orgID uuid.UUID) (*DecryptedCredential, error) {
-	// L2: Check Redis
+
 	redisCred, err := m.redisCache.Get(ctx, credentialID)
 	if err != nil {
-		// Redis error — fall through to L3 (graceful degradation)
+
 		redisCred = nil
 	}
 
 	if redisCred != nil && redisCred.OrgID == orgID.String() {
-		// Decrypt using DEK (may be cached in DEKCache)
+
 		apiKey, err := m.decryptWithDEKCache(ctx, credentialID, redisCred.EncryptedKey, redisCred.WrappedDEK)
 		if err != nil {
-			// Decryption failed — fall through to L3
+
 			_ = m.redisCache.Invalidate(ctx, credentialID)
 		} else {
 			cred := &DecryptedCredential{
@@ -135,13 +134,12 @@ func (m *Manager) resolveFromLowerTiers(ctx context.Context, credentialID string
 				BaseURL:    redisCred.BaseURL,
 				AuthScheme: redisCred.AuthScheme,
 			}
-			// Promote to L1
+
 			m.promoteToL1(credentialID, orgID, apiKey, redisCred.BaseURL, redisCred.AuthScheme)
 			return cred, nil
 		}
 	}
 
-	// L3: Postgres + KMS (cold path)
 	return m.resolveFromDB(ctx, credentialID, orgID)
 }
 
@@ -158,27 +156,23 @@ func (m *Manager) resolveFromDB(ctx context.Context, credentialID string, orgID 
 		return nil, fmt.Errorf("db lookup: %w", err)
 	}
 
-	// Unwrap DEK via KMS
 	dek, err := m.kms.Unwrap(ctx, dbCred.WrappedDEK)
 	if err != nil {
 		return nil, fmt.Errorf("kms unwrap: %w", err)
 	}
 
-	// Decrypt API key
 	apiKey, err := crypto.DecryptCredential(dbCred.EncryptedKey, dek)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt: %w", err)
 	}
 
-	// Cache DEK in DEKCache
 	dekEnclave := memguard.NewEnclave(dek)
 	m.dekCache.Set(credentialID, dekEnclave)
-	// Zero the plaintext DEK
+
 	for i := range dek {
 		dek[i] = 0
 	}
 
-	// Promote to L2 (Redis — still-encrypted values)
 	_ = m.redisCache.Set(ctx, credentialID, &RedisCredential{
 		EncryptedKey: dbCred.EncryptedKey,
 		WrappedDEK:   dbCred.WrappedDEK,
@@ -187,7 +181,6 @@ func (m *Manager) resolveFromDB(ctx context.Context, credentialID string, orgID 
 		OrgID:        orgID.String(),
 	})
 
-	// Promote to L1 (memory — sealed plaintext)
 	m.promoteToL1(credentialID, orgID, apiKey, dbCred.BaseURL, dbCred.AuthScheme)
 
 	return &DecryptedCredential{
@@ -200,7 +193,7 @@ func (m *Manager) resolveFromDB(ctx context.Context, credentialID string, orgID 
 // decryptWithDEKCache decrypts an API key using a DEK from the DEK cache
 // (or falls back to KMS unwrap if the DEK isn't cached).
 func (m *Manager) decryptWithDEKCache(ctx context.Context, credentialID string, encryptedKey, wrappedDEK []byte) ([]byte, error) {
-	// Try DEK cache first
+
 	if enclave, ok := m.dekCache.Get(credentialID); ok {
 		buf, err := enclave.Open()
 		if err == nil {
@@ -216,11 +209,10 @@ func (m *Manager) decryptWithDEKCache(ctx context.Context, credentialID string, 
 				return apiKey, nil
 			}
 		}
-		// DEK cache entry corrupted — invalidate and fall through
+
 		m.dekCache.Invalidate(credentialID)
 	}
 
-	// DEK not cached — unwrap via KMS
 	dek, err := m.kms.Unwrap(ctx, wrappedDEK)
 	if err != nil {
 		return nil, fmt.Errorf("kms unwrap: %w", err)
@@ -234,7 +226,6 @@ func (m *Manager) decryptWithDEKCache(ctx context.Context, credentialID string, 
 		return nil, fmt.Errorf("decrypt: %w", err)
 	}
 
-	// Cache the unwrapped DEK
 	dekEnclave := memguard.NewEnclave(dek)
 	m.dekCache.Set(credentialID, dekEnclave)
 	for i := range dek {
@@ -275,12 +266,11 @@ func (m *Manager) InvalidateCredential(ctx context.Context, credentialID string)
 
 // InvalidateToken marks a token as revoked across all tiers.
 func (m *Manager) InvalidateToken(ctx context.Context, jti string, ttl time.Duration) error {
-	// Add to local in-memory set
+
 	m.invalidator.revokedMu.Lock()
 	m.invalidator.revokedSet[jti] = struct{}{}
 	m.invalidator.revokedMu.Unlock()
 
-	// Store in Redis with TTL
 	if err := m.revokedTok.MarkRevoked(ctx, jti, ttl); err != nil {
 		return fmt.Errorf("redis mark revoked: %w", err)
 	}
@@ -291,26 +281,24 @@ func (m *Manager) InvalidateToken(ctx context.Context, jti string, ttl time.Dura
 // IsTokenRevoked checks all tiers for token revocation.
 // L1 (in-memory set) → L2 (Redis) → L3 (Postgres).
 func (m *Manager) IsTokenRevoked(ctx context.Context, jti string) (bool, error) {
-	// L1: in-memory set
+
 	if m.invalidator.IsTokenLocallyRevoked(jti) {
 		return true, nil
 	}
 
-	// L2: Redis
 	revoked, err := m.revokedTok.IsRevoked(ctx, jti)
 	if err != nil {
-		// Redis down — fall through to DB
+
 		revoked = false
 	}
 	if revoked {
-		// Promote to L1
+
 		m.invalidator.revokedMu.Lock()
 		m.invalidator.revokedSet[jti] = struct{}{}
 		m.invalidator.revokedMu.Unlock()
 		return true, nil
 	}
 
-	// L3: Postgres
 	var count int64
 	err = m.db.WithContext(ctx).
 		Model(&model.Token{}).
@@ -320,7 +308,7 @@ func (m *Manager) IsTokenRevoked(ctx context.Context, jti string) (bool, error) 
 		return false, fmt.Errorf("db revocation check: %w", err)
 	}
 	if count > 0 {
-		// Promote to L2 + L1
+
 		_ = m.revokedTok.MarkRevoked(ctx, jti, 24*time.Hour)
 		m.invalidator.revokedMu.Lock()
 		m.invalidator.revokedSet[jti] = struct{}{}
@@ -342,8 +330,6 @@ func (m *Manager) Memory() *MemoryCache { return m.memory }
 
 // Invalidator returns the invalidator (for starting the subscription goroutine).
 func (m *Manager) Invalidator() *Invalidator { return m.invalidator }
-
-// --- Helper for building a complete Manager from config ---
 
 // Config holds all parameters needed to construct a cache Manager.
 type Config struct {

@@ -70,11 +70,11 @@ func (ct *CaptureTransport) RoundTrip(req *http.Request) (*http.Response, error)
 	captured.IsStreaming = isSSE
 
 	if resp.StatusCode >= 400 {
-		// Capture error responses but don't parse usage
+
 		captured.TotalMs = int(time.Since(start).Milliseconds())
 		captured.TTFBMs = captured.TotalMs
 		captured.ErrorType = classifyHTTPError(resp.StatusCode)
-		// Read a snippet for error message
+
 		if resp.Body != nil {
 			snippet := make([]byte, 512)
 			n, _ := resp.Body.Read(snippet)
@@ -83,7 +83,7 @@ func (ct *CaptureTransport) RoundTrip(req *http.Request) (*http.Response, error)
 				resp.Body = io.NopCloser(io.MultiReader(bytes.NewReader(snippet[:n]), resp.Body))
 			}
 		}
-		// 4xx are normal user-facing errors; 5xx warrant capture.
+
 		if resp.StatusCode >= 500 {
 			logging.FromContext(req.Context()).ErrorContext(req.Context(), "proxy upstream 5xx response",
 				"method", req.Method,
@@ -121,7 +121,7 @@ func (ct *CaptureTransport) captureNonStreaming(resp *http.Response, captured *o
 	body, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	captured.TotalMs = int(time.Since(start).Milliseconds())
-	captured.TTFBMs = captured.TotalMs // for non-streaming, TTFB ≈ total
+	captured.TTFBMs = captured.TotalMs
 
 	if err == nil && len(body) > 0 {
 		captured.Usage = toObserveUsage(ParseUsageNonStreaming(captured.ProviderID, body))

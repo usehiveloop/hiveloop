@@ -135,6 +135,7 @@ func (h *AdminHandler) EndConversation(w http.ResponseWriter, r *http.Request) {
 	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin: conversation ended", "conversation_id", id)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ended"})
 }
+
 // ListGenerations handles GET /admin/v1/generations.
 // @Summary List all generations
 // @Description Returns LLM generations across all organizations.
@@ -220,7 +221,6 @@ func (h *AdminHandler) GenerationStats(w http.ResponseWriter, r *http.Request) {
 	stats.TotalInput = totals.Input
 	stats.TotalOutput = totals.Output
 
-	// By provider
 	q2 := h.db.Model(&model.Generation{})
 	if orgID := r.URL.Query().Get("org_id"); orgID != "" {
 		q2 = q2.Where("org_id = ?", orgID)
@@ -228,7 +228,6 @@ func (h *AdminHandler) GenerationStats(w http.ResponseWriter, r *http.Request) {
 	q2.Select("provider_id, COUNT(*) as count, COALESCE(SUM(cost), 0) as cost, COALESCE(SUM(input_tokens), 0) as input_tokens, COALESCE(SUM(output_tokens), 0) as output_tokens").
 		Group("provider_id").Order("count DESC").Limit(20).Scan(&stats.ByProvider)
 
-	// By model
 	q3 := h.db.Model(&model.Generation{})
 	if orgID := r.URL.Query().Get("org_id"); orgID != "" {
 		q3 = q3.Where("org_id = ?", orgID)

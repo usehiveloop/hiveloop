@@ -126,7 +126,7 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 			}
 			return externalID, fmt.Errorf("%s", errMsg)
 		case "building", "pending", "":
-			// per-tick state; no log
+
 		default:
 			logging.FromContext(ctx).WarnContext(ctx, "unknown snapshot state", "external_id", externalID, "state", status.State)
 		}

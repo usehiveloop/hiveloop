@@ -1,6 +1,3 @@
-// Package catalog provides an embedded actions catalog for integration providers.
-// Each provider's JSON is stored as a separate file under providers/ and embedded
-// at build time via go:embed, giving O(1) provider/action lookups and zero network latency.
 package catalog
 
 import (
@@ -239,7 +236,6 @@ func mustParse() *Catalog {
 		subscribableByProv: make(map[string]map[string]SubscribableResource),
 	}
 
-	// Parse *.actions.json files.
 	entries, err := fs.ReadDir(providersFS, "providers")
 	if err != nil {
 		panic("catalog: failed to read embedded providers directory: " + err.Error())
@@ -269,7 +265,6 @@ func mustParse() *Catalog {
 		c.providers[providerKey] = &pa
 	}
 
-	// Parse *.triggers.json files.
 	triggerEntries, err := fs.ReadDir(triggersFS, "providers")
 	if err != nil {
 		panic("catalog: failed to read embedded triggers directory: " + err.Error())
@@ -299,7 +294,6 @@ func mustParse() *Catalog {
 		c.triggers[providerKey] = &pt
 	}
 
-	// Parse *.resources.json files — subscribable-event catalog per provider.
 	resourceEntries, err := fs.ReadDir(resourcesFS, "providers")
 	if err != nil {
 		panic("catalog: failed to read embedded resources directory: " + err.Error())
@@ -328,7 +322,6 @@ func mustParse() *Catalog {
 			panic("catalog: " + name + " is missing the top-level \"provider\" field")
 		}
 
-		// Per-provider map for fast listing.
 		if _, exists := c.subscribableByProv[psr.Provider]; !exists {
 			c.subscribableByProv[psr.Provider] = make(map[string]SubscribableResource)
 		}
@@ -348,11 +341,6 @@ func mustParse() *Catalog {
 		}
 	}
 
-	// github-app-code-reviews is a second GitHub App used solely so a separate
-	// bot identity can review PRs opened by the primary github-app. It shares
-	// every action, trigger, and subscribable resource with github-app, so we
-	// alias it here rather than duplicating JSON files (which would also
-	// collide on the global subscribable resource_type uniqueness check).
 	if p, ok := c.providers["github-app"]; ok {
 		c.providers["github-app-code-reviews"] = p
 	}
@@ -503,7 +491,6 @@ func (c *Catalog) ValidateResources(provider string, actions []string, requested
 		return fmt.Errorf("unknown provider %q in actions catalog", provider)
 	}
 
-	// Build set of valid resource types from the listed actions
 	validResourceTypes := make(map[string]bool)
 	for _, actionKey := range actions {
 		if action, ok := p.Actions[actionKey]; ok && action.ResourceType != "" {
@@ -512,12 +499,11 @@ func (c *Catalog) ValidateResources(provider string, actions []string, requested
 	}
 
 	for resourceType, requestedIDs := range requestedResources {
-		// Check resource type is valid for these actions
+
 		if !validResourceTypes[resourceType] {
 			return fmt.Errorf("resource type %q does not match any listed action for provider %q", resourceType, provider)
 		}
 
-		// Check each requested ID is in the allowed set (nil means no restrictions)
 		if allowedResources != nil {
 			allowedIDs := allowedResources[resourceType]
 			allowedSet := make(map[string]bool, len(allowedIDs))
@@ -536,8 +522,6 @@ func (c *Catalog) ValidateResources(provider string, actions []string, requested
 	return nil
 }
 
-// --- Trigger lookup methods ---
-
 // GetProviderTriggers returns all trigger definitions for a provider.
 func (c *Catalog) GetProviderTriggers(provider string) (*ProviderTriggers, bool) {
 	pt, ok := c.triggers[provider]
@@ -547,7 +531,7 @@ func (c *Catalog) GetProviderTriggers(provider string) (*ProviderTriggers, bool)
 // GetProviderTriggersForVariant looks up triggers by stripping common suffixes
 // from variant provider names (e.g., "github-app" → "github", "jira-basic" → "jira").
 func (c *Catalog) GetProviderTriggersForVariant(variant string) (*ProviderTriggers, bool) {
-	// Try progressively shorter prefixes by stripping dash-separated suffixes.
+
 	name := variant
 	for {
 		idx := strings.LastIndex(name, "-")
@@ -640,8 +624,6 @@ func (c *Catalog) ListProvidersWithTriggers() []string {
 	sort.Strings(names)
 	return names
 }
-
-// --- Subscribable resource lookup methods ---
 
 // GetSubscribableResource returns the subscribable-resource definition for a
 // given resource_type (e.g. "github_pull_request") together with the

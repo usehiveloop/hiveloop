@@ -57,10 +57,7 @@ const (
 
 // streamFromRedis streams events from Redis Streams (multi-subscriber, resumable).
 func (h *ConversationHandler) streamFromRedis(w http.ResponseWriter, r *http.Request, conv *model.AgentConversation) {
-	// Parse Last-Event-ID for resume support. Default is live-only ("$"):
-	// clients should hydrate history via GET /history first, then open the
-	// stream. Replaying the entire retained window on every connect is
-	// wasteful and inconsistent with the DB (which keeps everything).
+
 	cursor := r.Header.Get("Last-Event-ID")
 	if cursor == "" {
 		cursor = "$"
@@ -74,20 +71,14 @@ func (h *ConversationHandler) streamFromRedis(w http.ResponseWriter, r *http.Req
 
 	rc := http.NewResponseController(w)
 
-	// Tell EventSource to wait 5s before reconnecting on disconnect (default
-	// is 3s; a bit of backoff smooths deploy rollouts).
 	if err := writeSSEFrame(w, rc, "retry: 5000\n\n"); err != nil {
 		return
 	}
-	// Synthetic "ready" so the frontend can distinguish "connected but no
-	// events yet" from "still connecting".
+
 	if err := writeSSEFrame(w, rc, "event: ready\ndata: {}\n\n"); err != nil {
 		return
 	}
 
-	// Subscribe to the conversation's Redis Stream. The EventBus is shared
-	// across all SSE subscribers on this pod via a single per-conversation
-	// tap goroutine — see internal/streaming/bus.go.
 	streamCtx, cancelStream := context.WithCancel(r.Context())
 	defer cancelStream()
 	events := h.eventBus.Subscribe(streamCtx, conv.ID.String(), cursor)
@@ -106,13 +97,9 @@ func (h *ConversationHandler) streamFromRedis(w http.ResponseWriter, r *http.Req
 		select {
 		case event, ok := <-events:
 			if !ok {
-				return // upstream closed (ctx cancelled, tap stopped, or evicted)
+				return
 			}
 
-			// Strip redundant envelope fields for over-the-wire efficiency.
-			// The browser already knows conversation_id (from URL) and
-			// agent_id (from conversation metadata); they stay in Redis/DB
-			// for the flusher and history endpoint.
 			trimmed := trimSSEEnvelope(event.Data)
 
 			frame := fmt.Sprintf("id: %s\nevent: %s\ndata: %s\n\n",
@@ -128,8 +115,7 @@ func (h *ConversationHandler) streamFromRedis(w http.ResponseWriter, r *http.Req
 			}
 
 		case <-authTicker.C:
-			// Re-verify that the caller still owns this conversation.
-			// Drops silently if membership/key was revoked since connect.
+
 			if !h.stillAuthorized(r.Context(), convID, orgID) {
 				logging.FromContext(r.Context()).InfoContext(r.Context(), "SSE auth recheck failed, closing stream",
 					"conversation_id", convID)

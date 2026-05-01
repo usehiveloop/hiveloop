@@ -62,7 +62,7 @@ func (h *AdminHandler) CreateSkill(w http.ResponseWriter, r *http.Request) {
 	}
 
 	skill := model.Skill{
-		OrgID:       nil, // global skill
+		OrgID:       nil,
 		Slug:        slug,
 		Name:        req.Name,
 		Description: req.Description,
@@ -109,7 +109,6 @@ func (h *AdminHandler) CreateSkill(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusCreated, toAdminSkillResponse(skill))
 }
-
 
 // UpdateSkill handles PUT /admin/v1/skills/{id}.
 // @Summary Update a skill

@@ -4,18 +4,6 @@ import (
 	"regexp"
 )
 
-// Template syntax recognized by the dispatcher:
-//
-//   $refs.x          — bare ref reference (used in plain text and YAML scalars)
-//   {{$refs.x}}      — moustache ref reference (mustache style for instructions)
-//
-// Dispatch-time substitution resolves both ref forms ($refs.x and {{$refs.x}})
-// using the resolved refs map.
-//
-// The two ref forms exist because users write context-action paths in YAML
-// scalars (where bare $refs.x reads naturally) and instruction prompts in
-// markdown (where {{$refs.x}} reads more like a typical template).
-
 // mustacheRefRegex matches {{$refs.x}} or {{ $refs.x }} (with optional whitespace).
 var mustacheRefRegex = regexp.MustCompile(`\{\{\s*\$refs\.([\w]+)\s*\}\}`)
 

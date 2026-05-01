@@ -14,8 +14,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/streaming"
 )
 
-// --- Token Cleanup ---
-
 // TokenCleanupHandler deletes expired email verifications, password resets, and OAuth exchange tokens.
 type TokenCleanupHandler struct {
 	db *gorm.DB
@@ -34,8 +32,6 @@ func (h *TokenCleanupHandler) Handle(ctx context.Context, _ *asynq.Task) error {
 	return nil
 }
 
-// --- Stream Cleanup ---
-
 // StreamCleanupHandler removes idle conversation streams from Redis.
 type StreamCleanupHandler struct {
 	cleanup *streaming.Cleanup
@@ -49,8 +45,6 @@ func (h *StreamCleanupHandler) Handle(ctx context.Context, _ *asynq.Task) error 
 	h.cleanup.CleanIdle(ctx)
 	return nil
 }
-
-// --- Sandbox Health Check ---
 
 // SandboxHealthCheckHandler syncs sandbox status from the provider.
 type SandboxHealthCheckHandler struct {
@@ -66,8 +60,6 @@ func (h *SandboxHealthCheckHandler) Handle(ctx context.Context, _ *asynq.Task) e
 	return nil
 }
 
-// --- Sandbox Resource Check ---
-
 // SandboxResourceCheckHandler collects cgroup resource stats from running sandboxes.
 type SandboxResourceCheckHandler struct {
 	orchestrator *sandbox.Orchestrator
@@ -81,8 +73,6 @@ func (h *SandboxResourceCheckHandler) Handle(ctx context.Context, _ *asynq.Task)
 	h.orchestrator.RunResourceCheck(ctx)
 	return nil
 }
-
-// --- Credits Expire ---
 
 // CreditsExpireHandler runs the credit ledger sweep: forfeits the unused
 // portion of any plan-grant whose ExpiresAt is in the past, materialised as
@@ -98,8 +88,6 @@ func NewCreditsExpireHandler(credits *billing.CreditsService) *CreditsExpireHand
 func (h *CreditsExpireHandler) Handle(ctx context.Context, _ *asynq.Task) error {
 	return h.credits.SweepAllExpiredGrants(ctx)
 }
-
-// --- Sandbox Lifecycle ---
 
 // SandboxLifecycleHandler runs the periodic lifecycle policy:
 //   - running sandboxes idle for >10 minutes → stop

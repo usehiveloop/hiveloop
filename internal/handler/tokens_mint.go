@@ -46,7 +46,7 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ttl := time.Hour // default
+	ttl := time.Hour
 	if req.TTL != "" {
 		var err error
 		ttl, err = time.ParseDuration(req.TTL)
@@ -60,7 +60,6 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify the credential exists and belongs to this org
 	credUUID, err := uuid.Parse(req.CredentialID)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid credential_id"})
@@ -77,7 +76,6 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate refill_interval if provided
 	if req.RefillInterval != nil {
 		if _, err := time.ParseDuration(*req.RefillInterval); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid refill_interval: must be a valid Go duration (e.g. 1h, 24h)"})
@@ -85,7 +83,6 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Validate scopes against catalog and database
 	if len(req.Scopes) > 0 && h.catalog != nil {
 		if err := mcp.ValidateScopes(h.db, org.ID, h.catalog, req.Scopes); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -93,7 +90,6 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Compute scope hash for JWT claims
 	var mintOpts []token.MintOptions
 	var scopesJSON model.JSON
 	if len(req.Scopes) > 0 {
@@ -104,7 +100,6 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		}
 		mintOpts = append(mintOpts, token.MintOptions{ScopeHash: scopeHash})
 
-		// Serialize scopes to JSON for storage
 		scopeBytes, err := json.Marshal(req.Scopes)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to serialize scopes"})
@@ -112,14 +107,13 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		}
 		var scopeMap model.JSON
 		if err := json.Unmarshal(scopeBytes, &scopeMap); err != nil {
-			// Scopes is an array, store it under a "scopes" key
+
 			scopesJSON = model.JSON{"scopes": req.Scopes}
 		} else {
 			scopesJSON = scopeMap
 		}
 	}
 
-	// Mint the JWT
 	tokenStr, jti, err := token.Mint(h.signingKey, org.ID.String(), cred.ID.String(), ttl, mintOpts...)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to mint token"})
@@ -145,7 +139,6 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Seed Redis counter if a cap is configured
 	if tokenRecord.Remaining != nil && h.counter != nil {
 		_ = h.counter.SeedToken(r.Context(), jti, *tokenRecord.Remaining, ttl)
 	}
@@ -198,4 +191,3 @@ func toTokenListItem(t model.Token) tokenListItem {
 	}
 	return item
 }
-

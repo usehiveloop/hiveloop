@@ -100,8 +100,6 @@ func (h *AuthHandler) clearLoginFailures(email string) {
 	delete(h.loginAttempts, email)
 }
 
-// --- OTP Authentication ---
-
 type otpRequestPayload struct {
 	Email string `json:"email"`
 }
@@ -152,7 +150,6 @@ func (h *AuthHandler) issueTokensAndRespond(ctx context.Context, w http.Response
 		return
 	}
 
-	// Store refresh token hash for revocation tracking.
 	storedRefresh := model.RefreshToken{
 		UserID:    user.ID,
 		TokenHash: hashToken(refreshToken),
@@ -164,7 +161,6 @@ func (h *AuthHandler) issueTokensAndRespond(ctx context.Context, w http.Response
 		return
 	}
 
-	// Get org memberships for the response.
 	var memberships []model.OrgMembership
 	h.db.Preload("Org").Where("user_id = ?", user.ID).Find(&memberships)
 
