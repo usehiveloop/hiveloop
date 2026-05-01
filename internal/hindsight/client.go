@@ -30,12 +30,13 @@ func NewClient(baseURL string) *Client {
 
 // RetainItem is a single item to retain in Hindsight memory.
 type RetainItem struct {
-	Content    string            `json:"content"`
-	Context    string            `json:"context,omitempty"`
-	DocumentID string            `json:"document_id,omitempty"`
-	Tags       []string          `json:"tags,omitempty"`
-	Timestamp  string            `json:"timestamp,omitempty"`
-	Metadata   map[string]string `json:"metadata,omitempty"`
+	Content           string            `json:"content"`
+	Context           string            `json:"context,omitempty"`
+	DocumentID        string            `json:"document_id,omitempty"`
+	Tags              []string          `json:"tags,omitempty"`
+	Timestamp         string            `json:"timestamp,omitempty"`
+	Metadata          map[string]string `json:"metadata,omitempty"`
+	ObservationScopes [][]string        `json:"observation_scopes,omitempty"`
 }
 
 // RetainRequest is the request body for POST /v1/default/banks/{bankID}/memories.

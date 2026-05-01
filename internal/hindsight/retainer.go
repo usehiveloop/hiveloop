@@ -201,11 +201,12 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 	// Retain
 	_, err = r.client.Retain(ctx, bankID, &RetainRequest{
 		Items: []RetainItem{{
-			Content:    transcript,
-			Context:    agentContext,
-			DocumentID: "conv-" + convID.String(),
-			Tags:       []string{"agent:" + agent.ID.String(), "conv:" + convID.String()},
-			Timestamp:  conv.CreatedAt.Format(time.RFC3339),
+			Content:           transcript,
+			Context:           agentContext,
+			DocumentID:        "conv-" + convID.String(),
+			Tags:              []string{"agent:" + agent.ID.String(), "conv:" + convID.String()},
+			Timestamp:         conv.CreatedAt.Format(time.RFC3339),
+			ObservationScopes: [][]string{{"agent:" + agent.ID.String()}},
 		}},
 		Async: true,
 	})
@@ -269,13 +270,10 @@ func (r *Retainer) buildTranscript(convID uuid.UUID) (string, error) {
 
 // ensureOrgBankConfigured creates and configures the org-scoped Hindsight bank
 // if it doesn't exist yet, or re-applies config if it has changed.
-// Observation scopes are set per-agent so consolidated patterns stay isolated.
+// Per-agent observation scoping is set on each RetainItem in retainConversation.
 func (r *Retainer) ensureOrgBankConfigured(ctx context.Context, agent *model.Agent) error {
 	bankID := OrgBankID(*agent.OrgID)
 	memCfg := DefaultMemoryConfig()
-
-	// Per-agent observation scope so observations don't bleed across agents
-	scopes := [][]string{{"agent:" + agent.ID.String()}}
 
 	configHash := fmt.Sprintf("%x", memCfg.Hash()+"|org-"+agent.OrgID.String())
 
@@ -283,7 +281,7 @@ func (r *Retainer) ensureOrgBankConfigured(ctx context.Context, agent *model.Age
 	err := r.db.Where("bank_id = ?", bankID).First(&bank).Error
 
 	if err == gorm.ErrRecordNotFound {
-		if err := r.client.ConfigureBank(ctx, bankID, memCfg.ToBankConfigUpdate(scopes)); err != nil {
+		if err := r.client.ConfigureBank(ctx, bankID, memCfg.ToBankConfigUpdate()); err != nil {
 			return fmt.Errorf("configuring org bank: %w", err)
 		}
 
@@ -312,7 +310,7 @@ func (r *Retainer) ensureOrgBankConfigured(ctx context.Context, agent *model.Age
 	}
 
 	if bank.ConfigHash != configHash {
-		if err := r.client.ConfigureBank(ctx, bankID, memCfg.ToBankConfigUpdate(scopes)); err != nil {
+		if err := r.client.ConfigureBank(ctx, bankID, memCfg.ToBankConfigUpdate()); err != nil {
 			return fmt.Errorf("updating org bank config: %w", err)
 		}
 		r.db.Model(&bank).Update("config_hash", configHash)
