@@ -16,6 +16,7 @@ import (
 
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 	"github.com/usehiveloop/hiveloop/internal/trigger/dispatch"
@@ -58,7 +59,7 @@ func (executor *Executor) Execute(ctx context.Context, dispatches []dispatch.Age
 
 		for _, err := range errors {
 			if err != nil {
-				slog.Error("executor: agent dispatch failed", "error", err)
+				slog.Error("executor agent dispatch failed", "error", err.Error())
 			}
 		}
 	}
@@ -132,7 +133,7 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 		BridgeConversationID: conv.ConversationId,
 		SandboxID:            sb.ID,
 	}).Error; err != nil {
-		slog.Error("executor: failed to store router conversation", "error", err)
+		logging.Capture(ctx, fmt.Errorf("store router conversation: %w", err))
 	}
 
 	// 7. Build and send instructions.
@@ -142,20 +143,11 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 	}
 	instructions := buildInstructions(agentDispatch)
 
-	slog.Info("executor: sending instructions",
-		"agent", agent.Name,
-		"agent_id", agentDispatch.AgentID,
-		"conversation_id", conv.ConversationId,
-		"instruction_source", instructionSource,
-		"instruction_bytes", len(instructions),
-	)
-
 	if err := client.SendMessage(ctx, conv.ConversationId, instructions); err != nil {
 		return fmt.Errorf("sending instructions to %s: %w", agent.Name, err)
 	}
 
-	slog.Info("executor: conversation created",
-		"agent", agent.Name,
+	slog.Info("executor conversation created",
 		"agent_id", agentDispatch.AgentID,
 		"conversation_id", conv.ConversationId,
 		"resource_key", agentDispatch.ResourceKey,

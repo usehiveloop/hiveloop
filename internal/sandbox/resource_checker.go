@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -39,7 +40,6 @@ type resourceStats struct {
 func (o *Orchestrator) StartResourceChecker(ctx context.Context) {
 	interval := o.cfg.SandboxResourceCheckInterval
 	if interval <= 0 {
-		slog.Info("sandbox resource checker disabled (interval <= 0)")
 		return
 	}
 
@@ -50,7 +50,6 @@ func (o *Orchestrator) StartResourceChecker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("sandbox resource checker stopped")
 			return
 		case <-ticker.C:
 			o.RunResourceCheck(ctx)
@@ -71,8 +70,6 @@ func (o *Orchestrator) RunResourceCheck(ctx context.Context) {
 		return
 	}
 
-	slog.Info("resource check: collecting stats", "sandbox_count", len(sandboxes))
-
 	for i := range sandboxes {
 		sb := &sandboxes[i]
 		o.collectSandboxResources(ctx, sb)
@@ -84,21 +81,13 @@ func (o *Orchestrator) RunResourceCheck(ctx context.Context) {
 func (o *Orchestrator) collectSandboxResources(ctx context.Context, sb *model.Sandbox) {
 	output, err := o.provider.ExecuteCommand(ctx, sb.ExternalID, cgroupCommand)
 	if err != nil {
-		slog.Warn("resource check: execute failed",
-			"sandbox_id", sb.ID,
-			"external_id", sb.ExternalID,
-			"error", err,
-		)
+		logging.Capture(ctx, fmt.Errorf("resource check execute sandbox %s: %w", sb.ID, err))
 		return
 	}
 
 	stats, err := parseCgroupOutput(output)
 	if err != nil {
-		slog.Warn("resource check: parse failed",
-			"sandbox_id", sb.ID,
-			"output", output,
-			"error", err,
-		)
+		logging.Capture(ctx, fmt.Errorf("resource check parse sandbox %s: %w", sb.ID, err))
 		return
 	}
 
@@ -115,17 +104,9 @@ func (o *Orchestrator) collectSandboxResources(ctx context.Context, sb *model.Sa
 	}
 
 	if err := o.db.Model(sb).Updates(updates).Error; err != nil {
-		slog.Error("resource check: db update failed", "sandbox_id", sb.ID, "error", err)
+		logging.Capture(ctx, fmt.Errorf("resource check db update sandbox %s: %w", sb.ID, err))
 		return
 	}
-
-	slog.Debug("resource check: collected",
-		"sandbox_id", sb.ID,
-		"mem_used_mb", stats.MemoryUsedBytes/(1024*1024),
-		"mem_limit_mb", stats.MemoryLimitBytes/(1024*1024),
-		"cpu_usage_usec", stats.CPUUsageUsec,
-		"pids", stats.PIDCount,
-	)
 }
 
 // parseCgroupOutput parses the 7-line output from cgroupCommand.

@@ -177,7 +177,6 @@ func seedGroup(db *gorm.DB, group *subagentGroup) error {
 		return fmt.Errorf("seeding subagent %s: %w", group.name, result.Error)
 	}
 
-	slog.Debug("subagent seeded", "name", group.name, "providers", len(group.providers))
 	return nil
 }
 

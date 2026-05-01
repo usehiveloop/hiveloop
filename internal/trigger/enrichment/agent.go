@@ -66,21 +66,6 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 		connMap[conn.Connection.ID.String()] = conn
 	}
 
-	for connID, conn := range connMap {
-		logger.Debug("enrichment: connection available",
-			"conn_id", connID,
-			"provider", conn.Provider,
-			"read_actions", len(conn.ReadActions),
-		)
-	}
-
-	for refKey, refValue := range input.Refs {
-		logger.Debug("enrichment: ref",
-			"key", refKey,
-			"value", refValue,
-		)
-	}
-
 	var composedMessage string
 	var fetchResults []fetchResultEntry
 	fetchCount := 0
@@ -95,27 +80,12 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 	systemPrompt := getEnrichmentPrompt(providerGroup)
 	userMessage := buildUserMessage(input)
 
-	logger.Debug("enrichment: system prompt selected",
-		"provider_group", providerGroup,
-		"prompt_bytes", len(systemPrompt),
-	)
-	logger.Debug("enrichment: user message built",
-		"message_bytes", len(userMessage),
-	)
-
 	messages := []hiveloop.Message{
 		{Role: "system", Content: systemPrompt},
 		{Role: "user", Content: userMessage},
 	}
 
 	for turn := 0; turn < agent.maxTurns; turn++ {
-		turnStart := time.Now()
-		logger.Info("enrichment: llm turn starting",
-			"turn", turn+1,
-			"max_turns", agent.maxTurns,
-			"message_count", len(messages),
-		)
-
 		resp, err := client.ChatCompletion(ctx, hiveloop.CompletionRequest{
 			Model:      modelID,
 			Messages:   messages,
@@ -124,40 +94,16 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 			MaxTokens:  4096,
 		})
 		if err != nil {
-			logger.Error("enrichment: llm call failed",
-				"turn", turn+1,
-				"error", err,
-				"latency_ms", time.Since(turnStart).Milliseconds(),
-			)
 			return nil, fmt.Errorf("enrichment agent turn %d: %w", turn+1, err)
 		}
 
-		llmLatency := time.Since(turnStart).Milliseconds()
 		assistantMsg := resp.Message
 
 		if len(assistantMsg.ToolCalls) == 0 {
-			logger.Warn("enrichment: llm produced text instead of tool calls",
+			logger.Warn("enrichment llm produced text instead of tool calls",
 				"turn", turn+1,
-				"content", truncateString(assistantMsg.Content, 200),
-				"llm_latency_ms", llmLatency,
 			)
 			break
-		}
-
-		logger.Info("enrichment: llm turn complete",
-			"turn", turn+1,
-			"tool_calls", len(assistantMsg.ToolCalls),
-			"llm_latency_ms", llmLatency,
-		)
-
-		for callIndex, toolCall := range assistantMsg.ToolCalls {
-			logger.Info("enrichment: tool call",
-				"turn", turn+1,
-				"call_index", callIndex,
-				"tool", toolCall.Name,
-				"call_id", toolCall.ID,
-				"arguments", truncateString(toolCall.Arguments, 500),
-			)
 		}
 
 		messages = append(messages, assistantMsg)
@@ -165,9 +111,8 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 		for _, toolCall := range assistantMsg.ToolCalls {
 			handler, ok := handlers[toolCall.Name]
 			if !ok {
-				logger.Warn("enrichment: unknown tool called",
+				logger.Warn("enrichment unknown tool called",
 					"tool", toolCall.Name,
-					"call_id", toolCall.ID,
 				)
 				messages = append(messages, hiveloop.Message{
 					Role:       "tool",
@@ -178,17 +123,9 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 				continue
 			}
 
-			handlerStart := time.Now()
 			result, done, handlerErr := handler(ctx, toolCall.ID, json.RawMessage(toolCall.Arguments))
-			handlerLatency := time.Since(handlerStart).Milliseconds()
 
 			if handlerErr != nil {
-				logger.Warn("enrichment: tool handler error",
-					"tool", toolCall.Name,
-					"call_id", toolCall.ID,
-					"error", handlerErr,
-					"handler_latency_ms", handlerLatency,
-				)
 				messages = append(messages, hiveloop.Message{
 					Role:       "tool",
 					ToolCallID: toolCall.ID,
@@ -197,14 +134,6 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 				})
 				continue
 			}
-
-			logger.Info("enrichment: tool handler success",
-				"tool", toolCall.Name,
-				"call_id", toolCall.ID,
-				"result_bytes", len(result),
-				"done", done,
-				"handler_latency_ms", handlerLatency,
-			)
 
 			messages = append(messages, hiveloop.Message{
 				Role:       "tool",
@@ -215,12 +144,6 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 
 			if done {
 				totalLatency := int(time.Since(started).Milliseconds())
-				logger.Info("enrichment: finished via compose",
-					"total_turns", turn+1,
-					"total_fetches", fetchCount,
-					"composed_message_bytes", len(composedMessage),
-					"total_latency_ms", totalLatency,
-				)
 				return &EnrichmentResult{
 					ComposedMessage: composedMessage,
 					FetchCount:      fetchCount,
@@ -234,10 +157,9 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 	totalLatency := int(time.Since(started).Milliseconds())
 	if composedMessage == "" {
 		composedMessage = buildFallbackMessage(input, fetchResults)
-		logger.Warn("enrichment: max turns reached, using fallback compose",
+		logger.Warn("enrichment max turns reached, using fallback compose",
 			"max_turns", agent.maxTurns,
 			"total_fetches", fetchCount,
-			"fallback_message_bytes", len(composedMessage),
 			"total_latency_ms", totalLatency,
 		)
 	}

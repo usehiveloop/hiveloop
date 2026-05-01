@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"sync"
 
 	"github.com/redis/go-redis/v9"
@@ -88,13 +87,6 @@ func (b *EventBus) Publish(ctx context.Context, convID string, eventType string,
 	if err != nil {
 		return "", fmt.Errorf("XADD: %w", err)
 	}
-
-	slog.Info("eventbus.Publish: event added",
-		"stream_key", b.streamKey(convID),
-		"event_type", eventType,
-		"entry_id", result,
-		"conversation_id", convID,
-	)
 
 	b.redis.SAdd(ctx, b.prefix+"active", convID)
 

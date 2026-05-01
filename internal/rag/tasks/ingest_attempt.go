@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"math"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
@@ -113,8 +113,7 @@ func finalizeAttempt(
 				Model(&ragmodel.RAGSource{}).
 				Where("id = ?", src.ID).
 				Update("status", ragmodel.RAGSourceStatusError).Error; err != nil {
-				slog.Warn("rag finalize: flip INITIAL_INDEXING → ERROR failed",
-					"source_id", src.ID, "err", err)
+				logging.Capture(ctx, fmt.Errorf("rag finalize flip INITIAL_INDEXING->ERROR source=%s: %w", src.ID, err))
 			}
 		}
 		return runErr
@@ -135,8 +134,7 @@ func finalizeAttempt(
 		}
 		srcUpd["total_docs_indexed"] = int(n) //nolint:gosec // bounded above
 	} else {
-		slog.Warn("rag finalize: count by source failed; leaving total_docs_indexed unchanged",
-			"source_id", src.ID, "err", err)
+		logging.Capture(ctx, fmt.Errorf("rag finalize count by source=%s: %w", src.ID, err))
 	}
 	if (src.Status == ragmodel.RAGSourceStatusInitialIndexing ||
 		src.Status == ragmodel.RAGSourceStatusError) && stats.docsBatched > 0 {
@@ -148,13 +146,13 @@ func finalizeAttempt(
 		Updates(srcUpd).Error; err != nil {
 		return fmt.Errorf("finalize source %s: %w", src.ID, err)
 	}
-	debitWebsiteCredits(deps, src, a, stats)
+	debitWebsiteCredits(ctx, deps, src, a, stats)
 	return nil
 }
 
 // debitWebsiteCredits charges the org for a website crawl. Idempotent on
 // (rag_source_attempt_credit, attempt.ID) — retries can't double-charge.
-func debitWebsiteCredits(deps *Deps, src *ragmodel.RAGSource, a *ragmodel.RAGIndexAttempt, stats ingestStats) {
+func debitWebsiteCredits(ctx context.Context, deps *Deps, src *ragmodel.RAGSource, a *ragmodel.RAGIndexAttempt, stats ingestStats) {
 	if deps.Credits == nil || src.KindValue != ragmodel.RAGSourceKindWebsite || stats.docsBatched <= 0 {
 		return
 	}
@@ -164,8 +162,8 @@ func debitWebsiteCredits(deps *Deps, src *ragmodel.RAGSource, a *ragmodel.RAGInd
 		"rag_website_crawl", "rag_source_attempt_credit", a.ID.String(),
 	)
 	if err != nil && !errors.Is(err, billing.ErrAlreadyRecorded) {
-		slog.Warn("rag finalize: credit spend failed",
-			"source_id", src.ID, "attempt_id", a.ID, "amount", amount, "err", err)
+		logging.FromContext(ctx).Warn("rag finalize: credit spend failed",
+			"source_id", src.ID, "attempt_id", a.ID, "amount", amount, "error", err)
 	}
 }
 
@@ -182,16 +180,14 @@ func stampDocsEstimated(
 	}
 	count, err := est.EstimateTotal(ctx, src)
 	if err != nil {
-		slog.Warn("rag ingest: estimate total failed",
-			"source_id", src.ID, "attempt_id", attempt.ID, "err", err)
+		logging.Capture(ctx, fmt.Errorf("rag ingest estimate total source=%s attempt=%s: %w", src.ID, attempt.ID, err))
 		return
 	}
 	if err := db.WithContext(ctx).
 		Model(&ragmodel.RAGIndexAttempt{}).
 		Where("id = ?", attempt.ID).
 		Update("docs_estimated", count).Error; err != nil {
-		slog.Warn("rag ingest: persist docs_estimated failed",
-			"attempt_id", attempt.ID, "err", err)
+		logging.Capture(ctx, fmt.Errorf("rag ingest persist docs_estimated attempt=%s: %w", attempt.ID, err))
 		return
 	}
 	attempt.DocsEstimated = &count
@@ -216,8 +212,7 @@ func bumpAttemptProgress(
 			"last_progress_time": now,
 			"time_updated":       now,
 		}).Error; err != nil {
-		slog.Warn("rag ingest: bump progress failed",
-			"attempt_id", attemptID, "err", err)
+		logging.Capture(ctx, fmt.Errorf("rag ingest bump progress attempt=%s: %w", attemptID, err))
 	}
 }
 
@@ -253,7 +248,6 @@ func recordAttemptError(
 		row.FailedTimeRangeEnd = failure.FailedEntity.MissedTimeRangeEnd
 	}
 	if err := db.WithContext(ctx).Create(&row).Error; err != nil {
-		slog.Warn("rag ingest: record attempt error failed",
-			"attempt_id", attemptID, "err", err)
+		logging.Capture(ctx, fmt.Errorf("rag ingest record attempt error attempt=%s: %w", attemptID, err))
 	}
 }

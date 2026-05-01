@@ -19,6 +19,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
@@ -27,7 +28,7 @@ import (
 type BridgeWebhookHandler struct {
 	db       *gorm.DB
 	encKey   *crypto.SymmetricKey
-	eventBus EventPublisher      // nil-safe: if nil, events go directly to Postgres
+	eventBus EventPublisher       // nil-safe: if nil, events go directly to Postgres
 	enqueuer enqueue.TaskEnqueuer // nil-safe: if nil, conversation naming is skipped
 }
 
@@ -138,20 +139,8 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 	var conv model.AgentConversation
 	if err := h.db.WithContext(ctx).Where("bridge_conversation_id = ? AND sandbox_id = ?",
 		event.ConversationID, sb.ID).First(&conv).Error; err != nil {
-		slog.Warn("webhook: conversation not found",
-			"bridge_conversation_id", event.ConversationID,
-			"sandbox_id", sb.ID,
-			"event_type", event.EventType,
-		)
 		return
 	}
-
-	slog.Info("webhook: event matched",
-		"bridge_conversation_id", event.ConversationID,
-		"agent_conversation_id", conv.ID,
-		"event_type", event.EventType,
-		"sandbox_id", sb.ID,
-	)
 
 	// Build the full event JSON for Redis (SSE clients receive this as-is).
 	redisPayload, _ := json.Marshal(map[string]any{
@@ -188,10 +177,6 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 			"status":   "ended",
 			"ended_at": now,
 		})
-		slog.Info("webhook: conversation ended",
-			"conversation_id", conv.ID,
-			"bridge_conversation_id", event.ConversationID,
-		)
 	case "AgentError":
 		h.db.WithContext(ctx).Model(&conv).Update("status", "error")
 		slog.Warn("webhook: agent error",
@@ -218,17 +203,11 @@ func (h *BridgeWebhookHandler) maybeEnqueueConversationNaming(conv *model.AgentC
 	}
 	task, err := tasks.NewConversationNameTask(conv.ID)
 	if err != nil {
-		slog.Warn("webhook: failed to build conversation naming task",
-			"conversation_id", conv.ID,
-			"error", err,
-		)
+		logging.Capture(context.Background(), fmt.Errorf("build conversation naming task: %w", err))
 		return
 	}
 	if _, err := h.enqueuer.Enqueue(task); err != nil {
-		slog.Warn("webhook: failed to enqueue conversation naming task",
-			"conversation_id", conv.ID,
-			"error", err,
-		)
+		logging.Capture(context.Background(), fmt.Errorf("enqueue conversation naming task: %w", err))
 	}
 }
 
@@ -255,7 +234,6 @@ func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *m
 		)
 	}
 }
-
 
 // verifyWebhookSignature verifies the HMAC-SHA256 signature.
 // Bridge signs with: HMAC-SHA256("{timestamp}.{payload}", secret), base64-encoded.

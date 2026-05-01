@@ -139,12 +139,16 @@ lint:
 check-file-length:
 	./scripts/check-go-file-length.sh
 
+# Enforce log-emit-site budget (see scripts/check-log-budget.sh).
+check-log-budget:
+	./scripts/check-log-budget.sh
+
 # Run go vet
 vet:
 	go vet ./...
 
-# Run all checks: vet, lint, file-length, test, build
-check: vet lint check-file-length test build
+# Run all checks: vet, lint, file-length, log-budget, test, build
+check: vet lint check-file-length check-log-budget test build
 
 # Start local development stack (infra only, no proxy)
 up:

@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/usehiveloop/hiveloop/internal/logging"
 )
 
 // Client wraps the Nango API for managing integrations.
@@ -149,7 +150,7 @@ func (c *Client) FetchProviders(ctx context.Context) error {
 	c.templates = templates
 	c.mu.Unlock()
 
-	slog.Info("nango providers fetched", "count", len(catalog))
+	logging.FromContext(ctx).Info("nango client initialized", "providers", len(catalog))
 	return nil
 }
 
@@ -188,26 +189,20 @@ func (c *Client) GetProviders() []Provider {
 // CreateIntegration creates an integration in Nango.
 // POST /integrations
 func (c *Client) CreateIntegration(ctx context.Context, req CreateIntegrationRequest) error {
-	slog.Info("nango: creating integration", "unique_key", req.UniqueKey, "provider", req.Provider)
-	_, err := c.doJSON(ctx, http.MethodPost, "/integrations", req)
-	if err != nil {
-		slog.Error("nango: create integration failed", "error", err, "unique_key", req.UniqueKey)
+	if _, err := c.doJSON(ctx, http.MethodPost, "/integrations", req); err != nil {
+		logging.Capture(ctx, fmt.Errorf("nango create integration %s: %w", req.UniqueKey, err))
 		return err
 	}
-	slog.Info("nango: integration created", "unique_key", req.UniqueKey, "provider", req.Provider)
 	return nil
 }
 
 // UpdateIntegration updates an existing integration in Nango.
 // PATCH /integrations/{uniqueKey}
 func (c *Client) UpdateIntegration(ctx context.Context, uniqueKey string, req UpdateIntegrationRequest) error {
-	slog.Info("nango: updating integration", "unique_key", uniqueKey)
-	_, err := c.doJSON(ctx, http.MethodPatch, "/integrations/"+uniqueKey, req)
-	if err != nil {
-		slog.Error("nango: update integration failed", "error", err, "unique_key", uniqueKey)
+	if _, err := c.doJSON(ctx, http.MethodPatch, "/integrations/"+uniqueKey, req); err != nil {
+		logging.Capture(ctx, fmt.Errorf("nango update integration %s: %w", uniqueKey, err))
 		return err
 	}
-	slog.Info("nango: integration updated", "unique_key", uniqueKey)
 	return nil
 }
 
@@ -220,27 +215,21 @@ func (c *Client) GetIntegration(ctx context.Context, uniqueKey string) (map[stri
 // DeleteIntegration removes an integration by its unique key.
 // DELETE /integrations/{uniqueKey}
 func (c *Client) DeleteIntegration(ctx context.Context, uniqueKey string) error {
-	slog.Info("nango: deleting integration", "unique_key", uniqueKey)
-	_, err := c.doJSON(ctx, http.MethodDelete, "/integrations/"+uniqueKey, nil)
-	if err != nil {
-		slog.Error("nango: delete integration failed", "error", err, "unique_key", uniqueKey)
+	if _, err := c.doJSON(ctx, http.MethodDelete, "/integrations/"+uniqueKey, nil); err != nil {
+		logging.Capture(ctx, fmt.Errorf("nango delete integration %s: %w", uniqueKey, err))
 		return err
 	}
-	slog.Info("nango: integration deleted", "unique_key", uniqueKey)
 	return nil
 }
 
 // DeleteConnection removes a connection by its ID.
 // DELETE /connection/{connectionId}?provider_config_key={providerConfigKey}
 func (c *Client) DeleteConnection(ctx context.Context, connectionID, providerConfigKey string) error {
-	slog.Info("nango: deleting connection", "connection_id", connectionID, "provider_config_key", providerConfigKey)
 	path := fmt.Sprintf("/connection/%s?provider_config_key=%s", connectionID, providerConfigKey)
-	_, err := c.doJSON(ctx, http.MethodDelete, path, nil)
-	if err != nil {
-		slog.Error("nango: delete connection failed", "error", err, "connection_id", connectionID)
+	if _, err := c.doJSON(ctx, http.MethodDelete, path, nil); err != nil {
+		logging.Capture(ctx, fmt.Errorf("nango delete connection %s: %w", connectionID, err))
 		return err
 	}
-	slog.Info("nango: connection deleted", "connection_id", connectionID)
 	return nil
 }
 
@@ -254,13 +243,10 @@ type CreateConnectionRequest struct {
 // CreateConnection creates a connection directly in Nango (e.g. for API_KEY auth mode).
 // POST /connection
 func (c *Client) CreateConnection(ctx context.Context, req CreateConnectionRequest) error {
-	slog.Info("nango: creating connection", "connection_id", req.ConnectionID, "provider_config_key", req.ProviderConfigKey)
-	_, err := c.doJSON(ctx, http.MethodPost, "/connection", req)
-	if err != nil {
-		slog.Error("nango: create connection failed", "error", err, "connection_id", req.ConnectionID)
+	if _, err := c.doJSON(ctx, http.MethodPost, "/connection", req); err != nil {
+		logging.Capture(ctx, fmt.Errorf("nango create connection %s: %w", req.ConnectionID, err))
 		return err
 	}
-	slog.Info("nango: connection created", "connection_id", req.ConnectionID)
 	return nil
 }
 
@@ -274,10 +260,9 @@ func (c *Client) GetConnection(ctx context.Context, connectionID, providerConfig
 // CreateConnectSession creates a Nango connect session.
 // POST /connect/sessions
 func (c *Client) CreateConnectSession(ctx context.Context, req CreateConnectSessionRequest) (*ConnectSessionResponse, error) {
-	slog.Info("nango: creating connect session", "allowed_integrations", req.AllowedIntegrations)
 	resp, err := c.doJSON(ctx, http.MethodPost, "/connect/sessions", req)
 	if err != nil {
-		slog.Error("nango: create connect session failed", "error", err)
+		logging.Capture(ctx, fmt.Errorf("nango create connect session: %w", err))
 		return nil, err
 	}
 
@@ -293,7 +278,6 @@ func (c *Client) CreateConnectSession(ctx context.Context, req CreateConnectSess
 		return nil, fmt.Errorf("unexpected connect session response: missing 'token'")
 	}
 
-	slog.Info("nango: connect session created")
 	return &ConnectSessionResponse{Token: token, ExpiresAt: expiresAt}, nil
 }
 
@@ -306,10 +290,9 @@ type CreateReconnectSessionRequest struct {
 // CreateReconnectSession creates a Nango reconnect session for an existing connection.
 // POST /connect/sessions/reconnect
 func (c *Client) CreateReconnectSession(ctx context.Context, req CreateReconnectSessionRequest) (*ConnectSessionResponse, error) {
-	slog.Info("nango: creating reconnect session", "connection_id", req.ConnectionID, "integration_id", req.IntegrationID)
 	resp, err := c.doJSON(ctx, http.MethodPost, "/connect/sessions/reconnect", req)
 	if err != nil {
-		slog.Error("nango: create reconnect session failed", "error", err)
+		logging.Capture(ctx, fmt.Errorf("nango create reconnect session %s: %w", req.ConnectionID, err))
 		return nil, err
 	}
 
@@ -324,7 +307,6 @@ func (c *Client) CreateReconnectSession(ctx context.Context, req CreateReconnect
 		return nil, fmt.Errorf("unexpected reconnect session response: missing 'token'")
 	}
 
-	slog.Info("nango: reconnect session created")
 	return &ConnectSessionResponse{Token: token, ExpiresAt: expiresAt}, nil
 }
 
@@ -337,26 +319,8 @@ func (c *Client) ProxyRequest(ctx context.Context, method, providerConfigKey, co
 // ProxyRequestWithHeaders makes a request through Nango's proxy to the provider's API with custom headers.
 // This allows making authenticated requests with provider-specific headers (e.g., Notion-Version).
 func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerConfigKey, connectionID, path string, queryParams map[string]string, body any, headers map[string]string) (map[string]any, error) {
-	logger := slog.With(
-		"component", "nango_client",
-		"method", method,
-		"provider_config_key", providerConfigKey,
-		"connection_id", connectionID,
-		"path", path,
-		"query_param_count", len(queryParams),
-		"custom_header_count", len(headers),
-	)
-
-	// Log query params at debug level (may contain sensitive data)
-	if len(queryParams) > 0 {
-		logger.Debug("proxy request with query params", "query_params", queryParams)
-	}
-
 	var bodyReader io.Reader
-	var bodySize int
-	var bodyContent string
-	bodyType := fmt.Sprintf("%T", body)
-	
+
 	// Use reflection to check if body is effectively nil or empty
 	// This handles typed nils (map[string]interface{}(nil)) and empty collections
 	isEmptyBody := body == nil
@@ -369,25 +333,13 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 			isEmptyBody = v.IsZero()
 		}
 	}
-	
-	logger.Debug("processing request body", "body_type", bodyType, "is_empty_body", isEmptyBody)
-	
+
 	if !isEmptyBody {
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
-			logger.Error("failed to marshal request body", "error", err.Error(), "body_type", bodyType)
 			return nil, fmt.Errorf("marshaling proxy request body: %w", err)
 		}
 		bodyReader = bytes.NewReader(jsonBody)
-		bodySize = len(jsonBody)
-		bodyContent = string(jsonBody)
-		logger.Debug("request body prepared", 
-			"body_size_bytes", bodySize, 
-			"body_content", bodyContent,
-			"body_type", bodyType,
-		)
-	} else {
-		logger.Debug("body is nil or empty, not sending body")
 	}
 
 	// Build query string
@@ -401,119 +353,54 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 	}
 
 	fullURL := c.endpoint + "/proxy" + path + query
-	logger.Info("sending proxy request to provider API",
-		"url", fullURL,
-		"has_body", !isEmptyBody,
-		"body_type", bodyType,
-		"body_size", bodySize,
-		"body_content_preview", truncate(bodyContent, 500),
-	)
 
 	req, err := http.NewRequestWithContext(ctx, method, fullURL, bodyReader)
 	if err != nil {
-		logger.Error("failed to create HTTP request", "error", err.Error())
 		return nil, err
 	}
 
 	if !isEmptyBody {
 		req.Header.Set("Content-Type", "application/json")
-		logger.Debug("set Content-Type header to application/json")
-	} else {
-		logger.Debug("no body, not setting Content-Type")
 	}
 
-	// Set custom headers for the provider
-	customHeaderKeys := make([]string, 0, len(headers))
 	for k, v := range headers {
 		req.Header.Set(k, v)
-		customHeaderKeys = append(customHeaderKeys, k)
-	}
-	if len(customHeaderKeys) > 0 {
-		logger.Debug("set custom provider headers", "header_keys", customHeaderKeys)
 	}
 
 	// Set Nango proxy headers
 	req.Header.Set("Authorization", "Bearer "+c.secretKey)
 	req.Header.Set("Provider-Config-Key", providerConfigKey)
 	req.Header.Set("Connection-Id", connectionID)
-	
-	logger.Debug("request headers set",
-		"authorization_set", c.secretKey != "",
-		"provider_config_key_set", providerConfigKey != "",
-		"connection_id_set", connectionID != "",
-	)
-
-	// Dump full outgoing request for debugging
-	reqHeaders := make(map[string]string)
-	for k, v := range req.Header {
-		if k == "Authorization" {
-			reqHeaders[k] = "Bearer [REDACTED]"
-		} else {
-			reqHeaders[k] = strings.Join(v, ", ")
-		}
-	}
-	reqHeadersJSON, _ := json.Marshal(reqHeaders)
-	logger.Info("full nango proxy request dump",
-		"method", method,
-		"url", fullURL,
-		"headers", string(reqHeadersJSON),
-		"body", bodyContent,
-	)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		logger.Error("HTTP request failed", "error", err.Error())
+		logging.Capture(ctx, fmt.Errorf("nango proxy %s %s: %w", method, path, err))
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logger.Error("failed to read response body", "error", err.Error())
+		logging.Capture(ctx, fmt.Errorf("nango proxy read %s %s: %w", method, path, err))
 		return nil, err
 	}
 
-	logger = logger.With("status_code", resp.StatusCode, "response_size_bytes", len(respBody))
-
-	// Log response headers at debug level
-	responseContentType := resp.Header.Get("Content-Type")
-	if responseContentType != "" {
-		logger = logger.With("content_type", responseContentType)
-	}
-
 	if resp.StatusCode >= 400 {
-		logger.Error("provider API returned error status",
-			"response_body_preview", truncate(string(respBody), 500),
-		)
-		return nil, fmt.Errorf("nango proxy error %d: %s", resp.StatusCode, string(respBody))
+		err := fmt.Errorf("nango proxy error %d: %s", resp.StatusCode, string(respBody))
+		logging.Capture(ctx, fmt.Errorf("nango proxy %s %s: %w", method, path, err))
+		return nil, err
 	}
-
-	logger.Info("provider API request successful",
-		"response_body", truncate(string(respBody), 5000),
-	)
 
 	if len(respBody) == 0 {
-		logger.Debug("empty response body")
 		return nil, nil
 	}
 
 	// Try to parse as JSON
 	var result map[string]any
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		logger.Info("response is not valid JSON, returning as raw string",
-			"parse_error", err.Error(),
-			"response_preview", truncate(string(respBody), 200),
-		)
 		// Return raw response if not JSON
 		return map[string]any{"_raw": string(respBody)}, nil
 	}
-
-	// Log parsed response structure
-	topLevelKeys := make([]string, 0, len(result))
-	for k := range result {
-		topLevelKeys = append(topLevelKeys, k)
-	}
-	logger.Debug("parsed JSON response", "top_level_keys", topLevelKeys)
 
 	return result, nil
 }
@@ -563,17 +450,7 @@ func (c *Client) RawProxyRequest(ctx context.Context, method, providerConfigKey,
 	}, nil
 }
 
-// truncate truncates a string to maxLen characters, adding "..." if truncated.
-func truncate(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	return s[:maxLen] + "..."
-}
-
 func (c *Client) doJSON(ctx context.Context, method, path string, payload any) (map[string]any, error) {
-	slog.Debug("nango: request", "method", method, "path", path)
-
 	var bodyReader io.Reader
 	if payload != nil {
 		jsonBody, err := json.Marshal(payload)
@@ -602,8 +479,6 @@ func (c *Client) doJSON(ctx context.Context, method, path string, payload any) (
 	if err != nil {
 		return nil, err
 	}
-
-	slog.Debug("nango: response", "method", method, "path", path, "status", resp.StatusCode)
 
 	if resp.StatusCode >= 400 {
 		return nil, fmt.Errorf("nango API error %d: %s", resp.StatusCode, string(respBody))

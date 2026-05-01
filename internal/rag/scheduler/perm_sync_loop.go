@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
@@ -90,8 +90,7 @@ func ScanPermSyncDue(
 			if isDuplicate(err) {
 				continue
 			}
-			slog.Error("rag scheduler: enqueue perm_sync failed",
-				"source_id", r.ID, "err", err)
+			logging.Capture(ctx, fmt.Errorf("rag scheduler enqueue perm_sync source=%s: %w", r.ID, err))
 			if firstErr == nil {
 				firstErr = err
 			}

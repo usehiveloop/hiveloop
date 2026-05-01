@@ -23,7 +23,8 @@ import (
 // Security: the trigger's unguessable UUID acts as a bearer token. If a
 // shared secret is configured (SecretKey stores its bcrypt hash), the handler
 // also requires the plaintext secret in any of:
-//   Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, ?secret=<secret>
+//
+//	Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, ?secret=<secret>
 type HTTPTriggerHandler struct {
 	db       *gorm.DB
 	enqueuer enqueue.TaskEnqueuer
@@ -55,26 +56,17 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 
 	triggerID, err := uuid.Parse(triggerIDStr)
 	if err != nil {
-		slog.Warn("http trigger: invalid trigger ID", "trigger_id_raw", triggerIDStr)
 		writeJSON(writer, http.StatusBadRequest, errorResponse{Error: "invalid trigger ID"})
 		return
 	}
 
 	var trigger model.RouterTrigger
 	if err := handler.db.Where("id = ? AND enabled = TRUE", triggerID).First(&trigger).Error; err != nil {
-		slog.Warn("http trigger: trigger not found",
-			"trigger_id", triggerID,
-			"error", err,
-		)
 		writeJSON(writer, http.StatusNotFound, errorResponse{Error: "trigger not found"})
 		return
 	}
 
 	if trigger.TriggerType != "http" {
-		slog.Warn("http trigger: wrong trigger type",
-			"trigger_id", triggerID,
-			"trigger_type", trigger.TriggerType,
-		)
 		writeJSON(writer, http.StatusNotFound, errorResponse{Error: "trigger not found"})
 		return
 	}
@@ -84,16 +76,10 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 	if trigger.SecretKey != "" {
 		provided := extractTriggerSecret(request)
 		if provided == "" {
-			slog.Warn("http trigger: missing secret",
-				"trigger_id", triggerID,
-			)
 			writeJSON(writer, http.StatusUnauthorized, errorResponse{Error: "missing shared secret"})
 			return
 		}
 		if err := bcrypt.CompareHashAndPassword([]byte(trigger.SecretKey), []byte(provided)); err != nil {
-			slog.Warn("http trigger: invalid secret",
-				"trigger_id", triggerID,
-			)
 			writeJSON(writer, http.StatusUnauthorized, errorResponse{Error: "invalid shared secret"})
 			return
 		}
@@ -114,12 +100,6 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 	if len(body) == 0 {
 		body = []byte("{}")
 	}
-
-	slog.Info("http trigger: received",
-		"trigger_id", triggerID,
-		"org_id", trigger.OrgID,
-		"body_size", len(body),
-	)
 
 	// Return 200 immediately, then dispatch asynchronously.
 	writeJSON(writer, http.StatusOK, map[string]string{"status": "ok"})
@@ -149,11 +129,6 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 		)
 		return
 	}
-
-	slog.Info("http trigger: dispatched",
-		"trigger_id", triggerID,
-		"delivery_id", deliveryID,
-	)
 }
 
 // extractTriggerSecret pulls the plaintext shared secret from the first place

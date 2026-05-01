@@ -281,10 +281,6 @@ export default function AgentDetailPage() {
 
   const { sessions } = useAgentSessions(id ?? null)
 
-  React.useEffect(() => {
-    if (sessions.length) console.log("sessions", sessions)
-  }, [sessions])
-
   const agentName = agent?.name ?? "Agent"
   const initial = (agentName ?? "?").slice(0, 1).toUpperCase()
 

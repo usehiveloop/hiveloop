@@ -12,6 +12,7 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/registry"
 	"github.com/usehiveloop/hiveloop/internal/system"
@@ -50,7 +51,7 @@ func (h *SystemTaskHandler) logForwardError(logger *slog.Logger, err error, stre
 			body = body[:maxBody] + "…(truncated)"
 		}
 		logger.Error("system_task: upstream rejected request",
-			"err", err,
+			"error", err,
 			"streaming", streaming,
 			"upstream_status", upErr.StatusCode,
 			"upstream_body", body,
@@ -58,7 +59,7 @@ func (h *SystemTaskHandler) logForwardError(logger *slog.Logger, err error, stre
 		return
 	}
 	logger.Error("system_task: upstream unreachable",
-		"err", err,
+		"error", err,
 		"streaming", streaming,
 	)
 }
@@ -104,7 +105,7 @@ func (h *SystemTaskHandler) afterCompletion(
 ) {
 	if cacheKey != "" && task.CacheTTL > 0 {
 		if err := h.cache.Set(ctx, cacheKey, res, task.CacheTTL); err != nil {
-			logger.Warn("system_task: cache write failed", "err", err, "cache_key", cacheKey)
+			logging.Capture(ctx, fmt.Errorf("system_task: cache write failed: %w", err))
 		}
 	}
 	gen := model.Generation{
@@ -124,7 +125,7 @@ func (h *SystemTaskHandler) afterCompletion(
 		CreatedAt:      time.Now(),
 	}
 	if err := h.db.WithContext(ctx).Create(&gen).Error; err != nil {
-		logger.Error("system_task: generation row write failed", "err", err, "generation_id", gen.ID)
+		logger.Error("system_task: generation row write failed", "error", err, "generation_id", gen.ID)
 	}
 	_ = h.credits
 }

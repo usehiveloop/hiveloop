@@ -62,7 +62,6 @@ func BuildServer(
 
 		// Skip providers that are accessed via proxy instead of MCP.
 		if providerDef, ok := cat.GetProvider(provider); ok && !providerDef.ShouldPushToMCP() {
-			slog.Debug("skipping provider (push_to_mcp=false)", "provider", provider)
 			continue
 		}
 
@@ -162,8 +161,6 @@ func BuildServer(
 					}, nil
 				},
 			)
-
-			slog.Debug("registered MCP tool", "tool", toolName, "provider", provider, "action", actionKey)
 		}
 	}
 

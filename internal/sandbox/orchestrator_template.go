@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -92,7 +93,7 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 
 		status, err := o.provider.GetSnapshotStatus(ctx, externalID)
 		if err != nil {
-			slog.Warn("failed to get snapshot status, retrying", "external_id", externalID, "error", err)
+			logging.Capture(ctx, fmt.Errorf("get snapshot status %s: %w", externalID, err))
 			continue
 		}
 
@@ -126,7 +127,7 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 			}
 			return externalID, fmt.Errorf("%s", errMsg)
 		case "building", "pending", "":
-			slog.Debug("snapshot still building", "external_id", externalID, "state", status.State)
+			// per-tick state; no log
 		default:
 			slog.Warn("unknown snapshot state", "external_id", externalID, "state", status.State)
 		}
@@ -141,9 +142,8 @@ func (o *Orchestrator) DeleteTemplate(ctx context.Context, externalID string) er
 
 func (o *Orchestrator) RetryTemplateBuild(ctx context.Context, tmpl *model.SandboxTemplate, newCommands []string, onLog func(string), onStatus func(status, message string)) (externalID string, buildErr error) {
 	if tmpl.ExternalID != nil && *tmpl.ExternalID != "" {
-		slog.Info("deleting existing snapshot before retry", "external_id", *tmpl.ExternalID)
 		if err := o.provider.DeleteSnapshot(ctx, *tmpl.ExternalID); err != nil {
-			slog.Warn("failed to delete existing snapshot", "external_id", *tmpl.ExternalID, "error", err)
+			logging.Capture(ctx, fmt.Errorf("delete existing snapshot %s: %w", *tmpl.ExternalID, err))
 		}
 	}
 

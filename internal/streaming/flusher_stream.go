@@ -47,7 +47,6 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 
 	var conv model.AgentConversation
 	if err := f.db.Where("id = ?", convUUID).First(&conv).Error; err != nil {
-		slog.Debug("flusher: conversation not found, skipping", "conversation_id", convID)
 		for _, msg := range msgs {
 			f.bus.Redis().XAck(ctx, streamKey, flusherGroup, msg.ID)
 		}
@@ -131,6 +130,4 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 	}
 
 	f.bus.Trim(ctx, convID, trimMaxLen)
-
-	slog.Debug("flusher: flushed events", "conversation_id", convID, "count", len(events))
 }

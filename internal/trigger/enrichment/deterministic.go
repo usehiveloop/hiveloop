@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/mcpserver"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -54,7 +55,7 @@ type enrichmentResult struct {
 // Enrich runs all enrichment actions for the trigger and returns a composed
 // markdown message. Returns empty string if the trigger has no enrichment
 // actions or if the connection cannot be resolved.
-func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input DeterministicEnrichInput, logger *slog.Logger) (string, error) {
+func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input DeterministicEnrichInput, _ *slog.Logger) (string, error) {
 	// Build event key.
 	eventKey := input.EventType
 	if input.EventAction != "" {
@@ -74,28 +75,15 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 		}
 	}
 	if !ok || len(triggerDef.Enrichment) == 0 {
-		logger.Info("deterministic enrichment: no enrichment actions defined",
-			"provider", input.Provider,
-			"event_key", eventKey,
-		)
 		return "", nil
 	}
-
-	logger.Info("deterministic enrichment: starting",
-		"provider", input.Provider,
-		"event_key", eventKey,
-		"action_count", len(triggerDef.Enrichment),
-	)
 
 	// Load InConnection + InIntegration for Nango credentials.
 	var inConn model.InConnection
 	if err := enricher.db.Preload("InIntegration").
 		Where("id = ? AND revoked_at IS NULL", input.ConnectionID).
 		First(&inConn).Error; err != nil {
-		logger.Warn("deterministic enrichment: connection not found",
-			"connection_id", input.ConnectionID,
-			"error", err,
-		)
+		logging.Capture(ctx, fmt.Errorf("enrichment connection %s not found: %w", input.ConnectionID, err))
 		return "", nil
 	}
 
@@ -151,28 +139,12 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 
 	waitGroup.Wait()
 
-	// Log summary.
-	successCount := 0
-	var failedActions []string
+	// Surface failed actions to Sentry without log noise.
 	for _, result := range results {
 		if result.Err != nil {
-			failedActions = append(failedActions, result.Action+": "+result.Err.Error())
-		} else {
-			successCount++
+			logging.Capture(ctx, fmt.Errorf("enrichment action %q: %w", result.Action, result.Err))
 		}
 	}
-
-	if len(failedActions) > 0 {
-		logger.Warn("enrichment actions failed",
-			"failed", failedActions,
-		)
-	}
-
-	logger.Info("enrichment complete",
-		"total", len(results),
-		"succeeded", successCount,
-		"failed", len(results)-successCount,
-	)
 
 	// Compose the markdown message.
 	return composeEnrichedMessage(input, results), nil

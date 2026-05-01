@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/website"
@@ -130,11 +132,11 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("rag source created", "source_id", src.ID, "org_id", org.ID, "kind", src.KindValue)
-	h.dispatchInitialIngest(src)
+	h.dispatchInitialIngest(r.Context(), src)
 	writeJSON(w, http.StatusCreated, toRAGSourceResponse(src))
 }
 
-func (h *RAGSourceHandler) dispatchInitialIngest(src *ragmodel.RAGSource) {
+func (h *RAGSourceHandler) dispatchInitialIngest(ctx context.Context, src *ragmodel.RAGSource) {
 	switch src.KindValue {
 	case ragmodel.RAGSourceKindIntegration, ragmodel.RAGSourceKindWebsite:
 	default:
@@ -142,16 +144,14 @@ func (h *RAGSourceHandler) dispatchInitialIngest(src *ragmodel.RAGSource) {
 	}
 	task, err := ragtasks.NewIngestTask(ragtasks.IngestPayload{RAGSourceID: src.ID})
 	if err != nil {
-		slog.Warn("rag source created: build initial ingest task failed",
-			"source_id", src.ID, "err", err)
+		logging.Capture(ctx, fmt.Errorf("rag source created: build initial ingest task failed: %w", err))
 		return
 	}
 	if _, err := h.enq.Enqueue(task, asynq.Unique(60*time.Second)); err != nil {
 		if errors.Is(err, asynq.ErrDuplicateTask) {
 			return
 		}
-		slog.Warn("rag source created: enqueue initial ingest failed",
-			"source_id", src.ID, "err", err)
+		logging.Capture(ctx, fmt.Errorf("rag source created: enqueue initial ingest failed: %w", err))
 	}
 }
 
@@ -166,7 +166,7 @@ func (h *RAGSourceHandler) precheckWebsiteCredits(src *ragmodel.RAGSource, orgID
 	required := int64(cfg.MaxPages) * billing.WebsitePagePriceCredits
 	bal, err := h.credits.Balance(orgID)
 	if err != nil {
-		slog.Error("rag source create: balance lookup failed", "org_id", orgID, "err", err)
+		slog.Error("rag source create: balance lookup failed", "org_id", orgID, "error", err)
 		return http.StatusInternalServerError, "failed to check credit balance"
 	}
 	if bal < required {

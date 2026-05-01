@@ -3,12 +3,12 @@ package scheduler
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 )
 
@@ -53,8 +53,7 @@ func ScanPruneDue(
 			if isDuplicate(err) {
 				continue
 			}
-			slog.Error("rag scheduler: enqueue prune failed",
-				"source_id", r.ID, "err", err)
+			logging.Capture(ctx, fmt.Errorf("rag scheduler enqueue prune source=%s: %w", r.ID, err))
 			if firstErr == nil {
 				firstErr = err
 			}

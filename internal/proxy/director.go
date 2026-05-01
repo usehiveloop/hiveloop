@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -10,6 +9,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/cache"
 	"github.com/usehiveloop/hiveloop/internal/credentials"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/observe"
 )
@@ -26,19 +26,14 @@ func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
 		if !ok {
 			// TokenAuth middleware should have rejected this already.
 			// Set a sentinel header so the error handler can detect it.
-			slog.Error("proxy director: missing claims on request",
-				"path", req.URL.Path,
-			)
+			logging.Capture(req.Context(), fmt.Errorf("proxy director: missing claims on %s", req.URL.Path))
 			req.Header.Set("X-Proxy-Error", "missing claims")
 			return
 		}
 
 		orgID, err := uuid.Parse(claims.OrgID)
 		if err != nil {
-			slog.Error("proxy director: invalid org_id in claims",
-				"org_id", claims.OrgID,
-				"error", err,
-			)
+			logging.Capture(req.Context(), fmt.Errorf("proxy director: invalid org_id %q: %w", claims.OrgID, err))
 			req.Header.Set("X-Proxy-Error", "invalid org_id")
 			return
 		}
@@ -52,22 +47,24 @@ func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
 
 		cred, err := cacheManager.GetDecryptedCredential(req.Context(), claims.CredentialID, lookupOrgID)
 		if err != nil {
-			slog.Error("proxy director: credential lookup failed",
+			logging.FromContext(req.Context()).Error("proxy director: credential lookup failed",
 				"credential_id", claims.CredentialID,
-				"org_id", claims.OrgID,
-				"error", err,
+				"jti", claims.JTI,
+				"jwt_org_id", claims.OrgID,
+				"is_system", claims.IsSystem,
+				"lookup_org_id", lookupOrgID.String(),
+				"path", req.URL.Path,
+				"method", req.Method,
+				"error", err.Error(),
 			)
+			logging.Capture(req.Context(), fmt.Errorf("proxy director: credential lookup %s: %w", claims.CredentialID, err))
 			req.Header.Set("X-Proxy-Error", fmt.Sprintf("credential error: %v", err))
 			return
 		}
 
 		// SSRF hardening: validate destination BaseURL and drop metadata-related headers
 		if err := ValidateBaseURL(cred.BaseURL); err != nil {
-			slog.Error("proxy director: disallowed upstream base URL",
-				"base_url", cred.BaseURL,
-				"org_id", claims.OrgID,
-				"error", err,
-			)
+			logging.Capture(req.Context(), fmt.Errorf("proxy director: disallowed upstream base URL: %w", err))
 			req.Header.Set("X-Proxy-Error", fmt.Sprintf("disallowed upstream: %v", err))
 			return
 		}

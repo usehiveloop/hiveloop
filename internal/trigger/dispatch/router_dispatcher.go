@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
@@ -86,7 +87,6 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 		return nil, fmt.Errorf("finding matching triggers: %w", err)
 	}
 	if len(triggerMatches) == 0 {
-		dispatcher.logger.Debug("no matching triggers", "event_key", eventKey, "connection_id", input.ConnectionID)
 		return nil, nil
 	}
 
@@ -163,7 +163,7 @@ func (dispatcher *RouterDispatcher) dispatchForTrigger(ctx context.Context, matc
 	connectionID := input.ConnectionID
 	existingConv, err := dispatcher.store.FindExistingConversation(ctx, input.OrgID, connectionID, resourceKey)
 	if err != nil {
-		dispatcher.logger.Error("thread affinity check failed", "error", err)
+		logging.Capture(ctx, fmt.Errorf("thread affinity check: %w", err))
 	}
 	if existingConv != nil {
 		return []AgentDispatch{{
@@ -214,7 +214,7 @@ func (dispatcher *RouterDispatcher) dispatchForTrigger(ctx context.Context, matc
 
 		result, triageErr := dispatcher.agent.Route(ctx, systemPrompt, userMessage, orgAgents, connections)
 		if triageErr != nil {
-			dispatcher.logger.Error("triage routing failed", "error", triageErr)
+			logging.Capture(ctx, fmt.Errorf("triage routing: %w", triageErr))
 			// Fall through to default agent.
 		} else {
 			selectedAgents = result.SelectedAgents
@@ -234,16 +234,14 @@ func (dispatcher *RouterDispatcher) dispatchForTrigger(ctx context.Context, matc
 	}
 
 	if len(selectedAgents) == 0 {
-		dispatcher.logger.Info("no agents selected", "event", eventKey, "trigger_id", trigger.ID)
 		return nil, nil
 	}
 
-	dispatcher.logger.Info("trigger matched",
+	dispatcher.logger.Debug("trigger matched",
 		"trigger_id", trigger.ID,
 		"event_key", eventKey,
 		"routing_mode", routingMode,
 		"routing_latency_ms", routingLatency,
-		"ref_count", len(refs),
 		"agents_selected", len(selectedAgents),
 	)
 

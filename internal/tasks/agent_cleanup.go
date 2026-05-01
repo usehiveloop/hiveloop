@@ -9,6 +9,7 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
@@ -32,12 +33,9 @@ func (h *AgentCleanupHandler) Handle(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("unmarshal agent cleanup payload: %w", err)
 	}
 
-	slog.Info("agent cleanup: starting", "agent_id", payload.AgentID)
-
 	var agent model.Agent
 	if err := h.db.Where("id = ?", payload.AgentID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			slog.Info("agent cleanup: agent already deleted", "agent_id", payload.AgentID)
 			return nil
 		}
 		return fmt.Errorf("loading agent: %w", err)
@@ -49,26 +47,24 @@ func (h *AgentCleanupHandler) Handle(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("hard-deleting agent: %w", err)
 	}
 
-	slog.Info("agent cleanup: complete", "agent_id", agent.ID)
+	slog.Info("agent cleanup complete", "agent_id", agent.ID)
 	return nil
 }
 
 func (h *AgentCleanupHandler) cleanupAgentSandboxes(ctx context.Context, agent *model.Agent) {
 	if h.orchestrator == nil {
-		slog.Warn("agent cleanup: orchestrator not configured, skipping sandbox cleanup", "agent_id", agent.ID)
 		return
 	}
 
 	var sandboxes []model.Sandbox
 	if err := h.db.Where("agent_id = ?", agent.ID).Find(&sandboxes).Error; err != nil {
-		slog.Error("agent cleanup: failed to find dedicated sandboxes", "agent_id", agent.ID, "error", err)
+		logging.Capture(ctx, fmt.Errorf("find sandboxes for agent %s: %w", agent.ID, err))
 		return
 	}
 
 	for _, sb := range sandboxes {
-		slog.Info("agent cleanup: destroying dedicated sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID)
 		if err := h.orchestrator.DeleteSandbox(ctx, &sb); err != nil {
-			slog.Error("agent cleanup: failed to destroy dedicated sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
+			logging.Capture(ctx, fmt.Errorf("delete sandbox %s for agent %s: %w", sb.ID, agent.ID, err))
 		}
 	}
 }

@@ -7,18 +7,36 @@ import (
 	"time"
 
 	chimw "github.com/go-chi/chi/v5/middleware"
+
+	"github.com/usehiveloop/hiveloop/internal/logging"
 )
 
-// RequestLog returns middleware that writes a structured slog entry for every
-// request. It captures method, path, status, latency, client IP, and the
-// X-Request-Id set by Chi's RequestID middleware.
+// RequestLog returns middleware that writes a single canonical structured
+// slog entry per request capturing method, path, status, latency, client IP
+// and the X-Request-Id from chimw.RequestID.
 //
-// Sensitive headers (Authorization, Cookie) are never logged.
+// It also seeds a contextual logger on the request context (with request_id
+// as a base attribute), so downstream handlers can write correlated logs
+// via logging.FromContext(ctx).Info(...) without re-supplying request_id.
+//
+// Sensitive headers (Authorization, Cookie) are never logged. Auth-derived
+// attributes (org_id, user_id, credential_id) are appended to the canonical
+// entry after the handler returns; downstream code may layer them onto the
+// contextual logger via logging.WithAttrs as identity becomes known.
 func RequestLog(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			ww := chimw.NewWrapResponseWriter(w, r.ProtoMajor)
+
+			ctx := r.Context()
+			reqID := chimw.GetReqID(ctx)
+			scoped := logger
+			if reqID != "" {
+				scoped = scoped.With("request_id", reqID)
+			}
+			ctx = logging.WithLogger(ctx, scoped)
+			r = r.WithContext(ctx)
 
 			next.ServeHTTP(ww, r)
 
@@ -34,7 +52,7 @@ func RequestLog(logger *slog.Logger) func(http.Handler) http.Handler {
 				slog.String("ip", clientIP(r)),
 			}
 
-			if reqID := chimw.GetReqID(r.Context()); reqID != "" {
+			if reqID != "" {
 				attrs = append(attrs, slog.String("request_id", reqID))
 			}
 			if org, ok := OrgFromContext(r.Context()); ok {
