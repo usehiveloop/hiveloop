@@ -3,6 +3,15 @@ import { cn } from "@/lib/utils"
 
 const LOGO_BASE = "https://connections.usehiveloop.com/images/template-logos"
 
+const LOGO_PROVIDER_ALIASES: Record<string, string> = {
+  "github-app-code-reviews": "github-app",
+}
+
+export function integrationLogoURL(provider: string): string {
+  const aliased = LOGO_PROVIDER_ALIASES[provider] ?? provider
+  return `${LOGO_BASE}/${aliased}.svg`
+}
+
 const sizeClasses: Record<number, string> = {
   16: "size-4",
   20: "size-5",
@@ -25,7 +34,7 @@ export function IntegrationLogo({ provider, size = 32, className }: IntegrationL
   return (
     <div className={cn("shrink-0 rounded-md bg-white p-0.5", sizeClass, className)}>
       <Image
-        src={`${LOGO_BASE}/${provider}.svg`}
+        src={integrationLogoURL(provider)}
         alt={provider}
         width={size}
         height={size}

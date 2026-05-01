@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ChoiceCard } from "./create-agent/choice-card"
+import { integrationLogoURL } from "@/components/integration-logo"
 import { $api } from "@/lib/api/hooks"
 import { api } from "@/lib/api/client"
 import { useQueryClient, useQueries } from "@tanstack/react-query"
@@ -141,7 +142,7 @@ function ConnectionListView({ connections, getSelectedCount, getOrphanCount, onS
             return (
               <ChoiceCard
                 key={connectionId}
-                logoUrl={`https://connections.usehiveloop.com/images/template-logos/${connection.provider ?? ""}.svg`}
+                logoUrl={integrationLogoURL(connection.provider ?? "")}
                 title={connection.display_name ?? connection.provider ?? ""}
                 description={description}
                 onClick={() => onSelect(connectionId)}
