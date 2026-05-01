@@ -212,7 +212,7 @@ func (h *BridgeWebhookHandler) maybeEnqueueConversationNaming(conv *model.AgentC
 }
 
 func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *model.AgentConversation, event *webhookEvent) {
-	if event.EventType == "response_chunk" {
+	if event.EventType == "response_chunk" || event.EventType == "reasoning_delta" {
 		return
 	}
 	dbEvent := model.ConversationEvent{
