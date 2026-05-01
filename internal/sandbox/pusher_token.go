@@ -89,17 +89,5 @@ func (p *Pusher) mintAgentToken(agent *model.Agent, cred *model.Credential) (tok
 		return "", "", err
 	}
 	tokenStr = "ptok_" + tokenStr
-	// DEBUG: full token logged so it can be replayed against the proxy out-of-band.
-	// Remove once credential-decrypt path is verified end-to-end.
-	// Field name is `mint_jwt` (not `token`) to bypass the redactSensitive
-	// handler in internal/logging.
-	slog.Info("DEBUG mintAgentToken: minted",
-		"agent_id", agent.ID.String(),
-		"org_id", (*agent.OrgID).String(),
-		"credential_id", cred.ID.String(),
-		"is_system", cred.IsSystem,
-		"jti", jti,
-		"mint_jwt", tokenStr,
-	)
 	return tokenStr, jti, nil
 }
