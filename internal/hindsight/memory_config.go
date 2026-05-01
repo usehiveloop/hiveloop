@@ -72,9 +72,7 @@ func (m MemoryConfig) Hash() string {
 	return fmt.Sprintf("%x", sha256.Sum256(b))
 }
 
-// ToBankConfigUpdate builds a Hindsight bank config update request,
-// merging customer values with defaults for any unset fields.
-func (m MemoryConfig) ToBankConfigUpdate(observationScopes [][]string) *BankConfigUpdate {
+func (m MemoryConfig) ToBankConfigUpdate() *BankConfigUpdate {
 	retain := m.RetainMission
 	if retain == "" {
 		retain = defaultRetainMission
@@ -100,17 +98,12 @@ func (m MemoryConfig) ToBankConfigUpdate(observationScopes [][]string) *BankConf
 		emp = *m.DispositionEmpathy
 	}
 
-	updates := map[string]any{
+	return &BankConfigUpdate{Updates: map[string]any{
 		"retain_mission":         retain,
 		"reflect_mission":        reflect,
 		"observations_mission":   observations,
 		"disposition_skepticism": skep,
 		"disposition_literalism": lit,
 		"disposition_empathy":    emp,
-	}
-	if len(observationScopes) > 0 {
-		updates["observation_scopes"] = observationScopes
-	}
-
-	return &BankConfigUpdate{Updates: updates}
+	}}
 }
