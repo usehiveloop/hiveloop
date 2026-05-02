@@ -10,19 +10,21 @@ import (
 )
 
 const (
-	baseImage         = "ubuntu:24.04"
-	bridgeDir         = "/usr/local/bin"
-	daytonaHome       = "/home/daytona"
-	bridgeReleasesURL = "https://github.com/usehiveloop/bridge/releases/download"
+	baseImage   = "debian:bookworm-slim"
+	daytonaHome = "/home/daytona"
 
-	flavorBridge = "bridge"
-	flavorDevBox = "dev-box"
+	sandboxAgentInstallURL = "https://releases.rivet.dev/sandbox-agent/0.4.x/install.sh"
 )
 
 var basePackages = []string{
-	"curl",
 	"ca-certificates",
+	"curl",
 	"git",
+	"xz-utils",
+	"libcap2",
+	"nodejs",
+	"npm",
+	"sudo",
 	"jq",
 	"unzip",
 	"wget",
@@ -68,49 +70,16 @@ var devToolPackages = []string{
 
 var sizes = model.TemplateSizes
 
-// snapshotName returns the Daytona snapshot name for (flavor, version, size).
-// The naming scheme matches what was published before the GHCR migration so
-// existing references keep working.
-func snapshotName(flavor, bridgeVersion, size string) string {
-	switch flavor {
-	case flavorDevBox:
-		return fmt.Sprintf("hiveloop-dev-box-%s-v%s", size, bridgeVersion)
-	default:
-		return fmt.Sprintf("hiveloop-bridge-%s-%s", strings.ReplaceAll(bridgeVersion, ".", "-"), size)
-	}
+func snapshotName(version, size string) string {
+	return fmt.Sprintf("hiveloop-dev-box-%s-v%s", size, version)
 }
 
-func bridgeDownloadURL(version string) string {
-	return fmt.Sprintf("%s/v%s/bridge-v%s-x86_64-unknown-linux-gnu.tar.gz",
-		bridgeReleasesURL, version, version)
-}
-
-func buildBaseImage(bridgeVersion string) *daytona.DockerImage {
-	downloadURL := bridgeDownloadURL(bridgeVersion)
-
+func buildDevBoxImage() *daytona.DockerImage {
 	image := daytona.Base(baseImage)
 
 	image = image.AptGet(basePackages)
-	image = image.Run(fmt.Sprintf("mkdir -p %s/.bridge", daytonaHome))
-	image = image.Run(fmt.Sprintf(
-		`curl -fsSL "%s" | tar -xzf - -C %s && chmod +x %s/bridge`,
-		downloadURL, bridgeDir, bridgeDir,
-	))
-
-	return image
-}
-
-func buildBridgeImage(bridgeVersion string) *daytona.DockerImage {
-	image := buildBaseImage(bridgeVersion)
-
-	image = image.Workdir(daytonaHome)
-	image = image.Entrypoint([]string{"/bin/sh", "-c", "mkdir -p /home/daytona/.bridge && /usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
-
-	return image
-}
-
-func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
-	image := buildBaseImage(bridgeVersion)
+	image = image.Run(fmt.Sprintf(`curl -fsSL %s | sh`, sandboxAgentInstallURL))
+	image = image.Run("sandbox-agent install-agent --all")
 
 	// Install nvm + Node LTS into a system-wide location and symlink the
 	// resulting binaries into /usr/local/bin so non-login shells find them.
@@ -184,11 +153,9 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 			"ln -sf /root/.local/bin/uvx /usr/local/bin/uvx",
 	)
 
-	image = image.Run("/usr/local/bin/bridge install-lsp all")
-
 	// Git credential helper — fetches GitHub tokens from the control plane on demand.
 	image = image.Run(
-		`printf '#!/bin/sh\ncurl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$HIVELOOP_GIT_CREDENTIALS_URL"\n' > /usr/local/bin/git-credential-hiveloop && ` +
+		`printf '#!/bin/sh\ncurl -sf -X POST -H "Authorization: Bearer $HIVELOOP_SANDBOX_TOKEN" "$HIVELOOP_GIT_CREDENTIALS_URL"\n' > /usr/local/bin/git-credential-hiveloop && ` +
 			`chmod +x /usr/local/bin/git-credential-hiveloop`,
 	)
 	image = image.Run("git config --system credential.helper /usr/local/bin/git-credential-hiveloop")
@@ -199,20 +166,15 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 
 	// gh CLI wrapper — fetches a fresh GitHub token on every invocation.
 	image = image.Run(
-		`printf '#!/bin/sh\nexport GH_NO_KEYRING=1\nexport GH_TOKEN=$(curl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$HIVELOOP_GIT_CREDENTIALS_URL" | grep password | cut -d= -f2)\nexec /usr/bin/gh "$@"\n' > /usr/local/bin/gh-wrapper && ` +
+		`printf '#!/bin/sh\nexport GH_NO_KEYRING=1\nexport GH_TOKEN=$(curl -sf -X POST -H "Authorization: Bearer $HIVELOOP_SANDBOX_TOKEN" "$HIVELOOP_GIT_CREDENTIALS_URL" | grep password | cut -d= -f2)\nexec /usr/bin/gh "$@"\n' > /usr/local/bin/gh-wrapper && ` +
 			`chmod +x /usr/local/bin/gh-wrapper && ` +
 			`ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh`,
 	)
 
-	// Tells bridge to inject the "Pre-installed tools" reminder
-	// (DEV_BOX_TOOLS in crates/runtime/src/environment.rs) so agents know
-	// what's already on PATH in this sandbox.
-	image = image.Env("BRIDGE_STANDALONE_AGENT", "true")
+	image = image.Env("HIVELOOP_STANDALONE_AGENT", "true")
 
 	image = image.Workdir(daytonaHome)
-	image = image.Entrypoint([]string{"/bin/sh", "-c",
-		"mkdir -p /home/daytona/.bridge && " +
-			"exec /usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
+	image = image.Entrypoint([]string{"/bin/sh", "-c", "exec sandbox-agent server --token $HIVELOOP_SANDBOX_TOKEN --host 0.0.0.0 --port $HIVELOOP_SANDBOX_PORT"})
 
 	return image
 }
