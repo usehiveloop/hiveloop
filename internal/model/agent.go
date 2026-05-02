@@ -44,7 +44,12 @@ type Agent struct {
 	AgentType     string `gorm:"not null;default:'agent';index"` // "agent" or "subagent"
 	IsSystem      bool   `gorm:"not null;default:false;index"`
 	ProviderGroup string `gorm:"not null;default:''"` // e.g. "anthropic", "openai", "gemini" — set for system agents
-	DeletedAt     *time.Time `gorm:"index"`
+	// Harness records the ACP-harness binding chosen for this agent
+	// (currently "claude" or "open_code"). Stamped by the pusher on first
+	// push so subsequent pushes are deterministic and the UI can surface it.
+	// TODO(post-migration): drop agent.Tools column once data archived.
+	Harness   string     `gorm:"type:varchar(32);not null;default:''"`
+	DeletedAt *time.Time `gorm:"index"`
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }

@@ -129,9 +129,10 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	assertEqual(t, "name", def.Name, "Test Railway Agent")
 	assertEqual(t, "model", def.Provider.Model, "kimi-k2")
 	assertEqual(t, "provider_type", string(def.Provider.ProviderType), string(bridgepkg.OpenAi))
-	// Wave 1: every agent is forced onto the Claude harness; Wave 2 will
-	// implement deterministic harness selection from (provider, model).
-	assertEqual(t, "harness", string(def.Harness), string(bridgepkg.Claude))
+	// Wave 2 pusher slice introduced harnessFor(provider, model). The kimi-k2
+	// fixture above uses an OpenAi-mapped provider and a non-claude model, so
+	// the deterministic mapping resolves to OpenCode (not Claude).
+	assertEqual(t, "harness", string(def.Harness), string(bridgepkg.OpenCode))
 	assertContains(t, "base_url", *def.Provider.BaseUrl, "proxy.test.com")
 	assertEqual(t, "api_key", def.Provider.ApiKey, proxyToken)
 

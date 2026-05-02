@@ -4,36 +4,25 @@ import (
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 )
 
-// TODO(wave-2): The old bridge's AgentConfig carried a number of fields that
-// the new ACP-harness OpenAPI dropped:
-//   - max_tasks_per_conversation, max_concurrent_conversations
-//   - subagent_timeout_foreground_secs, subagent_timeout_background_secs
-//   - history_strip (PinErrors, PinRecentCount, AgeThreshold, Enabled)
-//
-// All of those defaults used to be applied here. Wave 2 will reintroduce
-// equivalent behavior at the harness-adapter layer (subagent timeouts) or
-// as a bridge-side preprocessor (history-strip / concurrency caps). For
-// Wave 1 we only emit the fields that survived the new schema:
-// MaxTokens, MaxTurns, Temperature.
-const (
-	historyStripPinRecent    = 5
-	historyStripAgeThreshold = 3
-)
-
+// applyAgentConfigDefaults populates the surviving Wave-2 AgentConfig fields
+// (max_tokens, max_turns, temperature) with sensible per-provider defaults
+// when the agent author didn't specify them. The dropped fields
+// (max_tasks_per_conversation, subagent_timeout_*, history_strip,
+// tool_requirements, immortal) are no longer applied here — the new ACP
+// harness owns those concerns or they were retired entirely.
 func applyAgentConfigDefaults(cfg *bridgepkg.AgentConfig, providerID, modelName string) *bridgepkg.AgentConfig {
 	if cfg == nil {
 		cfg = &bridgepkg.AgentConfig{}
 	}
 
-	setDefault := func(ptr **int32, val int32) {
-		if *ptr == nil {
-			*ptr = &val
-		}
+	if cfg.MaxTokens == nil {
+		val := defaultMaxTokens(providerID, modelName)
+		cfg.MaxTokens = &val
 	}
-
-	setDefault(&cfg.MaxTokens, defaultMaxTokens(providerID, modelName))
-	setDefault(&cfg.MaxTurns, 250)
-
+	if cfg.MaxTurns == nil {
+		val := int32(250)
+		cfg.MaxTurns = &val
+	}
 	if cfg.Temperature == nil {
 		temp := defaultTemperature(providerID, modelName)
 		cfg.Temperature = &temp
@@ -42,6 +31,36 @@ func applyAgentConfigDefaults(cfg *bridgepkg.AgentConfig, providerID, modelName 
 	return cfg
 }
 
-// applyHistoryStripDefault is a no-op in Wave 1 — see file-level TODO.
-func applyHistoryStripDefault(_ *bridgepkg.AgentConfig) {
+// applyHarnessOptionalFields pass-throughs harness-aware optional fields the
+// agent author may have set in their JSONB AgentConfig: reasoning_effort,
+// small_fast_model, fallback_model, allowed_tools, env, permission_mode.
+// These are nil when the author did not specify them and the bridge/harness
+// will fall back to its own defaults — we deliberately do NOT invent values
+// here.
+//
+// NOTE: disabled_tools is populated in buildAgentDefinition from the
+// per-tool permissions map (deny -> disabled), and is intentionally not
+// touched here.
+func applyHarnessOptionalFields(cfg *bridgepkg.AgentConfig, agentCfg *bridgepkg.AgentConfig) {
+	if cfg == nil || agentCfg == nil {
+		return
+	}
+	if cfg.ReasoningEffort == nil && agentCfg.ReasoningEffort != nil {
+		cfg.ReasoningEffort = agentCfg.ReasoningEffort
+	}
+	if cfg.SmallFastModel == nil && agentCfg.SmallFastModel != nil {
+		cfg.SmallFastModel = agentCfg.SmallFastModel
+	}
+	if cfg.FallbackModel == nil && agentCfg.FallbackModel != nil {
+		cfg.FallbackModel = agentCfg.FallbackModel
+	}
+	if cfg.AllowedTools == nil && agentCfg.AllowedTools != nil {
+		cfg.AllowedTools = agentCfg.AllowedTools
+	}
+	if cfg.PermissionMode == nil && agentCfg.PermissionMode != nil {
+		cfg.PermissionMode = agentCfg.PermissionMode
+	}
+	if cfg.Env == nil && agentCfg.Env != nil {
+		cfg.Env = agentCfg.Env
+	}
 }

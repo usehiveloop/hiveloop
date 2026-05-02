@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"gorm.io/gorm"
+
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/logging"
@@ -49,12 +51,23 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 
 	def := p.buildAgentDefinition(ctx, agent, cred, proxyToken, jti)
 
-	// TODO(wave-2): The old bridge AgentDefinition had a `subagents` field that
-	// embedded full child AgentDefinitions on the parent push. The new
-	// ACP-harness OpenAPI removed it — subagent resolution now lives in the
-	// harness adapter. We still call buildSubagentDefinitions to keep the
-	// dependency graph wired (Wave 1 returns nil); Wave 2 either deletes this
-	// call or replaces it with a separate /push/subagents registration step.
+	// Persist the resolved harness on the Agent row so subsequent pushes
+	// short-circuit the (provider, model) computation. We only stamp on
+	// the first push (Harness column empty) and we ignore the not-found
+	// case (e.g. unit tests using an in-memory agent that wasn't persisted).
+	if agent.Harness == "" {
+		harnessStr := string(def.Harness)
+		if err := p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			return tx.Model(&model.Agent{}).
+				Where("id = ? AND (harness IS NULL OR harness = '')", agent.ID).
+				Update("harness", harnessStr).Error
+		}); err != nil {
+			logging.FromContext(ctx).WarnContext(ctx, "failed to stamp agent harness", "agent_id", agent.ID, "err", err)
+		} else {
+			agent.Harness = harnessStr
+		}
+	}
+
 	if _, err := p.buildSubagentDefinitions(ctx, agent, cred); err != nil {
 		return fmt.Errorf("building subagent definitions: %w", err)
 	}
@@ -93,11 +106,7 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 		Name:         agent.Name,
 		Description:  agent.Description,
 		SystemPrompt: systemPrompt,
-		// TODO(wave-2): replace with deterministic harness(provider, model)
-		// selection — for now every agent is forced onto the Claude Code
-		// harness so the build goes through. OpenCode-targeted agents will
-		// silently run on Claude Code until Wave 2 lands.
-		Harness: bridgepkg.Claude,
+		Harness:      resolveHarness(agent.Harness, providerType, agent.Model),
 		Provider: bridgepkg.ProviderConfig{
 			ProviderType: providerType,
 			Model:        agent.Model,
@@ -108,10 +117,9 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 
 	permissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
 
-	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), cred.ProviderID, agent.Model)
-	applyImmortalDefault(def.Config, def.Provider, cred.ProviderID, agent.Model, permissions)
-	applyHistoryStripDefault(def.Config)
-	applyToolRequirementsDefault(def.Config, permissions)
+	authorCfg := decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig)
+	def.Config = applyAgentConfigDefaults(authorCfg, cred.ProviderID, agent.Model)
+	applyHarnessOptionalFields(def.Config, authorCfg)
 
 	if permissions != nil && len(*permissions) > 0 {
 		var disabledTools []string
@@ -127,16 +135,27 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 			def.Permissions = &allowed
 		}
 		if len(disabledTools) > 0 {
-			def.Config.DisabledTools = &disabledTools
+			// Permissions-derived denylist wins over author-supplied
+			// disabled_tools; merge the two so we don't silently drop
+			// either source.
+			if def.Config.DisabledTools != nil {
+				existing := *def.Config.DisabledTools
+				seen := make(map[string]struct{}, len(existing)+len(disabledTools))
+				for _, t := range existing {
+					seen[t] = struct{}{}
+				}
+				for _, t := range disabledTools {
+					if _, ok := seen[t]; !ok {
+						existing = append(existing, t)
+						seen[t] = struct{}{}
+					}
+				}
+				def.Config.DisabledTools = &existing
+			} else {
+				def.Config.DisabledTools = &disabledTools
+			}
 		}
 	}
-
-	// TODO(wave-2): The new ACP-harness AgentDefinition removed the
-	// agent-defined `tools` slice — tools are now exclusively driven by the
-	// harness's built-in tool registry plus MCP servers. The legacy
-	// agent.Tools JSONB column still exists in the DB; Wave 2 either
-	// migrates surviving entries into MCP servers or drops the column.
-	_ = decodeJSONAs[[]any](agent.Tools)
 
 	mcpServers := decodeJSONAs[[]bridgepkg.McpServerDefinition](agent.McpServers)
 
