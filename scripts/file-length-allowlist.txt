@@ -43,6 +43,5 @@ internal/handler/router.go
 internal/cache/cache.go
 internal/hindsight/retainer.go
 internal/trigger/dispatch/router_dispatcher.go
-internal/bootstrap/deps.go
 internal/system/tasks/prompt_writer_resolve.go
 internal/handler/system_tasks_prompt_writer_test.go
