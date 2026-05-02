@@ -44,11 +44,9 @@ openapi:
 # Usage: make build-templates VERSION=0.10.0
 #        make build-templates VERSION=0.10.0 SIZE=small
 #        make build-templates VERSION=0.10.0 SIZE=small,medium
-#        make build-templates VERSION=0.10.0 FLAVOR=dev-box
-#        make build-templates VERSION=0.10.0 FLAVOR=dev-box SIZE=medium
 build-templates:
 	@test -n "$(VERSION)" || (echo "error: VERSION is required (e.g. make build-templates VERSION=0.10.0)" && exit 1)
-	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates -version=$(VERSION) -flavor=$(or $(FLAVOR),bridge) -size=$(or $(SIZE),all)
+	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates -version=$(VERSION) -size=$(or $(SIZE),all)
 
 # Upload skill definitions to Hiveloop API (reads HIVELOOP_SKILLS_API_KEY from .env)
 upload-skills:

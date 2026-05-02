@@ -16,11 +16,11 @@ import {
 } from "@hugeicons/core-free-icons"
 import { MultiFileDiff, type FileContents } from "@pierre/diffs/react"
 import { Group as PanelGroup, Panel, Separator as PanelResizer } from "react-resizable-panels"
+import ScrollToBottom from "react-scroll-to-bottom"
 import { $api } from "@/lib/api/hooks"
 import { useAgentSessions } from "@/hooks/use-agent-sessions"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
 import { Workspace } from "@/app/w/agents/[id]/_components/workspace"
 
@@ -41,6 +41,9 @@ type Message = {
   diff?: DiffPayload
 }
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// Static demo data — kept for reference while we wire up real conversation events.
+/*
 const stripeHandlerOld = `package handler
 
 import (
@@ -272,9 +275,36 @@ const messages: Message[] = [
     ],
   },
 ]
+*/
+/* eslint-enable @typescript-eslint/no-unused-vars */
+
+function extractToolInfo(data: unknown): { name?: string; args?: unknown } {
+  if (!data || typeof data !== "object") return {}
+  const d = data as Record<string, unknown>
+
+  const name =
+    (typeof d.tool_name === "string" && d.tool_name) ||
+    (typeof d.name === "string" && d.name) ||
+    (typeof (d.tool as Record<string, unknown> | undefined)?.name === "string" &&
+      ((d.tool as Record<string, unknown>).name as string)) ||
+    (typeof (d.tool_call as Record<string, unknown> | undefined)?.name === "string" &&
+      ((d.tool_call as Record<string, unknown>).name as string)) ||
+    undefined
+
+  const args =
+    d.arguments ??
+    d.input ??
+    d.args ??
+    d.parameters ??
+    (d.tool as Record<string, unknown> | undefined)?.input ??
+    (d.tool_call as Record<string, unknown> | undefined)?.arguments ??
+    undefined
+
+  return { name: name || undefined, args }
+}
 
 export default function AgentDetailPage() {
-  const { id } = useParams<{ id: string; convId: string }>()
+  const { id, convId } = useParams<{ id: string; convId: string }>()
   const { data: agent } = $api.useQuery("get", "/v1/agents/{id}", {
     params: { path: { id } },
   })
@@ -283,6 +313,80 @@ export default function AgentDetailPage() {
 
   const agentName = agent?.name ?? "Agent"
   const initial = (agentName ?? "?").slice(0, 1).toUpperCase()
+
+  const eventsQuery = $api.useInfiniteQuery(
+    "get",
+    "/v1/conversations/{convID}/events",
+    {
+      params: {
+        path: { convID: convId },
+        query: { limit: 50 },
+      },
+    },
+    {
+      initialPageParam: undefined as string | undefined,
+      getNextPageParam: (lastPage) =>
+        lastPage?.has_more ? lastPage.next_cursor : undefined,
+      enabled: Boolean(convId),
+    },
+  )
+
+  // API returns DESC (newest first). For chat display we want oldest at top,
+  // newest at bottom — flatten then reverse.
+  const events = React.useMemo(() => {
+    const pages = eventsQuery.data?.pages ?? []
+    const all = pages.flatMap((page) => page?.data ?? [])
+    return [...all].reverse()
+  }, [eventsQuery.data])
+
+  const topSentinelRef = React.useRef<HTMLDivElement | null>(null)
+  const scrollAnchorRef = React.useRef<{ scrollHeight: number; scrollTop: number } | null>(null)
+
+  const getScrollContainer = React.useCallback((): HTMLElement | null => {
+    let el: HTMLElement | null = topSentinelRef.current
+    while (el && el.parentElement) {
+      el = el.parentElement
+      if (el.scrollHeight > el.clientHeight) return el
+    }
+    return null
+  }, [])
+
+  // Anchor scroll position around fetch: capture before, restore after, so the
+  // user stays pinned to the same event and the sentinel scrolls out of view.
+  React.useLayoutEffect(() => {
+    const container = getScrollContainer()
+    if (!container) return
+    if (eventsQuery.isFetchingNextPage) {
+      scrollAnchorRef.current = {
+        scrollHeight: container.scrollHeight,
+        scrollTop: container.scrollTop,
+      }
+    } else if (scrollAnchorRef.current) {
+      const delta = container.scrollHeight - scrollAnchorRef.current.scrollHeight
+      container.scrollTop = scrollAnchorRef.current.scrollTop + delta
+      scrollAnchorRef.current = null
+    }
+  }, [eventsQuery.isFetchingNextPage, getScrollContainer])
+
+  React.useEffect(() => {
+    const target = topSentinelRef.current
+    if (!target) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (
+          entry?.isIntersecting &&
+          eventsQuery.hasNextPage &&
+          !eventsQuery.isFetchingNextPage
+        ) {
+          eventsQuery.fetchNextPage()
+        }
+      },
+      { rootMargin: "0px" },
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [eventsQuery])
 
   return (
     <div className="fixed inset-0 z-50 bg-background">
@@ -296,28 +400,55 @@ export default function AgentDetailPage() {
         >
           <ChatHeader name={agentName} avatarUrl={agent?.avatar_url ?? null} initial={initial} agentId={id} />
 
-          <ScrollArea className="min-h-0 flex-1">
-            <div className="mx-auto flex w-full max-w-2xl flex-col px-6 py-8">
-              {messages.map((message, index) => {
-                const previous = messages[index - 1]
-                const next = messages[index + 1]
-                const isFirstInGroup = !previous || previous.author !== message.author
-                const isLastInGroup = !next || next.author !== message.author
+          <ScrollToBottom
+            className="min-h-0 flex-1"
+            followButtonClassName="hidden"
+            initialScrollBehavior="auto"
+          >
+            <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-6 py-8">
+              <div ref={topSentinelRef} className="h-px w-full" />
+
+              {eventsQuery.isFetchingNextPage ? (
+                <p className="text-center text-[11px] text-muted-foreground/70">
+                  Loading older events…
+                </p>
+              ) : null}
+
+              {events.map((event) => {
+                const tool = extractToolInfo(event.data)
                 return (
-                  <MessageBubble
-                    key={message.id}
-                    message={message}
-                    agentName={agentName}
-                    avatarUrl={agent?.avatar_url ?? null}
-                    initial={initial}
-                    isFirstInGroup={isFirstInGroup}
-                    isLastInGroup={isLastInGroup}
-                    isFirst={index === 0}
-                  />
+                  <div
+                    key={event.id ?? event.event_id}
+                    className="rounded-lg border border-border/60 bg-muted/30 p-3"
+                  >
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono text-[10px] uppercase tracking-[1px] text-muted-foreground/60">
+                        {event.event_type ?? "event"}
+                      </span>
+                      {tool.name ? (
+                        <span className="font-mono text-[12px] font-medium text-foreground">
+                          {tool.name}
+                        </span>
+                      ) : null}
+                    </div>
+                    {tool.args !== undefined ? (
+                      <pre className="mt-2 overflow-x-auto font-mono text-[11px] leading-relaxed text-muted-foreground">
+                        {typeof tool.args === "string"
+                          ? tool.args
+                          : JSON.stringify(tool.args, null, 2)}
+                      </pre>
+                    ) : null}
+                  </div>
                 )
               })}
+
+              {!eventsQuery.isLoading && events.length === 0 ? (
+                <p className="text-center text-[12px] text-muted-foreground/70">
+                  No events yet.
+                </p>
+              ) : null}
             </div>
-          </ScrollArea>
+          </ScrollToBottom>
 
           <Composer />
         </Panel>

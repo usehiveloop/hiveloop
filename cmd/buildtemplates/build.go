@@ -16,7 +16,7 @@ import (
 const ghcrRegistry = "ghcr.io"
 const ghcrNamespace = "usehiveloop"
 
-func buildAndPush(ctx context.Context, flavor, bridgeVersion string, targetSizes []string) error {
+func buildAndPush(ctx context.Context, version string, targetSizes []string) error {
 	user := os.Getenv("GHCR_USERNAME")
 	pat := os.Getenv("GHCR_PAT")
 	if user == "" || pat == "" {
@@ -27,15 +27,7 @@ func buildAndPush(ctx context.Context, flavor, bridgeVersion string, targetSizes
 		return fmt.Errorf("docker login: %w", err)
 	}
 
-	var dockerfile string
-	switch flavor {
-	case flavorBridge:
-		dockerfile = buildBridgeImage(bridgeVersion).Dockerfile()
-	case flavorDevBox:
-		dockerfile = buildDevBoxImage(bridgeVersion).Dockerfile()
-	default:
-		return fmt.Errorf("unknown flavor: %s (valid: %s, %s)", flavor, flavorBridge, flavorDevBox)
-	}
+	dockerfile := buildBridgeImage().Dockerfile()
 
 	tmpDir, err := os.MkdirTemp("", "buildtemplates-*")
 	if err != nil {
@@ -47,10 +39,10 @@ func buildAndPush(ctx context.Context, flavor, bridgeVersion string, targetSizes
 	if err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0o600); err != nil {
 		return fmt.Errorf("writing Dockerfile: %w", err)
 	}
-	log.Printf("Generated Dockerfile (flavor=%s):\n%s\n", flavor, dockerfile)
+	log.Printf("Generated Dockerfile:\n%s\n", dockerfile)
 
-	pkg := fmt.Sprintf("sandbox-%s", flavor)
-	versionedTag := fmt.Sprintf("%s/%s/%s:v%s", ghcrRegistry, ghcrNamespace, pkg, bridgeVersion)
+	pkg := "sandbox-bridge"
+	versionedTag := fmt.Sprintf("%s/%s/%s:v%s", ghcrRegistry, ghcrNamespace, pkg, version)
 	latestTag := fmt.Sprintf("%s/%s/%s:latest", ghcrRegistry, ghcrNamespace, pkg)
 
 	log.Printf("Building %s...", versionedTag)
@@ -67,10 +59,10 @@ func buildAndPush(ctx context.Context, flavor, bridgeVersion string, targetSizes
 
 	log.Printf("Verify the package is public (one-time per package): https://github.com/orgs/%s/packages/container/package/%s/settings", ghcrNamespace, pkg)
 
-	return createDaytonaSnapshots(ctx, flavor, bridgeVersion, versionedTag, targetSizes)
+	return createDaytonaSnapshots(ctx, version, versionedTag, targetSizes)
 }
 
-func createDaytonaSnapshots(ctx context.Context, flavor, bridgeVersion, ghcrTag string, targetSizes []string) error {
+func createDaytonaSnapshots(ctx context.Context, version, ghcrTag string, targetSizes []string) error {
 	client, err := daytona.NewClientWithConfig(&types.DaytonaConfig{
 		APIKey: os.Getenv("SANDBOX_PROVIDER_KEY"),
 		APIUrl: os.Getenv("SANDBOX_PROVIDER_URL"),
@@ -86,7 +78,7 @@ func createDaytonaSnapshots(ctx context.Context, flavor, bridgeVersion, ghcrTag 
 		if !ok {
 			return fmt.Errorf("unknown size: %s", sizeName)
 		}
-		name := snapshotName(flavor, bridgeVersion, size.Name)
+		name := snapshotName(version, size.Name)
 
 		log.Printf("Creating Daytona snapshot %q (cpu=%d, mem=%dGB, disk=%dGB)...",
 			name, size.CPU, size.Memory, size.Disk)

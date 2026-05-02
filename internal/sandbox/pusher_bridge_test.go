@@ -1,6 +1,9 @@
 package sandbox
 
 import (
+	"bytes"
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -48,7 +51,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
 		Name: "Test Railway Agent", Model: "kimi-k2",
 		SystemPrompt: "You are a DevOps engineer.",
-		Status:       "active", AgentType: "agent", SharedMemory: false,
+		Status:       "active", SharedMemory: false,
 		Permissions: permissions, Resources: resources,
 		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 		Integrations: model.JSON{
@@ -58,38 +61,6 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	}
 	db.Create(&agent)
 	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
-
-	suffix := "-" + uuid.New().String()[:8]
-	subagentNames := []string{"codebase-explorer" + suffix, "codebase-summarizer" + suffix, "critic" + suffix}
-	subagentPerms := model.JSON{
-		"RipGrep": "allow", "AstGrep": "allow", "Read": "allow",
-		"Glob": "allow", "LS": "allow", "bash": "allow", "skill": "allow",
-	}
-	subagentRecords := make([]model.Agent, 0, len(subagentNames))
-	for _, name := range subagentNames {
-		sub := model.Agent{
-			ID: uuid.New(), Name: name, Model: "kimi-k2",
-			SystemPrompt: "subagent for tests", Status: "active",
-			AgentType: "subagent", IsSystem: false,
-			Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
-			Integrations: model.JSON{}, AgentConfig: model.JSON{},
-			Permissions: subagentPerms,
-		}
-		if err := db.Create(&sub).Error; err != nil {
-			t.Fatalf("creating subagent %s: %v", name, err)
-		}
-		subagentRecords = append(subagentRecords, sub)
-	}
-	t.Cleanup(func() {
-		for _, sub := range subagentRecords {
-			db.Where("id = ?", sub.ID).Delete(&model.Agent{})
-		}
-	})
-
-	for _, sub := range subagentRecords {
-		db.Create(&model.AgentSubagent{AgentID: agent.ID, SubagentID: sub.ID})
-	}
-	t.Cleanup(func() { db.Where("agent_id = ?", agent.ID).Delete(&model.AgentSubagent{}) })
 
 	skillVersion := model.SkillVersion{
 		ID:      uuid.New(),
@@ -128,7 +99,8 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 
 	assertEqual(t, "name", def.Name, "Test Railway Agent")
 	assertEqual(t, "model", def.Provider.Model, "kimi-k2")
-	assertEqual(t, "provider_type", string(def.Provider.ProviderType), string(bridgepkg.ProviderTypeOpenAi))
+	assertEqual(t, "provider_type", string(def.Provider.ProviderType), string(bridgepkg.OpenAi))
+	assertEqual(t, "harness", string(def.Harness), string(bridgepkg.OpenCode))
 	assertContains(t, "base_url", *def.Provider.BaseUrl, "proxy.test.com")
 	assertEqual(t, "api_key", def.Provider.ApiKey, proxyToken)
 
@@ -167,6 +139,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		}
 	}
 
+	// Hiveloop MCP server should be injected because the agent has integrations.
 	if def.McpServers == nil {
 		t.Fatal("mcp_servers should not be nil")
 	}
@@ -181,10 +154,8 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	}
 	if len(*def.Skills) != 1 {
 		t.Errorf("skills: expected 1, got %d", len(*def.Skills))
-	} else {
-		if (*def.Skills)[0].Title != "use-railway" {
-			t.Errorf("skill title: got %q, want use-railway", (*def.Skills)[0].Title)
-		}
+	} else if (*def.Skills)[0].Title != "use-railway" {
+		t.Errorf("skill title: got %q, want use-railway", (*def.Skills)[0].Title)
 	}
 
 	if def.Config == nil {
@@ -194,62 +165,43 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		t.Errorf("config.max_turns: expected 250, got %v", def.Config.MaxTurns)
 	}
 
-	subDefs, err := pusher.buildSubagentDefinitions(t.Context(), &agent, &cred)
+	// AgentDefinition has no nested `subagents` field. The subagent feature
+	// has been removed entirely; this assertion guards against regressions.
+	defJSON, err := json.Marshal(def)
 	if err != nil {
-		t.Fatalf("buildSubagentDefinitions: %v", err)
+		t.Fatalf("marshal def: %v", err)
 	}
-	if len(subDefs) != 3 {
-		t.Fatalf("subagents: expected 3, got %d", len(subDefs))
-	}
-
-	def.Subagents = &subDefs
-	if def.Subagents == nil || len(*def.Subagents) != 3 {
-		t.Fatalf("parent def.Subagents: expected 3, got %v", def.Subagents)
+	if bytes.Contains(defJSON, []byte(`"subagents"`)) {
+		t.Errorf("AgentDefinition JSON must not contain a `subagents` field; got %s", defJSON)
 	}
 
-	subNames := make(map[string]bridgepkg.AgentDefinition)
-	for _, sub := range subDefs {
-		subNames[sub.Name] = sub
+	var hiveloopMCP *bridgepkg.McpServerDefinition
+	for i := range *def.McpServers {
+		if (*def.McpServers)[i].Name == "hiveloop" {
+			hiveloopMCP = &(*def.McpServers)[i]
+			break
+		}
 	}
-
-	for _, name := range subagentNames {
-		sub, ok := subNames[name]
-		if !ok {
-			t.Errorf("subagent %q not found", name)
-			continue
-		}
-
-		if sub.Permissions == nil || len(*sub.Permissions) == 0 {
-			t.Errorf("subagent %q: permissions should not be empty", name)
-		} else {
-			subPerms := *sub.Permissions
-			if subPerms["RipGrep"] != bridgepkg.ToolPermissionAllow {
-				t.Errorf("subagent %q: RipGrep permission should be allow, got %q", name, subPerms["RipGrep"])
-			}
-			if subPerms["AstGrep"] != bridgepkg.ToolPermissionAllow {
-				t.Errorf("subagent %q: AstGrep permission should be allow, got %q", name, subPerms["AstGrep"])
-			}
-			if subPerms["Read"] != bridgepkg.ToolPermissionAllow {
-				t.Errorf("subagent %q: Read permission should be allow, got %q", name, subPerms["Read"])
-			}
-			if subPerms["bash"] != bridgepkg.ToolPermissionAllow {
-				t.Errorf("subagent %q: bash permission should be allow, got %q", name, subPerms["bash"])
-			}
-			if subPerms["skill"] != bridgepkg.ToolPermissionAllow {
-				t.Errorf("subagent %q: skill permission should be allow, got %q", name, subPerms["skill"])
-			}
-		}
-
-		if sub.Provider.Model != "kimi-k2" {
-			t.Errorf("subagent %q: model should be kimi-k2 (inherited), got %q", name, sub.Provider.Model)
-		}
-
-		if sub.SystemPrompt == "" {
-			t.Errorf("subagent %q: system_prompt should not be empty", name)
-		}
-
-		if sub.McpServers != nil && len(*sub.McpServers) > 0 {
-			t.Errorf("subagent %q: should not have MCP servers, got %d", name, len(*sub.McpServers))
-		}
+	if hiveloopMCP == nil {
+		t.Fatal("expected hiveloop MCP server in def.McpServers when integrations are attached")
+	}
+	transport, err := hiveloopMCP.Transport.AsMcpTransport1()
+	if err != nil {
+		t.Fatalf("hiveloop MCP transport must be streamable_http: %v", err)
+	}
+	if transport.Type != bridgepkg.StreamableHttp {
+		t.Errorf("transport.type = %q, want streamable_http", transport.Type)
+	}
+	if !strings.HasPrefix(transport.Url, "https://mcp.test.com/") {
+		t.Errorf("transport.url should start with mcp base URL; got %q", transport.Url)
+	}
+	if !strings.HasSuffix(transport.Url, jti) {
+		t.Errorf("transport.url should end with jti %q; got %q", jti, transport.Url)
+	}
+	if transport.Headers == nil {
+		t.Fatal("hiveloop MCP transport must carry an Authorization header")
+	}
+	if (*transport.Headers)["Authorization"] != "Bearer "+proxyToken {
+		t.Errorf("Authorization header = %q, want bearer of proxy token", (*transport.Headers)["Authorization"])
 	}
 }

@@ -12,6 +12,13 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
+func harnessFromAgent(agentHarness string) bridgepkg.Harness {
+	if agentHarness == "" {
+		return bridgepkg.OpenCode
+	}
+	return bridgepkg.Harness(agentHarness)
+}
+
 func buildHiveLoopMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDefinition {
 	url := fmt.Sprintf("%s/%s", mcpBaseURL, jti)
 

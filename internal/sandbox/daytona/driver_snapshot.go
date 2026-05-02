@@ -24,15 +24,22 @@ func (d *Driver) BuildSnapshotWithLogs(ctx context.Context, opts sandbox.BuildSn
 	return d.buildImage(ctx, opts, onLog)
 }
 
+// TODO(migration): replace with the real release URL for useportal.bridge@rip-harness
+// (e.g. https://github.com/useportal/bridge/releases/download/${version}/bridge-linux-x86_64),
+// and fetch a checksum/signature alongside.
+const bridgeDownloadURL = "https://github.com/useportal/bridge/releases/download/TODO-MIGRATION-rip-harness/bridge-linux-x86_64"
+
 func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts, onLog func(string)) (string, error) {
 	baseImage := opts.BaseImage
 	if baseImage == "" {
-		baseImage = "ubuntu:24.04"
+		baseImage = "node:22-bookworm-slim"
 	}
 
 	image := daytona.Base(baseImage)
 
-	image = image.AptGet([]string{"curl", "ca-certificates", "git", "jq", "unzip", "wget", "openssh-client"})
+	// Minimal runtime tools — the canonical fat image with rtk/uv/Go/Rust
+	// lives in cmd/buildtemplates; user templates layer on top via BuildCommands.
+	image = image.AptGet([]string{"ca-certificates", "curl", "git", "jq", "unzip", "openssh-client"})
 
 	image = image.Run(
 		"curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && " +
@@ -40,10 +47,21 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 			"apt-get update && apt-get install -y --no-install-recommends gh && rm -rf /var/lib/apt/lists/*",
 	)
 
-	image = image.Run("mkdir -p /home/daytona/.bridge")
+	// ACP harnesses installed globally so bridge can spawn them as subprocesses.
+	image = image.Run("npm install -g @agentclientprotocol/claude-agent-acp@0.31.4 opencode-ai@1.14.32")
+
+	image = image.Run("mkdir -p /work/.claude /work/.opencode")
+
 	image = image.Run(
-		`curl -fsSL "https://github.com/usehiveloop/bridge/releases/download/v0.17.1/bridge-v0.17.1-x86_64-unknown-linux-gnu.tar.gz" | tar -xzf - -C /usr/local/bin && chmod +x /usr/local/bin/bridge`,
+		fmt.Sprintf(`curl -fsSL %q -o /usr/local/bin/bridge && chmod +x /usr/local/bin/bridge`, bridgeDownloadURL),
 	)
+
+	// Image-level ENV mirrors orchestrator_types.baseEnvVars so a manual
+	// `docker run` (without the orchestrator) lands in the same shape.
+	image = image.Env("HOME", "/work")
+	image = image.Env("CLAUDE_CONFIG_DIR", "/work/.claude")
+	image = image.Env("OPENCODE_CONFIG_DIR", "/work/.opencode")
+	image = image.Env("NO_BROWSER", "1")
 
 	if len(opts.BuildCommands) > 0 {
 		commands := make([]string, 0, len(opts.BuildCommands))
@@ -58,8 +76,8 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 		}
 	}
 
-	image = image.Workdir("/home/daytona")
-	image = image.Entrypoint([]string{"/bin/sh", "-c", "mkdir -p /home/daytona/.bridge && /usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
+	image = image.Workdir("/work")
+	image = image.Entrypoint([]string{"/bin/sh", "-c", "mkdir -p /work/.claude /work/.opencode && /usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
 
 	params := &types.CreateSnapshotParams{
 		Name:  opts.Name,
