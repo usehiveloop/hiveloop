@@ -12,6 +12,11 @@ type AgentConversation struct {
 	Org                  Org        `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
 	AgentID              uuid.UUID  `gorm:"type:uuid;not null;index:idx_conv_org_agent"`
 	Agent                Agent      `gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE"`
+	// ParentConversationID is set when this conversation was spawned by a
+	// parent agent invoking the `sub_agent` MCP tool. Nil for top-level
+	// conversations. Used to reconstruct subagent invocation lineage and to
+	// scope subagent runs to their owning parent.
+	ParentConversationID *uuid.UUID `gorm:"type:uuid;index"`
 	SandboxID            uuid.UUID  `gorm:"type:uuid;not null"`
 	Sandbox              Sandbox    `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
 	BridgeConversationID string     `gorm:"not null;index"`
