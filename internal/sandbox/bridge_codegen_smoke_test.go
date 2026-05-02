@@ -16,19 +16,9 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// TestBridgeCodegenSmoke proves that the regenerated bridge client emits the
-// new ACP-harness wire shape — i.e. the pusher's buildAgentDefinition output
-// serializes WITHOUT the dead Wave-1 fields (`tools`, `subagents`,
-// `immortal`, `history_strip`) and WITH the new required `harness` enum.
-//
-// We hit two endpoints with a real httptest server:
-//   - PUT  /push/agents/{id}            (UpsertAgent wire shape)
-//   - POST /agents/{id}/conversations   (CreateConversationRequest shape)
-//
-// The first uses a definition built by the same buildAgentDefinition that
-// pushAgentToSandbox uses in production, against a real Postgres-backed
-// agent fixture. This is the actual proof that the migration's wire format
-// is correct end-to-end.
+// TestBridgeCodegenSmoke_NewWireShape locks the new ACP-harness wire shape
+// against the regenerated bridge client: dead Wave-1 fields must not be
+// emitted and the required `harness` enum must be present.
 func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 	db := setupPusherTestDB(t)
 	encKey := testPusherEncKey(t)
@@ -77,7 +67,6 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 
 	def := pusher.buildAgentDefinition(t.Context(), &agent, &cred, "ptok_smoke", uuid.New().String())
 
-	// --- httptest bridge server ----------------------------------------
 	var (
 		gotUpsertBody []byte
 		gotConvBody   []byte
@@ -103,7 +92,6 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 
 	client := bridgepkg.NewBridgeClient(srv.URL, "test-key")
 
-	// --- exercise UpsertAgent ------------------------------------------
 	if err := client.UpsertAgent(context.Background(), agent.ID.String(), def); err != nil {
 		t.Fatalf("UpsertAgent: %v", err)
 	}
@@ -124,7 +112,6 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 		t.Errorf("harness = %v, want \"open_code\" (default for agents without an explicit harness)", harness)
 	}
 
-	// Dead fields that MUST NOT appear in the new wire shape.
 	for _, dead := range []string{
 		"tools",
 		"subagents",
@@ -139,8 +126,7 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 			t.Errorf("upsert body contains forbidden top-level field %q (raw=%s)", dead, gotUpsertBody)
 		}
 	}
-	// Same check inside `config` — the immortal/history_strip/tool_requirements/verifier
-	// fields used to live nested under config.
+	// Dead fields used to live nested under config — block them there too.
 	if cfgRaw, ok := upsertJSON["config"].(map[string]any); ok {
 		for _, dead := range []string{
 			"immortal",
@@ -162,14 +148,12 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 		}
 	}
 
-	// Sanity: required fields the new schema mandates.
 	for _, required := range []string{"id", "name", "harness", "system_prompt", "provider"} {
 		if _, present := upsertJSON[required]; !present {
 			t.Errorf("upsert body missing required field %q", required)
 		}
 	}
 
-	// --- exercise CreateConversation -----------------------------------
 	provider := bridgepkg.ProviderConfig{
 		ProviderType: bridgepkg.Anthropic,
 		Model:        "claude-sonnet-4-5",
@@ -189,14 +173,12 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 		t.Fatalf("decode conv body: %v\n--- raw ---\n%s", err, gotConvBody)
 	}
 
-	// Old per-conversation override fields removed in the new wire shape.
 	for _, dead := range []string{"tool_names", "mcp_server_names", "subagent_api_keys"} {
 		if _, present := convJSON[dead]; present {
 			t.Errorf("conv body contains forbidden field %q (raw=%s)", dead, gotConvBody)
 		}
 	}
 
-	// Provider override should be inline, not wrapped in a oneOf union.
 	provRaw, ok := convJSON["provider"].(map[string]any)
 	if !ok {
 		t.Fatalf("conv body provider should be an inline object, got %T (raw=%s)", convJSON["provider"], gotConvBody)

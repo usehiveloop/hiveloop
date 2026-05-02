@@ -24,19 +24,12 @@ func (d *Driver) BuildSnapshotWithLogs(ctx context.Context, opts sandbox.BuildSn
 	return d.buildImage(ctx, opts, onLog)
 }
 
-// bridgeDownloadURL is the placeholder download URL for the new ACP-harness
-// bridge binary. Once useportal.bridge@rip-harness ships GitHub releases,
-// replace this constant with the real release asset URL (and prefer fetching
-// a checksum/signature alongside).
-//
-// TODO(migration): replace with the real release URL for useportal.bridge@rip-harness.
-// e.g. https://github.com/useportal/bridge/releases/download/${version}/bridge-linux-x86_64
+// TODO(migration): replace with the real release URL for useportal.bridge@rip-harness
+// (e.g. https://github.com/useportal/bridge/releases/download/${version}/bridge-linux-x86_64),
+// and fetch a checksum/signature alongside.
 const bridgeDownloadURL = "https://github.com/useportal/bridge/releases/download/TODO-MIGRATION-rip-harness/bridge-linux-x86_64"
 
 func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts, onLog func(string)) (string, error) {
-	// New ACP-harness runtime contract: single-stage from node:22-bookworm-slim
-	// (the bridge binary is built upstream by useportal.bridge@rip-harness and
-	// downloaded here — see bridgeDownloadURL above).
 	baseImage := opts.BaseImage
 	if baseImage == "" {
 		baseImage = "node:22-bookworm-slim"
@@ -44,12 +37,10 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 
 	image := daytona.Base(baseImage)
 
-	// Minimal runtime tools agents need for git ops and self-introspection.
-	// Custom user templates layer their own tooling on top via BuildCommands;
-	// the canonical fat image with rtk/uv/Go/Rust lives in cmd/buildtemplates.
+	// Minimal runtime tools — the canonical fat image with rtk/uv/Go/Rust
+	// lives in cmd/buildtemplates; user templates layer on top via BuildCommands.
 	image = image.AptGet([]string{"ca-certificates", "curl", "git", "jq", "unzip", "openssh-client"})
 
-	// gh CLI installed via the official apt repo — agents still need it for git ops.
 	image = image.Run(
 		"curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && " +
 			`echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && ` +
@@ -59,17 +50,14 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 	// ACP harnesses installed globally so bridge can spawn them as subprocesses.
 	image = image.Run("npm install -g @agentclientprotocol/claude-agent-acp@0.31.4 opencode-ai@1.14.32")
 
-	// Per-harness config dirs under HOME=/work.
 	image = image.Run("mkdir -p /work/.claude /work/.opencode")
 
-	// Download the bridge binary. The URL is a TODO placeholder; see bridgeDownloadURL.
 	image = image.Run(
 		fmt.Sprintf(`curl -fsSL %q -o /usr/local/bin/bridge && chmod +x /usr/local/bin/bridge`, bridgeDownloadURL),
 	)
 
-	// Image-level ENV mirrors what orchestrator_types.baseEnvVars sets per-sandbox,
-	// so a snapshot booted without the orchestrator (manual debug) still has a
-	// sane environment.
+	// Image-level ENV mirrors orchestrator_types.baseEnvVars so a manual
+	// `docker run` (without the orchestrator) lands in the same shape.
 	image = image.Env("HOME", "/work")
 	image = image.Env("CLAUDE_CONFIG_DIR", "/work/.claude")
 	image = image.Env("OPENCODE_CONFIG_DIR", "/work/.opencode")
@@ -88,7 +76,6 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 		}
 	}
 
-	// Workdir /work so the bridge SQLite DB at /work/bridge.db survives stop/start.
 	image = image.Workdir("/work")
 	image = image.Entrypoint([]string{"/bin/sh", "-c", "mkdir -p /work/.claude /work/.opencode && /usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
 

@@ -1,15 +1,3 @@
-// Wave 3 e2e: skills wire shape on the UpsertAgent push path.
-//
-// Required infra:
-//   DATABASE_URL  → Postgres reachable
-//
-// This test seeds a real Skill + SkillVersion in Postgres, attaches it
-// to an agent, then drives the pusher's push path against a fakebridge
-// and asserts the resulting AgentDefinition.skills contract:
-//   - skill.id MUST be the bundle's id (which the loader copies from the
-//     Skill row's slug-derived bundle), not the title.
-//   - skill.title comes from the bundle.
-//   - 2 skills both make it through, in order.
 package e2e
 
 import (
@@ -28,9 +16,9 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
-// TestSkillsPassthrough_NewWireShape locks the AgentDefinition.skills
-// shape sent to the new bridge: each skill carries `id` and `title`, no
-// dead fields, and the `id` is the bundle id (not the title).
+// TestSkillsPassthrough_NewWireShape locks the bundle id (not the title)
+// as skill.id on the wire — the prior bug used the title and broke the
+// bridge's lookup.
 func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 	h := newHarness(t)
 	suffix := uuid.New().String()[:8]
@@ -105,7 +93,6 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 	}
 	_ = skillIDs
 
-	// Spin a fakebridge and a pusher pointed at it.
 	fb := fakebridge.New(t)
 
 	expiresAt := time.Now().Add(24 * time.Hour)
@@ -146,7 +133,6 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 		t.Fatalf("def.skills: got %d, want 2 (raw=%v)", len(gotSkills), gotSkills)
 	}
 
-	// Build a set of (id, title) we expect.
 	expected := map[string]string{
 		skillFixtures[0].bundleID: skillFixtures[0].title,
 		skillFixtures[1].bundleID: skillFixtures[1].title,
@@ -161,7 +147,6 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 		if s.Title != wantTitle {
 			t.Errorf("skill[%d].title = %q, want %q", i, s.Title, wantTitle)
 		}
-		// id MUST NOT equal title — that was the audit's bug.
 		if idStr == s.Title {
 			t.Errorf("skill[%d] id == title (%q); id must be the bundle id, not the title", i, idStr)
 		}
@@ -171,9 +156,6 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 		t.Errorf("missing skills: %v", expected)
 	}
 
-	// Spot-check that skill.id is not the human-readable name (anti-bug
-	// from the audit). One of our titles is "use-railway"; if any pushed
-	// skill uses that string as id, that's the regression.
 	for _, s := range gotSkills {
 		if string(s.Id) == "use-railway" || string(s.Id) == "use-vercel" {
 			t.Errorf("skill id leaked the title: %q", s.Id)

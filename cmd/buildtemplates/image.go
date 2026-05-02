@@ -10,29 +10,22 @@ import (
 )
 
 const (
-	// node:22-bookworm-slim matches the runtime base in useportal.bridge's
-	// own Dockerfile, so the bridge binary's expectations (HOME=/work,
-	// claude-agent-acp + opencode-ai installed globally) carry over directly.
+	// baseImage matches useportal.bridge's own Dockerfile so the binary's
+	// runtime expectations carry over directly.
 	baseImage = "node:22-bookworm-slim"
 	workDir   = "/work"
 
-	// bridgeDownloadURL is the placeholder download URL for the new ACP-harness
-	// bridge binary. Once useportal.bridge ships GitHub releases, replace this
-	// with the real release-asset URL (and ideally fetch a checksum alongside).
-	// Keep this in sync with internal/sandbox/daytona/driver_snapshot.go.
-	//
-	// TODO(migration): replace with the real release URL for useportal.bridge.
+	// TODO(migration): replace with real release URL once useportal.bridge ships
+	// GitHub releases. Keep in sync with internal/sandbox/daytona/driver_snapshot.go.
 	bridgeDownloadURL = "https://github.com/useportal/bridge/releases/download/TODO-MIGRATION-rip-harness/bridge-linux-x86_64"
 
-	// ACP harness package versions — must match useportal.bridge's
-	// docker/Dockerfile so bridge dispatches to a known-compatible binary.
+	// ACP harness versions must match useportal.bridge's Dockerfile so
+	// bridge dispatches to a known-compatible binary.
 	claudeACPVersion = "0.31.4"
 	openCodeVersion  = "1.14.32"
 )
 
-// basePackages are the apt packages installed before any tooling. tini is the
-// init shim bridge uses as PID 1; the rest are tools agents call directly
-// (curl/wget/git/jq/unzip/openssh-client/gh).
+// tini is the PID 1 init shim; the rest are tools agents call directly.
 var basePackages = []string{
 	"ca-certificates",
 	"curl",
@@ -50,8 +43,6 @@ const goVersion = "1.24.2"
 
 const astGrepVersion = "0.42.1"
 
-// devToolPackages are dormant CLI / runtime packages agents use during their
-// work. None of these start daemons at boot — the entrypoint is bridge.
 var devToolPackages = []string{
 	"build-essential",
 	"python3-pip",
@@ -82,11 +73,9 @@ var devToolPackages = []string{
 
 var sizes = model.TemplateSizes
 
-// snapshotName matches the BridgeBaseImagePrefix default in
-// internal/config/config.go (`hiveloop-bridge-1-0-0-small-v1`). Version dots
-// become dashes; the trailing `-v1` is the runtime-contract revision and
-// bumps when the image's startup contract changes (not when the bridge
-// binary version bumps).
+// snapshotName must match BridgeBaseImagePrefix in internal/config/config.go.
+// The trailing -v1 is the runtime-contract revision; bump it when the image's
+// startup contract changes, not when the bridge binary version bumps.
 func snapshotName(version, size string) string {
 	return fmt.Sprintf("hiveloop-bridge-%s-%s-v1", strings.ReplaceAll(version, ".", "-"), size)
 }
@@ -96,22 +85,20 @@ func buildBridgeImage() *daytona.DockerImage {
 
 	image = image.AptGet(basePackages)
 
-	// gh CLI from GitHub's official apt repo.
 	image = image.Run(
 		"curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && " +
 			`echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && ` +
 			"apt-get update && apt-get install -y --no-install-recommends gh && rm -rf /var/lib/apt/lists/*",
 	)
 
-	// ACP harnesses installed globally so bridge can spawn them as subprocesses
-	// based on AgentDefinition.harness.
+	// ACP harnesses installed globally so bridge can spawn them as subprocesses.
 	image = image.Run(fmt.Sprintf(
 		"npm install -g @agentclientprotocol/claude-agent-acp@%s opencode-ai@%s && npm cache clean --force",
 		claudeACPVersion, openCodeVersion,
 	))
 
-	// nvm + extra Node LTS for agents that need to switch versions during a
-	// project. The system node from the base image stays as `/usr/local/bin/node`.
+	// nvm gives agents a way to switch Node versions; the system node from
+	// the base image stays at /usr/local/bin/node.
 	nvmInstall := strings.Join([]string{
 		"set -eux",
 		"export NVM_DIR=/usr/local/nvm",
@@ -168,10 +155,8 @@ func buildBridgeImage() *daytona.DockerImage {
 			"ln -sf /root/.local/bin/uvx /usr/local/bin/uvx",
 	)
 
-	// Git credential helper — fetches GitHub tokens from the control plane on demand.
-	// Auth uses BRIDGE_CONTROL_PLANE_API_KEY (the bridge ↔ control-plane shared
-	// secret the orchestrator sets in baseEnvVars); the legacy
-	// HIVELOOP_SANDBOX_TOKEN was sandbox-agent's own auth.
+	// Git credential helper fetches GitHub tokens from the control plane on
+	// demand using BRIDGE_CONTROL_PLANE_API_KEY (set by the orchestrator).
 	image = image.Run(
 		`printf '#!/bin/sh\ncurl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$HIVELOOP_GIT_CREDENTIALS_URL"\n' > /usr/local/bin/git-credential-hiveloop && ` +
 			`chmod +x /usr/local/bin/git-credential-hiveloop`,
@@ -182,23 +167,20 @@ func buildBridgeImage() *daytona.DockerImage {
 	image = image.Run("git config --global user.name hiveloop")
 	image = image.Run("git config --global user.email help@hiveloop.com")
 
-	// gh CLI wrapper — fetches a fresh GitHub token on every invocation.
+	// gh CLI wrapper fetches a fresh token per invocation.
 	image = image.Run(
 		`printf '#!/bin/sh\nexport GH_NO_KEYRING=1\nexport GH_TOKEN=$(curl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$HIVELOOP_GIT_CREDENTIALS_URL" | grep password | cut -d= -f2)\nexec /usr/bin/gh "$@"\n' > /usr/local/bin/gh-wrapper && ` +
 			`chmod +x /usr/local/bin/gh-wrapper && ` +
 			`ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh`,
 	)
 
-	// Bridge binary itself.
 	image = image.Run(fmt.Sprintf(
 		`curl -fsSL %q -o /usr/local/bin/bridge && chmod +x /usr/local/bin/bridge`,
 		bridgeDownloadURL,
 	))
 
-	// Per-harness state lives under HOME=/work so the bridge SQLite DB and
-	// each ACP harness's session backups survive provider stop/start. Mirror
-	// the env to image-level so a manual `docker run` (without the
-	// orchestrator) lands in the same shape.
+	// Image-level ENV mirrors orchestrator_types.baseEnvVars so a manual
+	// `docker run` (without the orchestrator) lands in the same shape.
 	image = image.Run("mkdir -p /work/.claude /work/.opencode /work/tmp")
 	image = image.Env("HOME", workDir)
 	image = image.Env("CLAUDE_CONFIG_DIR", "/work/.claude")

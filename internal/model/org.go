@@ -85,13 +85,10 @@ func AutoMigrate(db *gorm.DB) error {
 		return err
 	}
 
-	// Drop the subagents feature (removed end-to-end). Pre-migration data
-	// archive of agent_subagents is an operational concern, not code's:
-	// we just drop the join table and the AgentConversation lineage column.
+	// Subagents feature was removed; archive of agent_subagents data is
+	// operational, not code's concern.
 	db.Exec(`DROP TABLE IF EXISTS agent_subagents`)
 	db.Exec(`ALTER TABLE agent_conversations DROP COLUMN IF EXISTS parent_conversation_id`)
-	// Drop the agents.agent_type column — there is no longer any
-	// distinction between "agent" and "subagent" rows.
 	db.Exec(`ALTER TABLE agents DROP COLUMN IF EXISTS agent_type`)
 
 	// Partial unique: org-scoped agents have unique (org_id, name).

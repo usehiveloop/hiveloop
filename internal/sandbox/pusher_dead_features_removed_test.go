@@ -16,15 +16,10 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// TestPusherDeadFeatures_NotEmittedOnWire is an invariant test:
-//   - Insert an Agent with legacy AgentConfig JSONB fields populated as if
-//     the row was migrated from the pre-Wave-2 schema (immortal,
-//     history_strip, tool_requirements, verifier).
-//   - Push it through buildAgentDefinition + UpsertAgent.
-//   - Assert NONE of those keys appear in the wire-format JSON.
-//
-// This catches regressions where someone re-adds an apply* helper that
-// silently re-emits a dropped field.
+// TestPusherDeadFeatures_NotEmittedOnWire pushes an agent whose JSONB
+// AgentConfig still carries legacy fields (immortal, history_strip,
+// tool_requirements, verifier) and asserts none of them survive onto the
+// wire — guards against regressions that silently re-emit dropped fields.
 func TestPusherDeadFeatures_NotEmittedOnWire(t *testing.T) {
 	db := setupPusherTestDB(t)
 	encKey := testPusherEncKey(t)
@@ -51,12 +46,10 @@ func TestPusherDeadFeatures_NotEmittedOnWire(t *testing.T) {
 	}
 	t.Cleanup(func() { db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
 
-	// Simulate an old DB row that still carries pre-Wave-2 fields.
 	legacyConfig := model.JSON{
 		"max_tokens":  4096,
 		"max_turns":   100,
 		"temperature": 0.7,
-		// Dead fields below — must NOT round-trip onto the wire.
 		"immortal": map[string]any{
 			"enabled":          true,
 			"token_budget":     50000,
