@@ -12,6 +12,15 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/demo',
+        destination: 'https://hiveloop.zohobookings.com/#/discovery-call',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 const withMDX = createMDX();
