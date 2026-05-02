@@ -1,5 +1,7 @@
 "use client"
 
+import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -18,8 +20,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select"
 import { SettingsShell } from "@/components/settings-shell"
+import { $api } from "@/lib/api/hooks"
+import { extractErrorMessage } from "@/lib/api/error"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   ArrowDown01Icon,
@@ -28,7 +40,11 @@ import {
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
 
-const ASSIGNABLE_ROLES = ["Admin", "Member", "Viewer"] as const
+const ROLES = [
+  { value: "admin", label: "Admin" },
+  { value: "member", label: "Member" },
+  { value: "viewer", label: "Viewer" },
+] as const
 
 const MEMBERS = [
   { name: "Aisha Patel", email: "aisha@acme.co", role: "Owner", initials: "AP" },
@@ -135,10 +151,10 @@ function RoleSelect({ role }: { role: string }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-36">
         <DropdownMenuGroup>
-          {ASSIGNABLE_ROLES.map((r) => (
-            <DropdownMenuItem key={r}>
-              <span className="flex-1">{r}</span>
-              {r === role ? (
+          {ROLES.map((r) => (
+            <DropdownMenuItem key={r.value}>
+              <span className="flex-1">{r.label}</span>
+              {r.label === role ? (
                 <HugeiconsIcon
                   icon={Tick02Icon}
                   strokeWidth={2}
@@ -183,8 +199,42 @@ function RowMenu({ name, disabled }: { name: string; disabled?: boolean }) {
 }
 
 function InviteDialog() {
+  const [open, setOpen] = useState(false)
+  const [email, setEmail] = useState("")
+  const [role, setRole] = useState("member")
+  const [fieldError, setFieldError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+
+  const invite = $api.useMutation("post", "/v1/orgs/current/invites")
+
+  function handleSubmit() {
+    setFieldError(null)
+
+    const trimmed = email.trim()
+    if (!trimmed) {
+      setFieldError("Email is required")
+      return
+    }
+
+    invite.mutate(
+      { body: { email: trimmed, role } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/orgs/current/invites"] })
+          setOpen(false)
+          setEmail("")
+          setRole("member")
+        },
+        onError: (error) => {
+          const message = extractErrorMessage(error, "Failed to send invite")
+          setFieldError(message)
+        },
+      },
+    )
+  }
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button size="sm" className="h-8" />}>
         Invite people
       </DialogTrigger>
@@ -192,47 +242,57 @@ function InviteDialog() {
         <DialogHeader>
           <DialogTitle>Invite to Acme Inc</DialogTitle>
           <DialogDescription>
-            Anyone with the link receives a join invite valid for 7 days.
+            Send an invite to join this workspace.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-2">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="invite-emails" className="text-[13px] font-medium">
-              Email addresses
+            <Label htmlFor="invite-email" className="text-[13px] font-medium">
+              Email address
             </Label>
-            <textarea
-              id="invite-emails"
-              rows={3}
-              placeholder="alex@acme.co, jamie@acme.co"
-              className="resize-none rounded-md border border-input bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/50"
+            <Input
+              id="invite-email"
+              type="email"
+              placeholder="alex@acme.co"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                if (fieldError) setFieldError(null)
+              }}
             />
-            <p className="text-[12px] text-muted-foreground">
-              Separate multiple emails with commas or new lines.
-            </p>
           </div>
 
           <div className="flex items-center justify-between gap-3">
             <Label htmlFor="invite-role" className="text-[13px] font-medium">
               Role
             </Label>
-            <select
-              id="invite-role"
-              defaultValue="Member"
-              className="h-9 rounded-md border border-input bg-transparent px-2.5 text-[13px] outline-none focus:ring-2 focus:ring-ring/50"
-            >
-              <option>Admin</option>
-              <option>Member</option>
-              <option>Viewer</option>
-            </select>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger id="invite-role" className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          {fieldError ? (
+            <p className="text-[12px] font-medium text-destructive">{fieldError}</p>
+          ) : null}
         </div>
 
         <DialogFooter>
           <DialogClose render={<Button variant="ghost" size="sm" />}>
             Cancel
           </DialogClose>
-          <Button size="sm">Send invites</Button>
+          <Button size="sm" onClick={handleSubmit} disabled={invite.isPending}>
+            {invite.isPending ? "Sending…" : "Send invite"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
