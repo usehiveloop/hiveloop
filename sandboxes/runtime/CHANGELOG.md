@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.0.0] - 2026-05-02
+
+**Breaking.** Bridge no longer hosts an in-house LLM harness. It is now a thin translation shell between bridge's HTTP/SSE/webhook API and an external coding-agent CLI subprocess (Claude Code or OpenCode) over the Agent Client Protocol (ACP). All upstream behaviour — model calls, tool execution, conversation transcripts, MCP handling, skills discovery — moves into the harness binary that bridge spawns.
+
+### Removed (breaking)
+
+- **In-house harness.** The `rig-core`-based provider stack, conversation loop, verifier agent, immortal handoff, custom tools (`Read`, `Edit`, `Bash`, etc.), and LSP integration are all gone. Bridge no longer ships a model client; it spawns and forwards to an ACP-speaking subprocess.
+- **`POST /push/agents/{id}/conversations` (hydrate).** SQLite + boot-time `restore_conversation` (ACP `session/load`) is now the source of truth for conversation persistence.
+- **`AgentDefinition` v2.** Added required `harness: "claude" | "open_code"` discriminator. Slimmed `provider` (model id, api key, base url, type) and `config` (permission_mode, disabled_tools, small_fast_model). Dropped legacy fields tied to the old loop (`prompt_caching_enabled`, `cache_ttl`, verifier config, custom tool catalogues, etc.). Existing v1 agents will not deserialize.
+
+### Added
+
+- **Per-harness adapters.** `crates/harness` wraps `agent-client-protocol = 0.11` with a `HarnessAdapter` trait. Two adapters ship: `claude` (wraps `@agentclientprotocol/claude-agent-acp`, configures via `_meta.claudeCode.options`), `open_code` (wraps `opencode-ai`, configures via on-disk `opencode.json`).
+- **One agent per bridge instance.** Pushing a different `agent_id` while one is loaded returns 409 Conflict.
+- **Conversation persistence + restore across `docker stop` / `docker start`.** SQLite stores agent + conversation rows; on boot, each conversation is re-attached via ACP `session/load`, which rebuilds model context from the harness's on-disk transcript.
+- **SSE multi-attach.** Per-conversation channel switched from single-take `mpsc` to `broadcast` — multiple clients can subscribe to the same conversation.
+- **`Last-Event-ID` SSE resume.** Reconnecting clients pass the last `sequence_number` they received; bridge replays missed events from the outbox before joining the live broadcast. Each SSE event now carries `id: <sequence_number>` so browsers send it back automatically.
+- **Skill bundles with subdirectories.** `safe_join` validates skill file paths (no `..`, no absolute paths) before writing; subdirectories are created. Five unit tests on the path validator.
+- **`DefaultBodyLimit::max(25 MiB)`** on the API router (was axum's 2 MiB default). Override via `BRIDGE_MAX_BODY_BYTES`.
+- **Sentry error reporting.** Set `SENTRY_DSN` and bridge captures errors + panics; `SENTRY_DEBUG=1` prints SDK debug; `SENTRY_BOOT_PING=1` sends a one-shot event to verify reachability. `tracing::error!` becomes a Sentry event; `info!`/`warn!` become breadcrumbs (last 100). `sentry-tower` adds per-request hubs with method/path/status tags. Captures wired at: harness child subprocess exit (new watcher task), ACP driver exit, prompt failures, skill traversal/write failures, SSE broadcast lag, boot restore failures. Process tags `bridge.version`, `bridge.instance_id`, `bridge.sandbox` on every event. No-op when `SENTRY_DSN` is unset.
+
+### Verified
+
+- 9-phase E2E suite green on both harnesses (`make test-e2e`, `make test-e2e-opencode`): simple Q&A, tool call, approval-allow, custom MCP retain/recall, docker stop/start restore, webhook delivery with monotonic sequences, skills loading + execution, cancel mid-stream, deny-blocks-side-effect.
+- Sentry SDK envelope shape verified locally against a Python sink (Spotlight rejects sentry-rust 0.48 envelopes due to a missing `Content-Type` header — works fine with real Sentry/Relay/self-hosted which route by URL path).
+
 ## [0.22.3] - 2026-05-01
 
 ### Added
