@@ -27,7 +27,7 @@ func buildAndPush(ctx context.Context, version string, targetSizes []string) err
 		return fmt.Errorf("docker login: %w", err)
 	}
 
-	dockerfile := buildDevBoxImage().Dockerfile()
+	dockerfile := buildBridgeImage().Dockerfile()
 
 	tmpDir, err := os.MkdirTemp("", "buildtemplates-*")
 	if err != nil {
@@ -41,7 +41,7 @@ func buildAndPush(ctx context.Context, version string, targetSizes []string) err
 	}
 	log.Printf("Generated Dockerfile:\n%s\n", dockerfile)
 
-	pkg := "sandbox-dev-box"
+	pkg := "sandbox-bridge"
 	versionedTag := fmt.Sprintf("%s/%s/%s:v%s", ghcrRegistry, ghcrNamespace, pkg, version)
 	latestTag := fmt.Sprintf("%s/%s/%s:latest", ghcrRegistry, ghcrNamespace, pkg)
 

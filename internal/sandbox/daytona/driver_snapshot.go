@@ -44,9 +44,9 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 
 	image := daytona.Base(baseImage)
 
-	// Minimal runtime tools the agents need for git ops and self-introspection.
-	// Dropped from the previous image: rtk, uv/uvx, postgresql, redis, nvm, Go,
-	// Rust, sandbox-agent, python3, custom git-credential / gh-wrapper scripts.
+	// Minimal runtime tools agents need for git ops and self-introspection.
+	// Custom user templates layer their own tooling on top via BuildCommands;
+	// the canonical fat image with rtk/uv/Go/Rust lives in cmd/buildtemplates.
 	image = image.AptGet([]string{"ca-certificates", "curl", "git", "jq", "unzip", "openssh-client"})
 
 	// gh CLI installed via the official apt repo — agents still need it for git ops.
