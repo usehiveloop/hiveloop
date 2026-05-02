@@ -26,6 +26,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
 	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 	"github.com/usehiveloop/hiveloop/internal/storage"
+	"github.com/usehiveloop/hiveloop/internal/subagentmcp"
 	"github.com/usehiveloop/hiveloop/internal/subscriptions"
 )
 
@@ -63,6 +64,12 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		mcpHandler.SetMemoryTools(hindsight.NewMemoryToolsFunc(hindsight.NewClient(cfg.HindsightAPIURL)))
 	}
 	mcpHandler.SetSubscriptionTools(subscriptions.RegisterTools(subscriptions.NewService(database, actionsCatalog)))
+	if orchestrator != nil && agentPusher != nil {
+		mcpHandler.SetSubAgentTools(subagentmcp.RegisterTools(
+			subagentmcp.NewOrchestratorAdapter(orchestrator),
+			subagentmcp.NewPusherAdapter(agentPusher),
+		))
+	}
 	credHandler := handler.NewCredentialHandler(database, deps.KMS, cacheManager, ctr)
 	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr, actionsCatalog, cfg.MCPBaseURL, mcpHandler.ServerCache)
 	providerHandler := handler.NewProviderHandler(reg, database)

@@ -112,6 +112,23 @@ func decodeJSONAs[T any](j model.JSON) *T {
 	return &result
 }
 
+// agentHasAttachedSubagents returns true if the agent has at least one row
+// in the agent_subagents join. Used to decide whether to inject the
+// hiveloop MCP server (which carries the `sub_agent` tool).
+func (p *Pusher) agentHasAttachedSubagents(ctx context.Context, agentID uuid.UUID) bool {
+	if p.db == nil {
+		return false
+	}
+	var count int64
+	if err := p.db.WithContext(ctx).
+		Model(&model.AgentSubagent{}).
+		Where("agent_id = ?", agentID).
+		Count(&count).Error; err != nil {
+		return false
+	}
+	return count > 0
+}
+
 func (p *Pusher) loadBridgeSkills(ctx context.Context, agentID uuid.UUID) []bridgepkg.SkillDefinition {
 	var links []model.AgentSkill
 	if err := p.db.WithContext(ctx).Where("agent_id = ?", agentID).Find(&links).Error; err != nil || len(links) == 0 {

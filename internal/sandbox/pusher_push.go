@@ -68,10 +68,6 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		}
 	}
 
-	if _, err := p.buildSubagentDefinitions(ctx, agent, cred); err != nil {
-		return fmt.Errorf("building subagent definitions: %w", err)
-	}
-
 	client, err := p.orchestrator.GetBridgeClient(ctx, sb)
 	if err != nil {
 		return fmt.Errorf("getting bridge client: %w", err)
@@ -160,7 +156,8 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 	mcpServers := decodeJSONAs[[]bridgepkg.McpServerDefinition](agent.McpServers)
 
 	hasIntegrations := len(agent.Integrations) > 0
-	if hasIntegrations && p.cfg.MCPBaseURL != "" && jti != "" {
+	hasSubagents := p.agentHasAttachedSubagents(ctx, agent.ID)
+	if (hasIntegrations || hasSubagents) && p.cfg.MCPBaseURL != "" && jti != "" {
 		ourMCP := buildHiveLoopMCPServer(p.cfg.MCPBaseURL, jti, proxyToken)
 		if mcpServers == nil {
 			servers := []bridgepkg.McpServerDefinition{ourMCP}

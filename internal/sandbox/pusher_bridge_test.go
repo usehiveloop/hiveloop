@@ -1,6 +1,9 @@
 package sandbox
 
 import (
+	"bytes"
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -198,16 +201,63 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		t.Errorf("config.max_turns: expected 250, got %v", def.Config.MaxTurns)
 	}
 
-	// TODO(wave-2): The new ACP-harness AgentDefinition removed the nested
-	// `subagents` field — Wave 2 will rebuild subagent registration as a
-	// separate call (or move it into the harness adapter). For Wave 1
-	// buildSubagentDefinitions returns nil so we just assert the no-op.
-	subDefs, err := pusher.buildSubagentDefinitions(t.Context(), &agent, &cred)
+	// Wave 2 contract: AgentDefinition no longer carries a nested `subagents`
+	// field. Subagents run in their own bridge sandboxes and are reached via
+	// the hiveloop MCP server's `sub_agent` tool, not embedded in the parent's
+	// def. We assert that:
+	//   1. The marshalled JSON has no `subagents` key.
+	//   2. The hiveloop MCP server is present in def.McpServers (because the
+	//      parent has subagents attached, even if it had zero integrations
+	//      we'd still inject — but here we have both).
+	defJSON, err := json.Marshal(def)
 	if err != nil {
-		t.Fatalf("buildSubagentDefinitions: %v", err)
+		t.Fatalf("marshal def: %v", err)
 	}
-	if subDefs != nil {
-		t.Fatalf("Wave 1 subagent stub must return nil, got %d defs", len(subDefs))
+	if bytes.Contains(defJSON, []byte(`"subagents"`)) {
+		t.Errorf("AgentDefinition JSON must not contain a `subagents` field; got %s", defJSON)
+	}
+
+	var hiveloopMCP *bridgepkg.McpServerDefinition
+	for i := range *def.McpServers {
+		if (*def.McpServers)[i].Name == "hiveloop" {
+			hiveloopMCP = &(*def.McpServers)[i]
+			break
+		}
+	}
+	if hiveloopMCP == nil {
+		t.Fatal("expected hiveloop MCP server in def.McpServers when subagents are attached")
+	}
+	transport, err := hiveloopMCP.Transport.AsMcpTransport1()
+	if err != nil {
+		t.Fatalf("hiveloop MCP transport must be streamable_http: %v", err)
+	}
+	if transport.Type != bridgepkg.StreamableHttp {
+		t.Errorf("transport.type = %q, want streamable_http", transport.Type)
+	}
+	if !strings.HasPrefix(transport.Url, "https://mcp.test.com/") {
+		t.Errorf("transport.url should start with mcp base URL; got %q", transport.Url)
+	}
+	if !strings.HasSuffix(transport.Url, jti) {
+		t.Errorf("transport.url should end with jti %q; got %q", jti, transport.Url)
+	}
+	if transport.Headers == nil {
+		t.Fatal("hiveloop MCP transport must carry an Authorization header")
+	}
+	if (*transport.Headers)["Authorization"] != "Bearer "+proxyToken {
+		t.Errorf("Authorization header = %q, want bearer of proxy token", (*transport.Headers)["Authorization"])
+	}
+
+	// Each subagent is pushable independently — i.e. the parent push doesn't
+	// produce subagent defs as a side-effect, and the subagent rows are
+	// available for the orchestrator to push later via PushAgentToSandbox.
+	for _, sub := range subagentRecords {
+		var loaded model.Agent
+		if err := db.Where("id = ?", sub.ID).First(&loaded).Error; err != nil {
+			t.Fatalf("subagent %s should exist standalone: %v", sub.Name, err)
+		}
+		if loaded.AgentType != model.AgentTypeSubagent {
+			t.Errorf("subagent %s type=%q, want subagent", sub.Name, loaded.AgentType)
+		}
 	}
 	_ = subagentNames
 }
