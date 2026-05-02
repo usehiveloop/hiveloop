@@ -128,7 +128,10 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 
 	assertEqual(t, "name", def.Name, "Test Railway Agent")
 	assertEqual(t, "model", def.Provider.Model, "kimi-k2")
-	assertEqual(t, "provider_type", string(def.Provider.ProviderType), string(bridgepkg.ProviderTypeOpenAi))
+	assertEqual(t, "provider_type", string(def.Provider.ProviderType), string(bridgepkg.OpenAi))
+	// Wave 1: every agent is forced onto the Claude harness; Wave 2 will
+	// implement deterministic harness selection from (provider, model).
+	assertEqual(t, "harness", string(def.Harness), string(bridgepkg.Claude))
 	assertContains(t, "base_url", *def.Provider.BaseUrl, "proxy.test.com")
 	assertEqual(t, "api_key", def.Provider.ApiKey, proxyToken)
 
@@ -194,62 +197,16 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		t.Errorf("config.max_turns: expected 250, got %v", def.Config.MaxTurns)
 	}
 
+	// TODO(wave-2): The new ACP-harness AgentDefinition removed the nested
+	// `subagents` field — Wave 2 will rebuild subagent registration as a
+	// separate call (or move it into the harness adapter). For Wave 1
+	// buildSubagentDefinitions returns nil so we just assert the no-op.
 	subDefs, err := pusher.buildSubagentDefinitions(t.Context(), &agent, &cred)
 	if err != nil {
 		t.Fatalf("buildSubagentDefinitions: %v", err)
 	}
-	if len(subDefs) != 3 {
-		t.Fatalf("subagents: expected 3, got %d", len(subDefs))
+	if subDefs != nil {
+		t.Fatalf("Wave 1 subagent stub must return nil, got %d defs", len(subDefs))
 	}
-
-	def.Subagents = &subDefs
-	if def.Subagents == nil || len(*def.Subagents) != 3 {
-		t.Fatalf("parent def.Subagents: expected 3, got %v", def.Subagents)
-	}
-
-	subNames := make(map[string]bridgepkg.AgentDefinition)
-	for _, sub := range subDefs {
-		subNames[sub.Name] = sub
-	}
-
-	for _, name := range subagentNames {
-		sub, ok := subNames[name]
-		if !ok {
-			t.Errorf("subagent %q not found", name)
-			continue
-		}
-
-		if sub.Permissions == nil || len(*sub.Permissions) == 0 {
-			t.Errorf("subagent %q: permissions should not be empty", name)
-		} else {
-			subPerms := *sub.Permissions
-			if subPerms["RipGrep"] != bridgepkg.ToolPermissionAllow {
-				t.Errorf("subagent %q: RipGrep permission should be allow, got %q", name, subPerms["RipGrep"])
-			}
-			if subPerms["AstGrep"] != bridgepkg.ToolPermissionAllow {
-				t.Errorf("subagent %q: AstGrep permission should be allow, got %q", name, subPerms["AstGrep"])
-			}
-			if subPerms["Read"] != bridgepkg.ToolPermissionAllow {
-				t.Errorf("subagent %q: Read permission should be allow, got %q", name, subPerms["Read"])
-			}
-			if subPerms["bash"] != bridgepkg.ToolPermissionAllow {
-				t.Errorf("subagent %q: bash permission should be allow, got %q", name, subPerms["bash"])
-			}
-			if subPerms["skill"] != bridgepkg.ToolPermissionAllow {
-				t.Errorf("subagent %q: skill permission should be allow, got %q", name, subPerms["skill"])
-			}
-		}
-
-		if sub.Provider.Model != "kimi-k2" {
-			t.Errorf("subagent %q: model should be kimi-k2 (inherited), got %q", name, sub.Provider.Model)
-		}
-
-		if sub.SystemPrompt == "" {
-			t.Errorf("subagent %q: system_prompt should not be empty", name)
-		}
-
-		if sub.McpServers != nil && len(*sub.McpServers) > 0 {
-			t.Errorf("subagent %q: should not have MCP servers, got %d", name, len(*sub.McpServers))
-		}
-	}
+	_ = subagentNames
 }

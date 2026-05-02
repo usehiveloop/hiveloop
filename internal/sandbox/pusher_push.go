@@ -49,12 +49,14 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 
 	def := p.buildAgentDefinition(ctx, agent, cred, proxyToken, jti)
 
-	subagentDefs, err := p.buildSubagentDefinitions(ctx, agent, cred)
-	if err != nil {
+	// TODO(wave-2): The old bridge AgentDefinition had a `subagents` field that
+	// embedded full child AgentDefinitions on the parent push. The new
+	// ACP-harness OpenAPI removed it — subagent resolution now lives in the
+	// harness adapter. We still call buildSubagentDefinitions to keep the
+	// dependency graph wired (Wave 1 returns nil); Wave 2 either deletes this
+	// call or replaces it with a separate /push/subagents registration step.
+	if _, err := p.buildSubagentDefinitions(ctx, agent, cred); err != nil {
 		return fmt.Errorf("building subagent definitions: %w", err)
-	}
-	if len(subagentDefs) > 0 {
-		def.Subagents = &subagentDefs
 	}
 
 	client, err := p.orchestrator.GetBridgeClient(ctx, sb)
@@ -72,7 +74,7 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 }
 
 func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, cred *model.Credential, proxyToken, jti string) bridgepkg.AgentDefinition {
-	providerType := bridgepkg.ProviderTypeCustom
+	providerType := bridgepkg.Custom
 	if pt, ok := providerTypeMap[cred.ProviderID]; ok {
 		providerType = pt
 	}
@@ -91,6 +93,11 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 		Name:         agent.Name,
 		Description:  agent.Description,
 		SystemPrompt: systemPrompt,
+		// TODO(wave-2): replace with deterministic harness(provider, model)
+		// selection — for now every agent is forced onto the Claude Code
+		// harness so the build goes through. OpenCode-targeted agents will
+		// silently run on Claude Code until Wave 2 lands.
+		Harness: bridgepkg.Claude,
 		Provider: bridgepkg.ProviderConfig{
 			ProviderType: providerType,
 			Model:        agent.Model,
@@ -124,10 +131,12 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 		}
 	}
 
-	tools := decodeJSONAs[[]bridgepkg.ToolDefinition](agent.Tools)
-	if tools != nil && len(*tools) > 0 {
-		def.Tools = tools
-	}
+	// TODO(wave-2): The new ACP-harness AgentDefinition removed the
+	// agent-defined `tools` slice — tools are now exclusively driven by the
+	// harness's built-in tool registry plus MCP servers. The legacy
+	// agent.Tools JSONB column still exists in the DB; Wave 2 either
+	// migrates surviving entries into MCP servers or drops the column.
+	_ = decodeJSONAs[[]any](agent.Tools)
 
 	mcpServers := decodeJSONAs[[]bridgepkg.McpServerDefinition](agent.McpServers)
 

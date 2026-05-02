@@ -103,17 +103,9 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 	mcpServers := executor.buildMCPList(agentDispatch)
 
 	provider := executor.buildProvider(&agent)
-	var providerWrapped *bridgepkg.CreateConversationRequest_Provider
-	if provider != nil {
-		var w bridgepkg.CreateConversationRequest_Provider
-		if err := w.FromProviderConfig(*provider); err != nil {
-			return fmt.Errorf("wrapping provider override: %w", err)
-		}
-		providerWrapped = &w
-	}
 
 	conv, err := client.CreateConversationWithOptions(ctx, agent.ID.String(), bridgepkg.CreateConversationRequest{
-		Provider:   providerWrapped,
+		Provider:   provider,
 		McpServers: &mcpServers,
 	})
 	if err != nil {

@@ -14,17 +14,17 @@ import (
 )
 
 var providerTypeMap = map[string]bridgepkg.ProviderType{
-	"openai":       bridgepkg.ProviderTypeOpenAi,
-	"anthropic":    bridgepkg.ProviderTypeAnthropic,
-	"google":       bridgepkg.ProviderTypeGoogle,
-	"groq":         bridgepkg.ProviderTypeGroq,
-	"fireworks":    bridgepkg.ProviderTypeFireworks,
-	"openrouter":   bridgepkg.ProviderTypeOpenAi,
-	"moonshotai":   bridgepkg.ProviderTypeOpenAi,
-	"zai":          bridgepkg.ProviderTypeOpenAi,
-	"zhipuai":      bridgepkg.ProviderTypeOpenAi,
-	"fireworks-ai": bridgepkg.ProviderTypeFireworks,
-	"ollama":       bridgepkg.ProviderTypeOllama,
+	"openai":       bridgepkg.OpenAi,
+	"anthropic":    bridgepkg.Anthropic,
+	"google":       bridgepkg.Google,
+	"groq":         bridgepkg.Groq,
+	"fireworks":    bridgepkg.Fireworks,
+	"openrouter":   bridgepkg.OpenAi,
+	"moonshotai":   bridgepkg.OpenAi,
+	"zai":          bridgepkg.OpenAi,
+	"zhipuai":      bridgepkg.OpenAi,
+	"fireworks-ai": bridgepkg.Fireworks,
+	"ollama":       bridgepkg.Ollama,
 }
 
 const (

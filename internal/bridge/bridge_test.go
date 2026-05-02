@@ -79,7 +79,7 @@ func TestUpsertAgent(t *testing.T) {
 		SystemPrompt: "You are helpful",
 		Provider: ProviderConfig{
 			Model:        "gpt-4o",
-			ProviderType: ProviderTypeOpenAi,
+			ProviderType: OpenAi,
 			ApiKey:       "ptok_test",
 		},
 	}
@@ -164,13 +164,10 @@ func TestCreateConversationWithOptions_SerialisesMcpServers(t *testing.T) {
 	})
 
 	client := NewBridgeClient(srv.URL, "key")
-	var providerOverride CreateConversationRequest_Provider
-	if err := providerOverride.FromProviderConfig(ProviderConfig{
-		ProviderType: ProviderTypeAnthropic,
+	providerOverride := ProviderConfig{
+		ProviderType: Anthropic,
 		Model:        "claude-sonnet-4-6",
 		ApiKey:       "sk-test",
-	}); err != nil {
-		t.Fatalf("wrap provider override: %v", err)
 	}
 	resp, err := client.CreateConversationWithOptions(context.Background(), "agent-1", CreateConversationRequest{
 		Provider: &providerOverride,
