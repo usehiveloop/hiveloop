@@ -29,7 +29,6 @@ type MCPHandler struct {
 	counter           *counter.Counter
 	memoryTools       mcpserver.MemoryToolsFunc
 	subscriptionTools mcpserver.SubscriptionToolsFunc
-	subAgentTools     mcpserver.SubAgentToolsFunc
 	ServerCache       *mcpserver.ServerCache
 }
 
@@ -54,15 +53,6 @@ func (h *MCPHandler) SetMemoryTools(fn mcpserver.MemoryToolsFunc) {
 // and list_my_subscriptions on MCP servers.
 func (h *MCPHandler) SetSubscriptionTools(fn mcpserver.SubscriptionToolsFunc) {
 	h.subscriptionTools = fn
-}
-
-// SetSubAgentTools sets the callback for registering the sub_agent tool on
-// MCP servers. The tool is opt-in: parents that have no attached subagents
-// won't have the hiveloop MCP server injected, so it never gets called for
-// them — but builder-side we still register it on every server to keep the
-// surface uniform.
-func (h *MCPHandler) SetSubAgentTools(fn mcpserver.SubAgentToolsFunc) {
-	h.subAgentTools = fn
 }
 
 // StreamableHTTPHandler returns an HTTP handler for the MCP Streamable HTTP transport.
@@ -100,7 +90,7 @@ func (h *MCPHandler) serverFactory(r *http.Request) *mcp.Server {
 			return nil, time.Time{}, err
 		}
 
-		srv, err := mcpserver.BuildServer(ctx, &token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools, h.subscriptionTools, h.subAgentTools)
+		srv, err := mcpserver.BuildServer(ctx, &token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools, h.subscriptionTools)
 		if err != nil {
 			return nil, time.Time{}, err
 		}

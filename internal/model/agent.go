@@ -41,7 +41,6 @@ type Agent struct {
 	EncryptedEnvVars []byte         `gorm:"type:bytea"`                // AES-256-GCM encrypted JSON map of env vars
 
 	Status        string `gorm:"not null;default:'active'"` // active, archived
-	AgentType     string `gorm:"not null;default:'agent';index"` // "agent" or "subagent"
 	IsSystem      bool   `gorm:"not null;default:false;index"`
 	ProviderGroup string `gorm:"not null;default:''"` // e.g. "anthropic", "openai", "gemini" — set for system agents
 	// Harness records the ACP-harness binding chosen for this agent
@@ -55,11 +54,6 @@ type Agent struct {
 }
 
 func (Agent) TableName() string { return "agents" }
-
-const (
-	AgentTypeAgent    = "agent"
-	AgentTypeSubagent = "subagent"
-)
 
 // SandboxToolDefinition describes a tool/service that can be enabled in a dedicated sandbox.
 type SandboxToolDefinition struct {
@@ -129,7 +123,6 @@ var ValidBuiltInTools = []BuiltInToolDefinition{
 
 	// ── Agent orchestration ──
 	{ID: "agent", Name: "Agent", Description: "Launch a clone of yourself to handle a focused task autonomously.", Category: "orchestration"},
-	{ID: "sub_agent", Name: "Sub-agent", Description: "Launch a named subagent to handle complex multistep tasks. Emit multiple calls in one turn for parallel fan-out.", Category: "orchestration"},
 	{ID: "batch", Name: "Batch", Description: "Execute multiple independent tool calls concurrently.", Category: "orchestration"},
 
 	// ── Task management ──

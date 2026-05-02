@@ -25,11 +25,6 @@ type MemoryToolsFunc func(server *mcp.Server, agentID string, db *gorm.DB)
 // mcpserver and the subscriptions package.
 type SubscriptionToolsFunc func(server *mcp.Server, token *model.Token, db *gorm.DB)
 
-// SubAgentToolsFunc is a callback that registers the `sub_agent` tool on a
-// server. Used to avoid an import cycle between mcpserver and the
-// subagentmcp package (which has to depend on internal/sandbox).
-type SubAgentToolsFunc func(server *mcp.Server, token *model.Token, db *gorm.DB)
-
 // BuildServer creates an MCP server with tools registered from token scopes.
 // Each scope's connection+actions are turned into MCP tools via the catalog.
 // If addMemoryTools is non-nil, it is called to register memory tools on the
@@ -46,7 +41,6 @@ func BuildServer(
 	ctr *counter.Counter,
 	addMemoryTools MemoryToolsFunc,
 	addSubscriptionTools SubscriptionToolsFunc,
-	addSubAgentTools SubAgentToolsFunc,
 ) (*mcp.Server, error) {
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "hiveloop",
@@ -175,10 +169,6 @@ func BuildServer(
 
 	if addSubscriptionTools != nil {
 		addSubscriptionTools(server, token, db)
-	}
-
-	if addSubAgentTools != nil {
-		addSubAgentTools(server, token, db)
 	}
 
 	return server, nil

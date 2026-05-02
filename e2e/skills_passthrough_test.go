@@ -59,7 +59,7 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 	agent := model.Agent{
 		OrgID: &org.ID, Name: "sk-agent-" + suffix,
 		CredentialID: &cred.ID, SystemPrompt: "test", Model: "claude-sonnet-4-5",
-		Status: "active", AgentType: "agent",
+		Status: "active",
 	}
 	h.db.Create(&agent)
 	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })

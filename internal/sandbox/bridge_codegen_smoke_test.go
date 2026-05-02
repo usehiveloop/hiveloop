@@ -59,7 +59,7 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
 		Name: "Smoke Agent", Model: "claude-sonnet-4-5",
 		SystemPrompt: "You are a smoke-test agent.",
-		Status:       "active", AgentType: "agent",
+		Status:       "active",
 		Permissions: model.JSON{"Read": "allow"},
 		Tools:       model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 		Integrations: model.JSON{}, AgentConfig: model.JSON{},

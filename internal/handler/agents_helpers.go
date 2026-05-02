@@ -91,46 +91,6 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 	return result
 }
 
-// loadAgentSubagents batch-loads attached subagent summaries for one or more agents.
-func (h *AgentHandler) loadAgentSubagents(agentIDs ...uuid.UUID) map[uuid.UUID][]agentSubagentSummary {
-	if len(agentIDs) == 0 {
-		return nil
-	}
-	var links []model.AgentSubagent
-	if err := h.db.Where("agent_id IN ?", agentIDs).Find(&links).Error; err != nil {
-		return nil
-	}
-	if len(links) == 0 {
-		return nil
-	}
-	subIDs := make([]uuid.UUID, len(links))
-	for index, link := range links {
-		subIDs[index] = link.SubagentID
-	}
-	var subs []model.Agent
-	if err := h.db.Select("id, name, description, model").Where("id IN ?", subIDs).Find(&subs).Error; err != nil {
-		return nil
-	}
-	subByID := make(map[uuid.UUID]model.Agent, len(subs))
-	for _, sub := range subs {
-		subByID[sub.ID] = sub
-	}
-	result := make(map[uuid.UUID][]agentSubagentSummary, len(agentIDs))
-	for _, link := range links {
-		sub, ok := subByID[link.SubagentID]
-		if !ok {
-			continue
-		}
-		result[link.AgentID] = append(result[link.AgentID], agentSubagentSummary{
-			ID:          sub.ID.String(),
-			Name:        sub.Name,
-			Description: sub.Description,
-			Model:       sub.Model,
-		})
-	}
-	return result
-}
-
 // loadAgentSkills batch-loads attached skill summaries for one or more agents.
 func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]agentSkillSummary {
 	if len(agentIDs) == 0 {

@@ -29,7 +29,7 @@ var dedicatedAgentTools = []string{
 	"Read", "write", "edit", "multiedit", "apply_patch", "Glob", "RipGrep", "AstGrep", "LS",
 	"bash",
 	"web_fetch", "web_search", "web_crawl", "web_get_links", "web_screenshot", "web_transform",
-	"agent", "sub_agent", "batch",
+	"agent", "batch",
 	"todowrite", "todoread",
 	"journal_write", "journal_read",
 	"lsp", "skill",

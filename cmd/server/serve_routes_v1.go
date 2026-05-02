@@ -34,7 +34,6 @@ func setupV1Routes(
 	tokenHandler *handler.TokenHandler,
 	sandboxTemplateHandler *handler.SandboxTemplateHandler,
 	skillHandler *handler.SkillHandler,
-	subagentHandler *handler.SubagentHandler,
 	agentHandler *handler.AgentHandler,
 	marketplaceHandler *handler.MarketplaceHandler,
 	conversationHandler *handler.ConversationHandler,
@@ -142,13 +141,6 @@ func setupV1Routes(
 					r.Post("/{id}/publish", skillHandler.Publish)
 					r.Delete("/{id}/publish", skillHandler.Unpublish)
 				})
-				r.Route("/subagents", func(r chi.Router) {
-					r.Post("/", subagentHandler.Create)
-					r.Get("/", subagentHandler.List)
-					r.Get("/{id}", subagentHandler.Get)
-					r.Patch("/{id}", subagentHandler.Update)
-					r.Delete("/{id}", subagentHandler.Delete)
-				})
 				r.Get("/agents/sandbox-tools", agentHandler.ListSandboxTools)
 				r.Get("/agents/built-in-tools", agentHandler.ListBuiltInTools)
 				r.Get("/agents/categories", agentHandler.ListCategories)
@@ -183,11 +175,6 @@ func setupV1Routes(
 						r.Post("/", skillHandler.AttachToAgent)
 						r.Get("/", skillHandler.ListAgentSkills)
 						r.Delete("/{skillID}", skillHandler.DetachFromAgent)
-					})
-					r.Route("/{agentID}/subagents", func(r chi.Router) {
-						r.Post("/", subagentHandler.AttachToAgent)
-						r.Get("/", subagentHandler.ListAgentSubagents)
-						r.Delete("/{subagentID}", subagentHandler.DetachFromAgent)
 					})
 				})
 				r.Route("/marketplace/agents", func(r chi.Router) {

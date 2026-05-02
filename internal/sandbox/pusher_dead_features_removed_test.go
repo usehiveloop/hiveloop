@@ -86,7 +86,7 @@ func TestPusherDeadFeatures_NotEmittedOnWire(t *testing.T) {
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
 		Name: "Dead Features Agent-" + uuid.New().String()[:8],
 		Model: "claude-sonnet-4-5",
-		SystemPrompt: "test", Status: "active", AgentType: "agent",
+		SystemPrompt: "test", Status: "active",
 		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 		Integrations: model.JSON{}, AgentConfig: legacyConfig, Permissions: model.JSON{},
 	}

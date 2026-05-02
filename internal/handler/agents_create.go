@@ -183,24 +183,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var subagentUUIDs []uuid.UUID
-	if len(req.SubagentIDs) > 0 {
-		subagentUUIDs = make([]uuid.UUID, 0, len(req.SubagentIDs))
-		seen := make(map[uuid.UUID]struct{}, len(req.SubagentIDs))
-		for _, raw := range req.SubagentIDs {
-			parsed, parseErr := uuid.Parse(raw)
-			if parseErr != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid subagent_id %q", raw)})
-				return
-			}
-			if _, dup := seen[parsed]; dup {
-				continue
-			}
-			seen[parsed] = struct{}{}
-			subagentUUIDs = append(subagentUUIDs, parsed)
-		}
-	}
-
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&agent).Error; err != nil {
 			return err
@@ -229,27 +211,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 				Where("id IN ?", skillUUIDs).
 				UpdateColumn("install_count", gorm.Expr("install_count + 1")).Error; err != nil {
 				return fmt.Errorf("bump install_count: %w", err)
-			}
-		}
-
-		if len(subagentUUIDs) > 0 {
-			var visibleSubs []model.Agent
-			if err := tx.
-				Select("id").
-				Where("id IN ? AND agent_type = ? AND (org_id = ? OR (org_id IS NULL AND status = ?))",
-					subagentUUIDs, model.AgentTypeSubagent, org.ID, "active").
-				Find(&visibleSubs).Error; err != nil {
-				return fmt.Errorf("validate subagent_ids: %w", err)
-			}
-			if len(visibleSubs) != len(subagentUUIDs) {
-				return fmt.Errorf("one or more subagent_ids are not visible to this org")
-			}
-			subLinks := make([]model.AgentSubagent, len(visibleSubs))
-			for index, sub := range visibleSubs {
-				subLinks[index] = model.AgentSubagent{AgentID: agent.ID, SubagentID: sub.ID}
-			}
-			if err := tx.Create(&subLinks).Error; err != nil {
-				return fmt.Errorf("attach subagents: %w", err)
 			}
 		}
 

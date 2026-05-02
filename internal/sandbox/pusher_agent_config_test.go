@@ -145,7 +145,7 @@ func TestPusherAgentConfig_HarnessOptionalFields(t *testing.T) {
 				Name: "Cfg Agent " + tc.name + "-" + uuid.New().String()[:8],
 				Model: "claude-sonnet-4-5",
 				SystemPrompt: "test agent",
-				Status:       "active", AgentType: "agent",
+				Status:       "active",
 				Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 				Integrations: model.JSON{}, AgentConfig: tc.agentCfg, Permissions: model.JSON{},
 			}
@@ -228,7 +228,7 @@ func TestPusherAgentConfig_HarnessStampedOnFirstPush_ThenReused(t *testing.T) {
 	agent := model.Agent{
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
 		Name: "Stamp Agent-" + uuid.New().String()[:8], Model: "gpt-4o",
-		SystemPrompt: "test agent", Status: "active", AgentType: "agent",
+		SystemPrompt: "test agent", Status: "active",
 		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 		Integrations: model.JSON{}, AgentConfig: model.JSON{}, Permissions: model.JSON{},
 	}

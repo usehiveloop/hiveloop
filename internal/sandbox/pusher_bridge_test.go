@@ -51,7 +51,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
 		Name: "Test Railway Agent", Model: "kimi-k2",
 		SystemPrompt: "You are a DevOps engineer.",
-		Status:       "active", AgentType: "agent", SharedMemory: false,
+		Status:       "active", SharedMemory: false,
 		Permissions: permissions, Resources: resources,
 		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 		Integrations: model.JSON{
@@ -61,38 +61,6 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	}
 	db.Create(&agent)
 	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
-
-	suffix := "-" + uuid.New().String()[:8]
-	subagentNames := []string{"codebase-explorer" + suffix, "codebase-summarizer" + suffix, "critic" + suffix}
-	subagentPerms := model.JSON{
-		"RipGrep": "allow", "AstGrep": "allow", "Read": "allow",
-		"Glob": "allow", "LS": "allow", "bash": "allow", "skill": "allow",
-	}
-	subagentRecords := make([]model.Agent, 0, len(subagentNames))
-	for _, name := range subagentNames {
-		sub := model.Agent{
-			ID: uuid.New(), Name: name, Model: "kimi-k2",
-			SystemPrompt: "subagent for tests", Status: "active",
-			AgentType: "subagent", IsSystem: false,
-			Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
-			Integrations: model.JSON{}, AgentConfig: model.JSON{},
-			Permissions: subagentPerms,
-		}
-		if err := db.Create(&sub).Error; err != nil {
-			t.Fatalf("creating subagent %s: %v", name, err)
-		}
-		subagentRecords = append(subagentRecords, sub)
-	}
-	t.Cleanup(func() {
-		for _, sub := range subagentRecords {
-			db.Where("id = ?", sub.ID).Delete(&model.Agent{})
-		}
-	})
-
-	for _, sub := range subagentRecords {
-		db.Create(&model.AgentSubagent{AgentID: agent.ID, SubagentID: sub.ID})
-	}
-	t.Cleanup(func() { db.Where("agent_id = ?", agent.ID).Delete(&model.AgentSubagent{}) })
 
 	skillVersion := model.SkillVersion{
 		ID:      uuid.New(),
@@ -132,9 +100,8 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	assertEqual(t, "name", def.Name, "Test Railway Agent")
 	assertEqual(t, "model", def.Provider.Model, "kimi-k2")
 	assertEqual(t, "provider_type", string(def.Provider.ProviderType), string(bridgepkg.OpenAi))
-	// Wave 2 pusher slice introduced harnessFor(provider, model). The kimi-k2
-	// fixture above uses an OpenAi-mapped provider and a non-claude model, so
-	// the deterministic mapping resolves to OpenCode (not Claude).
+	// kimi-k2 fixture above uses an OpenAi-mapped provider and a non-claude
+	// model, so the deterministic harnessFor mapping resolves to OpenCode.
 	assertEqual(t, "harness", string(def.Harness), string(bridgepkg.OpenCode))
 	assertContains(t, "base_url", *def.Provider.BaseUrl, "proxy.test.com")
 	assertEqual(t, "api_key", def.Provider.ApiKey, proxyToken)
@@ -174,6 +141,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		}
 	}
 
+	// Hiveloop MCP server should be injected because the agent has integrations.
 	if def.McpServers == nil {
 		t.Fatal("mcp_servers should not be nil")
 	}
@@ -188,10 +156,8 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	}
 	if len(*def.Skills) != 1 {
 		t.Errorf("skills: expected 1, got %d", len(*def.Skills))
-	} else {
-		if (*def.Skills)[0].Title != "use-railway" {
-			t.Errorf("skill title: got %q, want use-railway", (*def.Skills)[0].Title)
-		}
+	} else if (*def.Skills)[0].Title != "use-railway" {
+		t.Errorf("skill title: got %q, want use-railway", (*def.Skills)[0].Title)
 	}
 
 	if def.Config == nil {
@@ -201,14 +167,8 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		t.Errorf("config.max_turns: expected 250, got %v", def.Config.MaxTurns)
 	}
 
-	// Wave 2 contract: AgentDefinition no longer carries a nested `subagents`
-	// field. Subagents run in their own bridge sandboxes and are reached via
-	// the hiveloop MCP server's `sub_agent` tool, not embedded in the parent's
-	// def. We assert that:
-	//   1. The marshalled JSON has no `subagents` key.
-	//   2. The hiveloop MCP server is present in def.McpServers (because the
-	//      parent has subagents attached, even if it had zero integrations
-	//      we'd still inject — but here we have both).
+	// AgentDefinition has no nested `subagents` field. The subagent feature
+	// has been removed entirely; this assertion guards against regressions.
 	defJSON, err := json.Marshal(def)
 	if err != nil {
 		t.Fatalf("marshal def: %v", err)
@@ -225,7 +185,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		}
 	}
 	if hiveloopMCP == nil {
-		t.Fatal("expected hiveloop MCP server in def.McpServers when subagents are attached")
+		t.Fatal("expected hiveloop MCP server in def.McpServers when integrations are attached")
 	}
 	transport, err := hiveloopMCP.Transport.AsMcpTransport1()
 	if err != nil {
@@ -246,18 +206,4 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	if (*transport.Headers)["Authorization"] != "Bearer "+proxyToken {
 		t.Errorf("Authorization header = %q, want bearer of proxy token", (*transport.Headers)["Authorization"])
 	}
-
-	// Each subagent is pushable independently — i.e. the parent push doesn't
-	// produce subagent defs as a side-effect, and the subagent rows are
-	// available for the orchestrator to push later via PushAgentToSandbox.
-	for _, sub := range subagentRecords {
-		var loaded model.Agent
-		if err := db.Where("id = ?", sub.ID).First(&loaded).Error; err != nil {
-			t.Fatalf("subagent %s should exist standalone: %v", sub.Name, err)
-		}
-		if loaded.AgentType != model.AgentTypeSubagent {
-			t.Errorf("subagent %s type=%q, want subagent", sub.Name, loaded.AgentType)
-		}
-	}
-	_ = subagentNames
 }

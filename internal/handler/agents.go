@@ -91,7 +91,6 @@ type createAgentRequest struct {
 	SharedMemory      bool                `json:"shared_memory,omitempty"`
 	SandboxTools      []string            `json:"sandbox_tools,omitempty"`
 	SkillIDs          []string            `json:"skill_ids,omitempty"`
-	SubagentIDs       []string            `json:"subagent_ids,omitempty"`
 	Triggers          []agentTriggerInput `json:"triggers,omitempty"`
 }
 
@@ -118,13 +117,6 @@ type updateAgentRequest struct {
 	SandboxTools      []string             `json:"sandbox_tools,omitempty"`
 	SkillIDs          *[]string            `json:"skill_ids,omitempty"`
 	Triggers          *[]agentTriggerInput `json:"triggers,omitempty"`
-}
-
-type agentSubagentSummary struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
-	Model       string  `json:"model"`
 }
 
 type setupRequest struct {
@@ -169,7 +161,6 @@ type agentResponse struct {
 	SandboxTools      []string               `json:"sandbox_tools"`
 	Status            string                 `json:"status"`
 	Triggers          []agentTriggerResponse `json:"triggers"`
-	AttachedSubagents []agentSubagentSummary `json:"subagents"`
 	AttachedSkills    []agentSkillSummary    `json:"attached_skills"`
 	CreatedAt         string                 `json:"created_at"`
 	UpdatedAt         string                 `json:"updated_at"`

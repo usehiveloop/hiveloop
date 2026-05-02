@@ -7,7 +7,7 @@ import (
 // applyAgentConfigDefaults populates the surviving Wave-2 AgentConfig fields
 // (max_tokens, max_turns, temperature) with sensible per-provider defaults
 // when the agent author didn't specify them. The dropped fields
-// (max_tasks_per_conversation, subagent_timeout_*, history_strip,
+// (max_tasks_per_conversation, history_strip,
 // tool_requirements, immortal) are no longer applied here — the new ACP
 // harness owns those concerns or they were retired entirely.
 func applyAgentConfigDefaults(cfg *bridgepkg.AgentConfig, providerID, modelName string) *bridgepkg.AgentConfig {

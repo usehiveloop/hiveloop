@@ -17,12 +17,6 @@ type resolvedSkill struct {
 	SourceType  string
 }
 
-type resolvedSubagent struct {
-	Name        string
-	Description string
-	Model       string
-}
-
 type resolvedActionRef struct {
 	Slug        string
 	DisplayName string
@@ -67,7 +61,6 @@ func resolvePromptWriterArgs(ctx context.Context, deps system.ResolveDeps, args 
 		"category":     stringArg(args, "category"),
 		"instructions": stringArg(args, "instructions"),
 		"skills":       []resolvedSkill{},
-		"subagents":    []resolvedSubagent{},
 		"integrations": []resolvedIntegration{},
 		"triggers":     []resolvedTrigger{},
 		"tools":        []resolvedTool{},
@@ -80,14 +73,6 @@ func resolvePromptWriterArgs(ctx context.Context, deps system.ResolveDeps, args 
 	}
 	if len(skills) > 0 {
 		out["skills"] = skills
-	}
-
-	subs, err := resolveSubagents(deps, stringSliceArg(args, "subagent_ids"))
-	if err != nil {
-		return nil, err
-	}
-	if len(subs) > 0 {
-		out["subagents"] = subs
 	}
 
 	integrations, err := resolveIntegrations(deps, mapArg(args, "integrations"))
@@ -155,51 +140,6 @@ func resolveSkills(deps system.ResolveDeps, rawIDs []string) ([]resolvedSkill, e
 }
 
 func rowsToIDsSkill(rows []model.Skill) []uuid.UUID {
-	out := make([]uuid.UUID, len(rows))
-	for i, r := range rows {
-		out[i] = r.ID
-	}
-	return out
-}
-
-func resolveSubagents(deps system.ResolveDeps, rawIDs []string) ([]resolvedSubagent, error) {
-	ids, err := parseUUIDs(rawIDs, "subagent_id", "unknown_subagent")
-	if err != nil {
-		return nil, err
-	}
-	if len(ids) == 0 {
-		return nil, nil
-	}
-	var rows []model.Agent
-	if err := deps.DB.
-		Select("id, name, description, model").
-		Where("id IN ? AND agent_type = ? AND (org_id = ? OR (org_id IS NULL AND status = ?))",
-			ids, model.AgentTypeSubagent, deps.OrgID, "active").
-		Find(&rows).Error; err != nil {
-		return nil, fmt.Errorf("load subagents: %w", err)
-	}
-	if len(rows) != len(ids) {
-		return nil, &system.ResolveError{
-			Code:    "unknown_subagent",
-			Message: missingMessage("subagent", ids, rowsToIDsSubagent(rows)),
-		}
-	}
-	out := make([]resolvedSubagent, len(rows))
-	for i, row := range rows {
-		desc := ""
-		if row.Description != nil {
-			desc = *row.Description
-		}
-		out[i] = resolvedSubagent{
-			Name:        row.Name,
-			Description: desc,
-			Model:       row.Model,
-		}
-	}
-	return out, nil
-}
-
-func rowsToIDsSubagent(rows []model.Agent) []uuid.UUID {
 	out := make([]uuid.UUID, len(rows))
 	for i, r := range rows {
 		out[i] = r.ID

@@ -156,8 +156,7 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 	mcpServers := decodeJSONAs[[]bridgepkg.McpServerDefinition](agent.McpServers)
 
 	hasIntegrations := len(agent.Integrations) > 0
-	hasSubagents := p.agentHasAttachedSubagents(ctx, agent.ID)
-	if (hasIntegrations || hasSubagents) && p.cfg.MCPBaseURL != "" && jti != "" {
+	if hasIntegrations && p.cfg.MCPBaseURL != "" && jti != "" {
 		ourMCP := buildHiveLoopMCPServer(p.cfg.MCPBaseURL, jti, proxyToken)
 		if mcpServers == nil {
 			servers := []bridgepkg.McpServerDefinition{ourMCP}
