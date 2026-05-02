@@ -101,7 +101,8 @@ func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 	tursoProvisioner := turso.NewProvisioner(tursoClient, "default", db)
 
 	cfg := &config.Config{
-		BridgeBaseImagePrefix:           "hiveloop-bridge-0-10-0",
+		BridgeBaseImagePrefix:           "hiveloop-bridge-1-0-0-small-v1",
+		BridgeBaseDedicatedImagePrefix:  "hiveloop-bridge-1-0-0-small-v1",
 		BridgeHost:                      "test.hiveloop.com",
 		DedicatedSandboxGracePeriodMins: 5,
 	}

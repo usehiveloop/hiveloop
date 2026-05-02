@@ -13,21 +13,13 @@ import (
 )
 
 func main() {
-	version := flag.String("version", "", "Bridge version to install (required, e.g. 0.10.0)")
-	flavor := flag.String("flavor", flavorBridge, "Image flavor to build (bridge, dev-box)")
+	version := flag.String("version", "", "Image version tag (required, e.g. 0.10.0)")
 	size := flag.String("size", "all", "Snapshot sizes to register (small, medium, large, xlarge, all)")
 	flag.Parse()
 
 	if *version == "" {
 		fmt.Fprintln(os.Stderr, "error: -version is required")
 		flag.Usage()
-		os.Exit(1)
-	}
-
-	switch *flavor {
-	case flavorBridge, flavorDevBox:
-	default:
-		fmt.Fprintf(os.Stderr, "error: unknown flavor %q (valid: %s, %s)\n", *flavor, flavorBridge, flavorDevBox)
 		os.Exit(1)
 	}
 
@@ -48,7 +40,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
-	if err := buildAndPush(ctx, *flavor, *version, targetSizes); err != nil {
+	if err := buildAndPush(ctx, *version, targetSizes); err != nil {
 		log.Fatalf("error: %v", err)
 	}
 

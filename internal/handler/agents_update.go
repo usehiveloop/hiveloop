@@ -176,6 +176,13 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 		updates["sandbox_tools"] = pq.StringArray(req.SandboxTools)
 	}
+	if req.Harness != nil {
+		if err := validateHarness(*req.Harness); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		updates["harness"] = *req.Harness
+	}
 
 	if req.Triggers != nil {
 		if errMsg := validateAgentTriggers(h.db, org.ID, *req.Triggers); errMsg != "" {

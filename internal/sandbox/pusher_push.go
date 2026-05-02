@@ -49,14 +49,6 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 
 	def := p.buildAgentDefinition(ctx, agent, cred, proxyToken, jti)
 
-	subagentDefs, err := p.buildSubagentDefinitions(ctx, agent, cred)
-	if err != nil {
-		return fmt.Errorf("building subagent definitions: %w", err)
-	}
-	if len(subagentDefs) > 0 {
-		def.Subagents = &subagentDefs
-	}
-
 	client, err := p.orchestrator.GetBridgeClient(ctx, sb)
 	if err != nil {
 		return fmt.Errorf("getting bridge client: %w", err)
@@ -72,7 +64,7 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 }
 
 func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, cred *model.Credential, proxyToken, jti string) bridgepkg.AgentDefinition {
-	providerType := bridgepkg.ProviderTypeCustom
+	providerType := bridgepkg.Custom
 	if pt, ok := providerTypeMap[cred.ProviderID]; ok {
 		providerType = pt
 	}
@@ -91,6 +83,7 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 		Name:         agent.Name,
 		Description:  agent.Description,
 		SystemPrompt: systemPrompt,
+		Harness:      harnessFromAgent(agent.Harness),
 		Provider: bridgepkg.ProviderConfig{
 			ProviderType: providerType,
 			Model:        agent.Model,
@@ -101,10 +94,9 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 
 	permissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
 
-	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), cred.ProviderID, agent.Model)
-	applyImmortalDefault(def.Config, def.Provider, cred.ProviderID, agent.Model, permissions)
-	applyHistoryStripDefault(def.Config)
-	applyToolRequirementsDefault(def.Config, permissions)
+	authorCfg := decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig)
+	def.Config = applyAgentConfigDefaults(authorCfg, cred.ProviderID, agent.Model)
+	applyHarnessOptionalFields(def.Config, authorCfg)
 
 	if permissions != nil && len(*permissions) > 0 {
 		var disabledTools []string
@@ -122,11 +114,6 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 		if len(disabledTools) > 0 {
 			def.Config.DisabledTools = &disabledTools
 		}
-	}
-
-	tools := decodeJSONAs[[]bridgepkg.ToolDefinition](agent.Tools)
-	if tools != nil && len(*tools) > 0 {
-		def.Tools = tools
 	}
 
 	mcpServers := decodeJSONAs[[]bridgepkg.McpServerDefinition](agent.McpServers)

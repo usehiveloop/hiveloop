@@ -14,6 +14,8 @@ import (
 )
 
 const (
+	// BridgePort overrides the bridge binary's 8080 default via
+	// BRIDGE_LISTEN_ADDR. Kept at the original hiveloop port (25434).
 	BridgePort = 25434
 
 	bridgeHealthTimeout    = 90 * time.Second
@@ -29,9 +31,14 @@ func baseEnvVars(cfg *config.Config, bridgeAPIKey string, sandboxID uuid.UUID, w
 		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
 		"BRIDGE_LISTEN_ADDR":           fmt.Sprintf("0.0.0.0:%d", BridgePort),
 		"BRIDGE_LOG_FORMAT":            "json",
-		"BRIDGE_STORAGE_PATH":          "/home/daytona/.bridge/storage",
 		"BRIDGE_WEB_URL":               fmt.Sprintf("https://%s/spider", cfg.BridgeHost),
 		"HIVELOOP_SANDBOX_ID":          sandboxID.String(),
+		// HOME=/work so bridge.db survives provider stop/start; the harnesses
+		// read their config from CLAUDE_CONFIG_DIR / OPENCODE_CONFIG_DIR.
+		"HOME":                "/work",
+		"CLAUDE_CONFIG_DIR":   "/work/.claude",
+		"OPENCODE_CONFIG_DIR": "/work/.opencode",
+		"NO_BROWSER":          "1",
 	}
 	if webhookURL != "" {
 		envVars["BRIDGE_WEBHOOK_URL"] = webhookURL
