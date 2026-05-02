@@ -17,7 +17,7 @@ import (
 // in-memory mockProvider, and asserts on the exact runtime contract that
 // the new ACP-harness image is rebuilt for:
 //
-//  1. BridgePort = 8080 (was 25434).
+//  1. BridgePort = 25434 (preserved across the migration).
 //  2. baseEnvVars passed to the provider include the new ACP-harness vars
 //     (HOME, CLAUDE_CONFIG_DIR, OPENCODE_CONFIG_DIR, NO_BROWSER) and have
 //     dropped any old LSP-related vars.
@@ -42,8 +42,8 @@ func TestImageRuntimeContract(t *testing.T) {
 	})
 
 	// 1. Port constant check.
-	if BridgePort != 8080 {
-		t.Errorf("BridgePort = %d, want 8080", BridgePort)
+	if BridgePort != 25434 {
+		t.Errorf("BridgePort = %d, want 25434", BridgePort)
 	}
 
 	// 2. CreateSandbox should have been called exactly once with the new env-var set.
@@ -58,7 +58,7 @@ func TestImageRuntimeContract(t *testing.T) {
 		"CLAUDE_CONFIG_DIR":   "/work/.claude",
 		"OPENCODE_CONFIG_DIR": "/work/.opencode",
 		"NO_BROWSER":          "1",
-		"BRIDGE_LISTEN_ADDR":  "0.0.0.0:8080",
+		"BRIDGE_LISTEN_ADDR":  "0.0.0.0:25434",
 	}
 	for k, want := range required {
 		if got[k] != want {
@@ -80,17 +80,17 @@ func TestImageRuntimeContract(t *testing.T) {
 	}
 
 	// Sanity: the listen-addr port matches the BridgePort const.
-	if !strings.HasSuffix(got["BRIDGE_LISTEN_ADDR"], ":8080") {
-		t.Errorf("BRIDGE_LISTEN_ADDR %q must end with :8080", got["BRIDGE_LISTEN_ADDR"])
+	if !strings.HasSuffix(got["BRIDGE_LISTEN_ADDR"], ":25434") {
+		t.Errorf("BRIDGE_LISTEN_ADDR %q must end with :25434", got["BRIDGE_LISTEN_ADDR"])
 	}
 
-	// 3. Endpoint resolution must have been called with port 8080.
+	// 3. Endpoint resolution must have been called with port 25434.
 	if len(provider.endpointPorts) == 0 {
 		t.Fatal("provider.GetEndpoint was never called")
 	}
 	for i, p := range provider.endpointPorts {
-		if p != 8080 {
-			t.Errorf("GetEndpoint call %d used port %d, want 8080", i, p)
+		if p != 25434 {
+			t.Errorf("GetEndpoint call %d used port %d, want 25434", i, p)
 		}
 	}
 

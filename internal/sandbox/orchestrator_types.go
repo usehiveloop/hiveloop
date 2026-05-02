@@ -15,8 +15,9 @@ import (
 
 const (
 	// BridgePort is the listening port of the new ACP-harness bridge runtime.
-	// Bumped from 25434 → 8080 as part of the useportal.bridge@rip-harness migration.
-	BridgePort = 8080
+	// Kept at 25434 (the original hiveloop bridge port) — BRIDGE_LISTEN_ADDR
+	// instructs the new bridge binary to listen here instead of its 8080 default.
+	BridgePort = 25434
 
 	bridgeHealthTimeout    = 90 * time.Second
 	bridgeHealthInterval   = 2 * time.Second
