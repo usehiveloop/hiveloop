@@ -17,6 +17,8 @@ type mockProvider struct {
 	setAutoStopCalls    []autoPolicyCall
 	setAutoArchiveCalls []autoPolicyCall
 	archivedIDs         []string
+	createCalls         []CreateSandboxOpts // captured for integration assertions
+	endpointPorts       []int               // captured port arg of every GetEndpoint call
 }
 
 // autoPolicyCall records one invocation of SetAutoStop / SetAutoArchive.
@@ -46,7 +48,8 @@ func (m *mockProvider) CreateSandbox(_ context.Context, opts CreateSandboxOpts) 
 	m.nextID++
 	id := fmt.Sprintf("mock-sb-%d", m.nextID)
 	m.sandboxes[id] = &mockSandbox{name: opts.Name, status: StatusRunning}
-	m.endpoints[id] = fmt.Sprintf("https://mock-sandbox-%d.test:25434", m.nextID)
+	m.endpoints[id] = fmt.Sprintf("https://mock-sandbox-%d.test:%d", m.nextID, BridgePort)
+	m.createCalls = append(m.createCalls, opts)
 
 	return &SandboxInfo{ExternalID: id, Status: StatusRunning}, nil
 }
@@ -102,6 +105,8 @@ func (m *mockProvider) GetEndpoint(_ context.Context, externalID string, port in
 	if _, exists := m.sandboxes[externalID]; !exists {
 		return "", fmt.Errorf("sandbox not found: %s", externalID)
 	}
+
+	m.endpointPorts = append(m.endpointPorts, port)
 
 	if m.endpointOverride != "" {
 		return m.endpointOverride, nil

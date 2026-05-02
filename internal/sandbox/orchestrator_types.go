@@ -14,7 +14,9 @@ import (
 )
 
 const (
-	BridgePort = 25434
+	// BridgePort is the listening port of the new ACP-harness bridge runtime.
+	// Bumped from 25434 → 8080 as part of the useportal.bridge@rip-harness migration.
+	BridgePort = 8080
 
 	bridgeHealthTimeout    = 90 * time.Second
 	bridgeHealthInterval   = 2 * time.Second
@@ -29,9 +31,15 @@ func baseEnvVars(cfg *config.Config, bridgeAPIKey string, sandboxID uuid.UUID, w
 		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
 		"BRIDGE_LISTEN_ADDR":           fmt.Sprintf("0.0.0.0:%d", BridgePort),
 		"BRIDGE_LOG_FORMAT":            "json",
-		"BRIDGE_STORAGE_PATH":          "/home/daytona/.bridge/storage",
 		"BRIDGE_WEB_URL":               fmt.Sprintf("https://%s/spider", cfg.BridgeHost),
 		"HIVELOOP_SANDBOX_ID":          sandboxID.String(),
+		// New ACP-harness runtime contract: HOME=/work so bridge.db lives at
+		// /work/bridge.db and survives provider stop/start cycles. The Claude
+		// and OpenCode harnesses look for their config under these dirs.
+		"HOME":                "/work",
+		"CLAUDE_CONFIG_DIR":   "/work/.claude",
+		"OPENCODE_CONFIG_DIR": "/work/.opencode",
+		"NO_BROWSER":          "1",
 	}
 	if webhookURL != "" {
 		envVars["BRIDGE_WEBHOOK_URL"] = webhookURL

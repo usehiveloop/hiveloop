@@ -107,8 +107,11 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	sb.Status = "running"
 	sb.LastActiveAt = &now
 
-	if _, execErr := o.provider.ExecuteCommand(ctx, info.ExternalID, "mkdir -p /home/daytona/.bridge"); execErr != nil {
-		logging.Capture(ctx, fmt.Errorf("create bridge storage dir sandbox %s: %w", sb.ID, execErr))
+	// Ensure the per-harness config dirs exist on the running sandbox even when
+	// the snapshot was rebuilt without them (e.g. older snapshots used
+	// /home/daytona/.bridge). The new ACP-harness contract uses /work as HOME.
+	if _, execErr := o.provider.ExecuteCommand(ctx, info.ExternalID, "mkdir -p /work/.claude /work/.opencode"); execErr != nil {
+		logging.Capture(ctx, fmt.Errorf("create bridge config dirs sandbox %s: %w", sb.ID, execErr))
 	}
 
 	if err := o.waitForBridgeHealthy(ctx, &sb); err != nil {
