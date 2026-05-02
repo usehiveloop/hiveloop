@@ -2,19 +2,13 @@
 resolver = "2"
 members = [
     "crates/core",
-    "crates/llm",
-    "crates/lsp",
-    "crates/mcp",
-    "crates/tools",
     "crates/runtime",
     "crates/api",
     "crates/webhooks",
     "crates/bridge",
-    "e2e/mock-control-plane",
-    "e2e/mock-mcp-server",
-    "e2e/mock-portal-mcp",
-    "e2e/bridge-e2e",
     "crates/storage",
+    "crates/harness",
+    "e2e/mock-control-plane",
     "e2e/storage-e2e",
 ]
 
@@ -26,7 +20,7 @@ await_holding_lock = "deny"
 # Async runtime
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7", features = ["rt", "io"] }
-tokio-stream = "0.1"
+tokio-stream = { version = "0.1", features = ["sync"] }
 
 # HTTP server
 axum = { version = "0.8", features = ["ws"] }
@@ -38,38 +32,15 @@ reqwest = { version = "0.13", default-features = false, features = [
     "rustls", "json", "stream"
 ] }
 
-# Agent framework
-rig-core = { version = "0.35", default-features = false, features = [
-    "derive", "rmcp", "reqwest-middleware-rustls"
-] }
-reqwest-middleware = { version = "0.5", features = ["json", "rustls"] }
-reqwest-retry = "0.9"
-
-# MCP
-rmcp = { version = "0.17", default-features = false, features = [
-    "client",
-    "transport-io",
-    "transport-child-process",
-    "transport-streamable-http-client",
-    "transport-streamable-http-client-reqwest",
-    "macros",
-] }
-
 # Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml = "0.9"
-
-# Schema
-jsonschema = "0.38"
-schemars = "0.8"
 
 # Concurrency
 dashmap = "6"
 
 # Resilience
 backon = "1"
-governor = "0.8"
 
 # Webhook signing
 hmac = "0.12"
@@ -77,16 +48,6 @@ sha2 = "0.10"
 base64 = "0.22"
 subtle = "2"
 hex = "0.4"
-mime_guess = "2"
-
-# Content extraction
-dom_smoothie = { version = "0.15", features = ["aho-corasick"] }
-htmd = "0.5"
-
-# File system tools (readonly, high-performance)
-ignore = "0.4"
-globset = "0.4"
-regex = "1"
 
 # Logging & Observability
 tracing = "0.1"
@@ -96,36 +57,26 @@ opentelemetry = "0.29"
 opentelemetry_sdk = { version = "0.29", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.29", features = ["grpc-tonic"] }
 
+# Sentry — error/panic reporting (errors-only, no perf traces by default).
+# `tower` integration brings axum middleware compat; `tracing` makes
+# tracing events become breadcrumbs automatically.
+sentry = { version = "0.48", default-features = false, features = [
+    "backtrace", "contexts", "panic", "reqwest", "rustls", "tracing",
+] }
+sentry-tower = { version = "0.48", features = ["http", "axum-matched-path"] }
+
 # Config
 figment = { version = "0.10", features = ["toml", "env"] }
 
-# String enums
+# String enums (used by core::provider)
 strum = "0.27"
 strum_macros = "0.27"
 
-# Fuzzy matching
-fuzzy-matcher = "0.3"
-
-# String similarity (Levenshtein distance)
-strsim = "0.11"
-
-# Unified diff generation
-similar = "2"
-
-# Unix process management
-libc = "0.2"
-
-# MIME types
+# MIME types (used by core::artifacts wire types)
 mime = "0.3"
-
-# Unicode
-unicode-normalization = "0.1"
 
 # OpenAPI
 utoipa = { version = "5", features = ["chrono"] }
-
-# Token counting
-tiktoken-rs = "0.6"
 
 # Utilities
 uuid = { version = "1", features = ["v4", "serde"] }
@@ -139,14 +90,11 @@ http = "1"
 # Internal crates — "core" uses package rename because `core` is a reserved
 # Rust crate name (std::core). All other crates use their package name directly.
 bridge_core = { path = "crates/core", package = "core" }
-llm = { path = "crates/llm" }
-lsp = { path = "crates/lsp" }
-mcp = { path = "crates/mcp" }
-tools = { path = "crates/tools" }
 runtime = { path = "crates/runtime" }
 api = { path = "crates/api" }
 webhooks = { path = "crates/webhooks" }
 storage = { path = "crates/storage" }
+harness = { path = "crates/harness" }
 
 # WebSocket client (for e2e tests)
 tokio-tungstenite = { version = "0.26", features = ["connect"] }

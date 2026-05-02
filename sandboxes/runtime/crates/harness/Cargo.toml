@@ -1,0 +1,25 @@
+[package]
+name = "harness"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bridge_core = { workspace = true }
+webhooks = { workspace = true }
+agent-client-protocol = { version = "0.11", features = ["unstable_session_usage"] }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+dashmap = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }
+sentry = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+anyhow = { workspace = true }
+
+[lints]
+workspace = true

@@ -88,57 +88,6 @@ impl StorageHandle {
         let _ = self.tx.send(WriteCommand::DeleteSessionsByPrefix(prefix));
     }
 
-    // ── Immortal conversations ──────────────────────────
-
-    pub fn append_journal_entry(
-        &self,
-        entry_id: String,
-        conversation_id: String,
-        chain_index: u32,
-        entry_type: String,
-        content: String,
-        created_at: chrono::DateTime<chrono::Utc>,
-    ) {
-        let _ = self.tx.send(WriteCommand::AppendJournalEntry {
-            entry_id,
-            conversation_id,
-            chain_index,
-            entry_type,
-            content,
-            created_at,
-        });
-    }
-
-    pub fn save_chain_link(
-        &self,
-        conversation_id: String,
-        chain_index: u32,
-        started_at: chrono::DateTime<chrono::Utc>,
-        trigger_token_count: Option<usize>,
-        checkpoint_text: Option<String>,
-    ) {
-        let _ = self.tx.send(WriteCommand::SaveChainLink {
-            conversation_id,
-            chain_index,
-            started_at,
-            trigger_token_count,
-            checkpoint_text,
-        });
-    }
-
-    pub fn complete_chain_link(
-        &self,
-        conversation_id: String,
-        chain_index: u32,
-        ended_at: chrono::DateTime<chrono::Utc>,
-    ) {
-        let _ = self.tx.send(WriteCommand::CompleteChainLink {
-            conversation_id,
-            chain_index,
-            ended_at,
-        });
-    }
-
     /// Block until all queued writes have been executed.
     pub async fn drain(&self) {
         let (tx, rx) = oneshot::channel();

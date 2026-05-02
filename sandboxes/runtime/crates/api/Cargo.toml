@@ -9,7 +9,6 @@ openapi = ["dep:utoipa", "bridge_core/openapi"]
 [dependencies]
 bridge_core = { workspace = true }
 runtime = { workspace = true }
-llm = { workspace = true }
 webhooks = { workspace = true }
 storage = { workspace = true }
 dashmap = { workspace = true }
@@ -17,6 +16,7 @@ axum = { workspace = true }
 tower = { workspace = true }
 tower-http = { workspace = true }
 tokio = { workspace = true }
+tokio-stream = { workspace = true }
 tokio-util = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -32,7 +32,6 @@ pretty_assertions = { workspace = true }
 tokio = { workspace = true }
 tower = { workspace = true }
 http = { workspace = true }
-mcp = { workspace = true }
 tokio-util = { workspace = true }
 serde_json = { workspace = true }
 

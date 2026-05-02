@@ -30,21 +30,15 @@ pub async fn create_conversation(
     body: Option<Json<CreateConversationRequest>>,
 ) -> Result<(StatusCode, Json<CreateConversationResponse>), BridgeError> {
     let request = body.map(|b| b.0).unwrap_or_default();
-    let (conv_id, sse_rx) = state
+    let conv_id = state
         .supervisor
         .create_conversation(
             &agent_id,
-            request.tool_names,
-            request.mcp_server_names,
             request.api_key,
-            request.subagent_api_keys,
             request.provider,
             request.mcp_servers,
         )
         .await?;
-
-    // Store the SSE receiver for the stream handler to pick up
-    state.sse_streams.insert(conv_id.clone(), sse_rx);
 
     state.event_bus.emit(BridgeEvent::new(
         BridgeEventType::ConversationCreated,
@@ -99,10 +93,9 @@ pub async fn send_message(
     let (final_content, attachment_path_str) = if let Some(full) = &body.full_message {
         match crate::attachments::write_full_message(&conv_id, full).await {
             Some(path) => {
-                let tools = state
-                    .supervisor
-                    .agent_tool_names(&agent_id)
-                    .unwrap_or_default();
+                // Tool catalogue lives on the harness now; pass an empty
+                // set until the adapter is wired and can advertise it.
+                let tools = std::collections::HashSet::new();
                 let composed =
                     crate::attachments::compose_with_attachment(&body.content, full, &path, &tools);
                 (composed, Some(path.display().to_string()))
@@ -154,8 +147,7 @@ pub async fn end_conversation(
 
     state.supervisor.end_conversation(&agent_id, &conv_id)?;
 
-    // Clean up SSE stream
-    state.sse_streams.remove(&conv_id);
+    // Drop the SSE broadcast — live subscribers will see the channel close.
     state.event_bus.remove_sse_stream(&conv_id);
 
     // Remove any attachment files this conversation accumulated via

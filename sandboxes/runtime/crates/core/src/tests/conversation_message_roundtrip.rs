@@ -1,7 +1,6 @@
 use pretty_assertions::assert_eq;
 
 use crate::conversation::{ContentBlock, Message, Role, ToolCall, ToolResult};
-use crate::tool::ToolDefinition;
 
 #[test]
 fn message_with_text_content_roundtrip() {
@@ -109,43 +108,6 @@ fn message_with_empty_content_roundtrip() {
     let deserialized: Message = serde_json::from_str(&json).expect("deserialize");
     assert_eq!(msg, deserialized);
     assert!(deserialized.content.is_empty());
-}
-
-// ──────────────────────────────────────────────
-// ToolDefinition
-// ──────────────────────────────────────────────
-
-#[test]
-fn tool_definition_roundtrip() {
-    let tool = ToolDefinition {
-        name: "web_search".to_string(),
-        description: "Searches the web".to_string(),
-        parameters_schema: serde_json::json!({
-            "type": "object",
-            "properties": {
-                "query": { "type": "string", "description": "Search query" },
-                "limit": { "type": "integer", "default": 10 }
-            },
-            "required": ["query"]
-        }),
-    };
-
-    let json = serde_json::to_string_pretty(&tool).expect("serialize ToolDefinition");
-    let deserialized: ToolDefinition = serde_json::from_str(&json).expect("deserialize");
-    assert_eq!(tool, deserialized);
-}
-
-#[test]
-fn tool_definition_with_empty_schema_roundtrip() {
-    let tool = ToolDefinition {
-        name: "noop".to_string(),
-        description: "Does nothing".to_string(),
-        parameters_schema: serde_json::json!({}),
-    };
-
-    let json = serde_json::to_string_pretty(&tool).expect("serialize");
-    let deserialized: ToolDefinition = serde_json::from_str(&json).expect("deserialize");
-    assert_eq!(tool, deserialized);
 }
 
 // ──────────────────────────────────────────────

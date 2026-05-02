@@ -1,5 +1,5 @@
 mod handlers;
-mod helpers;
+pub(crate) mod helpers;
 mod types;
 
 #[cfg(feature = "openapi")]

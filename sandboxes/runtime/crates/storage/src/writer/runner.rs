@@ -134,60 +134,6 @@ async fn process_command(backend: &Arc<dyn StorageBackend>, cmd: WriteCommand) {
                 error!(prefix = %prefix, error = %e, "storage: delete_sessions_by_prefix failed");
             }
         }
-        WriteCommand::AppendJournalEntry {
-            entry_id,
-            conversation_id,
-            chain_index,
-            entry_type,
-            content,
-            created_at,
-        } => {
-            if let Err(e) = backend
-                .append_journal_entry(
-                    &entry_id,
-                    &conversation_id,
-                    chain_index,
-                    &entry_type,
-                    &content,
-                    created_at,
-                )
-                .await
-            {
-                error!(conversation_id = %conversation_id, error = %e, "storage: append_journal_entry failed");
-            }
-        }
-        WriteCommand::SaveChainLink {
-            conversation_id,
-            chain_index,
-            started_at,
-            trigger_token_count,
-            checkpoint_text,
-        } => {
-            if let Err(e) = backend
-                .save_chain_link(
-                    &conversation_id,
-                    chain_index,
-                    started_at,
-                    trigger_token_count,
-                    checkpoint_text.as_deref(),
-                )
-                .await
-            {
-                error!(conversation_id = %conversation_id, error = %e, "storage: save_chain_link failed");
-            }
-        }
-        WriteCommand::CompleteChainLink {
-            conversation_id,
-            chain_index,
-            ended_at,
-        } => {
-            if let Err(e) = backend
-                .complete_chain_link(&conversation_id, chain_index, ended_at)
-                .await
-            {
-                error!(conversation_id = %conversation_id, error = %e, "storage: complete_chain_link failed");
-            }
-        }
         WriteCommand::Drain(reply) => {
             let _ = reply.send(());
         }

@@ -84,6 +84,7 @@ async fn upsert_agent_path_body_mismatch_returns_400() {
     let body = serde_json::json!({
         "id": "bar",
         "name": "Test",
+        "harness": "claude",
         "system_prompt": "test",
         "provider": {
             "provider_type": "anthropic",
@@ -122,29 +123,6 @@ async fn remove_nonexistent_agent_returns_404() {
                 .uri("/push/agents/unknown")
                 .header("authorization", "Bearer valid-control-plane-token")
                 .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), 404);
-
-    let json = body_json(response).await;
-    assert_eq!(json["error"]["code"], "agent_not_found");
-}
-
-#[tokio::test]
-async fn hydrate_unknown_agent_returns_404() {
-    let app = build_router(test_state());
-
-    let response = app
-        .oneshot(
-            Request::builder()
-                .method("POST")
-                .uri("/push/agents/unknown/conversations")
-                .header("content-type", "application/json")
-                .header("authorization", "Bearer valid-control-plane-token")
-                .body(Body::from(r#"{"conversations":[]}"#))
                 .unwrap(),
         )
         .await

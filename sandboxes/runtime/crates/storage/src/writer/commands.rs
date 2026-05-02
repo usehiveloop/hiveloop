@@ -34,27 +34,6 @@ pub enum WriteCommand {
     },
     DeleteSessionsForAgent(String),
     DeleteSessionsByPrefix(String),
-    // ── Immortal conversations ──────────────────────────
-    AppendJournalEntry {
-        entry_id: String,
-        conversation_id: String,
-        chain_index: u32,
-        entry_type: String,
-        content: String,
-        created_at: chrono::DateTime<chrono::Utc>,
-    },
-    SaveChainLink {
-        conversation_id: String,
-        chain_index: u32,
-        started_at: chrono::DateTime<chrono::Utc>,
-        trigger_token_count: Option<usize>,
-        checkpoint_text: Option<String>,
-    },
-    CompleteChainLink {
-        conversation_id: String,
-        chain_index: u32,
-        ended_at: chrono::DateTime<chrono::Utc>,
-    },
     /// Wait until all pending writes ahead of this command have completed.
     Drain(oneshot::Sender<()>),
     /// Flush all pending writes, then signal the caller.

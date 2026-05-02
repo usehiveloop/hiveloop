@@ -1,6 +1,0 @@
-Exact string replacement in a file.
-
-- Must `Read` the file at least once before editing.
-- Preserve exact indentation (tabs/spaces) as shown AFTER the `N: ` line-number prefix in Read output. Never include the prefix in oldString or newString.
-- Prefer editing existing files. Don't write new files unless required.
-- FAILS if `oldString` is not found, OR if it matches multiple places. Add more surrounding context to make it unique, or use `replaceAll: true` to change every occurrence.

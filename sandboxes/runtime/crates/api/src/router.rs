@@ -1,3 +1,4 @@
+use axum::extract::DefaultBodyLimit;
 use axum::middleware as axum_mw;
 use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
@@ -10,6 +11,19 @@ use crate::handlers::{
 use crate::middleware::bearer_auth;
 use crate::state::AppState;
 
+/// Maximum request body size, in bytes. Skill payloads with multi-file
+/// bundles routinely exceed axum's 2 MiB default; bumping to 25 MiB so
+/// the control plane can push agents with non-trivial skill assets without
+/// silent 413s. Override at runtime via `BRIDGE_MAX_BODY_BYTES`.
+pub const DEFAULT_MAX_BODY_BYTES: usize = 25 * 1024 * 1024;
+
+fn max_body_bytes() -> usize {
+    std::env::var("BRIDGE_MAX_BODY_BYTES")
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+        .unwrap_or(DEFAULT_MAX_BODY_BYTES)
+}
+
 /// Build the axum router with all routes and middleware.
 pub fn build_router(state: AppState) -> Router {
     // Push routes — authenticated via bearer token
@@ -17,10 +31,6 @@ pub fn build_router(state: AppState) -> Router {
         .route("/push/agents", post(push::push_agents))
         .route("/push/agents/{agent_id}", put(push::upsert_agent))
         .route("/push/agents/{agent_id}", delete(push::remove_agent))
-        .route(
-            "/push/agents/{agent_id}/conversations",
-            post(push::hydrate_conversations),
-        )
         .route(
             "/push/agents/{agent_id}/api-key",
             patch(push::update_agent_api_key),
@@ -78,6 +88,7 @@ pub fn build_router(state: AppState) -> Router {
         // Push (authenticated)
         .merge(push_routes)
         // Middleware
+        .layer(DefaultBodyLimit::max(max_body_bytes()))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .with_state(state)

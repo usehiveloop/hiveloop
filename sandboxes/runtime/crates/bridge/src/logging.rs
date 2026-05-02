@@ -38,11 +38,24 @@ pub(crate) fn init_logging(config: &RuntimeConfig) {
         None
     };
 
-    // Compose: registry + env_filter + otel (optional) + fmt
-    // OTel layer is added before fmt so it has the same subscriber type param.
+    // Sentry tracing layer:
+    //   - tracing::info!/warn! → breadcrumbs (last 100 retained)
+    //   - tracing::error!     → captured Sentry events
+    // Cheap to install even when SENTRY_DSN is unset (events are dropped).
+    let sentry_layer =
+        sentry::integrations::tracing::layer().event_filter(|md| match *md.level() {
+            tracing::Level::ERROR => sentry::integrations::tracing::EventFilter::Event,
+            tracing::Level::WARN | tracing::Level::INFO | tracing::Level::DEBUG => {
+                sentry::integrations::tracing::EventFilter::Breadcrumb
+            }
+            tracing::Level::TRACE => sentry::integrations::tracing::EventFilter::Ignore,
+        });
+
+    // Compose: registry + env_filter + otel (optional) + sentry + fmt.
     let registry = tracing_subscriber::registry()
         .with(env_filter)
-        .with(otel_layer);
+        .with(otel_layer)
+        .with(sentry_layer);
 
     match config.log_format {
         bridge_core::LogFormat::Json => {

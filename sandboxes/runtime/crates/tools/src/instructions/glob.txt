@@ -1,6 +1,0 @@
-Fast glob pattern matching. Supports `**/*.js`, `src/**/*.ts`, etc. Results sorted by modification time.
-
-- Skip glob if you can RipGrep instead (you usually want content, not paths).
-- Truncated at 1000 matches. If `truncated` is true: narrow the pattern, switch to RipGrep, or spawn an Agent subagent (`self_agent`).
-- Respects `.gitignore`.
-- Multiple globs in one turn (parallel) is OK and often faster.

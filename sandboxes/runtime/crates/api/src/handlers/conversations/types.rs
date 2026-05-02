@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
 
 /// Response for creating a conversation.
@@ -36,20 +34,10 @@ pub struct AbortConversationResponse {
     pub status: String,
 }
 
-/// Optional request body for creating a conversation with tool/MCP scoping.
+/// Optional request body for creating a conversation with per-call overrides.
 #[derive(Deserialize, Default)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CreateConversationRequest {
-    /// When provided, only these tools are available in the conversation.
-    /// Tool names must match the agent's registered tool names exactly.
-    #[serde(default)]
-    pub tool_names: Option<Vec<String>>,
-
-    /// When provided, only tools from these MCP servers are available.
-    /// Server names must match the agent's configured MCP server names.
-    #[serde(default)]
-    pub mcp_server_names: Option<Vec<String>>,
-
     /// When provided, overrides the agent's LLM API key for this conversation only.
     /// For full provider/model override, use the `provider` field instead.
     #[serde(default)]
@@ -57,23 +45,13 @@ pub struct CreateConversationRequest {
 
     /// When provided, fully overrides the agent's LLM provider for this conversation.
     /// Allows switching model, provider type, API key, and base URL per conversation
-    /// while keeping the same agent definition (tools, system prompt, skills, etc.).
+    /// while keeping the same agent definition (system prompt, skills, MCP, etc.).
     #[serde(default)]
     pub provider: Option<bridge_core::ProviderConfig>,
 
-    /// Per-subagent API key overrides. Key = subagent name, Value = API key.
-    /// Only named subagents are overridden; others keep their configured keys.
-    #[serde(default)]
-    pub subagent_api_keys: Option<HashMap<String, String>>,
-
     /// Additional MCP servers to load for this conversation only.
-    /// Connected at conversation creation, torn down when the conversation ends
-    /// (or is aborted, drained, or cancelled). Tool names produced by these
-    /// servers must not collide with the agent's existing tool names.
-    ///
-    /// Stdio transport requires the runtime config flag
-    /// `allow_stdio_mcp_from_api` to be enabled; otherwise only
-    /// `streamable_http` is accepted.
+    /// Merged into the harness's MCP configuration at session start and torn
+    /// down when the conversation ends.
     #[serde(default)]
     pub mcp_servers: Option<Vec<bridge_core::mcp::McpServerDefinition>>,
 }

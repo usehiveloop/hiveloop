@@ -59,6 +59,15 @@ pub enum BridgeError {
     /// Capacity exhausted (max conversations, task budget, etc.)
     #[error("capacity exhausted: {0}")]
     CapacityExhausted(String),
+
+    /// The bridge harness adapter is not yet wired. Returned by stubbed
+    /// supervisor methods during the harness migration.
+    #[error("harness not yet available")]
+    HarnessUnavailable,
+
+    /// The underlying coding-agent harness returned an error.
+    #[error("harness error: {0}")]
+    HarnessError(String),
 }
 
 /// Convenience Result type alias for bridge operations.
@@ -85,6 +94,10 @@ impl IntoResponse for BridgeError {
             BridgeError::CapacityExhausted(_) => {
                 (StatusCode::TOO_MANY_REQUESTS, "capacity_exhausted")
             }
+            BridgeError::HarnessUnavailable => {
+                (StatusCode::SERVICE_UNAVAILABLE, "harness_unavailable")
+            }
+            BridgeError::HarnessError(_) => (StatusCode::BAD_GATEWAY, "harness_error"),
         };
 
         let body = serde_json::json!({
@@ -164,5 +177,20 @@ mod tests {
         let err = BridgeError::CapacityExhausted("max conversations".into());
         let response = err.into_response();
         assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+    }
+
+    #[test]
+    fn test_harness_unavailable_returns_503() {
+        let err = BridgeError::HarnessUnavailable;
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[test]
+    fn test_harness_error_returns_502() {
+        let err = BridgeError::HarnessError("transport reset".into());
+        assert_eq!(err.to_string(), "harness error: transport reset");
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::BAD_GATEWAY);
     }
 }

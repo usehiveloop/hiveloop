@@ -3,10 +3,8 @@ use bridge_core::{AgentDefinition, BridgeEvent, ConversationRecord, Message, Met
 use tokio_rusqlite::Connection;
 use tracing::info;
 
-use super::{
-    agents, artifacts, chain, conversations, events, journal, messages, metrics, sessions,
-};
-use crate::backend::{ArtifactUploadRow, ChainLinkRow, JournalEntryRow, StorageBackend};
+use super::{agents, artifacts, conversations, events, messages, metrics, sessions};
+use crate::backend::{ArtifactUploadRow, StorageBackend};
 use crate::config::StorageConfig;
 use crate::error::StorageError;
 use crate::schema;
@@ -139,6 +137,21 @@ impl StorageBackend for SqliteBackend {
         events::load_events_since(&self.conn, after_sequence, limit).await
     }
 
+    async fn load_events_since_for_conversation(
+        &self,
+        conversation_id: &str,
+        after_sequence: u64,
+        limit: u32,
+    ) -> Result<Vec<BridgeEvent>, StorageError> {
+        events::load_events_since_for_conversation(
+            &self.conn,
+            conversation_id,
+            after_sequence,
+            limit,
+        )
+        .await
+    }
+
     // ── Metrics ─────────────────────────────────────────────
 
     async fn save_metrics_snapshot(
@@ -170,73 +183,6 @@ impl StorageBackend for SqliteBackend {
 
     async fn delete_sessions_by_prefix(&self, prefix: &str) -> Result<(), StorageError> {
         sessions::delete_sessions_by_prefix(&self.conn, prefix).await
-    }
-
-    // ── Journal (immortal conversations) ──────────────────
-
-    async fn append_journal_entry(
-        &self,
-        entry_id: &str,
-        conversation_id: &str,
-        chain_index: u32,
-        entry_type: &str,
-        content: &str,
-        created_at: chrono::DateTime<chrono::Utc>,
-    ) -> Result<(), StorageError> {
-        journal::append_journal_entry(
-            &self.conn,
-            entry_id,
-            conversation_id,
-            chain_index,
-            entry_type,
-            content,
-            created_at,
-        )
-        .await
-    }
-
-    async fn load_journal(
-        &self,
-        conversation_id: &str,
-    ) -> Result<Vec<JournalEntryRow>, StorageError> {
-        journal::load_journal(&self.conn, conversation_id).await
-    }
-
-    // ── Chain links (immortal conversations) ────────────────
-
-    async fn save_chain_link(
-        &self,
-        conversation_id: &str,
-        chain_index: u32,
-        started_at: chrono::DateTime<chrono::Utc>,
-        trigger_token_count: Option<usize>,
-        checkpoint_text: Option<&str>,
-    ) -> Result<(), StorageError> {
-        chain::save_chain_link(
-            &self.conn,
-            conversation_id,
-            chain_index,
-            started_at,
-            trigger_token_count,
-            checkpoint_text,
-        )
-        .await
-    }
-
-    async fn complete_chain_link(
-        &self,
-        conversation_id: &str,
-        chain_index: u32,
-        ended_at: chrono::DateTime<chrono::Utc>,
-    ) -> Result<(), StorageError> {
-        chain::complete_chain_link(&self.conn, conversation_id, chain_index, ended_at).await
-    }
-
-    async fn load_chain_links(
-        &self,
-        conversation_id: &str,
-    ) -> Result<Vec<ChainLinkRow>, StorageError> {
-        chain::load_chain_links(&self.conn, conversation_id).await
     }
 
     // ── Artifact uploads ────────────────────────────────────

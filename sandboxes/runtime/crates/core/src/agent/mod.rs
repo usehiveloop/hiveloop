@@ -2,28 +2,31 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::artifacts::ArtifactsConfig;
-use crate::integration::IntegrationDefinition;
 use crate::mcp::McpServerDefinition;
 use crate::permission::ToolPermission;
 use crate::provider::ProviderConfig;
 use crate::skill::SkillDefinition;
-use crate::tool::ToolDefinition;
-
-mod requirements;
-mod runtime;
-mod verifier;
-
-pub use requirements::{
-    RequirementCadence, RequirementEnforcement, RequirementPosition, ToolRequirement,
-};
-pub use runtime::{HistoryStripConfig, ImmortalConfig};
-pub use verifier::{VerifierAgentConfig, VerifierModel, VerifierProvider};
 
 /// Type alias for agent identifiers.
 pub type AgentId = String;
 
+/// Which underlying coding-agent harness this agent runs against.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum Harness {
+    /// Claude Code CLI driven via the Agent Client Protocol (ACP).
+    Claude,
+    /// OpenCode CLI driven via the Agent Client Protocol (ACP).
+    OpenCode,
+}
+
 /// Complete definition of an AI agent fetched from the control plane.
+///
+/// Bridge persists the definition; the harness adapter (one of the
+/// [`Harness`] variants) reads it and drives the underlying CLI process.
+/// MCP servers and skills are passed through to the harness — bridge does
+/// not execute tools itself.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "openapi", schema(no_recursion))]
@@ -33,41 +36,30 @@ pub struct AgentDefinition {
     /// Human-readable agent name
     pub name: String,
     /// Human-readable description of the agent's purpose and capabilities.
-    /// Used in tool documentation when this agent is a subagent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    /// System prompt for the agent
+    /// Which coding-agent harness to drive for this agent.
+    pub harness: Harness,
+    /// System prompt for the agent (mapped to the harness's system-prompt input)
     pub system_prompt: String,
-    /// LLM provider configuration
+    /// LLM provider configuration — credentials and model choice are
+    /// materialized into the harness's expected env vars at session start.
     pub provider: ProviderConfig,
-    /// Agent-defined tools
-    #[serde(default)]
-    pub tools: Vec<ToolDefinition>,
-    /// MCP server connections
+    /// MCP server connections passed through to the harness as `--mcp-config`.
     #[serde(default)]
     pub mcp_servers: Vec<McpServerDefinition>,
-    /// Available skills
+    /// Skills written to the harness's skill discovery directory at session start
+    /// (e.g. `~/.claude/skills/<id>/SKILL.md` for Claude Code).
     #[serde(default)]
     pub skills: Vec<SkillDefinition>,
-    /// External integrations (e.g., GitHub, Slack, Mailchimp).
-    /// Each integration's actions become individual tools for the agent.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub integrations: Vec<IntegrationDefinition>,
-    /// Workspace artifact upload configuration. When present, bridge
-    /// auto-registers an `upload_to_workspace` tool that streams files
-    /// from the agent's sandbox to the control plane with resume support.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub artifacts: Option<ArtifactsConfig>,
-    /// Agent configuration options
-    #[serde(default)]
-    pub config: AgentConfig,
-    /// Nested subagent definitions
-    #[serde(default)]
-    pub subagents: Vec<AgentDefinition>,
-    /// Per-tool permission overrides. Key = tool name, Value = permission level.
-    /// Tools not listed default to `Allow`.
+    /// Per-tool permission overrides. Drives the bridge approvals API
+    /// (`/agents/{id}/conversations/{cid}/approvals`). Tools not listed
+    /// default to `Allow`.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub permissions: HashMap<String, ToolPermission>,
+    /// Slim runtime configuration forwarded to the harness.
+    #[serde(default)]
+    pub config: AgentConfig,
     /// Webhook URL for event delivery
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webhook_url: Option<String>,
@@ -83,140 +75,82 @@ pub struct AgentDefinition {
 }
 
 impl AgentDefinition {
-    /// Static semantic validation of an agent definition — intended to run
-    /// at push time before the agent is loaded into the supervisor. Returns
-    /// the first problem it finds.
-    ///
-    /// Callers should translate the returned message into an
-    /// `InvalidRequest` error (400).
+    /// Lightweight semantic validation. Runs at push time so the caller
+    /// gets a clean 400 instead of a silently-broken agent.
     pub fn validate(&self) -> Result<(), String> {
-        // `tool_requirements.tool` cannot overlap `disabled_tools` — the
-        // agent would never be able to call a tool it's configured to
-        // require. Reject explicitly rather than silently deadlock.
-        for req in &self.config.tool_requirements {
-            if self.config.disabled_tools.iter().any(|d| d == &req.tool) {
-                return Err(format!(
-                    "tool_requirements[{}] conflicts with disabled_tools: \
-                     tool '{}' is both required per turn and disabled",
-                    self.config
-                        .tool_requirements
-                        .iter()
-                        .position(|r| r.tool == req.tool)
-                        .unwrap_or(0),
-                    req.tool
-                ));
-            }
+        if self.id.is_empty() {
+            return Err("id must be non-empty".into());
         }
-
-        if let Some(artifacts) = &self.artifacts {
-            artifacts.validate()?;
+        if self.name.is_empty() {
+            return Err("name must be non-empty".into());
         }
-
+        if self.system_prompt.is_empty() {
+            return Err("system_prompt must be non-empty".into());
+        }
         Ok(())
     }
 }
 
-/// Configuration options for an agent.
+/// Per-agent configuration written into the harness's settings file at
+/// session start. Every field is harness-agnostic in shape — the adapter
+/// is responsible for translating it into the harness-native config
+/// (`~/.claude/settings.json`, `~/.config/opencode/opencode.json`, etc.).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AgentConfig {
-    /// Maximum tokens for LLM response
+    // ── Sampling / loop ─────────────────────────────────────
+    /// Maximum tokens per assistant response.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<u32>,
-    /// Maximum conversation turns
+
+    /// Maximum conversation turns before bridge stops the loop.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_turns: Option<u32>,
-    /// Temperature for LLM sampling
+
+    /// Sampling temperature for the underlying model.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f64>,
-    /// JSON schema for structured output
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub json_schema: Option<serde_json::Value>,
-    /// Rate limit in requests per minute
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rate_limit_rpm: Option<u32>,
 
-    /// Maximum total subagent tasks per conversation. Limits resource consumption
-    /// from recursive/parallel subagent spawning. Default: 50.
+    /// Reasoning effort hint. Forwarded to harnesses that support it
+    /// (Claude Code thinking budget, OpenCode reasoning effort).
+    /// Conventional values: `"low"`, `"medium"`, `"high"`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub max_tasks_per_conversation: Option<u32>,
+    pub reasoning_effort: Option<String>,
 
-    /// Maximum concurrent conversations for this specific agent.
-    /// Takes precedence over the global max_concurrent_conversations.
+    // ── Model layout ────────────────────────────────────────
+    /// Optional faster/cheaper model used by the harness for utility
+    /// calls (summarization, title generation, etc.).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub max_concurrent_conversations: Option<u32>,
+    pub small_fast_model: Option<String>,
 
-    /// When true, the agent can complete a turn with only tool calls and no text.
-    /// Empty text responses are treated as success if tool calls were executed.
-    /// Default: false.
+    /// Optional fallback model the harness routes to when the primary
+    /// model errors or is rate-limited.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tool_calls_only: Option<bool>,
+    pub fallback_model: Option<String>,
 
-    /// Immortal conversation configuration (chain-based context management).
-    /// When set, the conversation chains into fresh context
-    /// windows transparently while maintaining a living journal.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub immortal: Option<ImmortalConfig>,
+    // ── Tool gating (written to harness config) ─────────────
+    /// Tool allowlist. Empty = every tool the harness exposes is allowed.
+    /// Names are harness-native (e.g. `"Read"`, `"Bash"`, `"mcp__github__*"`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub allowed_tools: Vec<String>,
 
-    /// Strip tool-result bodies from old messages before sending history to the
-    /// LLM. Full output already lives on disk via the spill pipeline; the
-    /// stripped message keeps a pointer so the agent can read it via RipGrep
-    /// if needed. Omit to use defaults (stripping enabled). Set `enabled:
-    /// false` to turn off entirely.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub history_strip: Option<HistoryStripConfig>,
-
-    /// How often (in turns) to re-emit the stable system reminder (skills,
-    /// subagents, todos) at the head of the user message. Always emitted on
-    /// turn 0; thereafter on turns where `turn_count % N == 0`. Lower values
-    /// reinforce the reminders more often at the cost of bigger uncached
-    /// tails on those turns; higher values let the reminder go stale but
-    /// keep prompt sizes lean.
-    ///
-    /// Default: 10. Set to 1 for every-turn refresh; values <1 are clamped
-    /// to 1.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub system_reminder_refresh_turns: Option<u32>,
-
-    /// Tools to disable for this agent. Takes priority over everything else —
-    /// disabled tools are removed from the registry before the agent is built,
-    /// so the LLM never sees them. Works for built-in tools, MCP tools,
-    /// integration tools, and spider tools.
+    /// Tool denylist. Always wins over [`Self::allowed_tools`].
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub disabled_tools: Vec<String>,
 
-    /// Declarative tool-call requirements evaluated at the end of every agent
-    /// turn. Each entry describes a tool that must be called (with optional
-    /// cadence, position, and min-call constraints) and what bridge should do
-    /// if the requirement is violated. See [`ToolRequirement`] for the shape
-    /// and [`RequirementEnforcement`] for the dispatch options.
-    ///
-    /// Default: empty (no enforcement).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub tool_requirements: Vec<ToolRequirement>,
-
-    /// Wall-clock timeout (seconds) applied when this agent is invoked as a
-    /// foreground subagent. Default: 300 (5 minutes).
+    /// Permission mode written to the harness config. Harness-specific
+    /// string. Claude Code: `"default"` / `"acceptEdits"` /
+    /// `"bypassPermissions"` / `"plan"`. OpenCode has its own set.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub subagent_timeout_foreground_secs: Option<u64>,
+    pub permission_mode: Option<String>,
 
-    /// Wall-clock timeout (seconds) applied when this agent is invoked as a
-    /// background subagent. Default: 300 (5 minutes).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub subagent_timeout_background_secs: Option<u64>,
-
-    /// Verifier agent configuration. When set + `enabled: true`, every
-    /// terminal-text turn is gated through a small, cheap second model that
-    /// returns `users_turn` / `completed` / `needs_work`. On `needs_work` (with
-    /// high confidence and within the per-turn cap) the runtime injects a
-    /// synthetic re-prompt and resumes the same turn. Default: `None` (off).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub verifier: Option<VerifierAgentConfig>,
+    // ── Process env ─────────────────────────────────────────
+    /// Extra environment variables merged into the harness process at
+    /// session start. Useful for custom proxy endpoints, telemetry
+    /// flags, or harness-specific feature flags.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub env: HashMap<String, String>,
 }
-
-/// Default subagent execution timeout (5 minutes) used when an agent config
-/// does not specify its own `subagent_timeout_*_secs`.
-pub const DEFAULT_SUBAGENT_TIMEOUT_SECS: u64 = 300;
 
 /// Lightweight agent summary for listing endpoints.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

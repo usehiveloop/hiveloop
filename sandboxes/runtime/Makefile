@@ -1,4 +1,4 @@
-.PHONY: build build-release run run-release check fmt fmt-check lint test test-all test-unit test-e2e test-lsp test-lsp-integration test-e2e-llm test-e2e-observability test-e2e-approval test-e2e-integration-real test-e2e-parallel setup-lsp openapi tools tools-debug tools-readonly tools-readonly-debug clean
+.PHONY: build build-release run run-release check fmt fmt-check lint test test-unit test-e2e test-e2e-opencode openapi clean help
 
 # --- Build ---
 
@@ -32,83 +32,34 @@ lint: ## Run clippy linter
 
 # --- Tests ---
 
-test: ## Run all unit tests (fast, no servers)
+test: ## Run all unit + integration tests
 	cargo test --workspace
 
 test-unit: ## Run library tests only
 	cargo test --workspace --lib
 
-test-e2e: ## Run e2e tests (single-threaded)
-	cargo test -p bridge-e2e --test e2e_a_tests --test e2e_b_tests --test e2e_c_tests --test e2e_d_tests -- --test-threads=1
+test-e2e: ## Tear down all stale state, rebuild the docker image, run the Claude harness E2E (6 phases)
+	@echo "→ stopping any running bridge-e2e container"
+	@docker rm -f bridge-e2e >/dev/null 2>&1 || true
+	@echo "→ removing any stale bridge-e2e image"
+	@docker rmi -f bridge-e2e:latest >/dev/null 2>&1 || true
+	@echo "→ removing dangling event traces"
+	@rm -f /tmp/bridge_events.* /tmp/phase3_dump.txt /tmp/e2e_run.log 2>/dev/null || true
+	./scripts/e2e_claude.sh
 
-test-lsp: ## Run LSP unit tests
-	cargo test -p lsp
-
-test-lsp-integration: ## Run LSP integration tests (requires setup-lsp)
-	cargo test -p lsp -- --ignored
-
-test-all: ## Run everything (requires FIREWORKS_API_KEY in env or .env file)
-	@if [ -f .env ] && [ -z "$$FIREWORKS_API_KEY" ]; then \
-		export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); \
-	fi; \
-	if [ -z "$$FIREWORKS_API_KEY" ]; then \
-		echo "Error: FIREWORKS_API_KEY is not set and no .env file found"; \
-		exit 1; \
-	fi; \
-	$(MAKE) setup-lsp && \
-	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test --workspace --exclude bridge-e2e -- --include-ignored && \
-	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e -- --include-ignored --test-threads=1
-
-# --- E2E LLM Tests (require FIREWORKS_API_KEY in .env or environment) ---
-
-test-e2e-llm: ## Run real LLM e2e tests
-	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
-	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
-	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test real_e2e_a_tests --test real_e2e_b_tests --test real_e2e_c_tests --test real_e2e_d_tests --test real_e2e_e_tests --test real_e2e_f_tests --test real_e2e_g_tests --test real_e2e_h_tests --test real_e2e_i_tests --test real_e2e_j_tests --test real_e2e_k_tests --test real_e2e_l_tests -- --ignored --test-threads=1 --nocapture
-
-test-e2e-observability: ## Run observability e2e tests (webhook token/model data)
-	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
-	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
-	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test observability_e2e_a_tests --test observability_e2e_b_tests -- --ignored --test-threads=1 --nocapture
-
-test-e2e-approval: ## Run approval flow e2e tests
-	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
-	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
-	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test approval_e2e_a_tests --test approval_e2e_b_tests --test approval_e2e_c_tests -- --ignored --test-threads=1 --nocapture
-
-test-e2e-integration-real: ## Run integration e2e tests with real LLM
-	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
-	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
-	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test integration_real_e2e_a_tests --test integration_real_e2e_b_tests --test integration_real_e2e_c_tests --test integration_real_e2e_d_tests --test integration_real_e2e_e_tests -- --ignored --test-threads=1 --nocapture
-
-test-e2e-parallel: ## Run parallel subagent e2e tests
-	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
-	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
-	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test parallel_e2e_a_tests --test parallel_e2e_b_tests -- --test-threads=1 --nocapture
-
-# --- Setup ---
-
-setup-lsp: ## Install LSP servers for integration tests
-	./scripts/setup-lsp-servers.sh
+test-e2e-opencode: ## Tear down + rebuild + run the OpenCode harness E2E. Requires OPENCODE_PROVIDER_TYPE / OPENCODE_MODEL / OPENCODE_API_KEY env (optional OPENCODE_BASE_URL).
+	@echo "→ stopping any running bridge-e2e container"
+	@docker rm -f bridge-e2e >/dev/null 2>&1 || true
+	@echo "→ removing any stale bridge-e2e image"
+	@docker rmi -f bridge-e2e:latest >/dev/null 2>&1 || true
+	@echo "→ removing dangling event traces"
+	@rm -f /tmp/bridge_events.* 2>/dev/null || true
+	./scripts/e2e_opencode.sh
 
 # --- OpenAPI ---
 
 openapi: ## Generate OpenAPI v3 spec (openapi.json)
 	cargo run -p bridge --features openapi --bin gen-openapi
-
-# --- CLI ---
-
-tools: ## List available tools (JSON format)
-	./target/release/bridge tools list --json
-
-tools-debug: ## List available tools using debug build
-	cargo run -p bridge --bin bridge -- tools list --json
-
-tools-readonly: ## List read-only tools (JSON format)
-	./target/release/bridge tools list --read-only
-
-tools-readonly-debug: ## List read-only tools using debug build
-	cargo run -p bridge --bin bridge -- tools list --read-only
 
 # --- Clean ---
 
@@ -118,6 +69,4 @@ clean: ## Remove build artifacts
 # --- Help ---
 
 help: ## Show this help
-	@grep -E '^[[:alnum:]_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-26s\033[0m %s\n", $$1, $$2}'
-
-.DEFAULT_GOAL := help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'

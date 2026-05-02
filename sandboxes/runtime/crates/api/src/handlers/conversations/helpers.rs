@@ -3,7 +3,7 @@ use bridge_core::BridgeError;
 use crate::state::AppState;
 
 /// Find the agent that owns a conversation by searching all agents.
-pub(super) async fn find_agent_for_conversation(
+pub(crate) async fn find_agent_for_conversation(
     state: &AppState,
     conv_id: &str,
 ) -> Result<String, BridgeError> {

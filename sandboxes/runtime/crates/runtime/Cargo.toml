@@ -5,34 +5,14 @@ edition = "2021"
 
 [dependencies]
 bridge_core = { workspace = true }
-llm = { workspace = true }
-mcp = { workspace = true }
-rig-core = { workspace = true }
-tools = { workspace = true }
-lsp = { workspace = true }
+harness = { workspace = true }
 webhooks = { workspace = true }
 storage = { workspace = true }
 dashmap = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
-governor = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-serde_yaml = { workspace = true }
-uuid = { workspace = true }
 chrono = { workspace = true }
-async-trait = { workspace = true }
 tracing = { workspace = true }
-thiserror = { workspace = true }
-futures = { workspace = true }
-tiktoken-rs = { workspace = true }
-libc = { workspace = true }
-sha2 = { workspace = true }
-
-[dev-dependencies]
-pretty_assertions = { workspace = true }
-tokio = { workspace = true }
-tempfile = { workspace = true }
 
 [lints]
 workspace = true

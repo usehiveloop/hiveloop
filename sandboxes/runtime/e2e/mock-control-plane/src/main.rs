@@ -1,5 +1,4 @@
 mod mock_integrations;
-mod mock_llm;
 mod routes;
 mod store;
 
@@ -60,10 +59,6 @@ async fn main() {
                 match std::fs::read_to_string(&path) {
                     Ok(contents) => {
                         let mut contents = contents;
-
-                        // Replace mock LLM URL with this server's /v1 endpoint.
-                        let mock_llm_url = format!("http://127.0.0.1:{}/v1", actual_port);
-                        contents = contents.replace("PLACEHOLDER_MOCK_LLM_URL", &mock_llm_url);
 
                         if let Some(ref key) = fireworks_key {
                             contents = contents.replace("PLACEHOLDER_FIREWORKS_KEY", key);
@@ -149,8 +144,6 @@ async fn main() {
             "/integrations/{integration_name}/actions/{action_name}",
             post(mock_integrations::execute_integration_action),
         )
-        // Mock LLM
-        .route("/v1/chat/completions", post(mock_llm::chat_completions))
         .with_state(mock_store);
 
     // Print port to stdout so the test harness can read it

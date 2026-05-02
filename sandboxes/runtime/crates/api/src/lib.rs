@@ -30,7 +30,6 @@ mod openapi {
             crate::handlers::push::push_agents,
             crate::handlers::push::upsert_agent,
             crate::handlers::push::remove_agent,
-            crate::handlers::push::hydrate_conversations,
             crate::handlers::push::push_diff,
             crate::handlers::conversations::abort_conversation,
             crate::handlers::permissions::list_approvals,
@@ -41,9 +40,9 @@ mod openapi {
             bridge_core::AgentDefinition,
             bridge_core::AgentConfig,
             bridge_core::AgentSummary,
+            bridge_core::Harness,
             bridge_core::ProviderConfig,
             bridge_core::ProviderType,
-            bridge_core::ToolDefinition,
             bridge_core::McpServerDefinition,
             bridge_core::McpTransport,
             bridge_core::SkillDefinition,
@@ -68,8 +67,6 @@ mod openapi {
             crate::handlers::push::PushAgentsResponse,
             crate::handlers::push::UpsertAgentResponse,
             crate::handlers::push::RemoveAgentResponse,
-            crate::handlers::push::HydrateConversationsRequest,
-            crate::handlers::push::HydrateConversationsResponse,
             crate::handlers::push::PushDiffRequest,
             crate::handlers::push::PushDiffResponse,
             crate::handlers::push::UpdateApiKeyRequest,
@@ -77,8 +74,6 @@ mod openapi {
             // Request/Response schemas for agents
             crate::handlers::agents::AgentResponse,
             crate::handlers::agents::ProviderSummary,
-            crate::handlers::agents::SubAgentSummary,
-            crate::handlers::agents::RegisteredToolSummary,
             // Request/Response schemas for health
             crate::handlers::health::HealthResponse,
             // Request/Response schemas for permissions
@@ -89,8 +84,6 @@ mod openapi {
             bridge_core::ApprovalDecision,
             bridge_core::ApprovalReply,
             bridge_core::BulkApprovalReply,
-            bridge_core::IntegrationDefinition,
-            bridge_core::IntegrationAction,
         )),
         security(("bearer" = []))
     )]

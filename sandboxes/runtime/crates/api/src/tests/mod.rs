@@ -1,6 +1,5 @@
 use axum::middleware as axum_mw;
 use axum::Router;
-use mcp::McpManager;
 use runtime::AgentSupervisor;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
@@ -10,14 +9,12 @@ use crate::middleware::request_id;
 use crate::router::build_router;
 use crate::state::AppState;
 
-/// Build a test `AppState` backed by a real (but empty) `AgentSupervisor`.
+/// Build a test `AppState` backed by an empty (stubbed) `AgentSupervisor`.
 pub(crate) fn test_state() -> AppState {
-    let mcp_manager = Arc::new(McpManager::new());
     let cancel = CancellationToken::new();
     let event_bus = Arc::new(EventBus::new(None, None, String::new(), String::new()));
-    let supervisor = Arc::new(
-        AgentSupervisor::new(mcp_manager, cancel.clone()).with_event_bus(Some(event_bus.clone())),
-    );
+    let supervisor =
+        Arc::new(AgentSupervisor::new(cancel.clone()).with_event_bus(Some(event_bus.clone())));
     AppState::new(
         supervisor,
         "valid-control-plane-token".to_string(),
@@ -47,8 +44,6 @@ pub(crate) async fn body_json(response: axum::response::Response) -> serde_json:
     serde_json::from_slice(&bytes).expect("body is not valid JSON")
 }
 
-mod agent_tools;
 mod basic;
-mod conversation_scoping;
 mod middleware_errors;
 mod push;

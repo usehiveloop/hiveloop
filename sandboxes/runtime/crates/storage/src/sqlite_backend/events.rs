@@ -140,3 +140,43 @@ pub(super) async fn load_events_since(
     .await
     .map_err(StorageError::from)
 }
+
+pub(super) async fn load_events_since_for_conversation(
+    conn: &Connection,
+    conversation_id: &str,
+    after_sequence: u64,
+    limit: u32,
+) -> Result<Vec<BridgeEvent>, StorageError> {
+    let conv = conversation_id.to_string();
+    let after = after_sequence as i64;
+    let lim = limit as i64;
+    conn.call(move |conn| {
+        let mut stmt = conn.prepare(
+            "SELECT payload FROM webhook_outbox
+             WHERE conversation_id = ?1 AND sequence_number > ?2
+             ORDER BY sequence_number ASC
+             LIMIT ?3",
+        )?;
+
+        let results: Vec<BridgeEvent> = stmt
+            .query_map(params![conv, after, lim], |row| {
+                let blob: Vec<u8> = row.get(0)?;
+                Ok(blob)
+            })?
+            .filter_map(|r| r.ok())
+            .filter_map(|blob| {
+                let json = compression::decompress(&blob).ok()?;
+                match serde_json::from_slice::<BridgeEvent>(&json) {
+                    Ok(event) => Some(event),
+                    Err(e) => {
+                        error!(error = %e, "failed to deserialize BridgeEvent, skipping");
+                        None
+                    }
+                }
+            })
+            .collect();
+        Ok(results)
+    })
+    .await
+    .map_err(StorageError::from)
+}

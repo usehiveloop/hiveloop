@@ -2,14 +2,12 @@ use std::collections::HashMap;
 
 use axum::extract::{Path, State};
 use axum::Json;
-use bridge_core::agent::AgentConfig;
-use bridge_core::integration::IntegrationDefinition;
+use bridge_core::agent::{AgentConfig, Harness};
 use bridge_core::mcp::McpServerDefinition;
 use bridge_core::metrics::MetricsSnapshot;
 use bridge_core::permission::ToolPermission;
 use bridge_core::provider::ProviderType;
 use bridge_core::skill::SkillDefinition;
-use bridge_core::tool::ToolDefinition;
 use bridge_core::BridgeError;
 use serde::Serialize;
 
@@ -35,30 +33,6 @@ pub struct ProviderSummary {
     pub base_url: Option<String>,
 }
 
-/// Subagent summary for API responses.
-#[derive(Serialize)]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct SubAgentSummary {
-    pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    pub system_prompt: String,
-    pub provider: ProviderSummary,
-    pub config: AgentConfig,
-    pub tools: Vec<ToolDefinition>,
-    pub mcp_servers: Vec<McpServerDefinition>,
-    /// All tools registered and available to this subagent at runtime.
-    pub registered_tools: Vec<RegisteredToolSummary>,
-}
-
-/// Summary of a registered tool (built-in, MCP, or integration).
-#[derive(Serialize)]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct RegisteredToolSummary {
-    pub name: String,
-    pub description: String,
-}
-
 /// Full agent response — returned by both list and detail endpoints.
 /// System prompts may be truncated on the list endpoint.
 #[derive(Serialize)]
@@ -68,16 +42,12 @@ pub struct AgentResponse {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    pub harness: Harness,
     pub system_prompt: String,
     pub provider: ProviderSummary,
-    pub tools: Vec<ToolDefinition>,
     pub mcp_servers: Vec<McpServerDefinition>,
     pub skills: Vec<SkillDefinition>,
-    pub integrations: Vec<IntegrationDefinition>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub artifacts: Option<bridge_core::ArtifactsConfig>,
     pub config: AgentConfig,
-    pub subagents: Vec<SubAgentSummary>,
     pub permissions: HashMap<String, ToolPermission>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub webhook_url: Option<String>,
@@ -87,12 +57,9 @@ pub struct AgentResponse {
     pub updated_at: Option<String>,
     pub active_conversations: usize,
     pub metrics: MetricsSnapshot,
-    /// All tools registered and available to this agent (built-in + MCP + integrations).
-    pub registered_tools: Vec<RegisteredToolSummary>,
 }
 
 /// Build an `AgentResponse` from an `AgentState`.
-/// If `truncate_prompts` is true, system prompts are truncated to 100 chars.
 async fn build_agent_response(
     agent: &runtime::AgentState,
     truncate_prompts: bool,
@@ -106,78 +73,24 @@ async fn build_agent_response(
         base_url: def.provider.base_url.clone(),
     };
 
-    let subagents = def
-        .subagents
-        .iter()
-        .map(|sa| {
-            // Look up registered tools from the runtime subagent entry
-            let registered_tools = agent
-                .subagents
-                .get(&sa.name)
-                .map(|entry| {
-                    let mut tools: Vec<RegisteredToolSummary> = entry
-                        .registered_tools
-                        .iter()
-                        .map(|(name, desc)| RegisteredToolSummary {
-                            name: name.clone(),
-                            description: desc.clone(),
-                        })
-                        .collect();
-                    tools.sort_by(|a, b| a.name.cmp(&b.name));
-                    tools
-                })
-                .unwrap_or_default();
-
-            SubAgentSummary {
-                name: sa.name.clone(),
-                description: sa.description.clone(),
-                system_prompt: truncate(&sa.system_prompt, prompt_len),
-                provider: ProviderSummary {
-                    provider_type: sa.provider.provider_type.clone(),
-                    model: sa.provider.model.clone(),
-                    base_url: sa.provider.base_url.clone(),
-                },
-                config: sa.config.clone(),
-                tools: sa.tools.clone(),
-                mcp_servers: sa.mcp_servers.clone(),
-                registered_tools,
-            }
-        })
-        .collect();
-
     let metrics = agent.metrics.snapshot(&def.id, &def.name);
-
-    let mut registered_tools: Vec<RegisteredToolSummary> = agent
-        .tool_registry
-        .list()
-        .into_iter()
-        .map(|(name, description)| RegisteredToolSummary {
-            name: name.to_string(),
-            description: description.to_string(),
-        })
-        .collect();
-    registered_tools.sort_by(|a, b| a.name.cmp(&b.name));
 
     AgentResponse {
         id: def.id.clone(),
         name: def.name.clone(),
         description: def.description.clone(),
+        harness: def.harness,
         system_prompt: truncate(&def.system_prompt, prompt_len),
         provider,
-        tools: def.tools.clone(),
         mcp_servers: def.mcp_servers.clone(),
         skills: def.skills.clone(),
-        integrations: def.integrations.clone(),
-        artifacts: def.artifacts.clone(),
         config: def.config.clone(),
-        subagents,
         permissions: def.permissions.clone(),
         webhook_url: def.webhook_url.clone(),
         version: def.version.clone(),
         updated_at: def.updated_at.clone(),
         active_conversations: agent.active_conversation_count(),
         metrics,
-        registered_tools,
     }
 }
 

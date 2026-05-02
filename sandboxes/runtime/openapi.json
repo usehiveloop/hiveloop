@@ -723,57 +723,38 @@
       },
       "AgentConfig": {
         "type": "object",
-        "description": "Configuration options for an agent.",
+        "description": "Per-agent configuration written into the harness's settings file at\nsession start. Every field is harness-agnostic in shape — the adapter\nis responsible for translating it into the harness-native config\n(`~/.claude/settings.json`, `~/.config/opencode/opencode.json`, etc.).",
         "properties": {
+          "allowed_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tool allowlist. Empty = every tool the harness exposes is allowed.\nNames are harness-native (e.g. `\"Read\"`, `\"Bash\"`, `\"mcp__github__*\"`)."
+          },
           "disabled_tools": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Tools to disable for this agent. Takes priority over everything else —\ndisabled tools are removed from the registry before the agent is built,\nso the LLM never sees them. Works for built-in tools, MCP tools,\nintegration tools, and spider tools."
+            "description": "Tool denylist. Always wins over [`Self::allowed_tools`]."
           },
-          "history_strip": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/HistoryStripConfig",
-                "description": "Strip tool-result bodies from old messages before sending history to the\nLLM. Full output already lives on disk via the spill pipeline; the\nstripped message keeps a pointer so the agent can read it via RipGrep\nif needed. Omit to use defaults (stripping enabled). Set `enabled:\nfalse` to turn off entirely."
-              }
-            ]
+          "env": {
+            "type": "object",
+            "description": "Extra environment variables merged into the harness process at\nsession start. Useful for custom proxy endpoints, telemetry\nflags, or harness-specific feature flags.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
           },
-          "immortal": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ImmortalConfig",
-                "description": "Immortal conversation configuration (chain-based context management).\nWhen set, the conversation chains into fresh context\nwindows transparently while maintaining a living journal."
-              }
-            ]
-          },
-          "json_schema": {
-            "description": "JSON schema for structured output"
-          },
-          "max_concurrent_conversations": {
+          "fallback_model": {
             "type": [
-              "integer",
+              "string",
               "null"
             ],
-            "format": "int32",
-            "description": "Maximum concurrent conversations for this specific agent.\nTakes precedence over the global max_concurrent_conversations.",
-            "minimum": 0
-          },
-          "max_tasks_per_conversation": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "format": "int32",
-            "description": "Maximum total subagent tasks per conversation. Limits resource consumption\nfrom recursive/parallel subagent spawning. Default: 50.",
-            "minimum": 0
+            "description": "Optional fallback model the harness routes to when the primary\nmodel errors or is rate-limited."
           },
           "max_tokens": {
             "type": [
@@ -781,7 +762,7 @@
               "null"
             ],
             "format": "int32",
-            "description": "Maximum tokens for LLM response",
+            "description": "Maximum tokens per assistant response.",
             "minimum": 0
           },
           "max_turns": {
@@ -790,44 +771,29 @@
               "null"
             ],
             "format": "int32",
-            "description": "Maximum conversation turns",
+            "description": "Maximum conversation turns before bridge stops the loop.",
             "minimum": 0
           },
-          "rate_limit_rpm": {
+          "permission_mode": {
             "type": [
-              "integer",
+              "string",
               "null"
             ],
-            "format": "int32",
-            "description": "Rate limit in requests per minute",
-            "minimum": 0
+            "description": "Permission mode written to the harness config. Harness-specific\nstring. Claude Code: `\"default\"` / `\"acceptEdits\"` /\n`\"bypassPermissions\"` / `\"plan\"`. OpenCode has its own set."
           },
-          "subagent_timeout_background_secs": {
+          "reasoning_effort": {
             "type": [
-              "integer",
+              "string",
               "null"
             ],
-            "format": "int64",
-            "description": "Wall-clock timeout (seconds) applied when this agent is invoked as a\nbackground subagent. Default: 300 (5 minutes).",
-            "minimum": 0
+            "description": "Reasoning effort hint. Forwarded to harnesses that support it\n(Claude Code thinking budget, OpenCode reasoning effort).\nConventional values: `\"low\"`, `\"medium\"`, `\"high\"`."
           },
-          "subagent_timeout_foreground_secs": {
+          "small_fast_model": {
             "type": [
-              "integer",
+              "string",
               "null"
             ],
-            "format": "int64",
-            "description": "Wall-clock timeout (seconds) applied when this agent is invoked as a\nforeground subagent. Default: 300 (5 minutes).",
-            "minimum": 0
-          },
-          "system_reminder_refresh_turns": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "format": "int32",
-            "description": "How often (in turns) to re-emit the stable system reminder (skills,\nsubagents, todos) at the head of the user message. Always emitted on\nturn 0; thereafter on turns where `turn_count % N == 0`. Lower values\nreinforce the reminders more often at the cost of bigger uncached\ntails on those turns; higher values let the reminder go stale but\nkeep prompt sizes lean.\n\nDefault: 10. Set to 1 for every-turn refresh; values <1 are clamped\nto 1.",
-            "minimum": 0
+            "description": "Optional faster/cheaper model used by the harness for utility\ncalls (summarization, title generation, etc.)."
           },
           "temperature": {
             "type": [
@@ -835,84 +801,46 @@
               "null"
             ],
             "format": "double",
-            "description": "Temperature for LLM sampling"
-          },
-          "tool_calls_only": {
-            "type": [
-              "boolean",
-              "null"
-            ],
-            "description": "When true, the agent can complete a turn with only tool calls and no text.\nEmpty text responses are treated as success if tool calls were executed.\nDefault: false."
-          },
-          "tool_requirements": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ToolRequirement"
-            },
-            "description": "Declarative tool-call requirements evaluated at the end of every agent\nturn. Each entry describes a tool that must be called (with optional\ncadence, position, and min-call constraints) and what bridge should do\nif the requirement is violated. See [`ToolRequirement`] for the shape\nand [`RequirementEnforcement`] for the dispatch options.\n\nDefault: empty (no enforcement)."
-          },
-          "verifier": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/VerifierAgentConfig",
-                "description": "Verifier agent configuration. When set + `enabled: true`, every\nterminal-text turn is gated through a small, cheap second model that\nreturns `users_turn` / `completed` / `needs_work`. On `needs_work` (with\nhigh confidence and within the per-turn cap) the runtime injects a\nsynthetic re-prompt and resumes the same turn. Default: `None` (off)."
-              }
-            ]
+            "description": "Sampling temperature for the underlying model."
           }
         }
       },
       "AgentDefinition": {
         "type": "object",
-        "description": "Complete definition of an AI agent fetched from the control plane.",
+        "description": "Complete definition of an AI agent fetched from the control plane.\n\nBridge persists the definition; the harness adapter (one of the\n[`Harness`] variants) reads it and drives the underlying CLI process.\nMCP servers and skills are passed through to the harness — bridge does\nnot execute tools itself.",
         "required": [
           "id",
           "name",
+          "harness",
           "system_prompt",
           "provider"
         ],
         "properties": {
-          "artifacts": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ArtifactsConfig",
-                "description": "Workspace artifact upload configuration. When present, bridge\nauto-registers an `upload_to_workspace` tool that streams files\nfrom the agent's sandbox to the control plane with resume support."
-              }
-            ]
-          },
           "config": {
             "$ref": "#/components/schemas/AgentConfig",
-            "description": "Agent configuration options"
+            "description": "Slim runtime configuration forwarded to the harness."
           },
           "description": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Human-readable description of the agent's purpose and capabilities.\nUsed in tool documentation when this agent is a subagent."
+            "description": "Human-readable description of the agent's purpose and capabilities."
+          },
+          "harness": {
+            "$ref": "#/components/schemas/Harness",
+            "description": "Which coding-agent harness to drive for this agent."
           },
           "id": {
             "$ref": "#/components/schemas/String",
             "description": "Unique agent identifier"
-          },
-          "integrations": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/IntegrationDefinition"
-            },
-            "description": "External integrations (e.g., GitHub, Slack, Mailchimp).\nEach integration's actions become individual tools for the agent."
           },
           "mcp_servers": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/McpServerDefinition"
             },
-            "description": "MCP server connections"
+            "description": "MCP server connections passed through to the harness as `--mcp-config`."
           },
           "name": {
             "type": "string",
@@ -920,7 +848,7 @@
           },
           "permissions": {
             "type": "object",
-            "description": "Per-tool permission overrides. Key = tool name, Value = permission level.\nTools not listed default to `Allow`.",
+            "description": "Per-tool permission overrides. Drives the bridge approvals API\n(`/agents/{id}/conversations/{cid}/approvals`). Tools not listed\ndefault to `Allow`.",
             "additionalProperties": {
               "$ref": "#/components/schemas/ToolPermission"
             },
@@ -930,32 +858,18 @@
           },
           "provider": {
             "$ref": "#/components/schemas/ProviderConfig",
-            "description": "LLM provider configuration"
+            "description": "LLM provider configuration — credentials and model choice are\nmaterialized into the harness's expected env vars at session start."
           },
           "skills": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SkillDefinition"
             },
-            "description": "Available skills"
-          },
-          "subagents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AgentDefinition"
-            },
-            "description": "Nested subagent definitions"
+            "description": "Skills written to the harness's skill discovery directory at session start\n(e.g. `~/.claude/skills/<id>/SKILL.md` for Claude Code)."
           },
           "system_prompt": {
             "type": "string",
-            "description": "System prompt for the agent"
-          },
-          "tools": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ToolDefinition"
-            },
-            "description": "Agent-defined tools"
+            "description": "System prompt for the agent (mapped to the harness's system-prompt input)"
           },
           "updated_at": {
             "type": [
@@ -993,33 +907,20 @@
         "required": [
           "id",
           "name",
+          "harness",
           "system_prompt",
           "provider",
-          "tools",
           "mcp_servers",
           "skills",
-          "integrations",
           "config",
-          "subagents",
           "permissions",
           "active_conversations",
-          "metrics",
-          "registered_tools"
+          "metrics"
         ],
         "properties": {
           "active_conversations": {
             "type": "integer",
             "minimum": 0
-          },
-          "artifacts": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ArtifactsConfig"
-              }
-            ]
           },
           "config": {
             "$ref": "#/components/schemas/AgentConfig"
@@ -1030,14 +931,11 @@
               "null"
             ]
           },
+          "harness": {
+            "$ref": "#/components/schemas/Harness"
+          },
           "id": {
             "type": "string"
-          },
-          "integrations": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/IntegrationDefinition"
-            }
           },
           "mcp_servers": {
             "type": "array",
@@ -1063,33 +961,14 @@
           "provider": {
             "$ref": "#/components/schemas/ProviderSummary"
           },
-          "registered_tools": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RegisteredToolSummary"
-            },
-            "description": "All tools registered and available to this agent (built-in + MCP + integrations)."
-          },
           "skills": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SkillDefinition"
             }
           },
-          "subagents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SubAgentSummary"
-            }
-          },
           "system_prompt": {
             "type": "string"
-          },
-          "tools": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ToolDefinition"
-            }
           },
           "updated_at": {
             "type": [
@@ -1220,69 +1099,6 @@
           "denied"
         ]
       },
-      "ArtifactsConfig": {
-        "type": "object",
-        "description": "Per-agent workspace artifact upload configuration.\n\nWhen present on an [`crate::agent::AgentDefinition`], bridge auto-registers\nan `upload_to_workspace` tool that streams files from the agent's sandbox\nto the control plane via a tus.io-compatible resumable upload protocol.",
-        "required": [
-          "upload_url",
-          "max_size_bytes",
-          "accepted_file_types"
-        ],
-        "properties": {
-          "accepted_file_types": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Allowed file types. Each entry is matched against the file's MIME type\n(e.g. `text/csv`, `video/mp4`) or its extension (e.g. `csv`, `mp4`).\nWildcards are supported on the MIME-type side (e.g. `video/*`)."
-          },
-          "chunk_size_bytes": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "format": "int64",
-            "description": "Chunk size used for PATCH requests. Defaults to 8 MiB. Smaller values\ngive finer-grained resume but more HTTP round-trips.",
-            "minimum": 0
-          },
-          "download_url": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Optional canonical download URL template returned to the agent\nalongside the upload result. Bridge does not call this — it's a hint\nthe control plane includes for downstream consumers."
-          },
-          "headers": {
-            "type": "object",
-            "description": "Extra headers forwarded on every upload request (creation + each\nchunk). Use for workspace IDs, tenant identifiers, etc.",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "propertyNames": {
-              "type": "string"
-            }
-          },
-          "max_concurrent_uploads": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "format": "int32",
-            "description": "Maximum concurrent in-flight uploads for this agent. Defaults to a\nmodest ceiling so a runaway agent can't saturate the network.",
-            "minimum": 0
-          },
-          "max_size_bytes": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Hard upper bound on file size in bytes. Files larger than this are\nrejected before any network I/O.",
-            "minimum": 0
-          },
-          "upload_url": {
-            "type": "string",
-            "description": "tus.io creation endpoint on the control plane. A POST here returns a\nper-upload `Location` URL used for chunked PATCH operations."
-          }
-        }
-      },
       "BulkApprovalReply": {
         "type": "object",
         "description": "HTTP request body for resolving multiple approvals at once.",
@@ -1332,14 +1148,6 @@
             "description": "List of request IDs that were successfully resolved."
           }
         }
-      },
-      "CacheTtl": {
-        "type": "string",
-        "description": "Prompt-cache TTL hint.\n\nAnthropic supports two TTLs today: 5-minute ephemeral (default,\n1.25× cache-write multiplier) and 1-hour extended (2.0× write, needs\n`extended-cache-ttl-2025-04-11` beta header). Other providers ignore\nthis field — their caches are automatic and provider-managed.\n\n**Note (rig 0.31)**: `with_prompt_caching()` only emits the\n`{\"type\": \"ephemeral\"}` breakpoint, which corresponds to the 5-minute\nTTL. Setting `OneHour` here sends the beta header but does not yet\nadd `\"ttl\": \"1h\"` to the cache_control block — upgrade rig to get\ntrue 1-hour writes. The field is wired now so the choice survives\nthe upgrade.",
-        "enum": [
-          "five_minutes",
-          "one_hour"
-        ]
       },
       "ContentBlock": {
         "oneOf": [
@@ -1484,7 +1292,7 @@
       },
       "CreateConversationRequest": {
         "type": "object",
-        "description": "Optional request body for creating a conversation with tool/MCP scoping.",
+        "description": "Optional request body for creating a conversation with per-call overrides.",
         "properties": {
           "api_key": {
             "type": [
@@ -1492,16 +1300,6 @@
               "null"
             ],
             "description": "When provided, overrides the agent's LLM API key for this conversation only.\nFor full provider/model override, use the `provider` field instead."
-          },
-          "mcp_server_names": {
-            "type": [
-              "array",
-              "null"
-            ],
-            "items": {
-              "type": "string"
-            },
-            "description": "When provided, only tools from these MCP servers are available.\nServer names must match the agent's configured MCP server names."
           },
           "mcp_servers": {
             "type": [
@@ -1511,7 +1309,7 @@
             "items": {
               "$ref": "#/components/schemas/McpServerDefinition"
             },
-            "description": "Additional MCP servers to load for this conversation only.\nConnected at conversation creation, torn down when the conversation ends\n(or is aborted, drained, or cancelled). Tool names produced by these\nservers must not collide with the agent's existing tool names.\n\nStdio transport requires the runtime config flag\n`allow_stdio_mcp_from_api` to be enabled; otherwise only\n`streamable_http` is accepted."
+            "description": "Additional MCP servers to load for this conversation only.\nMerged into the harness's MCP configuration at session start and torn\ndown when the conversation ends."
           },
           "provider": {
             "oneOf": [
@@ -1520,32 +1318,9 @@
               },
               {
                 "$ref": "#/components/schemas/ProviderConfig",
-                "description": "When provided, fully overrides the agent's LLM provider for this conversation.\nAllows switching model, provider type, API key, and base URL per conversation\nwhile keeping the same agent definition (tools, system prompt, skills, etc.)."
+                "description": "When provided, fully overrides the agent's LLM provider for this conversation.\nAllows switching model, provider type, API key, and base URL per conversation\nwhile keeping the same agent definition (system prompt, skills, MCP, etc.)."
               }
             ]
-          },
-          "subagent_api_keys": {
-            "type": [
-              "object",
-              "null"
-            ],
-            "description": "Per-subagent API key overrides. Key = subagent name, Value = API key.\nOnly named subagents are overridden; others keep their configured keys.",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "propertyNames": {
-              "type": "string"
-            }
-          },
-          "tool_names": {
-            "type": [
-              "array",
-              "null"
-            ],
-            "items": {
-              "type": "string"
-            },
-            "description": "When provided, only these tools are available in the conversation.\nTool names must match the agent's registered tool names exactly."
           }
         }
       },
@@ -1608,6 +1383,14 @@
           }
         }
       },
+      "Harness": {
+        "type": "string",
+        "description": "Which underlying coding-agent harness this agent runs against.",
+        "enum": [
+          "claude",
+          "open_code"
+        ]
+      },
       "HealthResponse": {
         "type": "object",
         "description": "Health check response.",
@@ -1624,30 +1407,6 @@
             "type": "integer",
             "format": "int64",
             "description": "Server uptime in seconds.",
-            "minimum": 0
-          }
-        }
-      },
-      "HistoryStripConfig": {
-        "type": "object",
-        "description": "Configuration for stripping tool-result bodies from old messages before\nthey are sent to the LLM. Reduces input tokens while preserving the\nability to recover the full content via the on-disk spill file.\nIndependent of immortal mode — applied at every send.",
-        "properties": {
-          "age_threshold": {
-            "type": "integer",
-            "description": "Number of assistant messages that must follow a tool result before\nit becomes eligible for stripping.",
-            "minimum": 0
-          },
-          "enabled": {
-            "type": "boolean",
-            "description": "Master switch. When false, strip is a no-op."
-          },
-          "pin_errors": {
-            "type": "boolean",
-            "description": "When true, tool results with `is_error: true` are never stripped."
-          },
-          "pin_recent_count": {
-            "type": "integer",
-            "description": "Always keep the most recent N tool results regardless of age.",
             "minimum": 0
           }
         }
@@ -1677,86 +1436,6 @@
             "type": "integer",
             "description": "Number of conversations hydrated.",
             "minimum": 0
-          }
-        }
-      },
-      "ImmortalConfig": {
-        "type": "object",
-        "description": "Configuration for immortal conversations — forgecode-style in-place\ncompaction.\n\nWhen the conversation grows past `token_budget`, the eligible head of\nthe history is replaced in place with a single user message containing\na structured summary. Pure code — no LLM call, no scaffolding.",
-        "properties": {
-          "eviction_window": {
-            "type": "number",
-            "format": "double",
-            "description": "Maximum fraction of total tokens eligible for compaction in any\nsingle pass (0.0–1.0). Mirrors forgecode's `eviction_window`.\nDefault 1.0 — compaction may take everything from the first\nassistant message up to the retention boundary. Reduce to keep\nthe head of the conversation more stable across compactions\n(each pass takes a smaller slice)."
-          },
-          "expose_journal_tools": {
-            "type": "boolean",
-            "description": "When true (default), bridge registers `journal_read` /\n`journal_write` tools so the agent can record durable notes. The\njournal is no longer read or written by the compaction engine\nitself — it's only available as a tool for the agent's own use."
-          },
-          "retention_window": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Number of most-recent messages preserved verbatim — never\ncompacted. Mirrors forgecode's `retention_window`. Default 0\n(compaction may take everything except the system prompt and\ninitial user message). Increase to keep more recent context\npristine; the trade-off is the eligible compaction range shrinks.",
-            "minimum": 0
-          },
-          "token_budget": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Token budget. Compaction triggers when estimated history tokens\nexceed this. Used by both the top-of-turn check and the\nmid-rig-loop hook.",
-            "minimum": 0
-          }
-        }
-      },
-      "IntegrationAction": {
-        "type": "object",
-        "description": "A single action within an integration that an agent can invoke.\n\nEach action maps to a specific API operation on the external service.\nThe control plane defines the schema and permissions for each action.",
-        "required": [
-          "name",
-          "description",
-          "parameters_schema",
-          "permission"
-        ],
-        "properties": {
-          "description": {
-            "type": "string",
-            "description": "Human-readable description of what this action does."
-          },
-          "name": {
-            "type": "string",
-            "description": "Action identifier (e.g., \"create_pull_request\", \"send_message\")."
-          },
-          "parameters_schema": {
-            "description": "JSON Schema for the action's parameters."
-          },
-          "permission": {
-            "$ref": "#/components/schemas/ToolPermission",
-            "description": "Permission level for this action."
-          }
-        }
-      },
-      "IntegrationDefinition": {
-        "type": "object",
-        "description": "Definition of an external integration available to an agent.\n\nEach integration represents a connection to an external service (e.g., GitHub,\nMailchimp, Slack) managed by the control plane. The control plane handles\nauthentication and proxies requests to the underlying service.",
-        "required": [
-          "name",
-          "description",
-          "actions"
-        ],
-        "properties": {
-          "actions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/IntegrationAction"
-            },
-            "description": "Available actions within this integration."
-          },
-          "description": {
-            "type": "string",
-            "description": "Human-readable description of the integration."
-          },
-          "name": {
-            "type": "string",
-            "description": "Integration identifier (e.g., \"github\", \"mailchimp\", \"slack\")."
           }
         }
       },
@@ -2012,7 +1691,7 @@
       },
       "ProviderConfig": {
         "type": "object",
-        "description": "Configuration for an LLM provider.",
+        "description": "Configuration for an LLM provider.\n\nMaterialized into the harness's expected env vars / config file at\nsession start. Caching is delegated entirely to the harness.",
         "required": [
           "provider_type",
           "model",
@@ -2030,17 +1709,9 @@
             ],
             "description": "Optional custom endpoint URL"
           },
-          "cache_ttl": {
-            "$ref": "#/components/schemas/CacheTtl",
-            "description": "TTL for explicit cache breakpoints. See [`CacheTtl`]."
-          },
           "model": {
             "type": "string",
             "description": "Model identifier (e.g., \"gpt-4o\", \"claude-sonnet-4-20250514\")"
-          },
-          "prompt_caching_enabled": {
-            "type": "boolean",
-            "description": "Whether to enable explicit prompt-cache breakpoints for providers\nthat require them (Anthropic today; MiniMax's Anthropic-shape\nendpoint tomorrow). Implicit-cache providers (OpenAI, GLM, Gemini\n2.5 implicit, Kimi K2) ignore this — they cache unconditionally."
           },
           "provider_type": {
             "$ref": "#/components/schemas/ProviderType",
@@ -2170,22 +1841,6 @@
           }
         }
       },
-      "RegisteredToolSummary": {
-        "type": "object",
-        "description": "Summary of a registered tool (built-in, MCP, or integration).",
-        "required": [
-          "name",
-          "description"
-        ],
-        "properties": {
-          "description": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        }
-      },
       "RemoveAgentResponse": {
         "type": "object",
         "description": "Response for removing an agent.",
@@ -2198,80 +1853,6 @@
             "description": "Status of the operation."
           }
         }
-      },
-      "RequirementCadence": {
-        "oneOf": [
-          {
-            "type": "object",
-            "description": "Required on every turn.",
-            "required": [
-              "type"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "every_turn"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "description": "Required only on the very first turn of the conversation.",
-            "required": [
-              "type"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "first_turn_only"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "description": "Required whenever `n` turns have passed without the tool being called.\nThe counter resets any time the tool is called (on- or off-cycle).\nSo `n=3` means \"never go more than 3 consecutive turns without\ncalling this tool\" — useful for periodic memory-retain / checkpoint\npatterns.",
-            "required": [
-              "n",
-              "type"
-            ],
-            "properties": {
-              "n": {
-                "type": "integer",
-                "format": "int32",
-                "minimum": 0
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "every_n_turns"
-                ]
-              }
-            }
-          }
-        ],
-        "description": "Describes which turns a tool requirement applies to."
-      },
-      "RequirementEnforcement": {
-        "type": "string",
-        "description": "How bridge reacts when a tool requirement is violated.",
-        "enum": [
-          "next_turn_reminder",
-          "reprompt",
-          "warn"
-        ]
-      },
-      "RequirementPosition": {
-        "type": "string",
-        "description": "Where in the turn's tool-call sequence the required call must appear.",
-        "enum": [
-          "anywhere",
-          "turn_start",
-          "turn_end"
-        ]
       },
       "ResolveApprovalResponse": {
         "type": "object",
@@ -2484,58 +2065,6 @@
       "String": {
         "type": "string"
       },
-      "SubAgentSummary": {
-        "type": "object",
-        "description": "Subagent summary for API responses.",
-        "required": [
-          "name",
-          "system_prompt",
-          "provider",
-          "config",
-          "tools",
-          "mcp_servers",
-          "registered_tools"
-        ],
-        "properties": {
-          "config": {
-            "$ref": "#/components/schemas/AgentConfig"
-          },
-          "description": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "mcp_servers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/McpServerDefinition"
-            }
-          },
-          "name": {
-            "type": "string"
-          },
-          "provider": {
-            "$ref": "#/components/schemas/ProviderSummary"
-          },
-          "registered_tools": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RegisteredToolSummary"
-            },
-            "description": "All tools registered and available to this subagent at runtime."
-          },
-          "system_prompt": {
-            "type": "string"
-          },
-          "tools": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ToolDefinition"
-            }
-          }
-        }
-      },
       "ToolCall": {
         "type": "object",
         "description": "A request to call a tool.",
@@ -2610,28 +2139,6 @@
           }
         }
       },
-      "ToolDefinition": {
-        "type": "object",
-        "description": "Definition of a tool that an agent can use.",
-        "required": [
-          "name",
-          "description",
-          "parameters_schema"
-        ],
-        "properties": {
-          "description": {
-            "type": "string",
-            "description": "Human-readable description of what the tool does"
-          },
-          "name": {
-            "type": "string",
-            "description": "Unique name of the tool"
-          },
-          "parameters_schema": {
-            "description": "JSON Schema for the tool's parameters"
-          }
-        }
-      },
       "ToolPermission": {
         "type": "string",
         "description": "Permission level for a tool within an agent.",
@@ -2640,44 +2147,6 @@
           "deny",
           "require_approval"
         ]
-      },
-      "ToolRequirement": {
-        "type": "object",
-        "description": "A single tool-call requirement that bridge enforces at turn boundaries.\n\nTypical configurations:\n- `journal_write` every turn: `{ tool: \"journal_write\" }` (all defaults).\n- `memory_recall` at the start of every turn:\n  `{ tool: \"memory_recall\", position: \"turn_start\" }`.\n- `memory_retain` at most every 3 turns:\n  `{ tool: \"memory_retain\", cadence: { type: \"every_n_turns\", n: 3 }, position: \"turn_end\" }`.\n\nTool-name matching is flexible to reduce MCP verbosity: if `tool` contains\n`__`, match it verbatim; otherwise match any registered tool whose full\nname equals `tool` OR ends with `__<tool>`. So `\"post_message\"` matches\nan MCP tool exposed as `slack__post_message` without the user having to\nwrite the server prefix.",
-        "required": [
-          "tool"
-        ],
-        "properties": {
-          "cadence": {
-            "$ref": "#/components/schemas/RequirementCadence",
-            "description": "When this requirement applies (which turns must satisfy it).\nDefault: `EveryTurn`."
-          },
-          "enforcement": {
-            "$ref": "#/components/schemas/RequirementEnforcement",
-            "description": "What bridge does when this requirement is violated.\nDefault: `NextTurnReminder` — attach a system reminder to the next\nuser message. Zero extra LLM cost this turn."
-          },
-          "min_calls": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Minimum number of calls required in a qualifying turn. Default: 1.",
-            "minimum": 0
-          },
-          "position": {
-            "$ref": "#/components/schemas/RequirementPosition",
-            "description": "Where in the turn the call must appear.\nDefault: `Anywhere`. Evaluation is LENIENT: read-only/metadata tools\n(`todoread`, `journal_read`, `ls`, `read`, etc.) are exempt and do\nnot disqualify a `TurnStart` position requirement."
-          },
-          "reminder_message": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Custom reminder text injected when the requirement is violated.\nFalls back to a generated default when unset."
-          },
-          "tool": {
-            "type": "string",
-            "description": "Tool name to require (built-in, MCP, integration, or custom)."
-          }
-        }
       },
       "ToolResult": {
         "type": "object",
@@ -2737,83 +2206,6 @@
             "description": "Status of the operation: \"unchanged\", \"updated\", or \"created\"."
           }
         }
-      },
-      "VerifierAgentConfig": {
-        "type": "object",
-        "required": [
-          "primary"
-        ],
-        "properties": {
-          "blocking": {
-            "type": "boolean"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "fallback": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/VerifierModel"
-              }
-            ]
-          },
-          "max_input_tokens": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "max_reprompts_per_turn": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "primary": {
-            "$ref": "#/components/schemas/VerifierModel"
-          },
-          "require_high_confidence": {
-            "type": "boolean"
-          },
-          "timeout_ms": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          }
-        }
-      },
-      "VerifierModel": {
-        "type": "object",
-        "required": [
-          "provider",
-          "model",
-          "api_key"
-        ],
-        "properties": {
-          "api_key": {
-            "type": "string"
-          },
-          "base_url": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "model": {
-            "type": "string"
-          },
-          "provider": {
-            "$ref": "#/components/schemas/VerifierProvider"
-          }
-        }
-      },
-      "VerifierProvider": {
-        "type": "string",
-        "enum": [
-          "open_ai",
-          "gemini"
-        ]
       }
     }
   },

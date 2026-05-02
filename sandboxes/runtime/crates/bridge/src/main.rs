@@ -1,24 +1,23 @@
 mod cli;
-mod commands;
 mod logging;
+mod observability;
 mod server;
 
 use clap::Parser;
 
-use cli::{Cli, Commands};
-use commands::{handle_install_lsp_command, handle_tools_command};
+use cli::Cli;
 use server::run_server;
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    let cli = Cli::parse();
+fn main() -> anyhow::Result<()> {
+    // Sentry guard is held for the lifetime of the process. Drop on exit
+    // flushes any in-flight events. Init runs *before* the tokio runtime
+    // so the panic handler is wired before any async task can panic.
+    let _sentry_guard = observability::init_sentry();
 
-    match cli.command {
-        Some(Commands::Tools { action }) => {
-            handle_tools_command(action).await?;
-            Ok(())
-        }
-        Some(Commands::InstallLsp { servers }) => handle_install_lsp_command(servers).await,
-        None => run_server().await,
-    }
+    let _cli = Cli::parse();
+
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?
+        .block_on(run_server())
 }

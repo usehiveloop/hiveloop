@@ -2,13 +2,13 @@ use anyhow::Context;
 use bridge_core::RuntimeConfig;
 use figment::providers::{Env, Format, Serialized, Toml};
 use figment::Figment;
-use lsp::LspManager;
-use mcp::McpManager;
 use runtime::AgentSupervisor;
+use sentry_tower::{NewSentryLayer, SentryHttpLayer};
 use std::sync::Arc;
 use storage::{StorageBackend, StorageHandle};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
+use tower::ServiceBuilder;
 use tracing::info;
 use webhooks::EventBus;
 
@@ -22,30 +22,10 @@ pub(crate) async fn run_server() -> anyhow::Result<()> {
         .extract()
         .context("failed to load configuration")?;
 
-    // Initialize logging
     init_logging(&config);
 
     info!("bridge starting");
 
-    // Install rtk filter set to the user-global config (macOS:
-    // ~/Library/Application Support/rtk/filters.toml, Linux: ~/.config/rtk/
-    // filters.toml). This is idempotent and fast (~100KB write, skipped if
-    // content is already identical). A failure here must NOT block startup —
-    // rtk integration is opportunistic.
-    match tools::bash::ensure_filters_installed() {
-        Ok(path) => {
-            if tools::bash::is_rtk_available() {
-                info!(path = %path.display(), "rtk integration active: Bash tool will route through `rtk rewrite`");
-            } else {
-                info!(path = %path.display(), "rtk filters written but `rtk` binary not on PATH; Bash tool runs unchanged");
-            }
-        }
-        Err(e) => {
-            tracing::warn!(error = %e, "rtk filter bootstrap skipped — Bash tool runs unchanged");
-        }
-    }
-
-    // Create global lifecycle primitives
     let cancel = CancellationToken::new();
 
     let (storage_backend, storage_handle): (
@@ -101,46 +81,16 @@ pub(crate) async fn run_server() -> anyhow::Result<()> {
         info!("WebSocket event stream enabled on /ws/events");
     }
 
-    // Create shared services
-    let mcp_manager = Arc::new(McpManager::new());
-
-    // Create LSP manager for code intelligence
-    let project_root = std::env::current_dir().unwrap_or_default();
-    let lsp_config = config.lsp.clone().and_then(|lsp_cfg| {
-        if lsp_cfg.is_disabled() {
-            // LSP explicitly disabled — pass empty config so no servers are registered
-            Some(std::collections::HashMap::new())
-        } else {
-            lsp_cfg.into_servers().map(|server_map| {
-                server_map
-                    .into_iter()
-                    .map(|(id, cfg)| {
-                        (
-                            id,
-                            lsp::LspServerConfig {
-                                command: cfg.command,
-                                extensions: cfg.extensions,
-                                env: cfg.env,
-                                initialization_options: cfg.initialization_options,
-                                disabled: cfg.disabled,
-                            },
-                        )
-                    })
-                    .collect()
-            })
-        }
-    });
-    let lsp_manager = Arc::new(LspManager::new(project_root, lsp_config));
-
+    // Build the (currently stubbed) supervisor. Once the harness adapter
+    // lands, this is where it gets wired in.
     let supervisor = Arc::new(
-        AgentSupervisor::with_lsp(mcp_manager.clone(), lsp_manager, cancel.clone())
+        AgentSupervisor::new(cancel.clone())
             .with_capacity_limits(&config)
             .with_event_bus(Some(event_bus.clone()))
             .with_storage_backend(storage_backend.clone())
             .with_storage(storage_handle.clone()),
     );
 
-    // Create app state — bridge starts with zero agents, waits for pushes
     let app_state = api::AppState::new(
         supervisor.clone(),
         config.control_plane_api_key.clone(),
@@ -150,29 +100,29 @@ pub(crate) async fn run_server() -> anyhow::Result<()> {
     );
 
     if let Some(backend) = &storage_backend {
-        restore_from_storage(backend, &supervisor, &app_state, &event_bus).await?;
+        restore_from_storage(backend, &supervisor, &event_bus).await?;
     }
 
-    // Build HTTP router
-    let app = api::build_router(app_state);
+    // Wrap the router so every HTTP request gets:
+    //   - a fresh Sentry hub (so per-request configure_scope tags don't
+    //     leak across requests)
+    //   - HTTP transaction tags (method, path, status); 5xx responses are
+    //     captured as Sentry events automatically.
+    let sentry_layer = ServiceBuilder::new()
+        .layer(NewSentryLayer::new_from_top())
+        .layer(SentryHttpLayer::new().enable_transaction());
+    let app = api::build_router(app_state).layer(sentry_layer);
 
-    if let Some(storage_handle) = storage_handle.clone() {
-        spawn_metrics_collector(supervisor.clone(), storage_handle, cancel.clone());
-    }
-
-    // Bind and serve
     let listener = TcpListener::bind(&config.listen_addr)
         .await
         .context("failed to bind TCP listener")?;
     info!(addr = config.listen_addr, "listening");
 
-    // Serve with graceful shutdown
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal(cancel.clone()))
         .await
         .context("server error")?;
 
-    // Shutdown sequence
     info!("shutting down...");
     cancel.cancel();
     supervisor.shutdown().await;
@@ -188,7 +138,6 @@ pub(crate) async fn run_server() -> anyhow::Result<()> {
 async fn restore_from_storage(
     backend: &Arc<dyn StorageBackend>,
     supervisor: &Arc<AgentSupervisor>,
-    app_state: &api::AppState,
     event_bus: &Arc<EventBus>,
 ) -> anyhow::Result<()> {
     let stored_agents = backend
@@ -205,34 +154,40 @@ async fn restore_from_storage(
         info!(count = agent_count, "restored agents from storage");
     }
 
-    let mut restored_conversations = 0usize;
+    // Resume any conversations that survived the previous shutdown.
+    // Each is restored via ACP `session/load` which pulls from
+    // claude-agent-acp's own on-disk transcript under
+    // `$CLAUDE_CONFIG_DIR/projects/...`. We then re-attach the SSE stream
+    // so subscribers can resume.
     for agent in &stored_agents {
-        let records = backend
+        let convs = backend
             .load_conversations(&agent.id)
             .await
-            .with_context(|| format!("failed to load stored conversations for {}", agent.id))?;
+            .with_context(|| format!("failed to load conversations for {}", agent.id))?;
 
-        if records.is_empty() {
-            continue;
+        let mut restored = 0usize;
+        for record in convs {
+            match supervisor.restore_conversation(&agent.id, &record.id).await {
+                Ok(()) => {
+                    restored += 1;
+                }
+                Err(e) => {
+                    tracing::error!(
+                        agent_id = %agent.id,
+                        conversation_id = %record.id,
+                        error = %e,
+                        "failed to restore conversation on boot; dropping from storage"
+                    );
+                    backend.delete_conversation(&record.id).await.ok();
+                }
+            }
         }
-
-        let count = records.len();
-        let sse_receivers = supervisor.hydrate_conversations(&agent.id, records).await;
-        for (conv_id, sse_rx) in sse_receivers {
-            app_state.sse_streams.insert(conv_id, sse_rx);
-            restored_conversations += 1;
+        if restored > 0 {
+            info!(agent_id = %agent.id, count = restored, "restored conversations");
         }
-        info!(agent_id = %agent.id, count = count, "restored conversations from storage");
     }
 
-    if restored_conversations > 0 {
-        info!(
-            count = restored_conversations,
-            "restored active conversations from storage"
-        );
-    }
-
-    // Replay pending events through the event bus
+    // Replay pending events so the webhook outbox catches up.
     let pending_events = backend
         .load_pending_events()
         .await
@@ -247,27 +202,4 @@ async fn restore_from_storage(
     }
 
     Ok(())
-}
-
-fn spawn_metrics_collector(
-    supervisor: Arc<AgentSupervisor>,
-    storage_handle: StorageHandle,
-    cancel: CancellationToken,
-) {
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-
-        loop {
-            tokio::select! {
-                _ = cancel.cancelled() => break,
-                _ = interval.tick() => {
-                    let snapshots = supervisor.collect_metrics().await;
-                    for snapshot in snapshots {
-                        storage_handle.save_metrics_snapshot(snapshot.agent_id.clone(), snapshot);
-                    }
-                }
-            }
-        }
-    });
 }

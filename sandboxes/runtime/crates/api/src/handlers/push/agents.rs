@@ -5,7 +5,7 @@ use bridge_core::{AgentDefinition, BridgeError};
 
 use crate::state::AppState;
 
-use super::helpers::{definitions_equivalent, restore_stored_conversations_for_agent};
+use super::helpers::definitions_equivalent;
 use super::types::{
     PushAgentsRequest, PushAgentsResponse, RemoveAgentResponse, UpsertAgentResponse,
 };
@@ -25,9 +25,7 @@ pub async fn push_agents(
     State(state): State<AppState>,
     Json(body): Json<PushAgentsRequest>,
 ) -> Result<(StatusCode, Json<PushAgentsResponse>), BridgeError> {
-    // Semantic validation before handing to the supervisor. Catches things
-    // like tool_requirements ∩ disabled_tools conflicts up-front so the
-    // caller sees a clear 400 instead of a silently-broken agent.
+    // Semantic validation before handing to the supervisor.
     for agent in &body.agents {
         agent
             .validate()
@@ -35,12 +33,7 @@ pub async fn push_agents(
     }
 
     let count = body.agents.len();
-    let agent_ids: Vec<String> = body.agents.iter().map(|agent| agent.id.clone()).collect();
     state.supervisor.load_agents(body.agents).await?;
-
-    for agent_id in agent_ids {
-        restore_stored_conversations_for_agent(&state, &agent_id).await?;
-    }
 
     Ok((StatusCode::OK, Json(PushAgentsResponse { loaded: count })))
 }
@@ -71,7 +64,7 @@ pub async fn upsert_agent(
         )));
     }
 
-    // Semantic validation (tool_requirements ∩ disabled_tools, etc.)
+    // Semantic validation.
     agent
         .validate()
         .map_err(|msg| BridgeError::InvalidRequest(format!("agent '{}': {}", agent.id, msg)))?;
@@ -93,7 +86,6 @@ pub async fn upsert_agent(
             .supervisor
             .apply_diff(vec![], vec![agent], vec![])
             .await?;
-        restore_stored_conversations_for_agent(&state, &agent_id).await?;
         Ok((
             StatusCode::OK,
             Json(UpsertAgentResponse {
@@ -106,7 +98,6 @@ pub async fn upsert_agent(
             .supervisor
             .apply_diff(vec![agent], vec![], vec![])
             .await?;
-        restore_stored_conversations_for_agent(&state, &agent_id).await?;
         Ok((
             StatusCode::CREATED,
             Json(UpsertAgentResponse {

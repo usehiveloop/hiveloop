@@ -1,13 +1,9 @@
-use bridge_core::event::BridgeEvent;
-use dashmap::DashMap;
-use llm::PermissionManager;
 use runtime::AgentSupervisor;
 use std::sync::Arc;
 use storage::StorageBackend;
-use tokio::sync::mpsc;
 use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
-use webhooks::EventBus;
+use webhooks::{EventBus, PermissionManager};
 
 /// Shared application state for all request handlers.
 #[derive(Clone)]
@@ -16,10 +12,6 @@ pub struct AppState {
     pub supervisor: Arc<AgentSupervisor>,
     /// Server startup time for uptime calculations.
     pub startup_time: Instant,
-    /// Active SSE streams keyed by conversation ID.
-    ///
-    /// Stores the SSE receiver so the stream handler can pick it up.
-    pub sse_streams: Arc<DashMap<String, mpsc::Receiver<BridgeEvent>>>,
     /// API key for authenticating control plane push requests.
     pub control_plane_api_key: String,
     /// Optional storage backend for startup and restore reads.
@@ -45,7 +37,6 @@ impl AppState {
         Self {
             supervisor,
             startup_time: Instant::now(),
-            sse_streams: Arc::new(DashMap::new()),
             control_plane_api_key,
             storage_backend,
             permission_manager,

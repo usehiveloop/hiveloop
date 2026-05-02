@@ -9,6 +9,9 @@ use tokio::sync::{broadcast, mpsc};
 /// Slow consumers that fall behind will receive a `Lagged` error.
 const WS_BUFFER_SIZE: usize = 10_000;
 
+/// Default per-conversation SSE broadcast buffer.
+const SSE_BUFFER_SIZE: usize = 256;
+
 /// Central event bus that is the single entry point for all events.
 ///
 /// Every event emitted by the bridge runtime flows through the EventBus.
@@ -17,7 +20,7 @@ const WS_BUFFER_SIZE: usize = 10_000;
 ///
 /// 1. **DB** — persisted to `webhook_outbox` for durability
 /// 2. **WebSocket** — broadcast to all connected WS clients
-/// 3. **SSE** — routed to the per-conversation SSE stream
+/// 3. **SSE** — broadcast to all subscribers of a per-conversation channel
 /// 4. **Webhook HTTP** — queued for batched HTTP delivery to the control plane
 ///
 /// Every channel receives the exact same `BridgeEvent` with the same
@@ -32,8 +35,10 @@ pub struct EventBus {
     storage: Option<StorageHandle>,
     /// Broadcast sender for WebSocket fan-out.
     ws_tx: broadcast::Sender<BridgeEvent>,
-    /// Per-conversation SSE streams.
-    sse_streams: Arc<DashMap<String, mpsc::Sender<BridgeEvent>>>,
+    /// Per-conversation SSE broadcast senders. Multiple subscribers per
+    /// conversation are supported — every `subscribe_sse` call returns a
+    /// fresh receiver attached to the same sender.
+    sse_streams: Arc<DashMap<String, broadcast::Sender<BridgeEvent>>>,
     /// Channel for webhook HTTP delivery pipeline.
     webhook_tx: Option<mpsc::UnboundedSender<BridgeEvent>>,
     /// Webhook URL for HTTP delivery.
@@ -91,9 +96,9 @@ impl EventBus {
         // 3. Broadcast to WebSocket clients
         let _ = self.ws_tx.send(event.clone());
 
-        // 4. Route to per-conversation SSE stream
+        // 4. Fan out to SSE subscribers of this conversation
         if let Some(sse_tx) = self.sse_streams.get(event.conversation_id.as_str()) {
-            let _ = sse_tx.try_send(event.clone());
+            let _ = sse_tx.send(event.clone());
         }
 
         // 5. Queue for webhook HTTP delivery
@@ -104,40 +109,44 @@ impl EventBus {
         self.emitted.fetch_add(1, Ordering::Relaxed);
     }
 
-    /// Emit a replayed event (already persisted in DB). Skips DB persistence
-    /// but fans out to WS, SSE, and webhook HTTP delivery.
-    pub fn emit_replayed(&self, mut event: BridgeEvent) {
-        let _guard = self.emit_lock.lock().unwrap_or_else(|e| e.into_inner());
-
-        let seq = self.sequence.fetch_add(1, Ordering::Relaxed) + 1;
-        event.sequence_number = seq;
-
-        let _ = self.ws_tx.send(event.clone());
-
-        if let Some(sse_tx) = self.sse_streams.get(event.conversation_id.as_str()) {
-            let _ = sse_tx.try_send(event.clone());
-        }
-
+    /// Replay a persisted event into the webhook delivery queue only.
+    ///
+    /// Used at startup to retry pending webhook deliveries that were
+    /// in-flight when the previous bridge process exited. The event is
+    /// **not** re-stamped (its original `sequence_number` is preserved)
+    /// and is **not** fanned out to live SSE/WS subscribers — those
+    /// channels are for fresh-after-startup activity, not historical
+    /// catch-up.
+    pub fn emit_replayed(&self, event: BridgeEvent) {
         if let Some(ref webhook_tx) = self.webhook_tx {
             let _ = webhook_tx.send(event);
         }
-
-        self.emitted.fetch_add(1, Ordering::Relaxed);
     }
 
-    /// Register an SSE stream for a conversation. Returns the receiver end.
-    pub fn register_sse_stream(
-        &self,
-        conversation_id: String,
-        buffer_size: usize,
-    ) -> mpsc::Receiver<BridgeEvent> {
-        let (tx, rx) = mpsc::channel(buffer_size);
-        self.sse_streams.insert(conversation_id, tx);
-        rx
+    /// Idempotently ensure an SSE broadcast sender exists for `conversation_id`.
+    /// Safe to call multiple times for the same id; existing subscribers are
+    /// unaffected. Call this at conversation create/restore time so the first
+    /// event isn't dropped while waiting for a client to subscribe.
+    pub fn register_sse_stream(&self, conversation_id: String) {
+        self.sse_streams
+            .entry(conversation_id)
+            .or_insert_with(|| broadcast::channel(SSE_BUFFER_SIZE).0);
     }
 
-    /// Remove an SSE stream for a conversation (e.g. when the client disconnects
-    /// or the conversation ends).
+    /// Subscribe to a conversation's SSE broadcast. Auto-creates the sender
+    /// if the conversation hasn't been registered yet, so subscriptions don't
+    /// race against `register_sse_stream`. Multiple concurrent subscribers
+    /// are supported — each gets an independent receiver.
+    pub fn subscribe_sse(&self, conversation_id: &str) -> broadcast::Receiver<BridgeEvent> {
+        let entry = self
+            .sse_streams
+            .entry(conversation_id.to_string())
+            .or_insert_with(|| broadcast::channel(SSE_BUFFER_SIZE).0);
+        entry.subscribe()
+    }
+
+    /// Remove an SSE stream for a conversation (e.g. when the conversation
+    /// ends). Live subscribers will see `RecvError::Closed` on their next read.
     pub fn remove_sse_stream(&self, conversation_id: &str) {
         self.sse_streams.remove(conversation_id);
     }
@@ -145,12 +154,6 @@ impl EventBus {
     /// Subscribe to the WebSocket broadcast stream.
     pub fn subscribe_ws(&self) -> broadcast::Receiver<BridgeEvent> {
         self.ws_tx.subscribe()
-    }
-
-    /// Returns a reference to the SSE streams map (for external inspection or
-    /// migration during hydration).
-    pub fn sse_streams(&self) -> &Arc<DashMap<String, mpsc::Sender<BridgeEvent>>> {
-        &self.sse_streams
     }
 
     /// Returns the webhook URL for HTTP delivery.
@@ -178,9 +181,14 @@ impl EventBus {
         self.ws_tx.receiver_count()
     }
 
-    /// Number of active SSE streams.
+    /// Number of registered SSE conversation channels (not subscribers).
     pub fn sse_stream_count(&self) -> usize {
         self.sse_streams.len()
+    }
+
+    /// Number of live SSE subscribers across all conversations.
+    pub fn sse_subscriber_count(&self) -> usize {
+        self.sse_streams.iter().map(|e| e.receiver_count()).sum()
     }
 }
 

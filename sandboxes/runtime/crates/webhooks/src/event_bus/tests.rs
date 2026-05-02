@@ -32,7 +32,7 @@ fn test_emit_stamps_monotonic_sequence_numbers() {
 fn test_ws_and_sse_receive_same_event() {
     let bus = EventBus::new(None, None, String::new(), String::new());
     let mut ws_rx = bus.subscribe_ws();
-    let mut sse_rx = bus.register_sse_stream("conv-1".to_string(), 16);
+    let mut sse_rx = bus.subscribe_sse("conv-1");
 
     bus.emit(make_event("conv-1"));
 
@@ -50,7 +50,7 @@ fn test_ws_and_sse_receive_same_event() {
 #[test]
 fn test_sse_only_receives_matching_conversation() {
     let bus = EventBus::new(None, None, String::new(), String::new());
-    let mut sse_rx = bus.register_sse_stream("conv-1".to_string(), 16);
+    let mut sse_rx = bus.subscribe_sse("conv-1");
 
     bus.emit(make_event("conv-2")); // different conversation
     bus.emit(make_event("conv-1")); // matching conversation
@@ -96,7 +96,7 @@ fn test_all_channels_get_identical_data() {
         "secret".to_string(),
     );
     let mut ws_rx = bus.subscribe_ws();
-    let mut sse_rx = bus.register_sse_stream("conv-1".to_string(), 16);
+    let mut sse_rx = bus.subscribe_sse("conv-1");
 
     let event = BridgeEvent::new(
         BridgeEventType::ResponseChunk,
@@ -110,20 +110,13 @@ fn test_all_channels_get_identical_data() {
     let sse = sse_rx.try_recv().unwrap();
     let wh = webhook_rx.try_recv().unwrap();
 
-    // All three channels have the same event_id
     assert_eq!(ws.event_id, sse.event_id);
     assert_eq!(sse.event_id, wh.event_id);
-
-    // All three have the same sequence_number
     assert_eq!(ws.sequence_number, 1);
     assert_eq!(sse.sequence_number, 1);
     assert_eq!(wh.sequence_number, 1);
-
-    // All three have the same data
     assert_eq!(ws.data, sse.data);
     assert_eq!(sse.data, wh.data);
-
-    // All three have the same event_type
     assert_eq!(ws.event_type, sse.event_type);
     assert_eq!(sse.event_type, wh.event_type);
 }
@@ -131,7 +124,8 @@ fn test_all_channels_get_identical_data() {
 #[test]
 fn test_remove_sse_stream() {
     let bus = EventBus::new(None, None, String::new(), String::new());
-    let _sse_rx = bus.register_sse_stream("conv-1".to_string(), 16);
+    bus.register_sse_stream("conv-1".to_string());
+    let _sub = bus.subscribe_sse("conv-1");
     assert_eq!(bus.sse_stream_count(), 1);
 
     bus.remove_sse_stream("conv-1");
@@ -151,47 +145,88 @@ fn test_emitted_count() {
 #[test]
 fn test_emit_without_any_subscribers_does_not_panic() {
     let bus = EventBus::new(None, None, String::new(), String::new());
-    // No WS subscribers, no SSE streams, no webhook channel
     bus.emit(make_event("conv-1"));
     assert_eq!(bus.emitted_count(), 1);
     assert_eq!(bus.current_sequence(), 1);
 }
 
 #[test]
-fn test_emit_replayed_skips_db_but_fans_out() {
+fn test_emit_replayed_only_targets_webhook() {
     let (webhook_tx, mut webhook_rx) = mpsc::unbounded_channel();
     let bus = EventBus::new(Some(webhook_tx), None, String::new(), String::new());
     let mut ws_rx = bus.subscribe_ws();
+    let mut sse_rx = bus.subscribe_sse("conv-1");
 
-    bus.emit_replayed(make_event("conv-1"));
+    let mut event = make_event("conv-1");
+    event.sequence_number = 42;
+    bus.emit_replayed(event);
 
-    let ws = ws_rx.try_recv().unwrap();
+    // Live channels do not receive replays.
+    assert!(ws_rx.try_recv().is_err());
+    assert!(sse_rx.try_recv().is_err());
+
     let wh = webhook_rx.try_recv().unwrap();
-    assert_eq!(ws.sequence_number, 1);
-    assert_eq!(wh.sequence_number, 1);
+    assert_eq!(wh.sequence_number, 42);
+    assert_eq!(bus.current_sequence(), 0);
 }
 
 #[test]
 fn test_multiple_sse_streams_independent() {
     let bus = EventBus::new(None, None, String::new(), String::new());
-    let mut sse_a = bus.register_sse_stream("conv-a".to_string(), 16);
-    let mut sse_b = bus.register_sse_stream("conv-b".to_string(), 16);
+    let mut sse_a = bus.subscribe_sse("conv-a");
+    let mut sse_b = bus.subscribe_sse("conv-b");
 
     bus.emit(make_event("conv-a"));
     bus.emit(make_event("conv-b"));
     bus.emit(make_event("conv-a"));
 
-    // conv-a receives 2 events
     let a1 = sse_a.try_recv().unwrap();
     let a2 = sse_a.try_recv().unwrap();
     assert!(sse_a.try_recv().is_err());
     assert_eq!(a1.sequence_number, 1);
     assert_eq!(a2.sequence_number, 3);
 
-    // conv-b receives 1 event
     let b1 = sse_b.try_recv().unwrap();
     assert!(sse_b.try_recv().is_err());
     assert_eq!(b1.sequence_number, 2);
+}
+
+#[test]
+fn test_multiple_subscribers_same_conversation() {
+    // The whole point of the broadcast refactor: multiple SSE clients
+    // attached to the same conversation each receive every event.
+    let bus = EventBus::new(None, None, String::new(), String::new());
+    let mut sub_a = bus.subscribe_sse("conv-1");
+    let mut sub_b = bus.subscribe_sse("conv-1");
+    let mut sub_c = bus.subscribe_sse("conv-1");
+
+    bus.emit(make_event("conv-1"));
+    bus.emit(make_event("conv-1"));
+
+    for sub in [&mut sub_a, &mut sub_b, &mut sub_c] {
+        let e1 = sub.try_recv().unwrap();
+        let e2 = sub.try_recv().unwrap();
+        assert_eq!(e1.sequence_number, 1);
+        assert_eq!(e2.sequence_number, 2);
+        assert!(sub.try_recv().is_err());
+    }
+}
+
+#[test]
+fn test_late_subscriber_misses_prior_events() {
+    // Standard broadcast semantics: subscribers only see events emitted
+    // *after* they subscribed. Resume from a gap is the Last-Event-ID
+    // path's job, not the live channel's.
+    let bus = EventBus::new(None, None, String::new(), String::new());
+    bus.register_sse_stream("conv-1".to_string());
+    bus.emit(make_event("conv-1"));
+
+    let mut late = bus.subscribe_sse("conv-1");
+    bus.emit(make_event("conv-1"));
+
+    let only = late.try_recv().unwrap();
+    assert_eq!(only.sequence_number, 2);
+    assert!(late.try_recv().is_err());
 }
 
 #[test]
@@ -210,7 +245,6 @@ fn test_no_secrets_on_event() {
     let json = serde_json::to_value(&event).unwrap();
     let obj = json.as_object().unwrap();
 
-    // BridgeEvent must NOT contain webhook_url or webhook_secret
     assert!(!obj.contains_key("webhook_url"));
     assert!(!obj.contains_key("webhook_secret"));
 }

@@ -128,8 +128,6 @@ fn provider_config_roundtrip_with_base_url() {
         model: "custom-model".to_string(),
         api_key: "custom-key".to_string(),
         base_url: Some("https://custom.api.com/v1".to_string()),
-        prompt_caching_enabled: true,
-        cache_ttl: Default::default(),
     };
 
     let json = serde_json::to_string_pretty(&config).expect("serialize");
@@ -144,8 +142,6 @@ fn provider_config_roundtrip_without_base_url() {
         model: "claude-sonnet-4-20250514".to_string(),
         api_key: "<anthropic-api-key>".to_string(),
         base_url: None,
-        prompt_caching_enabled: true,
-        cache_ttl: Default::default(),
     };
 
     let json = serde_json::to_string_pretty(&config).expect("serialize");

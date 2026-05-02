@@ -1,3 +1,0 @@
-Lists files and directories in a given path. The path parameter must be absolute; omit it to use the current workspace directory. You should generally prefer the Glob and RipGrep tools, if you know which directories to search.
-
-Listings are capped at 100 entries. If `truncated` is true the output includes a steer pointing to three options — narrow the path, use Glob/RipGrep, or spawn self_agent — rather than paginating through the excess.

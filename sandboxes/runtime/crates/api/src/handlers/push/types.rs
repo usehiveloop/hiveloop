@@ -1,16 +1,10 @@
-use bridge_core::{AgentDefinition, ConversationRecord};
+use bridge_core::AgentDefinition;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct PushAgentsRequest {
     pub agents: Vec<AgentDefinition>,
-}
-
-#[derive(Deserialize)]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct HydrateConversationsRequest {
-    pub conversations: Vec<ConversationRecord>,
 }
 
 #[derive(Deserialize)]
@@ -49,14 +43,6 @@ pub struct UpsertAgentResponse {
 pub struct RemoveAgentResponse {
     /// Status of the operation.
     pub status: String,
-}
-
-/// Response for hydrating conversations.
-#[derive(Serialize)]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct HydrateConversationsResponse {
-    /// Number of conversations hydrated.
-    pub hydrated: usize,
 }
 
 /// Response for updating an API key.

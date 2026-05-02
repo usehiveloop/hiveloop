@@ -51,28 +51,6 @@ pub enum BridgeEventType {
     SubAgentCompleted,
     /// The response stream is complete (terminal signal for SSE/WS)
     Done,
-    /// A conversation chain handoff has started (immortal conversations).
-    /// The agent is extracting a checkpoint and will continue in a fresh context.
-    /// Emitted BEFORE the checkpoint LLM call so consumers can show progress.
-    ChainStarted,
-    /// A conversation chain handoff completed (immortal conversations).
-    /// The agent is ready in the new context.
-    ChainCompleted,
-    /// A conversation chain handoff attempt failed (immortal conversations).
-    /// The conversation continues with the oversized history — no state is lost.
-    ChainFailed,
-    /// Context pressure warning emitted mid-turn when tool-output bytes
-    /// accumulate past a threshold. Clients can surface this as a warning.
-    ContextPressureWarning,
-    /// Verifier classification call started for the just-finished turn.
-    VerifierStarted,
-    /// Verifier returned a verdict for the just-finished turn. Carries
-    /// verdict (`users_turn` / `completed` / `needs_work`), confidence, reason,
-    /// model, latency, and token usage.
-    VerifierVerdict,
-    /// Verifier call errored (timeout, transport, schema). The runtime treats
-    /// this as `users_turn` and proceeds.
-    VerifierError,
 }
 
 /// The single canonical event payload used across all delivery channels.
