@@ -107,8 +107,10 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	sb.Status = "running"
 	sb.LastActiveAt = &now
 
-	if _, execErr := o.provider.ExecuteCommand(ctx, info.ExternalID, "mkdir -p /home/daytona/.bridge"); execErr != nil {
-		logging.Capture(ctx, fmt.Errorf("create bridge storage dir sandbox %s: %w", sb.ID, execErr))
+	// Older snapshots may not have the harness config dirs; create them so
+	// the harnesses don't crash on first read.
+	if _, execErr := o.provider.ExecuteCommand(ctx, info.ExternalID, "mkdir -p /work/.claude /work/.opencode"); execErr != nil {
+		logging.Capture(ctx, fmt.Errorf("create bridge config dirs sandbox %s: %w", sb.ID, execErr))
 	}
 
 	if err := o.waitForBridgeHealthy(ctx, &sb); err != nil {

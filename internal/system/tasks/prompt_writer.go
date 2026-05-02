@@ -20,7 +20,6 @@ var PromptWriter = system.Task{
 		{Name: "category", Type: system.ArgString, MaxLen: 200},
 		{Name: "instructions", Type: system.ArgString, MaxLen: 8000},
 		{Name: "skill_ids", Type: system.ArgStringList, MaxLen: 64},
-		{Name: "subagent_ids", Type: system.ArgStringList, MaxLen: 64},
 		{Name: "sandbox_tools", Type: system.ArgStringList, MaxLen: 64},
 		{Name: "integrations", Type: system.ArgObject},
 		{Name: "tools", Type: system.ArgObject},
@@ -57,7 +56,7 @@ You are a generator, not a clone factory. Different agents need different prompt
 Build sections from operator input. Skip sections whose source material is missing.
 
 NEVER include any of the following unless the operator explicitly named or described them:
-- Tools the operator did not name (no inventing 'journal_write', 'recall', 'retain', 'ping_me_back_in', 'subscribe_to_events', 'todowrite', 'sub_agent', 'gh', 'bash', etc.).
+- Tools the operator did not name (no inventing 'journal_write', 'recall', 'retain', 'ping_me_back_in', 'subscribe_to_events', 'todowrite', 'gh', 'bash', etc.).
 - Protocol sections (memory, journal, waiting, subscriptions, system reminders, context-continuity) — none of these appear unless the operator named the corresponding tool/concept.
 - Communication channels (e.g., a GitHub channel table) — only when the operator's instructions actually describe channel mechanics.
 - Generic AI-slop banlists, generic preferred phrasings, generic stop conditions, generic non-negotiables — only what the operator wrote.
@@ -65,9 +64,8 @@ NEVER include any of the following unless the operator explicitly named or descr
 
 # Closed-world rule for resolver-owned identifiers
 
-Three structured lists in the user message are AUTHORITATIVE and CLOSED:
+Two structured lists in the user message are AUTHORITATIVE and CLOSED:
 - 'Skills available'
-- 'Sub-agents this agent can delegate to'
 - 'Integrations connected' (provider names only — NEVER list specific actions/methods/endpoints)
 
 If a list is absent or empty, OMIT its corresponding section AND NEVER refer to that capability anywhere else in the produced prompt.
@@ -101,9 +99,6 @@ Emit sections in this order, using the exact XML tag names below. Skip any secti
 
 <skills>  CONDITIONAL — emit only if the Skills list in the user message is non-empty.
 - One bullet per provided skill: 'skill-name' — when to load it, what it gives. Names exact-match the list.
-
-<sub_agents>  CONDITIONAL — emit only if the Sub-agents list is non-empty.
-- One bullet per provided sub-agent: what to hand off, input shape, what to do with the response.
 
 <integrations>  CONDITIONAL — emit only if the Integrations connected list is non-empty.
 - One bullet per provider name. NEVER list actions, methods, or endpoints. Provider names are platforms, not tools.
@@ -149,9 +144,6 @@ const promptWriterUserTemplate = `Agent name: {{.name}}
 
 {{end}}{{with .skills}}# Skills available
 {{range .}}- {{.Name}}{{with .SourceType}} ({{.}}){{end}}{{with .Description}}: {{.}}{{end}}
-{{end}}
-{{end}}{{with .subagents}}# Sub-agents this agent can delegate to
-{{range .}}- {{.Name}} (model: {{.Model}}){{with .Description}}: {{.}}{{end}}
 {{end}}
 {{end}}{{with .integrations}}# Integrations connected
 {{range .}}- {{.Provider}}

@@ -4,36 +4,19 @@ import (
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 )
 
-const (
-	defaultSubagentTimeoutForegroundSecs = 1800
-	defaultSubagentTimeoutBackgroundSecs = 3600
-	historyStripPinRecent                = 5
-	historyStripAgeThreshold             = 3
-)
-
 func applyAgentConfigDefaults(cfg *bridgepkg.AgentConfig, providerID, modelName string) *bridgepkg.AgentConfig {
 	if cfg == nil {
 		cfg = &bridgepkg.AgentConfig{}
 	}
 
-	setDefault := func(ptr **int32, val int32) {
-		if *ptr == nil {
-			*ptr = &val
-		}
+	if cfg.MaxTokens == nil {
+		val := defaultMaxTokens(providerID, modelName)
+		cfg.MaxTokens = &val
 	}
-	setDefaultI64 := func(ptr **int64, val int64) {
-		if *ptr == nil {
-			*ptr = &val
-		}
+	if cfg.MaxTurns == nil {
+		val := int32(250)
+		cfg.MaxTurns = &val
 	}
-
-	setDefault(&cfg.MaxTokens, defaultMaxTokens(providerID, modelName))
-	setDefault(&cfg.MaxTurns, 250)
-	setDefault(&cfg.MaxTasksPerConversation, 50)
-	setDefault(&cfg.MaxConcurrentConversations, 100)
-	setDefaultI64(&cfg.SubagentTimeoutForegroundSecs, defaultSubagentTimeoutForegroundSecs)
-	setDefaultI64(&cfg.SubagentTimeoutBackgroundSecs, defaultSubagentTimeoutBackgroundSecs)
-
 	if cfg.Temperature == nil {
 		temp := defaultTemperature(providerID, modelName)
 		cfg.Temperature = &temp
@@ -42,23 +25,30 @@ func applyAgentConfigDefaults(cfg *bridgepkg.AgentConfig, providerID, modelName 
 	return cfg
 }
 
-func applyHistoryStripDefault(cfg *bridgepkg.AgentConfig) {
-	if cfg == nil || cfg.HistoryStrip != nil {
+// applyHarnessOptionalFields propagates harness-aware optional fields from
+// the author's AgentConfig. Leave nil values nil so the harness applies its
+// own defaults. disabled_tools is set from the permissions map in
+// buildAgentDefinition and is intentionally not touched here.
+func applyHarnessOptionalFields(cfg *bridgepkg.AgentConfig, agentCfg *bridgepkg.AgentConfig) {
+	if cfg == nil || agentCfg == nil {
 		return
 	}
-	enabled := true
-	pinErrors := true
-	pinRecent := historyStripPinRecent
-	ageThreshold := historyStripAgeThreshold
-	hs := bridgepkg.HistoryStripConfig{
-		Enabled:        &enabled,
-		PinErrors:      &pinErrors,
-		PinRecentCount: &pinRecent,
-		AgeThreshold:   &ageThreshold,
+	if cfg.ReasoningEffort == nil && agentCfg.ReasoningEffort != nil {
+		cfg.ReasoningEffort = agentCfg.ReasoningEffort
 	}
-	var wrapped bridgepkg.AgentConfig_HistoryStrip
-	if err := wrapped.FromHistoryStripConfig(hs); err != nil {
-		return
+	if cfg.SmallFastModel == nil && agentCfg.SmallFastModel != nil {
+		cfg.SmallFastModel = agentCfg.SmallFastModel
 	}
-	cfg.HistoryStrip = &wrapped
+	if cfg.FallbackModel == nil && agentCfg.FallbackModel != nil {
+		cfg.FallbackModel = agentCfg.FallbackModel
+	}
+	if cfg.AllowedTools == nil && agentCfg.AllowedTools != nil {
+		cfg.AllowedTools = agentCfg.AllowedTools
+	}
+	if cfg.PermissionMode == nil && agentCfg.PermissionMode != nil {
+		cfg.PermissionMode = agentCfg.PermissionMode
+	}
+	if cfg.Env == nil && agentCfg.Env != nil {
+		cfg.Env = agentCfg.Env
+	}
 }
