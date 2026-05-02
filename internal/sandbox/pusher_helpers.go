@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 
@@ -13,33 +12,11 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-
-// harnessFor maps a (provider, model) pair to the ACP harness that should
-// drive it. Claude harness handles Anthropic-compatible upstreams; OpenCode
-// handles everything else (OpenAI/Google/Groq/etc.).
-//
-// The model-prefix check wins over the provider type so an OpenAI-shaped
-// proxy serving Claude (e.g. Bedrock-via-OpenAI) still lands on the Claude
-// harness.
-func harnessFor(p bridgepkg.ProviderType, model string) bridgepkg.Harness {
-	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(model)), "claude") {
-		return bridgepkg.Claude
+func harnessFromAgent(agentHarness string) bridgepkg.Harness {
+	if agentHarness == "" {
+		return bridgepkg.OpenCode
 	}
-	if p == bridgepkg.Anthropic {
-		return bridgepkg.Claude
-	}
-	return bridgepkg.OpenCode
-}
-
-// resolveHarness returns the harness to stamp on this push. If the agent
-// already has a non-empty Harness column we trust it (deterministic across
-// pushes); otherwise we compute via harnessFor and the caller is responsible
-// for persisting the choice back to the DB.
-func resolveHarness(agentHarness string, p bridgepkg.ProviderType, model string) bridgepkg.Harness {
-	if agentHarness != "" {
-		return bridgepkg.Harness(agentHarness)
-	}
-	return harnessFor(p, model)
+	return bridgepkg.Harness(agentHarness)
 }
 
 func buildHiveLoopMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDefinition {

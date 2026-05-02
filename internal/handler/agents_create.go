@@ -107,6 +107,11 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateHarness(req.Harness); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
 	if err := validateAgentIntegrationsExclusivity(h.db, org.ID, req.Integrations); err != nil {
 		if errors.Is(err, errGitHubAppExclusive) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -138,6 +143,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Team:            req.Team,
 		SharedMemory:    req.SharedMemory,
 		SandboxTools:    pq.StringArray(req.SandboxTools),
+		Harness:         req.Harness,
 		Status:          "active",
 	}
 	if hasCred {

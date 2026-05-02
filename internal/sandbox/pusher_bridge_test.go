@@ -100,8 +100,6 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	assertEqual(t, "name", def.Name, "Test Railway Agent")
 	assertEqual(t, "model", def.Provider.Model, "kimi-k2")
 	assertEqual(t, "provider_type", string(def.Provider.ProviderType), string(bridgepkg.OpenAi))
-	// kimi-k2 fixture above uses an OpenAi-mapped provider and a non-claude
-	// model, so the deterministic harnessFor mapping resolves to OpenCode.
 	assertEqual(t, "harness", string(def.Harness), string(bridgepkg.OpenCode))
 	assertContains(t, "base_url", *def.Provider.BaseUrl, "proxy.test.com")
 	assertEqual(t, "api_key", def.Provider.ApiKey, proxyToken)

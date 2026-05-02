@@ -180,9 +180,8 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 		}
 	}
 
-	// Defensive: harness/provider/wire-shape sanity from the same body.
-	if def.Harness != bridgepkg.Claude {
-		t.Errorf("harness: got %q, want claude", def.Harness)
+	if def.Harness != bridgepkg.OpenCode {
+		t.Errorf("harness: got %q, want open_code (default for agents without an explicit harness)", def.Harness)
 	}
 	if !strings.HasPrefix(def.Provider.Model, "claude") {
 		t.Errorf("model: got %q, want claude*", def.Provider.Model)

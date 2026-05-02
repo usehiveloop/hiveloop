@@ -192,31 +192,44 @@ func TestPusherAgentConfig_HarnessOptionalFields(t *testing.T) {
 	}
 }
 
-// TestPusherAgentConfig_HarnessStampedOnFirstPush_ThenReused proves the
-// two-push contract:
-//   - Push 1 (agent.harness == "") → pusher computes via harnessFor and
-//     stamps the value on the agents row.
-//   - Push 2 (re-read agent) → harness column is non-empty and the second
-//     push uses the persisted value verbatim.
-func TestPusherAgentConfig_HarnessStampedOnFirstPush_ThenReused(t *testing.T) {
+func TestPusherAgentConfig_HarnessFromAgent(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		stored  string
+		want    string
+	}{
+		{"empty defaults to open_code", "", string(bridgepkg.OpenCode)},
+		{"claude is passed through", "claude", string(bridgepkg.Claude)},
+		{"open_code is passed through", "open_code", string(bridgepkg.OpenCode)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			body := pushHarnessFixture(t, tc.stored)
+			got, _ := body["harness"].(string)
+			if got != tc.want {
+				t.Errorf("harness on wire = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func pushHarnessFixture(t *testing.T, storedHarness string) map[string]any {
+	t.Helper()
 	db := setupPusherTestDB(t)
 	encKey := testPusherEncKey(t)
-	signingKey := []byte("test-signing-key-for-stamp")
 
-	org := model.Org{ID: uuid.New(), Name: "stamp-org-" + uuid.New().String()[:8], Active: true}
+	org := model.Org{ID: uuid.New(), Name: "harness-org-" + uuid.New().String()[:8], Active: true}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
 	t.Cleanup(func() { db.Where("id = ?", org.ID).Delete(&model.Org{}) })
 
-	encrypted, err := encKey.EncryptString("sk-stamp-key")
+	encrypted, err := encKey.EncryptString("sk-harness")
 	if err != nil {
 		t.Fatalf("encrypt: %v", err)
 	}
 	cred := model.Credential{
 		ID: uuid.New(), OrgID: org.ID,
-		// OpenAI provider so the computed harness is OpenCode (interesting case).
-		ProviderID: "openai", Label: "Stamp OpenAI",
+		ProviderID: "openai", Label: "OpenAI",
 		EncryptedKey: encrypted, WrappedDEK: []byte("test"),
 		BaseURL: "https://api.openai.com", AuthScheme: "bearer",
 	}
@@ -227,8 +240,8 @@ func TestPusherAgentConfig_HarnessStampedOnFirstPush_ThenReused(t *testing.T) {
 
 	agent := model.Agent{
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
-		Name: "Stamp Agent-" + uuid.New().String()[:8], Model: "gpt-4o",
-		SystemPrompt: "test agent", Status: "active",
+		Name: "Harness Agent-" + uuid.New().String()[:8], Model: "gpt-4o",
+		SystemPrompt: "test", Status: "active", Harness: storedHarness,
 		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 		Integrations: model.JSON{}, AgentConfig: model.JSON{}, Permissions: model.JSON{},
 	}
@@ -237,79 +250,30 @@ func TestPusherAgentConfig_HarnessStampedOnFirstPush_ThenReused(t *testing.T) {
 	}
 	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
 
-	// Confirm the freshly-inserted agent has empty harness.
-	var fresh model.Agent
-	if err := db.Where("id = ?", agent.ID).First(&fresh).Error; err != nil {
-		t.Fatalf("read fresh agent: %v", err)
-	}
-	if fresh.Harness != "" {
-		t.Fatalf("expected empty harness on fresh agent, got %q", fresh.Harness)
-	}
+	cfg := &config.Config{ProxyHost: "proxy.test", MCPBaseURL: "https://mcp.test"}
+	pusher := NewPusher(db, nil, []byte("test-signing-key-for-harness"), cfg, nil)
 
-	// --- exercise the production push path against a fake bridge ----------
-	cfg := &config.Config{ProxyHost: "proxy.stamp.test", MCPBaseURL: "https://mcp.stamp.test"}
-	pusher := NewPusher(db, nil, signingKey, cfg, nil)
-
-	push := func(t *testing.T) string {
-		t.Helper()
-
-		var captured []byte
-		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/push/agents/") {
-				body, _ := io.ReadAll(r.Body)
-				captured = body
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-			w.WriteHeader(http.StatusNotFound)
-		}))
-		t.Cleanup(srv.Close)
-
-		var current model.Agent
-		if err := db.Where("id = ?", agent.ID).First(&current).Error; err != nil {
-			t.Fatalf("read agent before push: %v", err)
+	var captured []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/push/agents/") {
+			body, _ := io.ReadAll(r.Body)
+			captured = body
+			w.WriteHeader(http.StatusOK)
+			return
 		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	t.Cleanup(srv.Close)
 
-		def := pusher.buildAgentDefinition(t.Context(), &current, &cred, "ptok_stamp", uuid.New().String())
-
-		// Stamp logic out of pushAgentToSandbox — replicated here without the
-		// orchestrator/credentials.Resolve dependencies the full push needs.
-		if current.Harness == "" {
-			db.Model(&model.Agent{}).
-				Where("id = ? AND (harness IS NULL OR harness = '')", current.ID).
-				Update("harness", string(def.Harness))
-		}
-
-		client := bridgepkg.NewBridgeClient(srv.URL, "test-key")
-		if err := client.UpsertAgent(context.Background(), current.ID.String(), def); err != nil {
-			t.Fatalf("UpsertAgent: %v", err)
-		}
-		var body map[string]any
-		if err := json.Unmarshal(captured, &body); err != nil {
-			t.Fatalf("decode body: %v\n--- raw ---\n%s", err, captured)
-		}
-		harness, _ := body["harness"].(string)
-		return harness
+	def := pusher.buildAgentDefinition(t.Context(), &agent, &cred, "ptok_harness", uuid.New().String())
+	client := bridgepkg.NewBridgeClient(srv.URL, "test-key")
+	if err := client.UpsertAgent(context.Background(), agent.ID.String(), def); err != nil {
+		t.Fatalf("UpsertAgent: %v", err)
 	}
 
-	// Push 1: harness should be computed (open_code for openai+gpt-4o) and
-	// stamped on the agents row.
-	pushedHarness1 := push(t)
-	if pushedHarness1 != string(bridgepkg.OpenCode) {
-		t.Errorf("first push harness = %q, want %q", pushedHarness1, bridgepkg.OpenCode)
+	var body map[string]any
+	if err := json.Unmarshal(captured, &body); err != nil {
+		t.Fatalf("decode body: %v\n--- raw ---\n%s", err, captured)
 	}
-
-	var afterFirst model.Agent
-	if err := db.Where("id = ?", agent.ID).First(&afterFirst).Error; err != nil {
-		t.Fatalf("read agent after first push: %v", err)
-	}
-	if afterFirst.Harness != string(bridgepkg.OpenCode) {
-		t.Errorf("agent.harness after first push = %q, want %q", afterFirst.Harness, bridgepkg.OpenCode)
-	}
-
-	// Push 2: persisted value should be reused verbatim.
-	pushedHarness2 := push(t)
-	if pushedHarness2 != string(bridgepkg.OpenCode) {
-		t.Errorf("second push harness = %q, want %q", pushedHarness2, bridgepkg.OpenCode)
-	}
+	return body
 }

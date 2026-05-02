@@ -91,6 +91,7 @@ type createAgentRequest struct {
 	SharedMemory      bool                `json:"shared_memory,omitempty"`
 	SandboxTools      []string            `json:"sandbox_tools,omitempty"`
 	SkillIDs          []string            `json:"skill_ids,omitempty"`
+	Harness           string              `json:"harness,omitempty"`
 	Triggers          []agentTriggerInput `json:"triggers,omitempty"`
 }
 
@@ -116,6 +117,7 @@ type updateAgentRequest struct {
 	SharedMemory      *bool                `json:"shared_memory,omitempty"`
 	SandboxTools      []string             `json:"sandbox_tools,omitempty"`
 	SkillIDs          *[]string            `json:"skill_ids,omitempty"`
+	Harness           *string              `json:"harness,omitempty"`
 	Triggers          *[]agentTriggerInput `json:"triggers,omitempty"`
 }
 
@@ -159,6 +161,7 @@ type agentResponse struct {
 	Team              string                 `json:"team"`
 	SharedMemory      bool                   `json:"shared_memory"`
 	SandboxTools      []string               `json:"sandbox_tools"`
+	Harness           string                 `json:"harness"`
 	Status            string                 `json:"status"`
 	Triggers          []agentTriggerResponse `json:"triggers"`
 	AttachedSkills    []agentSkillSummary    `json:"attached_skills"`
@@ -187,6 +190,7 @@ func toAgentResponse(a model.Agent) agentResponse {
 		Team:         a.Team,
 		SharedMemory: a.SharedMemory,
 		SandboxTools: ensureStringSlice(a.SandboxTools),
+		Harness:      a.Harness,
 		Status:       a.Status,
 		CreatedAt:    a.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:    a.UpdatedAt.Format(time.RFC3339),

@@ -13,6 +13,15 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
+func validateHarness(harness string) error {
+	switch harness {
+	case "", "claude", "open_code":
+		return nil
+	default:
+		return fmt.Errorf("invalid harness %q (must be 'claude' or 'open_code')", harness)
+	}
+}
+
 // loadAgentTriggers loads the routing triggers configured for one or more agents.
 // Returns a map from agent ID to trigger responses. Uses a single query with
 // joins to avoid N+1.

@@ -116,13 +116,12 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 		t.Fatalf("decode upsert body: %v\n--- raw ---\n%s", err, gotUpsertBody)
 	}
 
-	// Required new field: harness MUST be present and equal "claude" in Wave 1.
 	harness, ok := upsertJSON["harness"]
 	if !ok {
 		t.Errorf("upsert body missing required `harness` field; got keys: %v", mapKeys(upsertJSON))
 	}
-	if harness != "claude" {
-		t.Errorf("harness = %v, want \"claude\"", harness)
+	if harness != "open_code" {
+		t.Errorf("harness = %v, want \"open_code\" (default for agents without an explicit harness)", harness)
 	}
 
 	// Dead fields that MUST NOT appear in the new wire shape.
