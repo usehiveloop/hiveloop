@@ -267,7 +267,7 @@ function InviteDialog() {
             <Label htmlFor="invite-role" className="text-[13px] font-medium">
               Role
             </Label>
-            <Select value={role} onValueChange={setRole}>
+            <Select value={role} onValueChange={(value) => value && setRole(value)}>
               <SelectTrigger id="invite-role" className="w-36">
                 <SelectValue />
               </SelectTrigger>
