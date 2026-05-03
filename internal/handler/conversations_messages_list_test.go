@@ -180,31 +180,20 @@ func TestListMessages_AggregatesUserMessageAndConsecutiveBashCalls(t *testing.T)
 
 	h.seed(t, []model.ConversationEvent{
 		{SequenceNumber: 1, EventType: "message_received", Data: mustJSON(t, map[string]any{"content": "do the thing"})},
-		{SequenceNumber: 2, EventType: "tool_call_started", Data: mustJSON(t, map[string]any{
+		// Three bash completions in a row with the same title should fold into one group.
+		{SequenceNumber: 2, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{
 			"title": "bash", "tool_call_id": "tc-1",
+			"raw_output": map[string]any{"output": "a\nb\nc"},
 		})},
 		{SequenceNumber: 3, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{
-			"title":        "ls /tmp",
-			"tool_call_id": "tc-1",
-			"raw_output":   map[string]any{"output": "a\nb\nc"},
-		})},
-		{SequenceNumber: 4, EventType: "tool_call_started", Data: mustJSON(t, map[string]any{
 			"title": "bash", "tool_call_id": "tc-2",
+			"raw_output": map[string]any{"output": "hi"},
 		})},
-		{SequenceNumber: 5, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{
-			"title":        "echo hi",
-			"tool_call_id": "tc-2",
-			"raw_output":   map[string]any{"output": "hi"},
-		})},
-		{SequenceNumber: 6, EventType: "tool_call_started", Data: mustJSON(t, map[string]any{
+		{SequenceNumber: 4, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{
 			"title": "bash", "tool_call_id": "tc-3",
+			"raw_output": map[string]any{"output": "/work"},
 		})},
-		{SequenceNumber: 7, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{
-			"title":        "pwd",
-			"tool_call_id": "tc-3",
-			"raw_output":   map[string]any{"output": "/work"},
-		})},
-		{SequenceNumber: 8, EventType: "turn_completed", Data: mustJSON(t, map[string]any{"stop_reason": "endturn"})},
+		{SequenceNumber: 5, EventType: "turn_completed", Data: mustJSON(t, map[string]any{"stop_reason": "endturn"})},
 	})
 
 	rr := h.get(t, "")
@@ -247,8 +236,8 @@ func TestListMessages_AggregatesUserMessageAndConsecutiveBashCalls(t *testing.T)
 			t.Errorf("call %d status: got %v, want completed", i, cm["status"])
 		}
 	}
-	if calls[0].(map[string]any)["title"] != "ls /tmp" {
-		t.Errorf("call 0 title: got %v, want ls /tmp", calls[0].(map[string]any)["title"])
+	if calls[0].(map[string]any)["title"] != "bash" {
+		t.Errorf("call 0 title: got %v, want bash", calls[0].(map[string]any)["title"])
 	}
 }
 
@@ -256,12 +245,9 @@ func TestListMessages_DifferentToolNamesProduceSeparateGroups(t *testing.T) {
 	h := newMessagesListHarness(t)
 
 	h.seed(t, []model.ConversationEvent{
-		{SequenceNumber: 1, EventType: "tool_call_started", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "a"})},
-		{SequenceNumber: 2, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "a"})},
-		{SequenceNumber: 3, EventType: "tool_call_started", Data: mustJSON(t, map[string]any{"title": "read", "tool_call_id": "b"})},
-		{SequenceNumber: 4, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{"title": "read", "tool_call_id": "b"})},
-		{SequenceNumber: 5, EventType: "tool_call_started", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "c"})},
-		{SequenceNumber: 6, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "c"})},
+		{SequenceNumber: 1, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "a"})},
+		{SequenceNumber: 2, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{"title": "read", "tool_call_id": "b"})},
+		{SequenceNumber: 3, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "c"})},
 	})
 
 	rr := h.get(t, "")
@@ -288,11 +274,9 @@ func TestListMessages_TurnCompletedSeparatesAgentMessages(t *testing.T) {
 	h := newMessagesListHarness(t)
 
 	h.seed(t, []model.ConversationEvent{
-		{SequenceNumber: 1, EventType: "tool_call_started", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "a"})},
-		{SequenceNumber: 2, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "a"})},
-		{SequenceNumber: 3, EventType: "turn_completed", Data: mustJSON(t, map[string]any{"stop_reason": "endturn"})},
-		{SequenceNumber: 4, EventType: "tool_call_started", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "b"})},
-		{SequenceNumber: 5, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "b"})},
+		{SequenceNumber: 1, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "a"})},
+		{SequenceNumber: 2, EventType: "turn_completed", Data: mustJSON(t, map[string]any{"stop_reason": "endturn"})},
+		{SequenceNumber: 3, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "b"})},
 	})
 
 	rr := h.get(t, "")
@@ -307,7 +291,7 @@ func TestListMessages_TurnCompletedSeparatesAgentMessages(t *testing.T) {
 	}
 }
 
-func TestListMessages_RunningCallStaysRunningUntilCompletion(t *testing.T) {
+func TestListMessages_StartedWithoutCompletionIsHidden(t *testing.T) {
 	h := newMessagesListHarness(t)
 
 	h.seed(t, []model.ConversationEvent{
@@ -316,10 +300,8 @@ func TestListMessages_RunningCallStaysRunningUntilCompletion(t *testing.T) {
 
 	rr := h.get(t, "")
 	page := decodeMessagesPage(t, rr)
-	groups := page.Data[0]["tool_groups"].([]any)
-	calls := groups[0].(map[string]any)["calls"].([]any)
-	if calls[0].(map[string]any)["status"] != "running" {
-		t.Errorf("call status: got %v, want running", calls[0].(map[string]any)["status"])
+	if len(page.Data) != 0 {
+		t.Fatalf("messages: got %d, want 0 (a started-only call should produce no message)", len(page.Data))
 	}
 }
 
@@ -367,13 +349,15 @@ func TestListMessages_PaginationByCursor(t *testing.T) {
 	}
 }
 
-func TestListMessages_OrphanCompletionRendersAsCompletedCall(t *testing.T) {
+func TestListMessages_StartedEventsAreIgnored(t *testing.T) {
 	h := newMessagesListHarness(t)
 
 	h.seed(t, []model.ConversationEvent{
-		{SequenceNumber: 1, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{
-			"title":        "bash",
-			"tool_call_id": "orphan",
+		{SequenceNumber: 1, EventType: "tool_call_started", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "a"})},
+		{SequenceNumber: 2, EventType: "tool_call_started", Data: mustJSON(t, map[string]any{"title": "bash", "tool_call_id": "b"})},
+		{SequenceNumber: 3, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{
+			"title":        "ls",
+			"tool_call_id": "a",
 			"raw_output":   map[string]any{"output": "ok"},
 		})},
 	})
@@ -381,12 +365,18 @@ func TestListMessages_OrphanCompletionRendersAsCompletedCall(t *testing.T) {
 	rr := h.get(t, "")
 	page := decodeMessagesPage(t, rr)
 	if len(page.Data) != 1 {
-		t.Fatalf("messages: got %d, want 1", len(page.Data))
+		t.Fatalf("messages: got %d, want 1 (one completion → one agent message)", len(page.Data))
 	}
 	groups := page.Data[0]["tool_groups"].([]any)
+	if len(groups) != 1 {
+		t.Fatalf("groups: got %d, want 1", len(groups))
+	}
 	calls := groups[0].(map[string]any)["calls"].([]any)
+	if len(calls) != 1 {
+		t.Fatalf("calls: got %d, want 1 (only the completed event surfaces; the two started events are dropped)", len(calls))
+	}
 	if calls[0].(map[string]any)["status"] != "completed" {
-		t.Errorf("orphan call status: got %v, want completed", calls[0].(map[string]any)["status"])
+		t.Errorf("call status: got %v, want completed", calls[0].(map[string]any)["status"])
 	}
 }
 
