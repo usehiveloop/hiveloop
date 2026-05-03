@@ -311,6 +311,16 @@ function formatTimestamp(iso: string | undefined): string {
 type ApiToolCall = components["schemas"]["conversationToolCallResponse"]
 type ApiToolGroup = components["schemas"]["conversationToolGroupResponse"]
 type ApiMessage = components["schemas"]["conversationMessageResponse"]
+type ApiTodo = components["schemas"]["conversationTodoItem"]
+
+type TodoStatus = "pending" | "in_progress" | "completed"
+type Todo = { content: string; status: TodoStatus; priority?: string }
+
+function apiTodoToTodo(t: ApiTodo): Todo {
+  const status: TodoStatus =
+    t.status === "in_progress" || t.status === "completed" ? t.status : "pending"
+  return { content: t.content ?? "", status, priority: t.priority }
+}
 
 function apiMessageToMessage(m: ApiMessage): Message {
   return {
@@ -350,6 +360,11 @@ export default function AgentDetailPage() {
 
   const messages = React.useMemo<Message[]>(
     () => (messagesQuery.data?.data ?? []).map(apiMessageToMessage),
+    [messagesQuery.data],
+  )
+
+  const todos = React.useMemo<Todo[]>(
+    () => (messagesQuery.data?.latest_todos ?? []).map(apiTodoToTodo),
     [messagesQuery.data],
   )
 
@@ -398,7 +413,7 @@ export default function AgentDetailPage() {
             </div>
           </ScrollToBottom>
 
-          <Composer />
+          <Composer todos={todos} />
         </Panel>
 
         <PanelResizer
@@ -793,28 +808,118 @@ function ToolGroupChip({ group }: { group: ToolGroup }) {
   )
 }
 
-function Composer() {
+function Composer({ todos }: { todos: Todo[] }) {
   return (
     <div className="shrink-0 bg-background px-4 py-3">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 rounded-2xl border border-border bg-muted/30 p-2 focus-within:border-primary/60">
-        <Textarea
-          placeholder="Reply to agent…"
-          rows={2}
-          className="min-h-0 resize-none border-0 bg-transparent px-2 py-1.5 text-[14px] shadow-none focus-visible:ring-0"
-        />
-        <div className="flex items-center justify-between gap-2 px-1">
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon-sm" disabled aria-label="Attach">
-              <HugeiconsIcon icon={Attachment02Icon} size={14} />
+      <div className="mx-auto w-full max-w-2xl">
+        {todos.length > 0 ? <TodoStrip todos={todos} /> : null}
+        <div className="flex flex-col gap-2 rounded-2xl border border-border bg-muted/30 p-2 focus-within:border-primary/60">
+          <Textarea
+            placeholder="Reply to agent…"
+            rows={2}
+            className="min-h-0 resize-none border-0 bg-transparent px-2 py-1.5 text-[14px] shadow-none focus-visible:ring-0"
+          />
+          <div className="flex items-center justify-between gap-2 px-1">
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon-sm" disabled aria-label="Attach">
+                <HugeiconsIcon icon={Attachment02Icon} size={14} />
+              </Button>
+            </div>
+            <Button size="sm" className="gap-1.5" disabled>
+              Send
+              <HugeiconsIcon icon={Sent02Icon} size={13} />
             </Button>
           </div>
-          <Button size="sm" className="gap-1.5" disabled>
-            Send
-            <HugeiconsIcon icon={Sent02Icon} size={13} />
-          </Button>
         </div>
       </div>
     </div>
+  )
+}
+
+function TodoStrip({ todos }: { todos: Todo[] }) {
+  const [open, setOpen] = React.useState(true)
+  const completed = todos.filter((t) => t.status === "completed").length
+  const inProgress = todos.find((t) => t.status === "in_progress")
+  const headlineLabel = inProgress
+    ? inProgress.content
+    : `${completed} of ${todos.length} done`
+
+  return (
+    <div className="mb-2 overflow-hidden rounded-xl border border-border bg-muted/30">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-muted/60"
+      >
+        <span className="font-mono text-[10px] uppercase tracking-[1px] text-muted-foreground/70">
+          Todos
+        </span>
+        <span className="text-[10px] text-muted-foreground/60">·</span>
+        <span className="flex-1 truncate text-[12px] text-foreground">
+          {headlineLabel}
+        </span>
+        <span className="font-mono text-[11px] tabular-nums text-muted-foreground/70">
+          {completed}/{todos.length}
+        </span>
+        <motion.span
+          animate={{ rotate: open ? 90 : 0 }}
+          transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
+          className="text-muted-foreground/70"
+        >
+          <HugeiconsIcon icon={ArrowRight01Icon} size={12} />
+        </motion.span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            key="todos"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+            className="overflow-hidden"
+          >
+            <ul className="flex max-h-56 flex-col gap-1 overflow-auto border-t border-border/60 px-3 py-2">
+              {todos.map((todo, i) => (
+                <TodoRow key={i} todo={todo} />
+              ))}
+            </ul>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function TodoRow({ todo }: { todo: Todo }) {
+  const isDone = todo.status === "completed"
+  const isActive = todo.status === "in_progress"
+  return (
+    <li className="flex items-start gap-2">
+      <span
+        className={
+          "mt-1 size-1.5 shrink-0 rounded-full " +
+          (isDone
+            ? "bg-emerald-500"
+            : isActive
+              ? "bg-amber-500 animate-pulse"
+              : "bg-muted-foreground/40")
+        }
+      />
+      <span
+        className={
+          "flex-1 text-[12px] leading-snug " +
+          (isDone
+            ? "text-muted-foreground/70 line-through"
+            : isActive
+              ? "text-foreground"
+              : "text-muted-foreground")
+        }
+      >
+        {todo.content}
+      </span>
+    </li>
   )
 }
 
