@@ -109,14 +109,18 @@ func (d *Driver) CreateSandbox(ctx context.Context, opts sandbox.CreateSandboxOp
 		Public:  false,
 	}
 
+	// SDK's Client.Create switches on value types (types.SnapshotParams,
+	// types.ImageParams) — passing pointers falls through to the default
+	// branch which silently drops env vars + labels and uses the platform's
+	// default image. Pass values.
 	var params any
 	if opts.SnapshotID != "" {
-		params = &sdktypes.SnapshotParams{
+		params = sdktypes.SnapshotParams{
 			SandboxBaseParams: base,
 			Snapshot:          opts.SnapshotID,
 		}
 	} else {
-		params = &sdktypes.ImageParams{
+		params = sdktypes.ImageParams{
 			SandboxBaseParams: base,
 			Image:             "hiveloop/bridge:latest",
 		}
