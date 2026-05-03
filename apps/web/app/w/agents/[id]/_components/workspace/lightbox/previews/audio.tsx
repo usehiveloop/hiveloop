@@ -25,7 +25,7 @@ export function AudioPreview({ asset }: { asset: Asset }) {
         <HeroCard filename={asset.filename} hueA={hueA} hueB={hueB} />
 
         <div
-          className="overflow-hidden rounded-xl ring-1 ring-foreground/10"
+          className="overflow-hidden rounded-xl bg-card ring-1 ring-border shadow-sm"
           style={{
             ["--media-brand" as never]: "oklch(var(--primary))",
             ["--media-focus-ring" as never]: "0 0 0 3px oklch(var(--ring) / 0.35)",
@@ -49,7 +49,7 @@ export function AudioPreview({ asset }: { asset: Asset }) {
 
 function HeroCard({ filename, hueA, hueB }: { filename: string; hueA: number; hueB: number }) {
   return (
-    <div className="relative aspect-[16/7] overflow-hidden rounded-2xl ring-1 ring-foreground/10">
+    <div className="relative aspect-[16/7] overflow-hidden rounded-2xl ring-1 ring-border">
       <div
         aria-hidden
         className="absolute inset-0"

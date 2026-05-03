@@ -19,30 +19,31 @@ export function ArchivePreview({ asset, kind }: { asset: Asset; kind: AssetKind 
 
   return (
     <div className="flex h-full w-full items-center justify-center px-6 py-24">
-      <div className="relative flex w-full max-w-[520px] flex-col items-center gap-6 overflow-hidden rounded-2xl bg-foreground/[0.025] px-10 py-12 text-center ring-1 ring-foreground/10">
+      <div className="relative flex w-full max-w-[520px] flex-col items-center gap-6 overflow-hidden rounded-2xl bg-card px-10 py-12 text-center ring-1 ring-border shadow-sm">
         {/* Diagonal hairline pattern hints at "wrapped contents" without a
-            literal stack-of-folders icon cliché. */}
+            literal stack-of-folders icon cliché. Uses --foreground via the
+            CSS var so it adapts to both themes. */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage:
-              "repeating-linear-gradient(135deg, oklch(var(--foreground)) 0 1px, transparent 1px 12px)",
+              "repeating-linear-gradient(135deg, var(--foreground) 0 1px, transparent 1px 12px)",
           }}
         />
 
-        <div className="relative flex size-14 items-center justify-center rounded-xl bg-foreground/[0.06] text-foreground/80 ring-1 ring-foreground/10">
+        <div className="relative flex size-14 items-center justify-center rounded-xl bg-muted text-foreground ring-1 ring-border">
           <HugeiconsIcon icon={FileZipIcon} size={22} />
         </div>
 
         <div className="relative flex flex-col gap-1.5">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
             {label}
           </span>
           <h3 className="font-heading text-[20px] font-medium leading-tight text-foreground">
             {asset.filename}
           </h3>
-          <p className="text-[12.5px] leading-relaxed text-foreground/60">{tagline}</p>
+          <p className="text-[12.5px] leading-relaxed text-muted-foreground">{tagline}</p>
         </div>
 
         <a

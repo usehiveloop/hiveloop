@@ -33,7 +33,7 @@ export function ImagePreview({ asset }: { asset: Asset }) {
           a transparent background — a faint envelope that says "this is the
           subject," not a chrome border that competes with it. */}
       <div className="relative max-h-full max-w-full">
-        <span className="pointer-events-none absolute -inset-px rounded-md ring-1 ring-foreground/[0.06]" />
+        <span className="pointer-events-none absolute -inset-px rounded-md ring-1 ring-border" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={asset.publicUrl}

@@ -18,7 +18,7 @@ export function VideoPreview({ asset }: { asset: Asset }) {
   return (
     <div className="flex h-full w-full items-center justify-center px-12 py-20">
       <div
-        className="relative w-full max-w-[min(1200px,calc(100vw-6rem))] overflow-hidden rounded-md ring-1 ring-foreground/10"
+        className="relative w-full max-w-[min(1200px,calc(100vw-6rem))] overflow-hidden rounded-md bg-card ring-1 ring-border shadow-xl shadow-foreground/[0.04]"
         // The vidstack community skin reads colour from `--media-brand` for
         // the progress fill, time-slider thumb and active button states. We
         // route it through our app's primary so the player feels native.
