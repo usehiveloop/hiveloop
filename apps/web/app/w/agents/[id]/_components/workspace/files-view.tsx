@@ -17,6 +17,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { $api } from "@/lib/api/hooks"
 import type { components } from "@/lib/api/schema"
+import { Lightbox } from "./lightbox"
 
 type ApiAsset = components["schemas"]["assetListItem"]
 
@@ -28,6 +29,7 @@ type FileKind = "image" | "video" | "audio" | "pdf" | "zip" | "doc"
 
 export function FilesView({ conversationId }: { conversationId?: string }) {
   const [folder, setFolder] = React.useState<string>("")
+  const [previewIndex, setPreviewIndex] = React.useState<number | null>(null)
 
   const query = $api.useQuery(
     "get",
@@ -41,40 +43,61 @@ export function FilesView({ conversationId }: { conversationId?: string }) {
   const assets = React.useMemo<ApiAsset[]>(() => query.data?.data ?? [], [query.data])
 
   const entries = React.useMemo<Entry[]>(() => buildEntries(assets, folder), [assets, folder])
+
+  // The lightbox navigates only across files visible in the current view, in
+  // the same order they appear on screen, so prev/next feels predictable.
+  const previewable = React.useMemo<ApiAsset[]>(
+    () => entries.filter((e): e is FileEntry => e.kind === "file").map((e) => e.asset),
+    [entries],
+  )
+
   const isLoading = query.isLoading
   const isEmpty = !isLoading && assets.length === 0
   const isFolderEmpty = !isLoading && entries.length === 0 && assets.length > 0
 
   return (
-    <ScrollArea className="h-full">
-      <div className="flex flex-col px-3 pb-28 pt-2">
-        <Breadcrumb folder={folder} onNavigate={setFolder} />
+    <>
+      <ScrollArea className="h-full">
+        <div className="flex flex-col px-3 pb-28 pt-2">
+          <Breadcrumb folder={folder} onNavigate={setFolder} />
 
-        <div className="grid grid-cols-[1fr_120px_140px] gap-3 px-3 pb-2 font-mono text-[10px] uppercase tracking-[1.2px] text-muted-foreground/50">
-          <span>Name</span>
-          <span>Size</span>
-          <span>Modified</span>
+          <div className="grid grid-cols-[1fr_120px_140px] gap-3 px-3 pb-2 font-mono text-[10px] uppercase tracking-[1.2px] text-muted-foreground/50">
+            <span>Name</span>
+            <span>Size</span>
+            <span>Modified</span>
+          </div>
+
+          {isLoading ? <RowSkeletons /> : null}
+          {isEmpty ? <EmptyState text="No files have been uploaded in this session yet." /> : null}
+          {isFolderEmpty ? <EmptyState text="This folder is empty." /> : null}
+
+          <div className="flex flex-col gap-0.5">
+            {entries.map((entry, i) => (
+              <Row
+                key={entry.kind === "folder" ? `f:${entry.name}` : entry.asset.id}
+                entry={entry}
+                currentFolder={folder}
+                onOpenFolder={(name) =>
+                  setFolder((prev) => (prev ? `${prev}/${name}` : name))
+                }
+                onOpenAsset={(asset) => {
+                  const idx = previewable.findIndex((p) => p.id === asset.id)
+                  if (idx >= 0) setPreviewIndex(idx)
+                }}
+                animationIndex={i}
+              />
+            ))}
+          </div>
         </div>
+      </ScrollArea>
 
-        {isLoading ? <RowSkeletons /> : null}
-        {isEmpty ? <EmptyState text="No files have been uploaded in this session yet." /> : null}
-        {isFolderEmpty ? <EmptyState text="This folder is empty." /> : null}
-
-        <div className="flex flex-col gap-0.5">
-          {entries.map((entry, i) => (
-            <Row
-              key={entry.kind === "folder" ? `f:${entry.name}` : entry.asset.id}
-              entry={entry}
-              currentFolder={folder}
-              onOpenFolder={(name) =>
-                setFolder((prev) => (prev ? `${prev}/${name}` : name))
-              }
-              animationIndex={i}
-            />
-          ))}
-        </div>
-      </div>
-    </ScrollArea>
+      <Lightbox
+        assets={previewable}
+        index={previewIndex}
+        onIndexChange={setPreviewIndex}
+        onClose={() => setPreviewIndex(null)}
+      />
+    </>
   )
 }
 
@@ -179,11 +202,13 @@ function Row({
   entry,
   currentFolder,
   onOpenFolder,
+  onOpenAsset,
   animationIndex,
 }: {
   entry: Entry
   currentFolder: string
   onOpenFolder: (name: string) => void
+  onOpenAsset: (asset: ApiAsset) => void
   animationIndex: number
 }) {
   const style = { animationDelay: `${Math.min(animationIndex, 10) * 18}ms` }
@@ -213,10 +238,9 @@ function Row({
     : `${a.path ? a.path + "/" : ""}${a.filename ?? ""}`
 
   return (
-    <a
-      href={a.public_url ?? "#"}
-      target="_blank"
-      rel="noreferrer noopener"
+    <button
+      type="button"
+      onClick={() => onOpenAsset(a)}
       style={style}
       className="grid animate-in fade-in slide-in-from-bottom-1 grid-cols-[1fr_120px_140px] items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors duration-150 hover:bg-muted/50"
       title={fullPath}
@@ -227,7 +251,7 @@ function Row({
       </span>
       <span className="text-[12px] text-muted-foreground">{formatBytes(a.bytes)}</span>
       <span className="text-[12px] text-muted-foreground">{formatRelative(a.created_at)}</span>
-    </a>
+    </button>
   )
 }
 
