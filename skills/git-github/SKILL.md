@@ -1,6 +1,6 @@
 ---
 name: git-github
-description: Use whenever you need to perform common human git or GitHub activities from the CLI — creating branches, writing commits, opening pull requests (including PRs with screenshots / uploaded images), commenting on PRs or issues, reacting (👍 / 🚀 / 👀), adding labels, requesting reviews, merging, checking status, fetching diffs. Always inspect the repo first to discover its branch-naming, commit, label, and PR conventions before acting. Triggers include: "open a PR", "create a pull request", "comment on PR", "react to that comment", "label this PR", "create a branch", "commit this", "follow the commit convention", "attach a screenshot", "request a review", "merge this", "draft PR".
+description: Use whenever you need to perform common human git or GitHub activities from the CLI — creating branches, writing commits, opening pull requests (including PRs with screenshots, GIFs, or video demos in the description), commenting on PRs or issues, reacting (👍 / 🚀 / 👀), adding labels, requesting reviews, merging, checking status, fetching diffs. Always inspect the repo first to discover its branch-naming, commit, label, and PR conventions before acting. PR images and demo media are always uploaded through the `public-assets-uploads` skill, never gists or base64 — load that skill before composing a PR body that includes any asset. Triggers include: "open a PR", "create a pull request", "comment on PR", "react to that comment", "label this PR", "create a branch", "commit this", "follow the commit convention", "attach a screenshot", "embed an image in the PR", "include a demo video", "before/after screenshots", "request a review", "merge this", "draft PR".
 ---
 
 # Git + GitHub workflows from the CLI
@@ -221,44 +221,43 @@ test -f .github/PULL_REQUEST_TEMPLATE.md && cat .github/PULL_REQUEST_TEMPLATE.md
 
 ### 4b. PR with uploaded images / screenshots
 
-Always host PR images on a **GitHub gist**. Never commit screenshots into the project repo — they bloat history and aren't part of the change.
+**This is the only supported way to host an image in a PR description.** Do not commit screenshots into the project repo, do not paste data-URIs into markdown, do not create a gist, do not call GitHub's `user-attachments` endpoint, do not upload to imgur or any other host. All of these are wrong.
 
-`gh gist create file.png` rejects binary files directly (`binary file not supported`). The reliable trick: a gist IS a git repo, so create the gist with a placeholder text file, then `git push` the image into it.
+Every PR image, video, GIF, before/after screenshot, demo recording, etc. must be uploaded through our **public assets drive** so the URL is stable, owned by us, and tied to this conversation.
+
+**Load the `public-assets-uploads` skill before generating the PR body.** It documents the exact `curl` invocation, the env vars (`HIVELOOP_ASSETS_UPLOAD_URL`, `HIVELOOP_CONVERSATION_ID`, `BRIDGE_CONTROL_PLANE_API_KEY`), the response shape, and the conventions for organising assets into folders. Do not try to reconstruct the upload protocol from memory — load the skill, follow it.
+
+Workflow:
 
 ```bash
-# 1. Create the gist with a placeholder (text file is required by gh gist create)
-echo "PR-1234 assets" > /tmp/placeholder.md
-GIST_URL=$(gh gist create --public --desc "PR-1234 screenshots" /tmp/placeholder.md)
-GIST_ID=$(basename "$GIST_URL")
-USER=$(gh api user -q .login)
+# 1. Load the public-assets-uploads skill (don't skip this — the curl
+#    incantation, headers, and URL shape are all in there).
 
-# 2. Clone the gist's git repo and push the image into it
-#    (One-time setup: ssh-keyscan gist.github.com >> ~/.ssh/known_hosts)
-git clone "git@gist.github.com:${GIST_ID}.git" /tmp/gist-${GIST_ID}
-cp /tmp/screenshot.png /tmp/gist-${GIST_ID}/screenshot.png
-git -C /tmp/gist-${GIST_ID} add screenshot.png
-git -C /tmp/gist-${GIST_ID} commit -m "add screenshot"
-git -C /tmp/gist-${GIST_ID} push origin HEAD
+# 2. Upload the screenshot using that skill's curl invocation. It returns
+#    a JSON response with a `public_url` field. Capture it:
+URL=$(
+  curl -fsS -X PUT \
+    -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" \
+    -H "Content-Type: image/png" \
+    --upload-file ./screenshot.png \
+    "$HIVELOOP_ASSETS_UPLOAD_URL/$HIVELOOP_CONVERSATION_ID/assets/pr/screenshot.png" \
+  | jq -r .public_url
+)
 
-# 3. Reference via gist.githubusercontent.com raw URL (renders inline in markdown)
-RAW_URL="https://gist.githubusercontent.com/${USER}/${GIST_ID}/raw/screenshot.png"
-echo "![screenshot]($RAW_URL)"
-
-# 4. Use the URL in the PR body
+# 3. Embed the URL in the PR body. Use a descriptive folder so future
+#    readers can tell what's what (pr/, demos/, before-after/, etc).
 gh pr create --title "..." --body "$(cat <<EOF
 ## Summary
 Before/after:
 
-![screenshot]($RAW_URL)
+![screenshot]($URL)
 EOF
 )"
 ```
 
-URL form to use: `https://gist.githubusercontent.com/<user>/<gist-id>/raw/<filename>`. Verified to serve as `Content-Type: image/png` and renders inline in PR markdown.
+For multiple images or a before/after pair, run the upload step once per file and paste each URL. For animated demos, upload an `.mp4` or `.webm` and embed it the same way (GitHub renders video URLs inline).
 
-If `git clone git@gist.github.com:...` fails with `Host key verification failed`, run once: `ssh-keyscan -t rsa,ecdsa,ed25519 gist.github.com >> ~/.ssh/known_hosts`. If you don't use SSH for git, use the HTTPS form: `git clone https://gist.github.com/<user>/<gist-id>.git`.
-
-Do **not** try to call GitHub's `user-attachments` upload endpoint from `gh api` — it's an undocumented browser-only API (uses CSRF tokens) and breaks from CLI.
+If you ever find yourself reaching for `gh gist`, `git push` to a gist repo, base64 inside markdown, or a third-party host: stop. Load `public-assets-uploads` and use it.
 
 ### 4c. Update an existing PR
 
@@ -388,8 +387,8 @@ gh pr view <number> --comments
 | `--no-verify` to skip a failing hook | Fix the underlying issue and commit again — never bypass without explicit user approval |
 | Force-pushing to a shared branch | Use `--force-with-lease` on your own branch; never force-push `main` |
 | Inventing labels that don't exist | `gh label list` first; only create new labels if asked |
-| Committing screenshots into the project repo to embed in a PR | Host them on a gist instead (clone the gist as a git repo and push the image to it) |
-| Running `gh gist create file.png` directly | It rejects binaries — create the gist with a text placeholder, then `git push` the image to the gist's git repo |
+| Committing screenshots into the project repo to embed in a PR | Upload them via the `public-assets-uploads` skill — that's the only supported host |
+| Reaching for gists, imgur, base64 data-URIs, or `gh api user-attachments` for PR images | All wrong. Load `public-assets-uploads` and use it; it returns a stable public URL you can paste into the PR body |
 | Merging without checking CI | `gh pr checks <n>` and `mergeStateStatus` before `gh pr merge` |
 | Approving / merging someone else's PR without being asked | Don't. Ask the user first |
 
