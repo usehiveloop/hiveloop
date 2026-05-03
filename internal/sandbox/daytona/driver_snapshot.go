@@ -131,6 +131,7 @@ func (d *Driver) GetSnapshotStatus(ctx context.Context, externalID string) (*san
 	result := &sandbox.SnapshotStatusResult{State: snapshot.State}
 	if snapshot.ErrorReason != nil {
 		result.ErrorReason = *snapshot.ErrorReason
+		result.ErrorMsg = *snapshot.ErrorReason
 	}
 	return result, nil
 }
