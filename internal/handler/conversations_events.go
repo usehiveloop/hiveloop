@@ -2,7 +2,9 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
@@ -13,13 +15,13 @@ import (
 
 // ListEvents handles GET /v1/conversations/{convID}/events.
 // @Summary List conversation events
-// @Description Returns webhook events persisted for the conversation. Filterable by event type.
+// @Description Returns webhook events persisted for the conversation, ordered by sequence_number DESC (newest first). Pagination cursor is the lowest sequence_number on the current page; pass it back to fetch the next older page. Filterable by event type.
 // @Tags conversations
 // @Produce json
 // @Param convID path string true "Conversation ID"
 // @Param type query string false "Filter by event type (e.g. MessageReceived, ResponseCompleted)"
-// @Param limit query int false "Page size"
-// @Param cursor query string false "Pagination cursor"
+// @Param limit query int false "Page size (default 50, max 100)"
+// @Param cursor query string false "Pagination cursor — sequence_number from previous page's tail. Returns events with sequence_number strictly less than this value."
 // @Success 200 {object} paginatedResponse[conversationEventResponse]
 // @Failure 404 {object} errorResponse
 // @Security BearerAuth
@@ -42,7 +44,7 @@ func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	limit, cursor, err := parsePagination(r)
+	limit, beforeSeq, err := parseEventsPagination(r)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
@@ -52,7 +54,10 @@ func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request)
 	if eventType := r.URL.Query().Get("type"); eventType != "" {
 		q = q.Where("event_type = ?", eventType)
 	}
-	q = applyPagination(q, cursor, limit)
+	if beforeSeq != nil {
+		q = q.Where("sequence_number < ?", *beforeSeq)
+	}
+	q = q.Order("sequence_number DESC").Limit(limit + 1)
 
 	var events []model.ConversationEvent
 	if err := q.Find(&events).Error; err != nil {
@@ -83,10 +88,35 @@ func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request)
 	result := paginatedResponse[conversationEventResponse]{Data: resp, HasMore: hasMore}
 	if hasMore {
 		last := events[len(events)-1]
-		c := encodeCursor(last.CreatedAt, last.ID)
+		c := strconv.FormatInt(last.SequenceNumber, 10)
 		result.NextCursor = &c
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+
+func parseEventsPagination(r *http.Request) (int, *int64, error) {
+	limit := 50
+	if l := r.URL.Query().Get("limit"); l != "" {
+		n, err := strconv.Atoi(l)
+		if err != nil || n < 1 {
+			return 0, nil, fmt.Errorf("invalid limit")
+		}
+		if n > 100 {
+			n = 100
+		}
+		limit = n
+	}
+
+	var before *int64
+	if c := r.URL.Query().Get("cursor"); c != "" && c != "0" {
+		n, err := strconv.ParseInt(c, 10, 64)
+		if err != nil {
+			return 0, nil, fmt.Errorf("invalid cursor")
+		}
+		before = &n
+	}
+
+	return limit, before, nil
 }
 
 // History handles GET /v1/conversations/{convID}/history.

@@ -187,6 +187,7 @@ func setupV1Routes(
 					r.Route("/conversations/{convID}", func(r chi.Router) {
 						r.Get("/", conversationHandler.Get)
 						r.Delete("/", conversationHandler.End)
+						r.Get("/messages", conversationHandler.ListMessages)
 						r.Post("/messages", conversationHandler.SendMessage)
 						r.Get("/stream", conversationHandler.Stream)
 						r.Get("/history", conversationHandler.History)

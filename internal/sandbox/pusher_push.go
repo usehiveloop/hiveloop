@@ -92,29 +92,9 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 		},
 	}
 
-	permissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
-
 	authorCfg := decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig)
 	def.Config = applyAgentConfigDefaults(authorCfg, cred.ProviderID, agent.Model)
 	applyHarnessOptionalFields(def.Config, authorCfg)
-
-	if permissions != nil && len(*permissions) > 0 {
-		var disabledTools []string
-		allowed := make(map[string]bridgepkg.ToolPermission)
-		for tool, perm := range *permissions {
-			if perm == bridgepkg.ToolPermissionDeny {
-				disabledTools = append(disabledTools, tool)
-			} else {
-				allowed[tool] = perm
-			}
-		}
-		if len(allowed) > 0 {
-			def.Permissions = &allowed
-		}
-		if len(disabledTools) > 0 {
-			def.Config.DisabledTools = &disabledTools
-		}
-	}
 
 	mcpServers := decodeJSONAs[[]bridgepkg.McpServerDefinition](agent.McpServers)
 

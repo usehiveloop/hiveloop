@@ -5121,178 +5121,6 @@
         }
       }
     },
-    "/v1/agents/{agentID}/subagents": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "tags": [
-          "subagents"
-        ],
-        "summary": "List subagents attached to an agent",
-        "parameters": [
-          {
-            "description": "Parent agent ID",
-            "name": "agentID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/agentSubagentResponse"
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "tags": [
-          "subagents"
-        ],
-        "summary": "Attach a subagent to an agent",
-        "parameters": [
-          {
-            "description": "Parent agent ID",
-            "name": "agentID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/attachSubagentRequest"
-              }
-            }
-          },
-          "description": "Subagent to attach",
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/agentSubagentResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/agents/{agentID}/subagents/{subagentID}": {
-      "delete": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "tags": [
-          "subagents"
-        ],
-        "summary": "Detach a subagent from an agent",
-        "parameters": [
-          {
-            "description": "Parent agent ID",
-            "name": "agentID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Subagent ID",
-            "name": "subagentID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/agents/{id}": {
       "get": {
         "security": [
@@ -6847,7 +6675,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Returns webhook events persisted for the conversation. Filterable by event type.",
+        "description": "Returns webhook events persisted for the conversation, ordered by sequence_number DESC (newest first). Pagination cursor is the lowest sequence_number on the current page; pass it back to fetch the next older page. Filterable by event type.",
         "tags": [
           "conversations"
         ],
@@ -6871,7 +6699,7 @@
             }
           },
           {
-            "description": "Page size",
+            "description": "Page size (default 50, max 100)",
             "name": "limit",
             "in": "query",
             "schema": {
@@ -6879,7 +6707,7 @@
             }
           },
           {
-            "description": "Pagination cursor",
+            "description": "Pagination cursor \u2014 sequence_number from previous page's tail. Returns events with sequence_number strictly less than this value.",
             "name": "cursor",
             "in": "query",
             "schema": {
@@ -6975,6 +6803,67 @@
       }
     },
     "/v1/conversations/{convID}/messages": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns chat-ready messages aggregated from raw events. Consecutive same-name tool calls are grouped (e.g. \"bash\" called 11 times in a row \u2192 one group with 11 calls). Pagination is by sequence_number; aggregation is per-page so a tool call split across pages will not pair.",
+        "tags": [
+          "conversations"
+        ],
+        "summary": "List conversation messages",
+        "parameters": [
+          {
+            "description": "Conversation ID",
+            "name": "convID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Max events scanned per page (default 200, max 1000). Aggregated message count may be smaller.",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Sequence number from the previous page's tail. Returns events with sequence_number strictly greater than this value.",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedResponse-conversationMessageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "security": [
           {
@@ -11809,289 +11698,6 @@
         }
       }
     },
-    "/v1/subagents": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Lists subagents visible to the current org. Use scope=public, own, or all.",
-        "tags": [
-          "subagents"
-        ],
-        "summary": "List subagents",
-        "parameters": [
-          {
-            "description": "Filter: public, own, all (default all)",
-            "name": "scope",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Free-text search over name and description",
-            "name": "q",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page size (default 50, max 100)",
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Pagination cursor",
-            "name": "cursor",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-subagentResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Creates a reusable subagent that parent agents can invoke. Does not require a credential.",
-        "tags": [
-          "subagents"
-        ],
-        "summary": "Create a subagent",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/createSubagentRequest"
-              }
-            }
-          },
-          "description": "Subagent definition",
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/subagentResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/subagents/{id}": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "tags": [
-          "subagents"
-        ],
-        "summary": "Get a subagent",
-        "parameters": [
-          {
-            "description": "Subagent ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/subagentResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "tags": [
-          "subagents"
-        ],
-        "summary": "Archive a subagent",
-        "parameters": [
-          {
-            "description": "Subagent ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "tags": [
-          "subagents"
-        ],
-        "summary": "Update a subagent",
-        "parameters": [
-          {
-            "description": "Subagent ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/updateSubagentRequest"
-              }
-            }
-          },
-          "description": "Fields to update",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/subagentResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/system/tasks/{taskName}": {
       "post": {
         "security": [
@@ -12695,10 +12301,6 @@
               }
             ]
           },
-          "agentType": {
-            "description": "\"agent\" or \"subagent\"",
-            "type": "string"
-          },
           "avatarURL": {
             "type": "string"
           },
@@ -12727,6 +12329,10 @@
             "items": {
               "type": "integer"
             }
+          },
+          "harness": {
+            "description": "TODO(post-migration): drop agent.Tools column once data archived.",
+            "type": "string"
           },
           "id": {
             "type": "string"
@@ -14556,6 +14162,9 @@
           "description": {
             "type": "string"
           },
+          "harness": {
+            "type": "string"
+          },
           "id": {
             "type": "string"
           },
@@ -14603,12 +14212,6 @@
           },
           "status": {
             "type": "string"
-          },
-          "subagents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/agentSubagentSummary"
-            }
           },
           "system_prompt": {
             "type": "string"
@@ -14660,37 +14263,6 @@
             "type": "string"
           },
           "source_type": {
-            "type": "string"
-          }
-        }
-      },
-      "agentSubagentResponse": {
-        "type": "object",
-        "properties": {
-          "created_at": {
-            "type": "string"
-          },
-          "subagent": {
-            "$ref": "#/components/schemas/subagentResponse"
-          },
-          "subagent_id": {
-            "type": "string"
-          }
-        }
-      },
-      "agentSubagentSummary": {
-        "type": "object",
-        "properties": {
-          "description": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "model": {
-            "type": "string"
-          },
-          "name": {
             "type": "string"
           }
         }
@@ -14838,14 +14410,6 @@
             "type": "string"
           },
           "skill_id": {
-            "type": "string"
-          }
-        }
-      },
-      "attachSubagentRequest": {
-        "type": "object",
-        "properties": {
-          "subagent_id": {
             "type": "string"
           }
         }
@@ -15020,6 +14584,29 @@
           }
         }
       },
+      "conversationMessageResponse": {
+        "type": "object",
+        "properties": {
+          "author": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "tool_groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/conversationToolGroupResponse"
+            }
+          }
+        }
+      },
       "conversationResponse": {
         "type": "object",
         "properties": {
@@ -15039,6 +14626,37 @@
             "type": "string"
           },
           "stream_url": {
+            "type": "string"
+          }
+        }
+      },
+      "conversationToolCallResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "conversationToolGroupResponse": {
+        "type": "object",
+        "properties": {
+          "calls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/conversationToolCallResponse"
+            }
+          },
+          "name": {
             "type": "string"
           }
         }
@@ -15107,6 +14725,9 @@
           "description": {
             "type": "string"
           },
+          "harness": {
+            "type": "string"
+          },
           "instructions": {
             "type": "string"
           },
@@ -15151,12 +14772,6 @@
           },
           "skills": {
             "$ref": "#/components/schemas/JSON"
-          },
-          "subagent_ids": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           },
           "system_prompt": {
             "type": "string"
@@ -15436,44 +15051,6 @@
             "items": {
               "type": "string"
             }
-          }
-        }
-      },
-      "createSubagentRequest": {
-        "type": "object",
-        "properties": {
-          "agent_config": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "description": {
-            "type": "string"
-          },
-          "mcp_servers": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "model": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "permissions": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "skills": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "system_prompt": {
-            "type": "string"
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "tools": {
-            "$ref": "#/components/schemas/JSON"
           }
         }
       },
@@ -16610,6 +16187,23 @@
           }
         }
       },
+      "paginatedResponse-conversationMessageResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/conversationMessageResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
       "paginatedResponse-conversationResponse": {
         "type": "object",
         "properties": {
@@ -16736,23 +16330,6 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/skillResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-subagentResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/subagentResponse"
             }
           },
           "has_more": {
@@ -17869,38 +17446,6 @@
           }
         }
       },
-      "subagentResponse": {
-        "type": "object",
-        "properties": {
-          "created_at": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "model": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "org_id": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "system_prompt": {
-            "type": "string"
-          },
-          "updated_at": {
-            "type": "string"
-          }
-        }
-      },
       "subscriptionResponse": {
         "type": "object",
         "properties": {
@@ -18208,6 +17753,9 @@
           "description": {
             "type": "string"
           },
+          "harness": {
+            "type": "string"
+          },
           "instructions": {
             "type": "string"
           },
@@ -18395,41 +17943,6 @@
             "items": {
               "type": "string"
             }
-          }
-        }
-      },
-      "updateSubagentRequest": {
-        "type": "object",
-        "properties": {
-          "agent_config": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "description": {
-            "type": "string"
-          },
-          "mcp_servers": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "model": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "permissions": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "skills": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "status": {
-            "type": "string"
-          },
-          "system_prompt": {
-            "type": "string"
-          },
-          "tools": {
-            "$ref": "#/components/schemas/JSON"
           }
         }
       },

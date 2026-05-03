@@ -1,0 +1,7 @@
+{
+  "title": "Uploads",
+  "description": "uploads",
+  "pages": [
+    "v1/uploads/sign/post"
+  ]
+}

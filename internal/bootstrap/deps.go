@@ -205,9 +205,10 @@ func New(ctx context.Context) (*Deps, error) {
 	var agentPusher *sandbox.Pusher
 	if cfg.SandboxProviderKey != "" && sandboxEncKey != nil {
 		sandboxProvider, err := daytona.NewDriver(daytona.Config{
-			APIURL: cfg.SandboxProviderURL,
-			APIKey: cfg.SandboxProviderKey,
-			Target: cfg.SandboxTarget,
+			APIURL:              cfg.SandboxProviderURL,
+			APIKey:              cfg.SandboxProviderKey,
+			Target:              cfg.SandboxTarget,
+			BridgeBinaryVersion: cfg.BridgeBinaryVersion,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("creating sandbox provider: %w", err)

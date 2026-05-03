@@ -42,9 +42,6 @@ func applyHarnessOptionalFields(cfg *bridgepkg.AgentConfig, agentCfg *bridgepkg.
 	if cfg.FallbackModel == nil && agentCfg.FallbackModel != nil {
 		cfg.FallbackModel = agentCfg.FallbackModel
 	}
-	if cfg.AllowedTools == nil && agentCfg.AllowedTools != nil {
-		cfg.AllowedTools = agentCfg.AllowedTools
-	}
 	if cfg.PermissionMode == nil && agentCfg.PermissionMode != nil {
 		cfg.PermissionMode = agentCfg.PermissionMode
 	}

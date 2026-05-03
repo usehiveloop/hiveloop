@@ -13,12 +13,18 @@ import (
 )
 
 func main() {
-	version := flag.String("version", "", "Image version tag (required, e.g. 0.10.0)")
+	version := flag.String("version", "", "Image version tag — drives the GHCR tag and Daytona snapshot name. Bump independently of -bridge-version to invalidate Daytona's frozen snapshot mirror without changing the bridge binary (required, e.g. 1.0.0)")
+	bridgeVersion := flag.String("bridge-version", "", "usehiveloop/bridge release tag installed into the image (required, e.g. v1.0.0). Independent of -version.")
 	size := flag.String("size", "all", "Snapshot sizes to register (small, medium, large, xlarge, all)")
 	flag.Parse()
 
 	if *version == "" {
 		fmt.Fprintln(os.Stderr, "error: -version is required")
+		flag.Usage()
+		os.Exit(1)
+	}
+	if *bridgeVersion == "" {
+		fmt.Fprintln(os.Stderr, "error: -bridge-version is required")
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -40,7 +46,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
-	if err := buildAndPush(ctx, *version, targetSizes); err != nil {
+	if err := buildAndPush(ctx, *version, *bridgeVersion, targetSizes); err != nil {
 		log.Fatalf("error: %v", err)
 	}
 
