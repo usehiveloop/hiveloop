@@ -1,0 +1,21 @@
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": [
+        "https://usehiveloop.com",
+        "https://*.usehiveloop.com",
+        "http://localhost:3000"
+      ],
+      "AllowedMethods": ["GET", "HEAD"],
+      "AllowedHeaders": ["*"],
+      "ExposeHeaders": [
+        "ETag",
+        "Content-Length",
+        "Content-Range",
+        "Accept-Ranges",
+        "Last-Modified"
+      ],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}
