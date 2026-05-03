@@ -6,7 +6,7 @@
   "license": "O'Saasy",
   "packageManager": "pnpm@10.18.2",
   "scripts": {
-    "dev": "next dev --turbopack -p 30112",
+    "dev": "next dev --turbopack -p 31112",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

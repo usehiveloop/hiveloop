@@ -104,7 +104,7 @@ function MembersList() {
 
   const members = membersQuery.data?.data ?? []
   const currentUserId = me?.id
-  const orgName = me?.orgs?.[0]?.name ?? ""
+  const orgName = meQuery.data?.orgs?.[0]?.name ?? ""
 
   return (
     <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
