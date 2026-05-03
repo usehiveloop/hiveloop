@@ -85,6 +85,8 @@ func setupPublicRoutes(
 	// sandbox-drive / git-credentials / railway-proxy endpoints).
 	if uploadsHandler != nil {
 		r.Put("/internal/conversations/{conversationID}/assets/*", uploadsHandler.StreamConversationAsset)
+		r.Post("/internal/conversations/{conversationID}/assets/move", uploadsHandler.MoveConversationAsset)
+		r.Delete("/internal/conversations/{conversationID}/assets/*", uploadsHandler.DeleteConversationAsset)
 	}
 }
 

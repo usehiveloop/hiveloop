@@ -40,6 +40,8 @@ func newStreamHarness(t *testing.T) *streamHarness {
 
 	r := chi.NewRouter()
 	r.Put("/internal/conversations/{conversationID}/assets/*", h.StreamConversationAsset)
+	r.Post("/internal/conversations/{conversationID}/assets/move", h.MoveConversationAsset)
+	r.Delete("/internal/conversations/{conversationID}/assets/*", h.DeleteConversationAsset)
 
 	orgID := uuid.New()
 	if err := db.Create(&model.Org{

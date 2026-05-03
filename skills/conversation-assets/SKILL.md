@@ -71,6 +71,37 @@ url=$(
 echo "uploaded to $url"
 ```
 
+## Deleting an asset
+
+Use `DELETE` against the same URL you uploaded to:
+
+```bash
+curl -fsS -X DELETE \
+  -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" \
+  "$HIVELOOP_ASSETS_UPLOAD_URL/$HIVELOOP_CONVERSATION_ID/assets/videos/output.mp4"
+```
+
+Returns `204 No Content` on success, `404` if the asset does not exist in this conversation. Both the S3 object and the database row are removed.
+
+## Moving an asset to a different folder
+
+Only the database `path` label changes — the S3 key (and therefore the public URL) stay put. Use this purely to reorganise how the asset appears in the conversation drive listing.
+
+```bash
+curl -fsS -X POST \
+  -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"asset":"videos/output.mp4","new_path":"archive/2026"}' \
+  "$HIVELOOP_ASSETS_UPLOAD_URL/$HIVELOOP_CONVERSATION_ID/assets/move"
+```
+
+`asset` accepts either:
+
+- a relative `<folder>/<filename>` path (e.g. `videos/output.mp4`), or
+- the full `public_url` returned at upload time.
+
+`new_path` may be empty (`""`) to move the asset to the drive root. Returns `200 OK` with the updated row.
+
 ## Conventions to follow
 
 - **Pick stable filenames.** Re-uploading the same `<folder>/<filename>` overwrites the previous version (drive semantics) — this is intentional for "regenerate the chart" flows. If you want to keep both, vary the filename (`chart-v1.png`, `chart-v2.png`).
