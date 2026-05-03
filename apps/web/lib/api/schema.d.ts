@@ -5449,6 +5449,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List org assets
+         * @description Lists conversation assets owned by the caller's org. Optional filters: agent_id, conversation_id, path. Ordered by created_at desc, cursor-paginated.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter to assets uploaded inside conversations of this agent */
+                    agent_id?: string;
+                    /** @description Filter to assets uploaded inside this conversation */
+                    conversation_id?: string;
+                    /** @description Filter by exact folder label (empty = root) */
+                    path?: string;
+                    /** @description Page size (default 50, max 200) */
+                    limit?: number;
+                    /** @description Pagination cursor — created_at unix-nanos from the previous page's tail */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-assetListItem"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/audit": {
         parameters: {
             query?: never;
@@ -12646,6 +12714,19 @@ export interface components {
             plan_slug?: string;
             status?: string;
         };
+        assetListItem: {
+            agent_id?: string;
+            bytes?: number;
+            content_type?: string;
+            conversation_id?: string;
+            created_at?: string;
+            filename?: string;
+            id?: string;
+            key?: string;
+            path?: string;
+            public_url?: string;
+            updated_at?: string;
+        };
         attachSkillRequest: {
             pinned_version_id?: string;
             skill_id?: string;
@@ -13240,6 +13321,11 @@ export interface components {
         };
         "paginatedResponse-apiKeyResponse": {
             data?: components["schemas"]["apiKeyResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-assetListItem": {
+            data?: components["schemas"]["assetListItem"][];
             has_more?: boolean;
             next_cursor?: string;
         };
