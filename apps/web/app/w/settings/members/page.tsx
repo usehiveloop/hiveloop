@@ -38,6 +38,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/auth/auth-context"
+import { useRouter } from "next/navigation"
 
 const ASSIGNABLE_ROLES = ["Admin", "Member", "Viewer"] as const
 const ROLE_DESCRIPTIONS: Record<string, string> = {
@@ -103,6 +104,7 @@ function MembersList() {
 
   const members = membersQuery.data?.data ?? []
   const currentUserId = me?.id
+  const orgName = me?.orgs?.[0]?.name ?? ""
 
   return (
     <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
@@ -116,6 +118,7 @@ function MembersList() {
         key={m.user_id ?? m.email ?? ""}
         member={m}
         isCurrentUser={m.user_id === currentUserId}
+        orgName={orgName}
       />
         ))
       )}
@@ -123,9 +126,10 @@ function MembersList() {
   )
 }
 
-function MemberRow({ member, isCurrentUser }: {
+function MemberRow({ member, isCurrentUser, orgName }: {
   member: { user_id?: string; email?: string; name?: string; role?: string; joined_at?: string }
   isCurrentUser: boolean
+  orgName: string
 }) {
   const m = {
     user_id: member.user_id ?? "",
@@ -134,9 +138,6 @@ function MemberRow({ member, isCurrentUser }: {
     role: member.role ?? "",
     joined_at: member.joined_at ?? "",
   }
-  const meQuery = $api.useQuery("get", "/auth/me")
-  const me = meQuery.data
-  const orgName = me?.orgs?.[0]?.name ?? ""
 
   return (
     <li className="flex items-center gap-3 px-3.5 py-2.5 transition-colors hover:bg-muted/40">
@@ -168,20 +169,13 @@ function MemberRow({ member, isCurrentUser }: {
 }
 
 function LeaveOrgAction({ orgName }: { orgName: string }) {
-  const logoutMutation = $api.useMutation("post", "/auth/logout")
-  const router = { push: (href: string) => { window.location.href = href } }
+  const router = useRouter()
 
   const handleLeave = () => {
     if (!confirm(`Leave "${orgName}"? You'll lose access to all its agents and data.`)) return
-    logoutMutation.mutate({ body: {} }, {
-      onSuccess: () => {
-        router.push("/auth")
-        toast.success("You left the organization")
-      },
-      onError: (error) => {
-        toast.error(extractErrorMessage(error, "Failed to leave organization"))
-      },
-    })
+    // TODO: call DELETE /v1/orgs/current/members/{id} when backend supports it
+    // For now, show a coming soon toast since backend doesn't support leaving yet
+    toast.error("Leave organization is coming soon")
   }
 
   return (
@@ -190,7 +184,6 @@ function LeaveOrgAction({ orgName }: { orgName: string }) {
       size="sm"
       className="h-8 text-destructive hover:text-destructive"
       onClick={handleLeave}
-      loading={logoutMutation.isPending}
     >
       <HugeiconsIcon icon={Logout01Icon} strokeWidth={2} className="size-3.5" />
       Leave
