@@ -196,28 +196,45 @@ fn translate_mcp(servers: &[McpServerDefinition]) -> Map<String, Value> {
 }
 
 fn build_permission_block(agent: &AgentDefinition) -> Option<Value> {
-    // opencode's permission schema differs from Claude Code's. We map the
-    // closest equivalents; agents that need fine-grained control can pass
-    // through any opencode-native permission schema via env-injected config
-    // files later.
-    let mut perm = Map::new();
-    if let Some(mode) = &agent.config.permission_mode {
-        // opencode supports per-action defaults (`edit`, `bash`, `webfetch`).
-        // Rough translation: bypassPermissions → "allow" everywhere;
-        // acceptEdits → "allow" for edit; default/plan → "ask".
-        let default_action = match mode.as_str() {
-            "bypassPermissions" | "auto" => "allow",
-            "acceptEdits" => "allow",
-            _ => "ask",
-        };
-        perm.insert("edit".to_string(), json!(default_action));
-        perm.insert("bash".to_string(), json!(default_action));
-        perm.insert("webfetch".to_string(), json!(default_action));
-    }
-    if perm.is_empty() {
-        None
-    } else {
-        Some(Value::Object(perm))
+    // Bridge runs opencode headless — no human is available to answer prompts.
+    // opencode has three sharp defaults that bite a bench run:
+    //   - `external_directory: ask`  — paths outside cwd
+    //   - `doom_loop: ask`           — repeated identical tool calls
+    //   - `read` blocks `.env`       — even when read is "allow"
+    // The bench workspace is a fresh Laravel app whose setup edits `.env`
+    // (DB_CONNECTION=sqlite, APP_KEY, etc.), so we must override the .env
+    // carve-out explicitly. Granular form is required — the string shorthand
+    // doesn't unblock the hardcoded .env rule.
+    match agent.config.permission_mode.as_deref() {
+        None | Some("bypassPermissions") | Some("auto") | Some("acceptEdits") => {
+            Some(json!({
+                "*": "allow",
+                "read": {
+                    "**/.env": "allow",
+                    "**/.env.*": "allow",
+                    "*": "allow"
+                },
+                "edit": {
+                    "**/.env": "allow",
+                    "**/.env.*": "allow",
+                    "*": "allow"
+                },
+                "bash": "allow",
+                "external_directory": {"**": "allow"},
+                "doom_loop": "allow"
+            }))
+        }
+        Some("plan") => Some(json!({
+            "*": "allow",
+            "edit": "deny",
+            "bash": "deny"
+        })),
+        Some(_) => Some(json!({
+            "*": "ask",
+            "read": "allow",
+            "glob": "allow",
+            "grep": "allow"
+        })),
     }
 }
 
