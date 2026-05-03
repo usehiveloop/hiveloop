@@ -40,15 +40,15 @@ export function TextPreview({ asset }: { asset: Asset }) {
 
   return (
     <div className="flex h-full w-full items-start justify-center overflow-hidden px-6 pb-24 pt-24">
-      <div className="flex w-full max-w-[820px] overflow-hidden rounded-md bg-foreground/[0.02] ring-1 ring-foreground/10">
+      <div className="flex w-full max-w-[820px] overflow-hidden rounded-md bg-card ring-1 ring-border">
         {state.status === "loading" ? <TextSkeleton /> : null}
         {state.status === "error" ? (
-          <p className="w-full px-8 py-12 text-center text-[12px] text-foreground/60">
+          <p className="w-full px-8 py-12 text-center text-[12px] text-muted-foreground">
             {state.message}
           </p>
         ) : null}
         {state.status === "ready" ? (
-          <pre className="m-0 max-h-[calc(100vh-12rem)] w-full overflow-auto whitespace-pre-wrap break-words px-8 py-7 font-mono text-[12px] leading-[1.7] text-foreground/85">
+          <pre className="m-0 max-h-[calc(100vh-12rem)] w-full overflow-auto whitespace-pre-wrap break-words px-8 py-7 font-mono text-[12px] leading-[1.7] text-foreground">
             {state.text}
           </pre>
         ) : null}
@@ -63,7 +63,7 @@ function TextSkeleton() {
       {Array.from({ length: 12 }).map((_, i) => (
         <span
           key={i}
-          className="h-3 animate-pulse rounded bg-foreground/[0.05]"
+          className="h-3 animate-pulse rounded bg-muted"
           style={{
             width: `${40 + Math.round(Math.cos(i * 0.7) * 30 + 30)}%`,
             animationDelay: `${i * 30}ms`,

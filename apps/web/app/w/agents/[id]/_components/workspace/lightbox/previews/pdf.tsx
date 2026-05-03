@@ -53,7 +53,7 @@ export function PdfPreview({ asset }: { asset: Asset }) {
     <div className="flex h-full w-full flex-col items-center justify-center gap-5 px-6 pb-24 pt-24">
       <div
         ref={containerRef}
-        className="flex w-full max-w-[920px] flex-1 items-start justify-center overflow-y-auto rounded-md bg-foreground/[0.02] py-6 ring-1 ring-foreground/10"
+        className="flex w-full max-w-[920px] flex-1 items-start justify-center overflow-y-auto rounded-md bg-muted/40 py-6 ring-1 ring-border"
       >
         <Document
           file={asset.publicUrl}
@@ -75,25 +75,25 @@ export function PdfPreview({ asset }: { asset: Asset }) {
       </div>
 
       {numPages && numPages > 1 ? (
-        <div className="flex items-center gap-2 rounded-full bg-foreground/[0.05] px-2 py-1.5 ring-1 ring-foreground/10">
+        <div className="flex items-center gap-2 rounded-full bg-card px-2 py-1.5 ring-1 ring-border shadow-sm">
           <button
             type="button"
             onClick={goPrev}
             disabled={page === 1}
             aria-label="Previous page"
-            className="flex size-7 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-foreground/[0.08] disabled:pointer-events-none disabled:opacity-40"
+            className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
           >
             <HugeiconsIcon icon={ArrowLeft01Icon} size={13} />
           </button>
-          <span className="px-2 font-mono text-[11px] tabular-nums tracking-[0.04em] text-foreground/80">
-            {page} <span className="text-foreground/30">/</span> {numPages}
+          <span className="px-2 font-mono text-[11px] tabular-nums tracking-[0.04em] text-foreground">
+            {page} <span className="text-muted-foreground/50">/</span> {numPages}
           </span>
           <button
             type="button"
             onClick={goNext}
             disabled={page === numPages}
             aria-label="Next page"
-            className="flex size-7 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-foreground/[0.08] disabled:pointer-events-none disabled:opacity-40"
+            className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
           >
             <HugeiconsIcon icon={ArrowRight01Icon} size={13} />
           </button>
@@ -105,7 +105,7 @@ export function PdfPreview({ asset }: { asset: Asset }) {
 
 function DocumentLoading() {
   return (
-    <div className="flex h-72 w-[480px] animate-pulse items-center justify-center rounded-md bg-foreground/[0.04] font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/40">
+    <div className="flex h-72 w-[480px] animate-pulse items-center justify-center rounded-md bg-muted font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
       Rendering page
     </div>
   )
@@ -113,11 +113,11 @@ function DocumentLoading() {
 
 function DocumentError() {
   return (
-    <div className="flex max-w-md flex-col items-center gap-2 rounded-md bg-foreground/[0.04] px-6 py-8 text-center ring-1 ring-foreground/10">
-      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/40">
+    <div className="flex max-w-md flex-col items-center gap-2 rounded-md bg-card px-6 py-8 text-center ring-1 ring-border">
+      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
         Couldn&apos;t render PDF
       </span>
-      <p className="text-[12px] text-foreground/60">
+      <p className="text-[12px] text-muted-foreground">
         Try downloading the file and opening it locally.
       </p>
     </div>

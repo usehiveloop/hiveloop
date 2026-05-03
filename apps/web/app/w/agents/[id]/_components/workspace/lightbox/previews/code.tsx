@@ -53,7 +53,7 @@ export function CodePreview({ asset, language }: { asset: Asset; language: strin
 
   return (
     <div className="flex h-full w-full items-start justify-center overflow-hidden px-6 pb-24 pt-24">
-      <div className="flex w-full max-w-[960px] flex-col overflow-hidden rounded-md bg-foreground/[0.02] ring-1 ring-foreground/10">
+      <div className="flex w-full max-w-[960px] flex-col overflow-hidden rounded-md bg-card ring-1 ring-border">
         {state.status === "loading" ? <CodeSkeleton /> : null}
         {state.status === "error" ? <CodeError message={state.message} /> : null}
         {state.status === "ready" ? (
@@ -95,7 +95,7 @@ function CodeSkeleton() {
       {Array.from({ length: 14 }).map((_, i) => (
         <span
           key={i}
-          className="h-3 animate-pulse rounded bg-foreground/[0.05]"
+          className="h-3 animate-pulse rounded bg-muted"
           style={{
             width: `${30 + Math.round(Math.sin(i) * 30 + 40)}%`,
             animationDelay: `${i * 35}ms`,
@@ -109,10 +109,10 @@ function CodeSkeleton() {
 function CodeError({ message }: { message: string }) {
   return (
     <div className="px-6 py-12 text-center">
-      <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-foreground/40">
+      <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
         Couldn&apos;t load file
       </p>
-      <p className="mt-2 text-[12px] text-foreground/60">{message}</p>
+      <p className="mt-2 text-[12px] text-muted-foreground">{message}</p>
     </div>
   )
 }
