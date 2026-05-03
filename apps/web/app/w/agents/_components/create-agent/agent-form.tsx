@@ -39,6 +39,7 @@ import {
   TriggerTypeAvatar,
   triggerDisplayName,
 } from "@/app/w/agents/_components/edit-triggers-dialog"
+import { GitHubTriggerShortcuts } from "./github-trigger-shortcuts"
 import { ToolPermissionsSection } from "./tool-permissions"
 import { ImagePicker } from "@/components/image-picker"
 import { CategoryCombobox } from "@/app/w/agents/new/_components/category-combobox"
@@ -429,6 +430,7 @@ export function AgentForm() {
             description="Webhook events that automatically invoke this agent."
           >
             <div className="flex flex-col gap-2">
+              <GitHubTriggerShortcuts />
               {triggers.length === 0 ? (
                 <EmptyWell
                   icon={FlashIcon}
