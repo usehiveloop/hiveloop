@@ -103,7 +103,6 @@ func parseMessagesPagination(r *http.Request) (int, *int64, error) {
 func aggregateMessages(events []model.ConversationEvent) []conversationMessageResponse {
 	out := make([]conversationMessageResponse, 0, len(events))
 	var current *conversationMessageResponse
-	callIdx := map[string]*conversationToolCallResponse{}
 
 	ensureAgent := func(e model.ConversationEvent) *conversationMessageResponse {
 		if current != nil {
@@ -118,18 +117,15 @@ func aggregateMessages(events []model.ConversationEvent) []conversationMessageRe
 		return current
 	}
 
-	appendCall := func(m *conversationMessageResponse, name string, call conversationToolCallResponse) *conversationToolCallResponse {
+	appendCall := func(m *conversationMessageResponse, name string, call conversationToolCallResponse) {
 		if n := len(m.ToolGroups); n > 0 && m.ToolGroups[n-1].Name == name {
 			m.ToolGroups[n-1].Calls = append(m.ToolGroups[n-1].Calls, call)
-			grp := &m.ToolGroups[n-1]
-			return &grp.Calls[len(grp.Calls)-1]
+			return
 		}
 		m.ToolGroups = append(m.ToolGroups, conversationToolGroupResponse{
 			Name:  name,
 			Calls: []conversationToolCallResponse{call},
 		})
-		grp := &m.ToolGroups[len(m.ToolGroups)-1]
-		return &grp.Calls[0]
 	}
 
 	for _, e := range events {
@@ -145,36 +141,10 @@ func aggregateMessages(events []model.ConversationEvent) []conversationMessageRe
 			})
 			current = nil
 
-		case "tool_call_started":
+		case "tool_call_completed":
 			m := ensureAgent(e)
 			toolID, _ := data["tool_call_id"].(string)
 			name, _ := data["title"].(string)
-			if name == "" {
-				name = "tool"
-			}
-			ref := appendCall(m, name, conversationToolCallResponse{
-				ID:     toolID,
-				Title:  name,
-				Status: "running",
-			})
-			if toolID != "" {
-				callIdx[toolID] = ref
-			}
-
-		case "tool_call_completed":
-			toolID, _ := data["tool_call_id"].(string)
-			title, _ := data["title"].(string)
-			summary := summaryFromRawOutput(data["raw_output"])
-			if existing, ok := callIdx[toolID]; ok && existing != nil {
-				existing.Status = "completed"
-				if title != "" {
-					existing.Title = title
-				}
-				existing.Summary = summary
-				continue
-			}
-			m := ensureAgent(e)
-			name := title
 			if name == "" {
 				name = "tool"
 			}
@@ -182,7 +152,7 @@ func aggregateMessages(events []model.ConversationEvent) []conversationMessageRe
 				ID:      toolID,
 				Title:   name,
 				Status:  "completed",
-				Summary: summary,
+				Summary: summaryFromRawOutput(data["raw_output"]),
 			})
 
 		case "turn_completed":
