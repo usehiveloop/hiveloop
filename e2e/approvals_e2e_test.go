@@ -35,17 +35,18 @@ func runApprovalRoundtrip(t *testing.T, decision string) {
 	srv := httptest.NewServer(ah.router)
 	t.Cleanup(srv.Close)
 
-	sseReq, _ := http.NewRequest(http.MethodGet,
+	sseReq, _ := http.NewRequestWithContext(t.Context(), http.MethodGet,
 		srv.URL+"/v1/conversations/"+ah.conv.ID.String()+"/stream", nil)
-	sseResp, err := (&http.Client{Timeout: 30 * time.Second}).Do(sseReq)
-	if err != nil {
-		t.Fatalf("open SSE: %v", err)
-	}
-	defer sseResp.Body.Close()
+	sseClient := &http.Client{Timeout: 30 * time.Second}
 
 	gotTypes := make(chan string, 32)
 	go func() {
 		defer close(gotTypes)
+		sseResp, err := sseClient.Do(sseReq)
+		if err != nil {
+			return
+		}
+		defer sseResp.Body.Close()
 		buf := make([]byte, 4096)
 		acc := ""
 		for {
@@ -59,9 +60,9 @@ func runApprovalRoundtrip(t *testing.T, decision string) {
 					}
 					frame := acc[:idx]
 					acc = acc[idx+2:]
-					for _, line := range strings.Split(frame, "\n") {
-						if strings.HasPrefix(line, "event:") {
-							gotTypes <- strings.TrimSpace(strings.TrimPrefix(line, "event:"))
+					for line := range strings.SplitSeq(frame, "\n") {
+						if rest, ok := strings.CutPrefix(line, "event:"); ok {
+							gotTypes <- strings.TrimSpace(rest)
 						}
 					}
 				}
@@ -91,7 +92,7 @@ func runApprovalRoundtrip(t *testing.T, decision string) {
 	}
 
 	body := []byte(`{"decision":"` + decision + `"}`)
-	req, _ := http.NewRequest(http.MethodPost,
+	req, _ := http.NewRequestWithContext(t.Context(), http.MethodPost,
 		srv.URL+"/v1/conversations/"+ah.conv.ID.String()+"/approvals/"+approvalID,
 		strings.NewReader(string(body)))
 	req.Header.Set("Content-Type", "application/json")
