@@ -48,6 +48,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	setOrgEnvVars(envVars, org.ID)
 	setAgentEnvVars(envVars, agent, o.cfg)
 	setDriveEndpoint(envVars, sb.ID, o.cfg)
+	setAssetsUploadURL(envVars, o.cfg)
 	if storageURL != "" {
 		envVars["BRIDGE_STORAGE_URL"] = storageURL
 		envVars["BRIDGE_STORAGE_AUTH_TOKEN"] = authToken
