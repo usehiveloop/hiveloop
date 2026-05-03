@@ -7,8 +7,8 @@ import { BrowserView } from "./browser-view"
 import { FilesView } from "./files-view"
 import { GalleryView } from "./gallery-view"
 
-export function Workspace() {
-  const [view, setView] = React.useState<View>("browser")
+export function Workspace({ conversationId }: { conversationId?: string }) {
+  const [view, setView] = React.useState<View>("files")
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -23,7 +23,7 @@ export function Workspace() {
         >
           {view === "browser" ? <BrowserView /> : null}
           {view === "gallery" ? <GalleryView /> : null}
-          {view === "files" ? <FilesView /> : null}
+          {view === "files" ? <FilesView conversationId={conversationId} /> : null}
         </motion.div>
       </AnimatePresence>
 
