@@ -2,13 +2,16 @@ package daytona
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"strings"
 	"time"
 
 	apiclient "github.com/daytonaio/daytona/libs/api-client-go"
 	daytonasdk "github.com/daytonaio/daytona/libs/sdk-go/pkg/daytona"
+	daytonaerrors "github.com/daytonaio/daytona/libs/sdk-go/pkg/errors"
 	sdktypes "github.com/daytonaio/daytona/libs/sdk-go/pkg/types"
 
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
@@ -103,27 +106,22 @@ func (d *Driver) authCtx(ctx context.Context) context.Context {
 }
 
 func (d *Driver) CreateSandbox(ctx context.Context, opts sandbox.CreateSandboxOpts) (*sandbox.SandboxInfo, error) {
-	base := sdktypes.SandboxBaseParams{
-		EnvVars: opts.EnvVars,
-		Labels:  opts.Labels,
-		Public:  false,
+	if opts.SnapshotID == "" {
+		return nil, fmt.Errorf("daytona: CreateSandbox requires a SnapshotID")
 	}
 
-	// SDK's Client.Create switches on value types (types.SnapshotParams,
-	// types.ImageParams) — passing pointers falls through to the default
-	// branch which silently drops env vars + labels and uses the platform's
-	// default image. Pass values.
-	var params any
-	if opts.SnapshotID != "" {
-		params = sdktypes.SnapshotParams{
-			SandboxBaseParams: base,
-			Snapshot:          opts.SnapshotID,
-		}
-	} else {
-		params = sdktypes.ImageParams{
-			SandboxBaseParams: base,
-			Image:             "hiveloop/bridge:latest",
-		}
+	envVars := make(map[string]string, len(opts.EnvVars))
+	maps.Copy(envVars, opts.EnvVars)
+
+	// SDK switches on value types; passing pointers silently drops fields.
+	params := sdktypes.SnapshotParams{
+		SandboxBaseParams: sdktypes.SandboxBaseParams{
+			Name:    opts.Name,
+			EnvVars: envVars,
+			Labels:  opts.Labels,
+			Public:  false,
+		},
+		Snapshot: opts.SnapshotID,
 	}
 
 	sb, err := d.sdk.Create(ctx, params)
@@ -208,13 +206,10 @@ func (d *Driver) ArchiveSandbox(ctx context.Context, externalID string) error {
 	return nil
 }
 
-// isSDKNotFound returns true if the SDK error wraps a 404. The SDK doesn't
-// expose its DaytonaError type with a stable code field, so we substring-match
-// — coarse but practical until the SDK exposes a typed sentinel.
 func isSDKNotFound(err error) bool {
 	if err == nil {
 		return false
 	}
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "not found") || strings.Contains(msg, "404")
+	var notFound *daytonaerrors.DaytonaNotFoundError
+	return stderrors.As(err, &notFound)
 }
