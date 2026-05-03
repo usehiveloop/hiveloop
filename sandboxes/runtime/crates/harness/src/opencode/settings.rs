@@ -206,24 +206,22 @@ fn build_permission_block(agent: &AgentDefinition) -> Option<Value> {
     // carve-out explicitly. Granular form is required — the string shorthand
     // doesn't unblock the hardcoded .env rule.
     match agent.config.permission_mode.as_deref() {
-        None | Some("bypassPermissions") | Some("auto") | Some("acceptEdits") => {
-            Some(json!({
-                "*": "allow",
-                "read": {
-                    "**/.env": "allow",
-                    "**/.env.*": "allow",
-                    "*": "allow"
-                },
-                "edit": {
-                    "**/.env": "allow",
-                    "**/.env.*": "allow",
-                    "*": "allow"
-                },
-                "bash": "allow",
-                "external_directory": {"**": "allow"},
-                "doom_loop": "allow"
-            }))
-        }
+        None | Some("bypassPermissions") | Some("auto") | Some("acceptEdits") => Some(json!({
+            "*": "allow",
+            "read": {
+                "**/.env": "allow",
+                "**/.env.*": "allow",
+                "*": "allow"
+            },
+            "edit": {
+                "**/.env": "allow",
+                "**/.env.*": "allow",
+                "*": "allow"
+            },
+            "bash": "allow",
+            "external_directory": {"**": "allow"},
+            "doom_loop": "allow"
+        })),
         Some("plan") => Some(json!({
             "*": "allow",
             "edit": "deny",
