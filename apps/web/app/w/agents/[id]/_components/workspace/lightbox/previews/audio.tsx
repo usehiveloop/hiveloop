@@ -34,7 +34,6 @@ export function AudioPreview({ asset }: { asset: Asset }) {
           <MediaPlayer
             title={asset.filename}
             src={asset.publicUrl}
-            crossOrigin
             autoplay
             load="eager"
             view="audio"

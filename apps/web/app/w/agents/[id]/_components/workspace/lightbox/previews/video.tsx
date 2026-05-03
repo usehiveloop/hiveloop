@@ -31,7 +31,6 @@ export function VideoPreview({ asset }: { asset: Asset }) {
           title={asset.filename}
           src={asset.publicUrl}
           aspectRatio={16 / 9}
-          crossOrigin
           playsInline
           autoplay
           load="eager"
