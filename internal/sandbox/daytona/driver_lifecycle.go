@@ -3,9 +3,12 @@ package daytona
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
+
+const executeCommandTimeout = 120 * time.Second
 
 // SetAutoStop disables or sets the platform's auto-stop interval. The
 // high-level pkg/daytona SDK only exposes auto-stop at create-time, so we
@@ -43,7 +46,11 @@ func (d *Driver) ExecuteCommand(ctx context.Context, externalID string, command 
 		}
 		return "", fmt.Errorf("getting sandbox %s: %w", externalID, err)
 	}
-	resp, err := sb.Process.ExecuteCommand(ctx, command)
+
+	execCtx, cancel := context.WithTimeout(ctx, executeCommandTimeout)
+	defer cancel()
+
+	resp, err := sb.Process.ExecuteCommand(execCtx, command)
 	if err != nil {
 		return "", fmt.Errorf("executing command on sandbox %s: %w", externalID, err)
 	}
