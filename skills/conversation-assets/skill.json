@@ -1,6 +1,0 @@
-{
-  "name": "conversation-assets",
-  "description": "Upload files (images, videos, audio, CSVs, anything) from the sandbox to the conversation's asset drive and get back a public URL you can share with the user.",
-  "root": "./SKILL.md",
-  "files": []
-}

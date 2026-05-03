@@ -1,9 +1,9 @@
 ---
-name: conversation-assets
-description: Use whenever you produce a file in the sandbox that the user should be able to see, download, or share — generated images, videos (e.g. Gemini / Veo output), audio clips, screenshots, CSV/Excel exports, PDFs, zip bundles, anything. Uploads stream straight from the sandbox to public storage and return a stable URL you can paste into your reply. Triggers include "share this video", "give me a link", "show me the chart", "upload the CSV", "send the audio", or any time you've just generated/produced a file the user will want to access outside the sandbox.
+name: public-assets-uploads
+description: Use whenever you need a public URL for a file produced in the sandbox — generated images, videos (e.g. Gemini / Veo output), audio clips, screenshots, charts, CSV/Excel exports, PDFs, zip bundles, anything. This is the ONLY supported way to host an asset in a PR description, a chat reply, or anywhere the user will see a link. Uploads stream straight from the sandbox to our public storage and return a stable URL you can paste anywhere. Triggers include "share this video", "give me a link", "show me the chart", "upload the CSV", "send the audio", "attach a screenshot to the PR", "embed this image in the PR description", "host this asset", or any time you've just produced a file the user (or a PR reviewer) will need to access outside the sandbox.
 ---
 
-# Conversation asset uploads
+# Public asset uploads
 
 You can store any file produced inside the sandbox to the conversation's asset drive. The upload streams straight to S3, so multi-GB videos work just like small images. The response is JSON containing a `public_url` — paste that URL into your reply so the user can open the asset.
 
