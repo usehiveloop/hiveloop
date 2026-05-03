@@ -36,7 +36,7 @@ func (s *Server) PostWebhook(t *testing.T, events []BridgeEvent) (int, []byte) {
 	mac.Write([]byte(message))
 	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 
-	req, err := http.NewRequest(http.MethodPost, s.WebhookURL, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, s.WebhookURL, bytes.NewReader(body))
 	if err != nil {
 		t.Fatalf("build webhook request: %v", err)
 	}
@@ -62,7 +62,7 @@ func (s *Server) PostWebhookUnsigned(t *testing.T, events []BridgeEvent, wrongSi
 	if err != nil {
 		t.Fatalf("marshal events: %v", err)
 	}
-	req, err := http.NewRequest(http.MethodPost, s.WebhookURL, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, s.WebhookURL, bytes.NewReader(body))
 	if err != nil {
 		t.Fatalf("build webhook request: %v", err)
 	}

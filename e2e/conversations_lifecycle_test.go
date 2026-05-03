@@ -25,19 +25,19 @@ func TestConversationLifecycle_PushSendStreamEnd(t *testing.T) {
 	srv := httptest.NewServer(fbh.router)
 	t.Cleanup(srv.Close)
 
-	sseReq, _ := http.NewRequest(http.MethodGet,
+	sseReq, _ := http.NewRequestWithContext(t.Context(), http.MethodGet,
 		srv.URL+"/v1/conversations/"+fbh.conv.ID.String()+"/stream", nil)
 	sseReq.Header.Set("Accept", "text/event-stream")
 	sseClient := &http.Client{Timeout: 30 * time.Second}
-	sseResp, err := sseClient.Do(sseReq)
-	if err != nil {
-		t.Fatalf("open SSE: %v", err)
-	}
-	defer sseResp.Body.Close()
 
 	gotTypes := make(chan string, 16)
 	go func() {
 		defer close(gotTypes)
+		sseResp, err := sseClient.Do(sseReq)
+		if err != nil {
+			return
+		}
+		defer sseResp.Body.Close()
 		buf := make([]byte, 4096)
 		acc := ""
 		for {
@@ -51,10 +51,9 @@ func TestConversationLifecycle_PushSendStreamEnd(t *testing.T) {
 					}
 					frame := acc[:idx]
 					acc = acc[idx+2:]
-					for _, line := range strings.Split(frame, "\n") {
-						if strings.HasPrefix(line, "event:") {
-							ev := strings.TrimSpace(strings.TrimPrefix(line, "event:"))
-							gotTypes <- ev
+					for line := range strings.SplitSeq(frame, "\n") {
+						if rest, ok := strings.CutPrefix(line, "event:"); ok {
+							gotTypes <- strings.TrimSpace(rest)
 						}
 					}
 				}
@@ -159,7 +158,7 @@ func TestConversationLifecycle_UpsertAgentNewWireShape(t *testing.T) {
 		"system_prompt": "you are test",
 		"provider": {"provider_type":"anthropic","model":"claude-sonnet-4-5","api_key":"sk-x"}
 	}`
-	req, _ := http.NewRequest(http.MethodPut, fb.URL+"/push/agents/agent-1", strings.NewReader(body))
+	req, _ := http.NewRequestWithContext(t.Context(), http.MethodPut, fb.URL+"/push/agents/agent-1", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer x")
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
