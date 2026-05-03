@@ -2,41 +2,22 @@ package daytona
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"time"
 )
 
+// GetEndpoint returns a TTL-signed preview URL for the given sandbox port.
+// Goes through api-client-go's GetSignedPortPreviewUrl since pkg/daytona's
+// Sandbox.GetPreviewLink only exposes the un-signed (URL + token) variant.
 func (d *Driver) GetEndpoint(ctx context.Context, externalID string, port int) (string, error) {
-	url := fmt.Sprintf("%s/sandbox/%s/ports/%d/signed-preview-url?expiresInSeconds=%d",
-		d.apiURL, externalID, port, signedURLTTLSeconds)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	resp, _, err := d.apiClient.SandboxAPI.
+		GetSignedPortPreviewUrl(d.authCtx(ctx), externalID, int32(port)).
+		ExpiresInSeconds(signedURLTTLSeconds).
+		Execute()
 	if err != nil {
-		return "", fmt.Errorf("creating signed URL request: %w", err)
+		return "", fmt.Errorf("getting signed preview URL for sandbox %s port %d: %w", externalID, port, err)
 	}
-	req.Header.Set("Authorization", "Bearer "+d.apiKey)
-
-	resp, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
-	if err != nil {
-		return "", fmt.Errorf("requesting signed URL: %w", err)
+	if resp == nil {
+		return "", fmt.Errorf("daytona returned no signed preview URL for sandbox %s port %d", externalID, port)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("signed URL request failed (status %d): %s", resp.StatusCode, body)
-	}
-
-	var result struct {
-		URL   string `json:"url"`
-		Token string `json:"token"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("decoding signed URL response: %w", err)
-	}
-
-	return result.URL, nil
+	return resp.GetUrl(), nil
 }
