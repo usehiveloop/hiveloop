@@ -56,6 +56,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&WorkspaceStorage{},
 		&AgentConversation{},
 		&ConversationEvent{},
+		&ConversationAsset{},
 		&CustomDomain{},
 		&HindsightBank{},
 		&InIntegration{},

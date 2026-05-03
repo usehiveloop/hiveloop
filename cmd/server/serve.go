@@ -147,6 +147,9 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			slog.Error("public assets presigner init failed; /v1/uploads/sign disabled", "error", err)
 		} else {
 			uploadsHandler = handler.NewUploadsHandler(database, presigner)
+			if sandboxEncKey != nil {
+				uploadsHandler.WithStreamer(presigner, sandboxEncKey)
+			}
 			slog.Info("public assets uploads ready", "bucket", cfg.PublicAssetsBucket)
 		}
 	}
@@ -165,7 +168,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, plansHandler, bridgeWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey)
+	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, plansHandler, bridgeWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler)
 
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
