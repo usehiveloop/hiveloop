@@ -244,6 +244,7 @@ func setupV1Routes(
 					r.Use(middleware.ResolveUser(database))
 					r.Post("/sign", uploadsHandler.Sign)
 				})
+				r.Get("/assets", uploadsHandler.ListAssets)
 			}
 		})
 	})
