@@ -5858,7 +5858,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.paginatedResponse-internal_handler_conversationMessageResponse"
+                            "$ref": "#/definitions/internal_handler.conversationMessagesResponse"
                         }
                     },
                     "404": {
@@ -12683,6 +12683,29 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.conversationMessagesResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.conversationMessageResponse"
+                    }
+                },
+                "has_more": {
+                    "type": "boolean"
+                },
+                "latest_todos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.conversationTodoItem"
+                    }
+                },
+                "next_cursor": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.conversationResponse": {
             "type": "object",
             "properties": {
@@ -12702,6 +12725,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "stream_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.conversationTodoItem": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }
@@ -14253,23 +14290,6 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/internal_handler.conversationEventResponse"
-                    }
-                },
-                "has_more": {
-                    "type": "boolean"
-                },
-                "next_cursor": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_handler.paginatedResponse-internal_handler_conversationMessageResponse": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler.conversationMessageResponse"
                     }
                 },
                 "has_more": {

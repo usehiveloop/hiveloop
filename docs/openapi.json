@@ -6847,7 +6847,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-conversationMessageResponse"
+                  "$ref": "#/components/schemas/conversationMessagesResponse"
                 }
               }
             }
@@ -14607,6 +14607,29 @@
           }
         }
       },
+      "conversationMessagesResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/conversationMessageResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "latest_todos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/conversationTodoItem"
+            }
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
       "conversationResponse": {
         "type": "object",
         "properties": {
@@ -14626,6 +14649,20 @@
             "type": "string"
           },
           "stream_url": {
+            "type": "string"
+          }
+        }
+      },
+      "conversationTodoItem": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "status": {
             "type": "string"
           }
         }
@@ -16177,23 +16214,6 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/conversationEventResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-conversationMessageResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/conversationMessageResponse"
             }
           },
           "has_more": {

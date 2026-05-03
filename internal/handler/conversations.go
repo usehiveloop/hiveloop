@@ -97,6 +97,19 @@ type conversationMessageResponse struct {
 	ToolGroups []conversationToolGroupResponse `json:"tool_groups,omitempty"`
 }
 
+type conversationTodoItem struct {
+	Content  string `json:"content"`
+	Status   string `json:"status"`
+	Priority string `json:"priority,omitempty"`
+}
+
+type conversationMessagesResponse struct {
+	Data        []conversationMessageResponse `json:"data"`
+	LatestTodos []conversationTodoItem        `json:"latest_todos,omitempty"`
+	NextCursor  *string                       `json:"next_cursor,omitempty"`
+	HasMore     bool                          `json:"has_more"`
+}
+
 // Create handles POST /v1/agents/{agentID}/conversations.
 // @Summary Create a conversation
 // @Description Creates a new conversation for an agent by spinning up a dedicated sandbox.
