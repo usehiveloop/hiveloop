@@ -26,6 +26,7 @@ import type { components } from "@/lib/api/schema"
 import { $api } from "@/lib/api/hooks"
 import { useAgentSessions } from "@/hooks/use-agent-sessions"
 import { useConversationEventStream } from "@/hooks/use-conversation-event-stream"
+import { useSendConversationMessage } from "@/hooks/use-send-conversation-message"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -419,7 +420,7 @@ export default function AgentDetailPage() {
             </div>
           </ScrollToBottom>
 
-          <Composer todos={todos} />
+          <Composer todos={todos} convId={convId ?? null} />
         </Panel>
 
         <PanelResizer
@@ -430,7 +431,7 @@ export default function AgentDetailPage() {
         </PanelResizer>
 
         <Panel id="workspace" defaultSize="75%" minSize="40%" className="flex h-full flex-col bg-muted/20">
-          <Workspace />
+          <Workspace conversationId={convId ?? undefined} />
         </Panel>
       </PanelGroup>
     </div>
@@ -814,15 +815,41 @@ function ToolGroupChip({ group }: { group: ToolGroup }) {
   )
 }
 
-function Composer({ todos }: { todos: Todo[] }) {
+function Composer({ todos, convId }: { todos: Todo[]; convId: string | null }) {
+  const [content, setContent] = React.useState("")
+  const { send, isSending } = useSendConversationMessage(convId)
+
+  const canSend = content.trim().length > 0 && !isSending && Boolean(convId)
+
+  const handleSend = React.useCallback(async () => {
+    if (!canSend) return
+    const ok = await send(content)
+    if (ok) setContent("")
+  }, [canSend, content, send])
+
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Cmd/Ctrl+Enter sends; plain Enter inserts a newline.
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        void handleSend()
+      }
+    },
+    [handleSend],
+  )
+
   return (
     <div className="shrink-0 bg-background px-4 py-3">
       <div className="mx-auto w-full max-w-2xl">
         {todos.length > 0 ? <TodoStrip todos={todos} /> : null}
         <div className="flex flex-col gap-2 rounded-2xl border border-border bg-muted/30 p-2 focus-within:border-primary/60">
           <Textarea
-            placeholder="Reply to agent…"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Reply to agent…  (⌘↵ to send)"
             rows={2}
+            disabled={isSending}
             className="min-h-0 resize-none border-0 bg-transparent px-2 py-1.5 text-[14px] shadow-none focus-visible:ring-0"
           />
           <div className="flex items-center justify-between gap-2 px-1">
@@ -831,7 +858,13 @@ function Composer({ todos }: { todos: Todo[] }) {
                 <HugeiconsIcon icon={Attachment02Icon} size={14} />
               </Button>
             </div>
-            <Button size="sm" className="gap-1.5" disabled>
+            <Button
+              size="sm"
+              className="gap-1.5"
+              disabled={!canSend}
+              loading={isSending}
+              onClick={handleSend}
+            >
               Send
               <HugeiconsIcon icon={Sent02Icon} size={13} />
             </Button>
