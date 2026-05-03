@@ -2,22 +2,18 @@ package daytona
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
-	"time"
 
-	daytona "github.com/daytonaio/daytona/libs/sdk-go/pkg/daytona"
-	"github.com/daytonaio/daytona/libs/sdk-go/pkg/types"
+	daytonasdk "github.com/daytonaio/daytona/libs/sdk-go/pkg/daytona"
+	sdktypes "github.com/daytonaio/daytona/libs/sdk-go/pkg/types"
 
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
 func (d *Driver) BuildSnapshot(ctx context.Context, opts sandbox.BuildSnapshotOpts) (string, error) {
-	externalID, err := d.buildImage(ctx, opts, nil)
-	return externalID, err
+	return d.buildImage(ctx, opts, nil)
 }
 
 func (d *Driver) BuildSnapshotWithLogs(ctx context.Context, opts sandbox.BuildSnapshotOpts, onLog func(string)) (string, error) {
@@ -36,7 +32,7 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 		tag, tag,
 	)
 
-	image := daytona.Base(baseImage)
+	image := daytonasdk.Base(baseImage)
 
 	// Minimal runtime tools — the canonical fat image with rtk/uv/Go/Rust
 	// lives in cmd/buildtemplates; user templates layer on top via BuildCommands.
@@ -80,19 +76,19 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 	image = image.Workdir("/work")
 	image = image.Entrypoint([]string{"/bin/sh", "-c", "mkdir -p /work/.claude /work/.opencode && /usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
 
-	params := &types.CreateSnapshotParams{
+	params := &sdktypes.CreateSnapshotParams{
 		Name:  opts.Name,
 		Image: image,
 	}
 	if opts.CPU > 0 || opts.Memory > 0 || opts.Disk > 0 {
-		params.Resources = &types.Resources{
+		params.Resources = &sdktypes.Resources{
 			CPU:    opts.CPU,
 			Memory: opts.Memory,
 			Disk:   opts.Disk,
 		}
 	}
 
-	snapshot, logChan, err := d.client.Snapshot.Create(ctx, params)
+	snapshot, logChan, err := d.sdk.Snapshot.Create(ctx, params)
 	if err != nil {
 		return "", fmt.Errorf("creating snapshot: %w", err)
 	}
@@ -113,75 +109,50 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 }
 
 func (d *Driver) DeleteSnapshot(ctx context.Context, externalID string) error {
-	status, err := d.GetSnapshotStatus(ctx, externalID)
+	snapshot, err := d.sdk.Snapshot.Get(ctx, externalID)
 	if err != nil {
+		// Treat "not found" as success — delete is idempotent.
 		return nil
 	}
-
-	if status.State == "building" || status.State == "pending" {
-		return fmt.Errorf("cannot delete snapshot while in state: %s", status.State)
+	if snapshot.State == "building" || snapshot.State == "pending" {
+		return fmt.Errorf("cannot delete snapshot while in state: %s", snapshot.State)
 	}
-
-	snapshot, err := d.client.Snapshot.Get(ctx, externalID)
-	if err != nil {
-		return nil
+	if err := d.sdk.Snapshot.Delete(ctx, snapshot); err != nil {
+		return fmt.Errorf("deleting snapshot %s: %w", externalID, err)
 	}
-	return d.client.Snapshot.Delete(ctx, snapshot)
+	return nil
 }
 
 func (d *Driver) GetSnapshotStatus(ctx context.Context, externalID string) (*sandbox.SnapshotStatusResult, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, d.apiURL+"/snapshots/"+externalID, nil)
+	snapshot, err := d.sdk.Snapshot.Get(ctx, externalID)
 	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
+		return nil, fmt.Errorf("getting snapshot %s: %w", externalID, err)
 	}
-	req.Header.Set("Authorization", "Bearer "+d.apiKey)
-	resp, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("getting snapshot status: %w", err)
+	result := &sandbox.SnapshotStatusResult{State: snapshot.State}
+	if snapshot.ErrorReason != nil {
+		result.ErrorReason = *snapshot.ErrorReason
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("get snapshot status failed (status %d): %s", resp.StatusCode, body)
-	}
-
-	var result struct {
-		State       string `json:"state"`
-		ErrorMsg    string `json:"error,omitempty"`
-		ErrorReason string `json:"errorReason,omitempty"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("decoding snapshot status response: %w", err)
-	}
-
-	return &sandbox.SnapshotStatusResult{
-		State:       result.State,
-		ErrorMsg:    result.ErrorMsg,
-		ErrorReason: result.ErrorReason,
-	}, nil
+	return result, nil
 }
 
+// GetSnapshotLogs fetches build logs for an existing snapshot. Used as a
+// diagnostic when a snapshot build fails. The high-level pkg/daytona SDK
+// only streams build logs as part of Snapshot.Create, so we drop down to
+// api-client-go's GetSnapshotBuildLogs (raw response body) here.
 func (d *Driver) GetSnapshotLogs(ctx context.Context, externalID string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, d.apiURL+"/snapshots/"+externalID+"/logs", nil)
+	resp, err := d.apiClient.SnapshotsAPI.
+		GetSnapshotBuildLogs(d.authCtx(ctx), externalID).
+		Execute()
 	if err != nil {
-		return "", fmt.Errorf("creating request: %w", err)
+		return "", fmt.Errorf("getting snapshot logs %s: %w", externalID, err)
 	}
-	req.Header.Set("Authorization", "Bearer "+d.apiKey)
-	resp, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
-	if err != nil {
-		return "", fmt.Errorf("getting snapshot logs: %w", err)
+	if resp == nil || resp.Body == nil {
+		return "", nil
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("get snapshot logs failed (status %d): %s", resp.StatusCode, body)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("reading snapshot logs: %w", err)
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		return "", fmt.Errorf("reading snapshot logs %s: %w", externalID, readErr)
 	}
 	return string(body), nil
 }
