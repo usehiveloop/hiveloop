@@ -1,0 +1,18 @@
+{
+  "title": "Rag",
+  "description": "rag",
+  "pages": [
+    "v1/rag/integrations/get",
+    "v1/rag/search/post",
+    "v1/rag/sources/get",
+    "v1/rag/sources/post",
+    "v1/rag/sources/id/get",
+    "v1/rag/sources/id/patch",
+    "v1/rag/sources/id/delete",
+    "v1/rag/sources/id/attempts/get",
+    "v1/rag/sources/id/attempts/attempt_id/get",
+    "v1/rag/sources/id/perm-sync/post",
+    "v1/rag/sources/id/prune/post",
+    "v1/rag/sources/id/sync/post"
+  ]
+}

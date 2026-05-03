@@ -42,6 +42,7 @@ func TestImageRuntimeContract(t *testing.T) {
 		"OPENCODE_CONFIG_DIR": "/work/.opencode",
 		"NO_BROWSER":          "1",
 		"BRIDGE_LISTEN_ADDR":  "0.0.0.0:25434",
+		"BRIDGE_STORAGE_PATH": "/work/bridge.db",
 	}
 	for k, want := range required {
 		if got[k] != want {
@@ -53,7 +54,6 @@ func TestImageRuntimeContract(t *testing.T) {
 		"BRIDGE_LSP_PORT",
 		"BRIDGE_LSP_ADDR",
 		"HIVELOOP_LSP_PORT",
-		"BRIDGE_STORAGE_PATH",
 	}
 	for _, k := range dropped {
 		if v, ok := got[k]; ok {

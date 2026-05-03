@@ -10,14 +10,6 @@ export interface SkillPreview {
   featured: boolean
 }
 
-export interface SubagentPreview {
-  id: string
-  name: string
-  description: string
-  model: string
-  scope: "public" | "org"
-}
-
 export interface TriggerConditionConfig {
   path: string
   operator: string

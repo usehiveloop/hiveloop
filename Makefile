@@ -41,12 +41,18 @@ openapi:
 # (one per size: small, medium, large, xlarge) pointing at the GHCR image.
 # Requires GHCR_USERNAME, GHCR_PAT (PAT with write:packages),
 # SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, SANDBOX_TARGET.
-# Usage: make build-templates VERSION=0.10.0
-#        make build-templates VERSION=0.10.0 SIZE=small
-#        make build-templates VERSION=0.10.0 SIZE=small,medium
+# Usage: make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0
+#        make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0 SIZE=small
+# VERSION drives the GHCR image tag and Daytona snapshot name. Bump it on every
+# rebuild — Daytona freezes the snapshot's mirrored image at create time, so
+# reusing a VERSION leaves the old bytes in the control-plane registry.
+# BRIDGE_VERSION is the usehiveloop/bridge release tag installed into the image
+# and is independent of VERSION; keep it pinned and bump VERSION when you only
+# need to rebuild the surrounding image.
 build-templates:
-	@test -n "$(VERSION)" || (echo "error: VERSION is required (e.g. make build-templates VERSION=0.10.0)" && exit 1)
-	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates -version=$(VERSION) -size=$(or $(SIZE),all)
+	@test -n "$(VERSION)" || (echo "error: VERSION is required (e.g. make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0)" && exit 1)
+	@test -n "$(BRIDGE_VERSION)" || (echo "error: BRIDGE_VERSION is required (e.g. make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0)" && exit 1)
+	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates -version=$(VERSION) -bridge-version=$(BRIDGE_VERSION) -size=$(or $(SIZE),all)
 
 # Upload skill definitions to Hiveloop API (reads HIVELOOP_SKILLS_API_KEY from .env)
 upload-skills:

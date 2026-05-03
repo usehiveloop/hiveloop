@@ -16,7 +16,10 @@ import (
 const ghcrRegistry = "ghcr.io"
 const ghcrNamespace = "usehiveloop"
 
-func buildAndPush(ctx context.Context, version string, targetSizes []string) error {
+func buildAndPush(ctx context.Context, version, bridgeVersion string, targetSizes []string) error {
+	// Strip a leading "v" so downstream formatters that prepend "v" don't double it.
+	version = strings.TrimPrefix(version, "v")
+
 	user := os.Getenv("GHCR_USERNAME")
 	pat := os.Getenv("GHCR_PAT")
 	if user == "" || pat == "" {
@@ -27,7 +30,7 @@ func buildAndPush(ctx context.Context, version string, targetSizes []string) err
 		return fmt.Errorf("docker login: %w", err)
 	}
 
-	dockerfile := buildBridgeImage().Dockerfile()
+	dockerfile := buildBridgeImage(version, bridgeVersion).Dockerfile()
 
 	tmpDir, err := os.MkdirTemp("", "buildtemplates-*")
 	if err != nil {
@@ -62,7 +65,7 @@ func buildAndPush(ctx context.Context, version string, targetSizes []string) err
 	return createDaytonaSnapshots(ctx, version, versionedTag, targetSizes)
 }
 
-func createDaytonaSnapshots(ctx context.Context, version, ghcrTag string, targetSizes []string) error {
+func createDaytonaSnapshots(ctx context.Context, version, imageRef string, targetSizes []string) error {
 	client, err := daytona.NewClientWithConfig(&types.DaytonaConfig{
 		APIKey: os.Getenv("SANDBOX_PROVIDER_KEY"),
 		APIUrl: os.Getenv("SANDBOX_PROVIDER_URL"),
@@ -83,9 +86,9 @@ func createDaytonaSnapshots(ctx context.Context, version, ghcrTag string, target
 		log.Printf("Creating Daytona snapshot %q (cpu=%d, mem=%dGB, disk=%dGB)...",
 			name, size.CPU, size.Memory, size.Disk)
 
-		snapshot, logChan, err := client.Snapshot.Create(ctx, &types.CreateSnapshotParams{
+		_, logChan, err := client.Snapshot.Create(ctx, &types.CreateSnapshotParams{
 			Name:  name,
-			Image: ghcrTag,
+			Image: imageRef,
 			Resources: &types.Resources{
 				CPU:    size.CPU,
 				Memory: size.Memory,
@@ -98,7 +101,22 @@ func createDaytonaSnapshots(ctx context.Context, version, ghcrTag string, target
 		for line := range logChan {
 			log.Printf("[%s] %s", name, line)
 		}
-		log.Printf("✓ Snapshot %q ready (id=%s)", name, snapshot.Name)
+
+		// Create returns immediately after kicking off the build; the log stream
+		// closing means the build finished but says nothing about success. Re-fetch
+		// the snapshot and verify state before declaring victory.
+		final, err := client.Snapshot.Get(ctx, name)
+		if err != nil {
+			return fmt.Errorf("re-fetching snapshot %q after build: %w", name, err)
+		}
+		if final.State != "active" {
+			reason := ""
+			if final.ErrorReason != nil {
+				reason = *final.ErrorReason
+			}
+			return fmt.Errorf("snapshot %q ended in state %q: %s", name, final.State, reason)
+		}
+		log.Printf("✓ Snapshot %q ready (state=%s id=%s)", name, final.State, final.ID)
 	}
 	return nil
 }
@@ -129,3 +147,4 @@ func dockerPush(ctx context.Context, tag string) error {
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
+

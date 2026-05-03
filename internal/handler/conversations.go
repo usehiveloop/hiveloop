@@ -77,6 +77,26 @@ type conversationHistoryResponse struct {
 	HasMore     bool   `json:"has_more"`
 }
 
+type conversationToolCallResponse struct {
+	ID      string `json:"id"`
+	Title   string `json:"title"`
+	Status  string `json:"status"`
+	Summary string `json:"summary,omitempty"`
+}
+
+type conversationToolGroupResponse struct {
+	Name  string                         `json:"name"`
+	Calls []conversationToolCallResponse `json:"calls"`
+}
+
+type conversationMessageResponse struct {
+	ID         string                          `json:"id"`
+	Author     string                          `json:"author"`
+	Timestamp  string                          `json:"timestamp"`
+	Body       string                          `json:"body,omitempty"`
+	ToolGroups []conversationToolGroupResponse `json:"tool_groups,omitempty"`
+}
+
 // Create handles POST /v1/agents/{agentID}/conversations.
 // @Summary Create a conversation
 // @Description Creates a new conversation for an agent by spinning up a dedicated sandbox.

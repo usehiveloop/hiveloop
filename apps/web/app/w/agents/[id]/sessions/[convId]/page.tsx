@@ -17,14 +17,37 @@ import {
 import { MultiFileDiff, type FileContents } from "@pierre/diffs/react"
 import { Group as PanelGroup, Panel, Separator as PanelResizer } from "react-resizable-panels"
 import ScrollToBottom from "react-scroll-to-bottom"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
+import { cn } from "@/lib/utils"
+import type { components } from "@/lib/api/schema"
 import { $api } from "@/lib/api/hooks"
 import { useAgentSessions } from "@/hooks/use-agent-sessions"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Workspace } from "@/app/w/agents/[id]/_components/workspace"
 
-type ToolCall = { name: string; status: "running" | "done"; summary: string }
+type ToolCall = {
+  id: string
+  title: string
+  status: "running" | "done"
+  summary: string
+}
+
+type ToolGroup = {
+  name: string
+  calls: ToolCall[]
+}
 
 type DiffPayload = {
   oldFile: FileContents
@@ -37,7 +60,7 @@ type Message = {
   body?: string
   timestamp: string
   thinking?: string
-  toolCalls?: ToolCall[]
+  toolGroups?: ToolGroup[]
   diff?: DiffPayload
 }
 
@@ -278,29 +301,33 @@ const messages: Message[] = [
 */
 /* eslint-enable @typescript-eslint/no-unused-vars */
 
-function extractToolInfo(data: unknown): { name?: string; args?: unknown } {
-  if (!data || typeof data !== "object") return {}
-  const d = data as Record<string, unknown>
+function formatTimestamp(iso: string | undefined): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+}
 
-  const name =
-    (typeof d.tool_name === "string" && d.tool_name) ||
-    (typeof d.name === "string" && d.name) ||
-    (typeof (d.tool as Record<string, unknown> | undefined)?.name === "string" &&
-      ((d.tool as Record<string, unknown>).name as string)) ||
-    (typeof (d.tool_call as Record<string, unknown> | undefined)?.name === "string" &&
-      ((d.tool_call as Record<string, unknown>).name as string)) ||
-    undefined
+type ApiToolCall = components["schemas"]["conversationToolCallResponse"]
+type ApiToolGroup = components["schemas"]["conversationToolGroupResponse"]
+type ApiMessage = components["schemas"]["conversationMessageResponse"]
 
-  const args =
-    d.arguments ??
-    d.input ??
-    d.args ??
-    d.parameters ??
-    (d.tool as Record<string, unknown> | undefined)?.input ??
-    (d.tool_call as Record<string, unknown> | undefined)?.arguments ??
-    undefined
-
-  return { name: name || undefined, args }
+function apiMessageToMessage(m: ApiMessage): Message {
+  return {
+    id: m.id ?? "",
+    author: m.author === "user" ? "user" : "agent",
+    body: m.body,
+    timestamp: formatTimestamp(m.timestamp),
+    toolGroups: (m.tool_groups ?? []).map((g: ApiToolGroup) => ({
+      name: g.name ?? "tool",
+      calls: (g.calls ?? []).map((c: ApiToolCall) => ({
+        id: c.id ?? "",
+        title: c.title ?? g.name ?? "tool",
+        status: c.status === "running" ? "running" : "done",
+        summary: c.summary ?? "",
+      })),
+    })),
+  }
 }
 
 export default function AgentDetailPage() {
@@ -314,79 +341,17 @@ export default function AgentDetailPage() {
   const agentName = agent?.name ?? "Agent"
   const initial = (agentName ?? "?").slice(0, 1).toUpperCase()
 
-  const eventsQuery = $api.useInfiniteQuery(
+  const messagesQuery = $api.useQuery(
     "get",
-    "/v1/conversations/{convID}/events",
-    {
-      params: {
-        path: { convID: convId },
-        query: { limit: 50 },
-      },
-    },
-    {
-      initialPageParam: undefined as string | undefined,
-      getNextPageParam: (lastPage) =>
-        lastPage?.has_more ? lastPage.next_cursor : undefined,
-      enabled: Boolean(convId),
-    },
+    "/v1/conversations/{convID}/messages",
+    { params: { path: { convID: convId }, query: { limit: 1000 } } },
+    { enabled: Boolean(convId), refetchInterval: 5000 },
   )
 
-  // API returns DESC (newest first). For chat display we want oldest at top,
-  // newest at bottom — flatten then reverse.
-  const events = React.useMemo(() => {
-    const pages = eventsQuery.data?.pages ?? []
-    const all = pages.flatMap((page) => page?.data ?? [])
-    return [...all].reverse()
-  }, [eventsQuery.data])
-
-  const topSentinelRef = React.useRef<HTMLDivElement | null>(null)
-  const scrollAnchorRef = React.useRef<{ scrollHeight: number; scrollTop: number } | null>(null)
-
-  const getScrollContainer = React.useCallback((): HTMLElement | null => {
-    let el: HTMLElement | null = topSentinelRef.current
-    while (el && el.parentElement) {
-      el = el.parentElement
-      if (el.scrollHeight > el.clientHeight) return el
-    }
-    return null
-  }, [])
-
-  // Anchor scroll position around fetch: capture before, restore after, so the
-  // user stays pinned to the same event and the sentinel scrolls out of view.
-  React.useLayoutEffect(() => {
-    const container = getScrollContainer()
-    if (!container) return
-    if (eventsQuery.isFetchingNextPage) {
-      scrollAnchorRef.current = {
-        scrollHeight: container.scrollHeight,
-        scrollTop: container.scrollTop,
-      }
-    } else if (scrollAnchorRef.current) {
-      const delta = container.scrollHeight - scrollAnchorRef.current.scrollHeight
-      container.scrollTop = scrollAnchorRef.current.scrollTop + delta
-      scrollAnchorRef.current = null
-    }
-  }, [eventsQuery.isFetchingNextPage, getScrollContainer])
-
-  React.useEffect(() => {
-    const target = topSentinelRef.current
-    if (!target) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0]
-        if (
-          entry?.isIntersecting &&
-          eventsQuery.hasNextPage &&
-          !eventsQuery.isFetchingNextPage
-        ) {
-          eventsQuery.fetchNextPage()
-        }
-      },
-      { rootMargin: "0px" },
-    )
-    observer.observe(target)
-    return () => observer.disconnect()
-  }, [eventsQuery])
+  const messages = React.useMemo<Message[]>(
+    () => (messagesQuery.data?.data ?? []).map(apiMessageToMessage),
+    [messagesQuery.data],
+  )
 
   return (
     <div className="fixed inset-0 z-50 bg-background">
@@ -406,45 +371,28 @@ export default function AgentDetailPage() {
             initialScrollBehavior="auto"
           >
             <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-6 py-8">
-              <div ref={topSentinelRef} className="h-px w-full" />
-
-              {eventsQuery.isFetchingNextPage ? (
-                <p className="text-center text-[11px] text-muted-foreground/70">
-                  Loading older events…
-                </p>
-              ) : null}
-
-              {events.map((event) => {
-                const tool = extractToolInfo(event.data)
+              {messages.map((message, index) => {
+                const prev = messages[index - 1]
+                const next = messages[index + 1]
+                const isFirstInGroup = !prev || prev.author !== message.author
+                const isLastInGroup = !next || next.author !== message.author
                 return (
-                  <div
-                    key={event.id ?? event.event_id}
-                    className="rounded-lg border border-border/60 bg-muted/30 p-3"
-                  >
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-mono text-[10px] uppercase tracking-[1px] text-muted-foreground/60">
-                        {event.event_type ?? "event"}
-                      </span>
-                      {tool.name ? (
-                        <span className="font-mono text-[12px] font-medium text-foreground">
-                          {tool.name}
-                        </span>
-                      ) : null}
-                    </div>
-                    {tool.args !== undefined ? (
-                      <pre className="mt-2 overflow-x-auto font-mono text-[11px] leading-relaxed text-muted-foreground">
-                        {typeof tool.args === "string"
-                          ? tool.args
-                          : JSON.stringify(tool.args, null, 2)}
-                      </pre>
-                    ) : null}
-                  </div>
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    agentName={agentName}
+                    avatarUrl={agent?.avatar_url ?? null}
+                    initial={initial}
+                    isFirstInGroup={isFirstInGroup}
+                    isLastInGroup={isLastInGroup}
+                    isFirst={index === 0}
+                  />
                 )
               })}
 
-              {!eventsQuery.isLoading && events.length === 0 ? (
+              {!messagesQuery.isLoading && messages.length === 0 ? (
                 <p className="text-center text-[12px] text-muted-foreground/70">
-                  No events yet.
+                  No messages yet.
                 </p>
               ) : null}
             </div>
@@ -541,11 +489,7 @@ function MessageBubble({
   if (!isAgent) {
     return (
       <div className={`flex flex-col gap-2 ${topSpacing}`}>
-        {message.body ? (
-          <p className="max-w-[85%] self-end rounded-2xl bg-secondary px-3.5 py-2 text-[14px] leading-relaxed text-secondary-foreground">
-            {message.body}
-          </p>
-        ) : null}
+        {message.body ? <UserMessageBody body={message.body} /> : null}
         {isLastInGroup ? (
           <div className="flex items-center justify-end gap-2">
             <span className="text-[11px] text-muted-foreground/70">{message.timestamp}</span>
@@ -573,10 +517,10 @@ function MessageBubble({
 
       {message.thinking ? <ThinkingBlock text={message.thinking} /> : null}
 
-      {message.toolCalls && message.toolCalls.length > 0 ? (
+      {message.toolGroups && message.toolGroups.length > 0 ? (
         <div className="flex flex-col gap-1">
-          {message.toolCalls.map((call, callIndex) => (
-            <ToolCallChip key={`${call.name}-${callIndex}`} call={call} />
+          {message.toolGroups.map((group, groupIndex) => (
+            <ToolGroupChip key={`${group.name}-${groupIndex}`} group={group} />
           ))}
         </div>
       ) : null}
@@ -639,6 +583,143 @@ function DiffBlock({ diff }: { diff: DiffPayload }) {
   )
 }
 
+function looksLikeMarkdown(text: string): boolean {
+  if (text.length === 0) return false
+  const patterns: RegExp[] = [
+    /^#{1,6}\s+\S/m,
+    /^\s*[-*+]\s+\S/m,
+    /^\s*\d+\.\s+\S/m,
+    /^\s*>\s+\S/m,
+    /^\s*```/m,
+    /^\s*\|.+\|\s*$/m,
+    /^\s*-{3,}\s*$/m,
+    /\[[^\]]+\]\([^)]+\)/,
+    /!\[[^\]]*\]\([^)]+\)/,
+    /\*\*[^*\n]+\*\*/,
+    /__[^_\n]+__/,
+    /(^|[^`])`[^`\n]+`/,
+  ]
+  return patterns.some((p) => p.test(text))
+}
+
+const previewProseClasses =
+  "prose prose-sm dark:prose-invert max-w-none " +
+  "prose-headings:my-0 prose-headings:font-medium " +
+  "prose-h1:text-[12px] prose-h2:text-[12px] prose-h3:text-[12px] prose-h4:text-[12px] " +
+  "prose-p:my-0 prose-p:text-[12px] prose-p:leading-relaxed " +
+  "prose-ul:my-0 prose-ol:my-0 prose-li:my-0 prose-li:text-[12px] " +
+  "prose-pre:my-0 prose-code:text-[11px] prose-code:before:content-none prose-code:after:content-none " +
+  "prose-blockquote:my-0 prose-blockquote:border-l-2 prose-blockquote:pl-2 " +
+  "prose-hr:my-1 prose-table:my-0"
+
+function MarkdownView({ content }: { content: string }) {
+  return (
+    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-heading prose-h1:text-base prose-h2:text-sm prose-h3:text-[13px] prose-p:text-[12px] prose-p:leading-relaxed prose-li:text-[12px] prose-code:text-[11px] prose-code:before:content-none prose-code:after:content-none prose-pre:rounded-xl prose-table:text-[12px] prose-th:text-[11px] prose-td:text-[11px]">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          code({ className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className ?? "")
+            const codeString = String(children).replace(/\n$/, "")
+
+            if (match) {
+              return (
+                <SyntaxHighlighter
+                  style={oneDark}
+                  language={match[1]}
+                  PreTag="div"
+                  customStyle={{ fontSize: "12px", borderRadius: "12px", margin: 0 }}
+                >
+                  {codeString}
+                </SyntaxHighlighter>
+              )
+            }
+
+            return (
+              <code className={cn("rounded bg-muted px-1.5 py-0.5 font-mono text-xs", className)} {...props}>
+                {children}
+              </code>
+            )
+          },
+          a({ children, href, ...props }) {
+            return (
+              <a
+                href={href}
+                target="_blank"
+                rel="noreferrer noopener"
+                {...props}
+              >
+                {children}
+              </a>
+            )
+          },
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  )
+}
+
+function UserMessageBody({ body }: { body: string }) {
+  const [open, setOpen] = React.useState(false)
+  const isMarkdown = React.useMemo(() => looksLikeMarkdown(body), [body])
+
+  const PREVIEW_MAX_HEIGHT_REM = 5
+
+  return (
+    <>
+      <div className="flex justify-end">
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="Open full message"
+          title="Click to view full message"
+          onClick={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault()
+              setOpen(true)
+            }
+          }}
+          className="relative max-w-[85%] cursor-pointer overflow-hidden rounded-2xl bg-secondary px-3.5 py-2 text-secondary-foreground transition-colors hover:bg-secondary/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          style={{ maxHeight: `${PREVIEW_MAX_HEIGHT_REM}rem` }}
+        >
+          <div className="pointer-events-none">
+            {isMarkdown ? (
+              <div className={previewProseClasses}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
+              </div>
+            ) : (
+              <p className="whitespace-pre-wrap break-words text-[12px] leading-relaxed">
+                {body}
+              </p>
+            )}
+          </div>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-secondary to-transparent" />
+        </div>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Message</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[70vh] overflow-auto rounded-md bg-muted/40 p-4">
+            {isMarkdown ? (
+              <MarkdownView content={body} />
+            ) : (
+              <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-foreground">
+                {body}
+              </pre>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
 function ThinkingBlock({ text }: { text: string }) {
   return (
     <div className="rounded-lg border border-border/60 bg-muted/40 px-3 py-2">
@@ -648,9 +729,10 @@ function ThinkingBlock({ text }: { text: string }) {
   )
 }
 
-function ToolCallChip({ call }: { call: ToolCall }) {
+function ToolGroupChip({ group }: { group: ToolGroup }) {
   const [open, setOpen] = React.useState(false)
-  const isRunning = call.status === "running"
+  const anyRunning = group.calls.some((c) => c.status === "running")
+  const count = group.calls.length
 
   return (
     <div className="w-full overflow-hidden rounded-md border border-border/60 bg-muted/30">
@@ -660,9 +742,14 @@ function ToolCallChip({ call }: { call: ToolCall }) {
         className="flex w-full items-center gap-2 px-2.5 py-1 text-left transition-colors hover:bg-muted/60"
       >
         <span
-          className={`size-1.5 shrink-0 rounded-full ${isRunning ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`}
+          className={`size-1.5 shrink-0 rounded-full ${anyRunning ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`}
         />
-        <span className="flex-1 truncate font-mono text-[11px] text-foreground">{call.name}</span>
+        <span className="flex-1 truncate font-mono text-[11px] text-foreground">
+          {group.name}
+          {count > 1 ? (
+            <span className="ml-1.5 text-muted-foreground/70">({count})</span>
+          ) : null}
+        </span>
         <motion.span
           animate={{ rotate: open ? 90 : 0 }}
           transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
@@ -682,8 +769,22 @@ function ToolCallChip({ call }: { call: ToolCall }) {
             transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-border/60 px-2.5 py-1.5">
-              <span className="font-mono text-[11px] text-muted-foreground/80">{call.summary}</span>
+            <div className="flex flex-col gap-1 border-t border-border/60 px-2.5 py-1.5">
+              {group.calls.map((call) => (
+                <div key={call.id || call.title} className="flex items-start gap-2">
+                  <span
+                    className={`mt-1.5 size-1.5 shrink-0 rounded-full ${call.status === "running" ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-mono text-[11px] text-foreground">{call.title}</p>
+                    {call.summary ? (
+                      <pre className="mt-0.5 max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[10px] leading-relaxed text-muted-foreground/80">
+                        {call.summary}
+                      </pre>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
             </div>
           </motion.div>
         ) : null}

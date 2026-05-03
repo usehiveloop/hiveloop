@@ -24,16 +24,17 @@ func (d *Driver) BuildSnapshotWithLogs(ctx context.Context, opts sandbox.BuildSn
 	return d.buildImage(ctx, opts, onLog)
 }
 
-// TODO(migration): replace with the real release URL for useportal.bridge@rip-harness
-// (e.g. https://github.com/useportal/bridge/releases/download/${version}/bridge-linux-x86_64),
-// and fetch a checksum/signature alongside.
-const bridgeDownloadURL = "https://github.com/useportal/bridge/releases/download/TODO-MIGRATION-rip-harness/bridge-linux-x86_64"
-
 func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts, onLog func(string)) (string, error) {
 	baseImage := opts.BaseImage
 	if baseImage == "" {
 		baseImage = "node:22-bookworm-slim"
 	}
+
+	tag := "v" + strings.TrimPrefix(d.bridgeBinaryVersion, "v")
+	bridgeDownloadURL := fmt.Sprintf(
+		"https://github.com/usehiveloop/bridge/releases/download/%s/bridge-%s-x86_64-unknown-linux-gnu.tar.gz",
+		tag, tag,
+	)
 
 	image := daytona.Base(baseImage)
 
@@ -53,7 +54,7 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 	image = image.Run("mkdir -p /work/.claude /work/.opencode")
 
 	image = image.Run(
-		fmt.Sprintf(`curl -fsSL %q -o /usr/local/bin/bridge && chmod +x /usr/local/bin/bridge`, bridgeDownloadURL),
+		fmt.Sprintf(`curl -fsSL %q | tar -xzf - -C /usr/local/bin/ bridge && chmod +x /usr/local/bin/bridge`, bridgeDownloadURL),
 	)
 
 	// Image-level ENV mirrors orchestrator_types.baseEnvVars so a manual

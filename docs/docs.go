@@ -4416,152 +4416,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/agents/{agentID}/subagents": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "subagents"
-                ],
-                "summary": "List subagents attached to an agent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Parent agent ID",
-                        "name": "agentID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/internal_handler.agentSubagentResponse"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "subagents"
-                ],
-                "summary": "Attach a subagent to an agent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Parent agent ID",
-                        "name": "agentID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Subagent to attach",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.attachSubagentRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.agentSubagentResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/agents/{agentID}/subagents/{subagentID}": {
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "subagents"
-                ],
-                "summary": "Detach a subagent from an agent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Parent agent ID",
-                        "name": "agentID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Subagent ID",
-                        "name": "subagentID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/v1/agents/{id}": {
             "get": {
                 "security": [
@@ -5861,7 +5715,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns webhook events persisted for the conversation. Filterable by event type.",
+                "description": "Returns webhook events persisted for the conversation, ordered by sequence_number DESC (newest first). Pagination cursor is the lowest sequence_number on the current page; pass it back to fetch the next older page. Filterable by event type.",
                 "produces": [
                     "application/json"
                 ],
@@ -5885,13 +5739,13 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Page size",
+                        "description": "Page size (default 50, max 100)",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Pagination cursor",
+                        "description": "Pagination cursor — sequence_number from previous page's tail. Returns events with sequence_number strictly less than this value.",
                         "name": "cursor",
                         "in": "query"
                     }
@@ -5965,6 +5819,56 @@ const docTemplate = `{
             }
         },
         "/v1/conversations/{convID}/messages": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns chat-ready messages aggregated from raw events. Consecutive same-name tool calls are grouped (e.g. \"bash\" called 11 times in a row → one group with 11 calls). Pagination is by sequence_number; aggregation is per-page so a tool call split across pages will not pair.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "conversations"
+                ],
+                "summary": "List conversation messages",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Conversation ID",
+                        "name": "convID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Max events scanned per page (default 200, max 1000). Aggregated message count may be smaller.",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sequence number from the previous page's tail. Returns events with sequence_number strictly greater than this value.",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.paginatedResponse-internal_handler_conversationMessageResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -10006,246 +9910,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/subagents": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Lists subagents visible to the current org. Use scope=public, own, or all.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "subagents"
-                ],
-                "summary": "List subagents",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter: public, own, all (default all)",
-                        "name": "scope",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Free-text search over name and description",
-                        "name": "q",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page size (default 50, max 100)",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor",
-                        "name": "cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.paginatedResponse-internal_handler_subagentResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Creates a reusable subagent that parent agents can invoke. Does not require a credential.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "subagents"
-                ],
-                "summary": "Create a subagent",
-                "parameters": [
-                    {
-                        "description": "Subagent definition",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.createSubagentRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.subagentResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/subagents/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "subagents"
-                ],
-                "summary": "Get a subagent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Subagent ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.subagentResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "subagents"
-                ],
-                "summary": "Archive a subagent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Subagent ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "subagents"
-                ],
-                "summary": "Update a subagent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Subagent ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Fields to update",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.updateSubagentRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.subagentResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/v1/system/tasks/{taskName}": {
             "post": {
                 "security": [
@@ -10713,10 +10377,6 @@ const docTemplate = `{
                         }
                     ]
                 },
-                "agentType": {
-                    "description": "\"agent\" or \"subagent\"",
-                    "type": "string"
-                },
                 "avatarURL": {
                     "type": "string"
                 },
@@ -10745,6 +10405,10 @@ const docTemplate = `{
                     "items": {
                         "type": "integer"
                     }
+                },
+                "harness": {
+                    "description": "TODO(post-migration): drop agent.Tools column once data archived.",
+                    "type": "string"
                 },
                 "id": {
                     "type": "string"
@@ -12574,6 +12238,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "harness": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -12621,12 +12288,6 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "string"
-                },
-                "subagents": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler.agentSubagentSummary"
-                    }
                 },
                 "system_prompt": {
                     "type": "string"
@@ -12678,37 +12339,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "source_type": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_handler.agentSubagentResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "subagent": {
-                    "$ref": "#/definitions/internal_handler.subagentResponse"
-                },
-                "subagent_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_handler.agentSubagentSummary": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "model": {
-                    "type": "string"
-                },
-                "name": {
                     "type": "string"
                 }
             }
@@ -12856,14 +12486,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "skill_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_handler.attachSubagentRequest": {
-            "type": "object",
-            "properties": {
-                "subagent_id": {
                     "type": "string"
                 }
             }
@@ -13038,6 +12660,29 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.conversationMessageResponse": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "body": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "tool_groups": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.conversationToolGroupResponse"
+                    }
+                }
+            }
+        },
         "internal_handler.conversationResponse": {
             "type": "object",
             "properties": {
@@ -13057,6 +12702,37 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "stream_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.conversationToolCallResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.conversationToolGroupResponse": {
+            "type": "object",
+            "properties": {
+                "calls": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.conversationToolCallResponse"
+                    }
+                },
+                "name": {
                     "type": "string"
                 }
             }
@@ -13125,6 +12801,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "harness": {
+                    "type": "string"
+                },
                 "instructions": {
                     "type": "string"
                 },
@@ -13169,12 +12848,6 @@ const docTemplate = `{
                 },
                 "skills": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "subagent_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
                 },
                 "system_prompt": {
                     "type": "string"
@@ -13454,44 +13127,6 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
-                }
-            }
-        },
-        "internal_handler.createSubagentRequest": {
-            "type": "object",
-            "properties": {
-                "agent_config": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "mcp_servers": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "model": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "permissions": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "skills": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "system_prompt": {
-                    "type": "string"
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "tools": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 }
             }
         },
@@ -14628,6 +14263,23 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.paginatedResponse-internal_handler_conversationMessageResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.conversationMessageResponse"
+                    }
+                },
+                "has_more": {
+                    "type": "boolean"
+                },
+                "next_cursor": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.paginatedResponse-internal_handler_conversationResponse": {
             "type": "object",
             "properties": {
@@ -14754,23 +14406,6 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/internal_handler.skillResponse"
-                    }
-                },
-                "has_more": {
-                    "type": "boolean"
-                },
-                "next_cursor": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_handler.paginatedResponse-internal_handler_subagentResponse": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler.subagentResponse"
                     }
                 },
                 "has_more": {
@@ -15887,38 +15522,6 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.subagentResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "model": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "org_id": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "system_prompt": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
         "internal_handler.subscriptionResponse": {
             "type": "object",
             "properties": {
@@ -16226,6 +15829,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "harness": {
+                    "type": "string"
+                },
                 "instructions": {
                     "type": "string"
                 },
@@ -16413,41 +16019,6 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
-                }
-            }
-        },
-        "internal_handler.updateSubagentRequest": {
-            "type": "object",
-            "properties": {
-                "agent_config": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "mcp_servers": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "model": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "permissions": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "skills": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "system_prompt": {
-                    "type": "string"
-                },
-                "tools": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 }
             }
         },

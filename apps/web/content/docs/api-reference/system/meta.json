@@ -1,0 +1,7 @@
+{
+  "title": "System",
+  "description": "system",
+  "pages": [
+    "v1/system/tasks/taskname/post"
+  ]
+}
