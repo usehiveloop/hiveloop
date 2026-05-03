@@ -34,6 +34,21 @@ type assetListItem struct {
 //	?path={folder}          — exact match on the asset's logical folder label
 //
 // Filters combine. Ordered by created_at desc, cursor-paginated.
+//
+// @Summary List org assets
+// @Description Lists conversation assets owned by the caller's org. Optional filters: agent_id, conversation_id, path. Ordered by created_at desc, cursor-paginated.
+// @Tags assets
+// @Produce json
+// @Param agent_id query string false "Filter to assets uploaded inside conversations of this agent"
+// @Param conversation_id query string false "Filter to assets uploaded inside this conversation"
+// @Param path query string false "Filter by exact folder label (empty = root)"
+// @Param limit query int false "Page size (default 50, max 200)"
+// @Param cursor query string false "Pagination cursor — created_at unix-nanos from the previous page's tail"
+// @Success 200 {object} paginatedResponse[assetListItem]
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/assets [get]
 func (h *UploadsHandler) ListAssets(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
