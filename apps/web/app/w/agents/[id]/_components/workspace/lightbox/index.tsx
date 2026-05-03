@@ -18,7 +18,7 @@ import { PreviewRouter, type Asset } from "./preview-router"
 type ApiAsset = components["schemas"]["assetListItem"]
 
 const ARROW_BTN =
-  "flex size-9 items-center justify-center rounded-full bg-foreground/[0.04] text-foreground/70 ring-1 ring-foreground/10 transition-all duration-150 hover:bg-foreground/[0.08] hover:text-foreground hover:ring-foreground/20 disabled:pointer-events-none disabled:opacity-30"
+  "flex size-9 items-center justify-center rounded-full bg-card text-muted-foreground ring-1 ring-border shadow-sm transition-all duration-150 hover:bg-accent hover:text-foreground hover:ring-foreground/20 disabled:pointer-events-none disabled:opacity-30"
 
 export function Lightbox({
   assets,
@@ -82,7 +82,7 @@ export function Lightbox({
     <DialogPrimitive.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Backdrop
-          className="fixed inset-0 z-[60] bg-[oklch(0.07_0.005_30/0.92)] supports-backdrop-filter:backdrop-blur-xl data-open:animate-in data-open:fade-in-0 data-open:duration-200 data-closed:animate-out data-closed:fade-out-0"
+          className="fixed inset-0 z-[60] bg-background/95 supports-backdrop-filter:bg-background/70 supports-backdrop-filter:backdrop-blur-xl data-open:animate-in data-open:fade-in-0 data-open:duration-200 data-closed:animate-out data-closed:fade-out-0"
         />
         <DialogPrimitive.Popup
           onMouseMove={wakeChrome}
@@ -215,38 +215,38 @@ function Header({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute inset-x-0 top-0 z-20 flex items-center gap-4 border-b border-foreground/10 bg-[oklch(0.06_0.005_30/0.6)] px-5 py-3 supports-backdrop-filter:backdrop-blur-md"
+          className="absolute inset-x-0 top-0 z-20 flex items-center gap-4 border-b border-border bg-background/85 px-5 py-3 supports-backdrop-filter:bg-background/70 supports-backdrop-filter:backdrop-blur-md"
         >
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <h2 className="truncate font-heading text-[15px] font-medium leading-tight text-foreground/95">
+            <h2 className="truncate font-heading text-[15px] font-medium leading-tight text-foreground">
               {filename}
             </h2>
-            <div className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.04em] text-foreground/45">
+            <div className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.04em] text-muted-foreground">
               <span>Home</span>
               {segments.length > 0 ? (
                 <>
                   {segments.map((seg, i) => (
                     <React.Fragment key={`${seg}-${i}`}>
-                      <span className="text-foreground/25">/</span>
+                      <span className="text-muted-foreground/50">/</span>
                       <span>{seg}</span>
                     </React.Fragment>
                   ))}
                 </>
               ) : null}
-              <span className="text-foreground/25">/</span>
-              <span className="text-foreground/70">{filename}</span>
+              <span className="text-muted-foreground/50">/</span>
+              <span className="text-foreground">{filename}</span>
             </div>
           </div>
 
-          <span className="hidden font-mono text-[10.5px] tabular-nums tracking-[0.04em] text-foreground/40 sm:inline">
-            {index + 1} <span className="text-foreground/20">/</span> {total}
+          <span className="hidden font-mono text-[10.5px] tabular-nums tracking-[0.04em] text-muted-foreground sm:inline">
+            {index + 1} <span className="text-muted-foreground/50">/</span> {total}
           </span>
 
           <div className="flex items-center gap-1">
             <a
               href={publicUrl || "#"}
               download={filename}
-              className="flex size-8 items-center justify-center rounded-md text-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+              className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               aria-label="Download asset"
               title="Download"
             >
@@ -255,7 +255,7 @@ function Header({
             <button
               type="button"
               onClick={handleCopy}
-              className="flex size-8 items-center justify-center rounded-md text-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+              className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               aria-label="Copy public URL"
               title={copied ? "Copied" : "Copy URL"}
             >
@@ -264,7 +264,7 @@ function Header({
             <button
               type="button"
               onClick={onClose}
-              className="ml-1 flex size-8 items-center justify-center rounded-md text-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+              className="ml-1 flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               aria-label="Close preview"
               title="Close"
             >

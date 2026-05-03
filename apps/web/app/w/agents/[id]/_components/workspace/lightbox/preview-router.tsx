@@ -103,9 +103,9 @@ function inferKind(a: Asset): AssetKind {
 
 function PreviewSkeleton() {
   return (
-    <div className="flex flex-col items-center gap-3 text-foreground/60">
-      <div className="size-10 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
-      <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-foreground/40">
+    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+      <div className="size-10 animate-spin rounded-full border-2 border-border border-t-foreground" />
+      <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
         Loading preview
       </span>
     </div>

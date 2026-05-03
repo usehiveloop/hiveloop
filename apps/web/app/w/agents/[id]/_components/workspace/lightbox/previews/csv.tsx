@@ -57,7 +57,7 @@ export function CsvPreview({ asset }: { asset: Asset }) {
     <div className="flex h-full w-full items-start justify-center overflow-hidden px-6 pb-24 pt-24">
       <div className="flex w-full max-w-[1100px] flex-col gap-3">
         <Meta state={state} />
-        <div className="overflow-auto rounded-md bg-foreground/[0.02] ring-1 ring-foreground/10">
+        <div className="overflow-auto rounded-md bg-card ring-1 ring-border">
           {state.status === "loading" ? <TableSkeleton /> : null}
           {state.status === "error" ? <TableError message={state.message} /> : null}
           {state.status === "ready" ? <Table headers={state.headers} rows={state.rows} /> : null}
@@ -71,18 +71,18 @@ function Meta({ state }: { state: ParseState }) {
   if (state.status !== "ready") return null
   const cols = state.headers.length
   return (
-    <div className="flex items-center gap-3 px-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-foreground/45">
+    <div className="flex items-center gap-3 px-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
       <span>
         {state.total.toLocaleString()} {state.total === 1 ? "row" : "rows"}
       </span>
-      <span className="text-foreground/20">·</span>
+      <span className="text-muted-foreground/40">·</span>
       <span>
         {cols} {cols === 1 ? "col" : "cols"}
       </span>
       {state.truncated ? (
         <>
-          <span className="text-foreground/20">·</span>
-          <span className="text-foreground/65">
+          <span className="text-muted-foreground/40">·</span>
+          <span className="text-foreground">
             showing first {MAX_ROWS.toLocaleString()}
           </span>
         </>
@@ -94,15 +94,15 @@ function Meta({ state }: { state: ParseState }) {
 function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
     <table className="min-w-full border-collapse text-[12px]">
-      <thead className="sticky top-0 z-10 bg-[oklch(0.07_0.005_30/0.95)] backdrop-blur-md">
+      <thead className="sticky top-0 z-10 bg-card supports-backdrop-filter:bg-card/85 supports-backdrop-filter:backdrop-blur-md">
         <tr>
-          <th className="border-b border-foreground/10 py-2 pl-4 pr-3 text-left font-mono text-[10px] font-normal uppercase tracking-[0.14em] text-foreground/45">
+          <th className="border-b border-border py-2 pl-4 pr-3 text-left font-mono text-[10px] font-normal uppercase tracking-[0.14em] text-muted-foreground">
             #
           </th>
           {headers.map((h, i) => (
             <th
               key={i}
-              className="border-b border-foreground/10 px-3 py-2 text-left font-mono text-[10px] font-normal uppercase tracking-[0.14em] text-foreground/55"
+              className="border-b border-border px-3 py-2 text-left font-mono text-[10px] font-normal uppercase tracking-[0.14em] text-foreground"
             >
               {h || `col_${i + 1}`}
             </th>
@@ -111,19 +111,22 @@ function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
       </thead>
       <tbody>
         {rows.map((row, ri) => (
-          <tr key={ri} className="border-b border-foreground/[0.06] last:border-b-0 hover:bg-foreground/[0.03]">
-            <td className="py-1.5 pl-4 pr-3 font-mono text-[10.5px] tabular-nums text-foreground/35">
+          <tr
+            key={ri}
+            className="border-b border-border/60 last:border-b-0 hover:bg-accent/40"
+          >
+            <td className="py-1.5 pl-4 pr-3 font-mono text-[10.5px] tabular-nums text-muted-foreground/70">
               {ri + 1}
             </td>
             {row.map((cell, ci) => (
-              <td key={ci} className="px-3 py-1.5 text-foreground/85">
+              <td key={ci} className="px-3 py-1.5 text-foreground">
                 {cell}
               </td>
             ))}
             {/* Pad any short rows so the columns stay aligned. */}
             {row.length < headers.length
               ? Array.from({ length: headers.length - row.length }).map((_, k) => (
-                  <td key={`pad-${k}`} className="px-3 py-1.5 text-foreground/30">
+                  <td key={`pad-${k}`} className="px-3 py-1.5 text-muted-foreground/40">
                     —
                   </td>
                 ))
@@ -143,7 +146,7 @@ function TableSkeleton() {
           {Array.from({ length: 5 }).map((_, j) => (
             <span
               key={j}
-              className="h-3 flex-1 animate-pulse rounded bg-foreground/[0.06]"
+              className="h-3 flex-1 animate-pulse rounded bg-muted"
               style={{ animationDelay: `${(i * 5 + j) * 30}ms` }}
             />
           ))}
@@ -156,10 +159,10 @@ function TableSkeleton() {
 function TableError({ message }: { message: string }) {
   return (
     <div className="px-6 py-12 text-center">
-      <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-foreground/40">
+      <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
         Couldn&apos;t parse CSV
       </p>
-      <p className="mt-2 text-[12px] text-foreground/60">{message}</p>
+      <p className="mt-2 text-[12px] text-muted-foreground">{message}</p>
     </div>
   )
 }
