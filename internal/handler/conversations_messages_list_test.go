@@ -159,15 +159,17 @@ func mustJSON(t *testing.T, m map[string]any) model.RawJSON {
 }
 
 func decodeMessagesPage(t *testing.T, rr *httptest.ResponseRecorder) struct {
-	Data       []map[string]any `json:"data"`
-	NextCursor *string          `json:"next_cursor"`
-	HasMore    bool             `json:"has_more"`
+	Data        []map[string]any `json:"data"`
+	LatestTodos []map[string]any `json:"latest_todos"`
+	NextCursor  *string          `json:"next_cursor"`
+	HasMore     bool             `json:"has_more"`
 } {
 	t.Helper()
 	var resp struct {
-		Data       []map[string]any `json:"data"`
-		NextCursor *string          `json:"next_cursor"`
-		HasMore    bool             `json:"has_more"`
+		Data        []map[string]any `json:"data"`
+		LatestTodos []map[string]any `json:"latest_todos"`
+		NextCursor  *string          `json:"next_cursor"`
+		HasMore     bool             `json:"has_more"`
 	}
 	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode: %v; body=%s", err, rr.Body.String())
@@ -377,6 +379,67 @@ func TestListMessages_StartedEventsAreIgnored(t *testing.T) {
 	}
 	if calls[0].(map[string]any)["status"] != "completed" {
 		t.Errorf("call status: got %v, want completed", calls[0].(map[string]any)["status"])
+	}
+}
+
+func TestListMessages_LatestTodosExtractedAndCallSuppressed(t *testing.T) {
+	h := newMessagesListHarness(t)
+
+	earlier := []any{
+		map[string]any{"content": "old item", "status": "completed", "priority": "high"},
+	}
+	later := []any{
+		map[string]any{"content": "do thing 1", "status": "completed", "priority": "high"},
+		map[string]any{"content": "do thing 2", "status": "in_progress", "priority": "medium"},
+		map[string]any{"content": "do thing 3", "status": "pending", "priority": "low"},
+	}
+
+	h.seed(t, []model.ConversationEvent{
+		{SequenceNumber: 1, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{
+			"title":        "1 todos",
+			"tool_call_id": "tw-1",
+			"raw_output":   map[string]any{"metadata": map[string]any{"todos": earlier}},
+		})},
+		{SequenceNumber: 2, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{
+			"title":        "bash",
+			"tool_call_id": "b-1",
+			"raw_output":   map[string]any{"output": "ok"},
+		})},
+		{SequenceNumber: 3, EventType: "tool_call_completed", Data: mustJSON(t, map[string]any{
+			"title":        "3 todos",
+			"tool_call_id": "tw-2",
+			"raw_output":   map[string]any{"metadata": map[string]any{"todos": later}},
+		})},
+	})
+
+	rr := h.get(t, "")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d; body=%s", rr.Code, rr.Body.String())
+	}
+	page := decodeMessagesPage(t, rr)
+
+	// Only the bash tool call should surface in messages — both todo writes
+	// are suppressed in favor of the dedicated latest_todos field.
+	if len(page.Data) != 1 {
+		t.Fatalf("messages: got %d, want 1", len(page.Data))
+	}
+	groups, _ := page.Data[0]["tool_groups"].([]any)
+	if len(groups) != 1 || groups[0].(map[string]any)["name"] != "bash" {
+		t.Fatalf("expected single bash group, got groups=%v", groups)
+	}
+
+	// The latest todo write (seq 3) wins over the earlier one (seq 1).
+	if len(page.LatestTodos) != 3 {
+		t.Fatalf("latest_todos: got %d, want 3 (most recent todowrite)", len(page.LatestTodos))
+	}
+	if page.LatestTodos[0]["content"] != "do thing 1" {
+		t.Errorf("first todo content: got %v, want 'do thing 1'", page.LatestTodos[0]["content"])
+	}
+	if page.LatestTodos[1]["status"] != "in_progress" {
+		t.Errorf("second todo status: got %v, want in_progress", page.LatestTodos[1]["status"])
+	}
+	if page.LatestTodos[2]["priority"] != "low" {
+		t.Errorf("third todo priority: got %v, want low", page.LatestTodos[2]["priority"])
 	}
 }
 

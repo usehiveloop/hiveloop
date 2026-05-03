@@ -1636,6 +1636,21 @@ definitions:
           $ref: '#/definitions/internal_handler.conversationToolGroupResponse'
         type: array
     type: object
+  internal_handler.conversationMessagesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.conversationMessageResponse'
+        type: array
+      has_more:
+        type: boolean
+      latest_todos:
+        items:
+          $ref: '#/definitions/internal_handler.conversationTodoItem'
+        type: array
+      next_cursor:
+        type: string
+    type: object
   internal_handler.conversationResponse:
     properties:
       agent_id:
@@ -1649,6 +1664,15 @@ definitions:
       status:
         type: string
       stream_url:
+        type: string
+    type: object
+  internal_handler.conversationTodoItem:
+    properties:
+      content:
+        type: string
+      priority:
+        type: string
+      status:
         type: string
     type: object
   internal_handler.conversationToolCallResponse:
@@ -2662,17 +2686,6 @@ definitions:
       data:
         items:
           $ref: '#/definitions/internal_handler.conversationEventResponse'
-        type: array
-      has_more:
-        type: boolean
-      next_cursor:
-        type: string
-    type: object
-  internal_handler.paginatedResponse-internal_handler_conversationMessageResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/internal_handler.conversationMessageResponse'
         type: array
       has_more:
         type: boolean
@@ -7664,7 +7677,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_conversationMessageResponse'
+            $ref: '#/definitions/internal_handler.conversationMessagesResponse'
         "404":
           description: Not Found
           schema:

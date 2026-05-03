@@ -21,7 +21,7 @@ import (
 // @Param convID path string true "Conversation ID"
 // @Param limit query int false "Max events scanned per page (default 200, max 1000). Aggregated message count may be smaller."
 // @Param cursor query string false "Sequence number from the previous page's tail. Returns events with sequence_number strictly greater than this value."
-// @Success 200 {object} paginatedResponse[conversationMessageResponse]
+// @Success 200 {object} conversationMessagesResponse
 // @Failure 404 {object} errorResponse
 // @Security BearerAuth
 // @Router /v1/conversations/{convID}/messages [get]
@@ -65,9 +65,9 @@ func (h *ConversationHandler) ListMessages(w http.ResponseWriter, r *http.Reques
 		events = events[:limit]
 	}
 
-	messages := aggregateMessages(events)
+	messages, latestTodos := aggregateMessages(events)
 
-	result := paginatedResponse[conversationMessageResponse]{Data: messages, HasMore: hasMore}
+	result := conversationMessagesResponse{Data: messages, LatestTodos: latestTodos, HasMore: hasMore}
 	if hasMore && len(events) > 0 {
 		c := strconv.FormatInt(events[len(events)-1].SequenceNumber, 10)
 		result.NextCursor = &c
@@ -100,9 +100,10 @@ func parseMessagesPagination(r *http.Request) (int, *int64, error) {
 	return limit, after, nil
 }
 
-func aggregateMessages(events []model.ConversationEvent) []conversationMessageResponse {
+func aggregateMessages(events []model.ConversationEvent) ([]conversationMessageResponse, []conversationTodoItem) {
 	out := make([]conversationMessageResponse, 0, len(events))
 	var current *conversationMessageResponse
+	var latestTodos []conversationTodoItem
 
 	ensureAgent := func(e model.ConversationEvent) *conversationMessageResponse {
 		if current != nil {
@@ -142,6 +143,14 @@ func aggregateMessages(events []model.ConversationEvent) []conversationMessageRe
 			current = nil
 
 		case "tool_call_completed":
+			// Todo writes (and reads) carry the todo list in
+			// raw_output.metadata.todos. We surface the latest one at the top
+			// of the response and skip emitting a tool group, since the
+			// dedicated UI strip renders them outside the chat history.
+			if todos := extractTodos(data["raw_output"]); todos != nil {
+				latestTodos = todos
+				continue
+			}
 			m := ensureAgent(e)
 			toolID, _ := data["tool_call_id"].(string)
 			name, _ := data["title"].(string)
@@ -160,6 +169,40 @@ func aggregateMessages(events []model.ConversationEvent) []conversationMessageRe
 		}
 	}
 
+	return out, latestTodos
+}
+
+func extractTodos(raw any) []conversationTodoItem {
+	obj, ok := raw.(map[string]any)
+	if !ok {
+		return nil
+	}
+	meta, ok := obj["metadata"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	rawTodos, ok := meta["todos"].([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]conversationTodoItem, 0, len(rawTodos))
+	for _, t := range rawTodos {
+		item, ok := t.(map[string]any)
+		if !ok {
+			continue
+		}
+		content, _ := item["content"].(string)
+		status, _ := item["status"].(string)
+		priority, _ := item["priority"].(string)
+		if content == "" {
+			continue
+		}
+		out = append(out, conversationTodoItem{
+			Content:  content,
+			Status:   status,
+			Priority: priority,
+		})
+	}
 	return out
 }
 

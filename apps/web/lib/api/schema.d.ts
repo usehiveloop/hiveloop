@@ -6697,7 +6697,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-conversationMessageResponse"];
+                        "application/json": components["schemas"]["conversationMessagesResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -12719,6 +12719,12 @@ export interface components {
             timestamp?: string;
             tool_groups?: components["schemas"]["conversationToolGroupResponse"][];
         };
+        conversationMessagesResponse: {
+            data?: components["schemas"]["conversationMessageResponse"][];
+            has_more?: boolean;
+            latest_todos?: components["schemas"]["conversationTodoItem"][];
+            next_cursor?: string;
+        };
         conversationResponse: {
             agent_id?: string;
             created_at?: string;
@@ -12726,6 +12732,11 @@ export interface components {
             name?: string;
             status?: string;
             stream_url?: string;
+        };
+        conversationTodoItem: {
+            content?: string;
+            priority?: string;
+            status?: string;
         };
         conversationToolCallResponse: {
             id?: string;
@@ -13239,11 +13250,6 @@ export interface components {
         };
         "paginatedResponse-conversationEventResponse": {
             data?: components["schemas"]["conversationEventResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-conversationMessageResponse": {
-            data?: components["schemas"]["conversationMessageResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
