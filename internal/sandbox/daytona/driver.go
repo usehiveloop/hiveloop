@@ -39,6 +39,7 @@ type Config struct {
 type Driver struct {
 	sdk                 *daytonasdk.Client
 	apiClient           *apiclient.APIClient
+	apiURL              string
 	apiKey              string
 	bridgeBinaryVersion string
 }
@@ -72,6 +73,7 @@ func NewDriver(cfg Config) (*Driver, error) {
 	return &Driver{
 		sdk:                 sdkClient,
 		apiClient:           apiClient,
+		apiURL:              apiURL,
 		apiKey:              apiKey,
 		bridgeBinaryVersion: cfg.BridgeBinaryVersion,
 	}, nil
