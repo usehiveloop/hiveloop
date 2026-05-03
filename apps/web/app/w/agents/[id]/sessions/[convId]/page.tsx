@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils"
 import type { components } from "@/lib/api/schema"
 import { $api } from "@/lib/api/hooks"
 import { useAgentSessions } from "@/hooks/use-agent-sessions"
+import { useConversationEventStream } from "@/hooks/use-conversation-event-stream"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -367,6 +368,11 @@ export default function AgentDetailPage() {
     () => (messagesQuery.data?.latest_todos ?? []).map(apiTodoToTodo),
     [messagesQuery.data],
   )
+
+  // Subscribe to live SSE events as soon as the conversation page is open.
+  // For now we just log every event; reconciliation into the rendered
+  // messages comes in a follow-up.
+  useConversationEventStream(convId ?? null)
 
   return (
     <div className="fixed inset-0 z-50 bg-background">
