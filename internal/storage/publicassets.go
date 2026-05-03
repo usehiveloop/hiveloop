@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/url"
 	"path"
 	"regexp"
@@ -18,9 +19,10 @@ import (
 type AssetType string
 
 const (
-	AssetTypeAvatar  AssetType = "avatar"
-	AssetTypeOrgLogo AssetType = "org_logo"
-	AssetTypeGeneric AssetType = "generic"
+	AssetTypeAvatar       AssetType = "avatar"
+	AssetTypeOrgLogo      AssetType = "org_logo"
+	AssetTypeGeneric      AssetType = "generic"
+	AssetTypeConversation AssetType = "conversation_asset"
 )
 
 type SignRequest struct {
@@ -45,6 +47,20 @@ type SignedUpload struct {
 type Presigner interface {
 	Sign(ctx context.Context, req SignRequest) (*SignedUpload, error)
 	Policy(t AssetType) (AssetPolicy, bool)
+}
+
+// StoredAsset is the result of a streaming upload.
+type StoredAsset struct {
+	Key       string
+	PublicURL string
+	Bytes     int64
+}
+
+// Streamer streams an arbitrary body straight to S3 without buffering. The
+// caller owns the key (full S3 path including any folder prefix) and the
+// content type.
+type Streamer interface {
+	Stream(ctx context.Context, key, contentType string, body io.Reader) (*StoredAsset, error)
 }
 
 type AssetPolicy struct {
@@ -97,13 +113,13 @@ func defaultPolicies() map[AssetType]AssetPolicy {
 }
 
 type PublicAssetsConfig struct {
-	Bucket      string
-	Region      string
-	Endpoint    string
-	AccessKey   string
-	SecretKey   string
-	PublicBase  string
-	SignTTL     time.Duration
+	Bucket       string
+	Region       string
+	Endpoint     string
+	AccessKey    string
+	SecretKey    string
+	PublicBase   string
+	SignTTL      time.Duration
 	UsePublicACL bool
 }
 

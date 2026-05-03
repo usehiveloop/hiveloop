@@ -32,6 +32,7 @@ func setupPublicRoutes(
 	incomingWebhookHandler *handler.IncomingWebhookHandler,
 	nangoClient *nango.Client,
 	sandboxEncKey *crypto.SymmetricKey,
+	uploadsHandler *handler.UploadsHandler,
 ) {
 	r.Get("/healthz", healthz)
 	r.Get("/readyz", readyz(database, redisClient))
@@ -78,6 +79,13 @@ func setupPublicRoutes(
 
 	// Direct incoming webhooks for providers requiring manual webhook configuration
 	r.Post("/incoming/webhooks/{provider}/{connectionID}", incomingWebhookHandler.Handle)
+
+	// Conversation-scoped streaming asset uploads from inside the sandbox.
+	// Bearer auth = the sandbox's bridge API key (matches existing
+	// sandbox-drive / git-credentials / railway-proxy endpoints).
+	if uploadsHandler != nil {
+		r.Put("/internal/conversations/{conversationID}/assets/*", uploadsHandler.StreamConversationAsset)
+	}
 }
 
 func setupAuthRoutes(

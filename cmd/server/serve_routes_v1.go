@@ -56,7 +56,6 @@ func setupV1Routes(
 		r.Post("/invites/{token}/accept", orgInviteHandler.Accept)
 		r.Post("/invites/{token}/decline", orgInviteHandler.Decline)
 
-
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.ResolveOrgFlexible(database))
 			r.Use(middleware.RateLimit())
@@ -195,6 +194,7 @@ func setupV1Routes(
 						r.Get("/approvals", conversationHandler.ListApprovals)
 						r.Post("/approvals/{requestID}", conversationHandler.ResolveApproval)
 						r.Get("/events", conversationHandler.ListEvents)
+						r.Get("/assets", conversationHandler.ListAssets)
 					})
 				}
 				r.Route("/sandboxes", func(r chi.Router) {

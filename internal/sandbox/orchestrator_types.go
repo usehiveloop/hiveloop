@@ -69,6 +69,18 @@ func setDriveEndpoint(envVars map[string]string, sandboxID uuid.UUID, cfg *confi
 	envVars["HIVELOOP_DRIVE_ENDPOINT"] = fmt.Sprintf("https://%s/internal/sandbox-drive/%s", cfg.BridgeHost, sandboxID)
 }
 
+// setAssetsUploadURL exposes the conversation-asset endpoint base. The
+// bridge appends the per-session conversation_id and the agent's chosen
+// "<folder>/<filename>" tail so the final PUT URL is:
+//
+//	$HIVELOOP_ASSETS_UPLOAD_URL/{conversationID}/assets/{folder}/{filename}
+//
+// Auth uses the same bridge API key already exported as
+// BRIDGE_CONTROL_PLANE_API_KEY.
+func setAssetsUploadURL(envVars map[string]string, cfg *config.Config) {
+	envVars["HIVELOOP_ASSETS_UPLOAD_URL"] = fmt.Sprintf("https://%s/internal/conversations", cfg.BridgeHost)
+}
+
 type repoResource struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
