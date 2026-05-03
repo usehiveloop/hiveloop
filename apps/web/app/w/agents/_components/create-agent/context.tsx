@@ -7,11 +7,9 @@ import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import type { components } from "@/lib/api/schema"
-import type { SkillPreview, SubagentPreview, TriggerConfig } from "./types"
+import type { SkillPreview, TriggerConfig } from "./types"
 
 type Agent = components["schemas"]["agentResponse"]
-
-type PermissionLevel = "allow" | "deny" | "require_approval"
 
 export interface CreateAgentFormValues {
   name: string
@@ -20,8 +18,6 @@ export interface CreateAgentFormValues {
   credentialId: string
   sandboxType: "shared" | "dedicated"
   systemPrompt: string
-  instructions: string
-  permissions: Record<string, PermissionLevel>
   sharedMemory: boolean
   category: string
   avatarUrl: string
@@ -36,13 +32,11 @@ interface CreateAgentContextValue {
   selectedIntegrations: Set<string>
   selectedActions: Record<string, Set<string>>
   selectedSkills: Map<string, SkillPreview>
-  selectedSubagents: Map<string, SubagentPreview>
   triggers: TriggerConfig[]
   isSubmitting: boolean
   setSelectedIntegrations: React.Dispatch<React.SetStateAction<Set<string>>>
   setSelectedActions: React.Dispatch<React.SetStateAction<Record<string, Set<string>>>>
   toggleSkill: (skill: SkillPreview) => void
-  toggleSubagent: (subagent: SubagentPreview) => void
   addTrigger: (trigger: TriggerConfig) => void
   removeTrigger: (index: number) => void
   updateTrigger: (index: number, newTriggers: TriggerConfig[]) => void
@@ -72,18 +66,9 @@ function deriveFormValues(agent: Agent | null | undefined): CreateAgentFormValue
       credentialId: "",
       sandboxType: "shared",
       systemPrompt: "",
-      instructions: "",
-      permissions: {},
       sharedMemory: false,
       category: "",
       avatarUrl: "",
-    }
-  }
-  const rawPermissions = (agent.permissions ?? {}) as Record<string, string>
-  const permissions: Record<string, PermissionLevel> = {}
-  for (const [key, value] of Object.entries(rawPermissions)) {
-    if (value === "allow" || value === "deny" || value === "require_approval") {
-      permissions[key] = value
     }
   }
   return {
@@ -93,8 +78,6 @@ function deriveFormValues(agent: Agent | null | undefined): CreateAgentFormValue
     credentialId: agent.credential_id ?? "",
     sandboxType: "shared",
     systemPrompt: agent.system_prompt ?? "",
-    instructions: agent.instructions ?? "",
-    permissions,
     sharedMemory: agent.shared_memory ?? false,
     category: agent.category ?? "",
     avatarUrl: agent.avatar_url ?? "",
@@ -152,21 +135,6 @@ function deriveSkills(agent: Agent | null | undefined): Map<string, SkillPreview
   return out
 }
 
-function deriveSubagents(agent: Agent | null | undefined): Map<string, SubagentPreview> {
-  const out = new Map<string, SubagentPreview>()
-  for (const sub of agent?.subagents ?? []) {
-    if (!sub.id) continue
-    out.set(sub.id, {
-      id: sub.id,
-      name: sub.name ?? "",
-      description: sub.description ?? "",
-      model: sub.model ?? "",
-      scope: "org",
-    })
-  }
-  return out
-}
-
 export function CreateAgentProvider({ children, onClose, agent }: CreateAgentProviderProps) {
   const queryClient = useQueryClient()
   const createAgent = $api.useMutation("post", "/v1/agents")
@@ -183,7 +151,6 @@ export function CreateAgentProvider({ children, onClose, agent }: CreateAgentPro
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(initialIntegrations.ids)
   const [selectedActions, setSelectedActions] = useState<Record<string, Set<string>>>(initialIntegrations.actions)
   const [selectedSkills, setSelectedSkills] = useState<Map<string, SkillPreview>>(() => deriveSkills(agent))
-  const [selectedSubagents, setSelectedSubagents] = useState<Map<string, SubagentPreview>>(() => deriveSubagents(agent))
   const [triggers, setTriggers] = useState<TriggerConfig[]>(() => deriveTriggers(agent))
 
   const toggleSkill = useCallback((skill: SkillPreview) => {
@@ -193,18 +160,6 @@ export function CreateAgentProvider({ children, onClose, agent }: CreateAgentPro
         next.delete(skill.id)
       } else {
         next.set(skill.id, skill)
-      }
-      return next
-    })
-  }, [])
-
-  const toggleSubagent = useCallback((subagent: SubagentPreview) => {
-    setSelectedSubagents((prev) => {
-      const next = new Map(prev)
-      if (next.has(subagent.id)) {
-        next.delete(subagent.id)
-      } else {
-        next.set(subagent.id, subagent)
       }
       return next
     })
@@ -259,12 +214,9 @@ export function CreateAgentProvider({ children, onClose, agent }: CreateAgentPro
       credential_id: values.credentialId || undefined,
       model: values.model || undefined,
       system_prompt: values.systemPrompt.trim(),
-      instructions: values.instructions || undefined,
       integrations: integrationsPayload,
       triggers: triggersPayload,
       skill_ids: Array.from(selectedSkills.keys()),
-      subagent_ids: Array.from(selectedSubagents.keys()),
-      permissions: values.permissions,
       shared_memory: values.sharedMemory,
       category: values.category.trim() || undefined,
       avatar_url: values.avatarUrl || undefined,
@@ -308,7 +260,6 @@ export function CreateAgentProvider({ children, onClose, agent }: CreateAgentPro
     selectedIntegrations,
     selectedActions,
     selectedSkills,
-    selectedSubagents,
     triggers,
     createAgent,
     updateAgent,
@@ -325,13 +276,11 @@ export function CreateAgentProvider({ children, onClose, agent }: CreateAgentPro
         selectedIntegrations,
         selectedActions,
         selectedSkills,
-        selectedSubagents,
         triggers,
         isSubmitting: mode === "edit" ? updateAgent.isPending : createAgent.isPending,
         setSelectedIntegrations,
         setSelectedActions,
         toggleSkill,
-        toggleSubagent,
         addTrigger,
         removeTrigger,
         updateTrigger,

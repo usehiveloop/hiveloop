@@ -73,9 +73,6 @@ definitions:
         allOf:
         - $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
         description: max_tokens, max_turns, temperature, etc.
-      agentType:
-        description: '"agent" or "subagent"'
-        type: string
       avatarURL:
         type: string
       category:
@@ -96,6 +93,9 @@ definitions:
         items:
           type: integer
         type: array
+      harness:
+        description: 'TODO(post-migration): drop agent.Tools column once data archived.'
+        type: string
       id:
         type: string
       instructions:
@@ -1335,6 +1335,8 @@ definitions:
         type: string
       description:
         type: string
+      harness:
+        type: string
       id:
         type: string
       instructions:
@@ -1367,10 +1369,6 @@ definitions:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       status:
         type: string
-      subagents:
-        items:
-          $ref: '#/definitions/internal_handler.agentSubagentSummary'
-        type: array
       system_prompt:
         type: string
       team:
@@ -1404,26 +1402,6 @@ definitions:
       name:
         type: string
       source_type:
-        type: string
-    type: object
-  internal_handler.agentSubagentResponse:
-    properties:
-      created_at:
-        type: string
-      subagent:
-        $ref: '#/definitions/internal_handler.subagentResponse'
-      subagent_id:
-        type: string
-    type: object
-  internal_handler.agentSubagentSummary:
-    properties:
-      description:
-        type: string
-      id:
-        type: string
-      model:
-        type: string
-      name:
         type: string
     type: object
   internal_handler.agentTriggerInput:
@@ -1527,11 +1505,6 @@ definitions:
       pinned_version_id:
         type: string
       skill_id:
-        type: string
-    type: object
-  internal_handler.attachSubagentRequest:
-    properties:
-      subagent_id:
         type: string
     type: object
   internal_handler.auditEntryResponse:
@@ -1648,6 +1621,21 @@ definitions:
           to resume from exactly where history ended.
         type: string
     type: object
+  internal_handler.conversationMessageResponse:
+    properties:
+      author:
+        type: string
+      body:
+        type: string
+      id:
+        type: string
+      timestamp:
+        type: string
+      tool_groups:
+        items:
+          $ref: '#/definitions/internal_handler.conversationToolGroupResponse'
+        type: array
+    type: object
   internal_handler.conversationResponse:
     properties:
       agent_id:
@@ -1661,6 +1649,26 @@ definitions:
       status:
         type: string
       stream_url:
+        type: string
+    type: object
+  internal_handler.conversationToolCallResponse:
+    properties:
+      id:
+        type: string
+      status:
+        type: string
+      summary:
+        type: string
+      title:
+        type: string
+    type: object
+  internal_handler.conversationToolGroupResponse:
+    properties:
+      calls:
+        items:
+          $ref: '#/definitions/internal_handler.conversationToolCallResponse'
+        type: array
+      name:
         type: string
     type: object
   internal_handler.createAPIKeyRequest:
@@ -1705,6 +1713,8 @@ definitions:
         type: string
       description:
         type: string
+      harness:
+        type: string
       instructions:
         type: string
       integrations:
@@ -1735,10 +1745,6 @@ definitions:
         type: array
       skills:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      subagent_ids:
-        items:
-          type: string
-        type: array
       system_prompt:
         type: string
       team:
@@ -1921,31 +1927,6 @@ definitions:
         items:
           type: string
         type: array
-    type: object
-  internal_handler.createSubagentRequest:
-    properties:
-      agent_config:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      description:
-        type: string
-      mcp_servers:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      model:
-        type: string
-      name:
-        type: string
-      permissions:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      skills:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      system_prompt:
-        type: string
-      tags:
-        items:
-          type: string
-        type: array
-      tools:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
   internal_handler.createSystemCredentialRequest:
     properties:
@@ -2687,6 +2668,17 @@ definitions:
       next_cursor:
         type: string
     type: object
+  internal_handler.paginatedResponse-internal_handler_conversationMessageResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.conversationMessageResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
   internal_handler.paginatedResponse-internal_handler_conversationResponse:
     properties:
       data:
@@ -2769,17 +2761,6 @@ definitions:
       data:
         items:
           $ref: '#/definitions/internal_handler.skillResponse'
-        type: array
-      has_more:
-        type: boolean
-      next_cursor:
-        type: string
-    type: object
-  internal_handler.paginatedResponse-internal_handler_subagentResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/internal_handler.subagentResponse'
         type: array
       has_more:
         type: boolean
@@ -3511,27 +3492,6 @@ definitions:
       status:
         type: string
     type: object
-  internal_handler.subagentResponse:
-    properties:
-      created_at:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      model:
-        type: string
-      name:
-        type: string
-      org_id:
-        type: string
-      status:
-        type: string
-      system_prompt:
-        type: string
-      updated_at:
-        type: string
-    type: object
   internal_handler.subscriptionResponse:
     properties:
       cancel_at_period_end:
@@ -3733,6 +3693,8 @@ definitions:
         type: string
       description:
         type: string
+      harness:
+        type: string
       instructions:
         type: string
       integrations:
@@ -3856,29 +3818,6 @@ definitions:
         items:
           type: string
         type: array
-    type: object
-  internal_handler.updateSubagentRequest:
-    properties:
-      agent_config:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      description:
-        type: string
-      mcp_servers:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      model:
-        type: string
-      name:
-        type: string
-      permissions:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      skills:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      status:
-        type: string
-      system_prompt:
-        type: string
-      tools:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
   internal_handler.usageResponse:
     properties:
@@ -6736,98 +6675,6 @@ paths:
       summary: Detach a skill from an agent
       tags:
       - skills
-  /v1/agents/{agentID}/subagents:
-    get:
-      parameters:
-      - description: Parent agent ID
-        in: path
-        name: agentID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/internal_handler.agentSubagentResponse'
-            type: array
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List subagents attached to an agent
-      tags:
-      - subagents
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Parent agent ID
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Subagent to attach
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.attachSubagentRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/internal_handler.agentSubagentResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Attach a subagent to an agent
-      tags:
-      - subagents
-  /v1/agents/{agentID}/subagents/{subagentID}:
-    delete:
-      parameters:
-      - description: Parent agent ID
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Subagent ID
-        in: path
-        name: subagentID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Detach a subagent from an agent
-      tags:
-      - subagents
   /v1/agents/{id}:
     delete:
       description: Deletes an agent and removes it from Bridge.
@@ -7714,7 +7561,9 @@ paths:
       - conversations
   /v1/conversations/{convID}/events:
     get:
-      description: Returns webhook events persisted for the conversation. Filterable
+      description: Returns webhook events persisted for the conversation, ordered
+        by sequence_number DESC (newest first). Pagination cursor is the lowest sequence_number
+        on the current page; pass it back to fetch the next older page. Filterable
         by event type.
       parameters:
       - description: Conversation ID
@@ -7726,11 +7575,12 @@ paths:
         in: query
         name: type
         type: string
-      - description: Page size
+      - description: Page size (default 50, max 100)
         in: query
         name: limit
         type: integer
-      - description: Pagination cursor
+      - description: Pagination cursor — sequence_number from previous page's tail.
+          Returns events with sequence_number strictly less than this value.
         in: query
         name: cursor
         type: string
@@ -7787,6 +7637,43 @@ paths:
       tags:
       - conversations
   /v1/conversations/{convID}/messages:
+    get:
+      description: Returns chat-ready messages aggregated from raw events. Consecutive
+        same-name tool calls are grouped (e.g. "bash" called 11 times in a row → one
+        group with 11 calls). Pagination is by sequence_number; aggregation is per-page
+        so a tool call split across pages will not pair.
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: convID
+        required: true
+        type: string
+      - description: Max events scanned per page (default 200, max 1000). Aggregated
+          message count may be smaller.
+        in: query
+        name: limit
+        type: integer
+      - description: Sequence number from the previous page's tail. Returns events
+          with sequence_number strictly greater than this value.
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_conversationMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List conversation messages
+      tags:
+      - conversations
     post:
       consumes:
       - application/json
@@ -10416,159 +10303,6 @@ paths:
       summary: List skill versions
       tags:
       - skills
-  /v1/subagents:
-    get:
-      description: Lists subagents visible to the current org. Use scope=public, own,
-        or all.
-      parameters:
-      - description: 'Filter: public, own, all (default all)'
-        in: query
-        name: scope
-        type: string
-      - description: Free-text search over name and description
-        in: query
-        name: q
-        type: string
-      - description: Page size (default 50, max 100)
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor
-        in: query
-        name: cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_subagentResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List subagents
-      tags:
-      - subagents
-    post:
-      consumes:
-      - application/json
-      description: Creates a reusable subagent that parent agents can invoke. Does
-        not require a credential.
-      parameters:
-      - description: Subagent definition
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.createSubagentRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/internal_handler.subagentResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create a subagent
-      tags:
-      - subagents
-  /v1/subagents/{id}:
-    delete:
-      parameters:
-      - description: Subagent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Archive a subagent
-      tags:
-      - subagents
-    get:
-      parameters:
-      - description: Subagent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.subagentResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get a subagent
-      tags:
-      - subagents
-    patch:
-      consumes:
-      - application/json
-      parameters:
-      - description: Subagent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Fields to update
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.updateSubagentRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.subagentResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update a subagent
-      tags:
-      - subagents
   /v1/system/tasks/{taskName}:
     post:
       consumes:

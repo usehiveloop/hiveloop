@@ -39,6 +39,9 @@ func baseEnvVars(cfg *config.Config, bridgeAPIKey string, sandboxID uuid.UUID, w
 		"CLAUDE_CONFIG_DIR":   "/work/.claude",
 		"OPENCODE_CONFIG_DIR": "/work/.opencode",
 		"NO_BROWSER":          "1",
+		// SQLite persistence for bridge conversation/session state. /work is
+		// HOME and survives provider stop/start.
+		"BRIDGE_STORAGE_PATH": "/work/bridge.db",
 	}
 	if webhookURL != "" {
 		envVars["BRIDGE_WEBHOOK_URL"] = webhookURL

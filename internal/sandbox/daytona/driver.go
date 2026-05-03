@@ -18,18 +18,23 @@ import (
 const signedURLTTLSeconds = 3600
 
 type Config struct {
-	APIURL string
-	APIKey string
-	Target string
+	APIURL               string
+	APIKey               string
+	Target               string
+	BridgeBinaryVersion  string // usehiveloop/bridge release tag installed into user-template snapshots
 }
 
 type Driver struct {
-	client *daytona.Client
-	apiURL string
-	apiKey string
+	client              *daytona.Client
+	apiURL              string
+	apiKey              string
+	bridgeBinaryVersion string
 }
 
 func NewDriver(cfg Config) (*Driver, error) {
+	if cfg.BridgeBinaryVersion == "" {
+		return nil, fmt.Errorf("daytona: BridgeBinaryVersion is required")
+	}
 	client, err := daytona.NewClientWithConfig(&types.DaytonaConfig{
 		APIKey: cfg.APIKey,
 		APIUrl: cfg.APIURL,
@@ -42,7 +47,12 @@ func NewDriver(cfg Config) (*Driver, error) {
 	if apiURL == "" {
 		apiURL = "https://app.daytona.io/api"
 	}
-	return &Driver{client: client, apiURL: apiURL, apiKey: cfg.APIKey}, nil
+	return &Driver{
+		client:              client,
+		apiURL:              apiURL,
+		apiKey:              cfg.APIKey,
+		bridgeBinaryVersion: cfg.BridgeBinaryVersion,
+	}, nil
 }
 
 func (d *Driver) CreateSandbox(ctx context.Context, opts sandbox.CreateSandboxOpts) (*sandbox.SandboxInfo, error) {

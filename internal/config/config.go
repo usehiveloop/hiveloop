@@ -106,6 +106,7 @@ type Config struct {
 	// Bridge (agent runtime in sandboxes)
 	BridgeBaseImagePrefix          string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"hiveloop-bridge-1-0-0-small-v1"`           // snapshot for shared/pool sandboxes (ACP-harness runtime)
 	BridgeBaseDedicatedImagePrefix string `env:"BRIDGE_BASE_DEDICATED_IMAGE_PREFIX" envDefault:"hiveloop-bridge-1-0-0-small-v1"` // snapshot for dedicated agent sandboxes (ACP-harness runtime)
+	BridgeBinaryVersion            string `env:"BRIDGE_BINARY_VERSION,required"`                                                 // usehiveloop/bridge release tag installed into user-template snapshots (e.g. v1.0.0)
 	BridgeHost            string `env:"BRIDGE_HOST"`                                                  // our external hostname for webhook URLs
 	ProxyHost             string `env:"PROXY_HOST" envDefault:"proxy.hiveloop.com"`                   // LLM proxy hostname (proxy.hiveloop.com)
 

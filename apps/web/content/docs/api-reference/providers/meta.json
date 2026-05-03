@@ -2,6 +2,7 @@
   "title": "Providers",
   "description": "Providers",
   "pages": [
+    "v1/models/get",
     "v1/providers/get",
     "v1/providers/id/get",
     "v1/providers/id/models/get"

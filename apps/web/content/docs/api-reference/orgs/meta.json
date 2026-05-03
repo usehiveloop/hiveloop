@@ -3,6 +3,7 @@
   "description": "Organizations",
   "pages": [
     "v1/orgs/post",
-    "v1/orgs/current/get"
+    "v1/orgs/current/get",
+    "v1/orgs/current/patch"
   ]
 }

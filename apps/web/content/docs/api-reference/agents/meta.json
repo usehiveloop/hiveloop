@@ -5,6 +5,7 @@
     "v1/agents/get",
     "v1/agents/post",
     "v1/agents/built-in-tools/get",
+    "v1/agents/categories/get",
     "v1/agents/sandbox-tools/get",
     "v1/agents/id/get",
     "v1/agents/id/delete",

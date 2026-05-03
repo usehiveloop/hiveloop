@@ -109,34 +109,11 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	assertContains(t, "system_prompt bridge repo", def.SystemPrompt, "hiveloop/bridge")
 	assertContains(t, "system_prompt hiveloop repo", def.SystemPrompt, "hiveloop/hiveloop")
 
-	if def.Permissions == nil {
-		t.Fatal("permissions should not be nil")
+	if def.Permissions != nil {
+		t.Errorf("permissions should be nil (per-tool permissions are not pushed to bridge)")
 	}
-	perms := *def.Permissions
-	if len(perms) != 6 {
-		t.Errorf("permissions: expected 6 allow keys, got %d", len(perms))
-	}
-	if perms["RipGrep"] != bridgepkg.ToolPermissionAllow {
-		t.Errorf("permissions[RipGrep]: got %q, want allow", perms["RipGrep"])
-	}
-	if _, hasDeny := perms["edit"]; hasDeny {
-		t.Error("permissions should not contain denied tool 'edit'")
-	}
-
-	if def.Config == nil || def.Config.DisabledTools == nil {
-		t.Fatal("config.disabled_tools should not be nil")
-	}
-	disabledSet := make(map[string]bool)
-	for _, tool := range *def.Config.DisabledTools {
-		disabledSet[tool] = true
-	}
-	if len(disabledSet) != 6 {
-		t.Errorf("disabled_tools: expected 6, got %d: %v", len(disabledSet), *def.Config.DisabledTools)
-	}
-	for _, denied := range []string{"edit", "write", "multiedit", "web_fetch", "web_search", "web_crawl"} {
-		if !disabledSet[denied] {
-			t.Errorf("disabled_tools: missing %q", denied)
-		}
+	if def.Config != nil && def.Config.DisabledTools != nil {
+		t.Errorf("config.disabled_tools should be nil (per-tool permissions are not pushed to bridge)")
 	}
 
 	// Hiveloop MCP server should be injected because the agent has integrations.

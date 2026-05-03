@@ -4997,152 +4997,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/agents/{agentID}/subagents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List subagents attached to an agent */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Parent agent ID */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["agentSubagentResponse"][];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /** Attach a subagent to an agent */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Parent agent ID */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            /** @description Subagent to attach */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["attachSubagentRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["agentSubagentResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/subagents/{subagentID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Detach a subagent from an agent */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Parent agent ID */
-                    agentID: string;
-                    /** @description Subagent ID */
-                    subagentID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/agents/{id}": {
         parameters: {
             query?: never;
@@ -6704,16 +6558,16 @@ export interface paths {
         };
         /**
          * List conversation events
-         * @description Returns webhook events persisted for the conversation. Filterable by event type.
+         * @description Returns webhook events persisted for the conversation, ordered by sequence_number DESC (newest first). Pagination cursor is the lowest sequence_number on the current page; pass it back to fetch the next older page. Filterable by event type.
          */
         get: {
             parameters: {
                 query?: {
                     /** @description Filter by event type (e.g. MessageReceived, ResponseCompleted) */
                     type?: string;
-                    /** @description Page size */
+                    /** @description Page size (default 50, max 100) */
                     limit?: number;
-                    /** @description Pagination cursor */
+                    /** @description Pagination cursor — sequence_number from previous page's tail. Returns events with sequence_number strictly less than this value. */
                     cursor?: string;
                 };
                 header?: never;
@@ -6816,7 +6670,47 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List conversation messages
+         * @description Returns chat-ready messages aggregated from raw events. Consecutive same-name tool calls are grouped (e.g. "bash" called 11 times in a row → one group with 11 calls). Pagination is by sequence_number; aggregation is per-page so a tool call split across pages will not pair.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Max events scanned per page (default 200, max 1000). Aggregated message count may be smaller. */
+                    limit?: number;
+                    /** @description Sequence number from the previous page's tail. Returns events with sequence_number strictly greater than this value. */
+                    cursor?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Conversation ID */
+                    convID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-conversationMessageResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         put?: never;
         /**
          * Send a message
@@ -11489,237 +11383,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/subagents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List subagents
-         * @description Lists subagents visible to the current org. Use scope=public, own, or all.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Filter: public, own, all (default all) */
-                    scope?: string;
-                    /** @description Free-text search over name and description */
-                    q?: string;
-                    /** @description Page size (default 50, max 100) */
-                    limit?: number;
-                    /** @description Pagination cursor */
-                    cursor?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["paginatedResponse-subagentResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Create a subagent
-         * @description Creates a reusable subagent that parent agents can invoke. Does not require a credential.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Subagent definition */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["createSubagentRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["subagentResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/subagents/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a subagent */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Subagent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["subagentResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        /** Archive a subagent */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Subagent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        /** Update a subagent */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Subagent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            /** @description Fields to update */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["updateSubagentRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["subagentResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
     "/v1/system/tasks/{taskName}": {
         parameters: {
             query?: never;
@@ -12212,8 +11875,6 @@ export interface components {
         Agent: {
             /** @description max_tokens, max_turns, temperature, etc. */
             agentConfig?: components["schemas"]["JSON"];
-            /** @description "agent" or "subagent" */
-            agentType?: string;
             avatarURL?: string;
             category?: string;
             createdAt?: string;
@@ -12224,6 +11885,8 @@ export interface components {
             description?: string;
             /** @description AES-256-GCM encrypted JSON map of env vars */
             encryptedEnvVars?: number[];
+            /** @description TODO(post-migration): drop agent.Tools column once data archived. */
+            harness?: string;
             id?: string;
             /** @description optional markdown instructions for auto-starting runs */
             instructions?: string;
@@ -12894,6 +12557,7 @@ export interface components {
             created_at?: string;
             credential_id?: string;
             description?: string;
+            harness?: string;
             id?: string;
             instructions?: string;
             integrations?: components["schemas"]["JSON"];
@@ -12909,7 +12573,6 @@ export interface components {
             shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             status?: string;
-            subagents?: components["schemas"]["agentSubagentSummary"][];
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
@@ -12927,17 +12590,6 @@ export interface components {
             id?: string;
             name?: string;
             source_type?: string;
-        };
-        agentSubagentResponse: {
-            created_at?: string;
-            subagent?: components["schemas"]["subagentResponse"];
-            subagent_id?: string;
-        };
-        agentSubagentSummary: {
-            description?: string;
-            id?: string;
-            model?: string;
-            name?: string;
         };
         agentTriggerInput: {
             conditions?: components["schemas"]["TriggerMatch"];
@@ -12997,9 +12649,6 @@ export interface components {
         attachSkillRequest: {
             pinned_version_id?: string;
             skill_id?: string;
-        };
-        attachSubagentRequest: {
-            subagent_id?: string;
         };
         auditEntryResponse: {
             action?: string;
@@ -13063,6 +12712,13 @@ export interface components {
              */
             last_event_id?: string;
         };
+        conversationMessageResponse: {
+            author?: string;
+            body?: string;
+            id?: string;
+            timestamp?: string;
+            tool_groups?: components["schemas"]["conversationToolGroupResponse"][];
+        };
         conversationResponse: {
             agent_id?: string;
             created_at?: string;
@@ -13070,6 +12726,16 @@ export interface components {
             name?: string;
             status?: string;
             stream_url?: string;
+        };
+        conversationToolCallResponse: {
+            id?: string;
+            status?: string;
+            summary?: string;
+            title?: string;
+        };
+        conversationToolGroupResponse: {
+            calls?: components["schemas"]["conversationToolCallResponse"][];
+            name?: string;
         };
         createAPIKeyRequest: {
             expires_in?: string;
@@ -13091,6 +12757,7 @@ export interface components {
             category?: string;
             credential_id?: string;
             description?: string;
+            harness?: string;
             instructions?: string;
             integrations?: components["schemas"]["JSON"];
             mcp_servers?: components["schemas"]["JSON"];
@@ -13104,7 +12771,6 @@ export interface components {
             shared_memory?: boolean;
             skill_ids?: string[];
             skills?: components["schemas"]["JSON"];
-            subagent_ids?: string[];
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
@@ -13200,18 +12866,6 @@ export interface components {
             /** @description "inline" | "git" */
             source_type?: string;
             tags?: string[];
-        };
-        createSubagentRequest: {
-            agent_config?: components["schemas"]["JSON"];
-            description?: string;
-            mcp_servers?: components["schemas"]["JSON"];
-            model?: string;
-            name?: string;
-            permissions?: components["schemas"]["JSON"];
-            skills?: components["schemas"]["JSON"];
-            system_prompt?: string;
-            tags?: string[];
-            tools?: components["schemas"]["JSON"];
         };
         createSystemCredentialRequest: {
             api_key?: string;
@@ -13588,6 +13242,11 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        "paginatedResponse-conversationMessageResponse": {
+            data?: components["schemas"]["conversationMessageResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         "paginatedResponse-conversationResponse": {
             data?: components["schemas"]["conversationResponse"][];
             has_more?: boolean;
@@ -13625,11 +13284,6 @@ export interface components {
         };
         "paginatedResponse-skillResponse": {
             data?: components["schemas"]["skillResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-subagentResponse": {
-            data?: components["schemas"]["subagentResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
@@ -14004,17 +13658,6 @@ export interface components {
             message?: string;
             status?: string;
         };
-        subagentResponse: {
-            created_at?: string;
-            description?: string;
-            id?: string;
-            model?: string;
-            name?: string;
-            org_id?: string;
-            status?: string;
-            system_prompt?: string;
-            updated_at?: string;
-        };
         subscriptionResponse: {
             cancel_at_period_end?: boolean;
             card_brand?: string;
@@ -14125,6 +13768,7 @@ export interface components {
             category?: string;
             credential_id?: string;
             description?: string;
+            harness?: string;
             instructions?: string;
             integrations?: components["schemas"]["JSON"];
             mcp_servers?: components["schemas"]["JSON"];
@@ -14184,18 +13828,6 @@ export interface components {
             repo_ref?: string;
             status?: string;
             tags?: string[];
-        };
-        updateSubagentRequest: {
-            agent_config?: components["schemas"]["JSON"];
-            description?: string;
-            mcp_servers?: components["schemas"]["JSON"];
-            model?: string;
-            name?: string;
-            permissions?: components["schemas"]["JSON"];
-            skills?: components["schemas"]["JSON"];
-            status?: string;
-            system_prompt?: string;
-            tools?: components["schemas"]["JSON"];
         };
         usageResponse: {
             api_keys?: components["schemas"]["apiKeyStats"];

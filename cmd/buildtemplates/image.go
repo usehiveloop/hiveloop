@@ -10,14 +10,10 @@ import (
 )
 
 const (
-	// baseImage matches useportal.bridge's own Dockerfile so the binary's
-	// runtime expectations carry over directly.
-	baseImage = "node:22-bookworm-slim"
+	// Debian 13 (trixie) ships glibc 2.41; bookworm-slim's 2.36 is too old for
+	// the prebuilt usehiveloop/bridge binary, which is linked against glibc ≥ 2.39.
+	baseImage = "node:22-trixie-slim"
 	workDir   = "/work"
-
-	// TODO(migration): replace with real release URL once useportal.bridge ships
-	// GitHub releases. Keep in sync with internal/sandbox/daytona/driver_snapshot.go.
-	bridgeDownloadURL = "https://github.com/useportal/bridge/releases/download/TODO-MIGRATION-rip-harness/bridge-linux-x86_64"
 
 	// ACP harness versions must match useportal.bridge's Dockerfile so
 	// bridge dispatches to a known-compatible binary.
@@ -80,8 +76,23 @@ func snapshotName(version, size string) string {
 	return fmt.Sprintf("hiveloop-bridge-%s-%s-v1", strings.ReplaceAll(version, ".", "-"), size)
 }
 
-func buildBridgeImage() *daytona.DockerImage {
+func buildBridgeImage(version, bridgeVersion string) *daytona.DockerImage {
+	tag := "v" + strings.TrimPrefix(bridgeVersion, "v")
+	bridgeDownloadURL := fmt.Sprintf(
+		"https://github.com/usehiveloop/bridge/releases/download/%s/bridge-%s-x86_64-unknown-linux-gnu.tar.gz",
+		tag, tag,
+	)
+
 	image := daytona.Base(baseImage)
+
+	// Embed (version, bridgeVersion) as image labels so every distinct combo
+	// produces a different image config digest → different manifest digest.
+	// Daytona's snapshot mirror is content-addressed: if two snapshots resolve
+	// to the same source manifest digest, Daytona reuses its cached mirror and
+	// never re-pulls from GHCR. Labels make that impossible without affecting
+	// runtime behavior or build-layer caching.
+	image = image.Label("com.hiveloop.image.version", version)
+	image = image.Label("com.hiveloop.bridge.version", bridgeVersion)
 
 	image = image.AptGet(basePackages)
 
@@ -175,7 +186,7 @@ func buildBridgeImage() *daytona.DockerImage {
 	)
 
 	image = image.Run(fmt.Sprintf(
-		`curl -fsSL %q -o /usr/local/bin/bridge && chmod +x /usr/local/bin/bridge`,
+		`curl -fsSL %q | tar -xzf - -C /usr/local/bin/ bridge && chmod +x /usr/local/bin/bridge`,
 		bridgeDownloadURL,
 	))
 
@@ -187,6 +198,10 @@ func buildBridgeImage() *daytona.DockerImage {
 	image = image.Env("OPENCODE_CONFIG_DIR", "/work/.opencode")
 	image = image.Env("TMPDIR", "/work/tmp")
 	image = image.Env("NO_BROWSER", "1")
+	// BRIDGE_STORAGE_PATH enables bridge's SQLite persistence. /work is HOME
+	// and survives provider stop/start, so conversation state is preserved
+	// across sandbox restarts.
+	image = image.Env("BRIDGE_STORAGE_PATH", "/work/bridge.db")
 
 	image = image.Workdir(workDir)
 	image = image.Entrypoint([]string{
