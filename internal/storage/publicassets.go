@@ -58,9 +58,10 @@ type StoredAsset struct {
 
 // Streamer streams an arbitrary body straight to S3 without buffering. The
 // caller owns the key (full S3 path including any folder prefix) and the
-// content type.
+// content type. Delete removes a previously-streamed object.
 type Streamer interface {
 	Stream(ctx context.Context, key, contentType string, body io.Reader) (*StoredAsset, error)
+	Delete(ctx context.Context, key string) error
 }
 
 type AssetPolicy struct {

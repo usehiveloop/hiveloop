@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	tmtypes "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 // Stream uploads body to the bucket at key using the transfer manager so
@@ -48,6 +49,22 @@ func (p *S3Presigner) Stream(ctx context.Context, key, contentType string, body 
 		PublicURL: strings.TrimRight(p.cfg.PublicBase, "/") + "/" + key,
 		Bytes:     counted.n,
 	}, nil
+}
+
+// Delete removes an object from the bucket. Calling Delete on a key that
+// does not exist is a no-op (S3 DeleteObject returns 204 either way).
+func (p *S3Presigner) Delete(ctx context.Context, key string) error {
+	if key == "" {
+		return fmt.Errorf("key is required")
+	}
+	_, err := p.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(p.cfg.Bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return fmt.Errorf("s3 delete %q: %w", key, err)
+	}
+	return nil
 }
 
 type countingReader struct {
