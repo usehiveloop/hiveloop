@@ -4268,140 +4268,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/agents/{agentID}/profiles/slack": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Validates Slack bot+app tokens, stores them encrypted, and returns the profile plus public channels.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "agent-profiles"
-                ],
-                "summary": "Create a Slack profile for an AI employee",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Agent ID (must be an AI employee)",
-                        "name": "agentID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Slack tokens",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.createSlackProfileRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.createSlackProfileResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/agents/{agentID}/profiles/slack/channels": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns public channels visible to the bot of the agent's Slack profile.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "agent-profiles"
-                ],
-                "summary": "List Slack public channels for an AI employee's profile",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Agent ID (must be an AI employee)",
-                        "name": "agentID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.listSlackChannelsResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "502": {
-                        "description": "Bad Gateway",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/v1/agents/{agentID}/skills": {
             "get": {
                 "security": [
@@ -10628,10 +10494,6 @@ const docTemplate = `{
                         }
                     ]
                 },
-                "isEmployee": {
-                    "description": "employee agents own subagents and use a different onboarding flow",
-                    "type": "boolean"
-                },
                 "isSystem": {
                     "type": "boolean"
                 },
@@ -10994,9 +10856,6 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
-                },
-                "onboarded": {
-                    "type": "boolean"
                 },
                 "planSlug": {
                     "description": "Denormalised slug of the org's active plan (\"free\" when no active sub).\nSource of truth lives in the subscriptions table; this is cached on\nthe org row so request-path checks don't need a join.",
@@ -11412,32 +11271,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "webhook_secret": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "is_archived": {
-                    "type": "boolean"
-                },
-                "is_member": {
-                    "type": "boolean"
-                },
-                "is_private": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "num_members": {
-                    "type": "integer"
-                },
-                "topic": {
                     "type": "string"
                 }
             }
@@ -12447,50 +12280,6 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.agentProfileResponse": {
-            "type": "object",
-            "properties": {
-                "agent_id": {
-                    "type": "string"
-                },
-                "config": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "external_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "identity": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "label": {
-                    "type": "string"
-                },
-                "last_verified_at": {
-                    "type": "string"
-                },
-                "org_id": {
-                    "type": "string"
-                },
-                "provider": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "status_reason": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
         "internal_handler.agentResponse": {
             "type": "object",
             "properties": {
@@ -12530,9 +12319,6 @@ const docTemplate = `{
                 "integrations": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
-                "is_employee": {
-                    "type": "boolean"
-                },
                 "mcp_servers": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
@@ -12544,12 +12330,6 @@ const docTemplate = `{
                 },
                 "permissions": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "profiles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler.agentProfileResponse"
-                    }
                 },
                 "provider_id": {
                     "type": "string"
@@ -12577,12 +12357,6 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "string"
-                },
-                "subagent_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
                 },
                 "system_prompt": {
                     "type": "string"
@@ -13180,9 +12954,6 @@ const docTemplate = `{
                 "integrations": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
-                "is_employee": {
-                    "type": "boolean"
-                },
                 "mcp_servers": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
@@ -13221,12 +12992,6 @@ const docTemplate = `{
                 },
                 "skills": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "subagent_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
                 },
                 "system_prompt": {
                     "type": "string"
@@ -13506,34 +13271,6 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
-                }
-            }
-        },
-        "internal_handler.createSlackProfileRequest": {
-            "type": "object",
-            "properties": {
-                "app_token": {
-                    "type": "string"
-                },
-                "bot_token": {
-                    "type": "string"
-                },
-                "label": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_handler.createSlackProfileResponse": {
-            "type": "object",
-            "properties": {
-                "channels": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"
-                    }
-                },
-                "profile": {
-                    "$ref": "#/definitions/internal_handler.agentProfileResponse"
                 }
             }
         },
@@ -14008,17 +13745,6 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.listSlackChannelsResponse": {
-            "type": "object",
-            "properties": {
-                "channels": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"
-                    }
-                }
-            }
-        },
         "internal_handler.loginRequest": {
             "type": "object",
             "properties": {
@@ -14352,9 +14078,6 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
-                },
-                "onboarded": {
-                    "type": "boolean"
                 },
                 "plan": {
                     "$ref": "#/definitions/internal_handler.planDTO"
