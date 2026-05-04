@@ -42,6 +42,7 @@ type Agent struct {
 
 	Status        string `gorm:"not null;default:'active'"` // active, archived
 	IsSystem      bool   `gorm:"not null;default:false;index"`
+	IsEmployee    bool   `gorm:"not null;default:false;index"` // employee agents own subagents and use a different onboarding flow
 	ProviderGroup string `gorm:"not null;default:''"` // e.g. "anthropic", "openai", "gemini" — set for system agents
 	// TODO(post-migration): drop agent.Tools column once data archived.
 	Harness   string     `gorm:"type:varchar(32);not null;default:''"` // "claude" or "open_code"
