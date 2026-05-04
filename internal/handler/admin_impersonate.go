@@ -98,10 +98,11 @@ func (h *AdminHandler) Impersonate(w http.ResponseWriter, r *http.Request) {
 	orgs := make([]orgMemberDTO, 0, len(memberships))
 	for _, membership := range memberships {
 		orgs = append(orgs, orgMemberDTO{
-			ID:   membership.OrgID.String(),
-			Name: membership.Org.Name,
-			Role: membership.Role,
-			BYOK: membership.Org.BYOK,
+			ID:        membership.OrgID.String(),
+			Name:      membership.Org.Name,
+			Role:      membership.Role,
+			BYOK:      membership.Org.BYOK,
+			Onboarded: membership.Org.Onboarded,
 		})
 	}
 
