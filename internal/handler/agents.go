@@ -93,6 +93,8 @@ type createAgentRequest struct {
 	SkillIDs          []string            `json:"skill_ids,omitempty"`
 	Harness           string              `json:"harness,omitempty"`
 	Triggers          []agentTriggerInput `json:"triggers,omitempty"`
+	IsEmployee        bool                `json:"is_employee,omitempty"`
+	SubagentIDs       []string            `json:"subagent_ids,omitempty"`
 }
 
 type updateAgentRequest struct {
@@ -163,8 +165,11 @@ type agentResponse struct {
 	SandboxTools      []string               `json:"sandbox_tools"`
 	Harness           string                 `json:"harness"`
 	Status            string                 `json:"status"`
+	IsEmployee        bool                   `json:"is_employee"`
+	SubagentIDs       []string               `json:"subagent_ids,omitempty"`
 	Triggers          []agentTriggerResponse `json:"triggers"`
 	AttachedSkills    []agentSkillSummary    `json:"attached_skills"`
+	Profiles          []agentProfileResponse `json:"profiles"`
 	CreatedAt         string                 `json:"created_at"`
 	UpdatedAt         string                 `json:"updated_at"`
 }
@@ -192,6 +197,7 @@ func toAgentResponse(a model.Agent) agentResponse {
 		SandboxTools: ensureStringSlice(a.SandboxTools),
 		Harness:      a.Harness,
 		Status:       a.Status,
+		IsEmployee:   a.IsEmployee,
 		CreatedAt:    a.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:    a.UpdatedAt.Format(time.RFC3339),
 	}

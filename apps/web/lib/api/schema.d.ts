@@ -4845,6 +4845,176 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/agents/{agentID}/profiles/slack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a Slack profile for an AI employee
+         * @description Validates Slack bot+app tokens, stores them encrypted, and returns the profile plus public channels.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID (must be an AI employee) */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            /** @description Slack tokens */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createSlackProfileRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["createSlackProfileResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{agentID}/profiles/slack/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Slack public channels for an AI employee's profile
+         * @description Returns public channels visible to the bot of the agent's Slack profile.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID (must be an AI employee) */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["listSlackChannelsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/agents/{agentID}/skills": {
         parameters: {
             query?: never;
@@ -11960,6 +12130,8 @@ export interface components {
             instructions?: string;
             /** @description selected integration IDs/configs */
             integrations?: components["schemas"]["JSON"];
+            /** @description employee agents own subagents and use a different onboarding flow */
+            isEmployee?: boolean;
             isSystem?: boolean;
             mcpServers?: components["schemas"]["JSON"];
             /** @description must match credential's provider */
@@ -12107,6 +12279,7 @@ export interface components {
              */
             logoURL?: string;
             name?: string;
+            onboarded?: boolean;
             /**
              * @description Denormalised slug of the org's active plan ("free" when no active sub).
              *     Source of truth lives in the subscriptions table; this is cached on
@@ -12283,6 +12456,15 @@ export interface components {
             /** @description INSTALL_PLUGIN fields */
             username?: string;
             webhook_secret?: string;
+        };
+        "github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel": {
+            id?: string;
+            is_archived?: boolean;
+            is_member?: boolean;
+            is_private?: boolean;
+            name?: string;
+            num_members?: number;
+            topic?: string;
         };
         Cost: {
             input?: number;
@@ -12617,6 +12799,21 @@ export interface components {
             id?: string;
             name?: string;
         };
+        agentProfileResponse: {
+            agent_id?: string;
+            config?: components["schemas"]["JSON"];
+            created_at?: string;
+            external_id?: string;
+            id?: string;
+            identity?: components["schemas"]["JSON"];
+            label?: string;
+            last_verified_at?: string;
+            org_id?: string;
+            provider?: string;
+            status?: string;
+            status_reason?: string;
+            updated_at?: string;
+        };
         agentResponse: {
             agent_config?: components["schemas"]["JSON"];
             attached_skills?: components["schemas"]["agentSkillSummary"][];
@@ -12629,10 +12826,12 @@ export interface components {
             id?: string;
             instructions?: string;
             integrations?: components["schemas"]["JSON"];
+            is_employee?: boolean;
             mcp_servers?: components["schemas"]["JSON"];
             model?: string;
             name?: string;
             permissions?: components["schemas"]["JSON"];
+            profiles?: components["schemas"]["agentProfileResponse"][];
             provider_id?: string;
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             resources?: components["schemas"]["JSON"];
@@ -12641,6 +12840,7 @@ export interface components {
             shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             status?: string;
+            subagent_ids?: string[];
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
@@ -12852,6 +13052,7 @@ export interface components {
             harness?: string;
             instructions?: string;
             integrations?: components["schemas"]["JSON"];
+            is_employee?: boolean;
             mcp_servers?: components["schemas"]["JSON"];
             model?: string;
             name?: string;
@@ -12863,6 +13064,7 @@ export interface components {
             shared_memory?: boolean;
             skill_ids?: string[];
             skills?: components["schemas"]["JSON"];
+            subagent_ids?: string[];
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
@@ -12958,6 +13160,15 @@ export interface components {
             /** @description "inline" | "git" */
             source_type?: string;
             tags?: string[];
+        };
+        createSlackProfileRequest: {
+            app_token?: string;
+            bot_token?: string;
+            label?: string;
+        };
+        createSlackProfileResponse: {
+            channels?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"][];
+            profile?: components["schemas"]["agentProfileResponse"];
         };
         createSystemCredentialRequest: {
             api_key?: string;
@@ -13121,6 +13332,9 @@ export interface components {
         listOrgMembersResponse: {
             data?: components["schemas"]["orgMemberResponse"][];
         };
+        listSlackChannelsResponse: {
+            channels?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"][];
+        };
         loginRequest: {
             email?: string;
             /** @description optional: scope token to a specific org */
@@ -13233,6 +13447,7 @@ export interface components {
             id?: string;
             logo_url?: string;
             name?: string;
+            onboarded?: boolean;
             plan?: components["schemas"]["planDTO"];
             role?: string;
         };
