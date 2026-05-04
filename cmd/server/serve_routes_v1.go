@@ -35,6 +35,7 @@ func setupV1Routes(
 	sandboxTemplateHandler *handler.SandboxTemplateHandler,
 	skillHandler *handler.SkillHandler,
 	agentHandler *handler.AgentHandler,
+	agentProfileHandler *handler.AgentProfileHandler,
 	marketplaceHandler *handler.MarketplaceHandler,
 	conversationHandler *handler.ConversationHandler,
 	routerHandler *handler.RouterHandler,
@@ -154,6 +155,10 @@ func setupV1Routes(
 					if conversationHandler != nil {
 						r.Post("/{agentID}/conversations", conversationHandler.Create)
 						r.Get("/{agentID}/conversations", conversationHandler.List)
+					}
+					if agentProfileHandler != nil {
+						r.Post("/{agentID}/profiles/slack", agentProfileHandler.CreateSlack)
+						r.Get("/{agentID}/profiles/slack/channels", agentProfileHandler.ListSlackChannels)
 					}
 				})
 				if systemTaskHandler != nil {
