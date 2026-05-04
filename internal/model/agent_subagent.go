@@ -11,7 +11,7 @@ import (
 type AgentSubagent struct {
 	AgentID    uuid.UUID `gorm:"type:uuid;primaryKey"`
 	Agent      Agent     `gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE"`
-	SubagentID uuid.UUID `gorm:"type:uuid;primaryKey"`
+	SubagentID uuid.UUID `gorm:"type:uuid;primaryKey;index"`
 	Subagent   Agent     `gorm:"foreignKey:SubagentID;constraint:OnDelete:CASCADE"`
 	CreatedAt  time.Time
 }

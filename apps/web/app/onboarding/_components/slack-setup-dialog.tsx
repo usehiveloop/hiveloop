@@ -36,10 +36,7 @@ export function SlackSetupDialog({
 
         <div className="flex flex-col gap-6 p-6">
           <div className="flex flex-col gap-1.5">
-            <DialogTitle
-              className="text-xl tracking-tight"
-              style={{ fontFamily: "var(--font-sora), sans-serif" }}
-            >
+            <DialogTitle className="font-display text-xl tracking-tight">
               Your Slack manifest is ready
             </DialogTitle>
             <DialogDescription className="text-[13.5px] leading-relaxed">
@@ -101,7 +98,7 @@ function Step({
 
 function ManifestPreview({ agentName }: { agentName: string }) {
   return (
-    <div className="bg-[oklch(0.18_0.012_30)] px-6 py-5 text-foreground/90">
+    <div className="bg-[var(--surface-code)] px-6 py-5 text-foreground/90">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-foreground/40">
           <span className="size-1.5 rounded-full bg-[#36C5F0]" />

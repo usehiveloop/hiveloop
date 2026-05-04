@@ -182,6 +182,16 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": subErrMsg})
 		return
 	}
+	subagents, subValidationMsg, subValidationErr := validateSubagents(h.db, org.ID, subagentUUIDs)
+	if subValidationErr != nil {
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "validate subagents", "error", subValidationErr, "org_id", org.ID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to validate subagents"})
+		return
+	}
+	if subValidationMsg != "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": subValidationMsg})
+		return
+	}
 
 	var skillUUIDs []uuid.UUID
 	if len(req.SkillIDs) > 0 {
@@ -232,7 +242,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if err := attachSubagents(tx, org.ID, agent.ID, subagentUUIDs); err != nil {
+		if err := attachSubagents(tx, agent.ID, subagents); err != nil {
 			return err
 		}
 
