@@ -47,6 +47,11 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(req.SubagentIDs) > 0 && !req.IsEmployee {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "subagent_ids may only be set when is_employee is true"})
+		return
+	}
+
 	if !org.BYOK && req.CredentialID != "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "credential_id is only allowed when BYOK is enabled for this workspace"})
 		return
@@ -145,6 +150,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		SandboxTools:    pq.StringArray(req.SandboxTools),
 		Harness:         req.Harness,
 		Status:          "active",
+		IsEmployee:      req.IsEmployee,
 	}
 	if hasCred {
 		agent.CredentialID = &cred.ID
@@ -169,6 +175,24 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if errMsg := validateAgentTriggers(h.db, org.ID, req.Triggers); errMsg != "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
 		return
+	}
+
+	var subagentUUIDs []uuid.UUID
+	if len(req.SubagentIDs) > 0 {
+		subagentUUIDs = make([]uuid.UUID, 0, len(req.SubagentIDs))
+		seen := make(map[uuid.UUID]struct{}, len(req.SubagentIDs))
+		for _, raw := range req.SubagentIDs {
+			parsed, parseErr := uuid.Parse(raw)
+			if parseErr != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid subagent_id %q", raw)})
+				return
+			}
+			if _, dup := seen[parsed]; dup {
+				continue
+			}
+			seen[parsed] = struct{}{}
+			subagentUUIDs = append(subagentUUIDs, parsed)
+		}
 	}
 
 	var skillUUIDs []uuid.UUID
@@ -220,6 +244,31 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		if len(subagentUUIDs) > 0 {
+			var visibleSubagents []model.Agent
+			if err := tx.
+				Select("id", "is_employee").
+				Where("id IN ? AND org_id = ? AND status = ?", subagentUUIDs, org.ID, "active").
+				Find(&visibleSubagents).Error; err != nil {
+				return fmt.Errorf("validate subagent_ids: %w", err)
+			}
+			if len(visibleSubagents) != len(subagentUUIDs) {
+				return fmt.Errorf("one or more subagent_ids are not active agents in this workspace")
+			}
+			for _, sub := range visibleSubagents {
+				if sub.IsEmployee {
+					return fmt.Errorf("subagent_id %s refers to an employee; employees cannot be subagents", sub.ID)
+				}
+			}
+			links := make([]model.AgentSubagent, len(visibleSubagents))
+			for i, sub := range visibleSubagents {
+				links[i] = model.AgentSubagent{AgentID: agent.ID, SubagentID: sub.ID}
+			}
+			if err := tx.Create(&links).Error; err != nil {
+				return fmt.Errorf("attach subagents: %w", err)
+			}
+		}
+
 		if err := createAgentTriggers(tx, org.ID, agent.ID, req.Triggers); err != nil {
 			return fmt.Errorf("create triggers: %w", err)
 		}
@@ -245,6 +294,12 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	resp := toAgentResponse(agent)
 	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]
+	if len(subagentUUIDs) > 0 {
+		resp.SubagentIDs = make([]string, len(subagentUUIDs))
+		for i, id := range subagentUUIDs {
+			resp.SubagentIDs[i] = id.String()
+		}
+	}
 
 	writeJSON(w, http.StatusCreated, resp)
 }

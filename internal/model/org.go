@@ -80,15 +80,13 @@ func AutoMigrate(db *gorm.DB) error {
 		&Skill{},
 		&SkillVersion{},
 		&AgentSkill{},
+		&AgentSubagent{},
 		&ConversationSubscription{},
 		&FailedEvent{},
 	); err != nil {
 		return err
 	}
 
-	// Subagents feature was removed; archive of agent_subagents data is
-	// operational, not code's concern.
-	db.Exec(`DROP TABLE IF EXISTS agent_subagents`)
 	db.Exec(`ALTER TABLE agent_conversations DROP COLUMN IF EXISTS parent_conversation_id`)
 	db.Exec(`ALTER TABLE agents DROP COLUMN IF EXISTS agent_type`)
 
