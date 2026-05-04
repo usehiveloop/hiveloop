@@ -101,7 +101,7 @@ function ManifestPreview({ agentName }: { agentName: string }) {
     <div className="bg-[var(--surface-code)] px-6 py-5 text-foreground/90">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-foreground/40">
-          <span className="size-1.5 rounded-full bg-[#36C5F0]" />
+          <span className="size-1.5 rounded-full bg-[var(--slack-mark)]" />
           manifest.yaml
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -129,11 +129,11 @@ function ManifestPreview({ agentName }: { agentName: string }) {
 }
 
 function K({ children }: { children: React.ReactNode }) {
-  return <span className="text-[#C4A6E0]">{children}</span>
+  return <span className="text-[var(--syntax-key)]">{children}</span>
 }
 function S({ children }: { children: React.ReactNode }) {
-  return <span className="text-[#A8C8DA]">{children}</span>
+  return <span className="text-[var(--syntax-string)]">{children}</span>
 }
 function B({ children }: { children: React.ReactNode }) {
-  return <span className="text-[#E8B080]">{children}</span>
+  return <span className="text-[var(--syntax-bool)]">{children}</span>
 }
