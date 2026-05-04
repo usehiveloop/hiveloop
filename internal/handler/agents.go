@@ -169,6 +169,7 @@ type agentResponse struct {
 	SubagentIDs       []string               `json:"subagent_ids,omitempty"`
 	Triggers          []agentTriggerResponse `json:"triggers"`
 	AttachedSkills    []agentSkillSummary    `json:"attached_skills"`
+	Profiles          []agentProfileResponse `json:"profiles"`
 	CreatedAt         string                 `json:"created_at"`
 	UpdatedAt         string                 `json:"updated_at"`
 }
