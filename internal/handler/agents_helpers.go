@@ -140,6 +140,27 @@ func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]ag
 	return result
 }
 
+func (h *AgentHandler) loadAgentProfiles(agentIDs ...uuid.UUID) map[uuid.UUID][]agentProfileResponse {
+	if len(agentIDs) == 0 {
+		return nil
+	}
+	var profiles []model.AgentProfile
+	if err := h.db.
+		Where("agent_id IN ? AND deleted_at IS NULL AND revoked_at IS NULL", agentIDs).
+		Order("created_at ASC").
+		Find(&profiles).Error; err != nil {
+		return nil
+	}
+	if len(profiles) == 0 {
+		return nil
+	}
+	result := make(map[uuid.UUID][]agentProfileResponse, len(agentIDs))
+	for _, p := range profiles {
+		result[p.AgentID] = append(result[p.AgentID], toAgentProfileResponse(p))
+	}
+	return result
+}
+
 // errGitHubAppExclusive is returned when an agent's integrations payload
 // attaches both GitHub Apps to the same agent. We restrict agents to a single
 // GitHub App identity so it's unambiguous which app authored a given action

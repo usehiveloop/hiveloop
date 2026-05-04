@@ -47,6 +47,11 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(req.SubagentIDs) > 0 && !req.IsEmployee {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "subagent_ids may only be set when is_employee is true"})
+		return
+	}
+
 	if !org.BYOK && req.CredentialID != "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "credential_id is only allowed when BYOK is enabled for this workspace"})
 		return
@@ -145,6 +150,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		SandboxTools:    pq.StringArray(req.SandboxTools),
 		Harness:         req.Harness,
 		Status:          "active",
+		IsEmployee:      req.IsEmployee,
 	}
 	if hasCred {
 		agent.CredentialID = &cred.ID
@@ -168,6 +174,22 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	if errMsg := validateAgentTriggers(h.db, org.ID, req.Triggers); errMsg != "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
+		return
+	}
+
+	subagentUUIDs, subErrMsg := parseSubagentIDs(req.SubagentIDs)
+	if subErrMsg != "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": subErrMsg})
+		return
+	}
+	subagents, subValidationMsg, subValidationErr := validateSubagents(h.db, org.ID, subagentUUIDs)
+	if subValidationErr != nil {
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "validate subagents", "error", subValidationErr, "org_id", org.ID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to validate subagents"})
+		return
+	}
+	if subValidationMsg != "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": subValidationMsg})
 		return
 	}
 
@@ -220,6 +242,10 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		if err := attachSubagents(tx, agent.ID, subagents); err != nil {
+			return err
+		}
+
 		if err := createAgentTriggers(tx, org.ID, agent.ID, req.Triggers); err != nil {
 			return fmt.Errorf("create triggers: %w", err)
 		}
@@ -245,6 +271,12 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	resp := toAgentResponse(agent)
 	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]
+	if len(subagentUUIDs) > 0 {
+		resp.SubagentIDs = make([]string, len(subagentUUIDs))
+		for i, id := range subagentUUIDs {
+			resp.SubagentIDs[i] = id.String()
+		}
+	}
 
 	writeJSON(w, http.StatusCreated, resp)
 }

@@ -29,6 +29,8 @@ type Org struct {
 	// Empty string when no logo is set.
 	LogoURL string `gorm:"not null;default:''"`
 
+	Onboarded bool `gorm:"not null;default:false"`
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -80,15 +82,14 @@ func AutoMigrate(db *gorm.DB) error {
 		&Skill{},
 		&SkillVersion{},
 		&AgentSkill{},
+		&AgentSubagent{},
+		&AgentProfile{},
 		&ConversationSubscription{},
 		&FailedEvent{},
 	); err != nil {
 		return err
 	}
 
-	// Subagents feature was removed; archive of agent_subagents data is
-	// operational, not code's concern.
-	db.Exec(`DROP TABLE IF EXISTS agent_subagents`)
 	db.Exec(`ALTER TABLE agent_conversations DROP COLUMN IF EXISTS parent_conversation_id`)
 	db.Exec(`ALTER TABLE agents DROP COLUMN IF EXISTS agent_type`)
 
@@ -130,6 +131,9 @@ func AutoMigrate(db *gorm.DB) error {
 
 	// Partial unique: prevent duplicate pending invites per (org, email).
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_org_invite_pending ON org_invites (org_id, email) WHERE accepted_at IS NULL AND revoked_at IS NULL`)
+
+	// Partial unique: one live profile per (agent, provider, external account).
+	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_profile_account ON agent_profiles (agent_id, provider, external_id) WHERE deleted_at IS NULL AND revoked_at IS NULL`)
 
 	// Credit ledger idempotency: when an async spend task retries after a
 	// transient failure, the retry must not double-deduct. The unique index

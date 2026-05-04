@@ -4947,6 +4947,181 @@
         }
       }
     },
+    "/v1/agents/{agentID}/profiles/slack": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Validates Slack bot+app tokens, stores them encrypted, and returns the profile plus public channels.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "Create a Slack profile for an AI employee",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createSlackProfileRequest"
+              }
+            }
+          },
+          "description": "Slack tokens",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/createSlackProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/{agentID}/profiles/slack/channels": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns public channels visible to the bot of the agent's Slack profile.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "List Slack public channels for an AI employee's profile",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/listSlackChannelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/agents/{agentID}/skills": {
       "get": {
         "security": [
@@ -12437,6 +12612,10 @@
               }
             ]
           },
+          "isEmployee": {
+            "description": "employee agents own subagents and use a different onboarding flow",
+            "type": "boolean"
+          },
           "isSystem": {
             "type": "boolean"
           },
@@ -12799,6 +12978,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "onboarded": {
+            "type": "boolean"
           },
           "planSlug": {
             "description": "Denormalised slug of the org's active plan (\"free\" when no active sub).\nSource of truth lives in the subscriptions table; this is cached on\nthe org row so request-path checks don't need a join.",
@@ -13214,6 +13396,32 @@
             "type": "string"
           },
           "webhook_secret": {
+            "type": "string"
+          }
+        }
+      },
+      "github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "is_archived": {
+            "type": "boolean"
+          },
+          "is_member": {
+            "type": "boolean"
+          },
+          "is_private": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "num_members": {
+            "type": "integer"
+          },
+          "topic": {
             "type": "string"
           }
         }
@@ -14223,6 +14431,50 @@
           }
         }
       },
+      "agentProfileResponse": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string"
+          },
+          "config": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "label": {
+            "type": "string"
+          },
+          "last_verified_at": {
+            "type": "string"
+          },
+          "org_id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "status_reason": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
       "agentResponse": {
         "type": "object",
         "properties": {
@@ -14262,6 +14514,9 @@
           "integrations": {
             "$ref": "#/components/schemas/JSON"
           },
+          "is_employee": {
+            "type": "boolean"
+          },
           "mcp_servers": {
             "$ref": "#/components/schemas/JSON"
           },
@@ -14273,6 +14528,12 @@
           },
           "permissions": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentProfileResponse"
+            }
           },
           "provider_id": {
             "type": "string"
@@ -14300,6 +14561,12 @@
           },
           "status": {
             "type": "string"
+          },
+          "subagent_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "system_prompt": {
             "type": "string"
@@ -14897,6 +15164,9 @@
           "integrations": {
             "$ref": "#/components/schemas/JSON"
           },
+          "is_employee": {
+            "type": "boolean"
+          },
           "mcp_servers": {
             "$ref": "#/components/schemas/JSON"
           },
@@ -14935,6 +15205,12 @@
           },
           "skills": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "subagent_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "system_prompt": {
             "type": "string"
@@ -15214,6 +15490,34 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "createSlackProfileRequest": {
+        "type": "object",
+        "properties": {
+          "app_token": {
+            "type": "string"
+          },
+          "bot_token": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "createSlackProfileResponse": {
+        "type": "object",
+        "properties": {
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"
+            }
+          },
+          "profile": {
+            "$ref": "#/components/schemas/agentProfileResponse"
           }
         }
       },
@@ -15688,6 +15992,17 @@
           }
         }
       },
+      "listSlackChannelsResponse": {
+        "type": "object",
+        "properties": {
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"
+            }
+          }
+        }
+      },
       "loginRequest": {
         "type": "object",
         "properties": {
@@ -16021,6 +16336,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "onboarded": {
+            "type": "boolean"
           },
           "plan": {
             "$ref": "#/components/schemas/planDTO"
