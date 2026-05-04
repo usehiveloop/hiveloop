@@ -13,11 +13,19 @@ export function OnboardingShell({ children }: { children: React.ReactNode }) {
         </Link>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <a href="mailto:support@usehiveloop.com">Support</a>
+          <Button
+            variant="ghost"
+            size="sm"
+            render={<a href="mailto:support@usehiveloop.com" />}
+          >
+            Support
           </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/auth?logout=1">Log out</Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            render={<Link href="/auth?logout=1" />}
+          >
+            Log out
           </Button>
         </div>
       </header>
