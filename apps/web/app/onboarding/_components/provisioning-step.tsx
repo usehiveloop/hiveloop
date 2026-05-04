@@ -161,10 +161,7 @@ function DoneHeader({
           {agentAvatarUrl ? (
             <AvatarImage src={agentAvatarUrl} alt={agentName} className="rounded-md" />
           ) : null}
-          <AvatarFallback
-            className="rounded-md text-3xl font-semibold"
-            style={{ fontFamily: "var(--font-sora), sans-serif" }}
-          >
+          <AvatarFallback className="rounded-md font-display text-3xl font-semibold">
             {initial}
           </AvatarFallback>
           <AvatarBadge className="right-1 bottom-1 size-5 bg-success" />
@@ -179,10 +176,7 @@ function DoneHeader({
           </span>
           Online
         </div>
-        <h1
-          className="text-3xl font-semibold tracking-tight"
-          style={{ fontFamily: "var(--font-sora), sans-serif" }}
-        >
+        <h1 className="font-display text-3xl font-semibold tracking-tight">
           Hi, I&apos;m {agentName}.
         </h1>
         <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
