@@ -80,6 +80,10 @@
     --success: oklch(0.6 0.155 152);
     --success-foreground: oklch(0.98 0.01 152);
     --surface-code: oklch(0.18 0.012 30);
+    --slack-mark: #36c5f0;
+    --syntax-key: #c4a6e0;
+    --syntax-string: #a8c8da;
+    --syntax-bool: #e8b080;
     --border: oklch(0.922 0.005 34.3);
     --input: oklch(0.922 0.005 34.3);
     --ring: oklch(0.714 0.014 41.2);
@@ -118,6 +122,10 @@
     --success: oklch(0.72 0.155 152);
     --success-foreground: oklch(0.18 0.02 152);
     --surface-code: oklch(0.18 0.012 30);
+    --slack-mark: #36c5f0;
+    --syntax-key: #c4a6e0;
+    --syntax-string: #a8c8da;
+    --syntax-bool: #e8b080;
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.547 0.021 43.1);
