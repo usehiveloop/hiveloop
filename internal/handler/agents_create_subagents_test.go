@@ -122,8 +122,11 @@ func TestAgentCreate_Employee_RejectsEmployeeAsSubagent(t *testing.T) {
 		"is_employee":  true,
 		"subagent_ids": []string{otherEmployee.ID.String()},
 	})
-	if rr.Code == http.StatusCreated {
-		t.Fatalf("expected non-201 (employee as subagent should be rejected), got 201")
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
+	}
+	if msg := decodeError(t, rr); !strings.Contains(msg, "employees cannot be subagents") {
+		t.Fatalf("expected employee-as-subagent rejection, got: %q", msg)
 	}
 
 	var count int64
@@ -144,8 +147,11 @@ func TestAgentCreate_Employee_RejectsCrossOrgSubagent(t *testing.T) {
 		"is_employee":  true,
 		"subagent_ids": []string{foreign.ID.String()},
 	})
-	if rr.Code == http.StatusCreated {
-		t.Fatalf("expected non-201 (cross-org subagent should be rejected), got 201")
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
+	}
+	if msg := decodeError(t, rr); !strings.Contains(msg, "not active agents in this workspace") {
+		t.Fatalf("expected cross-org rejection, got: %q", msg)
 	}
 
 	var count int64

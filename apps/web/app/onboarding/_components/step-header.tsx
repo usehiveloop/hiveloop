@@ -17,12 +17,7 @@ export function StepHeader({
           {eyebrow}
         </div>
       ) : null}
-      <h1
-        className="text-3xl font-semibold tracking-tight"
-        style={{ fontFamily: "var(--font-sora), sans-serif" }}
-      >
-        {title}
-      </h1>
+      <h1 className="font-display text-3xl font-semibold tracking-tight">{title}</h1>
       {description ? (
         <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
           {description}
