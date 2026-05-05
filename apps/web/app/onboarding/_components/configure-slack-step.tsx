@@ -5,9 +5,11 @@ import { useWatch } from "react-hook-form"
 import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
+  Alert02Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
   EyeIcon,
+  Loading03Icon,
   PlayIcon,
   Tick02Icon,
   ViewOffIcon,
@@ -16,12 +18,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { integrationLogoURL } from "@/components/integration-logo"
+import { $api } from "@/lib/api/hooks"
+import { extractErrorMessage } from "@/lib/api/error"
 import { InstructionLightbox } from "./instruction-lightbox"
 import { StepHeader } from "./step-header"
 import { useOnboarding, type OnboardingFormValues } from "./context"
 
 export function ConfigureSlackStep() {
-  const { form, goBack, goNext } = useOnboarding()
+  const { form, goBack, goNext, createEmployee } = useOnboarding()
   const [showBot, setShowBot] = useState(false)
   const [showApp, setShowApp] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -29,9 +33,39 @@ export function ConfigureSlackStep() {
 
   const botToken = useWatch({ control: form.control, name: "slackBotToken" })
   const appToken = useWatch({ control: form.control, name: "slackAppToken" })
+  const agentName = useWatch({ control: form.control, name: "agentName" })
   const botValid = botToken?.startsWith("xoxb-") ?? false
   const appValid = appToken?.startsWith("xapp-") ?? false
-  const canContinue = botValid && appValid
+
+  const createSlackProfile = $api.useMutation(
+    "post",
+    "/v1/agents/{agentID}/profiles/slack",
+  )
+  const submitting = createSlackProfile.isPending
+  const errorMessage = createSlackProfile.isError
+    ? extractErrorMessage(
+        createSlackProfile.error,
+        "Could not save Slack credentials. Try again.",
+      )
+    : null
+
+  const canContinue =
+    botValid && appValid && !submitting && Boolean(createEmployee.agentId)
+
+  const handleContinue = () => {
+    if (!createEmployee.agentId) return
+    createSlackProfile.mutate(
+      {
+        params: { path: { agentID: createEmployee.agentId } },
+        body: {
+          label: agentName?.trim() || "Slack",
+          bot_token: botToken.trim(),
+          app_token: appToken.trim(),
+        },
+      },
+      { onSuccess: () => goNext() },
+    )
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-7">
@@ -140,14 +174,47 @@ export function ConfigureSlackStep() {
         />
       </div>
 
+      {errorMessage ? (
+        <div className="flex items-start gap-2.5 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-[13px] text-destructive">
+          <HugeiconsIcon
+            icon={Alert02Icon}
+            className="mt-0.5 size-4 shrink-0"
+            strokeWidth={2}
+          />
+          <span className="leading-relaxed">{errorMessage}</span>
+        </div>
+      ) : null}
+
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={goBack} className="gap-2">
+        <Button
+          variant="ghost"
+          onClick={goBack}
+          disabled={submitting}
+          className="gap-2"
+        >
           <HugeiconsIcon icon={ArrowLeft01Icon} className="size-4" />
           Back
         </Button>
-        <Button onClick={goNext} disabled={!canContinue} className="gap-2">
-          Continue
-          <HugeiconsIcon icon={ArrowRight01Icon} className="size-4" />
+        <Button
+          onClick={handleContinue}
+          disabled={!canContinue}
+          className="gap-2"
+        >
+          {submitting ? (
+            <>
+              <HugeiconsIcon
+                icon={Loading03Icon}
+                className="size-4 animate-spin"
+                strokeWidth={2}
+              />
+              Verifying…
+            </>
+          ) : (
+            <>
+              Continue
+              <HugeiconsIcon icon={ArrowRight01Icon} className="size-4" />
+            </>
+          )}
         </Button>
       </div>
     </div>
