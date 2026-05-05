@@ -212,27 +212,26 @@ func buildConfigYAML(agent *model.Agent, cred *model.Credential, proxyToken, jti
 		},
 	}
 
-	if mcp := buildHiveloopMCP(cfg, jti, proxyToken); mcp != nil {
-		root["mcp_servers"] = []any{mcp}
+	if name, mcp := buildHiveloopMCP(cfg, jti, proxyToken); mcp != nil {
+		root["mcp_servers"] = map[string]any{name: mcp}
 	}
 
 	return yaml.Marshal(root)
 }
 
-func buildHiveloopMCP(cfg *config.Config, jti, tok string) map[string]any {
+func buildHiveloopMCP(cfg *config.Config, jti, tok string) (string, map[string]any) {
 	if cfg.MCPBaseURL == "" || jti == "" {
-		return nil
+		return "", nil
 	}
 	url := fmt.Sprintf("%s/%s", strings.TrimRight(cfg.MCPBaseURL, "/"), jti)
 	server := map[string]any{
-		"name":      "hiveloop",
 		"transport": "streamable_http",
 		"url":       url,
 	}
 	if tok != "" {
 		server["headers"] = map[string]any{"Authorization": "Bearer " + tok}
 	}
-	return server
+	return "hiveloop", server
 }
 
 func buildRepoSpecs(resources model.JSON) []hsdk.RepoSpec {
