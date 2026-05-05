@@ -137,14 +137,7 @@ func buildHermesSandboxName(agent *model.Agent) string {
 	return fmt.Sprintf("hiveloop-hermes-%s-%s-%d", sanitizeName(agent.Name), shortID(agent.ID), time.Now().Unix())
 }
 
-// EnsureHermesSandboxURL refreshes the sandbox's pre-authenticated URL when
-// it's expired (or about to). Mirrors refreshBridgeURL but routes to the
-// sidecar port (7777) instead of the bridge port (25434). Without this, the
-// stale URL falls through Daytona's auth gate and returns the dex login HTML.
-func (o *Orchestrator) EnsureHermesSandboxURL(ctx context.Context, sb *model.Sandbox) error {
-	if !o.needsURLRefresh(sb) {
-		return nil
-	}
+func (o *Orchestrator) refreshHermesSandboxURL(ctx context.Context, sb *model.Sandbox) error {
 	url, err := o.provider.GetEndpoint(ctx, sb.ExternalID, HermesSidecarPort)
 	if err != nil {
 		return fmt.Errorf("get hermes sandbox endpoint: %w", err)
@@ -158,6 +151,66 @@ func (o *Orchestrator) EnsureHermesSandboxURL(ctx context.Context, sb *model.San
 	}
 	sb.BridgeURL = url
 	sb.BridgeURLExpiresAt = &expiresAt
+	return nil
+}
+
+// EnsureHermesSandboxReady wakes a stopped/archived Hermes sandbox, refreshes
+// the pre-authenticated URL when stale, and blocks until the sidecar answers
+// /v1/hermes/status. The bridge has parallel logic in EnsureSandboxActive +
+// WakeSandbox; those route to the bridge port + /health and don't apply here.
+func (o *Orchestrator) EnsureHermesSandboxReady(ctx context.Context, sb *model.Sandbox, apiKey string) error {
+	switch sb.Status {
+	case string(StatusRunning):
+		if o.needsURLRefresh(sb) {
+			return o.refreshHermesSandboxURL(ctx, sb)
+		}
+		return nil
+	case string(StatusStopped):
+		return o.wakeHermesSandbox(ctx, sb, apiKey)
+	case string(StatusArchived), string(StatusArchiving):
+		o.db.Model(sb).Update("status", string(StatusStarting))
+		sb.Status = string(StatusStarting)
+		return o.wakeHermesSandbox(ctx, sb, apiKey)
+	case string(StatusCreating), string(StatusStarting):
+		if o.needsURLRefresh(sb) {
+			if err := o.refreshHermesSandboxURL(ctx, sb); err != nil {
+				return err
+			}
+		}
+		return o.waitForSidecarReady(ctx, sb, apiKey)
+	case string(StatusError):
+		return fmt.Errorf("sandbox %s is in error state", sb.ID)
+	default:
+		return fmt.Errorf("sandbox %s in unexpected state %q", sb.ID, sb.Status)
+	}
+}
+
+func (o *Orchestrator) wakeHermesSandbox(ctx context.Context, sb *model.Sandbox, apiKey string) error {
+	if err := o.provider.StartSandbox(ctx, sb.ExternalID); err != nil {
+		return fmt.Errorf("starting sandbox %s: %w", sb.ID, err)
+	}
+	if err := o.refreshHermesSandboxURL(ctx, sb); err != nil {
+		return fmt.Errorf("refresh url after wake: %w", err)
+	}
+	now := time.Now()
+	o.db.Model(sb).Updates(map[string]any{
+		"status":         "running",
+		"last_active_at": now,
+		"stopped_at":     nil,
+		"error_message":  nil,
+	})
+	sb.Status = "running"
+	sb.LastActiveAt = &now
+	sb.StoppedAt = nil
+	if err := o.waitForSidecarReady(ctx, sb, apiKey); err != nil {
+		o.db.Model(sb).Updates(map[string]any{
+			"status":        "error",
+			"error_message": "sidecar not healthy after wake",
+		})
+		return fmt.Errorf("sidecar not healthy after wake: %w", err)
+	}
+	logging.FromContext(ctx).InfoContext(ctx, "hermes sandbox woken",
+		"sandbox_id", sb.ID, "external_id", sb.ExternalID)
 	return nil
 }
 
