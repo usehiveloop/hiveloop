@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 import { Controller, useWatch } from "react-hook-form"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -24,6 +25,7 @@ export function BusinessStep() {
   const { form, goBack } = useOnboarding()
   const { activeOrg } = useAuth()
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const name = useWatch({ control: form.control, name: "businessName" })
   const website = useWatch({ control: form.control, name: "businessWebsite" })
@@ -58,7 +60,14 @@ export function BusinessStep() {
           description: description.trim(),
         },
       },
-      { onSuccess: () => router.push("/w") },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["get", "/auth/me"] })
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/orgs/current"] })
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
+          router.push("/w")
+        },
+      },
     )
   }
 
