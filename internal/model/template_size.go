@@ -21,3 +21,12 @@ func ValidTemplateSize(size string) bool {
 	_, ok := TemplateSizes[size]
 	return ok
 }
+
+func TemplateSizeForResources(cpu, memory, disk int) (string, bool) {
+	for name, sz := range TemplateSizes {
+		if sz.CPU == cpu && sz.Memory == memory && sz.Disk == disk {
+			return name, true
+		}
+	}
+	return "", false
+}
