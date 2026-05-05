@@ -61,9 +61,8 @@ export function BusinessStep() {
         },
       },
       {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ["get", "/auth/me"] })
-          queryClient.invalidateQueries({ queryKey: ["get", "/v1/orgs/current"] })
+        onSuccess: async () => {
+          await queryClient.refetchQueries({ queryKey: ["get", "/auth/me"] })
           queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
           router.push("/w")
         },
