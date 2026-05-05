@@ -16,17 +16,29 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { ChoiceCard } from "@/app/w/agents/_components/create-agent/choice-card"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Tick02Icon } from "@hugeicons/core-free-icons"
 import { toast } from "sonner"
-import { TemplateCombobox } from "./template-combobox"
 import {
   useSandboxTemplate,
   useTriggerBuild,
   useRetryBuild,
-  usePublicTemplates,
-  createSandboxTemplate,
+  useCreateSandboxTemplate,
   type SandboxTemplate,
 } from "@/hooks/use-sandbox-template"
 import { BuildCommandsEditor } from "./build-commands-editor"
+
+const SIZE_PRESETS = {
+  small: { label: "Small", vcpu: 1, memory_gb: 2, disk_gb: 10 },
+  medium: { label: "Medium", vcpu: 2, memory_gb: 4, disk_gb: 20 },
+  large: { label: "Large", vcpu: 4, memory_gb: 8, disk_gb: 40 },
+  xlarge: { label: "XLarge", vcpu: 8, memory_gb: 16, disk_gb: 80 },
+} as const
+
+type SizeName = keyof typeof SIZE_PRESETS
+
+const SIZE_OPTIONS = Object.entries(SIZE_PRESETS) as [SizeName, (typeof SIZE_PRESETS)[SizeName]][]
 
 const DEFAULT_COMMANDS_PLACEHOLDER = "# One command per line. Lines run with && between them.\napt-get install -y python3 python3-pip\npip3 install requests"
 
@@ -39,13 +51,11 @@ interface CreateSandboxTemplateModalProps {
 export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: CreateSandboxTemplateModalProps) {
   const [name, setName] = useState("")
   const [buildCommandsText, setBuildCommandsText] = useState("")
-  const [selectedBaseTemplate, setSelectedBaseTemplate] = useState<string>("")
+  const [size, setSize] = useState<SizeName>("small")
   const [isBuilding, setIsBuilding] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
   const [buildTemplateId, setBuildTemplateId] = useState<string | null>(null)
 
-  const { data: publicTemplatesResponse } = usePublicTemplates()
-  const publicTemplates = (publicTemplatesResponse as { data?: { id: string; name: string; size: string; description?: string }[] })?.data ?? []
   const onSuccessRef = React.useRef(onSuccess)
   const onOpenChangeRef = React.useRef(onOpenChange)
   const hasShownSuccessRef = React.useRef(false)
@@ -61,7 +71,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
   const resetForm = useCallback(() => {
     setName("")
     setBuildCommandsText("")
-    setSelectedBaseTemplate("")
+    setSize("small")
     setIsBuilding(false)
     setIsRetrying(false)
     setBuildTemplateId(null)
@@ -74,6 +84,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
 
   const triggerBuild = useTriggerBuild()
   const retryBuild = useRetryBuild()
+  const createTemplate = useCreateSandboxTemplate()
 
   useEffect(() => {
     if (!template || !isBuilding || hasShownSuccessRef.current) return
@@ -112,10 +123,15 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
     }
 
     try {
-      const createdTemplate = await createSandboxTemplate({
-        name: name.trim(),
-        build_commands: filteredCommands,
-        base_template_id: selectedBaseTemplate || undefined,
+      const preset = SIZE_PRESETS[size]
+      const createdTemplate = await createTemplate.mutateAsync({
+        body: {
+          name: name.trim(),
+          build_commands: filteredCommands,
+          vcpu: preset.vcpu,
+          memory_gb: preset.memory_gb,
+          disk_gb: preset.disk_gb,
+        },
       })
 
       if (!createdTemplate.id) {
@@ -202,19 +218,6 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
             <div className="space-y-4 py-4 max-h-[50vh] overflow-y-auto">
               {!isRetrying && (
                 <>
-                  {publicTemplates.length > 0 && (
-                    <div className="space-y-2">
-                      <Label>Base Template</Label>
-                      <TemplateCombobox
-                        templates={publicTemplates}
-                        value={selectedBaseTemplate}
-                        onSelect={setSelectedBaseTemplate}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Optionally build on top of a public template instead of the default base image.
-                      </p>
-                    </div>
-                  )}
                   <div className="space-y-2">
                     <Label htmlFor="name">Template Name</Label>
                     <Input
@@ -225,6 +228,39 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                     />
                     <p className="text-xs text-muted-foreground">
                       A descriptive name for your template.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Size</Label>
+                    <div role="radiogroup" aria-label="Sandbox size" className="grid grid-cols-2 gap-2">
+                      {SIZE_OPTIONS.map(([key, preset]) => {
+                        const selected = size === key
+                        return (
+                          <ChoiceCard
+                            key={key}
+                            title={preset.label}
+                            description={`${preset.vcpu} vCPU · ${preset.memory_gb} GB RAM · ${preset.disk_gb} GB disk`}
+                            onClick={() => setSize(key)}
+                            trailing={
+                              selected ? (
+                                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-green-500">
+                                  <HugeiconsIcon
+                                    icon={Tick02Icon}
+                                    size={10}
+                                    strokeWidth={3}
+                                    className="text-white"
+                                  />
+                                </span>
+                              ) : (
+                                <span className="h-4 w-4 shrink-0 rounded-full border border-muted-foreground/30" />
+                              )
+                            }
+                          />
+                        )
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Resource allocation for sandboxes built from this template.
                     </p>
                   </div>
                 </>
@@ -310,10 +346,10 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                   </Button>
                   <Button
                     onClick={handleCreateAndBuild}
-                    loading={triggerBuild.isPending}
-                    disabled={triggerBuild.isPending}
+                    loading={createTemplate.isPending || triggerBuild.isPending}
+                    disabled={createTemplate.isPending || triggerBuild.isPending}
                   >
-                    Create & Build
+                    Build
                   </Button>
                 </>
               )}
