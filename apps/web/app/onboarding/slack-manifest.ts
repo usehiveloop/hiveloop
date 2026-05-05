@@ -105,7 +105,8 @@ export function buildSlackAppManifest({ name, description }: AgentManifestInput)
         display_name: trimmedName,
       },
       assistant_view: {
-        assistant_description: `Chat with ${trimmedName} in threads and DMs.`,
+        ...SLACK_MANIFEST_TEMPLATE.features.assistant_view,
+        assistant_description: trimmedDescription,
       },
     },
   }
