@@ -6585,6 +6585,61 @@ const docTemplate = `{
             }
         },
         "/v1/employees": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all employee agents in the org with sub-agents,\nskills (metadata only — no bundle content), profiles,\ntriggers, and the latest sandbox row.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "List AI employees",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status (active, archived)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 50, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.paginatedResponse-internal_handler_employeeListItem"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -13850,6 +13905,171 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.employeeListItem": {
+            "type": "object",
+            "properties": {
+                "agent_config": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "attached_skills": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.agentSkillSummary"
+                    }
+                },
+                "avatar_url": {
+                    "type": "string"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "credential_id": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "harness": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "instructions": {
+                    "type": "string"
+                },
+                "integrations": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "is_employee": {
+                    "type": "boolean"
+                },
+                "mcp_servers": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "profiles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.agentProfileResponse"
+                    }
+                },
+                "provider_id": {
+                    "type": "string"
+                },
+                "provider_prompts": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap"
+                },
+                "resources": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "sandbox": {
+                    "$ref": "#/definitions/internal_handler.employeeSandboxSummary"
+                },
+                "sandbox_template_id": {
+                    "type": "string"
+                },
+                "sandbox_tools": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "shared_memory": {
+                    "type": "boolean"
+                },
+                "skills": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "subagent_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "subagents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.employeeSubagentSummary"
+                    }
+                },
+                "system_prompt": {
+                    "type": "string"
+                },
+                "team": {
+                    "type": "string"
+                },
+                "tools": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "triggers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.agentTriggerResponse"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.employeeSandboxSummary": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "error_message": {
+                    "type": "string"
+                },
+                "external_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_active_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.employeeSubagentSummary": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.errorRate": {
             "type": "object",
             "properties": {
@@ -14901,6 +15121,23 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/internal_handler.credentialResponse"
+                    }
+                },
+                "has_more": {
+                    "type": "boolean"
+                },
+                "next_cursor": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.paginatedResponse-internal_handler_employeeListItem": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.employeeListItem"
                     }
                 },
                 "has_more": {

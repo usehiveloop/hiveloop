@@ -21,6 +21,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/hermes"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
@@ -162,14 +163,18 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 		SigningKey: []byte("test-signing-key-32-bytes-long!!"),
 		Cfg:        cfg,
 	}
-	h := handler.NewEmployeeHandler(db, orch, compileDeps)
+	agentH := handler.NewAgentHandler(db, registry.Global(), encKey, &enqueue.MockClient{})
+	h := handler.NewEmployeeHandler(db, orch, compileDeps, agentH)
 
 	r := chi.NewRouter()
 	r.Route("/v1/employees", func(r chi.Router) {
 		r.Use(middleware.ResolveOrgFromHeader(db))
-		r.Use(middleware.RequireOrgAdmin(db))
-		r.Post("/", h.Create)
-		r.Post("/{id}/sync", h.Sync)
+		r.Get("/", h.List)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.RequireOrgAdmin(db))
+			r.Post("/", h.Create)
+			r.Post("/{id}/sync", h.Sync)
+		})
 	})
 
 	return &employeeHarness{
