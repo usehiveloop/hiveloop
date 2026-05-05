@@ -85,7 +85,7 @@ func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
 		if len(hostAndPath) > 1 {
 			basePath = "/" + hostAndPath[1]
 		}
-		req.URL.Path = basePath + upstreamPath
+		req.URL.Path = joinUpstreamPath(basePath, upstreamPath)
 		req.Host = hostAndPath[0]
 
 		modelName := ExtractModel(req)
@@ -112,4 +112,21 @@ func stripProxyPrefix(path string) string {
 		return "/"
 	}
 	return after
+}
+
+// joinUpstreamPath concatenates the upstream base path with the client-emitted
+// path, deduping a leading version segment when the base already ends with it.
+// Example: cred.BaseURL "https://crof.ai/v1" yields basePath "/v1"; an OpenAI-
+// shape client emits "/v1/chat/completions"; naive concat produces
+// "/v1/v1/chat/completions" → upstream 404.
+func joinUpstreamPath(basePath, upstreamPath string) string {
+	for _, prefix := range []string{"/api/v1", "/api/v2", "/v1", "/v2"} {
+		if strings.HasSuffix(basePath, prefix) && strings.HasPrefix(upstreamPath, prefix+"/") {
+			return basePath + strings.TrimPrefix(upstreamPath, prefix)
+		}
+		if strings.HasSuffix(basePath, prefix) && upstreamPath == prefix {
+			return basePath
+		}
+	}
+	return basePath + upstreamPath
 }
