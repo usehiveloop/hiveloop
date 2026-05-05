@@ -8,9 +8,12 @@ require (
 	github.com/awnumar/memguard v0.23.0
 	github.com/aws/aws-sdk-go-v2 v1.41.7
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.16
+	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.1.20
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.100.1
 	github.com/caarlos0/env/v11 v11.4.0
+	github.com/daytonaio/daytona/libs/api-client-go v0.158.1
 	github.com/daytonaio/daytona/libs/sdk-go v0.158.1
+	github.com/daytonaio/daytona/libs/toolbox-api-client-go v0.159.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/getsentry/sentry-go v0.46.1
 	github.com/getsentry/sentry-go/slog v0.46.1
@@ -28,7 +31,7 @@ require (
 	github.com/lancedb/lancedb-go v0.1.2
 	github.com/lib/pq v1.11.2
 	github.com/modelcontextprotocol/go-sdk v1.4.1
-	github.com/oapi-codegen/runtime v1.3.1
+	github.com/oapi-codegen/runtime v1.4.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/pb33f/libopenapi v0.34.3
 	github.com/pkoukk/tiktoken-go v0.1.8
@@ -36,8 +39,10 @@ require (
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sashabaranov/go-openai v1.41.2
+	github.com/slack-go/slack v0.23.0
 	github.com/sourcegraph/conc v0.3.0
 	github.com/swaggo/swag v1.16.6
+	github.com/usehiveloop/hermes v0.0.2-0.20260505055449-69aa2d9adf92
 	go.uber.org/goleak v1.3.0
 	golang.org/x/crypto v0.48.0
 	golang.org/x/oauth2 v0.35.0
@@ -59,8 +64,6 @@ require (
 	github.com/awnumar/memcall v0.4.0 // indirect
 	github.com/aws/aws-sdk-go v1.55.5 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.10 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.22.17 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.1.20 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.23 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.23 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.24 // indirect
@@ -74,8 +77,6 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/daytonaio/daytona/libs/api-client-go v0.158.1 // indirect
-	github.com/daytonaio/daytona/libs/toolbox-api-client-go v0.159.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/fatih/color v1.18.0 // indirect
@@ -121,7 +122,6 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
-	github.com/slack-go/slack v0.23.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
