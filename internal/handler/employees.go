@@ -6,6 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/hermes"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
@@ -18,10 +19,11 @@ const (
 type EmployeeHandler struct {
 	db           *gorm.DB
 	orchestrator *sandbox.Orchestrator
+	compileDeps  hermes.CompileDeps
 }
 
-func NewEmployeeHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator) *EmployeeHandler {
-	return &EmployeeHandler{db: db, orchestrator: orchestrator}
+func NewEmployeeHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, compileDeps hermes.CompileDeps) *EmployeeHandler {
+	return &EmployeeHandler{db: db, orchestrator: orchestrator, compileDeps: compileDeps}
 }
 
 type createEmployeeRequest struct {

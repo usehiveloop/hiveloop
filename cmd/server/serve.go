@@ -14,10 +14,12 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/bootstrap"
+	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/email"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	"github.com/usehiveloop/hiveloop/internal/handler"
+	"github.com/usehiveloop/hiveloop/internal/hermes"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
@@ -126,7 +128,14 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	agentHandler.SetCatalog(actionsCatalog)
 	var employeeHandler *handler.EmployeeHandler
 	if orchestrator != nil {
-		employeeHandler = handler.NewEmployeeHandler(database, orchestrator)
+		employeeHandler = handler.NewEmployeeHandler(database, orchestrator, hermes.CompileDeps{
+			DB:         database,
+			Picker:     credentials.NewPickerWithRegistry(database, reg),
+			KMS:        deps.KMS,
+			EncKey:     sandboxEncKey,
+			SigningKey: signingKey,
+			Cfg:        cfg,
+		})
 	}
 	agentProfileHandler := handler.NewAgentProfileHandler(database, deps.KMS)
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)

@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useState } from "react"
 import { useForm, type UseFormReturn } from "react-hook-form"
+import { $api } from "@/lib/api/hooks"
 
 export type Channel = "slack" | "whatsapp"
 export type StepKey = "employee" | "provisioning" | "channel" | "configure" | "business"
@@ -36,6 +37,13 @@ const DEFAULT_VALUES: OnboardingFormValues = {
   businessDescription: "",
 }
 
+interface CreateEmployeeState {
+  status: "idle" | "pending" | "success" | "error"
+  agentId?: string
+  sandboxId?: string
+  errorMessage?: string
+}
+
 interface OnboardingContextValue {
   form: UseFormReturn<OnboardingFormValues>
   step: StepKey
@@ -44,6 +52,9 @@ interface OnboardingContextValue {
   goNext: () => void
   goBack: () => void
   selectChannel: (channel: Channel) => void
+  createEmployee: CreateEmployeeState
+  submitEmployee: () => void
+  retryEmployee: () => void
 }
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null)
@@ -61,6 +72,45 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   })
   const [step, setStep] = useState<StepKey>("employee")
   const stepIndex = STEP_ORDER.indexOf(step)
+
+  const createEmployeeMutation = $api.useMutation("post", "/v1/employees")
+  const createEmployee: CreateEmployeeState = (() => {
+    if (createEmployeeMutation.isPending) return { status: "pending" }
+    if (createEmployeeMutation.isSuccess && createEmployeeMutation.data) {
+      return {
+        status: "success",
+        agentId: createEmployeeMutation.data.agent_id,
+        sandboxId: createEmployeeMutation.data.sandbox_id,
+      }
+    }
+    if (createEmployeeMutation.isError) {
+      const err = createEmployeeMutation.error as unknown as { error?: string } | undefined
+      return {
+        status: "error",
+        errorMessage:
+          (err && typeof err === "object" && "error" in err && err.error) ||
+          "Could not provision your AI employee. Try again.",
+      }
+    }
+    return { status: "idle" }
+  })()
+
+  const submitEmployee = useCallback(() => {
+    const v = form.getValues()
+    createEmployeeMutation.mutate({
+      body: {
+        category: v.agentCategory,
+        name: v.agentName.trim(),
+        description: v.agentDescription.trim(),
+        avatar_url: v.agentAvatarUrl?.trim() || "",
+      },
+    })
+  }, [form, createEmployeeMutation])
+
+  const retryEmployee = useCallback(() => {
+    createEmployeeMutation.reset()
+    submitEmployee()
+  }, [createEmployeeMutation, submitEmployee])
 
   const goNext = useCallback(() => {
     setStep((current) => {
@@ -97,6 +147,9 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         goNext,
         goBack,
         selectChannel,
+        createEmployee,
+        submitEmployee,
+        retryEmployee,
       }}
     >
       {children}

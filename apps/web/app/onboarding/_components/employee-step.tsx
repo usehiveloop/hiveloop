@@ -15,7 +15,7 @@ import { StepHeader } from "./step-header"
 import { useOnboarding } from "./context"
 
 export function EmployeeStep() {
-  const { form, goNext } = useOnboarding()
+  const { form, goNext, submitEmployee, createEmployee } = useOnboarding()
 
   const { data: categoriesData, isLoading: categoriesLoading } = $api.useQuery(
     "get",
@@ -33,7 +33,17 @@ export function EmployeeStep() {
 
   const watchedName = useWatch({ control: form.control, name: "agentName" })
   const watchedCategory = useWatch({ control: form.control, name: "agentCategory" })
-  const canContinue = (watchedName?.trim().length ?? 0) > 0 && watchedCategory.length > 0
+  const watchedDescription = useWatch({ control: form.control, name: "agentDescription" })
+  const canContinue =
+    (watchedName?.trim().length ?? 0) > 0 &&
+    watchedCategory.length > 0 &&
+    (watchedDescription?.trim().length ?? 0) > 0 &&
+    createEmployee.status !== "pending"
+
+  const handleNext = () => {
+    submitEmployee()
+    goNext()
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-10">
@@ -77,10 +87,7 @@ export function EmployeeStep() {
         </div>
 
         <div className="flex flex-col gap-2.5">
-          <Label htmlFor="employee-description">
-            Description{" "}
-            <span className="font-normal text-muted-foreground">(optional)</span>
-          </Label>
+          <Label htmlFor="employee-description">Description</Label>
           <Textarea
             id="employee-description"
             placeholder="Handles incoming customer questions, escalates billing issues, and follows up on missed replies."
@@ -107,7 +114,7 @@ export function EmployeeStep() {
       </div>
 
       <Button
-        onClick={goNext}
+        onClick={handleNext}
         disabled={!canContinue}
         className="flex h-12 w-full items-center justify-center gap-2"
       >

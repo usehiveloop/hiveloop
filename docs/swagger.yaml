@@ -3691,6 +3691,21 @@ definitions:
       status:
         type: string
     type: object
+  internal_handler.syncEmployeeResponse:
+    properties:
+      applied:
+        type: integer
+      deleted:
+        type: integer
+      errors:
+        items:
+          type: string
+        type: array
+      repos_cloned:
+        type: integer
+      restart_triggered:
+        type: boolean
+    type: object
   internal_handler.syncTriggerRequest:
     properties:
       from_beginning:
@@ -8348,6 +8363,58 @@ paths:
       security:
       - BearerAuth: []
       summary: Create an AI employee
+      tags:
+      - employees
+  /v1/employees/{id}/sync:
+    post:
+      description: |-
+        Compiles the agent into a SyncRequest and pushes it to the
+        sandbox sidecar. Requires the agent be an employee with at
+        least one active slack or whatsapp profile.
+      parameters:
+      - description: Agent UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.syncEmployeeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Push compiled config to a Hermes employee's sandbox
       tags:
       - employees
   /v1/generations:

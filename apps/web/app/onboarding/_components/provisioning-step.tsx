@@ -4,7 +4,12 @@ import { useEffect, useState } from "react"
 import { useWatch } from "react-hook-form"
 import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowRight01Icon, Loading03Icon, Tick02Icon } from "@hugeicons/core-free-icons"
+import {
+  Alert02Icon,
+  ArrowRight01Icon,
+  Loading03Icon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons"
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -27,7 +32,7 @@ const STAGES: Stage[] = [
 ]
 
 export function ProvisioningStep() {
-  const { form, goNext } = useOnboarding()
+  const { form, goNext, goBack, createEmployee, retryEmployee } = useOnboarding()
   const watchedName = useWatch({ control: form.control, name: "agentName" })
   const watchedAvatar = useWatch({ control: form.control, name: "agentAvatarUrl" })
   const agentName = watchedName?.trim() || "your AI employee"
@@ -36,21 +41,56 @@ export function ProvisioningStep() {
   const [activeIndex, setActiveIndex] = useState(0)
 
   useEffect(() => {
-    if (activeIndex >= STAGES.length) return
+    // Stop animating once the real provisioning resolves either way.
+    if (createEmployee.status === "success" || createEmployee.status === "error") return
+    // Hold the last stage until the API resolves; clamp at len-1.
+    if (activeIndex >= STAGES.length - 1) return
     const timer = setTimeout(
       () => setActiveIndex((idx) => idx + 1),
       STAGES[activeIndex].duration,
     )
     return () => clearTimeout(timer)
-  }, [activeIndex])
+  }, [activeIndex, createEmployee.status])
 
-  const isDone = activeIndex >= STAGES.length
-  const progress = isDone ? 100 : Math.round((activeIndex / STAGES.length) * 100)
+  const isError = createEmployee.status === "error"
+  const isDone = createEmployee.status === "success" && activeIndex >= STAGES.length - 1
+  const progress = isDone
+    ? 100
+    : Math.min(95, Math.round(((activeIndex + 1) / (STAGES.length + 1)) * 100))
 
   return (
     <div className="w-full">
       <AnimatePresence mode="wait">
-        {isDone ? (
+        {isError ? (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="mx-auto flex w-full max-w-md flex-col items-center gap-6 pt-6 text-center"
+          >
+            <span className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <HugeiconsIcon icon={Alert02Icon} className="size-6" strokeWidth={2} />
+            </span>
+            <div className="flex flex-col gap-2">
+              <h2 className="font-display text-xl font-semibold tracking-tight">
+                We couldn&apos;t provision {agentName}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {createEmployee.errorMessage}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={goBack} className="h-10">
+                Edit details
+              </Button>
+              <Button onClick={retryEmployee} className="h-10">
+                Try again
+              </Button>
+            </div>
+          </motion.div>
+        ) : isDone ? (
           <motion.div
             key="done"
             initial={{ opacity: 0 }}
