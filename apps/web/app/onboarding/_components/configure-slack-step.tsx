@@ -63,7 +63,16 @@ export function ConfigureSlackStep() {
           app_token: appToken.trim(),
         },
       },
-      { onSuccess: () => goNext() },
+      {
+        onSuccess: (data) => {
+          const identity = (data.profile?.identity ?? {}) as Record<string, unknown>
+          const teamName = typeof identity.team_name === "string" ? identity.team_name : ""
+          if (teamName && !form.getValues("businessName").trim()) {
+            form.setValue("businessName", teamName, { shouldDirty: true })
+          }
+          goNext()
+        },
+      },
     )
   }
 
