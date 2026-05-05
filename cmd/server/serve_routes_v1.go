@@ -163,7 +163,10 @@ func setupV1Routes(
 					}
 				})
 				if employeeHandler != nil {
-					r.Post("/employees", employeeHandler.Create)
+					r.Group(func(r chi.Router) {
+						r.Use(middleware.RequireOrgAdmin(database))
+						r.Post("/employees", employeeHandler.Create)
+					})
 				}
 				if systemTaskHandler != nil {
 					r.Post("/system/tasks/{taskName}", systemTaskHandler.Run)

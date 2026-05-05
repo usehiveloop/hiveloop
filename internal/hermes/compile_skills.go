@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 
 	hsdk "github.com/usehiveloop/hermes/pkg/sdk"
@@ -83,6 +84,8 @@ func buildSkillFiles(ctx context.Context, db *gorm.DB, agentID uuid.UUID) ([]hsd
 
 		var bundle skillBundle
 		if err := json.Unmarshal(v.Bundle, &bundle); err != nil {
+			logging.FromContext(ctx).WarnContext(ctx, "skip skill: bundle unmarshal failed",
+				"agent_id", agentID, "skill_id", s.ID, "version_id", versionID, "error", err)
 			continue
 		}
 

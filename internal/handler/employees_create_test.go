@@ -126,6 +126,38 @@ func TestIntegration_EmployeesCreate_SkipsRevokedCrof(t *testing.T) {
 	}
 }
 
+func TestIntegration_EmployeesCreate_NonAdmin_403(t *testing.T) {
+	h := newEmployeeHarness(t)
+	org := h.createOrgWithRole(t, "member")
+	h.seedSystemCred(t, "crof", false)
+
+	rr := h.post(t, org, validEmployeeBody())
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403: %s", rr.Code, rr.Body.String())
+	}
+
+	var count int64
+	h.db.Model(&model.Agent{}).Where("org_id = ?", org.org.ID).Count(&count)
+	if count != 0 {
+		t.Errorf("agent rows after 403 = %d, want 0", count)
+	}
+}
+
+func TestIntegration_EmployeesCreate_InvalidAvatarURL_400(t *testing.T) {
+	h := newEmployeeHarness(t)
+	org := h.createOrg(t)
+	h.seedSystemCred(t, "crof", false)
+
+	for _, bad := range []string{"javascript:alert(1)", "ftp://example/x", "not-a-url", "/relative/path"} {
+		body := validEmployeeBody()
+		body["avatar_url"] = bad
+		rr := h.post(t, org, body)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("avatar_url=%q: status = %d, want 400", bad, rr.Code)
+		}
+	}
+}
+
 func TestIntegration_EmployeesCreate_NoSystemCredential_503(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
