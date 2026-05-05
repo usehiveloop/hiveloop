@@ -124,6 +124,10 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	agentHandler := handler.NewAgentHandler(database, reg, sandboxEncKey, enqueuer)
 	agentHandler.SetCatalog(actionsCatalog)
+	var employeeHandler *handler.EmployeeHandler
+	if orchestrator != nil {
+		employeeHandler = handler.NewEmployeeHandler(database, orchestrator)
+	}
 	agentProfileHandler := handler.NewAgentProfileHandler(database, deps.KMS)
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
 
@@ -203,7 +207,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		slog.Warn("rag search: qdrant or LLM not configured — /v1/rag/search disabled")
 	}
 	systemTaskHandler := buildSystemTaskHandler(database, deps, redisClient)
-	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, subscriptionHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, agentHandler, agentProfileHandler, marketplaceHandler, conversationHandler, routerHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, systemTaskHandler, orchestrator, auditWriter)
+	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, subscriptionHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, agentHandler, agentProfileHandler, marketplaceHandler, conversationHandler, routerHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, systemTaskHandler, employeeHandler, orchestrator, auditWriter)
 
 	var platformAdminEmails []string
 	if cfg.PlatformAdminEmails != "" {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -15,6 +16,44 @@ import (
 
 const ghcrRegistry = "ghcr.io"
 const ghcrNamespace = "usehiveloop"
+
+func runBridge(ctx context.Context, args []string) {
+	fs := flag.NewFlagSet("bridge", flag.ExitOnError)
+	version := fs.String("version", "", "Image version (required, e.g. 1.0.0)")
+	bridgeVersion := fs.String("bridge-version", "", "usehiveloop/bridge release tag (required, e.g. v1.0.0)")
+	size := fs.String("size", "all", "Snapshot sizes to register (small, medium, large, xlarge, all)")
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
+	if *version == "" || *bridgeVersion == "" {
+		fmt.Fprintln(os.Stderr, "error: -version and -bridge-version are required")
+		os.Exit(1)
+	}
+	targetSizes, err := resolveSizes(*size)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	if err := buildAndPush(ctx, *version, *bridgeVersion, targetSizes); err != nil {
+		log.Fatalf("error: %v", err)
+	}
+	log.Println("Done.")
+}
+
+func resolveSizes(s string) ([]string, error) {
+	if s == "all" {
+		return []string{"small", "medium", "large", "xlarge"}, nil
+	}
+	out := []string{}
+	for _, name := range strings.Split(s, ",") {
+		name = strings.TrimSpace(name)
+		if _, ok := sizes[name]; !ok {
+			return nil, fmt.Errorf("unknown size %q (valid: small, medium, large, xlarge, all)", name)
+		}
+		out = append(out, name)
+	}
+	return out, nil
+}
 
 func buildAndPush(ctx context.Context, version, bridgeVersion string, targetSizes []string) error {
 	// Strip a leading "v" so downstream formatters that prepend "v" don't double it.

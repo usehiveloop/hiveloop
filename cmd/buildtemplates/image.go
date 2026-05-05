@@ -173,10 +173,6 @@ func buildBridgeImage(version, bridgeVersion string) *daytona.DockerImage {
 			`chmod +x /usr/local/bin/git-credential-hiveloop`,
 	)
 	image = image.Run("git config --system credential.helper /usr/local/bin/git-credential-hiveloop")
-	image = image.Run("git config --system user.name hiveloop")
-	image = image.Run("git config --system user.email help@hiveloop.com")
-	image = image.Run("git config --global user.name hiveloop")
-	image = image.Run("git config --global user.email help@hiveloop.com")
 
 	// gh CLI wrapper fetches a fresh token per invocation.
 	image = image.Run(
@@ -207,7 +203,10 @@ func buildBridgeImage(version, bridgeVersion string) *daytona.DockerImage {
 	image = image.Entrypoint([]string{
 		"/usr/bin/tini", "--",
 		"/bin/sh", "-c",
-		"mkdir -p /work/.claude /work/.opencode /work/tmp && exec /usr/local/bin/bridge >> /tmp/bridge.log 2>&1",
+		"git config --system user.name \"$HIVELOOP_GIT_USERNAME\"; " +
+			"git config --system user.email \"$HIVELOOP_GIT_EMAIL\"; " +
+			"mkdir -p /work/.claude /work/.opencode /work/tmp && " +
+			"exec /usr/local/bin/bridge >> /tmp/bridge.log 2>&1",
 	})
 
 	return image

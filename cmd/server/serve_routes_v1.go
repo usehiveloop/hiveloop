@@ -44,6 +44,7 @@ func setupV1Routes(
 	ragSearchHandler *handler.RAGSearchHandler,
 	uploadsHandler *handler.UploadsHandler,
 	systemTaskHandler *handler.SystemTaskHandler,
+	employeeHandler *handler.EmployeeHandler,
 	orchestrator *sandbox.Orchestrator,
 	auditWriter *middleware.AuditWriter,
 ) {
@@ -161,6 +162,12 @@ func setupV1Routes(
 						r.Get("/{agentID}/profiles/slack/channels", agentProfileHandler.ListSlackChannels)
 					}
 				})
+				if employeeHandler != nil {
+					r.Group(func(r chi.Router) {
+						r.Use(middleware.RequireOrgAdmin(database))
+						r.Post("/employees", employeeHandler.Create)
+					})
+				}
 				if systemTaskHandler != nil {
 					r.Post("/system/tasks/{taskName}", systemTaskHandler.Run)
 				}
