@@ -1,54 +1,45 @@
-// Required env: GHCR_USERNAME, GHCR_PAT, SANDBOX_PROVIDER_KEY,
-// SANDBOX_PROVIDER_URL, SANDBOX_TARGET. See `make build-templates` for usage.
+// Required env: SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, SANDBOX_TARGET.
+// Bridge target additionally needs GHCR_USERNAME and GHCR_PAT.
+//
+// Usage:
+//   buildtemplates bridge -version=1.0.0 -bridge-version=v1.0.0 [-size=...]
+//   buildtemplates hermes -version=v0.0.1                       [-size=...]
 package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
-	"log"
 	"os"
-	"strings"
 	"time"
 )
 
 func main() {
-	version := flag.String("version", "", "Image version tag — drives the GHCR tag and Daytona snapshot name. Bump independently of -bridge-version to invalidate Daytona's frozen snapshot mirror without changing the bridge binary (required, e.g. 1.0.0)")
-	bridgeVersion := flag.String("bridge-version", "", "usehiveloop/bridge release tag installed into the image (required, e.g. v1.0.0). Independent of -version.")
-	size := flag.String("size", "all", "Snapshot sizes to register (small, medium, large, xlarge, all)")
-	flag.Parse()
-
-	if *version == "" {
-		fmt.Fprintln(os.Stderr, "error: -version is required")
-		flag.Usage()
-		os.Exit(1)
+	if len(os.Args) < 2 {
+		usage()
+		os.Exit(2)
 	}
-	if *bridgeVersion == "" {
-		fmt.Fprintln(os.Stderr, "error: -bridge-version is required")
-		flag.Usage()
-		os.Exit(1)
-	}
-
-	var targetSizes []string
-	if *size == "all" {
-		targetSizes = []string{"small", "medium", "large", "xlarge"}
-	} else {
-		for _, s := range strings.Split(*size, ",") {
-			s = strings.TrimSpace(s)
-			if _, ok := sizes[s]; !ok {
-				fmt.Fprintf(os.Stderr, "error: unknown size %q (valid: small, medium, large, xlarge, all)\n", s)
-				os.Exit(1)
-			}
-			targetSizes = append(targetSizes, s)
-		}
-	}
+	target := os.Args[1]
+	args := os.Args[2:]
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
-	if err := buildAndPush(ctx, *version, *bridgeVersion, targetSizes); err != nil {
-		log.Fatalf("error: %v", err)
+	switch target {
+	case "bridge":
+		runBridge(ctx, args)
+	case "hermes":
+		runHermes(ctx, args)
+	case "-h", "--help", "help":
+		usage()
+	default:
+		fmt.Fprintf(os.Stderr, "unknown target %q\n", target)
+		usage()
+		os.Exit(2)
 	}
+}
 
-	log.Println("Done.")
+func usage() {
+	fmt.Fprintln(os.Stderr, `usage:
+  buildtemplates bridge -version=1.0.0 -bridge-version=v1.0.0 [-size=all|small,medium,large,xlarge]
+  buildtemplates hermes -version=v0.0.1                       [-size=all|small,medium,large,xlarge]`)
 }
