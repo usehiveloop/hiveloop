@@ -35,7 +35,6 @@ func TestIntegration_EmployeesList_HappyPath_LoadsAllRelations(t *testing.T) {
 	h.seedSandbox(t, m, emp.ID)
 	h.seedSlackProfile(t, m, emp.ID)
 
-	// Subagent: a non-employee agent linked under the employee.
 	subagent := model.Agent{
 		OrgID: &m.org.ID, Name: "sub-" + uuid.NewString()[:6],
 		IsEmployee: false, Status: "active", SystemPrompt: "x", Model: "y",
@@ -50,7 +49,6 @@ func TestIntegration_EmployeesList_HappyPath_LoadsAllRelations(t *testing.T) {
 	}
 	t.Cleanup(func() { h.db.Where("agent_id = ?", emp.ID).Delete(&model.AgentSubagent{}) })
 
-	// Skill attached to the employee.
 	skill := model.Skill{
 		ID: uuid.New(), Slug: "list-skill-" + uuid.NewString()[:6],
 		Name: "List Skill", SourceType: model.SkillSourceInline,
@@ -162,7 +160,6 @@ func TestIntegration_EmployeesList_ScopedToOrg(t *testing.T) {
 	stranger := h.createOrg(t)
 	h.seedEmployeeAgent(t, owner)
 
-	// Stranger should see zero employees even though owner has one.
 	rr := h.listEmployees(t, stranger)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status = %d", rr.Code)

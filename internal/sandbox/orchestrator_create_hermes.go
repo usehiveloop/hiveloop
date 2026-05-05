@@ -137,6 +137,30 @@ func buildHermesSandboxName(agent *model.Agent) string {
 	return fmt.Sprintf("hiveloop-hermes-%s-%s-%d", sanitizeName(agent.Name), shortID(agent.ID), time.Now().Unix())
 }
 
+// EnsureHermesSandboxURL refreshes the sandbox's pre-authenticated URL when
+// it's expired (or about to). Mirrors refreshBridgeURL but routes to the
+// sidecar port (7777) instead of the bridge port (25434). Without this, the
+// stale URL falls through Daytona's auth gate and returns the dex login HTML.
+func (o *Orchestrator) EnsureHermesSandboxURL(ctx context.Context, sb *model.Sandbox) error {
+	if !o.needsURLRefresh(sb) {
+		return nil
+	}
+	url, err := o.provider.GetEndpoint(ctx, sb.ExternalID, HermesSidecarPort)
+	if err != nil {
+		return fmt.Errorf("get hermes sandbox endpoint: %w", err)
+	}
+	expiresAt := time.Now().Add(bridgeURLTTL)
+	if err := o.db.Model(sb).Updates(map[string]any{
+		"bridge_url":            url,
+		"bridge_url_expires_at": expiresAt,
+	}).Error; err != nil {
+		return fmt.Errorf("update sandbox url: %w", err)
+	}
+	sb.BridgeURL = url
+	sb.BridgeURLExpiresAt = &expiresAt
+	return nil
+}
+
 func (o *Orchestrator) waitForSidecarReady(ctx context.Context, sb *model.Sandbox, apiKey string) error {
 	statusURL := strings.TrimRight(sb.BridgeURL, "/") + "/v1/hermes/status"
 	deadline := time.Now().Add(hermesHealthTimeout)

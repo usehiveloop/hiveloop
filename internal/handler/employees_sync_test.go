@@ -62,7 +62,6 @@ func TestIntegration_EmployeesSync_Slack_HappyPath(t *testing.T) {
 		t.Errorf("sidecar bearer header missing: %q", bearer)
 	}
 
-	// Compile must have minted a 'hermes' token tagged with the agent.
 	var tokenCount int64
 	h.db.Model(&model.Token{}).
 		Where("meta->>'agent_id' = ? AND meta->>'harness' = ?", agent.ID.String(), "hermes").
