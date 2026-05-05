@@ -7557,7 +7557,57 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List AI employees
+         * @description Returns all employee agents in the org with sub-agents,
+         *     skills (metadata only — no bundle content), profiles,
+         *     triggers, and the latest sandbox row.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by status (active, archived) */
+                    status?: string;
+                    /** @description Page size (default 50, max 100) */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-employeeListItem"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         put?: never;
         /**
          * Create an AI employee
@@ -13429,6 +13479,56 @@ export interface components {
             type?: string;
             value?: string;
         };
+        employeeListItem: {
+            agent_config?: components["schemas"]["JSON"];
+            attached_skills?: components["schemas"]["agentSkillSummary"][];
+            avatar_url?: string;
+            category?: string;
+            created_at?: string;
+            credential_id?: string;
+            description?: string;
+            harness?: string;
+            id?: string;
+            instructions?: string;
+            integrations?: components["schemas"]["JSON"];
+            is_employee?: boolean;
+            mcp_servers?: components["schemas"]["JSON"];
+            model?: string;
+            name?: string;
+            permissions?: components["schemas"]["JSON"];
+            profiles?: components["schemas"]["agentProfileResponse"][];
+            provider_id?: string;
+            provider_prompts?: components["schemas"]["ProviderPromptsMap"];
+            resources?: components["schemas"]["JSON"];
+            sandbox?: components["schemas"]["employeeSandboxSummary"];
+            sandbox_template_id?: string;
+            sandbox_tools?: string[];
+            shared_memory?: boolean;
+            skills?: components["schemas"]["JSON"];
+            status?: string;
+            subagent_ids?: string[];
+            subagents?: components["schemas"]["employeeSubagentSummary"][];
+            system_prompt?: string;
+            team?: string;
+            tools?: components["schemas"]["JSON"];
+            triggers?: components["schemas"]["agentTriggerResponse"][];
+            updated_at?: string;
+        };
+        employeeSandboxSummary: {
+            created_at?: string;
+            error_message?: string;
+            external_id?: string;
+            id?: string;
+            last_active_at?: string;
+            status?: string;
+        };
+        employeeSubagentSummary: {
+            avatar_url?: string;
+            description?: string;
+            id?: string;
+            name?: string;
+            status?: string;
+        };
         errorRate: {
             date?: string;
             error_count?: number;
@@ -13770,6 +13870,11 @@ export interface components {
         };
         "paginatedResponse-credentialResponse": {
             data?: components["schemas"]["credentialResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-employeeListItem": {
+            data?: components["schemas"]["employeeListItem"][];
             has_more?: boolean;
             next_cursor?: string;
         };

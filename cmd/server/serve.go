@@ -135,7 +135,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			EncKey:     sandboxEncKey,
 			SigningKey: signingKey,
 			Cfg:        cfg,
-		})
+		}, agentHandler)
 	}
 	agentProfileHandler := handler.NewAgentProfileHandler(database, deps.KMS)
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)

@@ -7760,6 +7760,76 @@
       }
     },
     "/v1/employees": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns all employee agents in the org with sub-agents,\nskills (metadata only \u2014 no bundle content), profiles,\ntriggers, and the latest sandbox row.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "List AI employees",
+        "parameters": [
+          {
+            "description": "Filter by status (active, archived)",
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size (default 50, max 100)",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination cursor",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedResponse-employeeListItem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "security": [
           {
@@ -15883,6 +15953,171 @@
           }
         }
       },
+      "employeeListItem": {
+        "type": "object",
+        "properties": {
+          "agent_config": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "attached_skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentSkillSummary"
+            }
+          },
+          "avatar_url": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "harness": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "integrations": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "is_employee": {
+            "type": "boolean"
+          },
+          "mcp_servers": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "model": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentProfileResponse"
+            }
+          },
+          "provider_id": {
+            "type": "string"
+          },
+          "provider_prompts": {
+            "$ref": "#/components/schemas/ProviderPromptsMap"
+          },
+          "resources": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "sandbox": {
+            "$ref": "#/components/schemas/employeeSandboxSummary"
+          },
+          "sandbox_template_id": {
+            "type": "string"
+          },
+          "sandbox_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "shared_memory": {
+            "type": "boolean"
+          },
+          "skills": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "status": {
+            "type": "string"
+          },
+          "subagent_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subagents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/employeeSubagentSummary"
+            }
+          },
+          "system_prompt": {
+            "type": "string"
+          },
+          "team": {
+            "type": "string"
+          },
+          "tools": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "triggers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentTriggerResponse"
+            }
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
+      "employeeSandboxSummary": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "error_message": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "last_active_at": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "employeeSubagentSummary": {
+        "type": "object",
+        "properties": {
+          "avatar_url": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
       "errorRate": {
         "type": "object",
         "properties": {
@@ -16934,6 +17169,23 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/credentialResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-employeeListItem": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/employeeListItem"
             }
           },
           "has_more": {

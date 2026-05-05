@@ -20,10 +20,11 @@ type EmployeeHandler struct {
 	db           *gorm.DB
 	orchestrator *sandbox.Orchestrator
 	compileDeps  hermes.CompileDeps
+	agents       *AgentHandler
 }
 
-func NewEmployeeHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, compileDeps hermes.CompileDeps) *EmployeeHandler {
-	return &EmployeeHandler{db: db, orchestrator: orchestrator, compileDeps: compileDeps}
+func NewEmployeeHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, compileDeps hermes.CompileDeps, agents *AgentHandler) *EmployeeHandler {
+	return &EmployeeHandler{db: db, orchestrator: orchestrator, compileDeps: compileDeps, agents: agents}
 }
 
 type createEmployeeRequest struct {
