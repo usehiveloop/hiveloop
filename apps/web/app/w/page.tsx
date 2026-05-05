@@ -7,11 +7,8 @@ import { PageHeader } from "@/components/page-header"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   ArrowDown01Icon,
-  ArrowRight01Icon,
   ArrowUp02Icon,
-  CodeSquareIcon,
-  Search01Icon,
-  SparklesIcon,
+  Loading03Icon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import {
@@ -19,60 +16,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-
-type AgentKey = "coder" | "researcher"
-
-interface AgentDef {
-  key: AgentKey
-  label: string
-  blurb: string
-  avatar: string
-  icon: typeof CodeSquareIcon
-  placeholder: string
-}
-
-const AGENTS: AgentDef[] = [
-  {
-    key: "coder",
-    label: "Code companion",
-    blurb: "Clones any GitHub repo, navigates the code, edits files, opens a PR.",
-    avatar: "https://api.dicebear.com/9.x/notionists/svg?seed=Sawyer&backgroundColor=ffd5dc,c0aede",
-    icon: CodeSquareIcon,
-    placeholder:
-      "Paste a repo URL or describe what you want changed. The agent clones, edits, and pushes a branch.",
-  },
-  {
-    key: "researcher",
-    label: "Deep research",
-    blurb: "Browses the web, synthesizes sources, returns a structured report.",
-    avatar: "https://api.dicebear.com/9.x/notionists/svg?seed=Harper&backgroundColor=b6e3f4,d1d4f9",
-    icon: Search01Icon,
-    placeholder:
-      "Ask a research question. The agent browses, cross-references sources, and writes a structured report.",
-  },
-]
-
-const PROMPTS: Record<AgentKey, string[]> = {
-  coder: [
-    "Clone vercel/next.js and tell me what's confusing in the README for a new contributor",
-    "Find the slowest test in shadcn-ui/ui and propose a fix",
-    "Open a draft PR adding a CONTRIBUTING.md to a small repo of your choosing",
-    "Summarize how reconciliation handles fragments in facebook/react, with file references",
-  ],
-  researcher: [
-    "Top 10 AI coding agents launched in 2026 with pricing and seat counts",
-    "European YC-backed dev tools founded after 2024, sorted by funding",
-    "Compare Daytona, e2b, and Vercel Sandbox pricing for 1000 hours per month",
-    "Summarize the last week of news about open-weight LLMs",
-  ],
-}
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { $api } from "@/lib/api/hooks"
+import { extractErrorMessage } from "@/lib/api/error"
 
 export default function WorkspaceHome() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [agent, setAgent] = useState<AgentKey>("coder")
   const [draft, setDraft] = useState("")
-  const [agentOpen, setAgentOpen] = useState(false)
+  const [agentId, setAgentId] = useState<string | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   useEffect(() => {
     if (searchParams.get("checkout") === "success") {
@@ -81,7 +34,53 @@ export default function WorkspaceHome() {
     }
   }, [searchParams, router])
 
-  const selectedAgent = AGENTS.find((a) => a.key === agent)!
+  const { data: employeesData, isLoading: employeesLoading } = $api.useQuery(
+    "get",
+    "/v1/employees",
+  )
+  const employees = employeesData?.data ?? []
+
+  useEffect(() => {
+    if (!agentId && employees.length > 0 && employees[0]?.id) {
+      setAgentId(employees[0].id)
+    }
+  }, [agentId, employees])
+
+  const selected = employees.find((e) => e.id === agentId) ?? null
+
+  const createChat = $api.useMutation("post", "/v1/employees/{id}/chats")
+
+  function handleSend() {
+    if (!agentId || !draft.trim() || createChat.isPending) return
+    createChat.mutate(
+      {
+        params: { path: { id: agentId } },
+        body: { message: draft.trim() },
+      },
+      {
+        onSuccess: (data) => {
+          if (!data.session_id || !data.stream_url) {
+            toast.error("Could not start chat — missing session id")
+            return
+          }
+          const url = `/w/chats/${data.session_id}?stream=${encodeURIComponent(data.stream_url)}`
+          router.push(url)
+        },
+        onError: (err) => {
+          toast.error(extractErrorMessage(err, "Could not start chat"))
+        },
+      },
+    )
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
+  const canSend = Boolean(agentId) && draft.trim().length > 0 && !createChat.isPending
 
   return (
     <>
@@ -92,33 +91,44 @@ export default function WorkspaceHome() {
             What do you want shipped first?
           </h1>
           <p className="mt-2 text-[14px] text-muted-foreground">
-            Two starter agents. No setup, no integrations. Pick one, give it a
-            task, watch it work.
+            Pick one of your AI employees, give them a task, watch them work.
           </p>
         </div>
 
         <div className="rounded-2xl border border-border bg-background transition-colors focus-within:border-foreground/30">
           <textarea
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder={selectedAgent.placeholder}
-            className="block h-[150px] w-full resize-none bg-transparent px-4 pt-4 text-[14.5px] text-foreground outline-none placeholder:text-muted-foreground/70"
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              selected
+                ? `Ask ${selected.name ?? "your employee"} for help…`
+                : employeesLoading
+                  ? "Loading employees…"
+                  : "No employees yet — create one from /onboarding."
+            }
+            disabled={employeesLoading || !selected}
+            className="block h-[150px] w-full resize-none bg-transparent px-4 pt-4 text-[14.5px] text-foreground outline-none placeholder:text-muted-foreground/70 disabled:opacity-50"
           />
           <div className="flex items-center justify-between gap-2 px-3 pt-1 pb-3">
-            <Popover open={agentOpen} onOpenChange={setAgentOpen}>
+            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
               <PopoverTrigger
                 render={
                   <button
                     type="button"
-                    className="flex items-center gap-2 rounded-full border border-border/70 py-1 pl-1 pr-3 text-[12.5px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                    disabled={employees.length === 0}
+                    className="flex items-center gap-2 rounded-full border border-border/70 py-1 pl-1 pr-3 text-[12.5px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
                   >
-                    <img
-                      src={selectedAgent.avatar}
-                      alt=""
-                      className="h-6 w-6 shrink-0 rounded-full"
-                    />
+                    <Avatar className="h-6 w-6">
+                      {selected?.avatar_url ? (
+                        <AvatarImage src={selected.avatar_url} alt="" />
+                      ) : null}
+                      <AvatarFallback className="text-[10px]">
+                        {(selected?.name ?? "?")[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     <span className="font-medium text-foreground">
-                      {selectedAgent.label}
+                      {selected?.name ?? "Select employee"}
                     </span>
                     <HugeiconsIcon
                       icon={ArrowDown01Icon}
@@ -130,42 +140,46 @@ export default function WorkspaceHome() {
               />
               <PopoverContent align="start" className="w-[340px] p-1.5">
                 <div className="px-2.5 pt-2 pb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Choose an agent
+                  Choose an employee
                 </div>
                 <div className="space-y-0.5">
-                  {AGENTS.map((a) => {
-                    const isActive = a.key === agent
+                  {employees.map((e) => {
+                    if (!e.id) return null
+                    const isActive = e.id === agentId
                     return (
                       <button
-                        key={a.key}
+                        key={e.id}
                         type="button"
                         onClick={() => {
-                          setAgent(a.key)
-                          setAgentOpen(false)
+                          setAgentId(e.id ?? null)
+                          setPickerOpen(false)
                         }}
                         className={`flex w-full items-start gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors ${
                           isActive ? "bg-muted/60" : "hover:bg-muted/40"
                         }`}
                       >
-                        <img
-                          src={a.avatar}
-                          alt=""
-                          className="h-9 w-9 shrink-0 rounded-full"
-                        />
+                        <Avatar className="h-9 w-9">
+                          {e.avatar_url ? (
+                            <AvatarImage src={e.avatar_url} alt="" />
+                          ) : null}
+                          <AvatarFallback>
+                            {(e.name ?? "?")[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
                         <div className="min-w-0 flex-1">
                           <div className="text-[13.5px] font-medium text-foreground">
-                            {a.label}
+                            {e.name}
                           </div>
-                          <div className="mt-0.5 text-[11.5px] leading-relaxed text-muted-foreground">
-                            {a.blurb}
-                          </div>
+                          {e.description ? (
+                            <div className="mt-0.5 truncate text-[11.5px] leading-relaxed text-muted-foreground">
+                              {e.description}
+                            </div>
+                          ) : null}
                         </div>
                         <HugeiconsIcon
                           icon={Tick02Icon}
                           size={13}
-                          className={`mt-1 shrink-0 text-primary ${
-                            isActive ? "" : "opacity-0"
-                          }`}
+                          className={`mt-1 shrink-0 text-primary ${isActive ? "" : "opacity-0"}`}
                         />
                       </button>
                     )
@@ -175,44 +189,21 @@ export default function WorkspaceHome() {
             </Popover>
             <button
               type="button"
-              disabled={!draft.trim()}
+              onClick={handleSend}
+              disabled={!canSend}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-30"
             >
-              <HugeiconsIcon icon={ArrowUp02Icon} size={16} />
+              {createChat.isPending ? (
+                <HugeiconsIcon
+                  icon={Loading03Icon}
+                  size={14}
+                  className="animate-spin"
+                />
+              ) : (
+                <HugeiconsIcon icon={ArrowUp02Icon} size={16} />
+              )}
             </button>
           </div>
-        </div>
-
-        <div className="mt-8">
-          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
-            Try one of these
-          </p>
-          <div className="flex flex-col">
-            {PROMPTS[agent].map((prompt, index) => (
-              <button
-                key={`${agent}-${index}`}
-                type="button"
-                onClick={() => setDraft(prompt)}
-                className="group flex items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-muted/40"
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-                  <HugeiconsIcon icon={SparklesIcon} size={11} />
-                </span>
-                <span className="flex-1 truncate text-[13px] text-foreground/90">
-                  {prompt}
-                </span>
-                <HugeiconsIcon
-                  icon={ArrowRight01Icon}
-                  size={13}
-                  className="shrink-0 text-muted-foreground/0 transition-all group-hover:translate-x-0.5 group-hover:text-muted-foreground"
-                />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-14 flex items-center justify-center text-[11.5px] text-muted-foreground/70">
-          When you're ready, build your own agent and connect your own tools.
         </div>
       </div>
     </>
