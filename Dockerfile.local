@@ -1,0 +1,20 @@
+FROM ghcr.io/usehiveloop/sandbox-bridge:v1.0.3
+
+USER root
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        postgresql \
+        postgresql-contrib \
+        redis-server \
+        sudo \
+        ca-certificates \
+        openssl \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable && corepack prepare pnpm@10.18.2 --activate
+
+ENTRYPOINT ["/bin/sh", "-c", "sleep infinity"]
