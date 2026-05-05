@@ -1953,6 +1953,26 @@ definitions:
       verified_at:
         type: string
     type: object
+  internal_handler.createEmployeeRequest:
+    properties:
+      avatar_url:
+        type: string
+      category:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_handler.createEmployeeResponse:
+    properties:
+      agent_id:
+        type: string
+      sandbox_id:
+        type: string
+      status:
+        type: string
+    type: object
   internal_handler.createInConnectionRequest:
     properties:
       meta:
@@ -8283,6 +8303,53 @@ paths:
       summary: Verify a custom domain
       tags:
       - custom-domains
+  /v1/employees:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Persists an Agent (is_employee=true) and provisions a Hermes sandbox.
+        On any provisioning failure, the Agent is rolled back so the
+        endpoint is transactional from the caller's POV.
+      parameters:
+      - description: Employee definition
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createEmployeeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.createEmployeeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an AI employee
+      tags:
+      - employees
   /v1/generations:
     get:
       description: Returns generation records for the current organization with cursor
