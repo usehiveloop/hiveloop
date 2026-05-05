@@ -93,11 +93,24 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     form.setValue("agentAvatarUrl", first.avatar_url ?? "")
     form.setValue("agentCategory", first.category ?? "")
 
+    const slackProfile = first.profiles?.find(
+      (p) => p.provider === "slack" && p.status === "active",
+    )
+    if (slackProfile) {
+      form.setValue("channel", "slack")
+      const identity = (slackProfile.identity ?? {}) as Record<string, unknown>
+      const teamName =
+        typeof identity.team_name === "string" ? identity.team_name : ""
+      if (teamName && !form.getValues("businessName").trim()) {
+        form.setValue("businessName", teamName)
+      }
+    }
+
     setBootstrapped({
       agentId: first.id,
       sandboxId: first.sandbox?.id ?? "",
     })
-    setStep("provisioning")
+    setStep(slackProfile ? "business" : "provisioning")
   }, [employeesQuery.data, bootstrapped, form])
 
   const createEmployee: CreateEmployeeState = (() => {
