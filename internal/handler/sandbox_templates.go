@@ -40,10 +40,12 @@ func NewSandboxTemplateHandler(db *gorm.DB, builder TemplateBuildable, enqueuer 
 }
 
 type createSandboxTemplateRequest struct {
-	Name           string     `json:"name"`
-	BuildCommands  []string   `json:"build_commands"`
-	Config         model.JSON `json:"config,omitempty"`
-	BaseTemplateID *string    `json:"base_template_id,omitempty"`
+	Name          string     `json:"name"`
+	BuildCommands []string   `json:"build_commands"`
+	Config        model.JSON `json:"config,omitempty"`
+	VCPU          *int       `json:"vcpu,omitempty"`
+	MemoryGB      *int       `json:"memory_gb,omitempty"`
+	DiskGB        *int       `json:"disk_gb,omitempty"`
 }
 
 type updateSandboxTemplateRequest struct {
@@ -143,23 +145,27 @@ func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) 
 		Config:        req.Config,
 		Tags:          model.JSON{},
 	}
+
+	switch {
+	case req.VCPU == nil && req.MemoryGB == nil && req.DiskGB == nil:
+		tmpl.Size = "small"
+	case req.VCPU != nil && req.MemoryGB != nil && req.DiskGB != nil:
+		name, ok := model.TemplateSizeForResources(*req.VCPU, *req.MemoryGB, *req.DiskGB)
+		if !ok {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": "vcpu/memory_gb/disk_gb must match a supported size: small (1/2/10), medium (2/4/20), large (4/8/40), xlarge (8/16/80)",
+			})
+			return
+		}
+		tmpl.Size = name
+	default:
+		writeJSON(w, http.StatusBadRequest, map[string]string{
+			"error": "vcpu, memory_gb, and disk_gb must be provided together",
+		})
+		return
+	}
 	if tmpl.Config == nil {
 		tmpl.Config = model.JSON{}
-	}
-
-	if req.BaseTemplateID != nil && *req.BaseTemplateID != "" {
-		baseID, err := uuid.Parse(*req.BaseTemplateID)
-		if err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid base_template_id"})
-			return
-		}
-		var baseTmpl model.SandboxTemplate
-		if err := h.db.Where("id = ? AND org_id IS NULL AND build_status = ?", baseID, "ready").First(&baseTmpl).Error; err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "base template not found or not ready"})
-			return
-		}
-		tmpl.BaseTemplateID = &baseID
-		tmpl.Size = baseTmpl.Size
 	}
 
 	tmpl.Slug = fmt.Sprintf("hiveloop-tmpl-%s", uuid.New().String()[:8])

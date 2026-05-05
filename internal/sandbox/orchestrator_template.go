@@ -19,18 +19,7 @@ func (o *Orchestrator) resolveBuildOpts(tmpl *model.SandboxTemplate, snapshotNam
 	opts := BuildSnapshotOpts{
 		Name:          snapshotName,
 		BuildCommands: cmds,
-	}
-
-	if tmpl.BaseTemplateID != nil {
-		var baseTmpl model.SandboxTemplate
-		if err := o.db.First(&baseTmpl, "id = ?", *tmpl.BaseTemplateID).Error; err == nil {
-			switch {
-			case baseTmpl.BaseImageRef != nil && *baseTmpl.BaseImageRef != "":
-				opts.BaseImage = *baseTmpl.BaseImageRef
-			case baseTmpl.ExternalID != nil:
-				opts.BaseImage = *baseTmpl.ExternalID
-			}
-		}
+		BaseImage:     o.cfg.BridgeBaseDedicatedImagePrefix,
 	}
 
 	if sz, ok := model.TemplateSizes[tmpl.Size]; ok {
