@@ -173,6 +173,11 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 			r.Post("/{id}/sync", h.Sync)
 		})
 	})
+	r.Route("/v1/orgs/current/onboarding", func(r chi.Router) {
+		r.Use(middleware.ResolveOrgFromHeader(db))
+		r.Use(middleware.RequireOrgAdmin(db))
+		r.Post("/complete", h.CompleteOnboarding)
+	})
 
 	return &employeeHarness{
 		db: db, router: r, provider: provider,

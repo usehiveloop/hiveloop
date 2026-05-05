@@ -29,6 +29,9 @@ type Org struct {
 	// Empty string when no logo is set.
 	LogoURL string `gorm:"not null;default:''"`
 
+	Website     string `gorm:"not null;default:'';size:500"`
+	Description string `gorm:"type:text;not null;default:''"`
+
 	Onboarded bool `gorm:"not null;default:false"`
 
 	CreatedAt time.Time

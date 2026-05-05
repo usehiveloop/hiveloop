@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/hermes"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -103,50 +102,12 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedBridgeAPIKey)
-	if err != nil {
-		log.ErrorContext(ctx, "decrypt sidecar api key", "error", err, "sandbox_id", sb.ID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to read sandbox credentials"})
-		return
-	}
-
-	syncReq, err := hermes.Compile(ctx, h.compileDeps, &agent)
-	if err != nil {
-		log.ErrorContext(ctx, "compile employee config", "error", err, "agent_id", agentID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to compile employee config"})
-		return
-	}
-
-	client, err := hermes.New(sb.BridgeURL, apiKey)
-	if err != nil {
-		log.ErrorContext(ctx, "init hermes client", "error", err, "sandbox_id", sb.ID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to reach sandbox"})
-		return
-	}
-
-	resp, err := client.SyncConfig(ctx, *syncReq)
+	resp, err := h.runEmployeeSync(ctx, &agent, &sb)
 	if err != nil {
 		log.ErrorContext(ctx, "sync employee config", "error", err,
 			"agent_id", agentID, "sandbox_id", sb.ID)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "sandbox rejected sync"})
 		return
 	}
-
-	out := syncEmployeeResponse{}
-	if resp.Applied != nil {
-		out.Applied = *resp.Applied
-	}
-	if resp.Deleted != nil {
-		out.Deleted = *resp.Deleted
-	}
-	if resp.ReposCloned != nil {
-		out.ReposCloned = *resp.ReposCloned
-	}
-	if resp.RestartTriggered != nil {
-		out.RestartTriggered = *resp.RestartTriggered
-	}
-	if resp.Errors != nil {
-		out.Errors = *resp.Errors
-	}
-	writeJSON(w, http.StatusOK, out)
+	writeJSON(w, http.StatusOK, toSyncResponseDTO(resp))
 }
