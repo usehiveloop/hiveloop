@@ -84,16 +84,25 @@ const SLACK_MANIFEST_TEMPLATE = {
   },
 } as const
 
+// Slack's manifest schema caps display_information.description at 140 chars.
+// long_description fits up to 4000 (and requires >=50 when set).
+const SLACK_DESCRIPTION_MAX = 140
+
 export function buildSlackAppManifest({ name, description }: AgentManifestInput) {
   const trimmedName = name.trim() || "Hermes"
   const trimmedDescription = description?.trim() || `Your ${trimmedName} agent on Slack`
+  const overflows = trimmedDescription.length > SLACK_DESCRIPTION_MAX
+  const shortDescription = overflows
+    ? trimmedDescription.slice(0, SLACK_DESCRIPTION_MAX)
+    : trimmedDescription
 
   return {
     ...SLACK_MANIFEST_TEMPLATE,
     display_information: {
       ...SLACK_MANIFEST_TEMPLATE.display_information,
       name: trimmedName,
-      description: trimmedDescription,
+      description: shortDescription,
+      ...(overflows ? { long_description: trimmedDescription } : {}),
     },
     features: {
       ...SLACK_MANIFEST_TEMPLATE.features,
