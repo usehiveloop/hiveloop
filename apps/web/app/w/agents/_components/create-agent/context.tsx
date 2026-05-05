@@ -17,6 +17,7 @@ export interface CreateAgentFormValues {
   model: string
   credentialId: string
   sandboxType: "shared" | "dedicated"
+  sandboxTemplateId: string
   systemPrompt: string
   sharedMemory: boolean
   category: string
@@ -65,6 +66,7 @@ function deriveFormValues(agent: Agent | null | undefined): CreateAgentFormValue
       model: "",
       credentialId: "",
       sandboxType: "shared",
+      sandboxTemplateId: "",
       systemPrompt: "",
       sharedMemory: false,
       category: "",
@@ -77,6 +79,7 @@ function deriveFormValues(agent: Agent | null | undefined): CreateAgentFormValue
     model: agent.model ?? "",
     credentialId: agent.credential_id ?? "",
     sandboxType: "shared",
+    sandboxTemplateId: agent.sandbox_template_id ?? "",
     systemPrompt: agent.system_prompt ?? "",
     sharedMemory: agent.shared_memory ?? false,
     category: agent.category ?? "",
@@ -220,6 +223,7 @@ export function CreateAgentProvider({ children, onClose, agent }: CreateAgentPro
       shared_memory: values.sharedMemory,
       category: values.category.trim() || undefined,
       avatar_url: values.avatarUrl || undefined,
+      sandbox_template_id: values.sandboxTemplateId || (mode === "edit" ? "" : undefined),
     }
 
     if (mode === "edit" && agentId) {
