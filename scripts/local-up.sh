@@ -157,6 +157,7 @@ FRONTEND_URL=http://localhost:$FRONTEND_PORT
 NANGO_ENDPOINT=http://localhost:$FAKE_NANGO_PORT
 NANGO_SECRET_KEY=fake-nango-secret
 SANDBOX_PROVIDER_ID=daytona
+BRIDGE_BINARY_VERSION=v1.0.1
 EOF
   ensure_secret AUTH_RSA_PRIVATE_KEY auth-rsa.key gen_rsa
   ensure_secret KMS_KEY              kms.key      gen_aes
