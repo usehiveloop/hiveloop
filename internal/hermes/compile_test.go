@@ -257,11 +257,12 @@ func TestCompile(t *testing.T) {
 	for _, name := range tools {
 		require.NotEqual(t, "web", name)
 	}
-	mcpServers, ok := cfgYAML["mcp_servers"].([]any)
-	require.True(t, ok)
+	mcpServers, ok := cfgYAML["mcp_servers"].(map[string]any)
+	require.True(t, ok, "mcp_servers must be a dict keyed by name")
 	require.Len(t, mcpServers, 1)
-	mcp := mcpServers[0].(map[string]any)
-	require.Equal(t, "hiveloop", mcp["name"])
+	mcp, ok := mcpServers["hiveloop"].(map[string]any)
+	require.Truef(t, ok, "expected mcp_servers.hiveloop dict, got %T", mcpServers["hiveloop"])
+	require.Equal(t, "streamable_http", mcp["transport"])
 
 	envContent := decodeFile(t, files, ".env")
 	envStr := string(envContent)
