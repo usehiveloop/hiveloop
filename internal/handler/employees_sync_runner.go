@@ -11,12 +11,12 @@ import (
 )
 
 func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agent, sb *model.Sandbox) (*hsdk.SyncResponse, error) {
-	if err := h.orchestrator.EnsureHermesSandboxURL(ctx, sb); err != nil {
-		return nil, fmt.Errorf("refresh sandbox url: %w", err)
-	}
 	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedBridgeAPIKey)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt sidecar api key: %w", err)
+	}
+	if err := h.orchestrator.EnsureHermesSandboxReady(ctx, sb, apiKey); err != nil {
+		return nil, fmt.Errorf("ensure sandbox ready: %w", err)
 	}
 	syncReq, err := hermes.Compile(ctx, h.compileDeps, agent)
 	if err != nil {
