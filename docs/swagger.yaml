@@ -2174,6 +2174,115 @@ definitions:
       value:
         type: string
     type: object
+  internal_handler.employeeListItem:
+    properties:
+      agent_config:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      attached_skills:
+        items:
+          $ref: '#/definitions/internal_handler.agentSkillSummary'
+        type: array
+      avatar_url:
+        type: string
+      category:
+        type: string
+      created_at:
+        type: string
+      credential_id:
+        type: string
+      description:
+        type: string
+      harness:
+        type: string
+      id:
+        type: string
+      instructions:
+        type: string
+      integrations:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      is_employee:
+        type: boolean
+      mcp_servers:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      model:
+        type: string
+      name:
+        type: string
+      permissions:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      profiles:
+        items:
+          $ref: '#/definitions/internal_handler.agentProfileResponse'
+        type: array
+      provider_id:
+        type: string
+      provider_prompts:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap'
+      resources:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      sandbox:
+        $ref: '#/definitions/internal_handler.employeeSandboxSummary'
+      sandbox_template_id:
+        type: string
+      sandbox_tools:
+        items:
+          type: string
+        type: array
+      shared_memory:
+        type: boolean
+      skills:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      status:
+        type: string
+      subagent_ids:
+        items:
+          type: string
+        type: array
+      subagents:
+        items:
+          $ref: '#/definitions/internal_handler.employeeSubagentSummary'
+        type: array
+      system_prompt:
+        type: string
+      team:
+        type: string
+      tools:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      triggers:
+        items:
+          $ref: '#/definitions/internal_handler.agentTriggerResponse'
+        type: array
+      updated_at:
+        type: string
+    type: object
+  internal_handler.employeeSandboxSummary:
+    properties:
+      created_at:
+        type: string
+      error_message:
+        type: string
+      external_id:
+        type: string
+      id:
+        type: string
+      last_active_at:
+        type: string
+      status:
+        type: string
+    type: object
+  internal_handler.employeeSubagentSummary:
+    properties:
+      avatar_url:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+    type: object
   internal_handler.errorRate:
     properties:
       date:
@@ -2859,6 +2968,17 @@ definitions:
       data:
         items:
           $ref: '#/definitions/internal_handler.credentialResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_employeeListItem:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.employeeListItem'
         type: array
       has_more:
         type: boolean
@@ -8319,6 +8439,44 @@ paths:
       tags:
       - custom-domains
   /v1/employees:
+    get:
+      description: |-
+        Returns all employee agents in the org with sub-agents,
+        skills (metadata only — no bundle content), profiles,
+        triggers, and the latest sandbox row.
+      parameters:
+      - description: Filter by status (active, archived)
+        in: query
+        name: status
+        type: string
+      - description: Page size (default 50, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_employeeListItem'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List AI employees
+      tags:
+      - employees
     post:
       consumes:
       - application/json
