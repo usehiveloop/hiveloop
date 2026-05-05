@@ -124,6 +124,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 	r := chi.NewRouter()
 	r.Route("/v1/employees", func(r chi.Router) {
 		r.Use(middleware.ResolveOrgFromHeader(db))
+		r.Use(middleware.RequireOrgAdmin(db))
 		r.Post("/", h.Create)
 	})
 
@@ -149,6 +150,10 @@ type orgWithMember struct {
 }
 
 func (h *employeeHarness) createOrg(t *testing.T) orgWithMember {
+	return h.createOrgWithRole(t, "admin")
+}
+
+func (h *employeeHarness) createOrgWithRole(t *testing.T, role string) orgWithMember {
 	t.Helper()
 	user := model.User{Email: "emp-" + uuid.NewString()[:8] + "@test.com", Name: "T"}
 	if err := h.db.Create(&user).Error; err != nil {
@@ -158,7 +163,7 @@ func (h *employeeHarness) createOrg(t *testing.T) orgWithMember {
 	if err := h.db.Create(&org).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	mem := model.OrgMembership{UserID: user.ID, OrgID: org.ID, Role: "admin"}
+	mem := model.OrgMembership{UserID: user.ID, OrgID: org.ID, Role: role}
 	if err := h.db.Create(&mem).Error; err != nil {
 		t.Fatalf("create membership: %v", err)
 	}
