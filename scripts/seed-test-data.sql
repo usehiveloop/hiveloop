@@ -93,7 +93,7 @@ ON CONFLICT (key_hash) DO NOTHING;
 INSERT INTO agents (id, org_id, name, description, category, system_prompt, model,
                     provider_prompts, tools, mcp_servers, skills, integrations,
                     agent_config, permissions, resources, team, shared_memory,
-                    sandbox_tools, setup_commands, status, agent_type, is_system,
+                    sandbox_tools, setup_commands, status, is_system,
                     provider_group, created_at, updated_at)
 SELECT gen_random_uuid(),
        o.id,
@@ -106,7 +106,7 @@ SELECT gen_random_uuid(),
        '{}'::jsonb, '{}'::jsonb, '{}'::jsonb,
        '', false,
        '{}'::text[], '{}'::text[],
-       'active', 'agent', false, '',
+       'active', false, '',
        NOW(), NOW()
   FROM orgs o
   WHERE o.name = 'Agent Test Workspace'
