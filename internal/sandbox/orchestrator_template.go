@@ -19,7 +19,7 @@ func (o *Orchestrator) resolveBuildOpts(tmpl *model.SandboxTemplate, snapshotNam
 	opts := BuildSnapshotOpts{
 		Name:          snapshotName,
 		BuildCommands: cmds,
-		BaseImage:     o.cfg.BridgeBaseDedicatedImagePrefix,
+		BaseImage:     fmt.Sprintf("ghcr.io/usehiveloop/sandbox-bridge:%s", o.cfg.BridgeBinaryVersion),
 	}
 
 	if sz, ok := model.TemplateSizes[tmpl.Size]; ok {
