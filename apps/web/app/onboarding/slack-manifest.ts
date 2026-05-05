@@ -3,14 +3,7 @@ type AgentManifestInput = {
   description?: string
 }
 
-// Templated fields: display_information.name + description,
-// features.bot_user.display_name, features.assistant_view.assistant_description.
-// Everything else (scopes, events, settings) is constant across all agents.
 const SLACK_MANIFEST_TEMPLATE = {
-  _metadata: {
-    major_version: 1,
-    minor_version: 1,
-  },
   display_information: {
     name: "Hermes",
     description: "Your Hermes agent on Slack",
@@ -23,6 +16,7 @@ const SLACK_MANIFEST_TEMPLATE = {
     },
     assistant_view: {
       assistant_description: "Chat with Hermes in threads and DMs.",
+      suggested_prompts: [],
     },
   },
   oauth_config: {
