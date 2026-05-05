@@ -1,8 +1,7 @@
 "use client"
 
 import { AnimatePresence, motion } from "motion/react"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { Loading03Icon } from "@hugeicons/core-free-icons"
+import { Skeleton } from "@/components/ui/skeleton"
 import { OnboardingShell } from "./_components/onboarding-shell"
 import { StepIndicator } from "./_components/step-indicator"
 import { EmployeeStep } from "./_components/employee-step"
@@ -36,20 +35,7 @@ function Wizard() {
   const channel = form.watch("channel")
 
   if (bootstrapping) {
-    return (
-      <div
-        role="status"
-        aria-live="polite"
-        className="flex min-h-[280px] w-full items-center justify-center"
-      >
-        <HugeiconsIcon
-          icon={Loading03Icon}
-          className="size-6 animate-spin text-muted-foreground"
-          strokeWidth={2}
-        />
-        <span className="sr-only">Loading…</span>
-      </div>
-    )
+    return <OnboardingSkeleton />
   }
 
   return (
@@ -77,5 +63,34 @@ function Wizard() {
         </AnimatePresence>
       </div>
     </>
+  )
+}
+
+function OnboardingSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      className="mx-auto flex w-full max-w-xl flex-col items-center gap-10"
+    >
+      <span className="sr-only">Loading…</span>
+      <div className="flex items-center gap-1.5">
+        <Skeleton className="size-1.5 rounded-full" />
+        <Skeleton className="size-1.5 rounded-full" />
+        <Skeleton className="size-1.5 rounded-full" />
+        <Skeleton className="size-1.5 rounded-full" />
+        <Skeleton className="size-1.5 rounded-full" />
+      </div>
+      <div className="flex w-full flex-col items-center gap-6">
+        <Skeleton className="size-24 rounded-md" />
+        <div className="flex w-full flex-col items-center gap-2">
+          <Skeleton className="h-8 w-48 rounded-md" />
+          <Skeleton className="h-4 w-72 rounded-md" />
+          <Skeleton className="h-4 w-56 rounded-md" />
+        </div>
+        <Skeleton className="mt-4 h-11 w-64 rounded-md" />
+      </div>
+    </div>
   )
 }

@@ -14,8 +14,6 @@ import (
 	slackprov "github.com/usehiveloop/hiveloop/internal/profiles/slack"
 )
 
-// sidecarStub records calls made to the fake sidecar so tests can assert
-// behaviour. Methods are goroutine-safe.
 type sidecarStub struct {
 	mu               sync.Mutex
 	syncConfigCalls  int
@@ -36,8 +34,6 @@ func (s *sidecarStub) setStatus(status int) {
 	s.syncConfigStatus = status
 }
 
-// seedEmployeeAgent creates an Agent that's ready for hermes.Compile to
-// succeed: is_employee=true, harness=hermes, points at a system credential.
 func (h *employeeHarness) seedEmployeeAgent(t *testing.T, m orgWithMember) model.Agent {
 	t.Helper()
 	cred := h.seedSystemCred(t, "crof", false)
@@ -46,8 +42,8 @@ func (h *employeeHarness) seedEmployeeAgent(t *testing.T, m orgWithMember) model
 	if err != nil {
 		t.Fatalf("encrypt cred: %v", err)
 	}
-	// Override the cred's encrypted key so credentials.Resolve can decrypt
-	// (seedSystemCred uses a placeholder).
+	// seedSystemCred writes a placeholder encrypted_key; replace it so
+	// credentials.Resolve can decrypt with h.encKey during compile.
 	if err := h.db.Model(&cred).Update("encrypted_key", encryptedKey).Error; err != nil {
 		t.Fatalf("update cred key: %v", err)
 	}
@@ -83,8 +79,6 @@ func (h *employeeHarness) seedEmployeeAgent(t *testing.T, m orgWithMember) model
 	return agent
 }
 
-// seedSandbox creates a Sandbox row pointing at the harness's sidecar
-// httptest server. Returns the row.
 func (h *employeeHarness) seedSandbox(t *testing.T, m orgWithMember, agentID uuid.UUID) model.Sandbox {
 	t.Helper()
 	apiKey := "sidecar-test-key-" + uuid.NewString()[:8]
@@ -106,8 +100,6 @@ func (h *employeeHarness) seedSandbox(t *testing.T, m orgWithMember, agentID uui
 	return sb
 }
 
-// seedSlackProfile creates an active slack profile with KMS-wrapped secrets
-// so mergeProfileSecrets can decrypt them during compile.
 func (h *employeeHarness) seedSlackProfile(t *testing.T, m orgWithMember, agentID uuid.UUID) model.AgentProfile {
 	t.Helper()
 	dek, err := crypto.GenerateDEK()
@@ -136,9 +128,8 @@ func (h *employeeHarness) seedSlackProfile(t *testing.T, m orgWithMember, agentI
 	return p
 }
 
-// seedWhatsappProfile creates an active whatsapp profile. compile.go does not
-// emit env for whatsapp today, so encrypted secrets are empty — the row
-// satisfies the "must have an active slack/whatsapp profile" gate alone.
+// Whatsapp encrypted secrets are intentionally empty; compile.go doesn't
+// decrypt them yet — we only need the row to satisfy the profile-gate.
 func (h *employeeHarness) seedWhatsappProfile(t *testing.T, m orgWithMember, agentID uuid.UUID) model.AgentProfile {
 	t.Helper()
 	p := model.AgentProfile{
@@ -151,8 +142,6 @@ func (h *employeeHarness) seedWhatsappProfile(t *testing.T, m orgWithMember, age
 	return p
 }
 
-// platformCredCleanup deletes any platform-org-scoped credentials the test
-// inserted; called by happy-path tests so re-runs don't accumulate state.
 func (h *employeeHarness) platformCredCleanup(t *testing.T) {
 	t.Helper()
 	t.Cleanup(func() {

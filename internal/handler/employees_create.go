@@ -16,8 +16,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// Create handles POST /v1/employees.
-//
 // @Summary Create an AI employee
 // @Description Persists an Agent (is_employee=true) and provisions a Hermes sandbox.
 // @Description On any provisioning failure, the Agent is rolled back so the

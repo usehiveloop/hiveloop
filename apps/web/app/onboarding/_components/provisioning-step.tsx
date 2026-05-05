@@ -39,15 +39,11 @@ export function ProvisioningStep() {
   const agentName = watchedName?.trim() || "your AI employee"
   const agentAvatarUrl = watchedAvatar?.trim() || ""
 
-  // When we land here from a bootstrapped employee, skip the fake-progress
-  // animation entirely and show the success block immediately.
   const [activeIndex, setActiveIndex] = useState(bootstrapped ? STAGES.length : 0)
 
   useEffect(() => {
     if (bootstrapped) return
-    // Stop animating once the real provisioning resolves either way.
     if (createEmployee.status === "success" || createEmployee.status === "error") return
-    // Hold the last stage until the API resolves; clamp at len-1.
     if (activeIndex >= STAGES.length - 1) return
     const timer = setTimeout(
       () => setActiveIndex((idx) => idx + 1),
