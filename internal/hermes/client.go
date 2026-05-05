@@ -8,6 +8,7 @@ package hermes
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -56,8 +57,18 @@ func (c *Client) SyncConfig(ctx context.Context, req hsdk.SyncRequest) (*hsdk.Sy
 	if err != nil {
 		return nil, fmt.Errorf("sync config: %w", err)
 	}
-	if resp.JSON200 == nil {
-		return nil, fmt.Errorf("sync config: %s", resp.Status())
+	if resp.JSON200 != nil {
+		return resp.JSON200, nil
 	}
-	return resp.JSON200, nil
+	if resp.HTTPResponse != nil && resp.HTTPResponse.StatusCode == http.StatusOK {
+		var out hsdk.SyncResponse
+		if jerr := json.Unmarshal(resp.Body, &out); jerr == nil {
+			return &out, nil
+		}
+	}
+	body := ""
+	if len(resp.Body) > 0 {
+		body = ": " + string(resp.Body)
+	}
+	return nil, fmt.Errorf("sync config: %s%s", resp.Status(), body)
 }
