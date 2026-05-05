@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useCallback, useContext, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useState } from "react"
 import { useForm, type UseFormReturn } from "react-hook-form"
 import { $api } from "@/lib/api/hooks"
 
@@ -55,6 +55,10 @@ interface OnboardingContextValue {
   createEmployee: CreateEmployeeState
   submitEmployee: () => void
   retryEmployee: () => void
+  /** True while we're still resolving whether the user already has an employee. */
+  bootstrapping: boolean
+  /** True once we've hydrated state from an existing employee. */
+  bootstrapped: boolean
 }
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null)
@@ -74,7 +78,41 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const stepIndex = STEP_ORDER.indexOf(step)
 
   const createEmployeeMutation = $api.useMutation("post", "/v1/employees")
+
+  // Boot-time check: if the user already has an employee, hydrate state and
+  // jump them past the create form. We pick the first one returned.
+  const employeesQuery = $api.useQuery("get", "/v1/employees")
+  const [bootstrapped, setBootstrapped] = useState<{
+    agentId: string
+    sandboxId: string
+  } | null>(null)
+
+  useEffect(() => {
+    if (bootstrapped) return
+    if (!employeesQuery.data) return
+    const first = employeesQuery.data.data?.[0]
+    if (!first || !first.id) return
+
+    form.setValue("agentName", first.name ?? "")
+    form.setValue("agentDescription", first.description ?? "")
+    form.setValue("agentAvatarUrl", first.avatar_url ?? "")
+    form.setValue("agentCategory", first.category ?? "")
+
+    setBootstrapped({
+      agentId: first.id,
+      sandboxId: first.sandbox?.id ?? "",
+    })
+    setStep("provisioning")
+  }, [employeesQuery.data, bootstrapped, form])
+
   const createEmployee: CreateEmployeeState = (() => {
+    if (bootstrapped) {
+      return {
+        status: "success",
+        agentId: bootstrapped.agentId,
+        sandboxId: bootstrapped.sandboxId,
+      }
+    }
     if (createEmployeeMutation.isPending) return { status: "pending" }
     if (createEmployeeMutation.isSuccess && createEmployeeMutation.data) {
       return {
@@ -150,6 +188,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         createEmployee,
         submitEmployee,
         retryEmployee,
+        bootstrapping: employeesQuery.isLoading,
+        bootstrapped: Boolean(bootstrapped),
       }}
     >
       {children}
