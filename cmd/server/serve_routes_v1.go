@@ -168,6 +168,7 @@ func setupV1Routes(
 						r.Use(middleware.RequireOrgAdmin(database))
 						r.Post("/employees", employeeHandler.Create)
 						r.Post("/employees/{id}/sync", employeeHandler.Sync)
+						r.Post("/orgs/current/onboarding/complete", employeeHandler.CompleteOnboarding)
 					})
 				}
 				if systemTaskHandler != nil {
