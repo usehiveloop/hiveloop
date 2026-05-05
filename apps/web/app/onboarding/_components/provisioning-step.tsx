@@ -32,15 +32,19 @@ const STAGES: Stage[] = [
 ]
 
 export function ProvisioningStep() {
-  const { form, goNext, goBack, createEmployee, retryEmployee } = useOnboarding()
+  const { form, goNext, goBack, createEmployee, retryEmployee, bootstrapped } =
+    useOnboarding()
   const watchedName = useWatch({ control: form.control, name: "agentName" })
   const watchedAvatar = useWatch({ control: form.control, name: "agentAvatarUrl" })
   const agentName = watchedName?.trim() || "your AI employee"
   const agentAvatarUrl = watchedAvatar?.trim() || ""
 
-  const [activeIndex, setActiveIndex] = useState(0)
+  // When we land here from a bootstrapped employee, skip the fake-progress
+  // animation entirely and show the success block immediately.
+  const [activeIndex, setActiveIndex] = useState(bootstrapped ? STAGES.length : 0)
 
   useEffect(() => {
+    if (bootstrapped) return
     // Stop animating once the real provisioning resolves either way.
     if (createEmployee.status === "success" || createEmployee.status === "error") return
     // Hold the last stage until the API resolves; clamp at len-1.
@@ -50,10 +54,12 @@ export function ProvisioningStep() {
       STAGES[activeIndex].duration,
     )
     return () => clearTimeout(timer)
-  }, [activeIndex, createEmployee.status])
+  }, [activeIndex, createEmployee.status, bootstrapped])
 
-  const isError = createEmployee.status === "error"
-  const isDone = createEmployee.status === "success" && activeIndex >= STAGES.length - 1
+  const isError = !bootstrapped && createEmployee.status === "error"
+  const isDone =
+    bootstrapped ||
+    (createEmployee.status === "success" && activeIndex >= STAGES.length - 1)
   const progress = isDone
     ? 100
     : Math.min(95, Math.round(((activeIndex + 1) / (STAGES.length + 1)) * 100))
