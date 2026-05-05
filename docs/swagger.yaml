@@ -1656,6 +1656,44 @@ definitions:
       new_password:
         type: string
     type: object
+  internal_handler.chatDetailResponse:
+    properties:
+      messages:
+        items:
+          $ref: '#/definitions/internal_handler.chatMessageDTO'
+        type: array
+      session:
+        $ref: '#/definitions/internal_handler.chatSessionDTO'
+    type: object
+  internal_handler.chatListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.chatSessionDTO'
+        type: array
+    type: object
+  internal_handler.chatMessageDTO:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+    type: object
+  internal_handler.chatSessionDTO:
+    properties:
+      agent_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      updated_at:
+        type: string
+    type: object
   internal_handler.commandResult:
     properties:
       command:
@@ -3624,6 +3662,18 @@ definitions:
         additionalProperties:
           type: string
         type: object
+    type: object
+  internal_handler.sendMessageRequest:
+    properties:
+      message:
+        type: string
+    type: object
+  internal_handler.sendMessageResponse:
+    properties:
+      session_id:
+        type: string
+      stream_url:
+        type: string
     type: object
   internal_handler.setupRequest:
     properties:
@@ -7857,6 +7907,126 @@ paths:
       summary: List triggers for an integration
       tags:
       - integrations
+  /v1/chats:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.chatListResponse'
+      security:
+      - BearerAuth: []
+      summary: List chat sessions for the caller
+      tags:
+      - chats
+  /v1/chats/{id}:
+    get:
+      parameters:
+      - description: Chat session UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.chatDetailResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a chat session with its messages
+      tags:
+      - chats
+  /v1/chats/{id}/messages:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Persists a new user message and returns a fresh stream URL
+        the frontend opens to receive the assistant reply.
+      parameters:
+      - description: Chat session UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Next message
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.sendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.sendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Append a user message to an existing chat
+      tags:
+      - chats
+  /v1/chats/{id}/stream:
+    get:
+      description: |-
+        Opens an SSE stream to the sandbox, replays the conversation
+        history through Hermes, and tees the response back to the
+        browser while persisting the assistant message on completion.
+      parameters:
+      - description: Chat session UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Stream token issued by POST /chats or /chats/{id}/messages
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE event stream
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Stream the assistant reply for the latest user message (SSE)
+      tags:
+      - chats
   /v1/conversations/{convID}:
     delete:
       description: Permanently ends a conversation. Subsequent operations return 410.
@@ -8545,6 +8715,50 @@ paths:
       summary: Create an AI employee
       tags:
       - employees
+  /v1/employees/{id}/chats:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Creates a chat session, persists the first user message, and
+        returns a one-shot SSE stream URL the frontend opens to receive
+        the assistant reply.
+      parameters:
+      - description: Agent UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: First message
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.sendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.sendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Start a chat with an AI employee
+      tags:
+      - chats
   /v1/employees/{id}/sync:
     post:
       description: |-

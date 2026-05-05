@@ -6640,6 +6640,226 @@
         }
       }
     },
+    "/v1/chats": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "chats"
+        ],
+        "summary": "List chat sessions for the caller",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/chatListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{id}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "chats"
+        ],
+        "summary": "Get a chat session with its messages",
+        "parameters": [
+          {
+            "description": "Chat session UUID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/chatDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{id}/messages": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Persists a new user message and returns a fresh stream URL\nthe frontend opens to receive the assistant reply.",
+        "tags": [
+          "chats"
+        ],
+        "summary": "Append a user message to an existing chat",
+        "parameters": [
+          {
+            "description": "Chat session UUID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/sendMessageRequest"
+              }
+            }
+          },
+          "description": "Next message",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/sendMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{id}/stream": {
+      "get": {
+        "description": "Opens an SSE stream to the sandbox, replays the conversation\nhistory through Hermes, and tees the response back to the\nbrowser while persisting the assistant message on completion.",
+        "tags": [
+          "chats"
+        ],
+        "summary": "Stream the assistant reply for the latest user message (SSE)",
+        "parameters": [
+          {
+            "description": "Chat session UUID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Stream token issued by POST /chats or /chats/{id}/messages",
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE event stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/conversations/{convID}": {
       "get": {
         "security": [
@@ -7905,6 +8125,84 @@
           },
           "503": {
             "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/employees/{id}/chats": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a chat session, persists the first user message, and\nreturns a one-shot SSE stream URL the frontend opens to receive\nthe assistant reply.",
+        "tags": [
+          "chats"
+        ],
+        "summary": "Start a chat with an AI employee",
+        "parameters": [
+          {
+            "description": "Agent UUID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/sendMessageRequest"
+              }
+            }
+          },
+          "description": "First message",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/sendMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -15263,6 +15561,65 @@
           }
         }
       },
+      "chatDetailResponse": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/chatMessageDTO"
+            }
+          },
+          "session": {
+            "$ref": "#/components/schemas/chatSessionDTO"
+          }
+        }
+      },
+      "chatListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/chatSessionDTO"
+            }
+          }
+        }
+      },
+      "chatMessageDTO": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "chatSessionDTO": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
       "commandResult": {
         "type": "object",
         "properties": {
@@ -18269,6 +18626,25 @@
             "additionalProperties": {
               "type": "string"
             }
+          }
+        }
+      },
+      "sendMessageRequest": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "sendMessageResponse": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string"
+          },
+          "stream_url": {
+            "type": "string"
           }
         }
       },
