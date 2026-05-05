@@ -13843,10 +13843,12 @@ export interface components {
             priority?: number;
         };
         createSandboxTemplateRequest: {
-            base_template_id?: string;
             build_commands?: string[];
             config?: components["schemas"]["JSON"];
+            disk_gb?: number;
+            memory_gb?: number;
             name?: string;
+            vcpu?: number;
         };
         createSkillRequest: {
             /** @description Inline source */
