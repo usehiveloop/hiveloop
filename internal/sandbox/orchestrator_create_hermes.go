@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -22,10 +24,7 @@ func (o *Orchestrator) CreateHermesSandbox(ctx context.Context, agent *model.Age
 	if agent == nil || agent.OrgID == nil {
 		return nil, fmt.Errorf("CreateHermesSandbox: agent must have org_id")
 	}
-	var org model.Org
-	if err := o.db.Where("id = ?", *agent.OrgID).First(&org).Error; err != nil {
-		return nil, fmt.Errorf("loading org: %w", err)
-	}
+	orgID := *agent.OrgID
 
 	apiKey, err := generateRandomHex(32)
 	if err != nil {
@@ -37,7 +36,7 @@ func (o *Orchestrator) CreateHermesSandbox(ctx context.Context, agent *model.Age
 	}
 
 	sb := model.Sandbox{
-		OrgID:                 &org.ID,
+		OrgID:                 &orgID,
 		AgentID:               &agent.ID,
 		EncryptedBridgeAPIKey: encryptedKey,
 		Status:                "creating",
@@ -46,9 +45,9 @@ func (o *Orchestrator) CreateHermesSandbox(ctx context.Context, agent *model.Age
 		return nil, fmt.Errorf("saving sandbox: %w", err)
 	}
 
-	envVars := hermesEnvVars(o.cfg, apiKey, &sb, &org, agent)
+	envVars := hermesEnvVars(o.cfg, apiKey, &sb, orgID, agent)
 	labels := map[string]string{
-		"org_id":     org.ID.String(),
+		"org_id":     orgID.String(),
 		"sandbox_id": sb.ID.String(),
 		"agent_id":   agent.ID.String(),
 		"harness":    "hermes",
@@ -61,16 +60,19 @@ func (o *Orchestrator) CreateHermesSandbox(ctx context.Context, agent *model.Age
 		Labels:     labels,
 	})
 	if err != nil {
-		o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
+		if delErr := o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}).Error; delErr != nil {
+			logging.FromContext(ctx).ErrorContext(ctx, "delete orphaned sandbox row after provider create failure",
+				"error", delErr, "sandbox_id", sb.ID)
+		}
 		return nil, fmt.Errorf("provider create: %w", err)
 	}
 
 	sandboxURL, err := o.provider.GetEndpoint(ctx, info.ExternalID, HermesSidecarPort)
 	if err != nil {
-		o.db.Model(&sb).Updates(map[string]any{
+		o.markSandboxError(ctx, &sb, map[string]any{
 			"external_id":   info.ExternalID,
 			"status":        "error",
-			"error_message": fmt.Sprintf("get endpoint: %v", err),
+			"error_message": "get endpoint failed",
 		})
 		return nil, fmt.Errorf("getting sidecar endpoint: %w", err)
 	}
@@ -93,9 +95,9 @@ func (o *Orchestrator) CreateHermesSandbox(ctx context.Context, agent *model.Age
 	sb.LastActiveAt = &now
 
 	if err := o.waitForSidecarReady(ctx, &sb, apiKey); err != nil {
-		o.db.Model(&sb).Updates(map[string]any{
+		o.markSandboxError(ctx, &sb, map[string]any{
 			"status":        "error",
-			"error_message": fmt.Sprintf("sidecar not ready: %v", err),
+			"error_message": "sidecar not ready",
 		})
 		return nil, fmt.Errorf("waiting for sidecar: %w", err)
 	}
@@ -107,7 +109,7 @@ func (o *Orchestrator) CreateHermesSandbox(ctx context.Context, agent *model.Age
 	return &sb, nil
 }
 
-func hermesEnvVars(cfg *config.Config, apiKey string, sb *model.Sandbox, org *model.Org, agent *model.Agent) map[string]string {
+func hermesEnvVars(cfg *config.Config, apiKey string, sb *model.Sandbox, orgID uuid.UUID, agent *model.Agent) map[string]string {
 	nameSlug := sanitizeName(agent.Name)
 	if nameSlug == "" {
 		nameSlug = "agent"
@@ -120,7 +122,14 @@ func hermesEnvVars(cfg *config.Config, apiKey string, sb *model.Sandbox, org *mo
 		"HIVELOOP_GIT_EMAIL":           nameSlug + "@usehiveloop.com",
 		"HIVELOOP_GIT_CREDENTIALS_URL": fmt.Sprintf("https://%s/internal/git-credentials/%s", cfg.BridgeHost, agent.ID),
 		"HIVELOOP_SANDBOX_ID":          sb.ID.String(),
-		"HIVELOOP_ORG_ID":              org.ID.String(),
+		"HIVELOOP_ORG_ID":              orgID.String(),
+	}
+}
+
+func (o *Orchestrator) markSandboxError(ctx context.Context, sb *model.Sandbox, updates map[string]any) {
+	if err := o.db.Model(sb).Updates(updates).Error; err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "mark sandbox error",
+			"error", err, "sandbox_id", sb.ID)
 	}
 }
 
@@ -145,14 +154,20 @@ func (o *Orchestrator) waitForSidecarReady(ctx context.Context, sb *model.Sandbo
 		}
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 
-		resp, err := client.Do(req)
-		if err == nil {
+		resp, doErr := client.Do(req)
+		if doErr != nil {
+			logging.FromContext(ctx).DebugContext(ctx, "hermes sidecar probe transport error",
+				"sandbox_id", sb.ID, "attempt", attempt, "error", doErr)
+		} else {
+			status := resp.StatusCode
 			resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
+			if status == http.StatusOK {
 				logging.FromContext(ctx).InfoContext(ctx, "hermes sidecar ready",
 					"sandbox_id", sb.ID, "attempts", attempt)
 				return nil
 			}
+			logging.FromContext(ctx).DebugContext(ctx, "hermes sidecar probe non-200",
+				"sandbox_id", sb.ID, "attempt", attempt, "status", status)
 		}
 
 		select {

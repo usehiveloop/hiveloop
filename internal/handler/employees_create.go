@@ -3,9 +3,9 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/google/uuid"
@@ -71,6 +71,13 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("category %q is not yet supported for employees", req.Category)})
 		return
 	}
+	if req.AvatarURL != "" {
+		u, err := url.Parse(req.AvatarURL)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "avatar_url must be an absolute http(s) URL"})
+			return
+		}
+	}
 
 	choice, err := pickEmployeeCredential(h.db)
 	if err != nil {
@@ -117,10 +124,10 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	sb, err := h.orchestrator.CreateHermesSandbox(r.Context(), &agent)
 	if err != nil {
-		h.rollbackEmployee(r.Context(), agent.ID)
+		h.rollbackEmployee(r.Context(), org.ID, agent.ID)
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "provision hermes sandbox",
 			"error", err, "agent_id", agent.ID, "org_id", org.ID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to provision sandbox: %v", err)})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
 		return
 	}
 
@@ -131,13 +138,18 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *EmployeeHandler) rollbackEmployee(ctx context.Context, agentID uuid.UUID) {
-	if err := h.db.Where("agent_id = ?", agentID).Delete(&model.Sandbox{}).Error; err != nil &&
-		!errors.Is(err, gorm.ErrRecordNotFound) {
-		logging.FromContext(ctx).ErrorContext(ctx, "rollback employee sandbox", "error", err, "agent_id", agentID)
-	}
-	if err := h.db.Where("id = ?", agentID).Delete(&model.Agent{}).Error; err != nil &&
-		!errors.Is(err, gorm.ErrRecordNotFound) {
-		logging.FromContext(ctx).ErrorContext(ctx, "rollback employee agent", "error", err, "agent_id", agentID)
+func (h *EmployeeHandler) rollbackEmployee(ctx context.Context, orgID, agentID uuid.UUID) {
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("org_id = ? AND agent_id = ?", orgID, agentID).Delete(&model.Sandbox{}).Error; err != nil {
+			return fmt.Errorf("delete sandbox: %w", err)
+		}
+		if err := tx.Where("org_id = ? AND id = ?", orgID, agentID).Delete(&model.Agent{}).Error; err != nil {
+			return fmt.Errorf("delete agent: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "rollback employee", "error", err,
+			"agent_id", agentID, "org_id", orgID)
 	}
 }
