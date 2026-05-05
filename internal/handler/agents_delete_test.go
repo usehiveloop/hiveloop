@@ -237,3 +237,50 @@ func TestAgentDelete_UpdateSetupReturns404ForSoftDeleted(t *testing.T) {
 		t.Fatalf("update setup: expected 404 for soft-deleted agent, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
+
+func TestAgentList_HidesEmployeeAgents(t *testing.T) {
+	h := newAgentDeleteHarness(t)
+	org, user := h.createTestOrg(t)
+	regular := h.createTestAgent(t, org.ID, "regular-"+uuid.New().String()[:8])
+	employee := h.createTestAgent(t, org.ID, "employee-"+uuid.New().String()[:8])
+	if err := h.db.Model(&employee).Update("is_employee", true).Error; err != nil {
+		t.Fatalf("flag employee: %v", err)
+	}
+
+	rr := h.doRequest(t, "GET", "/v1/agents", user.ID, org.ID)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("list: expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var listResp map[string]any
+	_ = json.Unmarshal(rr.Body.Bytes(), &listResp)
+	data, _ := listResp["data"].([]any)
+
+	sawRegular := false
+	for _, raw := range data {
+		agentMap := raw.(map[string]any)
+		if agentMap["id"] == employee.ID.String() {
+			t.Fatal("employee agent should not appear in list")
+		}
+		if agentMap["id"] == regular.ID.String() {
+			sawRegular = true
+		}
+	}
+	if !sawRegular {
+		t.Fatal("regular agent should appear in list")
+	}
+}
+
+func TestAgentGet_EmployeeReturns404(t *testing.T) {
+	h := newAgentDeleteHarness(t)
+	org, user := h.createTestOrg(t)
+	employee := h.createTestAgent(t, org.ID, "employee-get-"+uuid.New().String()[:8])
+	if err := h.db.Model(&employee).Update("is_employee", true).Error; err != nil {
+		t.Fatalf("flag employee: %v", err)
+	}
+
+	rr := h.doRequest(t, "GET", "/v1/agents/"+employee.ID.String(), user.ID, org.ID)
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("get: expected 404 for employee agent, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
