@@ -1,6 +1,8 @@
 "use client"
 
 import { AnimatePresence, motion } from "motion/react"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Loading03Icon } from "@hugeicons/core-free-icons"
 import { OnboardingShell } from "./_components/onboarding-shell"
 import { StepIndicator } from "./_components/step-indicator"
 import { EmployeeStep } from "./_components/employee-step"
@@ -30,8 +32,25 @@ export default function OnboardingPage() {
 }
 
 function Wizard() {
-  const { step, stepIndex, totalSteps, form } = useOnboarding()
+  const { step, stepIndex, totalSteps, form, bootstrapping } = useOnboarding()
   const channel = form.watch("channel")
+
+  if (bootstrapping) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex min-h-[280px] w-full items-center justify-center"
+      >
+        <HugeiconsIcon
+          icon={Loading03Icon}
+          className="size-6 animate-spin text-muted-foreground"
+          strokeWidth={2}
+        />
+        <span className="sr-only">Loading…</span>
+      </div>
+    )
+  }
 
   return (
     <>
