@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -85,6 +86,74 @@ func TestIntegration_ChatStream_TeesAndPersists(t *testing.T) {
 	h.db.Where("id = ?", resp.SessionID).First(&session)
 	if session.LastResponseID != "resp_test_1" {
 		t.Errorf("session.last_response_id = %q", session.LastResponseID)
+	}
+}
+
+func TestIntegration_ChatStream_RecoversFromHermesDown(t *testing.T) {
+	h, _ := newChatHarness(t)
+	m := h.seedOrgAgentSandbox(t)
+
+	chatCalls := 0
+	restartCalls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/hermes/status":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"state":"running","pid":1}`))
+		case "/v1/hermes/restart":
+			restartCalls++
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"restarted":true}`))
+		case "/v1/chat/completions":
+			chatCalls++
+			if chatCalls == 1 {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadGateway)
+				_, _ = w.Write([]byte(`{"error":"dial tcp 127.0.0.1:8642: connect: connection refused"}`))
+				return
+			}
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`data: {"id":"resp_recover","choices":[{"delta":{"content":"recovered"}}]}` + "\n\n"))
+			_, _ = w.Write([]byte("data: [DONE]\n\n"))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	expires := time.Now().Add(1 * time.Hour)
+	if err := h.db.Model(&model.Sandbox{}).Where("id = ?", m.sb.ID).
+		Updates(map[string]any{
+			"bridge_url":            srv.URL,
+			"bridge_url_expires_at": expires,
+		}).Error; err != nil {
+		t.Fatalf("rebind sandbox url: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+	req := h.authedReq(t, m, "POST",
+		"/v1/employees/"+m.agent.ID.String()+"/chats",
+		map[string]string{"message": "hello"})
+	h.router.ServeHTTP(rr, req)
+	var resp struct {
+		StreamURL string `json:"stream_url"`
+	}
+	_ = json.Unmarshal(rr.Body.Bytes(), &resp)
+
+	streamRR := httptest.NewRecorder()
+	h.router.ServeHTTP(streamRR, httptest.NewRequest("GET", resp.StreamURL, nil))
+	if streamRR.Code != http.StatusOK {
+		t.Fatalf("stream: %d %s", streamRR.Code, streamRR.Body.String())
+	}
+	if !strings.Contains(streamRR.Body.String(), "recovered") {
+		t.Errorf("body missing recovered content: %s", streamRR.Body.String())
+	}
+	if restartCalls != 1 {
+		t.Errorf("restart calls = %d, want 1", restartCalls)
+	}
+	if chatCalls != 2 {
+		t.Errorf("chat calls = %d, want 2 (1 fail + 1 retry)", chatCalls)
 	}
 }
 
