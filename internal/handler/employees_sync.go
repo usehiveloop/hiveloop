@@ -25,8 +25,6 @@ type syncEmployeeResponse struct {
 	Errors           []string `json:"errors,omitempty"`
 }
 
-// Sync handles POST /v1/employees/{id}/sync.
-//
 // @Summary Push compiled config to a Hermes employee's sandbox
 // @Description Compiles the agent into a SyncRequest and pushes it to the
 // @Description sandbox sidecar. Requires the agent be an employee with at

@@ -55,9 +55,7 @@ interface OnboardingContextValue {
   createEmployee: CreateEmployeeState
   submitEmployee: () => void
   retryEmployee: () => void
-  /** True while we're still resolving whether the user already has an employee. */
   bootstrapping: boolean
-  /** True once we've hydrated state from an existing employee. */
   bootstrapped: boolean
 }
 
@@ -78,9 +76,6 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const stepIndex = STEP_ORDER.indexOf(step)
 
   const createEmployeeMutation = $api.useMutation("post", "/v1/employees")
-
-  // Boot-time check: if the user already has an employee, hydrate state and
-  // jump them past the create form. We pick the first one returned.
   const employeesQuery = $api.useQuery("get", "/v1/employees")
   const [bootstrapped, setBootstrapped] = useState<{
     agentId: string
