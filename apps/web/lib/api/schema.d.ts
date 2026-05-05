@@ -9318,6 +9318,107 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/orgs/current/onboarding/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete onboarding
+         * @description Saves the org's business info, validates the org has at least
+         *     one employee with an active slack/whatsapp profile, then runs
+         *     the same compile + sandbox-sync as POST /v1/employees/{id}/sync
+         *     on the org's first employee. On success Org.onboarded is set.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Business info */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["completeOnboardingRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["completeOnboardingResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/plans": {
         parameters: {
             query?: never;
@@ -12519,6 +12620,7 @@ export interface components {
              */
             byok?: boolean;
             createdAt?: string;
+            description?: string;
             id?: string;
             /**
              * @description LogoURL is a CDN-served URL to the org's square logo. Stored as the
@@ -12536,6 +12638,7 @@ export interface components {
             planSlug?: string;
             rateLimit?: number;
             updatedAt?: string;
+            website?: string;
         };
         ProviderPromptConfig: {
             model?: string;
@@ -13215,6 +13318,16 @@ export interface components {
             error?: string;
             exit_code?: number;
             output?: string;
+        };
+        completeOnboardingRequest: {
+            description?: string;
+            logo_url?: string;
+            name?: string;
+            website?: string;
+        };
+        completeOnboardingResponse: {
+            agent_id?: string;
+            sync?: components["schemas"]["syncEmployeeResponse"];
         };
         confirmEmailRequest: {
             token?: string;

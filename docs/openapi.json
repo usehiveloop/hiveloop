@@ -9545,6 +9545,103 @@
         }
       }
     },
+    "/v1/orgs/current/onboarding/complete": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Saves the org's business info, validates the org has at least\none employee with an active slack/whatsapp profile, then runs\nthe same compile + sandbox-sync as POST /v1/employees/{id}/sync\non the org's first employee. On success Org.onboarded is set.",
+        "tags": [
+          "onboarding"
+        ],
+        "summary": "Complete onboarding",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/completeOnboardingRequest"
+              }
+            }
+          },
+          "description": "Business info",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/completeOnboardingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/plans": {
       "get": {
         "description": "Returns the public catalog of billing plans, ordered by price\nascending (free first). Public \u2014 no authentication required.",
@@ -13233,6 +13330,9 @@
           "createdAt": {
             "type": "string"
           },
+          "description": {
+            "type": "string"
+          },
           "id": {
             "type": "string"
           },
@@ -13254,6 +13354,9 @@
             "type": "integer"
           },
           "updatedAt": {
+            "type": "string"
+          },
+          "website": {
             "type": "string"
           }
         }
@@ -15174,6 +15277,34 @@
           },
           "output": {
             "type": "string"
+          }
+        }
+      },
+      "completeOnboardingRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "logo_url": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          }
+        }
+      },
+      "completeOnboardingResponse": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string"
+          },
+          "sync": {
+            "$ref": "#/components/schemas/syncEmployeeResponse"
           }
         }
       },

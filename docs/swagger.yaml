@@ -356,6 +356,8 @@ definitions:
         type: boolean
       createdAt:
         type: string
+      description:
+        type: string
       id:
         type: string
       logoURL:
@@ -377,6 +379,8 @@ definitions:
       rateLimit:
         type: integer
       updatedAt:
+        type: string
+      website:
         type: string
     type: object
   github_com_usehiveloop_hiveloop_internal_model.ProviderPromptConfig:
@@ -1662,6 +1666,24 @@ definitions:
         type: integer
       output:
         type: string
+    type: object
+  internal_handler.completeOnboardingRequest:
+    properties:
+      description:
+        type: string
+      logo_url:
+        type: string
+      name:
+        type: string
+      website:
+        type: string
+    type: object
+  internal_handler.completeOnboardingResponse:
+    properties:
+      agent_id:
+        type: string
+      sync:
+        $ref: '#/definitions/internal_handler.syncEmployeeResponse'
     type: object
   internal_handler.confirmEmailRequest:
     properties:
@@ -9394,6 +9416,58 @@ paths:
       summary: List members of the current organization
       tags:
       - org-invites
+  /v1/orgs/current/onboarding/complete:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Saves the org's business info, validates the org has at least
+        one employee with an active slack/whatsapp profile, then runs
+        the same compile + sandbox-sync as POST /v1/employees/{id}/sync
+        on the org's first employee. On success Org.onboarded is set.
+      parameters:
+      - description: Business info
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.completeOnboardingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.completeOnboardingResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Complete onboarding
+      tags:
+      - onboarding
   /v1/plans:
     get:
       description: |-
