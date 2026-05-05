@@ -80,16 +80,12 @@ export function usePublicTemplates() {
 
 export type PublicTemplate = components["schemas"]["publicTemplateResponse"]
 
-export async function createSandboxTemplate(data: {
-  name: string
-  build_commands: string[]
-  base_template_id?: string
-}): Promise<SandboxTemplate> {
-  const response = await api.POST("/v1/sandbox-templates", {
-    body: data,
+export function useCreateSandboxTemplate() {
+  const queryClient = useQueryClient()
+
+  return $api.useMutation("post", "/v1/sandbox-templates", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["get", "/v1/sandbox-templates"] })
+    },
   })
-  if (response.error) {
-    throw response.error
-  }
-  return response.data as SandboxTemplate
 }
