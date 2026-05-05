@@ -28,17 +28,12 @@ type employeeSandboxSummary struct {
 	CreatedAt    string  `json:"created_at"`
 }
 
-// employeeListItem is the response shape for GET /v1/employees. It bundles
-// every relation a dashboard needs: subagents, attached skills (no bundle
-// content), profiles, triggers, sandbox, plus the agent record itself.
 type employeeListItem struct {
 	agentResponse
 	Subagents []employeeSubagentSummary `json:"subagents"`
 	Sandbox   *employeeSandboxSummary   `json:"sandbox,omitempty"`
 }
 
-// List handles GET /v1/employees.
-//
 // @Summary List AI employees
 // @Description Returns all employee agents in the org with sub-agents,
 // @Description skills (metadata only — no bundle content), profiles,

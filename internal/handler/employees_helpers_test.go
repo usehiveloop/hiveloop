@@ -30,9 +30,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
-// stubHermesProvider is a sandbox.Provider that records CreateSandbox calls
-// and can be flipped to fail on demand. Only the methods CreateHermesSandbox
-// actually exercises return useful values; the rest satisfy the interface.
 type stubHermesProvider struct {
 	mu             sync.Mutex
 	endpoint       string
