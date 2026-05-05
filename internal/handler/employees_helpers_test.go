@@ -22,8 +22,10 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/handler"
+	"github.com/usehiveloop/hiveloop/internal/hermes"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/registry"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
@@ -90,9 +92,13 @@ func (s *stubHermesProvider) ExecuteCommand(context.Context, string, string) (st
 }
 
 type employeeHarness struct {
-	db       *gorm.DB
-	router   *chi.Mux
-	provider *stubHermesProvider
+	db        *gorm.DB
+	router    *chi.Mux
+	provider  *stubHermesProvider
+	encKey    *crypto.SymmetricKey
+	kms       *crypto.KeyWrapper
+	sidecar   *sidecarStub
+	sidecarSrv *httptest.Server
 }
 
 func newEmployeeHarness(t *testing.T) *employeeHarness {
@@ -102,34 +108,77 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 		t.Fatalf("seed platform org: %v", err)
 	}
 
-	hermesSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/v1/hermes/status" && r.Header.Get("Authorization") != "" {
+	stub := &sidecarStub{}
+	sidecarSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/hermes/status":
+			if r.Header.Get("Authorization") == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"state":"awaiting_initial_config"}`))
-			return
+		case "/v1/config/sync":
+			stub.mu.Lock()
+			stub.syncConfigCalls++
+			stub.lastSyncBearer = r.Header.Get("Authorization")
+			status := stub.syncConfigStatus
+			errs := stub.syncConfigErrors
+			stub.mu.Unlock()
+			if status == 0 {
+				status = http.StatusOK
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(status)
+			body := map[string]any{
+				"applied": 3, "deleted": 0, "repos_cloned": 1, "restart_triggered": true,
+			}
+			if len(errs) > 0 {
+				body["errors"] = errs
+			}
+			_ = json.NewEncoder(w).Encode(body)
+		default:
+			w.WriteHeader(http.StatusNotFound)
 		}
-		w.WriteHeader(http.StatusUnauthorized)
 	}))
-	t.Cleanup(hermesSrv.Close)
+	t.Cleanup(sidecarSrv.Close)
 
-	provider := &stubHermesProvider{endpoint: hermesSrv.URL}
+	provider := &stubHermesProvider{endpoint: sidecarSrv.URL}
+	encKey := newTestEncKey(t)
+	kms := newTestKMS(t)
 
 	cfg := &config.Config{
 		HermesBaseImagePrefix: "hiveloop-hermes-test-small-v1",
 		BridgeHost:            "cp.hiveloop.test",
+		ProxyHost:             "proxy.hiveloop.test",
 	}
-	orch := sandbox.NewOrchestrator(db, provider, nil, newTestEncKey(t), cfg)
-	h := handler.NewEmployeeHandler(db, orch)
+	orch := sandbox.NewOrchestrator(db, provider, nil, encKey, cfg)
+
+	compileDeps := hermes.CompileDeps{
+		DB:         db,
+		Picker:     credentials.NewPickerWithRegistry(db, registry.Global()),
+		KMS:        kms,
+		EncKey:     encKey,
+		SigningKey: []byte("test-signing-key-32-bytes-long!!"),
+		Cfg:        cfg,
+	}
+	h := handler.NewEmployeeHandler(db, orch, compileDeps)
 
 	r := chi.NewRouter()
 	r.Route("/v1/employees", func(r chi.Router) {
 		r.Use(middleware.ResolveOrgFromHeader(db))
 		r.Use(middleware.RequireOrgAdmin(db))
 		r.Post("/", h.Create)
+		r.Post("/{id}/sync", h.Sync)
 	})
 
-	return &employeeHarness{db: db, router: r, provider: provider}
+	return &employeeHarness{
+		db: db, router: r, provider: provider,
+		encKey: encKey, kms: kms,
+		sidecar: stub, sidecarSrv: sidecarSrv,
+	}
 }
+
 
 func newTestEncKey(t *testing.T) *crypto.SymmetricKey {
 	t.Helper()

@@ -166,6 +166,7 @@ func setupV1Routes(
 					r.Group(func(r chi.Router) {
 						r.Use(middleware.RequireOrgAdmin(database))
 						r.Post("/employees", employeeHandler.Create)
+						r.Post("/employees/{id}/sync", employeeHandler.Sync)
 					})
 				}
 				if systemTaskHandler != nil {
