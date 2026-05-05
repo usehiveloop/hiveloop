@@ -17,6 +17,7 @@ import { IntegrationLogo } from "@/components/integration-logo"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Add01Icon,
+  CubeIcon,
   FlashIcon,
   Key01Icon,
   MagicWandIcon,
@@ -26,6 +27,7 @@ import {
 import { $api } from "@/lib/api/hooks"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useCreateAgent } from "./context"
+import { useSandboxTemplates } from "@/hooks/use-sandbox-template"
 import { InstructionsEditor } from "./instructions-editor"
 import { AddLlmKeyDialog } from "./add-llm-key-dialog"
 import {
@@ -86,6 +88,7 @@ export function AgentForm() {
   const credentialId = form.watch("credentialId")
   const model = form.watch("model")
   const sharedMemory = form.watch("sharedMemory")
+  const sandboxTemplateId = form.watch("sandboxTemplateId")
   const name = form.watch("name")
 
   React.useEffect(() => {
@@ -111,6 +114,9 @@ export function AgentForm() {
     "/v1/skills"
   )
   const skills = skillsData?.data ?? []
+
+  const { data: sandboxTemplatesData, isLoading: sandboxTemplatesLoading } = useSandboxTemplates()
+  const sandboxTemplates = sandboxTemplatesData?.data ?? []
 
   const { data: categoriesData, isLoading: categoriesLoading } = $api.useQuery(
     "get",
@@ -583,6 +589,89 @@ export function AgentForm() {
                 />
               )}
             />
+          </Section>
+
+          <Section
+            title="Sandbox template"
+            description="Optional. Pick a template to launch this agent's sandbox from a pre-built image. Leave empty to use the platform default."
+          >
+            <div className="flex flex-col gap-2">
+              {sandboxTemplatesLoading ? (
+                Array.from({ length: 2 }).map((_, i) => (
+                  <Skeleton key={i} className="h-[52px] w-full rounded-xl" />
+                ))
+              ) : sandboxTemplates.length === 0 ? (
+                <EmptyWell
+                  icon={CubeIcon}
+                  message="No sandbox templates yet. Create one in Settings → Sandboxes."
+                />
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => form.setValue("sandboxTemplateId", "")}
+                    className={
+                      "flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors " +
+                      (!sandboxTemplateId
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-muted/50 hover:bg-muted")
+                    }
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground">Default base image</p>
+                      <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                        Launch from the platform's standard sandbox image.
+                      </p>
+                    </div>
+                    {!sandboxTemplateId ? (
+                      <HugeiconsIcon
+                        icon={Tick02Icon}
+                        size={16}
+                        className="ml-2 shrink-0 text-primary"
+                      />
+                    ) : null}
+                  </button>
+                  {sandboxTemplates.map((tmpl) => {
+                    if (!tmpl.id) return null
+                    const selected = sandboxTemplateId === tmpl.id
+                    const ready = tmpl.build_status === "ready"
+                    return (
+                      <button
+                        key={tmpl.id}
+                        type="button"
+                        disabled={!ready}
+                        onClick={() => form.setValue("sandboxTemplateId", tmpl.id!)}
+                        className={
+                          "flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors " +
+                          (selected
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-muted/50 hover:bg-muted") +
+                          (!ready ? " cursor-not-allowed opacity-60" : "")
+                        }
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground">{tmpl.name}</p>
+                          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                            {tmpl.size ?? "default"} · {tmpl.build_status ?? "pending"}
+                          </p>
+                        </div>
+                        {selected ? (
+                          <HugeiconsIcon
+                            icon={Tick02Icon}
+                            size={16}
+                            className="ml-2 shrink-0 text-primary"
+                          />
+                        ) : !ready ? (
+                          <Badge variant="secondary" className="ml-2 shrink-0 text-[10px]">
+                            {tmpl.build_status}
+                          </Badge>
+                        ) : null}
+                      </button>
+                    )
+                  })}
+                </>
+              )}
+            </div>
           </Section>
 
           <Section title="Advanced">
