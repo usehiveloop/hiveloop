@@ -47,6 +47,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&OrgMembership{},
 		&OrgInvite{},
 		&RefreshToken{},
+		&ChatSession{},
+		&ChatMessage{},
 		&Credential{},
 		&Token{},
 		&AuditEntry{},
