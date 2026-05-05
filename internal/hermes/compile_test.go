@@ -22,7 +22,7 @@ import (
 	slackprov "github.com/usehiveloop/hiveloop/internal/profiles/slack"
 )
 
-const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" //nolint:gosec // local-dev DSN, mirrors sibling integration tests
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -290,7 +290,6 @@ func TestCompile(t *testing.T) {
 	}
 	require.True(t, hasSkillMD, "expected SKILL.md to be present")
 	require.True(t, hasSkillRef, "expected reference file to be present")
-
 	require.Len(t, *req.Repos, 1)
 	require.Equal(t, "hello", (*req.Repos)[0].Path)
 	require.Equal(t, "https://github.com/octocat/hello.git", (*req.Repos)[0].Url)
