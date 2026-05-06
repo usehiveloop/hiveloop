@@ -59,3 +59,10 @@ apps/web/.mcp.json
 
 # pnpm workspace cache (worktree artefact)
 node_modules/.pnpm-workspace-state-v1.json
+
+# macOS folder metadata
+.DS_Store
+**/.DS_Store
+
+# compiled output of global-skills/upload (build artefact)
+/upload
