@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -84,6 +85,13 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	team, err := ensureEngineeringTeam(h.db, org.ID)
+	if err != nil {
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "ensure engineering team", "error", err, "org_id", org.ID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to set up team for employee"})
+		return
+	}
+
 	desc := req.Description
 	cat := req.Category
 	agent := model.Agent{
@@ -94,6 +102,7 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		SystemPrompt: engineeringSystemPrompt,
 		Model:        choice.model,
 		CredentialID: &choice.cred.ID,
+		TeamID:       &team.ID,
 		Harness:      employeeHarness,
 		IsEmployee:   true,
 		Status:       "active",
@@ -134,6 +143,35 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		SandboxID: sb.ID.String(),
 		Status:    sb.Status,
 	})
+}
+
+func ensureEngineeringTeam(db *gorm.DB, orgID uuid.UUID) (*model.Team, error) {
+	var team model.Team
+	err := db.Where("org_id = ? AND name = ? AND deleted_at IS NULL", orgID, engineeringTeamName).
+		First(&team).Error
+	if err == nil {
+		return &team, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("lookup engineering team: %w", err)
+	}
+
+	team = model.Team{
+		OrgID:       orgID,
+		Name:        engineeringTeamName,
+		Description: "AI engineering team.",
+	}
+	if err := db.Create(&team).Error; err != nil {
+		if isUniqueViolation(err) {
+			if err := db.Where("org_id = ? AND name = ? AND deleted_at IS NULL", orgID, engineeringTeamName).
+				First(&team).Error; err != nil {
+				return nil, fmt.Errorf("refetch engineering team after race: %w", err)
+			}
+			return &team, nil
+		}
+		return nil, fmt.Errorf("create engineering team: %w", err)
+	}
+	return &team, nil
 }
 
 func (h *EmployeeHandler) rollbackEmployee(ctx context.Context, orgID, agentID uuid.UUID) {

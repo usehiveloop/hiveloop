@@ -227,6 +227,138 @@ func TestIntegration_EmployeesCreate_MissingFields_400(t *testing.T) {
 	}
 }
 
+func TestIntegration_EmployeesCreate_FirstEmployeeAutoCreatesEngineeringTeam(t *testing.T) {
+	h := newEmployeeHarness(t)
+	org := h.createOrg(t)
+	h.seedSystemCred(t, "crof", false)
+
+	var teamCount int64
+	h.db.Model(&model.Team{}).Where("org_id = ?", org.org.ID).Count(&teamCount)
+	if teamCount != 0 {
+		t.Fatalf("precondition: org should start with 0 teams, has %d", teamCount)
+	}
+
+	rr := h.post(t, org, validEmployeeBody())
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: %s", rr.Code, rr.Body.String())
+	}
+	resp := decodeEmployeeResp(t, rr)
+
+	var team model.Team
+	if err := h.db.Where("org_id = ? AND name = ?", org.org.ID, "Engineering").First(&team).Error; err != nil {
+		t.Fatalf("Engineering team not created: %v", err)
+	}
+
+	var agent model.Agent
+	h.db.Where("id = ?", resp["agent_id"]).First(&agent)
+	if agent.TeamID == nil {
+		t.Fatal("agent.team_id is nil, want it set to the Engineering team")
+	}
+	if *agent.TeamID != team.ID {
+		t.Errorf("agent.team_id = %v, want %v (Engineering)", *agent.TeamID, team.ID)
+	}
+}
+
+func TestIntegration_EmployeesCreate_SecondEmployeeReusesEngineeringTeam(t *testing.T) {
+	h := newEmployeeHarness(t)
+	org := h.createOrg(t)
+	h.seedSystemCred(t, "crof", false)
+
+	first := h.post(t, org, validEmployeeBody())
+	if first.Code != http.StatusCreated {
+		t.Fatalf("first create: %d %s", first.Code, first.Body.String())
+	}
+	second := h.post(t, org, validEmployeeBody())
+	if second.Code != http.StatusCreated {
+		t.Fatalf("second create: %d %s", second.Code, second.Body.String())
+	}
+
+	var teamCount int64
+	h.db.Model(&model.Team{}).Where("org_id = ? AND deleted_at IS NULL", org.org.ID).Count(&teamCount)
+	if teamCount != 1 {
+		t.Fatalf("expected exactly 1 Engineering team, got %d", teamCount)
+	}
+
+	firstID := decodeEmployeeResp(t, first)["agent_id"]
+	secondID := decodeEmployeeResp(t, second)["agent_id"]
+	var firstAgent, secondAgent model.Agent
+	h.db.Where("id = ?", firstID).First(&firstAgent)
+	h.db.Where("id = ?", secondID).First(&secondAgent)
+	if firstAgent.TeamID == nil || secondAgent.TeamID == nil {
+		t.Fatalf("both agents should have team_id set; got first=%v second=%v", firstAgent.TeamID, secondAgent.TeamID)
+	}
+	if *firstAgent.TeamID != *secondAgent.TeamID {
+		t.Errorf("expected both employees on same team, got %v vs %v", *firstAgent.TeamID, *secondAgent.TeamID)
+	}
+}
+
+func TestIntegration_EmployeesCreate_ReusesPreExistingEngineeringTeam(t *testing.T) {
+	h := newEmployeeHarness(t)
+	org := h.createOrg(t)
+	h.seedSystemCred(t, "crof", false)
+
+	preExisting := model.Team{
+		OrgID:       org.org.ID,
+		Name:        "Engineering",
+		Description: "manually created before any employees",
+	}
+	if err := h.db.Create(&preExisting).Error; err != nil {
+		t.Fatalf("seed pre-existing team: %v", err)
+	}
+
+	rr := h.post(t, org, validEmployeeBody())
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var teamCount int64
+	h.db.Model(&model.Team{}).Where("org_id = ? AND deleted_at IS NULL", org.org.ID).Count(&teamCount)
+	if teamCount != 1 {
+		t.Fatalf("expected exactly 1 team (the pre-existing one), got %d", teamCount)
+	}
+
+	var agent model.Agent
+	h.db.Where("id = ?", decodeEmployeeResp(t, rr)["agent_id"]).First(&agent)
+	if agent.TeamID == nil || *agent.TeamID != preExisting.ID {
+		t.Errorf("agent should have been linked to the pre-existing team %v, got %v", preExisting.ID, agent.TeamID)
+	}
+	if preExisting.Description == "" {
+		t.Fatal("precondition failed")
+	}
+	var reloaded model.Team
+	h.db.Where("id = ?", preExisting.ID).First(&reloaded)
+	if reloaded.Description != preExisting.Description {
+		t.Errorf("description was overwritten: got %q want %q", reloaded.Description, preExisting.Description)
+	}
+}
+
+func TestIntegration_EmployeesCreate_TeamsScopedPerOrg(t *testing.T) {
+	h := newEmployeeHarness(t)
+	orgA := h.createOrg(t)
+	orgB := h.createOrg(t)
+	h.seedSystemCred(t, "crof", false)
+
+	rrA := h.post(t, orgA, validEmployeeBody())
+	if rrA.Code != http.StatusCreated {
+		t.Fatalf("orgA create: %d", rrA.Code)
+	}
+	rrB := h.post(t, orgB, validEmployeeBody())
+	if rrB.Code != http.StatusCreated {
+		t.Fatalf("orgB create: %d", rrB.Code)
+	}
+
+	var teamA, teamB model.Team
+	if err := h.db.Where("org_id = ? AND name = ?", orgA.org.ID, "Engineering").First(&teamA).Error; err != nil {
+		t.Fatalf("orgA team: %v", err)
+	}
+	if err := h.db.Where("org_id = ? AND name = ?", orgB.org.ID, "Engineering").First(&teamB).Error; err != nil {
+		t.Fatalf("orgB team: %v", err)
+	}
+	if teamA.ID == teamB.ID {
+		t.Fatal("each org should get its own Engineering team — got the same id")
+	}
+}
+
 func TestIntegration_EmployeesCreate_RollbackOnSandboxFailure(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
