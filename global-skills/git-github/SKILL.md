@@ -257,7 +257,7 @@ EOF
 
 For multiple images or a before/after pair, run the upload step once per file and paste each URL. For animated demos, upload an `.mp4` or `.webm` and embed it the same way (GitHub renders video URLs inline).
 
-If you ever find yourself reaching for `gh gist`, `git push` to a gist repo, base64 inside markdown, or a third-party host: stop. Load `public-assets-uploads` and use it.
+If you ever find yourself reaching for `gh gist`, `git push` to a gist repo, base64 inside markdown, or a third-party host: stop. Load `public-assets-uploads` skill and use it.
 
 ### 4c. Update an existing PR
 
@@ -280,18 +280,77 @@ gh issue comment <number> --body-file followup.md
 
 ### Inline review comment / leave a review
 
+A PR review is a single submission that bundles an overall verdict (approve / request changes / comment), an optional summary body, and zero or more **line-by-line inline comments** anchored to specific lines of the diff. Post the whole thing in one request to `pulls/<number>/reviews` so the inline comments appear as part of the review (not as orphaned standalone comments).
+
+For a review with no inline notes, `gh pr review` is the shortcut:
+
 ```bash
-# Approve, request changes, or just comment
 gh pr review <number> --approve --body "LGTM"
 gh pr review <number> --request-changes --body "See inline notes."
 gh pr review <number> --comment --body "One question below."
 ```
 
-For per-line inline review threads, drive `gh api` directly:
+For a review **with line-by-line inline comments**, build a JSON payload and POST it to the reviews endpoint. Each entry in `comments[]` is anchored to a file + line in the diff:
+
+```bash
+cat > /tmp/review.json <<'JSON'
+{
+  "event": "REQUEST_CHANGES",
+  "body": "A few inline notes — see comments on the diff.",
+  "comments": [
+    {
+      "path": "internal/charges/handler.go",
+      "line": 128,
+      "side": "RIGHT",
+      "body": "Consider extracting this to a helper — it's duplicated in `refund.go:84`."
+    },
+    {
+      "path": "internal/charges/handler.go",
+      "start_line": 142,
+      "start_side": "RIGHT",
+      "line": 150,
+      "side": "RIGHT",
+      "body": "This whole block should be inside the transaction opened on line 120."
+    },
+    {
+      "path": "internal/charges/handler_test.go",
+      "line": 47,
+      "side": "RIGHT",
+      "body": "Missing a test for the `ErrAlreadyRefunded` branch."
+    }
+  ]
+}
+JSON
+
+gh api -X POST "repos/:owner/:repo/pulls/<number>/reviews" --input /tmp/review.json
+```
+
+Field reference for each entry in `comments[]`:
+
+- `path` — file path as it appears in the diff (required).
+- `line` — line number in the file the comment anchors to (required for single-line; for multi-line, this is the **last** line of the range).
+- `side` — `RIGHT` for the new version (additions / context), `LEFT` for the old version (deletions). Default `RIGHT`.
+- `start_line` + `start_side` — only for multi-line comments; the first line of the range. Omit for single-line.
+- `body` — the comment text (Markdown).
+
+Top-level fields:
+
+- `event` — `APPROVE`, `REQUEST_CHANGES`, `COMMENT`, or omit/`PENDING` to draft without submitting.
+- `body` — overall review summary shown above the inline comments. Optional.
+- `commit_id` — optional; pin the review to a specific SHA. Defaults to the PR head.
+
+Common gotchas:
+
+- The `line` must be a line that appears in the PR's diff (added, removed, or context within a hunk). Anchoring to a line outside the diff returns `422 Unprocessable Entity` ("Line could not be resolved").
+- Use `LEFT` only when commenting on a removed or pre-change line; new code is always `RIGHT`.
+- For multi-line comments, `start_line` must come **before** `line` in the file, and both `side` values must match unless you're spanning a deletion.
+- GitHub forbids `APPROVE` and `REQUEST_CHANGES` on your **own** PR — both return `422`. Use `COMMENT` for self-reviews.
+
+To post a one-off inline comment without composing a review summary, hit the comments endpoint directly. (GitHub still wraps it in an implicit empty-body review under the hood, so it shows up as its own review thread on the PR.)
 
 ```bash
 gh api -X POST "repos/:owner/:repo/pulls/<number>/comments" \
-  -f body="Consider extracting this to a helper." \
+  -f body="Drive-by note: typo in the log message." \
   -f commit_id="$(git rev-parse HEAD)" \
   -f path="internal/charges/handler.go" \
   -F line=128 \
