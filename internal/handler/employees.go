@@ -17,6 +17,14 @@ const (
 	engineeringTeamName         = "Engineering"
 )
 
+var defaultEmployeeSkills = map[string][]string{
+	employeeCategoryEngineering: {"git-github", "employee-public-assets-uploads"},
+}
+
+var defaultEmployeeSubagentSkills = map[string][]string{
+	employeeCategoryEngineering: {"agent-browser", "git-github", "public-assets-uploads"},
+}
+
 type EmployeeHandler struct {
 	db           *gorm.DB
 	orchestrator *sandbox.Orchestrator
@@ -47,10 +55,20 @@ type employeeProviderChoice struct {
 }
 
 func pickEmployeeCredential(db *gorm.DB) (*employeeProviderChoice, error) {
-	candidates := []struct{ providerID, modelID string }{
+	return pickSystemCredential(db, []struct{ providerID, modelID string }{
 		{"crof", "deepseek-v4-pro-precision"},
 		{"openrouter", "deepseek/deepseek-v4-pro"},
-	}
+	})
+}
+
+func pickEmployeeSubagentCredential(db *gorm.DB) (*employeeProviderChoice, error) {
+	return pickSystemCredential(db, []struct{ providerID, modelID string }{
+		{"openrouter", "moonshotai/kimi-k2.6"},
+		{"crof", "deepseek-v4-pro-precision"},
+	})
+}
+
+func pickSystemCredential(db *gorm.DB, candidates []struct{ providerID, modelID string }) (*employeeProviderChoice, error) {
 	for _, c := range candidates {
 		var cred model.Credential
 		err := db.Where("is_system = ? AND provider_id = ? AND revoked_at IS NULL", true, c.providerID).
@@ -64,5 +82,9 @@ func pickEmployeeCredential(db *gorm.DB) (*employeeProviderChoice, error) {
 			return nil, fmt.Errorf("lookup %s system credential: %w", c.providerID, err)
 		}
 	}
-	return nil, errors.New("no crof or openrouter system credential configured")
+	names := make([]string, len(candidates))
+	for i, c := range candidates {
+		names[i] = c.providerID
+	}
+	return nil, fmt.Errorf("no %v system credential configured", names)
 }

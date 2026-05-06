@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -356,6 +357,255 @@ func TestIntegration_EmployeesCreate_TeamsScopedPerOrg(t *testing.T) {
 	}
 	if teamA.ID == teamB.ID {
 		t.Fatal("each org should get its own Engineering team — got the same id")
+	}
+}
+
+func TestIntegration_EmployeesCreate_AttachesDefaultSkills(t *testing.T) {
+	h := newEmployeeHarness(t)
+	org := h.createOrg(t)
+	h.seedSystemCred(t, "crof", false)
+	gitGithub := h.seedGlobalSkill(t, "git-github", model.SkillStatusPublished)
+	empUploads := h.seedGlobalSkill(t, "employee-public-assets-uploads", model.SkillStatusPublished)
+	agentBrowser := h.seedGlobalSkill(t, "agent-browser", model.SkillStatusPublished)
+	subUploads := h.seedGlobalSkill(t, "public-assets-uploads", model.SkillStatusPublished)
+
+	rr := h.post(t, org, validEmployeeBody())
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: %s", rr.Code, rr.Body.String())
+	}
+	agentID := uuid.MustParse(decodeEmployeeResp(t, rr)["agent_id"])
+
+	var link model.AgentSubagent
+	if err := h.db.Where("agent_id = ?", agentID).First(&link).Error; err != nil {
+		t.Fatalf("load AgentSubagent link: %v", err)
+	}
+	subagentID := link.SubagentID
+
+	empLinks := skillIDsFor(t, h.db, agentID)
+	if !empLinks[gitGithub.ID] || !empLinks[empUploads.ID] || len(empLinks) != 2 {
+		t.Errorf("employee skills = %v, want exactly {git-github, employee-public-assets-uploads}", empLinks)
+	}
+
+	subLinks := skillIDsFor(t, h.db, subagentID)
+	wantSub := []uuid.UUID{agentBrowser.ID, gitGithub.ID, subUploads.ID}
+	for _, id := range wantSub {
+		if !subLinks[id] {
+			t.Errorf("subagent missing skill %v", id)
+		}
+	}
+	if len(subLinks) != 3 {
+		t.Errorf("subagent skills count = %d, want 3 (got %v)", len(subLinks), subLinks)
+	}
+
+	wantInstallCount := map[uuid.UUID]int{
+		gitGithub.ID:    2,
+		empUploads.ID:   1,
+		agentBrowser.ID: 1,
+		subUploads.ID:   1,
+	}
+	for skillID, want := range wantInstallCount {
+		var reloaded model.Skill
+		h.db.Where("id = ?", skillID).First(&reloaded)
+		if reloaded.InstallCount != want {
+			t.Errorf("install_count for %s = %d, want %d", reloaded.Name, reloaded.InstallCount, want)
+		}
+	}
+}
+
+func skillIDsFor(t *testing.T, db *gorm.DB, agentID uuid.UUID) map[uuid.UUID]bool {
+	t.Helper()
+	var rows []model.AgentSkill
+	if err := db.Where("agent_id = ?", agentID).Find(&rows).Error; err != nil {
+		t.Fatalf("load agent_skills for %v: %v", agentID, err)
+	}
+	out := make(map[uuid.UUID]bool, len(rows))
+	for _, r := range rows {
+		out[r.SkillID] = true
+	}
+	return out
+}
+
+func TestIntegration_EmployeesCreate_CreatesSubagent(t *testing.T) {
+	h := newEmployeeHarness(t)
+	org := h.createOrg(t)
+	h.seedSystemCred(t, "crof", false)
+
+	body := validEmployeeBody()
+	body["name"] = "Alice Engineer"
+	rr := h.post(t, org, body)
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: %s", rr.Code, rr.Body.String())
+	}
+	agentID := uuid.MustParse(decodeEmployeeResp(t, rr)["agent_id"])
+
+	var link model.AgentSubagent
+	if err := h.db.Where("agent_id = ?", agentID).First(&link).Error; err != nil {
+		t.Fatalf("AgentSubagent link not created: %v", err)
+	}
+
+	var sub model.Agent
+	if err := h.db.Where("id = ?", link.SubagentID).First(&sub).Error; err != nil {
+		t.Fatalf("subagent agent not created: %v", err)
+	}
+	if sub.IsEmployee {
+		t.Errorf("subagent.is_employee = true, want false (subagents must not be employees)")
+	}
+	if sub.Name != "alice-engineer-subagent" {
+		t.Errorf("subagent.name = %q, want %q", sub.Name, "alice-engineer-subagent")
+	}
+	if sub.OrgID == nil || *sub.OrgID != org.org.ID {
+		t.Errorf("subagent.org_id mismatch")
+	}
+	if sub.Status != "active" {
+		t.Errorf("subagent.status = %q, want active", sub.Status)
+	}
+}
+
+func TestIntegration_EmployeesCreate_SubagentSlug_AutoIncrementsOnCollision(t *testing.T) {
+	h := newEmployeeHarness(t)
+	org := h.createOrg(t)
+	cred := h.seedSystemCred(t, "crof", false)
+
+	taken := model.Agent{
+		OrgID:        &org.org.ID,
+		Name:         "alice-subagent",
+		SystemPrompt: "x",
+		Model:        "deepseek-v4-pro-precision",
+		CredentialID: &cred.ID,
+		Status:       "active",
+	}
+	if err := h.db.Create(&taken).Error; err != nil {
+		t.Fatalf("seed colliding agent: %v", err)
+	}
+
+	body := validEmployeeBody()
+	body["name"] = "Alice"
+	rr := h.post(t, org, body)
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: %s", rr.Code, rr.Body.String())
+	}
+	agentID := uuid.MustParse(decodeEmployeeResp(t, rr)["agent_id"])
+
+	var link model.AgentSubagent
+	h.db.Where("agent_id = ?", agentID).First(&link)
+	var sub model.Agent
+	h.db.Where("id = ?", link.SubagentID).First(&sub)
+	if sub.Name != "alice-subagent-2" {
+		t.Errorf("subagent.name = %q, want %q (auto-incremented suffix)", sub.Name, "alice-subagent-2")
+	}
+}
+
+func TestIntegration_EmployeesCreate_SubagentPrefersOpenrouterKimi(t *testing.T) {
+	h := newEmployeeHarness(t)
+	org := h.createOrg(t)
+	or := h.seedSystemCred(t, "openrouter", false)
+
+	rr := h.post(t, org, validEmployeeBody())
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rr.Code, rr.Body.String())
+	}
+	agentID := uuid.MustParse(decodeEmployeeResp(t, rr)["agent_id"])
+
+	var link model.AgentSubagent
+	h.db.Where("agent_id = ?", agentID).First(&link)
+	var sub model.Agent
+	h.db.Where("id = ?", link.SubagentID).First(&sub)
+	if sub.Model != "moonshotai/kimi-k2.6" {
+		t.Errorf("subagent.model = %q, want moonshotai/kimi-k2.6", sub.Model)
+	}
+	if sub.CredentialID == nil || *sub.CredentialID != or.ID {
+		t.Errorf("subagent.credential_id = %v, want %v (openrouter)", sub.CredentialID, or.ID)
+	}
+}
+
+func TestIntegration_EmployeesCreate_SubagentFallsBackToCrofDeepseek(t *testing.T) {
+	h := newEmployeeHarness(t)
+	org := h.createOrg(t)
+	crof := h.seedSystemCred(t, "crof", false)
+
+	rr := h.post(t, org, validEmployeeBody())
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rr.Code, rr.Body.String())
+	}
+	agentID := uuid.MustParse(decodeEmployeeResp(t, rr)["agent_id"])
+
+	var link model.AgentSubagent
+	h.db.Where("agent_id = ?", agentID).First(&link)
+	var sub model.Agent
+	h.db.Where("id = ?", link.SubagentID).First(&sub)
+	if sub.Model != "deepseek-v4-pro-precision" {
+		t.Errorf("subagent.model = %q, want deepseek-v4-pro-precision (crof fallback)", sub.Model)
+	}
+	if sub.CredentialID == nil || *sub.CredentialID != crof.ID {
+		t.Errorf("subagent.credential_id = %v, want %v (crof)", sub.CredentialID, crof.ID)
+	}
+}
+
+func TestIntegration_EmployeesCreate_BestEffort_SkipsMissingDefaultSkill(t *testing.T) {
+	h := newEmployeeHarness(t)
+	org := h.createOrg(t)
+	h.seedSystemCred(t, "crof", false)
+	gitGithub := h.seedGlobalSkill(t, "git-github", model.SkillStatusPublished)
+
+	rr := h.post(t, org, validEmployeeBody())
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201 (must succeed despite missing skill): %s", rr.Code, rr.Body.String())
+	}
+	agentID := decodeEmployeeResp(t, rr)["agent_id"]
+
+	var links []model.AgentSkill
+	h.db.Where("agent_id = ?", agentID).Find(&links)
+	if len(links) != 1 || links[0].SkillID != gitGithub.ID {
+		t.Fatalf("expected only git-github attached, got %d links: %+v", len(links), links)
+	}
+}
+
+func TestIntegration_EmployeesCreate_IgnoresOrgScopedSkillWithSameName(t *testing.T) {
+	h := newEmployeeHarness(t)
+	org := h.createOrg(t)
+	h.seedSystemCred(t, "crof", false)
+
+	orgScoped := model.Skill{
+		OrgID:      &org.org.ID,
+		Slug:       "git-github-org-" + uuid.NewString()[:8],
+		Name:       "git-github",
+		SourceType: model.SkillSourceInline,
+		Status:     model.SkillStatusPublished,
+	}
+	if err := h.db.Create(&orgScoped).Error; err != nil {
+		t.Fatalf("seed org-scoped skill: %v", err)
+	}
+	t.Cleanup(func() { h.db.Unscoped().Delete(&orgScoped) })
+
+	rr := h.post(t, org, validEmployeeBody())
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: %s", rr.Code, rr.Body.String())
+	}
+	agentID := decodeEmployeeResp(t, rr)["agent_id"]
+
+	var count int64
+	h.db.Model(&model.AgentSkill{}).Where("agent_id = ?", agentID).Count(&count)
+	if count != 0 {
+		t.Errorf("expected 0 attached skills (org-scoped should not match), got %d", count)
+	}
+}
+
+func TestIntegration_EmployeesCreate_IgnoresUnpublishedGlobalSkill(t *testing.T) {
+	h := newEmployeeHarness(t)
+	org := h.createOrg(t)
+	h.seedSystemCred(t, "crof", false)
+	h.seedGlobalSkill(t, "git-github", model.SkillStatusDraft)
+
+	rr := h.post(t, org, validEmployeeBody())
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: %s", rr.Code, rr.Body.String())
+	}
+	agentID := decodeEmployeeResp(t, rr)["agent_id"]
+
+	var count int64
+	h.db.Model(&model.AgentSkill{}).Where("agent_id = ?", agentID).Count(&count)
+	if count != 0 {
+		t.Errorf("expected 0 attached skills (draft should not match), got %d", count)
 	}
 }
 

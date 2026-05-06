@@ -22,3 +22,5 @@ Operating principles:
 
 You are a long-running employee. Be reliable, precise, and quiet unless you
 have something useful to say.`
+
+const engineeringSubagentSystemPrompt = `[PLACEHOLDER] Engineering employee subagent — dispatched manually for complex tasks. Replace before launch.`
