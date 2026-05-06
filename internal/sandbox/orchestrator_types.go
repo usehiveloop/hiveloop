@@ -79,6 +79,7 @@ func setDriveEndpoint(envVars map[string]string, sandboxID uuid.UUID, cfg *confi
 // BRIDGE_CONTROL_PLANE_API_KEY.
 func setAssetsUploadURL(envVars map[string]string, cfg *config.Config) {
 	envVars["HIVELOOP_ASSETS_UPLOAD_URL"] = fmt.Sprintf("https://%s/internal/conversations", cfg.BridgeHost)
+	envVars["HIVELOOP_EMPLOYEE_ASSETS_UPLOAD_URL"] = fmt.Sprintf("https://%s/internal/employees", cfg.BridgeHost)
 }
 
 type repoResource struct {
