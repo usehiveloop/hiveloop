@@ -284,6 +284,21 @@ func decodeEmployeeResp(t *testing.T, rr *httptest.ResponseRecorder) map[string]
 	return out
 }
 
+func (h *employeeHarness) seedGlobalSkill(t *testing.T, name, status string) model.Skill {
+	t.Helper()
+	skill := model.Skill{
+		Slug:       name,
+		Name:       name,
+		SourceType: model.SkillSourceInline,
+		Status:     status,
+	}
+	if err := h.db.Create(&skill).Error; err != nil {
+		t.Fatalf("seed global skill %s: %v", name, err)
+	}
+	t.Cleanup(func() { h.db.Unscoped().Delete(&skill) })
+	return skill
+}
+
 func validEmployeeBody() map[string]any {
 	return map[string]any{
 		"category":    "engineering",
