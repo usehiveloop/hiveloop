@@ -87,6 +87,10 @@ func setupPublicRoutes(
 		r.Put("/internal/conversations/{conversationID}/assets/*", uploadsHandler.StreamConversationAsset)
 		r.Post("/internal/conversations/{conversationID}/assets/move", uploadsHandler.MoveConversationAsset)
 		r.Delete("/internal/conversations/{conversationID}/assets/*", uploadsHandler.DeleteConversationAsset)
+
+		r.Put("/internal/employees/{employeeID}/assets/*", uploadsHandler.StreamEmployeeAsset)
+		r.Post("/internal/employees/{employeeID}/assets/move", uploadsHandler.MoveEmployeeAsset)
+		r.Delete("/internal/employees/{employeeID}/assets/*", uploadsHandler.DeleteEmployeeAsset)
 	}
 }
 
