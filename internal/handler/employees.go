@@ -14,6 +14,7 @@ import (
 const (
 	employeeHarness             = "hermes"
 	employeeCategoryEngineering = "engineering"
+	engineeringTeamName         = "Engineering"
 )
 
 type EmployeeHandler struct {

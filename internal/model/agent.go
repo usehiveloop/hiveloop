@@ -19,6 +19,8 @@ type Agent struct {
 	Credential        *Credential      `gorm:"foreignKey:CredentialID;constraint:OnDelete:SET NULL"`
 	SandboxTemplateID *uuid.UUID       `gorm:"type:uuid"`
 	SandboxTemplate   *SandboxTemplate `gorm:"foreignKey:SandboxTemplateID;constraint:OnDelete:SET NULL"`
+	TeamID            *uuid.UUID       `gorm:"type:uuid;index"`
+	TeamRef           *Team            `gorm:"foreignKey:TeamID;constraint:OnDelete:SET NULL"`
 
 	// Bridge AgentDefinition fields
 	SystemPrompt    string             `gorm:"type:text;not null"`
