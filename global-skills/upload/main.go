@@ -35,9 +35,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("getting working directory: %v", err)
 	}
-	skillsDir := filepath.Join(scriptDir, "skills")
+	skillsDir := filepath.Join(scriptDir, "global-skills")
 	if _, err := os.Stat(skillsDir); err != nil {
-		skillsDir = "skills"
+		skillsDir = "global-skills"
 	}
 
 	log.Printf("Discovering skills in %s...", skillsDir)
