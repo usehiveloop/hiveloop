@@ -66,7 +66,7 @@ build-hermes-templates:
 
 # Upload skill definitions to Hiveloop API (reads HIVELOOP_SKILLS_API_KEY from .env)
 upload-skills:
-	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./skills/upload
+	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./global-skills/upload
 
 # Generate Bridge Go client from OpenAPI spec.
 # Bridge emits OpenAPI 3.1 schemas oapi-codegen can't handle:
