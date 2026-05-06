@@ -91,6 +91,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&AgentProfile{},
 		&ConversationSubscription{},
 		&FailedEvent{},
+		&Team{},
 	); err != nil {
 		return err
 	}
@@ -100,6 +101,9 @@ func AutoMigrate(db *gorm.DB) error {
 
 	// Partial unique: org-scoped agents have unique (org_id, name).
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_org_name ON agents (org_id, name) WHERE org_id IS NOT NULL`)
+	// Partial unique: a team's name is unique within an org, but soft-deleted
+	// rows are excluded so the name can be reused after deletion.
+	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_team_org_name ON teams (org_id, name) WHERE deleted_at IS NULL`)
 	// Partial unique: system agents have globally unique names.
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_system_name ON agents (name) WHERE org_id IS NULL`)
 
