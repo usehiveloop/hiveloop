@@ -85,6 +85,13 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	subChoice, err := pickEmployeeSubagentCredential(h.db)
+	if err != nil {
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "pick employee subagent credential", "error", err, "org_id", org.ID)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "no provider credential available for new employee subagent"})
+		return
+	}
+
 	team, err := ensureEngineeringTeam(h.db, org.ID)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "ensure engineering team", "error", err, "org_id", org.ID)
@@ -119,24 +126,62 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		agent.AvatarURL = &avatar
 	}
 
-	if err := h.db.Create(&agent).Error; err != nil {
+	subDesc := fmt.Sprintf("Subagent for %s.", req.Name)
+	subagent := model.Agent{
+		OrgID:        &org.ID,
+		Description:  &subDesc,
+		Category:     &cat,
+		SystemPrompt: engineeringSubagentSystemPrompt,
+		Model:        subChoice.model,
+		CredentialID: &subChoice.cred.ID,
+		TeamID:       &team.ID,
+		Harness:      employeeHarness,
+		IsEmployee:   false,
+		Status:       "active",
+		Tools:        model.JSON{},
+		McpServers:   model.JSON{},
+		Skills:       model.JSON{},
+		Integrations: model.JSON{},
+		Resources:    model.JSON{},
+		AgentConfig:  model.JSON{},
+		Permissions:  model.JSON{},
+	}
+
+	subBaseSlug := employeeSubagentBaseSlug(req.Name, req.Category)
+
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&agent).Error; err != nil {
+			return err
+		}
+		if err := createWithUniqueNameSlug(tx, &subagent, subBaseSlug); err != nil {
+			return err
+		}
+		return tx.Create(&model.AgentSubagent{
+			AgentID:    agent.ID,
+			SubagentID: subagent.ID,
+		}).Error
+	})
+	if err != nil {
 		if isDuplicateKeyError(err) {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": fmt.Sprintf("employee with name %q already exists", req.Name)})
 			return
 		}
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "create employee agent", "error", err, "org_id", org.ID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "create employee + subagent", "error", err, "org_id", org.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create employee"})
 		return
 	}
 
 	sb, err := h.orchestrator.CreateHermesSandbox(r.Context(), &agent)
 	if err != nil {
-		h.rollbackEmployee(r.Context(), org.ID, agent.ID)
+		h.rollbackEmployee(r.Context(), org.ID, agent.ID, subagent.ID)
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "provision hermes sandbox",
 			"error", err, "agent_id", agent.ID, "org_id", org.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
 		return
 	}
+
+	h.attachGlobalSkills(r.Context(), agent.ID, defaultEmployeeSkills[req.Category])
+	h.attachGlobalSkills(r.Context(), subagent.ID, defaultEmployeeSubagentSkills[req.Category])
 
 	writeJSON(w, http.StatusCreated, createEmployeeResponse{
 		AgentID:   agent.ID.String(),
@@ -174,18 +219,110 @@ func ensureEngineeringTeam(db *gorm.DB, orgID uuid.UUID) (*model.Team, error) {
 	return &team, nil
 }
 
-func (h *EmployeeHandler) rollbackEmployee(ctx context.Context, orgID, agentID uuid.UUID) {
+func (h *EmployeeHandler) attachGlobalSkills(ctx context.Context, agentID uuid.UUID, names []string) {
+	if len(names) == 0 {
+		return
+	}
+	log := logging.FromContext(ctx)
+	for _, name := range names {
+		var skill model.Skill
+		err := h.db.
+			Where("org_id IS NULL AND status = ? AND name = ?", model.SkillStatusPublished, name).
+			First(&skill).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				log.WarnContext(ctx, "default global skill not found, skipping",
+					"agent_id", agentID, "skill_name", name)
+			} else {
+				log.ErrorContext(ctx, "lookup default global skill",
+					"error", err, "agent_id", agentID, "skill_name", name)
+			}
+			continue
+		}
+		link := model.AgentSkill{AgentID: agentID, SkillID: skill.ID}
+		if err := h.db.Create(&link).Error; err != nil {
+			log.ErrorContext(ctx, "attach default global skill",
+				"error", err, "agent_id", agentID, "skill_id", skill.ID, "skill_name", name)
+			continue
+		}
+		if err := h.db.Model(&model.Skill{}).
+			Where("id = ?", skill.ID).
+			UpdateColumn("install_count", gorm.Expr("install_count + 1")).Error; err != nil {
+			log.WarnContext(ctx, "bump install_count for default global skill",
+				"error", err, "skill_id", skill.ID)
+		}
+	}
+}
+
+func (h *EmployeeHandler) rollbackEmployee(ctx context.Context, orgID, agentID, subagentID uuid.UUID) {
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("org_id = ? AND agent_id = ?", orgID, agentID).Delete(&model.Sandbox{}).Error; err != nil {
 			return fmt.Errorf("delete sandbox: %w", err)
 		}
 		if err := tx.Where("org_id = ? AND id = ?", orgID, agentID).Delete(&model.Agent{}).Error; err != nil {
-			return fmt.Errorf("delete agent: %w", err)
+			return fmt.Errorf("delete employee agent: %w", err)
+		}
+		if subagentID != uuid.Nil {
+			if err := tx.Where("org_id = ? AND id = ?", orgID, subagentID).Delete(&model.Agent{}).Error; err != nil {
+				return fmt.Errorf("delete subagent: %w", err)
+			}
 		}
 		return nil
 	})
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "rollback employee", "error", err,
-			"agent_id", agentID, "org_id", orgID)
+			"agent_id", agentID, "subagent_id", subagentID, "org_id", orgID)
 	}
+}
+
+func slugifyAgentName(s string) string {
+	var b strings.Builder
+	prevDash := false
+	for _, r := range strings.ToLower(s) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+			prevDash = false
+		} else if !prevDash && b.Len() > 0 {
+			b.WriteRune('-')
+			prevDash = true
+		}
+	}
+	return strings.TrimRight(b.String(), "-")
+}
+
+func employeeSubagentBaseSlug(employeeName, category string) string {
+	s := slugifyAgentName(employeeName)
+	if s == "" {
+		s = category
+	}
+	return s + "-subagent"
+}
+
+const subagentSlugMaxAttempts = 32
+
+func createWithUniqueNameSlug(tx *gorm.DB, agent *model.Agent, baseSlug string) error {
+	for i := 0; i < subagentSlugMaxAttempts; i++ {
+		candidate := baseSlug
+		if i > 0 {
+			candidate = fmt.Sprintf("%s-%d", baseSlug, i+1)
+		}
+		agent.Name = candidate
+		agent.ID = uuid.Nil
+
+		sp := fmt.Sprintf("sp_subagent_attempt_%d", i)
+		if err := tx.SavePoint(sp).Error; err != nil {
+			return fmt.Errorf("savepoint: %w", err)
+		}
+		err := tx.Create(agent).Error
+		if err == nil {
+			return nil
+		}
+		if !isDuplicateKeyError(err) {
+			return err
+		}
+		if rbErr := tx.RollbackTo(sp).Error; rbErr != nil {
+			return fmt.Errorf("rollback to savepoint: %w", rbErr)
+		}
+	}
+	return fmt.Errorf("could not allocate unique subagent name after %d attempts (base=%s)", subagentSlugMaxAttempts, baseSlug)
 }
