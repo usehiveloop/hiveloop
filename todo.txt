@@ -198,6 +198,42 @@ DEFERRED FEATURES (v2 / nice to have)
        the HindsightBank lookup.
 
 
+BILLING / CREDITS
+-----------------
+
+[P0] Investigate credits tracking and deduction end-to-end (suspected broken)
+     - Symptom hunch: token-based spend from LLM traffic does not appear to
+       reach the credit ledger. Worth verifying before any pricing/launch.
+     - Known call sites of billing.CreditsService.Spend today:
+         - internal/handler/conversations.go:133 — 1 credit per agent run
+           (ReasonAgentRun), debited at conversation create.
+         - internal/handler/auth_signup.go — welcome-credit grants.
+         - internal/tasks/cleanup.go — CreditsExpireHandler (sweep/expiry,
+           NOT a deduction path).
+     - Suspicious gap: internal/proxy/ has cost.go + usage.go (per-token
+       cost calc) but NO call to credits.Spend or any ledger write.
+       Every LLM call from a sandbox flows through the proxy; if the
+       proxy isn't writing a debit, real model usage is free.
+     - tasks/registry.go references "billing-token-spend deduction" —
+       check whether an async task is supposed to consume proxy usage
+       rows and post debits, and whether it's actually wired and running.
+     - Items to confirm:
+         1. Where (if anywhere) per-token costs get converted to credits
+            and applied to model.CreditLedgerEntry. Proxy direct? Async
+            worker reading a usage table? Nothing?
+         2. Whether middleware/require_credits actually gates LLM calls
+            or only gates the conversation-create endpoint.
+         3. Whether SpendWithTx handles negative-balance correctly
+            (credits.go:120) — current behavior on insufficient balance.
+         4. Whether expired-grant sweep (SweepAllExpiredGrants) correctly
+            reduces balance and whether replayBuckets/deductSpend agree
+            with sumBalance under partial expiry.
+         5. Whether cron schedules for sweep + token-spend tasks are
+            registered in the prod tasks registry (not just defined).
+     - Deliverable: a short doc mapping the credit lifecycle (grant →
+       hold/charge → debit → expiry) with file:line citations and a
+       list of broken/missing edges, plus P0/P1 fixes for each.
+
 TESTING / E2E
 -------------
 
