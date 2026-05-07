@@ -5122,6 +5122,104 @@
         }
       }
     },
+    "/v1/agents/{agentID}/profiles/slack/config": {
+      "patch": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Sets the home channel for the agent and auto-joins the bot to that channel.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "Update an AI employee's Slack profile config",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateSlackConfigRequest"
+              }
+            }
+          },
+          "description": "Slack profile config",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/updateSlackConfigResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/agents/{agentID}/skills": {
       "get": {
         "security": [
@@ -12748,6 +12846,323 @@
         }
       }
     },
+    "/v1/teams": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns teams in the current organization.",
+        "tags": [
+          "teams"
+        ],
+        "summary": "List teams",
+        "parameters": [
+          {
+            "description": "Page size (default 50, max 100)",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination cursor",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedResponse-teamResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a new team in the current organization. Admin/owner only.",
+        "tags": [
+          "teams"
+        ],
+        "summary": "Create a team",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createTeamRequest"
+              }
+            }
+          },
+          "description": "Team details",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/teamResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/teams/{id}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "teams"
+        ],
+        "summary": "Get a team",
+        "parameters": [
+          {
+            "description": "Team ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/teamResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "teams"
+        ],
+        "summary": "Delete a team",
+        "parameters": [
+          {
+            "description": "Team ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "teams"
+        ],
+        "summary": "Update a team",
+        "parameters": [
+          {
+            "description": "Team ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateTeamRequest"
+              }
+            }
+          },
+          "description": "Team updates",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/teamResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/tokens": {
       "get": {
         "security": [
@@ -13362,6 +13777,12 @@
             "description": "team tag for memory scoping (e.g. \"engineering\", \"sales\")",
             "type": "string"
           },
+          "teamID": {
+            "type": "string"
+          },
+          "teamRef": {
+            "$ref": "#/components/schemas/Team"
+          },
           "tools": {
             "$ref": "#/components/schemas/JSON"
           },
@@ -13950,6 +14371,36 @@
                 "$ref": "#/components/schemas/JSON"
               }
             ]
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        }
+      },
+      "Team": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "deletedAt": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "description": "Uniqueness is enforced by a partial index created in AutoMigrate\n(idx_team_org_name) so soft-deleted rows don't block name reuse.",
+            "type": "string"
+          },
+          "org": {
+            "$ref": "#/components/schemas/Org"
+          },
+          "orgID": {
+            "type": "string"
           },
           "updatedAt": {
             "type": "string"
@@ -16220,9 +16671,6 @@
       "createSandboxTemplateRequest": {
         "type": "object",
         "properties": {
-          "base_template_id": {
-            "type": "string"
-          },
           "build_commands": {
             "type": "array",
             "items": {
@@ -16232,8 +16680,17 @@
           "config": {
             "$ref": "#/components/schemas/JSON"
           },
+          "disk_gb": {
+            "type": "integer"
+          },
+          "memory_gb": {
+            "type": "integer"
+          },
           "name": {
             "type": "string"
+          },
+          "vcpu": {
+            "type": "integer"
           }
         }
       },
@@ -16320,6 +16777,17 @@
             "type": "string"
           },
           "provider_id": {
+            "type": "string"
+          }
+        }
+      },
+      "createTeamRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
             "type": "string"
           }
         }
@@ -17786,6 +18254,23 @@
           }
         }
       },
+      "paginatedResponse-teamResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/teamResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
       "paginatedResponse-tokenListItem": {
         "type": "object",
         "properties": {
@@ -19049,6 +19534,26 @@
           }
         }
       },
+      "teamResponse": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
       "tokenListItem": {
         "type": "object",
         "properties": {
@@ -19431,6 +19936,36 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "updateSlackConfigRequest": {
+        "type": "object",
+        "properties": {
+          "home_channel_id": {
+            "type": "string"
+          }
+        }
+      },
+      "updateSlackConfigResponse": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/agentProfileResponse"
+          }
+        }
+      },
+      "updateTeamRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
           }
         }
       },

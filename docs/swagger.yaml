@@ -167,6 +167,10 @@ definitions:
       team:
         description: team tag for memory scoping (e.g. "engineering", "sales")
         type: string
+      teamID:
+        type: string
+      teamRef:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Team'
       tools:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       updatedAt:
@@ -593,6 +597,28 @@ definitions:
         allOf:
         - $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
         description: user-facing tags, e.g. ["python","ml"]
+      updatedAt:
+        type: string
+    type: object
+  github_com_usehiveloop_hiveloop_internal_model.Team:
+    properties:
+      createdAt:
+        type: string
+      deletedAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        description: |-
+          Uniqueness is enforced by a partial index created in AutoMigrate
+          (idx_team_org_name) so soft-deleted rows don't block name reuse.
+        type: string
+      org:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Org'
+      orgID:
+        type: string
       updatedAt:
         type: string
     type: object
@@ -2089,16 +2115,20 @@ definitions:
     type: object
   internal_handler.createSandboxTemplateRequest:
     properties:
-      base_template_id:
-        type: string
       build_commands:
         items:
           type: string
         type: array
       config:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      disk_gb:
+        type: integer
+      memory_gb:
+        type: integer
       name:
         type: string
+      vcpu:
+        type: integer
     type: object
   internal_handler.createSkillRequest:
     properties:
@@ -2154,6 +2184,13 @@ definitions:
       label:
         type: string
       provider_id:
+        type: string
+    type: object
+  internal_handler.createTeamRequest:
+    properties:
+      description:
+        type: string
+      name:
         type: string
     type: object
   internal_handler.createTriggerRequest:
@@ -3111,6 +3148,17 @@ definitions:
       next_cursor:
         type: string
     type: object
+  internal_handler.paginatedResponse-internal_handler_teamResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.teamResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
   internal_handler.paginatedResponse-internal_handler_tokenListItem:
     properties:
       data:
@@ -3939,6 +3987,19 @@ definitions:
       stream:
         type: boolean
     type: object
+  internal_handler.teamResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
   internal_handler.tokenListItem:
     properties:
       created_at:
@@ -4189,6 +4250,25 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  internal_handler.updateSlackConfigRequest:
+    properties:
+      home_channel_id:
+        type: string
+    type: object
+  internal_handler.updateSlackConfigResponse:
+    properties:
+      channel:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel'
+      profile:
+        $ref: '#/definitions/internal_handler.agentProfileResponse'
+    type: object
+  internal_handler.updateTeamRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
     type: object
   internal_handler.usageResponse:
     properties:
@@ -7037,6 +7117,56 @@ paths:
       security:
       - BearerAuth: []
       summary: List Slack public channels for an AI employee's profile
+      tags:
+      - agent-profiles
+  /v1/agents/{agentID}/profiles/slack/config:
+    patch:
+      consumes:
+      - application/json
+      description: Sets the home channel for the agent and auto-joins the bot to that
+        channel.
+      parameters:
+      - description: Agent ID (must be an AI employee)
+        in: path
+        name: agentID
+        required: true
+        type: string
+      - description: Slack profile config
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.updateSlackConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.updateSlackConfigResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an AI employee's Slack profile config
       tags:
       - agent-profiles
   /v1/agents/{agentID}/skills:
@@ -11213,6 +11343,169 @@ paths:
       summary: Run a system task
       tags:
       - system
+  /v1/teams:
+    get:
+      description: Returns teams in the current organization.
+      parameters:
+      - description: Page size (default 50, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_teamResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List teams
+      tags:
+      - teams
+    post:
+      consumes:
+      - application/json
+      description: Creates a new team in the current organization. Admin/owner only.
+      parameters:
+      - description: Team details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createTeamRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.teamResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a team
+      tags:
+      - teams
+  /v1/teams/{id}:
+    delete:
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a team
+      tags:
+      - teams
+    get:
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.teamResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a team
+      tags:
+      - teams
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Team updates
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.updateTeamRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.teamResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a team
+      tags:
+      - teams
   /v1/tokens:
     get:
       description: Returns tokens for the organization with cursor pagination. Supports

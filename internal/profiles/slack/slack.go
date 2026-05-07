@@ -280,6 +280,27 @@ func ListPublicChannels(ctx context.Context, botToken string) ([]Channel, error)
 	return out, nil
 }
 
+// JoinChannel makes the bot join a public channel (conversations.join).
+// Slack's API is idempotent — joining an already-joined channel succeeds.
+// Private channels can't be joined via this method; the bot must be invited
+// by an existing member.
+func JoinChannel(ctx context.Context, botToken, channelID string) (Channel, error) {
+	client := slacksdk.New(botToken)
+	ch, _, _, err := client.JoinConversationContext(ctx, channelID)
+	if err != nil {
+		return Channel{}, fmt.Errorf("join slack channel: %w", err)
+	}
+	return Channel{
+		ID:         ch.ID,
+		Name:       ch.Name,
+		IsPrivate:  ch.IsPrivate,
+		IsArchived: ch.IsArchived,
+		IsMember:   ch.IsMember,
+		Topic:      ch.Topic.Value,
+		NumMembers: ch.NumMembers,
+	}, nil
+}
+
 func EncodeSecrets(s Secrets) ([]byte, error) { return json.Marshal(s) }
 
 func DecodeSecrets(b []byte) (Secrets, error) {

@@ -86,13 +86,13 @@ func mergeProfileSecrets(ctx context.Context, kms *crypto.KeyWrapper, profile mo
 
 	switch profile.Provider {
 	case slackprov.Provider:
-		return mergeSlackEnv(plaintext, env)
+		return mergeSlackEnv(plaintext, profile.Config, env)
 	default:
 		return nil
 	}
 }
 
-func mergeSlackEnv(plaintext []byte, env map[string]string) error {
+func mergeSlackEnv(plaintext []byte, config model.JSON, env map[string]string) error {
 	var s slackprov.Secrets
 	if err := json.Unmarshal(plaintext, &s); err != nil {
 		return fmt.Errorf("parse slack secrets: %w", err)
@@ -104,6 +104,9 @@ func mergeSlackEnv(plaintext []byte, env map[string]string) error {
 		env["SLACK_APP_TOKEN"] = s.AppToken
 	}
 	env["SLACK_ALLOWED_USERS"] = "*"
+	if id, ok := config["home_channel_id"].(string); ok && id != "" {
+		env["SLACK_HOME_CHANNEL_ID"] = id
+	}
 	return nil
 }
 

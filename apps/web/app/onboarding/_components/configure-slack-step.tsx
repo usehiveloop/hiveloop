@@ -22,6 +22,7 @@ import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { InstructionLightbox } from "./instruction-lightbox"
 import { StepHeader } from "./step-header"
+import { HomeChannelDialog, type SlackChannel } from "./home-channel-dialog"
 import { useOnboarding, type OnboardingFormValues } from "./context"
 
 export function ConfigureSlackStep() {
@@ -30,6 +31,8 @@ export function ConfigureSlackStep() {
   const [showApp, setShowApp] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [videoOpen, setVideoOpen] = useState(false)
+  const [channelDialogOpen, setChannelDialogOpen] = useState(false)
+  const [channels, setChannels] = useState<SlackChannel[]>([])
 
   const botToken = useWatch({ control: form.control, name: "slackBotToken" })
   const appToken = useWatch({ control: form.control, name: "slackAppToken" })
@@ -41,11 +44,21 @@ export function ConfigureSlackStep() {
     "post",
     "/v1/agents/{agentID}/profiles/slack",
   )
+  const updateSlackConfig = $api.useMutation(
+    "patch",
+    "/v1/agents/{agentID}/profiles/slack/config",
+  )
   const submitting = createSlackProfile.isPending
   const errorMessage = createSlackProfile.isError
     ? extractErrorMessage(
         createSlackProfile.error,
         "Could not save Slack credentials. Try again.",
+      )
+    : null
+  const homeChannelError = updateSlackConfig.isError
+    ? extractErrorMessage(
+        updateSlackConfig.error,
+        "Could not set the home channel. Try again.",
       )
     : null
 
@@ -70,6 +83,24 @@ export function ConfigureSlackStep() {
           if (teamName && !form.getValues("businessName").trim()) {
             form.setValue("businessName", teamName, { shouldDirty: true })
           }
+          setChannels(data.channels ?? [])
+          updateSlackConfig.reset()
+          setChannelDialogOpen(true)
+        },
+      },
+    )
+  }
+
+  const handleHomeChannelConfirm = (channel: SlackChannel) => {
+    if (!createEmployee.agentId || !channel.id) return
+    updateSlackConfig.mutate(
+      {
+        params: { path: { agentID: createEmployee.agentId } },
+        body: { home_channel_id: channel.id },
+      },
+      {
+        onSuccess: () => {
+          setChannelDialogOpen(false)
           goNext()
         },
       },
@@ -226,6 +257,15 @@ export function ConfigureSlackStep() {
           )}
         </Button>
       </div>
+
+      <HomeChannelDialog
+        open={channelDialogOpen}
+        onOpenChange={setChannelDialogOpen}
+        channels={channels}
+        submitting={updateSlackConfig.isPending}
+        errorMessage={homeChannelError}
+        onConfirm={handleHomeChannelConfirm}
+      />
     </div>
   )
 }

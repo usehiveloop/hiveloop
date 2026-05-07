@@ -5015,6 +5015,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/agents/{agentID}/profiles/slack/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update an AI employee's Slack profile config
+         * @description Sets the home channel for the agent and auto-joins the bot to that channel.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID (must be an AI employee) */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            /** @description Slack profile config */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateSlackConfigRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["updateSlackConfigResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/v1/agents/{agentID}/skills": {
         parameters: {
             query?: never;
@@ -12377,6 +12469,278 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List teams
+         * @description Returns teams in the current organization.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Page size (default 50, max 100) */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-teamResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a team
+         * @description Creates a new team in the current organization. Admin/owner only.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Team details */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createTeamRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["teamResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/teams/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a team */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Team ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["teamResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Delete a team */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Team ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Update a team */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Team ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Team updates */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateTeamRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["teamResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/v1/tokens": {
         parameters: {
             query?: never;
@@ -12821,6 +13185,8 @@ export interface components {
             systemPrompt?: string;
             /** @description team tag for memory scoping (e.g. "engineering", "sales") */
             team?: string;
+            teamID?: string;
+            teamRef?: components["schemas"]["Team"];
             tools?: components["schemas"]["JSON"];
             updatedAt?: string;
         };
@@ -13074,6 +13440,20 @@ export interface components {
             slug?: string;
             /** @description user-facing tags, e.g. ["python","ml"] */
             tags?: components["schemas"]["JSON"];
+            updatedAt?: string;
+        };
+        Team: {
+            createdAt?: string;
+            deletedAt?: string;
+            description?: string;
+            id?: string;
+            /**
+             * @description Uniqueness is enforced by a partial index created in AutoMigrate
+             *     (idx_team_org_name) so soft-deleted rows don't block name reuse.
+             */
+            name?: string;
+            org?: components["schemas"]["Org"];
+            orgID?: string;
             updatedAt?: string;
         };
         TriggerCondition: {
@@ -13879,6 +14259,10 @@ export interface components {
             label?: string;
             provider_id?: string;
         };
+        createTeamRequest: {
+            description?: string;
+            name?: string;
+        };
         createTriggerRequest: {
             /** @description required for webhook */
             connection_id?: string;
@@ -14351,6 +14735,11 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        "paginatedResponse-teamResponse": {
+            data?: components["schemas"]["teamResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         "paginatedResponse-tokenListItem": {
             data?: components["schemas"]["tokenListItem"][];
             has_more?: boolean;
@@ -14779,6 +15168,13 @@ export interface components {
             };
             stream?: boolean;
         };
+        teamResponse: {
+            created_at?: string;
+            description?: string;
+            id?: string;
+            name?: string;
+            updated_at?: string;
+        };
         tokenListItem: {
             created_at?: string;
             credential_id?: string;
@@ -14906,6 +15302,17 @@ export interface components {
             repo_ref?: string;
             status?: string;
             tags?: string[];
+        };
+        updateSlackConfigRequest: {
+            home_channel_id?: string;
+        };
+        updateSlackConfigResponse: {
+            channel?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"];
+            profile?: components["schemas"]["agentProfileResponse"];
+        };
+        updateTeamRequest: {
+            description?: string;
+            name?: string;
         };
         usageResponse: {
             api_keys?: components["schemas"]["apiKeyStats"];
