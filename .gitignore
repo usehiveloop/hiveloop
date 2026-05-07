@@ -66,3 +66,7 @@ node_modules/.pnpm-workspace-state-v1.json
 
 # compiled output of global-skills/upload (build artefact)
 /upload
+
+# codedb local index snapshot (generated)
+codedb.snapshot
+**/codedb.snapshot
