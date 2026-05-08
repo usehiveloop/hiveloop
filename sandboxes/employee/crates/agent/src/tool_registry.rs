@@ -5,6 +5,7 @@ use adk_rust::prelude::*;
 use domain::{event_types, OutboundEvent, SessionId, ToolSpec};
 use gateway::ChannelGateway;
 use outbound::OutboundEmitter;
+use mcp::McpRegistry;
 use storage::CronJobRepo;
 use tools::ProcessRegistry;
 
@@ -12,6 +13,7 @@ use crate::check_bash_status_tool::CheckBashStatusTool;
 use crate::check_delegated_status_tool::CheckDelegatedStatusTool;
 use crate::cron_tool::CronTool;
 use crate::delegate_tool::{DelegateContext, DelegateTool};
+use crate::load_tools_tool::LoadToolsTool;
 use crate::post_to_channel_tool::PostToChannelTool;
 use crate::status_update_tool::PostStatusUpdateTool;
 use crate::wake_tool::WakeTool;
@@ -85,6 +87,7 @@ pub struct ToolContext {
     pub cron_repo: Option<Arc<dyn CronJobRepo>>,
     pub delegate_ctx: Option<Arc<DelegateContext>>,
     pub process_registry: Option<Arc<ProcessRegistry>>,
+    pub mcp_registry: Option<Arc<McpRegistry>>,
 }
 
 pub fn build_agent_tools(
@@ -174,6 +177,11 @@ pub fn build_agent_tools(
                             WakeTool::new(cron_repo.clone(), session_id.clone()).into_adk_tool(),
                         );
                     }
+                }
+            }
+            ToolSpec::LoadTools => {
+                if let Some(registry) = &ctx.mcp_registry {
+                    tools.push(LoadToolsTool::new(registry.clone()).into_adk_tool());
                 }
             }
             _ => {}

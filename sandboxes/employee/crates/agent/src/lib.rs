@@ -7,6 +7,7 @@ pub mod check_bash_status_tool;
 pub mod check_delegated_status_tool;
 pub mod cron_tool;
 pub mod delegate_tool;
+pub mod load_tools_tool;
 pub mod model_helpers;
 pub mod post_to_channel_tool;
 pub mod runner;

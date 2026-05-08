@@ -70,7 +70,7 @@ async fn main() -> Result<()> {
     let cron_repo: Arc<dyn storage::CronJobRepo> =
         Arc::new(SqliteCronJobRepo::new(sqlite_pool.clone()));
 
-    let initial_definition = match config_repo.load().await? {
+    let mut initial_definition = match config_repo.load().await? {
         Some(persisted) => {
             info!("loaded agent definition from database");
             persisted
@@ -82,13 +82,19 @@ async fn main() -> Result<()> {
             bootstrapped
         }
     };
-    info!(
-        agent = %initial_definition.agent.name,
-        outbound_channels = initial_definition.outbound_channels.len(),
-        "starting employee-bridge"
-    );
 
-    let config = ConfigStore::new(initial_definition.clone());
+    let mcp_registry = Arc::new(McpRegistry::from_specs(&initial_definition.mcp_servers).await);
+    let available_mcp = mcp_registry.available_tool_names();
+    if !available_mcp.is_empty() {
+        let existing = &initial_definition.agent.system_prompt;
+        if !existing.contains("Available MCP tools") {
+            let tool_list = available_mcp.join(", ");
+            initial_definition.agent.system_prompt.push_str(&format!(
+                "\n\nAvailable MCP tools (must be loaded via load_tools before use): {tool_list}"
+            ));
+            config_repo.upsert(&initial_definition).await?;
+        }
+    }
 
     let registry = build_registry(sqlite_pool.clone(), &initial_definition.outbound_channels)
         .map_err(|e| anyhow::anyhow!("build outbound registry: {e}"))?;
@@ -102,7 +108,13 @@ async fn main() -> Result<()> {
     let skill_writer = Arc::new(SkillWriter::new(workspace_root.clone()));
     skill_writer.sync(&initial_definition.skills);
 
-    let mcp_registry = Arc::new(McpRegistry::from_specs(&initial_definition.mcp_servers).await);
+    info!(
+        agent = %initial_definition.agent.name,
+        outbound_channels = initial_definition.outbound_channels.len(),
+        "starting employee-bridge"
+    );
+
+    let config = ConfigStore::new(initial_definition.clone());
 
     let slack_gateway: Arc<dyn ChannelGateway> = Arc::new(SlackGateway::new(
         slack_bot_token,
@@ -272,6 +284,7 @@ fn default_builtin_tool_specs() -> Vec<ToolSpec> {
         ToolSpec::CheckDelegatedStatus,
         ToolSpec::CheckBashStatus,
         ToolSpec::Wake,
+        ToolSpec::LoadTools,
     ]
 }
 

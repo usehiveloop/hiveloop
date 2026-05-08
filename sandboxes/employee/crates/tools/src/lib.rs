@@ -84,7 +84,8 @@ pub fn build_builtin_tools(
             | ToolSpec::Delegate
             | ToolSpec::CheckDelegatedStatus
             |             ToolSpec::CheckBashStatus
-            | ToolSpec::Wake => {}
+            | ToolSpec::Wake
+            | ToolSpec::LoadTools => {}
         }
     }
     tools

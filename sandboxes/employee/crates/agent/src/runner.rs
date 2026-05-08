@@ -151,6 +151,7 @@ impl AgentRunner for AdkAgentRunner {
                 cron_repo: self.cron_repo.clone(),
                 delegate_ctx: None,
                 process_registry: Some(self.tool_context.process_registry.clone()),
+                mcp_registry: None,
             },
         });
 
@@ -162,6 +163,7 @@ impl AgentRunner for AdkAgentRunner {
                 cron_repo: self.cron_repo.clone(),
                 delegate_ctx: Some(delegate_ctx),
                 process_registry: Some(self.tool_context.process_registry.clone()),
+                mcp_registry: self.mcp_registry.clone(),
             },
         );
 

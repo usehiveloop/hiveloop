@@ -2027,6 +2027,7 @@ dependencies = [
  "adk-rust",
  "anyhow",
  "async-trait",
+ "dashmap",
  "domain",
  "http",
  "rmcp",

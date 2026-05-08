@@ -23,6 +23,8 @@ pub enum ToolSpec {
     CheckBashStatus,
     #[serde(rename = "builtin.wake")]
     Wake,
+    #[serde(rename = "builtin.load_tools")]
+    LoadTools,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
