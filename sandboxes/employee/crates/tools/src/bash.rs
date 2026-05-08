@@ -11,29 +11,31 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::operations::{BashExecOptions, BashOperations};
+use crate::process_registry::ProcessRegistry;
 use crate::truncate::{truncate_tail, TruncationReason};
 
 const TOOL_NAME: &str = "bash";
 const TOOL_DESCRIPTION: &str =
     "Run a shell command in the workspace and return its combined stdout/stderr. \
-     Output is truncated to the last 2000 lines or 50KB, whichever comes first \
-     (errors typically live at the end of output, so the tail is preserved). \
-     A timeout in seconds may be supplied; if not, the configured default is used. \
+     Output is truncated to the last 2000 lines or 50KB, whichever comes first. \
+     Set run_in_background=true for commands that take a long time. Use \
+     check_bash_status to poll progress. \
      Commands matching a denied pattern are rejected before execution.";
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
 pub struct BashArgs {
-    /// Shell command to execute.
     pub command: String,
-    /// Optional override for the timeout in seconds.
     #[serde(default)]
     pub timeout_seconds: Option<u32>,
+    #[serde(default)]
+    pub run_in_background: bool,
 }
 
 pub struct BashTool {
     config: BashConfig,
     workspace_root: PathBuf,
     operations: Arc<dyn BashOperations>,
+    process_registry: Option<Arc<ProcessRegistry>>,
 }
 
 impl BashTool {
@@ -46,7 +48,13 @@ impl BashTool {
             config,
             workspace_root,
             operations,
+            process_registry: None,
         }
+    }
+
+    pub fn with_process_registry(mut self, registry: Arc<ProcessRegistry>) -> Self {
+        self.process_registry = Some(registry);
+        self
     }
 
     pub fn into_adk_tool(self) -> Arc<dyn AdkTool> {
@@ -96,6 +104,17 @@ impl BashTool {
             .or_insert_with(|| std::env::var("HOME").unwrap_or_default());
         env.entry("PATH".into())
             .or_insert_with(|| std::env::var("PATH").unwrap_or_default());
+
+        if parsed.run_in_background {
+            let registry = self.process_registry.as_ref()
+                .ok_or_else(|| AdkError::tool("background processes not available"))?;
+            let process_id = registry.spawn(command, env, timeout as u64);
+            return Ok(json!({
+                "background": true,
+                "process_id": process_id,
+                "command": command,
+            }));
+        }
 
         let options = BashExecOptions {
             workdir,

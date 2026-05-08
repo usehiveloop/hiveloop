@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use domain::ConfigStore;
+use skills::SkillWriter;
 use storage::{ConfigRepo, EventRepo, SessionRepo};
 
 #[derive(Clone)]
@@ -13,6 +14,7 @@ pub struct ApiState {
     pub bearer_token: Arc<String>,
     pub gateway_ready: Arc<AtomicBool>,
     pub config_loaded: Arc<AtomicBool>,
+    pub skill_writer: Arc<SkillWriter>,
 }
 
 impl ApiState {
@@ -22,6 +24,7 @@ impl ApiState {
         session_repo: Arc<dyn SessionRepo>,
         event_repo: Arc<dyn EventRepo>,
         bearer_token: String,
+        skill_writer: Arc<SkillWriter>,
     ) -> Self {
         Self {
             config_store,
@@ -31,6 +34,7 @@ impl ApiState {
             bearer_token: Arc::new(bearer_token),
             gateway_ready: Arc::new(AtomicBool::new(false)),
             config_loaded: Arc::new(AtomicBool::new(false)),
+            skill_writer,
         }
     }
 

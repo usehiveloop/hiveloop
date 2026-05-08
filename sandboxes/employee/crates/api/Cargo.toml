@@ -9,6 +9,7 @@ rust-version.workspace = true
 [dependencies]
 domain.workspace = true
 storage.workspace = true
+skills.workspace = true
 outbound.workspace = true
 async-trait.workspace = true
 serde.workspace = true

@@ -61,6 +61,11 @@ pub fn is_cron_message(inbound: &InboundEvent) -> bool {
     inbound.user == "cron"
 }
 
+pub fn is_wake_cron(inbound: &InboundEvent) -> bool {
+    let sid = inbound.session_id.as_str();
+    inbound.user == "cron" && !sid.contains("-cron-") && !sid.contains("-delegate-")
+}
+
 pub fn derive_channel_from_session(session_id: &SessionId) -> String {
     session_id
         .as_str()

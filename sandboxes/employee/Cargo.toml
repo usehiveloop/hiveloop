@@ -50,6 +50,9 @@ sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio",
 # bootstrapping
 dotenvy = "0.15"
 
+# mcp transport
+rmcp = { version = "1", features = ["transport-child-process", "transport-streamable-http-client-reqwest", "client", "reqwest"] }
+
 # internal crates
 domain = { path = "crates/domain" }
 gateway = { path = "crates/gateway" }

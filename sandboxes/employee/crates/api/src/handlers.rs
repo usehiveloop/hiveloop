@@ -25,6 +25,7 @@ pub async fn put_config(
         .upsert(&definition)
         .await
         .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, format!("persist: {error}")))?;
+    state.skill_writer.sync(&definition.skills);
     state.config_store.replace(definition.clone());
     state.mark_config_loaded();
     Ok(Json(ConfigResponse {

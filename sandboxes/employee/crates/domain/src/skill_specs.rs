@@ -8,6 +8,8 @@ pub struct SkillSpec {
     pub description: String,
     pub trigger: SkillTrigger,
     pub instructions: String,
+    #[serde(default)]
+    pub files: std::collections::HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

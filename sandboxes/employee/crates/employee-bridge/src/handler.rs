@@ -22,7 +22,7 @@ use tracing::{info, warn};
 use composition::compose_annotated_text;
 use media::{collect_media_for_turn, DownloadResults};
 use session::{
-    derive_channel_from_session, ensure_session_persisted, is_cron_message,
+    derive_channel_from_session, ensure_session_persisted, is_cron_message, is_wake_cron,
 };
 
 use crate::session_coordinator::{SessionCoordinator, Submission};
@@ -154,7 +154,7 @@ async fn process_single_turn(
 
     let final_text = format_final_message(&outcome);
     let reply_text_for_event = final_text.clone();
-    if is_cron_message(inbound) {
+    if is_cron_message(inbound) && !is_wake_cron(inbound) {
         let channel = derive_channel_from_session(&session_id);
         if let Err(e) = gateway.post_to_channel(&channel, Reply::Text(final_text)).await {
             warn!(error = %e, "post_to_channel (cron) failed");

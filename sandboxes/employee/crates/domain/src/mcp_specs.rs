@@ -20,7 +20,15 @@ pub enum McpSpec {
         name: String,
         url: String,
         #[serde(default)]
-        auth: Option<McpAuth>,
+        headers: HashMap<String, String>,
+        #[serde(default)]
+        tool_filter: Option<ToolFilter>,
+    },
+    StreamableHttp {
+        name: String,
+        url: String,
+        #[serde(default)]
+        headers: HashMap<String, String>,
         #[serde(default)]
         tool_filter: Option<ToolFilter>,
     },
@@ -29,15 +37,11 @@ pub enum McpSpec {
 impl McpSpec {
     pub fn name(&self) -> &str {
         match self {
-            Self::Stdio { name, .. } | Self::Http { name, .. } => name,
+            Self::Stdio { name, .. }
+            | Self::Http { name, .. }
+            | Self::StreamableHttp { name, .. } => name,
         }
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum McpAuth {
-    Bearer { token_env: String },
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

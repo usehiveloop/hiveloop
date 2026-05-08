@@ -9,20 +9,20 @@ pub enum ToolSpec {
     ReadFile(ReadFileConfig),
     #[serde(rename = "builtin.write_file")]
     WriteFile(WriteFileConfig),
-    #[serde(rename = "builtin.web_fetch")]
-    WebFetch(WebFetchConfig),
     #[serde(rename = "builtin.post_status_update")]
     PostStatusUpdate,
     #[serde(rename = "builtin.post_to_channel")]
     PostToChannel,
-    #[serde(rename = "builtin.schedule_cron")]
-    ScheduleCron,
-    #[serde(rename = "builtin.cancel_cron")]
-    CancelCron,
-    #[serde(rename = "builtin.update_cron")]
-    UpdateCron,
-    #[serde(rename = "builtin.list_cron_jobs")]
-    ListCronJobs,
+    #[serde(rename = "builtin.cron")]
+    Cron,
+    #[serde(rename = "builtin.delegate")]
+    Delegate,
+    #[serde(rename = "builtin.check_delegated_status")]
+    CheckDelegatedStatus,
+    #[serde(rename = "builtin.check_bash_status")]
+    CheckBashStatus,
+    #[serde(rename = "builtin.wake")]
+    Wake,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,11 +64,5 @@ fn default_atomic() -> bool {
     true
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WebFetchConfig {
-    pub allowlist_domains: Vec<String>,
-    pub timeout_seconds: u32,
-    pub max_response_bytes: u64,
-}
 
 

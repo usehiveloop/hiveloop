@@ -12,6 +12,7 @@ tools.workspace = true
 outbound.workspace = true
 gateway.workspace = true
 storage.workspace = true
+mcp.workspace = true
 async-trait.workspace = true
 futures.workspace = true
 serde.workspace = true

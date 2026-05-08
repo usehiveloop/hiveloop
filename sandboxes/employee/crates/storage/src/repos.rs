@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use domain::cron::CronJob;
+use domain::cron::{CronJob, CronJobSource, CronJobState};
 use domain::{AgentDefinition, EventKind, Session, SessionEvent, SessionId, SessionStatus};
 
 #[derive(Debug, thiserror::Error)]
@@ -93,8 +93,13 @@ pub trait CronJobRepo: Send + Sync + 'static {
     async fn create(&self, job: &CronJob) -> Result<()>;
     async fn get(&self, id: &str) -> Result<Option<CronJob>>;
     async fn list_all(&self) -> Result<Vec<CronJob>>;
+    async fn list_by_source(&self, source: CronJobSource) -> Result<Vec<CronJob>>;
     async fn list_due(&self) -> Result<Vec<CronJob>>;
-    async fn update(&self, id: &str, task_prompt: Option<String>, interval_seconds: Option<u64>) -> Result<()>;
+    async fn update_prompt(&self, id: &str, task_prompt: String) -> Result<()>;
+    async fn update_interval(&self, id: &str, interval_seconds: u64) -> Result<()>;
     async fn update_next_run(&self, id: &str, next_run_at: DateTime<Utc>) -> Result<()>;
+    async fn set_state(&self, id: &str, state: CronJobState) -> Result<()>;
+    async fn record_run(&self, id: &str, run_at: DateTime<Utc>, status: &str, error: Option<&str>) -> Result<()>;
+    async fn increment_repeat(&self, id: &str) -> Result<()>;
     async fn delete(&self, id: &str) -> Result<()>;
 }

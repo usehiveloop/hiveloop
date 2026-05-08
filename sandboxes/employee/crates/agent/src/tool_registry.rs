@@ -6,13 +6,15 @@ use domain::{event_types, OutboundEvent, SessionId, ToolSpec};
 use gateway::ChannelGateway;
 use outbound::OutboundEmitter;
 use storage::CronJobRepo;
+use tools::ProcessRegistry;
 
-use crate::cancel_cron_tool::CancelCronTool;
-use crate::list_cron_jobs_tool::ListCronJobsTool;
+use crate::check_bash_status_tool::CheckBashStatusTool;
+use crate::check_delegated_status_tool::CheckDelegatedStatusTool;
+use crate::cron_tool::CronTool;
+use crate::delegate_tool::{DelegateContext, DelegateTool};
 use crate::post_to_channel_tool::PostToChannelTool;
-use crate::schedule_cron_tool::ScheduleCronTool;
 use crate::status_update_tool::PostStatusUpdateTool;
-use crate::update_cron_tool::UpdateCronTool;
+use crate::wake_tool::WakeTool;
 
 pub fn attach_tool_event_callbacks(
     builder: LlmAgentBuilder,
@@ -81,6 +83,8 @@ pub fn attach_tool_event_callbacks(
 pub struct ToolContext {
     pub gateway: Option<Arc<dyn ChannelGateway>>,
     pub cron_repo: Option<Arc<dyn CronJobRepo>>,
+    pub delegate_ctx: Option<Arc<DelegateContext>>,
+    pub process_registry: Option<Arc<ProcessRegistry>>,
 }
 
 pub fn build_agent_tools(
@@ -118,27 +122,58 @@ pub fn build_agent_tools(
                     }
                 }
             }
-            ToolSpec::ScheduleCron => {
+            ToolSpec::Cron => {
                 if let Some(cron_repo) = &ctx.cron_repo {
-                    tools.push(
-                        ScheduleCronTool::new(cron_repo.clone(), session_id.clone())
+                    if !session_is_cron {
+                        tools.push(
+                            CronTool::new(cron_repo.clone(), session_id.clone()).into_adk_tool(),
+                        );
+                    }
+                }
+            }
+            ToolSpec::Delegate => {
+                if let (Some(cron_repo), Some(delegate_ctx)) =
+                    (&ctx.cron_repo, &ctx.delegate_ctx)
+                {
+                    if !session_is_cron {
+                        tools.push(
+                            DelegateTool::new(
+                                delegate_ctx.clone(),
+                                session_id.clone(),
+                                cron_repo.clone(),
+                            )
                             .into_adk_tool(),
-                    );
+                        );
+                    }
                 }
             }
-            ToolSpec::CancelCron => {
-                if let Some(cron_repo) = &ctx.cron_repo {
-                    tools.push(CancelCronTool::new(cron_repo.clone()).into_adk_tool());
+            ToolSpec::CheckDelegatedStatus => {
+                if let (Some(cron_repo), Some(delegate_ctx)) =
+                    (&ctx.cron_repo, &ctx.delegate_ctx)
+                {
+                    if !session_is_cron {
+                        tools.push(
+                            CheckDelegatedStatusTool::new(
+                                cron_repo.clone(),
+                                delegate_ctx.session_service.clone(),
+                            )
+                            .into_adk_tool(),
+                        );
+                    }
                 }
             }
-            ToolSpec::UpdateCron => {
-                if let Some(cron_repo) = &ctx.cron_repo {
-                    tools.push(UpdateCronTool::new(cron_repo.clone()).into_adk_tool());
+            ToolSpec::CheckBashStatus => {
+                if let Some(registry) = &ctx.process_registry {
+                    tools.push(CheckBashStatusTool::new(registry.clone()).into_adk_tool());
                 }
             }
-            ToolSpec::ListCronJobs => {
+            ToolSpec::Wake => {
                 if let Some(cron_repo) = &ctx.cron_repo {
-                    tools.push(ListCronJobsTool::new(cron_repo.clone()).into_adk_tool());
+                    if !session_is_cron {
+                        tools.push(
+                            WakeTool::new(cron_repo.clone(), session_id.clone()).into_adk_tool(),
+                        );
+                    }
                 }
             }
             _ => {}

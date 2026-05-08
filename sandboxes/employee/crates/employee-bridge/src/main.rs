@@ -17,7 +17,9 @@ use domain::{
     ReasoningEffort, SlackConfig, ToolSpec, WriteFileConfig,
 };
 use gateway::{ChannelGateway, SlackGateway};
+use mcp::McpRegistry;
 use outbound::{build_registry, OutboundDispatcher, OutboundEmitter};
+use skills::SkillWriter;
 use storage::{
     init_sqlite_pool, SqliteConfigRepo, SqliteCronJobRepo, SqliteEventRepo, SqliteInboundDedupeRepo,
     SqliteOutboxRepo, SqliteSessionRepo,
@@ -28,6 +30,7 @@ use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
     let _ = dotenvy::dotenv();
 
     tracing_subscriber::fmt()
@@ -96,6 +99,11 @@ async fn main() -> Result<()> {
 
     let emitter = Arc::new(OutboundEmitter::new(outbox_repo.clone(), registry.clone()));
 
+    let skill_writer = Arc::new(SkillWriter::new(workspace_root.clone()));
+    skill_writer.sync(&initial_definition.skills);
+
+    let mcp_registry = Arc::new(McpRegistry::from_specs(&initial_definition.mcp_servers).await);
+
     let slack_gateway: Arc<dyn ChannelGateway> = Arc::new(SlackGateway::new(
         slack_bot_token,
         slack_app_token,
@@ -106,7 +114,8 @@ async fn main() -> Result<()> {
         AdkAgentRunner::with_in_memory(config.clone(), "employee-bridge", workspace_root.clone())
             .with_outbound_emitter(emitter.clone())
             .with_gateway(slack_gateway.clone())
-            .with_cron_repo(cron_repo.clone()),
+            .with_cron_repo(cron_repo.clone())
+            .with_mcp_registry(mcp_registry.clone()),
     );
 
     let api_state = ApiState::new(
@@ -115,6 +124,7 @@ async fn main() -> Result<()> {
         session_repo.clone(),
         event_repo.clone(),
         runtime_secret,
+        skill_writer,
     );
     api_state.mark_config_loaded();
     let (api_handle, api_cancel) = api::serve(bind_addr, api_state.clone()).await;
@@ -257,10 +267,11 @@ fn default_builtin_tool_specs() -> Vec<ToolSpec> {
         }),
         ToolSpec::PostStatusUpdate,
         ToolSpec::PostToChannel,
-        ToolSpec::ScheduleCron,
-        ToolSpec::CancelCron,
-        ToolSpec::UpdateCron,
-        ToolSpec::ListCronJobs,
+        ToolSpec::Cron,
+        ToolSpec::Delegate,
+        ToolSpec::CheckDelegatedStatus,
+        ToolSpec::CheckBashStatus,
+        ToolSpec::Wake,
     ]
 }
 

@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use domain::{ConfigStore, SessionId};
 use futures::{stream::BoxStream, StreamExt};
 use gateway::ChannelGateway;
+use mcp::McpRegistry;
 use outbound::OutboundEmitter;
 use storage::CronJobRepo;
 use tools::ToolBuildContext;
@@ -17,6 +18,7 @@ use crate::session_helpers::{
     session_contains_image_parts, session_event_count,
 };
 use crate::tool_registry::{attach_tool_event_callbacks, build_agent_tools, ToolContext};
+use crate::delegate_tool::DelegateContext;
 use crate::{AgentError, AgentEvent, AgentRunner, Result, TurnInput};
 
 const RUNTIME_USER_ID: &str = "runtime";
@@ -29,6 +31,7 @@ pub struct AdkAgentRunner {
     outbound_emitter: Option<Arc<OutboundEmitter>>,
     gateway: Option<Arc<dyn ChannelGateway>>,
     cron_repo: Option<Arc<dyn CronJobRepo>>,
+    mcp_registry: Option<Arc<McpRegistry>>,
 }
 
 impl AdkAgentRunner {
@@ -46,6 +49,7 @@ impl AdkAgentRunner {
             outbound_emitter: None,
             gateway: None,
             cron_repo: None,
+            mcp_registry: None,
         }
     }
 
@@ -74,6 +78,11 @@ impl AdkAgentRunner {
 
     pub fn with_cron_repo(mut self, cron_repo: Arc<dyn CronJobRepo>) -> Self {
         self.cron_repo = Some(cron_repo);
+        self
+    }
+
+    pub fn with_mcp_registry(mut self, registry: Arc<McpRegistry>) -> Self {
+        self.mcp_registry = Some(registry);
         self
     }
 }
@@ -133,23 +142,51 @@ impl AgentRunner for AdkAgentRunner {
         let model = build_model(active_model_config)?;
 
         let builtin_tools = tools::build_builtin_tools(&snapshot.tools, &self.tool_context);
+        let delegate_ctx = Arc::new(DelegateContext {
+            config: self.config.clone(),
+            session_service: self.session_service.clone(),
+            tool_context: self.tool_context.clone(),
+            agent_tool_context: ToolContext {
+                gateway: self.gateway.clone(),
+                cron_repo: self.cron_repo.clone(),
+                delegate_ctx: None,
+                process_registry: Some(self.tool_context.process_registry.clone()),
+            },
+        });
+
         let agent_tools = build_agent_tools(
             &snapshot.tools,
             session_id,
             &ToolContext {
                 gateway: self.gateway.clone(),
                 cron_repo: self.cron_repo.clone(),
+                delegate_ctx: Some(delegate_ctx),
+                process_registry: Some(self.tool_context.process_registry.clone()),
             },
         );
 
         let mut agent_builder = LlmAgentBuilder::new(agent_name.clone())
             .instruction(snapshot.agent.system_prompt.clone())
-            .model(model);
+            .model(model.clone());
+        agent_builder = match agent_builder.with_skills_from_root(&self.tool_context.workspace_root) {
+            Ok(b) => b,
+            Err(e) => {
+                tracing::warn!(error = %e, "failed to load skills, continuing without");
+                LlmAgentBuilder::new(agent_name.clone())
+                    .instruction(snapshot.agent.system_prompt.clone())
+                    .model(model)
+            }
+        };
         for tool in builtin_tools {
             agent_builder = agent_builder.tool(tool);
         }
         for tool in agent_tools {
             agent_builder = agent_builder.tool(tool);
+        }
+        if let Some(registry) = self.mcp_registry.as_ref() {
+            for toolset in registry.toolsets() {
+                agent_builder = agent_builder.toolset(toolset.clone());
+            }
         }
         if let Some(emitter) = self.outbound_emitter.as_ref() {
             agent_builder =

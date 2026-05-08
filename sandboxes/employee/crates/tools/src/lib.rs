@@ -4,6 +4,7 @@ mod edit;
 mod mutation_queue;
 mod operations;
 mod path;
+mod process_registry;
 mod read;
 mod truncate;
 mod write;
@@ -20,6 +21,7 @@ pub use operations::{
     BashError, BashExecOptions, BashExecResult, BashOperations, EditOperations, FsError,
     LocalBashOperations, LocalFsOperations, ReadOperations, WriteOperations,
 };
+pub use process_registry::ProcessRegistry;
 pub use read::ReadTool;
 pub use write::WriteTool;
 
@@ -27,6 +29,7 @@ pub struct ToolBuildContext {
     pub workspace_root: PathBuf,
     pub fs: Arc<LocalFsOperations>,
     pub bash: Arc<LocalBashOperations>,
+    pub process_registry: Arc<ProcessRegistry>,
 }
 
 impl ToolBuildContext {
@@ -35,6 +38,7 @@ impl ToolBuildContext {
             workspace_root,
             fs: Arc::new(LocalFsOperations::default()),
             bash: Arc::new(LocalBashOperations::default()),
+            process_registry: Arc::new(ProcessRegistry::new()),
         }
     }
 }
@@ -51,7 +55,9 @@ pub fn build_builtin_tools(
                     config.clone(),
                     context.workspace_root.clone(),
                     context.bash.clone(),
-                ).into_adk_tool());
+                )
+                .with_process_registry(context.process_registry.clone())
+                .into_adk_tool());
             }
             ToolSpec::ReadFile(config) => {
                 tools.push(ReadTool::new(
@@ -72,13 +78,13 @@ pub fn build_builtin_tools(
                     context.fs.clone(),
                 ).into_adk_tool());
             }
-            ToolSpec::WebFetch(_)
-            | ToolSpec::PostStatusUpdate
+            ToolSpec::PostStatusUpdate
             | ToolSpec::PostToChannel
-            | ToolSpec::ScheduleCron
-            | ToolSpec::CancelCron
-            | ToolSpec::UpdateCron
-            | ToolSpec::ListCronJobs => {}
+            | ToolSpec::Cron
+            | ToolSpec::Delegate
+            | ToolSpec::CheckDelegatedStatus
+            |             ToolSpec::CheckBashStatus
+            | ToolSpec::Wake => {}
         }
     }
     tools
