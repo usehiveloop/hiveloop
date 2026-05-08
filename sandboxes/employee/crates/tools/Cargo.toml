@@ -24,3 +24,6 @@ globset = "0.4"
 dashmap = "6"
 similar = "2"
 unicode-normalization = "0.1"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
