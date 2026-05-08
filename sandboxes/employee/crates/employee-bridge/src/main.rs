@@ -86,14 +86,20 @@ async fn main() -> Result<()> {
     let mcp_registry = Arc::new(McpRegistry::from_specs(&initial_definition.mcp_servers).await);
     let available_mcp = mcp_registry.available_tool_names();
     if !available_mcp.is_empty() {
+        let loaded = mcp_registry.loaded_tool_names();
+        let unloaded = mcp_registry.unloaded_tool_names();
+
+        let mcp_block = format!(
+            "\n\nMCP tools loaded (ready to use): {}\nMCP tools to load (call load_tools first): {}",
+            if loaded.is_empty() { "none".into() } else { loaded.join(", ") },
+            if unloaded.is_empty() { "none".into() } else { unloaded.join(", ") },
+        );
+
         let existing = &initial_definition.agent.system_prompt;
-        if !existing.contains("Available MCP tools") {
-            let tool_list = available_mcp.join(", ");
-            initial_definition.agent.system_prompt.push_str(&format!(
-                "\n\nAvailable MCP tools (must be loaded via load_tools before use): {tool_list}"
-            ));
-            config_repo.upsert(&initial_definition).await?;
-        }
+        let stripped = strip_mcp_block(existing);
+        let updated = format!("{stripped}\n\n{mcp_block}");
+        initial_definition.agent.system_prompt = updated;
+        config_repo.upsert(&initial_definition).await?;
     }
 
     let registry = build_registry(sqlite_pool.clone(), &initial_definition.outbound_channels)
@@ -192,6 +198,16 @@ async fn main() -> Result<()> {
     let _ = api_cancel.send(());
     let _ = api_handle.await;
     Ok(())
+}
+
+fn strip_mcp_block(sp: &str) -> String {
+    let markers = ["Available MCP tools", "MCP tools loaded", "MCP tools to load"];
+    for marker in &markers {
+        if let Some(idx) = sp.find(marker) {
+            return sp[..idx].trim_end().to_string();
+        }
+    }
+    sp.to_string()
 }
 
 fn required_env(key: &str, hint: &str) -> Result<String> {

@@ -19,7 +19,8 @@ use tracing::{error, info, warn};
 
 struct McpEntry {
     _toolset: Arc<dyn adk_rust::Toolset>,
-    tool_names: Vec<String>,
+    server_name: String,
+    tool_names: Vec<(String, String)>,
 }
 
 pub struct McpRegistry {
@@ -34,17 +35,20 @@ impl McpRegistry {
 
         for spec in specs {
             match connect_and_discover(spec).await {
-                Ok((toolset, tool_names)) => {
-                    for name in spec.default_enabled_tools() {
-                        if tool_names.iter().any(|t| t == name) {
-                            loaded.insert(name.clone());
-                            info!(%name, server = %spec.name(), "MCP tool auto-loaded");
+                Ok((toolset, tool_names, server_name)) => {
+                    for default_name in spec.default_enabled_tools() {
+                        let found = tool_names.iter().find(|(pfx, raw)| {
+                            raw == default_name || pfx.as_str() == default_name.as_str()
+                        });
+                        if let Some((_pfx, raw_name)) = found {
+                            loaded.insert(raw_name.clone());
+                            info!(name = %default_name, server = %server_name, "MCP tool auto-loaded");
                         } else {
-                            warn!(%name, server = %spec.name(), "default_enabled_tool not found");
+                            warn!(name = %default_name, server = %server_name, "default_enabled_tool not found");
                         }
                     }
-                    info!(server = %spec.name(), tool_count = tool_names.len(), loaded = loaded.len(), "MCP server connected");
-                    entries.push(McpEntry { _toolset: toolset, tool_names });
+                    info!(server = %server_name, tool_count = tool_names.len(), loaded = loaded.len(), "MCP server connected");
+                    entries.push(McpEntry { _toolset: toolset, server_name, tool_names });
                 }
                 Err(e) => error!(name = %spec.name(), error = %e, "failed to connect MCP server"),
             }
@@ -59,7 +63,7 @@ impl McpRegistry {
 
     pub fn available_tool_names(&self) -> Vec<String> {
         let mut names: Vec<String> = self.entries.iter()
-            .flat_map(|e| e.tool_names.clone())
+            .flat_map(|e| e.tool_names.iter().map(|(pfx, _)| pfx.clone()))
             .collect();
         names.sort();
         names.dedup();
@@ -67,14 +71,28 @@ impl McpRegistry {
     }
 
     pub fn loaded_tool_names(&self) -> Vec<String> {
-        let mut names: Vec<String> = self.available_tool_names();
-        names.retain(|n| self.loaded.contains(n));
+        let mut names: Vec<String> = Vec::new();
+        for entry in &self.entries {
+            for (prefixed, raw) in &entry.tool_names {
+                if self.loaded.contains(raw) {
+                    names.push(prefixed.clone());
+                }
+            }
+        }
+        names.sort();
         names
     }
 
     pub fn unloaded_tool_names(&self) -> Vec<String> {
-        let mut names: Vec<String> = self.available_tool_names();
-        names.retain(|n| !self.loaded.contains(n));
+        let mut names: Vec<String> = Vec::new();
+        for entry in &self.entries {
+            for (prefixed, raw) in &entry.tool_names {
+                if !self.loaded.contains(raw) {
+                    names.push(prefixed.clone());
+                }
+            }
+        }
+        names.sort();
         names
     }
 
@@ -83,16 +101,16 @@ impl McpRegistry {
     }
 
     pub fn load_tools(&self, names: &[String]) -> Vec<String> {
-        let all: Vec<String> = self.entries.iter()
-            .flat_map(|e| e.tool_names.clone())
+        let all: Vec<(&str, &str)> = self.entries.iter()
+            .flat_map(|e| e.tool_names.iter().map(|(pfx, raw)| (pfx.as_str(), raw.as_str())))
             .collect();
 
         let mut loaded = Vec::new();
         let mut not_found = Vec::new();
 
         for name in names {
-            if all.iter().any(|t| t == name) {
-                self.loaded.insert(name.clone());
+            if let Some((_, raw)) = all.iter().find(|(pfx, r)| *pfx == name.as_str() || *r == name.as_str()) {
+                self.loaded.insert(raw.to_string());
                 loaded.push(name.clone());
             } else {
                 not_found.push(name.clone());
@@ -117,7 +135,7 @@ struct DiscoveryContext {
     pub user_content: Content,
 }
 
-impl adk_rust::ReadonlyContext for DiscoveryContext {
+impl ReadonlyContext for DiscoveryContext {
     fn invocation_id(&self) -> &str { &self.invocation_id }
     fn agent_name(&self) -> &str { &self.agent_name }
     fn user_id(&self) -> &str { &self.user_id }
@@ -127,8 +145,10 @@ impl adk_rust::ReadonlyContext for DiscoveryContext {
     fn user_content(&self) -> &Content { &self.user_content }
 }
 
-async fn connect_and_discover(spec: &McpSpec) -> anyhow::Result<(Arc<dyn adk_rust::Toolset>, Vec<String>)> {
-    let (toolset, tool_names) = match spec {
+async fn connect_and_discover(spec: &McpSpec) -> anyhow::Result<(Arc<dyn adk_rust::Toolset>, Vec<(String, String)>, String)> {
+    let server_name = spec.name().to_string();
+
+    match spec {
         McpSpec::Stdio { name, command, args, env, tool_filter, .. } => {
             let mut cmd = Command::new(command);
             cmd.args(args.iter().map(|a| a.as_str()));
@@ -136,25 +156,9 @@ async fn connect_and_discover(spec: &McpSpec) -> anyhow::Result<(Arc<dyn adk_rus
             info!(%name, "connecting MCP stdio server");
             let client = ().serve(TokioChildProcess::new(cmd)?).await?;
             let toolset = McpToolset::new(client).with_name(name.clone());
-            let ctx = Arc::new(DiscoveryContext {
-                invocation_id: "discovery".into(), agent_name: "discovery".into(),
-                user_id: "runtime".into(), app_name: "employee-bridge".into(),
-                session_id: "discovery".into(), branch: "main".into(),
-                user_content: Content::new("user"),
-            });
-            let names = match toolset.tools(ctx).await {
-                Ok(tools) => {
-                    let mut names: Vec<String> = tools.iter().map(|t| t.name().to_string()).collect();
-                    if let Some(f) = tool_filter {
-                        if let Some(ref allow) = f.allow { names.retain(|n| allow.iter().any(|a| a == n)); }
-                        if let Some(ref deny) = f.deny { names.retain(|n| !deny.iter().any(|d| d == n)); }
-                    }
-                    names
-                }
-                Err(e) => { warn!(error = %e, "failed to discover tools"); vec![] }
-            };
+            let names = discover_names(&toolset, &server_name, tool_filter).await;
             let toolset = apply_filter(toolset, tool_filter);
-            (Arc::new(toolset) as Arc<dyn adk_rust::Toolset>, names)
+            Ok((Arc::new(toolset), names, server_name))
         }
         McpSpec::Http { name, url, headers, tool_filter, .. }
         | McpSpec::StreamableHttp { name, url, headers, tool_filter, .. } => {
@@ -164,28 +168,43 @@ async fn connect_and_discover(spec: &McpSpec) -> anyhow::Result<(Arc<dyn adk_rus
             info!(%name, "connecting MCP HTTP server");
             let client = ().serve(StreamableHttpClientTransport::from_config(config)).await?;
             let toolset = McpToolset::new(client).with_name(name.clone());
-            let ctx = Arc::new(DiscoveryContext {
-                invocation_id: "discovery".into(), agent_name: "discovery".into(),
-                user_id: "runtime".into(), app_name: "employee-bridge".into(),
-                session_id: "discovery".into(), branch: "main".into(),
-                user_content: Content::new("user"),
-            });
-            let names = match toolset.tools(ctx).await {
-                Ok(tools) => {
-                    let mut names: Vec<String> = tools.iter().map(|t| t.name().to_string()).collect();
-                    if let Some(f) = tool_filter {
-                        if let Some(ref allow) = f.allow { names.retain(|n| allow.iter().any(|a| a == n)); }
-                        if let Some(ref deny) = f.deny { names.retain(|n| !deny.iter().any(|d| d == n)); }
-                    }
-                    names
-                }
-                Err(e) => { warn!(error = %e, "failed to discover tools"); vec![] }
-            };
+            let names = discover_names(&toolset, &server_name, tool_filter).await;
             let toolset = apply_filter(toolset, tool_filter);
-            (Arc::new(toolset) as Arc<dyn adk_rust::Toolset>, names)
+            Ok((Arc::new(toolset), names, server_name))
         }
+    }
+}
+
+async fn discover_names(
+    toolset: &McpToolset,
+    server_name: &str,
+    tool_filter: &Option<domain::ToolFilter>,
+) -> Vec<(String, String)> {
+    let ctx = Arc::new(DiscoveryContext {
+        invocation_id: "discovery".into(), agent_name: "discovery".into(),
+        user_id: "runtime".into(), app_name: "employee-bridge".into(),
+        session_id: "discovery".into(), branch: "main".into(),
+        user_content: Content::new("user"),
+    });
+    let tools = match toolset.tools(ctx).await {
+        Ok(t) => t,
+        Err(e) => { warn!(error = %e, "failed to discover tools"); return vec![]; }
     };
-    Ok((toolset, tool_names))
+    let mut names = Vec::new();
+    for tool in &tools {
+        let raw = tool.name().to_string();
+        if let Some(f) = tool_filter {
+            if let Some(ref allow) = f.allow {
+                if !allow.iter().any(|a| a == &raw) { continue; }
+            }
+            if let Some(ref deny) = f.deny {
+                if deny.iter().any(|d| d == &raw) { continue; }
+            }
+        }
+        let prefixed = format!("{}_{}", server_name, raw);
+        names.push((prefixed, raw));
+    }
+    names
 }
 
 fn apply_filter(toolset: McpToolset, filter: &Option<domain::ToolFilter>) -> McpToolset {
