@@ -41,8 +41,6 @@ pub struct AgentMeta {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Limits {
     pub max_turns_per_session: u32,
-    pub max_tool_calls_per_turn: u32,
-    pub max_session_duration_seconds: u32,
     pub input_token_budget: u32,
     pub output_token_budget: u32,
     pub tool_call_timeout_seconds: u32,
@@ -53,8 +51,6 @@ impl Default for Limits {
     fn default() -> Self {
         Self {
             max_turns_per_session: 50,
-            max_tool_calls_per_turn: 20,
-            max_session_duration_seconds: 3600,
             input_token_budget: 180_000,
             output_token_budget: 8_000,
             tool_call_timeout_seconds: 60,
@@ -74,8 +70,14 @@ pub struct ContextConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompactionConfig {
     pub enabled: bool,
-    pub trigger_token_threshold: u32,
-    pub summarizer_model: String,
-    pub keep_last_n_turns: u32,
+    pub token_threshold: u32,
+    #[serde(default = "default_overlap")]
+    pub overlap_event_count: u32,
+    #[serde(default = "default_chars_per_token")]
+    pub chars_per_token: u32,
+    pub summarizer_model: ModelConfig,
 }
+
+fn default_overlap() -> u32 { 10 }
+fn default_chars_per_token() -> u32 { 4 }
 

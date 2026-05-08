@@ -12,7 +12,7 @@ use outbound::OutboundEmitter;
 use storage::CronJobRepo;
 use tools::ToolBuildContext;
 
-use crate::model_helpers::{build_model, build_user_content, pick_model_for_turn};
+use crate::model_helpers::{build_model, build_summarizer_llm, build_user_content, pick_model_for_turn};
 use crate::session_helpers::{
     ensure_session, log_full_conversation, seed_history_into_session,
     session_contains_image_parts, session_event_count,
@@ -194,15 +194,31 @@ impl AgentRunner for AdkAgentRunner {
         }
         let agent: Arc<dyn Agent> = Arc::new(
             agent_builder
+                .max_iterations(snapshot.limits.max_turns_per_session)
                 .build()
                 .map_err(|e| AgentError::Other(anyhow::anyhow!("agent build: {e}")))?,
         );
 
-        let runner = Runner::builder()
+        let mut runner_builder = Runner::builder()
             .app_name(self.app_name.clone())
             .agent(agent)
-            .session_service(self.session_service.clone())
-            .build()
+            .session_service(self.session_service.clone());
+
+        if let Some(ref cc) = snapshot.context.compaction {
+            if cc.enabled {
+                let summarizer_llm = build_summarizer_llm(&cc.summarizer_model)?;
+                let summarizer = Arc::new(adk_rust::agent::LlmEventSummarizer::new(summarizer_llm));
+                runner_builder = runner_builder
+                    .intra_compaction_config(adk_rust::IntraCompactionConfig {
+                        token_threshold: cc.token_threshold as u64,
+                        overlap_event_count: cc.overlap_event_count as usize,
+                        chars_per_token: cc.chars_per_token,
+                    })
+                    .intra_compaction_summarizer(summarizer);
+            }
+        }
+
+        let runner = runner_builder.build()
             .map_err(|e| AgentError::Other(anyhow::anyhow!("runner build: {e}")))?;
 
         log_full_conversation(

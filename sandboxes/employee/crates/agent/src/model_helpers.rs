@@ -73,3 +73,16 @@ pub fn build_user_content(text: String, images: Vec<ImageInput>) -> Content {
     }
     content
 }
+
+pub fn build_summarizer_llm(model: &ModelConfig) -> Result<Arc<dyn Llm>> {
+    match model {
+        ModelConfig::OpenaiCompatible { base_url, model_id, api_key_env, .. } => {
+            let api_key = std::env::var(api_key_env)
+                .map_err(|_| AgentError::Model(format!("env var `{api_key_env}` not set")))?;
+            let cfg = OpenAIConfig::compatible(api_key, base_url.clone(), model_id.clone());
+            let client = OpenAIClient::new(cfg)
+                .map_err(|e| AgentError::Model(format!("OpenAIClient init: {e}")))?;
+            Ok(Arc::new(client))
+        }
+    }
+}
