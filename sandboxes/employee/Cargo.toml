@@ -1,0 +1,76 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/domain",
+    "crates/gateway",
+    "crates/agent",
+    "crates/storage",
+    "crates/tools",
+    "crates/mcp",
+    "crates/skills",
+    "crates/outbound",
+    "crates/api",
+    "crates/employee-bridge",
+]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+authors = ["Hiveloop"]
+rust-version = "1.80"
+
+[workspace.dependencies]
+# async
+tokio = { version = "1.40", features = ["full"] }
+async-trait = "0.1"
+futures = "0.3"
+
+# serde
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# errors
+thiserror = "1"
+anyhow = "1"
+
+# logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# time
+chrono = { version = "0.4", features = ["serde"] }
+
+# config-store hot swap
+arc-swap = "1"
+
+# storage (typed errors + future use)
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "chrono", "json", "macros", "migrate"] }
+
+# bootstrapping
+dotenvy = "0.15"
+
+# internal crates
+domain = { path = "crates/domain" }
+gateway = { path = "crates/gateway" }
+agent = { path = "crates/agent" }
+storage = { path = "crates/storage" }
+tools = { path = "crates/tools" }
+mcp = { path = "crates/mcp" }
+skills = { path = "crates/skills" }
+outbound = { path = "crates/outbound" }
+api = { path = "crates/api" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+
+# Dev builds: keep our own debuginfo, drop debuginfo from deps.
+# Dramatically speeds up linking after the first compile.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+opt-level = 0

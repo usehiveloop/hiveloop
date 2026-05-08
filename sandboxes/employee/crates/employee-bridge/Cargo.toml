@@ -1,0 +1,32 @@
+[package]
+name = "employee-bridge"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "employee-bridge"
+path = "src/main.rs"
+
+[dependencies]
+domain.workspace = true
+gateway.workspace = true
+agent.workspace = true
+storage.workspace = true
+tools.workspace = true
+mcp.workspace = true
+skills.workspace = true
+outbound.workspace = true
+api.workspace = true
+
+tokio.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+dotenvy.workspace = true
+futures.workspace = true
+chrono.workspace = true
+serde_json.workspace = true
+dashmap = "6"

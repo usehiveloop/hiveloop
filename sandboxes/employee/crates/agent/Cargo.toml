@@ -1,0 +1,30 @@
+[package]
+name = "agent"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+domain.workspace = true
+tools.workspace = true
+outbound.workspace = true
+gateway.workspace = true
+storage.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tokio.workspace = true
+chrono.workspace = true
+
+adk-rust = { version = "0.7", default-features = false, features = ["agents", "tools", "sessions", "runner", "openai"] }
+schemars = "0.8"
+
+[dev-dependencies]
+tokio = { workspace = true }
+tracing-subscriber.workspace = true

@@ -1,0 +1,26 @@
+[package]
+name = "tools"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+domain.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+chrono.workspace = true
+futures.workspace = true
+
+adk-rust = { version = "0.7", default-features = false, features = ["agents", "tools", "sessions", "runner", "openai"] }
+schemars = "0.8"
+globset = "0.4"
+dashmap = "6"
+similar = "2"
+unicode-normalization = "0.1"
