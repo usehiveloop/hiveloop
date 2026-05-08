@@ -25,16 +25,16 @@ struct McpEntry {
 
 pub struct McpRegistry {
     entries: Vec<McpEntry>,
-    loaded: DashSet<String>,
+    loaded: Arc<DashSet<String>>,
 }
 
 impl McpRegistry {
     pub async fn from_specs(specs: &[McpSpec]) -> Self {
         let mut entries: Vec<McpEntry> = Vec::new();
-        let loaded = DashSet::new();
+        let loaded = Arc::new(DashSet::new());
 
         for spec in specs {
-            match connect_and_discover(spec).await {
+            match connect_and_discover(spec, loaded.clone()).await {
                 Ok((toolset, tool_names, server_name)) => {
                     for default_name in spec.default_enabled_tools() {
                         let found = tool_names.iter().find(|(pfx, raw)| {
@@ -145,7 +145,7 @@ impl ReadonlyContext for DiscoveryContext {
     fn user_content(&self) -> &Content { &self.user_content }
 }
 
-async fn connect_and_discover(spec: &McpSpec) -> anyhow::Result<(Arc<dyn adk_rust::Toolset>, Vec<(String, String)>, String)> {
+async fn connect_and_discover(spec: &McpSpec, loaded: Arc<DashSet<String>>) -> anyhow::Result<(Arc<dyn adk_rust::Toolset>, Vec<(String, String)>, String)> {
     let server_name = spec.name().to_string();
 
     match spec {
@@ -158,6 +158,7 @@ async fn connect_and_discover(spec: &McpSpec) -> anyhow::Result<(Arc<dyn adk_rus
             let toolset = McpToolset::new(client).with_name(name.clone());
             let names = discover_names(&toolset, &server_name, tool_filter).await;
             let toolset = apply_filter(toolset, tool_filter);
+            let toolset = apply_loaded_filter(toolset, loaded);
             Ok((Arc::new(toolset), names, server_name))
         }
         McpSpec::Http { name, url, headers, tool_filter, .. }
@@ -170,6 +171,7 @@ async fn connect_and_discover(spec: &McpSpec) -> anyhow::Result<(Arc<dyn adk_rus
             let toolset = McpToolset::new(client).with_name(name.clone());
             let names = discover_names(&toolset, &server_name, tool_filter).await;
             let toolset = apply_filter(toolset, tool_filter);
+            let toolset = apply_loaded_filter(toolset, loaded);
             Ok((Arc::new(toolset), names, server_name))
         }
     }
@@ -205,6 +207,10 @@ async fn discover_names(
         names.push((prefixed, raw));
     }
     names
+}
+
+fn apply_loaded_filter(toolset: McpToolset, loaded: Arc<DashSet<String>>) -> McpToolset {
+    toolset.with_filter(move |name| loaded.contains(name))
 }
 
 fn apply_filter(toolset: McpToolset, filter: &Option<domain::ToolFilter>) -> McpToolset {
