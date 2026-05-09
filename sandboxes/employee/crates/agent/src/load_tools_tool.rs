@@ -44,6 +44,13 @@ impl LoadToolsTool {
             return Err(AdkError::tool("tool_names must not be empty"));
         }
         let loaded = self.registry.load_tools(&parsed.tool_names);
+        tracing::info!(
+            requested = ?parsed.tool_names,
+            loaded = ?loaded,
+            total = self.registry.loaded_tool_names().len(),
+            unloaded = self.registry.unloaded_tool_names().len(),
+            "load_tools result"
+        );
         Ok(serde_json::json!({
             "loaded": loaded,
             "total_loaded": self.registry.loaded_tool_names().len(),

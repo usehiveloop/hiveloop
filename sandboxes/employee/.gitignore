@@ -12,3 +12,8 @@ Cargo.lock.bak
 .vscode/
 *.swp
 codedb.snapshot
+openrouter-proxy/config.proxy.json
+openrouter-proxy/logs/
+openrouter-proxy/proxy.log
+openrouter-proxy/replay-logs/
+__pycache__/

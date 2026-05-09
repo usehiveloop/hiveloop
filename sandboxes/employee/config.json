@@ -6,8 +6,8 @@
   },
   "model": {
     "provider": "openai_compatible",
-    "base_url": "https://openrouter.ai/api/v1",
-    "model_id": "deepseek/deepseek-v4-flash",
+    "base_url": "http://127.0.0.1:7081/api/v1",
+    "model_id": "google/gemini-3-flash-preview",
     "api_key_env": "OPENROUTER_API_KEY",
     "temperature": 0.3,
     "max_output_tokens": 1024,
@@ -17,7 +17,7 @@
   },
   "multimodal_model": {
     "provider": "openai_compatible",
-    "base_url": "https://openrouter.ai/api/v1",
+    "base_url": "http://127.0.0.1:7081/api/v1",
     "model_id": "google/gemini-3-flash-preview",
     "api_key_env": "OPENROUTER_API_KEY",
     "temperature": 0.3,
@@ -42,7 +42,7 @@
       "chars_per_token": 4,
       "summarizer_model": {
         "provider": "openai_compatible",
-        "base_url": "https://openrouter.ai/api/v1",
+        "base_url": "http://127.0.0.1:7081/api/v1",
         "model_id": "deepseek/deepseek-v4-flash",
         "api_key_env": "OPENROUTER_API_KEY",
         "temperature": 0.3,
@@ -132,7 +132,32 @@
       "type": "builtin.load_tools"
     }
   ],
-  "mcp_servers": [],
+  "mcp_servers": [
+    {
+      "transport": "stdio",
+      "name": "linear",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.linear.app/mcp"
+      ],
+      "env": {},
+      "tool_filter": null,
+      "default_enabled_tools": [
+        "list_issues",
+        "get_issue",
+        "list_teams",
+        "get_team",
+        "list_projects",
+        "get_project",
+        "list_comments",
+        "list_issue_labels",
+        "get_issue_status"
+      ],
+      "startup_timeout_seconds": null
+    }
+  ],
   "skills": [],
   "subagents": [],
   "slack": {

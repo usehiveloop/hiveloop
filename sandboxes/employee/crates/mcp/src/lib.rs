@@ -2,9 +2,10 @@ use dashmap::DashSet;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use adk_rust::prelude::Content;
+use adk_rust::prelude::{Content, Tool, ToolContext};
 use adk_rust::tool::McpToolset;
 use adk_rust::{ReadonlyContext, Toolset};
+use tokio::sync::OnceCell;
 use domain::McpSpec;
 use http::{HeaderName, HeaderValue};
 use rmcp::{
@@ -21,6 +22,80 @@ struct McpEntry {
     _toolset: Arc<dyn adk_rust::Toolset>,
     server_name: String,
     tool_names: Vec<(String, String)>,
+}
+
+/// Wrapper that prefixes an MCP tool's name (e.g., `list_initiatives` →
+/// `linear_list_initiatives`) so it matches the system prompt, and gates
+/// `execute()` on the `loaded` DashSet.
+struct PrefixedGuardTool {
+    inner: Arc<dyn Tool>,
+    loaded: Arc<DashSet<String>>,
+    prefixed_name: String,
+}
+
+#[async_trait::async_trait]
+impl Tool for PrefixedGuardTool {
+    fn name(&self) -> &str { &self.prefixed_name }
+    fn description(&self) -> &str { self.inner.description() }
+    fn declaration(&self) -> serde_json::Value { self.inner.declaration() }
+    fn parameters_schema(&self) -> Option<serde_json::Value> { self.inner.parameters_schema() }
+    fn response_schema(&self) -> Option<serde_json::Value> { self.inner.response_schema() }
+    fn is_long_running(&self) -> bool { self.inner.is_long_running() }
+
+    async fn execute(&self, ctx: Arc<dyn ToolContext>, args: serde_json::Value) -> adk_rust::Result<serde_json::Value> {
+        if self.loaded.contains(self.inner.name()) {
+            self.inner.execute(ctx, args).await
+        } else {
+            Err(adk_rust::AdkError::tool(format!(
+                "Tool '{}' is not loaded yet. Call load_tools(tool_names=[\"{}\"]) first.",
+                self.prefixed_name, self.prefixed_name
+            )))
+        }
+    }
+}
+
+/// Caches all discovered tools from the inner toolset on first call, then
+/// filters by the `loaded` DashSet and prefixes names on each `tools()` call.
+struct LoadedCachingToolset {
+    inner: Arc<dyn Toolset>,
+    loaded: Arc<DashSet<String>>,
+    prefix: String,
+    name: String,
+    cache: OnceCell<Vec<Arc<dyn Tool>>>,
+}
+
+impl LoadedCachingToolset {
+    fn new(inner: Arc<dyn Toolset>, loaded: Arc<DashSet<String>>, prefix: impl Into<String>) -> Self {
+        let prefix = prefix.into();
+        let name = format!("{}_caching", inner.name());
+        Self { inner, loaded, prefix, name, cache: OnceCell::new() }
+    }
+}
+
+#[async_trait::async_trait]
+impl Toolset for LoadedCachingToolset {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    async fn tools(&self, ctx: Arc<dyn ReadonlyContext>) -> adk_rust::Result<Vec<Arc<dyn Tool>>> {
+        let all = self.cache.get_or_try_init(|| {
+            let inner = self.inner.clone();
+            let ctx = ctx.clone();
+            Box::pin(async move { inner.tools(ctx).await })
+        }).await?;
+        Ok(all
+            .iter()
+            .filter(|t| self.loaded.contains(t.name()))
+            .map(|t| {
+                Arc::new(PrefixedGuardTool {
+                    inner: t.clone(),
+                    loaded: self.loaded.clone(),
+                    prefixed_name: format!("{}_{}", self.prefix, t.name()),
+                }) as Arc<dyn Tool>
+            })
+            .collect())
+    }
 }
 
 pub struct McpRegistry {
@@ -158,8 +233,9 @@ async fn connect_and_discover(spec: &McpSpec, loaded: Arc<DashSet<String>>) -> a
             let toolset = McpToolset::new(client).with_name(name.clone());
             let names = discover_names(&toolset, &server_name, tool_filter).await;
             let toolset = apply_filter(toolset, tool_filter);
-            let toolset = apply_loaded_filter(toolset, loaded);
-            Ok((Arc::new(toolset), names, server_name))
+            let toolset: Arc<dyn adk_rust::Toolset> =
+                Arc::new(LoadedCachingToolset::new(Arc::new(toolset), loaded, &server_name));
+            Ok((toolset, names, server_name))
         }
         McpSpec::Http { name, url, headers, tool_filter, .. }
         | McpSpec::StreamableHttp { name, url, headers, tool_filter, .. } => {
@@ -171,8 +247,9 @@ async fn connect_and_discover(spec: &McpSpec, loaded: Arc<DashSet<String>>) -> a
             let toolset = McpToolset::new(client).with_name(name.clone());
             let names = discover_names(&toolset, &server_name, tool_filter).await;
             let toolset = apply_filter(toolset, tool_filter);
-            let toolset = apply_loaded_filter(toolset, loaded);
-            Ok((Arc::new(toolset), names, server_name))
+            let toolset: Arc<dyn adk_rust::Toolset> =
+                Arc::new(LoadedCachingToolset::new(Arc::new(toolset), loaded, &server_name));
+            Ok((toolset, names, server_name))
         }
     }
 }
@@ -207,10 +284,6 @@ async fn discover_names(
         names.push((prefixed, raw));
     }
     names
-}
-
-fn apply_loaded_filter(toolset: McpToolset, loaded: Arc<DashSet<String>>) -> McpToolset {
-    toolset.with_filter(move |name| loaded.contains(name))
 }
 
 fn apply_filter(toolset: McpToolset, filter: &Option<domain::ToolFilter>) -> McpToolset {

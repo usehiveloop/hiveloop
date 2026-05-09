@@ -190,6 +190,21 @@ impl AgentRunner for AdkAgentRunner {
                 agent_builder = agent_builder.toolset(toolset.clone());
             }
         }
+
+        let all_loaded = self.mcp_registry.as_ref()
+            .map(|r| r.loaded_tool_names())
+            .unwrap_or_default();
+        let all_unloaded = self.mcp_registry.as_ref()
+            .map(|r| r.unloaded_tool_names())
+            .unwrap_or_default();
+        tracing::info!(
+            loaded_count = all_loaded.len(),
+            unloaded_count = all_unloaded.len(),
+            "loaded: [{}], unloaded: [{}]",
+            all_loaded.join(", "),
+            all_unloaded.join(", "),
+        );
+
         if let Some(emitter) = self.outbound_emitter.as_ref() {
             agent_builder =
                 attach_tool_event_callbacks(agent_builder, emitter.clone(), session_id.clone());
