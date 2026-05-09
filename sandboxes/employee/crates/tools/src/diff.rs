@@ -99,10 +99,7 @@ fn locate_fuzzy_match(haystack: &str, needle: &str) -> Option<(usize, usize)> {
 }
 
 pub fn normalize_for_match(input: &str) -> String {
-    input
-        .nfkc()
-        .map(map_char_for_match)
-        .collect()
+    input.nfkc().map(map_char_for_match).collect()
 }
 
 fn map_char_for_match(ch: char) -> char {

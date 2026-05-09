@@ -40,8 +40,7 @@ pub async fn handle_inbound(
     coordinator: Arc<SessionCoordinator>,
     inbound: InboundEvent,
 ) -> Result<()> {
-    let submission =
-        coordinator.submit_or_queue(&inbound.session_id, inbound.text.clone());
+    let submission = coordinator.submit_or_queue(&inbound.session_id, inbound.text.clone());
     if matches!(submission, Submission::Queued) {
         return Ok(());
     }
@@ -97,8 +96,7 @@ async fn process_single_turn(
     let slack = snapshot.slack.clone();
     let session_id = inbound.session_id.clone();
 
-    let was_new_session =
-        ensure_session_persisted(session_repo.as_ref(), &inbound, &emitter).await;
+    let was_new_session = ensure_session_persisted(session_repo.as_ref(), &inbound, &emitter).await;
     if !was_new_session {
         let _ = session_repo.touch(&session_id, Utc::now()).await;
     }
@@ -107,7 +105,10 @@ async fn process_single_turn(
     let typing_loop = if skip_typing {
         None
     } else {
-        Some(spawn_thinking_status_loop(gateway.clone(), session_id.clone()))
+        Some(spawn_thinking_status_loop(
+            gateway.clone(),
+            session_id.clone(),
+        ))
     };
 
     let multimodal_available = snapshot.multimodal_model.is_some();
@@ -120,12 +121,8 @@ async fn process_single_turn(
     .await;
     let annotated_text = compose_annotated_text(&inbound, &slack, &session_id, &media);
 
-    let prior_history = fetch_prior_history_for_session(
-        gateway.as_ref(),
-        &session_id,
-        &slack,
-    )
-    .await;
+    let prior_history =
+        fetch_prior_history_for_session(gateway.as_ref(), &session_id, &slack).await;
 
     let DownloadResults { images, .. } = media;
     let mut turn_input = TurnInput::text(annotated_text).with_history(prior_history);
@@ -156,7 +153,10 @@ async fn process_single_turn(
     let reply_text_for_event = final_text.clone();
     if is_cron_message(inbound) && !is_wake_cron(inbound) {
         let channel = derive_channel_from_session(&session_id);
-        if let Err(e) = gateway.post_to_channel(&channel, Reply::Text(final_text)).await {
+        if let Err(e) = gateway
+            .post_to_channel(&channel, Reply::Text(final_text))
+            .await
+        {
             warn!(error = %e, "post_to_channel (cron) failed");
         }
     } else {

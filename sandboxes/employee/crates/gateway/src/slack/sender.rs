@@ -26,7 +26,8 @@ pub async fn post_text_reply(
         vec![formatted]
     };
 
-    let thread_ts_for_post = pick_thread_ts_for_reply(context, session_id, &thread_ts, &snapshot.slack);
+    let thread_ts_for_post =
+        pick_thread_ts_for_reply(context, session_id, &thread_ts, &snapshot.slack);
 
     let session = context.open_api_session();
     let mut last_handle: Option<MessageHandle> = None;
@@ -46,9 +47,7 @@ pub async fn post_text_reply(
             let detail = user_facing_explanation(&e).unwrap_or_else(|| e.to_string());
             GatewayError::Other(anyhow::anyhow!("chat.postMessage: {detail}"))
         })?;
-        context
-            .bot_message_timestamps
-            .insert(response.ts.0.clone());
+        context.bot_message_timestamps.insert(response.ts.0.clone());
         last_handle = Some(message_handle(&response.channel.0, &response.ts.0));
     }
     last_handle.ok_or_else(|| GatewayError::Other(anyhow::anyhow!("no chunks posted")))
@@ -74,9 +73,7 @@ pub async fn post_text_to_channel(
         let detail = user_facing_explanation(&e).unwrap_or_else(|| e.to_string());
         GatewayError::Other(anyhow::anyhow!("chat.postMessage: {detail}"))
     })?;
-    context
-        .bot_message_timestamps
-        .insert(response.ts.0.clone());
+    context.bot_message_timestamps.insert(response.ts.0.clone());
     Ok(message_handle(&response.channel.0, &response.ts.0))
 }
 

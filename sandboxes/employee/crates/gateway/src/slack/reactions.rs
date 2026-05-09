@@ -24,11 +24,9 @@ pub async fn add(context: &SlackContext, handle: &MessageHandle, emoji: &str) ->
 
 pub async fn remove(context: &SlackContext, handle: &MessageHandle, emoji: &str) -> Result<()> {
     let session = context.open_api_session();
-    let request = SlackApiReactionsRemoveRequest::new(
-        SlackReactionName(emoji.to_string()),
-    )
-    .with_channel(SlackChannelId(handle.channel.clone()))
-    .with_timestamp(SlackTs(handle.ts.clone()));
+    let request = SlackApiReactionsRemoveRequest::new(SlackReactionName(emoji.to_string()))
+        .with_channel(SlackChannelId(handle.channel.clone()))
+        .with_timestamp(SlackTs(handle.ts.clone()));
     if let Err(error) = session.reactions_remove(&request).await {
         if reaction_does_not_exist(&error) {
             return Ok(());

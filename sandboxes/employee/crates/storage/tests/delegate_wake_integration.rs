@@ -59,7 +59,10 @@ async fn delegate_parallel_creates_subagents_with_isolated_goals() {
     let repo = setup_repo().await;
 
     // Simulate: agent delegates 3 tasks
-    for (i, goal) in ["analyze issues", "check server", "audit security"].iter().enumerate() {
+    for (i, goal) in ["analyze issues", "check server", "audit security"]
+        .iter()
+        .enumerate()
+    {
         let job = CronJob {
             id: format!("delegate-bg-{}", i),
             task_prompt: format!("Goal: {}", goal),
@@ -72,7 +75,10 @@ async fn delegate_parallel_creates_subagents_with_isolated_goals() {
 
     // Verify delegated jobs are NOT in cron list
     let crons = repo.list_by_source(CronJobSource::Cron).await.unwrap();
-    assert!(crons.is_empty(), "delegated jobs should not appear in cron list");
+    assert!(
+        crons.is_empty(),
+        "delegated jobs should not appear in cron list"
+    );
 
     // Verify delegated jobs ARE in delegate list
     let dels = repo.list_by_source(CronJobSource::Delegate).await.unwrap();
@@ -113,8 +119,10 @@ async fn regular_cron_does_not_have_session_continuity() {
     repo.create(&daily).await.unwrap();
 
     let fetched = repo.get("daily-report").await.unwrap().unwrap();
-    assert!(fetched.session_continuation_id.is_none(),
-        "regular recurring crons should NOT have session continuity");
+    assert!(
+        fetched.session_continuation_id.is_none(),
+        "regular recurring crons should NOT have session continuity"
+    );
     assert_eq!(fetched.interval_seconds, Some(86400));
 }
 
@@ -125,8 +133,12 @@ async fn user_only_sees_their_cron_jobs_not_delegated() {
     let repo = setup_repo().await;
 
     // User creates 2 cron jobs
-    repo.create(&test_job("morning-report", CronJobSource::Cron, 86400)).await.unwrap();
-    repo.create(&test_job("afternoon-check", CronJobSource::Cron, 43200)).await.unwrap();
+    repo.create(&test_job("morning-report", CronJobSource::Cron, 86400))
+        .await
+        .unwrap();
+    repo.create(&test_job("afternoon-check", CronJobSource::Cron, 43200))
+        .await
+        .unwrap();
 
     // Agent creates 1 delegated background task
     let mut bg = test_job("bg-task", CronJobSource::Delegate, 0);
@@ -176,7 +188,8 @@ async fn multiple_wake_crons_preserve_different_sessions() {
     let all = repo.list_all().await.unwrap();
     assert_eq!(all.len(), 3);
 
-    let sessions: Vec<_> = all.iter()
+    let sessions: Vec<_> = all
+        .iter()
         .filter_map(|j| j.session_continuation_id.as_deref())
         .collect();
     assert!(sessions.contains(&"C123-thread-1"));

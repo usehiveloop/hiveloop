@@ -59,7 +59,11 @@ pub struct BashExecResult {
 
 #[async_trait]
 pub trait BashOperations: Send + Sync + 'static {
-    async fn exec(&self, command: &str, options: BashExecOptions) -> Result<BashExecResult, BashError>;
+    async fn exec(
+        &self,
+        command: &str,
+        options: BashExecOptions,
+    ) -> Result<BashExecResult, BashError>;
 }
 
 #[derive(Default)]
@@ -135,8 +139,14 @@ impl BashOperations for LocalBashOperations {
             .spawn()
             .map_err(|e| BashError::Spawn(e.to_string()))?;
 
-        let mut stdout = child.stdout.take().ok_or_else(|| BashError::Spawn("stdout".into()))?;
-        let mut stderr = child.stderr.take().ok_or_else(|| BashError::Spawn("stderr".into()))?;
+        let mut stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| BashError::Spawn("stdout".into()))?;
+        let mut stderr = child
+            .stderr
+            .take()
+            .ok_or_else(|| BashError::Spawn("stderr".into()))?;
         let max_bytes = options.max_output_bytes as usize;
 
         let stdout_task = tokio::spawn(async move {

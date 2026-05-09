@@ -9,10 +9,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::operations::ReadOperations;
-use crate::path::{
-    build_glob_set, enforce_deny_globs, resolve_within_workspace, PathPolicyError,
-};
-use crate::truncate::{truncate_head, DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, TruncationReason};
+use crate::path::{build_glob_set, enforce_deny_globs, resolve_within_workspace, PathPolicyError};
+use crate::truncate::{truncate_head, TruncationReason, DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES};
 use crate::{schema_for, JsonTool, ToolDefinition};
 
 const TOOL_NAME: &str = "read_file";
@@ -59,8 +57,8 @@ impl ReadTool {
     }
 
     async fn execute(&self, args: Value) -> Result<Value> {
-        let parsed: ReadArgs = serde_json::from_value(args)
-            .map_err(|e| anyhow!("invalid arguments: {e}"))?;
+        let parsed: ReadArgs =
+            serde_json::from_value(args).map_err(|e| anyhow!("invalid arguments: {e}"))?;
         let resolved = resolve_within_workspace(
             &self.workspace_root,
             &parsed.path,
@@ -100,16 +98,12 @@ impl ReadTool {
         let text = match String::from_utf8(bytes) {
             Ok(text) => text,
             Err(_) => {
-                return Err(anyhow!(
-                    "{} is not valid UTF-8",
-                    parsed.path
-                ));
+                return Err(anyhow!("{} is not valid UTF-8", parsed.path));
             }
         };
 
         let sliced = slice_for_offset_limit(&text, parsed.offset, parsed.limit)?;
-        let truncated =
-            truncate_head(&sliced, DEFAULT_MAX_LINES, DEFAULT_MAX_BYTES);
+        let truncated = truncate_head(&sliced, DEFAULT_MAX_LINES, DEFAULT_MAX_BYTES);
 
         Ok(json!({
             "path": resolved.display().to_string(),

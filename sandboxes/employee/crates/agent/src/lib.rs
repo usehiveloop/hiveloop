@@ -3,12 +3,12 @@ use domain::SessionId;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 
-pub mod model_client;
 pub mod history;
+pub mod model_client;
 pub mod primitives;
 pub mod request_builder;
-pub mod runner;
 pub mod rig_tool_registry;
+pub mod runner;
 pub use runner::RigAgentRunner;
 
 #[derive(Debug, Clone)]
@@ -64,7 +64,9 @@ impl TurnInput {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum AgentEvent {
-    TokenChunk { text: String },
+    TokenChunk {
+        text: String,
+    },
     ToolCall {
         id: String,
         tool: String,
@@ -74,8 +76,12 @@ pub enum AgentEvent {
         id: String,
         result: serde_json::Value,
     },
-    FinalMessage { text: String },
-    Error { message: String },
+    FinalMessage {
+        text: String,
+    },
+    Error {
+        message: String,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]

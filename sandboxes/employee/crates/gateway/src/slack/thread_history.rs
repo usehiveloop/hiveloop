@@ -74,8 +74,8 @@ async fn fetch_replies_from_slack(
             .as_ref()
             .map(|u| u.0.clone())
             .unwrap_or_default();
-        let is_bot_authored = !bot_user_id.is_empty()
-            && (user == bot_user_id || raw.sender.bot_id.is_some());
+        let is_bot_authored =
+            !bot_user_id.is_empty() && (user == bot_user_id || raw.sender.bot_id.is_some());
         let raw_text = raw.content.text.clone().unwrap_or_default();
         if raw_text.trim().is_empty() {
             continue;

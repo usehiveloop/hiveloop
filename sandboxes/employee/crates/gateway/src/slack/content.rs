@@ -39,10 +39,7 @@ fn walk_block_for_text(node: &Value, out: &mut String) {
         }
         return;
     };
-    let node_type = map
-        .get("type")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
+    let node_type = map.get("type").and_then(|v| v.as_str()).unwrap_or("");
     match node_type {
         "rich_text_quote" => {
             let mut quote_text = String::new();

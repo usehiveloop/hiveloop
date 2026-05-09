@@ -51,9 +51,18 @@ impl McpSpec {
 
     pub fn default_enabled_tools(&self) -> &[String] {
         match self {
-            Self::Stdio { default_enabled_tools, .. }
-            | Self::Http { default_enabled_tools, .. }
-            | Self::StreamableHttp { default_enabled_tools, .. } => default_enabled_tools,
+            Self::Stdio {
+                default_enabled_tools,
+                ..
+            }
+            | Self::Http {
+                default_enabled_tools,
+                ..
+            }
+            | Self::StreamableHttp {
+                default_enabled_tools,
+                ..
+            } => default_enabled_tools,
         }
     }
 }

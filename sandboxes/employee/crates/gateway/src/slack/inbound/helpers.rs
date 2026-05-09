@@ -41,7 +41,11 @@ pub fn slack_files_to_attachments(files: &[SlackFile]) -> Vec<domain::Attachment
                 .map(|u| u.to_string())?;
             Some(domain::Attachment {
                 url,
-                mime_type: file.mimetype.as_ref().map(|m| m.0.clone()).unwrap_or_default(),
+                mime_type: file
+                    .mimetype
+                    .as_ref()
+                    .map(|m| m.0.clone())
+                    .unwrap_or_default(),
                 name: file
                     .name
                     .clone()

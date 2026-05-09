@@ -31,11 +31,7 @@ pub trait ChannelGateway: Send + Sync + 'static {
     fn platform(&self) -> &'static str;
     async fn run(&self, sink: mpsc::Sender<InboundEvent>) -> Result<()>;
     async fn reply(&self, session_id: &SessionId, body: Reply) -> Result<MessageHandle>;
-    async fn post_to_channel(
-        &self,
-        channel: &str,
-        body: Reply,
-    ) -> Result<MessageHandle>;
+    async fn post_to_channel(&self, channel: &str, body: Reply) -> Result<MessageHandle>;
     async fn edit(&self, handle: &MessageHandle, body: Reply) -> Result<()>;
     async fn typing(&self, session_id: &SessionId) -> Result<()>;
     async fn stop_typing(&self, session_id: &SessionId) -> Result<()>;

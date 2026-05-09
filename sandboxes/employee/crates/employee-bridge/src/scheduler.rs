@@ -47,7 +47,9 @@ impl CronScheduler {
         }
         let interval = job.interval_seconds?;
         let stale_threshold = (interval as f64 * STALE_GRACE_MULTIPLIER).max(120.0) as i64;
-        let lag = Utc::now().signed_duration_since(job.next_run_at).num_seconds();
+        let lag = Utc::now()
+            .signed_duration_since(job.next_run_at)
+            .num_seconds();
         if lag > stale_threshold * 2 {
             info!(
                 job_id = %job.id,
@@ -81,7 +83,11 @@ impl CronScheduler {
         );
         let envelope_id = format!("cron-{}", Utc::now().timestamp_millis());
 
-        if let Err(e) = self.repo.record_run(&job.id, Utc::now(), "running", None).await {
+        if let Err(e) = self
+            .repo
+            .record_run(&job.id, Utc::now(), "running", None)
+            .await
+        {
             error!(job_id = %job.id, error = %e, "cron: failed to record run start");
         }
 
@@ -111,7 +117,10 @@ impl CronScheduler {
 
         if let Err(e) = self.inbound_sink.send(inbound).await {
             error!(job_id = %job.id, error = %e, "cron: failed to dispatch");
-            let _ = self.repo.record_run(&job.id, Utc::now(), "error", Some(&e.to_string())).await;
+            let _ = self
+                .repo
+                .record_run(&job.id, Utc::now(), "error", Some(&e.to_string()))
+                .await;
             return;
         }
 

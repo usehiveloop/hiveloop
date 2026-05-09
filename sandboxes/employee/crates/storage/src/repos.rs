@@ -47,11 +47,7 @@ pub trait EventRepo: Send + Sync + 'static {
         kind: EventKind,
         payload: serde_json::Value,
     ) -> Result<i64>;
-    async fn list_recent(
-        &self,
-        session_id: &SessionId,
-        limit: u32,
-    ) -> Result<Vec<SessionEvent>>;
+    async fn list_recent(&self, session_id: &SessionId, limit: u32) -> Result<Vec<SessionEvent>>;
     async fn list_chronological(
         &self,
         session_id: &SessionId,
@@ -104,7 +100,13 @@ pub trait CronJobRepo: Send + Sync + 'static {
     async fn update_interval(&self, id: &str, interval_seconds: u64) -> Result<()>;
     async fn update_next_run(&self, id: &str, next_run_at: DateTime<Utc>) -> Result<()>;
     async fn set_state(&self, id: &str, state: CronJobState) -> Result<()>;
-    async fn record_run(&self, id: &str, run_at: DateTime<Utc>, status: &str, error: Option<&str>) -> Result<()>;
+    async fn record_run(
+        &self,
+        id: &str,
+        run_at: DateTime<Utc>,
+        status: &str,
+        error: Option<&str>,
+    ) -> Result<()>;
     async fn increment_repeat(&self, id: &str) -> Result<()>;
     async fn delete(&self, id: &str) -> Result<()>;
 }

@@ -78,6 +78,9 @@ pub struct CompactionConfig {
     pub summarizer_model: ModelConfig,
 }
 
-fn default_overlap() -> u32 { 10 }
-fn default_chars_per_token() -> u32 { 4 }
-
+fn default_overlap() -> u32 {
+    10
+}
+fn default_chars_per_token() -> u32 {
+    4
+}

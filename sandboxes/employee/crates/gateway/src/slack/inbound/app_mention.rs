@@ -30,7 +30,9 @@ pub async fn handle_app_mention(
     let channel = payload.channel.0;
     let message_ts = payload.origin.ts.0;
     let original_thread_ts = payload.origin.thread_ts.as_ref().map(|t| t.0.clone());
-    let thread_ts = original_thread_ts.clone().unwrap_or_else(|| message_ts.clone());
+    let thread_ts = original_thread_ts
+        .clone()
+        .unwrap_or_else(|| message_ts.clone());
     let is_synthetic_thread = original_thread_ts.is_none();
 
     context
@@ -52,7 +54,9 @@ pub async fn handle_app_mention(
         Vec::new()
     };
     let link_previews = if slack_cfg.extract_link_unfurls {
-        extract_link_previews_from_attachments(payload.content.attachments.as_deref().unwrap_or(&[]))
+        extract_link_previews_from_attachments(
+            payload.content.attachments.as_deref().unwrap_or(&[]),
+        )
     } else {
         Vec::new()
     };

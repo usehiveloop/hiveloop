@@ -19,7 +19,9 @@ pub use event::SqliteEventRepo;
 pub use outbox::SqliteOutboxRepo;
 pub use session::SqliteSessionRepo;
 
-pub async fn init_sqlite_pool(database_path: impl AsRef<Path>) -> Result<Arc<SqlitePool>, sqlx::Error> {
+pub async fn init_sqlite_pool(
+    database_path: impl AsRef<Path>,
+) -> Result<Arc<SqlitePool>, sqlx::Error> {
     let path = database_path.as_ref();
     if let Some(parent) = path.parent() {
         if !parent.as_os_str().is_empty() {

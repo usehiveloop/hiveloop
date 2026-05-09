@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use tools::{LocalBashOperations, BashOperations, BashExecOptions};
+use tools::{BashExecOptions, BashOperations, LocalBashOperations};
 
 fn bash() -> LocalBashOperations {
     LocalBashOperations::default()
@@ -32,14 +32,20 @@ async fn command_that_fails_returns_exit_code() {
 
 #[tokio::test]
 async fn piped_commands_work() {
-    let result = bash().exec("echo 'a\nb\nc' | wc -l", opts(5)).await.unwrap();
+    let result = bash()
+        .exec("echo 'a\nb\nc' | wc -l", opts(5))
+        .await
+        .unwrap();
     assert_eq!(result.exit_code, Some(0));
     assert!(String::from_utf8_lossy(&result.stdout_combined).trim() == "3");
 }
 
 #[tokio::test]
 async fn stderr_is_captured_with_stdout() {
-    let result = bash().exec("echo ok && echo err >&2", opts(5)).await.unwrap();
+    let result = bash()
+        .exec("echo ok && echo err >&2", opts(5))
+        .await
+        .unwrap();
     let output = String::from_utf8_lossy(&result.stdout_combined);
     assert!(output.contains("ok"));
     assert!(output.contains("err"));
@@ -53,7 +59,10 @@ async fn timed_out_command_reports_timeout() {
 
 #[tokio::test]
 async fn multiline_output_is_preserved() {
-    let result = bash().exec("printf 'line1\nline2\nline3\nline4\nline5\n'", opts(5)).await.unwrap();
+    let result = bash()
+        .exec("printf 'line1\nline2\nline3\nline4\nline5\n'", opts(5))
+        .await
+        .unwrap();
     let output = String::from_utf8_lossy(&result.stdout_combined);
     assert!(output.contains("line1"));
     assert!(output.contains("line5"));

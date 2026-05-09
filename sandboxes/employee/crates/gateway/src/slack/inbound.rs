@@ -23,10 +23,9 @@ pub async fn handle_push_event(
 
     let envelope_event_id = event.event_id.0.clone();
     let dedupe_key = match &event.event {
-        SlackEventCallbackBody::AppMention(payload) => Some(format!(
-            "{}-{}",
-            payload.channel.0, payload.origin.ts.0
-        )),
+        SlackEventCallbackBody::AppMention(payload) => {
+            Some(format!("{}-{}", payload.channel.0, payload.origin.ts.0))
+        }
         SlackEventCallbackBody::Message(payload) => payload
             .origin
             .channel
@@ -63,7 +62,10 @@ async fn record_message_or_drop_duplicate(context: &SlackContext, dedupe_key: &s
     cache.put(dedupe_key.to_string(), ()).is_none()
 }
 
-fn try_cache_assistant_thread_metadata(context: &SlackContext, payload: &Option<serde_json::Value>) {
+fn try_cache_assistant_thread_metadata(
+    context: &SlackContext,
+    payload: &Option<serde_json::Value>,
+) {
     let Some(value) = payload else { return };
     let event_obj = value.get("event").and_then(|v| v.as_object());
     let Some(event_obj) = event_obj else { return };
@@ -71,7 +73,9 @@ fn try_cache_assistant_thread_metadata(context: &SlackContext, payload: &Option<
         .get("assistant_thread")
         .and_then(|v| v.as_object())
         .or_else(|| event_obj.get("context").and_then(|v| v.as_object()));
-    let Some(thread_obj) = context_obj else { return };
+    let Some(thread_obj) = context_obj else {
+        return;
+    };
     let user_id = thread_obj
         .get("user_id")
         .and_then(|v| v.as_str())

@@ -4,7 +4,9 @@ use domain::{OutboundChannelKind, OutboundChannelSpec};
 use sqlx::SqlitePool;
 use tracing::{info, warn};
 
-use crate::{DatabaseChannel, OutboundChannel, OutboundError, OutboundRegistry, Result, WebhookChannel};
+use crate::{
+    DatabaseChannel, OutboundChannel, OutboundError, OutboundRegistry, Result, WebhookChannel,
+};
 
 pub fn build_registry(
     sqlite_pool: Arc<SqlitePool>,

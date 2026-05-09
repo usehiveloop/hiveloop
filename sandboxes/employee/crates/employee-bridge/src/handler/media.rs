@@ -40,7 +40,13 @@ pub async fn collect_media_for_turn(
                 );
             }
         } else if attachment.mime_type.starts_with("audio/") {
-            handle_audio(gateway, attachment, &mut audio_summaries, &mut failure_notices).await;
+            handle_audio(
+                gateway,
+                attachment,
+                &mut audio_summaries,
+                &mut failure_notices,
+            )
+            .await;
         } else if is_text_inlinable_mime(&attachment.mime_type)
             || mime_is_textual_extension(&attachment.name)
         {
@@ -174,9 +180,33 @@ fn is_text_inlinable_mime(mime: &str) -> bool {
 fn mime_is_textual_extension(name: &str) -> bool {
     let lower = name.to_lowercase();
     [
-        ".md", ".txt", ".csv", ".json", ".yaml", ".yml", ".toml", ".xml", ".ini", ".cfg", ".log",
-        ".rst", ".sql", ".py", ".rs", ".ts", ".js", ".tsx", ".jsx", ".html", ".css", ".sh",
-        ".bash", ".zsh", ".fish", ".env", ".dockerfile",
+        ".md",
+        ".txt",
+        ".csv",
+        ".json",
+        ".yaml",
+        ".yml",
+        ".toml",
+        ".xml",
+        ".ini",
+        ".cfg",
+        ".log",
+        ".rst",
+        ".sql",
+        ".py",
+        ".rs",
+        ".ts",
+        ".js",
+        ".tsx",
+        ".jsx",
+        ".html",
+        ".css",
+        ".sh",
+        ".bash",
+        ".zsh",
+        ".fish",
+        ".env",
+        ".dockerfile",
     ]
     .iter()
     .any(|extension| lower.ends_with(extension))

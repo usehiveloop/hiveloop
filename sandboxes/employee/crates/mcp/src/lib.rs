@@ -1,4 +1,4 @@
-use dashmap::DashSet;
+use dashmap::{DashMap, DashSet};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -7,11 +7,13 @@ use http::{HeaderName, HeaderValue};
 use rmcp::{
     model::{CallToolRequestParams, JsonObject},
     service::RunningService,
-    Peer, RoleClient, ServiceExt,
     transport::{
+        streamable_http_client::{
+            StreamableHttpClientTransport, StreamableHttpClientTransportConfig,
+        },
         TokioChildProcess,
-        streamable_http_client::{StreamableHttpClientTransport, StreamableHttpClientTransportConfig},
     },
+    Peer, RoleClient, ServiceExt,
 };
 use tokio::process::Command;
 use tracing::{error, info, warn};
@@ -33,13 +35,14 @@ pub struct McpToolDefinition {
 
 pub struct McpRegistry {
     entries: Vec<McpEntry>,
-    loaded: Arc<DashSet<String>>,
+    default_loaded: Arc<DashSet<String>>,
+    session_loaded: DashMap<String, Arc<DashSet<String>>>,
 }
 
 impl McpRegistry {
     pub async fn from_specs(specs: &[McpSpec]) -> Self {
         let mut entries: Vec<McpEntry> = Vec::new();
-        let loaded = Arc::new(DashSet::new());
+        let default_loaded = Arc::new(DashSet::new());
 
         for spec in specs {
             match connect_and_discover(spec).await {
@@ -49,24 +52,35 @@ impl McpRegistry {
                             raw == default_name || pfx.as_str() == default_name.as_str()
                         });
                         if let Some((_pfx, raw_name)) = found {
-                            loaded.insert(raw_name.clone());
+                            default_loaded.insert(raw_name.clone());
                             info!(name = %default_name, server = %server_name, "MCP tool auto-loaded");
                         } else {
                             warn!(name = %default_name, server = %server_name, "default_enabled_tool not found");
                         }
                     }
-                    info!(server = %server_name, tool_count = tool_names.len(), loaded = loaded.len(), "MCP server connected");
-                    entries.push(McpEntry { _service: service, peer, tool_names, tools });
+                    info!(server = %server_name, tool_count = tool_names.len(), loaded = default_loaded.len(), "MCP server connected");
+                    entries.push(McpEntry {
+                        _service: service,
+                        peer,
+                        tool_names,
+                        tools,
+                    });
                 }
                 Err(e) => error!(name = %spec.name(), error = %e, "failed to connect MCP server"),
             }
         }
 
-        Self { entries, loaded }
+        Self {
+            entries,
+            default_loaded,
+            session_loaded: DashMap::new(),
+        }
     }
 
     pub fn available_tool_names(&self) -> Vec<String> {
-        let mut names: Vec<String> = self.entries.iter()
+        let mut names: Vec<String> = self
+            .entries
+            .iter()
             .flat_map(|e| e.tool_names.iter().map(|(pfx, _)| pfx.clone()))
             .collect();
         names.sort();
@@ -75,10 +89,14 @@ impl McpRegistry {
     }
 
     pub fn loaded_tool_names(&self) -> Vec<String> {
+        self.loaded_tool_names_for_session("")
+    }
+
+    pub fn loaded_tool_names_for_session(&self, session_id: &str) -> Vec<String> {
         let mut names: Vec<String> = Vec::new();
         for entry in &self.entries {
             for (prefixed, raw) in &entry.tool_names {
-                if self.loaded.contains(raw) {
+                if self.is_raw_loaded_for_session(raw, session_id) {
                     names.push(prefixed.clone());
                 }
             }
@@ -88,10 +106,14 @@ impl McpRegistry {
     }
 
     pub fn unloaded_tool_names(&self) -> Vec<String> {
+        self.unloaded_tool_names_for_session("")
+    }
+
+    pub fn unloaded_tool_names_for_session(&self, session_id: &str) -> Vec<String> {
         let mut names: Vec<String> = Vec::new();
         for entry in &self.entries {
             for (prefixed, raw) in &entry.tool_names {
-                if !self.loaded.contains(raw) {
+                if !self.is_raw_loaded_for_session(raw, session_id) {
                     names.push(prefixed.clone());
                 }
             }
@@ -101,20 +123,36 @@ impl McpRegistry {
     }
 
     pub fn is_loaded(&self, tool_name: &str) -> bool {
-        self.loaded.contains(tool_name)
+        self.default_loaded.contains(tool_name)
     }
 
     pub fn load_tools(&self, names: &[String]) -> Vec<String> {
-        let all: Vec<(&str, &str)> = self.entries.iter()
-            .flat_map(|e| e.tool_names.iter().map(|(pfx, raw)| (pfx.as_str(), raw.as_str())))
+        self.load_tools_for_session("", names)
+    }
+
+    pub fn load_tools_for_session(&self, session_id: &str, names: &[String]) -> Vec<String> {
+        let all: Vec<(&str, &str)> = self
+            .entries
+            .iter()
+            .flat_map(|e| {
+                e.tool_names
+                    .iter()
+                    .map(|(pfx, raw)| (pfx.as_str(), raw.as_str()))
+            })
             .collect();
 
         let mut loaded = Vec::new();
         let mut not_found = Vec::new();
+        let session_loaded = self.session_loaded_set(session_id);
 
         for name in names {
-            if let Some((_, raw)) = all.iter().find(|(pfx, r)| *pfx == name.as_str() || *r == name.as_str()) {
-                self.loaded.insert(raw.to_string());
+            if let Some((_, raw)) = all
+                .iter()
+                .find(|(pfx, r)| *pfx == name.as_str() || *r == name.as_str())
+            {
+                if !self.default_loaded.contains(*raw) {
+                    session_loaded.insert(raw.to_string());
+                }
                 loaded.push(name.clone());
             } else {
                 not_found.push(name.clone());
@@ -129,10 +167,14 @@ impl McpRegistry {
     }
 
     pub fn loaded_tools(&self) -> Vec<McpToolDefinition> {
+        self.loaded_tools_for_session("")
+    }
+
+    pub fn loaded_tools_for_session(&self, session_id: &str) -> Vec<McpToolDefinition> {
         let mut tools = Vec::new();
         for entry in &self.entries {
             for tool in &entry.tools {
-                if self.loaded.contains(&tool.raw_name) {
+                if self.is_raw_loaded_for_session(&tool.raw_name, session_id) {
                     tools.push(tool.clone());
                 }
             }
@@ -141,11 +183,30 @@ impl McpRegistry {
         tools
     }
 
-    pub async fn call_tool(&self, prefixed_name: &str, args: serde_json::Value) -> anyhow::Result<serde_json::Value> {
+    pub async fn call_tool(
+        &self,
+        prefixed_name: &str,
+        args: serde_json::Value,
+    ) -> anyhow::Result<serde_json::Value> {
+        self.call_tool_for_session("", prefixed_name, args).await
+    }
+
+    pub async fn call_tool_for_session(
+        &self,
+        session_id: &str,
+        prefixed_name: &str,
+        args: serde_json::Value,
+    ) -> anyhow::Result<serde_json::Value> {
         for entry in &self.entries {
-            if let Some((_, raw)) = entry.tool_names.iter().find(|(pfx, _)| pfx == prefixed_name) {
-                if !self.loaded.contains(raw) {
-                    anyhow::bail!("Tool '{prefixed_name}' is not loaded yet. Call load_tools first.");
+            if let Some((_, raw)) = entry
+                .tool_names
+                .iter()
+                .find(|(pfx, _)| pfx == prefixed_name)
+            {
+                if !self.is_raw_loaded_for_session(raw, session_id) {
+                    anyhow::bail!(
+                        "Tool '{prefixed_name}' is not loaded yet. Call load_tools first."
+                    );
                 }
                 let arguments = match args {
                     serde_json::Value::Object(map) => map,
@@ -165,27 +226,78 @@ impl McpRegistry {
         }
         anyhow::bail!("MCP tool '{prefixed_name}' not found")
     }
+
+    fn is_raw_loaded_for_session(&self, raw_name: &str, session_id: &str) -> bool {
+        if self.default_loaded.contains(raw_name) {
+            return true;
+        }
+        self.session_loaded
+            .get(session_id)
+            .is_some_and(|loaded| loaded.contains(raw_name))
+    }
+
+    fn session_loaded_set(&self, session_id: &str) -> Arc<DashSet<String>> {
+        if let Some(loaded) = self.session_loaded.get(session_id) {
+            return loaded.clone();
+        }
+        let loaded = Arc::new(DashSet::new());
+        let existing = self
+            .session_loaded
+            .insert(session_id.to_string(), loaded.clone());
+        existing.unwrap_or(loaded)
+    }
 }
 
-async fn connect_and_discover(spec: &McpSpec) -> anyhow::Result<(RunningService<RoleClient, ()>, Peer<RoleClient>, Vec<(String, String)>, Vec<McpToolDefinition>, String)> {
+async fn connect_and_discover(
+    spec: &McpSpec,
+) -> anyhow::Result<(
+    RunningService<RoleClient, ()>,
+    Peer<RoleClient>,
+    Vec<(String, String)>,
+    Vec<McpToolDefinition>,
+    String,
+)> {
     let server_name = spec.name().to_string();
 
     match spec {
-        McpSpec::Stdio { name, command, args, env, tool_filter, .. } => {
+        McpSpec::Stdio {
+            name,
+            command,
+            args,
+            env,
+            tool_filter,
+            ..
+        } => {
             let mut cmd = Command::new(command);
             cmd.args(args.iter().map(|a| a.as_str()));
-            for (key, value) in env { cmd.env(key, value); }
+            for (key, value) in env {
+                cmd.env(key, value);
+            }
             info!(%name, "connecting MCP stdio server");
             let service = ().serve(TokioChildProcess::new(cmd)?).await?;
             let peer = service.peer().clone();
             let (names, tools) = discover_tools(&peer, &server_name, tool_filter).await;
             Ok((service, peer, names, tools, server_name))
         }
-        McpSpec::Http { name, url, headers, tool_filter, .. }
-        | McpSpec::StreamableHttp { name, url, headers, tool_filter, .. } => {
+        McpSpec::Http {
+            name,
+            url,
+            headers,
+            tool_filter,
+            ..
+        }
+        | McpSpec::StreamableHttp {
+            name,
+            url,
+            headers,
+            tool_filter,
+            ..
+        } => {
             let mut config = StreamableHttpClientTransportConfig::with_uri(url.clone());
             let custom_headers = build_headers(headers)?;
-            if !custom_headers.is_empty() { config.custom_headers = custom_headers; }
+            if !custom_headers.is_empty() {
+                config.custom_headers = custom_headers;
+            }
             info!(%name, "connecting MCP HTTP server");
             let service = ().serve(StreamableHttpClientTransport::from_config(config)).await?;
             let peer = service.peer().clone();
@@ -202,7 +314,10 @@ async fn discover_tools(
 ) -> (Vec<(String, String)>, Vec<McpToolDefinition>) {
     let discovered = match peer.list_all_tools().await {
         Ok(t) => t,
-        Err(e) => { warn!(error = %e, "failed to discover tools"); return (vec![], vec![]); }
+        Err(e) => {
+            warn!(error = %e, "failed to discover tools");
+            return (vec![], vec![]);
+        }
     };
     let mut names = Vec::new();
     let mut defs = Vec::new();
@@ -210,10 +325,14 @@ async fn discover_tools(
         let raw = tool.name.to_string();
         if let Some(f) = tool_filter {
             if let Some(ref allow) = f.allow {
-                if !allow.iter().any(|a| a == &raw) { continue; }
+                if !allow.iter().any(|a| a == &raw) {
+                    continue;
+                }
             }
             if let Some(ref deny) = f.deny {
-                if deny.iter().any(|d| d == &raw) { continue; }
+                if deny.iter().any(|d| d == &raw) {
+                    continue;
+                }
             }
         }
         let prefixed = format!("{}_{}", server_name, raw);
@@ -230,7 +349,9 @@ async fn discover_tools(
     (names, defs)
 }
 
-fn build_headers(headers: &HashMap<String, String>) -> Result<HashMap<HeaderName, HeaderValue>, anyhow::Error> {
+fn build_headers(
+    headers: &HashMap<String, String>,
+) -> Result<HashMap<HeaderName, HeaderValue>, anyhow::Error> {
     let mut map = HashMap::new();
     for (key, value) in headers {
         let name = HeaderName::from_bytes(key.as_bytes())?;

@@ -22,16 +22,11 @@ async fn set_thread_status_text(
 ) -> Result<()> {
     let (channel, thread_ts) = split_session_id(session_id)?;
     let session = context.open_api_session();
-    let request = SlackApiAssistantThreadsSetStatusRequest::new(
-        channel,
-        status_text.to_string(),
-        thread_ts,
-    );
+    let request =
+        SlackApiAssistantThreadsSetStatusRequest::new(channel, status_text.to_string(), thread_ts);
     session
         .assistant_threads_set_status(&request)
         .await
-        .map_err(|e| {
-            GatewayError::Other(anyhow::anyhow!("assistant.threads.setStatus: {e}"))
-        })?;
+        .map_err(|e| GatewayError::Other(anyhow::anyhow!("assistant.threads.setStatus: {e}")))?;
     Ok(())
 }

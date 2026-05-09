@@ -1,7 +1,7 @@
 use chrono::Utc;
 use domain::cron::{CronJob, CronJobSource, CronJobState};
-use storage::{CronJobRepo, SqliteCronJobRepo};
 use std::sync::Arc;
+use storage::{CronJobRepo, SqliteCronJobRepo};
 
 fn test_job(id: &str, interval: u64) -> CronJob {
     CronJob {
@@ -125,7 +125,9 @@ async fn record_run_updates_last_run_and_status() {
     assert_eq!(job.last_status.as_deref(), Some("ok"));
     assert!(job.last_error.is_none());
 
-    repo.record_run("job-1", now, "error", Some("timeout")).await.unwrap();
+    repo.record_run("job-1", now, "error", Some("timeout"))
+        .await
+        .unwrap();
     let job = repo.get("job-1").await.unwrap().unwrap();
     assert_eq!(job.last_status.as_deref(), Some("error"));
     assert_eq!(job.last_error.as_deref(), Some("timeout"));
@@ -160,7 +162,9 @@ async fn delete_removes_job() {
 async fn update_prompt_changes_task_prompt() {
     let repo = setup_repo().await;
     repo.create(&test_job("job-1", 60)).await.unwrap();
-    repo.update_prompt("job-1", "new prompt".into()).await.unwrap();
+    repo.update_prompt("job-1", "new prompt".into())
+        .await
+        .unwrap();
     let job = repo.get("job-1").await.unwrap().unwrap();
     assert_eq!(job.task_prompt, "new prompt");
 }
@@ -217,7 +221,9 @@ async fn paused_jobs_are_not_due() {
 async fn completed_state_persists() {
     let repo = setup_repo().await;
     repo.create(&test_job("done", 60)).await.unwrap();
-    repo.set_state("done", CronJobState::Completed).await.unwrap();
+    repo.set_state("done", CronJobState::Completed)
+        .await
+        .unwrap();
     let job = repo.get("done").await.unwrap().unwrap();
     assert_eq!(job.state, CronJobState::Completed);
 }
@@ -229,7 +235,10 @@ async fn wake_cron_stores_session_continuation_id() {
     job.session_continuation_id = Some("C123-1778211804".into());
     repo.create(&job).await.unwrap();
     let fetched = repo.get("wake-1").await.unwrap().unwrap();
-    assert_eq!(fetched.session_continuation_id.as_deref(), Some("C123-1778211804"));
+    assert_eq!(
+        fetched.session_continuation_id.as_deref(),
+        Some("C123-1778211804")
+    );
     assert_eq!(fetched.interval_seconds, Some(300));
 }
 
@@ -242,8 +251,14 @@ async fn wake_cron_next_run_is_now_plus_interval() {
     job.session_continuation_id = Some("C123-sess".into());
     repo.create(&job).await.unwrap();
     let fetched = repo.get("wake-2").await.unwrap().unwrap();
-    let diff = (fetched.next_run_at - (now + chrono::Duration::seconds(300))).num_seconds().abs();
-    assert!(diff < 2, "next_run_at should be ~now+300s, got diff={}", diff);
+    let diff = (fetched.next_run_at - (now + chrono::Duration::seconds(300)))
+        .num_seconds()
+        .abs();
+    assert!(
+        diff < 2,
+        "next_run_at should be ~now+300s, got diff={}",
+        diff
+    );
     assert!(fetched.session_continuation_id.is_some());
 }
 
@@ -277,7 +292,10 @@ async fn multiple_wake_crons_independent() {
     }
     let all = repo.list_all().await.unwrap();
     assert_eq!(all.len(), 3);
-    let ids: Vec<_> = all.iter().map(|j| j.session_continuation_id.as_deref().unwrap()).collect();
+    let ids: Vec<_> = all
+        .iter()
+        .map(|j| j.session_continuation_id.as_deref().unwrap())
+        .collect();
     assert!(ids.contains(&"session-1"));
     assert!(ids.contains(&"session-2"));
     assert!(ids.contains(&"session-3"));

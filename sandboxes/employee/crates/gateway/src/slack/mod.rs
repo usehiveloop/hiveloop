@@ -1,5 +1,5 @@
-mod context;
 mod content;
+mod context;
 mod diagnostics;
 mod files;
 mod filters;
@@ -75,8 +75,8 @@ impl ChannelGateway for SlackGateway {
         self.context.set_runtime_state(sink, bot_user_id);
         context::install_global(self.context.clone())?;
 
-        let callbacks = SlackSocketModeListenerCallbacks::new()
-            .with_push_events(inbound::handle_push_event);
+        let callbacks =
+            SlackSocketModeListenerCallbacks::new().with_push_events(inbound::handle_push_event);
 
         let listener_environment = Arc::new(
             SlackClientEventsListenerEnvironment::new(self.client.clone())

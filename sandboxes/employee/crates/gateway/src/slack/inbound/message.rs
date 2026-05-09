@@ -60,7 +60,9 @@ pub async fn handle_message(
 
     let message_ts = payload.origin.ts.0.clone();
     let original_thread_ts = payload.origin.thread_ts.as_ref().map(|t| t.0.clone());
-    let thread_ts = original_thread_ts.clone().unwrap_or_else(|| message_ts.clone());
+    let thread_ts = original_thread_ts
+        .clone()
+        .unwrap_or_else(|| message_ts.clone());
     let is_synthetic_thread = original_thread_ts.is_none();
 
     let raw_text = raw_text_initial;

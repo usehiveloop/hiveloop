@@ -4,7 +4,10 @@ mod state;
 
 use std::net::SocketAddr;
 
-use axum::{routing::{get, put}, Router};
+use axum::{
+    routing::{get, put},
+    Router,
+};
 use tokio::sync::oneshot;
 use tracing::{info, warn};
 
@@ -12,7 +15,10 @@ pub use state::ApiState;
 
 pub fn build_router(state: ApiState) -> Router {
     Router::new()
-        .route("/config", put(handlers::put_config).get(handlers::get_config))
+        .route(
+            "/config",
+            put(handlers::put_config).get(handlers::get_config),
+        )
         .route("/sessions", get(handlers::list_sessions))
         .route(
             "/sessions/:channel/:thread_ts",

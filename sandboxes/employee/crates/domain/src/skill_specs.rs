@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{model_config::ModelConfig, tool_specs::ToolSpec, agent_definition::Limits};
+use crate::{agent_definition::Limits, model_config::ModelConfig, tool_specs::ToolSpec};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillSpec {

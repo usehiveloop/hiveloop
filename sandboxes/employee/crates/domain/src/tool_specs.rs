@@ -65,6 +65,3 @@ pub struct WriteFileConfig {
 fn default_atomic() -> bool {
     true
 }
-
-
-

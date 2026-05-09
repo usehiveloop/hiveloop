@@ -1,7 +1,5 @@
 use chrono::Utc;
-use domain::{
-    event_types, InboundEvent, OutboundEvent, Session, SessionId, SessionStatus,
-};
+use domain::{event_types, InboundEvent, OutboundEvent, Session, SessionId, SessionStatus};
 use outbound::OutboundEmitter;
 use storage::SessionRepo;
 use tracing::warn;

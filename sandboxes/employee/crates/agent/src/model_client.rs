@@ -113,11 +113,26 @@ fn parse_usage(value: &Value) -> Option<ProviderUsage> {
     let usage = value.get("usage")?;
     let details = usage.get("prompt_tokens_details").unwrap_or(&Value::Null);
     Some(ProviderUsage {
-        prompt_tokens: usage.get("prompt_tokens").and_then(|v| v.as_i64()).unwrap_or_default(),
-        completion_tokens: usage.get("completion_tokens").and_then(|v| v.as_i64()).unwrap_or_default(),
-        total_tokens: usage.get("total_tokens").and_then(|v| v.as_i64()).unwrap_or_default(),
-        cached_tokens: details.get("cached_tokens").and_then(|v| v.as_i64()).unwrap_or_default(),
-        cache_write_tokens: details.get("cache_write_tokens").and_then(|v| v.as_i64()).unwrap_or_default(),
+        prompt_tokens: usage
+            .get("prompt_tokens")
+            .and_then(|v| v.as_i64())
+            .unwrap_or_default(),
+        completion_tokens: usage
+            .get("completion_tokens")
+            .and_then(|v| v.as_i64())
+            .unwrap_or_default(),
+        total_tokens: usage
+            .get("total_tokens")
+            .and_then(|v| v.as_i64())
+            .unwrap_or_default(),
+        cached_tokens: details
+            .get("cached_tokens")
+            .and_then(|v| v.as_i64())
+            .unwrap_or_default(),
+        cache_write_tokens: details
+            .get("cache_write_tokens")
+            .and_then(|v| v.as_i64())
+            .unwrap_or_default(),
         cost: usage.get("cost").and_then(|v| v.as_f64()),
         raw: Some(usage.clone()),
     })
@@ -155,9 +170,14 @@ impl ToolCallAccumulator {
             .into_iter()
             .filter(|call| !call.name.is_empty())
             .map(|call| ToolCall {
-                id: if call.id.is_empty() { format!("tool_{}", call.name) } else { call.id },
+                id: if call.id.is_empty() {
+                    format!("tool_{}", call.name)
+                } else {
+                    call.id
+                },
                 name: call.name,
-                arguments: serde_json::from_str(&call.arguments).unwrap_or_else(|_| serde_json::json!({})),
+                arguments: serde_json::from_str(&call.arguments)
+                    .unwrap_or_else(|_| serde_json::json!({})),
             })
             .collect()
     }

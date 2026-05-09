@@ -62,8 +62,8 @@ impl EditTool {
     }
 
     async fn execute(&self, args: Value) -> Result<Value> {
-        let parsed: EditArgs = serde_json::from_value(args)
-            .map_err(|e| anyhow!("invalid arguments: {e}"))?;
+        let parsed: EditArgs =
+            serde_json::from_value(args).map_err(|e| anyhow!("invalid arguments: {e}"))?;
         if parsed.edits.is_empty() {
             return Err(anyhow!("`edits` must contain at least one entry"));
         }
@@ -122,7 +122,11 @@ impl EditTool {
             let operations = operations.clone();
             let path_for_write = path_for_write.clone();
             let bytes_for_write = bytes_for_write.clone();
-            async move { operations.write_file(&path_for_write, &bytes_for_write).await }
+            async move {
+                operations
+                    .write_file(&path_for_write, &bytes_for_write)
+                    .await
+            }
         })
         .await;
         outcome.map_err(|e| anyhow!("write failed for {}: {e}", parsed.path))?;

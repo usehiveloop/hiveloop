@@ -98,8 +98,7 @@ impl OutboundChannel for WebhookChannel {
 }
 
 fn compute_signature(secret: &str, body: &[u8]) -> String {
-    let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes())
-        .expect("hmac key any length");
+    let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("hmac key any length");
     mac.update(body);
     hex::encode(mac.finalize().into_bytes())
 }

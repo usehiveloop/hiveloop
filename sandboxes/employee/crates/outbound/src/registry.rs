@@ -27,7 +27,10 @@ impl OutboundRegistry {
         &self.channels
     }
 
-    pub fn matching<'a>(&'a self, event_type: &'a str) -> impl Iterator<Item = &'a Arc<dyn OutboundChannel>> {
+    pub fn matching<'a>(
+        &'a self,
+        event_type: &'a str,
+    ) -> impl Iterator<Item = &'a Arc<dyn OutboundChannel>> {
         self.channels
             .iter()
             .filter(move |channel| channel.accepts(event_type))
@@ -41,9 +44,6 @@ impl OutboundRegistry {
     }
 
     pub fn names(&self) -> Vec<String> {
-        self.channels
-            .iter()
-            .map(|c| c.name().to_string())
-            .collect()
+        self.channels.iter().map(|c| c.name().to_string()).collect()
     }
 }

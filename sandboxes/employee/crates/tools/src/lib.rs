@@ -40,9 +40,11 @@ pub trait JsonTool: Send + Sync {
 }
 
 pub fn schema_for<T: schemars::JsonSchema>() -> Value {
-    serde_json::to_value(schemars::schema_for!(T)).unwrap_or_else(|_| serde_json::json!({"type":"object"}))
+    serde_json::to_value(schemars::schema_for!(T))
+        .unwrap_or_else(|_| serde_json::json!({"type":"object"}))
 }
 
+#[derive(Clone)]
 pub struct ToolBuildContext {
     pub workspace_root: PathBuf,
     pub fs: Arc<LocalFsOperations>,
@@ -69,39 +71,50 @@ pub fn build_builtin_tools(
     for spec in specs {
         match spec {
             ToolSpec::Bash(config) => {
-                tools.push(BashTool::new(
-                    config.clone(),
-                    context.workspace_root.clone(),
-                    context.bash.clone(),
-                )
-                .with_process_registry(context.process_registry.clone())
-                .into_tool());
+                tools.push(
+                    BashTool::new(
+                        config.clone(),
+                        context.workspace_root.clone(),
+                        context.bash.clone(),
+                    )
+                    .with_process_registry(context.process_registry.clone())
+                    .into_tool(),
+                );
             }
             ToolSpec::ReadFile(config) => {
-                tools.push(ReadTool::new(
-                    config.clone(),
-                    context.workspace_root.clone(),
-                    context.fs.clone(),
-                ).into_tool());
+                tools.push(
+                    ReadTool::new(
+                        config.clone(),
+                        context.workspace_root.clone(),
+                        context.fs.clone(),
+                    )
+                    .into_tool(),
+                );
             }
             ToolSpec::WriteFile(config) => {
-                tools.push(WriteTool::new(
-                    config.clone(),
-                    context.workspace_root.clone(),
-                    context.fs.clone(),
-                ).into_tool());
-                tools.push(EditTool::new(
-                    config.clone(),
-                    context.workspace_root.clone(),
-                    context.fs.clone(),
-                ).into_tool());
+                tools.push(
+                    WriteTool::new(
+                        config.clone(),
+                        context.workspace_root.clone(),
+                        context.fs.clone(),
+                    )
+                    .into_tool(),
+                );
+                tools.push(
+                    EditTool::new(
+                        config.clone(),
+                        context.workspace_root.clone(),
+                        context.fs.clone(),
+                    )
+                    .into_tool(),
+                );
             }
             ToolSpec::PostStatusUpdate
             | ToolSpec::PostToChannel
             | ToolSpec::Cron
             | ToolSpec::Delegate
             | ToolSpec::CheckDelegatedStatus
-            |             ToolSpec::CheckBashStatus
+            | ToolSpec::CheckBashStatus
             | ToolSpec::Wake
             | ToolSpec::LoadTools => {}
         }

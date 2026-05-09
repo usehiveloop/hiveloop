@@ -78,11 +78,7 @@ impl EventRepo for SqliteEventRepo {
         Ok(inserted_id)
     }
 
-    async fn list_recent(
-        &self,
-        session_id: &SessionId,
-        limit: u32,
-    ) -> Result<Vec<SessionEvent>> {
+    async fn list_recent(&self, session_id: &SessionId, limit: u32) -> Result<Vec<SessionEvent>> {
         let limit = limit.min(1000);
         let rows = sqlx::query(
             "SELECT id, session_id, seq, kind, payload_json, created_at \

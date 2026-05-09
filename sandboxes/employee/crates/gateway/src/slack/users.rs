@@ -34,7 +34,5 @@ async fn fetch_display_name_from_api(context: &SlackContext, user_id: &str) -> R
     let profile = &response.user;
     let real_name = profile.real_name.clone();
     let name = profile.name.clone();
-    Ok(real_name
-        .or(name)
-        .unwrap_or_else(|| user_id.to_string()))
+    Ok(real_name.or(name).unwrap_or_else(|| user_id.to_string()))
 }

@@ -10,7 +10,14 @@ pub fn build_openai_compatible_request(request: &ModelRequest) -> Value {
 
     let mut body = json!({
         "model": request.model,
-        "messages": request.messages.iter().map(|m| message_to_json(m, request.cache_policy)).collect::<Vec<_>>(),
+        "messages": request.messages.iter().enumerate().map(|(i, m)| {
+            let policy = if i == 0 && m.role == AgentMessageRole::System {
+                request.cache_policy
+            } else {
+                CacheControlPolicy::Disabled
+            };
+            message_to_json(m, policy)
+        }).collect::<Vec<_>>(),
         "stream": true,
         "stream_options": {"include_usage": true},
     });
@@ -63,13 +70,8 @@ fn message_to_json(message: &AgentMessage, cache_policy: CacheControlPolicy) -> 
                 value["content"] = parts_to_content(&message.parts, cache_policy);
             }
             if !message.tool_calls.is_empty() {
-                value["tool_calls"] = Value::Array(
-                    message
-                        .tool_calls
-                        .iter()
-                        .map(tool_call_to_json)
-                        .collect(),
-                );
+                value["tool_calls"] =
+                    Value::Array(message.tool_calls.iter().map(tool_call_to_json).collect());
             }
             value
         }
@@ -131,10 +133,14 @@ mod tests {
     use crate::primitives::{AgentMessage, CacheControlPolicy, ModelRequest};
 
     #[test]
-    fn serializes_system_and_user_as_cacheable_content_blocks() {
+    fn only_serializes_first_system_message_as_cacheable_content_block() {
         let req = ModelRequest {
             model: "test".into(),
-            messages: vec![AgentMessage::system("sys"), AgentMessage::user("hi")],
+            messages: vec![
+                AgentMessage::system("sys"),
+                AgentMessage::user("hi"),
+                AgentMessage::assistant("hello"),
+            ],
             tools: vec![],
             temperature: None,
             max_output_tokens: None,
@@ -144,7 +150,25 @@ mod tests {
         let body = build_openai_compatible_request(&req);
         assert_eq!(body["messages"][0]["role"], "system");
         assert_eq!(body["messages"][1]["role"], "user");
-        assert_eq!(body["messages"][0]["content"][0]["cache_control"]["type"], "ephemeral");
+        assert_eq!(body["messages"][2]["role"], "assistant");
+        assert_eq!(
+            body["messages"][0]["content"][0]["cache_control"]["type"],
+            "ephemeral"
+        );
+        assert!(
+            body["messages"][1]["content"][0]
+                .as_object()
+                .and_then(|o| o.get("cache_control"))
+                .is_none(),
+            "user messages must not have cache_control"
+        );
+        assert!(
+            body["messages"][2]["content"][0]
+                .as_object()
+                .and_then(|o| o.get("cache_control"))
+                .is_none(),
+            "assistant messages must not have cache_control"
+        );
     }
 
     #[test]
@@ -153,8 +177,16 @@ mod tests {
             model: "test".into(),
             messages: vec![AgentMessage::user("hi")],
             tools: vec![
-                tools::ToolDefinition { name: "z".into(), description: "".into(), parameters: json!({}) },
-                tools::ToolDefinition { name: "a".into(), description: "".into(), parameters: json!({}) },
+                tools::ToolDefinition {
+                    name: "z".into(),
+                    description: "".into(),
+                    parameters: json!({}),
+                },
+                tools::ToolDefinition {
+                    name: "a".into(),
+                    description: "".into(),
+                    parameters: json!({}),
+                },
             ],
             temperature: None,
             max_output_tokens: None,

@@ -41,23 +41,33 @@ impl CronJobRepo for SqliteCronJobRepo {
     }
 
     async fn get(&self, id: &str) -> Result<Option<CronJob>> {
-        let row: Option<CronJobRow> = sqlx::query_as(&format!(
-            "SELECT {SELECT_COLS} FROM cron_jobs WHERE id = ?"
-        )).bind(id).fetch_optional(self.pool.as_ref()).await.map_err(StorageError::from)?;
+        let row: Option<CronJobRow> =
+            sqlx::query_as(&format!("SELECT {SELECT_COLS} FROM cron_jobs WHERE id = ?"))
+                .bind(id)
+                .fetch_optional(self.pool.as_ref())
+                .await
+                .map_err(StorageError::from)?;
         Ok(row.map(|r| r.into()))
     }
 
     async fn list_all(&self) -> Result<Vec<CronJob>> {
         let rows: Vec<CronJobRow> = sqlx::query_as(&format!(
             "SELECT {SELECT_COLS} FROM cron_jobs ORDER BY created_at DESC"
-        )).fetch_all(self.pool.as_ref()).await.map_err(StorageError::from)?;
+        ))
+        .fetch_all(self.pool.as_ref())
+        .await
+        .map_err(StorageError::from)?;
         Ok(rows.into_iter().map(|r| r.into()).collect())
     }
 
     async fn list_by_source(&self, source: CronJobSource) -> Result<Vec<CronJob>> {
         let rows: Vec<CronJobRow> = sqlx::query_as(&format!(
             "SELECT {SELECT_COLS} FROM cron_jobs WHERE source = ? ORDER BY created_at DESC"
-        )).bind(source_str(source)).fetch_all(self.pool.as_ref()).await.map_err(StorageError::from)?;
+        ))
+        .bind(source_str(source))
+        .fetch_all(self.pool.as_ref())
+        .await
+        .map_err(StorageError::from)?;
         Ok(rows.into_iter().map(|r| r.into()).collect())
     }
 
@@ -65,50 +75,89 @@ impl CronJobRepo for SqliteCronJobRepo {
         let now = Utc::now().to_rfc3339();
         let rows: Vec<CronJobRow> = sqlx::query_as(&format!(
             "SELECT {SELECT_COLS} FROM cron_jobs WHERE state = 'active' AND next_run_at <= ?"
-        )).bind(&now).fetch_all(self.pool.as_ref()).await.map_err(StorageError::from)?;
+        ))
+        .bind(&now)
+        .fetch_all(self.pool.as_ref())
+        .await
+        .map_err(StorageError::from)?;
         Ok(rows.into_iter().map(|r| r.into()).collect())
     }
 
     async fn update_prompt(&self, id: &str, task_prompt: String) -> Result<()> {
         sqlx::query("UPDATE cron_jobs SET task_prompt = ? WHERE id = ?")
-            .bind(&task_prompt).bind(id).execute(self.pool.as_ref()).await.map_err(StorageError::from)?;
+            .bind(&task_prompt)
+            .bind(id)
+            .execute(self.pool.as_ref())
+            .await
+            .map_err(StorageError::from)?;
         Ok(())
     }
 
     async fn update_interval(&self, id: &str, interval_seconds: u64) -> Result<()> {
         sqlx::query("UPDATE cron_jobs SET interval_seconds = ? WHERE id = ?")
-            .bind(interval_seconds as i64).bind(id).execute(self.pool.as_ref()).await.map_err(StorageError::from)?;
+            .bind(interval_seconds as i64)
+            .bind(id)
+            .execute(self.pool.as_ref())
+            .await
+            .map_err(StorageError::from)?;
         Ok(())
     }
 
     async fn update_next_run(&self, id: &str, next_run_at: DateTime<Utc>) -> Result<()> {
         sqlx::query("UPDATE cron_jobs SET next_run_at = ? WHERE id = ?")
-            .bind(next_run_at.to_rfc3339()).bind(id).execute(self.pool.as_ref()).await.map_err(StorageError::from)?;
+            .bind(next_run_at.to_rfc3339())
+            .bind(id)
+            .execute(self.pool.as_ref())
+            .await
+            .map_err(StorageError::from)?;
         Ok(())
     }
 
     async fn set_state(&self, id: &str, state: CronJobState) -> Result<()> {
         sqlx::query("UPDATE cron_jobs SET state = ? WHERE id = ?")
-            .bind(state_str(state)).bind(id).execute(self.pool.as_ref()).await.map_err(StorageError::from)?;
+            .bind(state_str(state))
+            .bind(id)
+            .execute(self.pool.as_ref())
+            .await
+            .map_err(StorageError::from)?;
         Ok(())
     }
 
-    async fn record_run(&self, id: &str, run_at: DateTime<Utc>, status: &str, error: Option<&str>) -> Result<()> {
-        sqlx::query("UPDATE cron_jobs SET last_run_at = ?, last_status = ?, last_error = ? WHERE id = ?")
-            .bind(run_at.to_rfc3339()).bind(status).bind(error).bind(id)
-            .execute(self.pool.as_ref()).await.map_err(StorageError::from)?;
+    async fn record_run(
+        &self,
+        id: &str,
+        run_at: DateTime<Utc>,
+        status: &str,
+        error: Option<&str>,
+    ) -> Result<()> {
+        sqlx::query(
+            "UPDATE cron_jobs SET last_run_at = ?, last_status = ?, last_error = ? WHERE id = ?",
+        )
+        .bind(run_at.to_rfc3339())
+        .bind(status)
+        .bind(error)
+        .bind(id)
+        .execute(self.pool.as_ref())
+        .await
+        .map_err(StorageError::from)?;
         Ok(())
     }
 
     async fn increment_repeat(&self, id: &str) -> Result<()> {
         sqlx::query("UPDATE cron_jobs SET repeat_completed = repeat_completed + 1 WHERE id = ?")
-            .bind(id).execute(self.pool.as_ref()).await.map_err(StorageError::from)?;
+            .bind(id)
+            .execute(self.pool.as_ref())
+            .await
+            .map_err(StorageError::from)?;
         Ok(())
     }
 
     async fn delete(&self, id: &str) -> Result<()> {
         sqlx::query("DELETE FROM cron_jobs WHERE id = ?")
-            .bind(id).execute(self.pool.as_ref()).await.map_err(StorageError::from)?;
+            .bind(id)
+            .execute(self.pool.as_ref())
+            .await
+            .map_err(StorageError::from)?;
         Ok(())
     }
 }
@@ -145,11 +194,17 @@ fn parse_state(s: &str) -> CronJobState {
 }
 
 fn parse_opt_dt(s: &Option<String>) -> Option<DateTime<Utc>> {
-    s.as_deref().and_then(|v| DateTime::parse_from_rfc3339(v).ok().map(|d| d.with_timezone(&Utc)))
+    s.as_deref().and_then(|v| {
+        DateTime::parse_from_rfc3339(v)
+            .ok()
+            .map(|d| d.with_timezone(&Utc))
+    })
 }
 
 fn parse_dt(s: &str) -> DateTime<Utc> {
-    DateTime::parse_from_rfc3339(s).unwrap_or_default().with_timezone(&Utc)
+    DateTime::parse_from_rfc3339(s)
+        .unwrap_or_default()
+        .with_timezone(&Utc)
 }
 
 #[derive(Debug, sqlx::FromRow)]

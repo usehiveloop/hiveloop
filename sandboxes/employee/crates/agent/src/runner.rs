@@ -98,17 +98,23 @@ impl AgentRunner for RigAgentRunner {
         if let Some(compaction) = snapshot.context.compaction.as_ref().filter(|c| c.enabled) {
             messages = compact_messages_if_needed(messages, compaction).await?;
         }
+        let tool_context = self.tool_context.clone();
+        let gateway = self.gateway.clone();
+        let cron_repo = self.cron_repo.clone();
+        let process_registry = self.tool_context.process_registry.clone();
+        let mcp_registry = self.mcp_registry.clone();
+
         let mut available_tools = build_all_tools(
             &snapshot.tools,
             session_id,
-            &self.tool_context,
+            &tool_context,
             &ToolContext {
-                gateway: self.gateway.clone(),
-                cron_repo: self.cron_repo.clone(),
-                process_registry: Some(self.tool_context.process_registry.clone()),
-                mcp_registry: self.mcp_registry.clone(),
+                gateway: gateway.clone(),
+                cron_repo: cron_repo.clone(),
+                process_registry: Some(process_registry.clone()),
+                mcp_registry: mcp_registry.clone(),
             },
-            self.mcp_registry.clone(),
+            mcp_registry.clone(),
         );
         available_tools.sort_by(|a, b| a.definition().name.cmp(&b.definition().name));
 
@@ -208,6 +214,28 @@ impl AgentRunner for RigAgentRunner {
                                 return;
                             }
                             messages.push(message);
+                            if call.name == "load_tools" {
+                                if let Some(system_message) = messages.first_mut() {
+                                    *system_message = AgentMessage::system(format_system_prompt(
+                                        &snapshot.agent.system_prompt,
+                                        &session_id,
+                                        mcp_registry.as_deref(),
+                                    ));
+                                }
+                                available_tools = build_all_tools(
+                                    &snapshot.tools,
+                                    &session_id,
+                                    &tool_context,
+                                    &ToolContext {
+                                        gateway: gateway.clone(),
+                                        cron_repo: cron_repo.clone(),
+                                        process_registry: Some(process_registry.clone()),
+                                        mcp_registry: mcp_registry.clone(),
+                                    },
+                                    mcp_registry.clone(),
+                                );
+                                available_tools.sort_by(|a, b| a.definition().name.cmp(&b.definition().name));
+                            }
                         }
                         Err(error) => {
                             emit_tool_error(emitter.clone(), &session_id, &call.name, &call.arguments, &error.to_string()).await;
@@ -236,28 +264,40 @@ async fn build_initial_messages(
     event_repo: Option<&dyn storage::EventRepo>,
     mcp_registry: Option<&McpRegistry>,
 ) -> Result<Vec<AgentMessage>> {
-    let mut messages = vec![AgentMessage::system(format_system_prompt(system_prompt, mcp_registry))];
+    let mut messages = vec![AgentMessage::system(format_system_prompt(
+        system_prompt,
+        session_id,
+        mcp_registry,
+    ))];
     let mut history = load_model_history(event_repo, session_id, 1000).await?;
     if history.is_empty() && !input.prior_history.is_empty() {
-        history = seed_model_history_from_gateway(event_repo, session_id, &input.prior_history).await?;
+        history =
+            seed_model_history_from_gateway(event_repo, session_id, &input.prior_history).await?;
     }
     messages.extend(history);
     let mut user = AgentMessage::user(input.text);
     for image in input.images {
-        user.push_part(MessagePart::InlineData { mime_type: image.mime_type, data: image.data });
+        user.push_part(MessagePart::InlineData {
+            mime_type: image.mime_type,
+            data: image.data,
+        });
     }
     append_model_message(event_repo, session_id, &user).await?;
     messages.push(user);
     Ok(messages)
 }
 
-fn format_system_prompt(base: &str, mcp_registry: Option<&McpRegistry>) -> String {
+fn format_system_prompt(
+    base: &str,
+    session_id: &SessionId,
+    mcp_registry: Option<&McpRegistry>,
+) -> String {
     let Some(registry) = mcp_registry else {
         tracing::info!("no MCP registry; system prompt unchanged");
         return base.to_string();
     };
-    let loaded = registry.loaded_tool_names();
-    let unloaded = registry.unloaded_tool_names();
+    let loaded = registry.loaded_tool_names_for_session(session_id.as_str());
+    let unloaded = registry.unloaded_tool_names_for_session(session_id.as_str());
 
     let mut prompt = base.to_string();
 
@@ -268,7 +308,8 @@ fn format_system_prompt(base: &str, mcp_registry: Option<&McpRegistry>) -> Strin
         }
     }
     if !unloaded.is_empty() {
-        prompt.push_str("\n## Additional tools available to load via load_tools(tool_names=[...])\n");
+        prompt
+            .push_str("\n## Additional tools available to load via load_tools(tool_names=[...])\n");
         for name in &unloaded {
             prompt.push_str(&format!("- {name}\n"));
         }
@@ -372,7 +413,10 @@ fn message_to_transcript_line(message: &AgentMessage) -> String {
     format!("[{role}] {text}")
 }
 
-fn pick_model_for_turn<'a>(snapshot: &'a domain::AgentDefinition, input: &TurnInput) -> &'a ModelConfig {
+fn pick_model_for_turn<'a>(
+    snapshot: &'a domain::AgentDefinition,
+    input: &TurnInput,
+) -> &'a ModelConfig {
     if !input.images.is_empty() {
         if let Some(model) = snapshot.multimodal_model.as_ref() {
             return model;
@@ -383,7 +427,14 @@ fn pick_model_for_turn<'a>(snapshot: &'a domain::AgentDefinition, input: &TurnIn
 
 fn build_model_client(
     model: &ModelConfig,
-) -> Result<(ChatModelClient, String, CacheControlPolicy, Option<String>, Option<f32>, Option<u32>)> {
+) -> Result<(
+    ChatModelClient,
+    String,
+    CacheControlPolicy,
+    Option<String>,
+    Option<f32>,
+    Option<u32>,
+)> {
     match model {
         ModelConfig::OpenaiCompatible {
             base_url,
@@ -430,9 +481,10 @@ fn build_all_tools(
     let mut tools = tools::build_builtin_tools(specs, context);
     tools.extend(build_agent_tools(specs, session_id, tool_context));
     if let Some(registry) = mcp_registry {
-        for def in registry.loaded_tools() {
+        for def in registry.loaded_tools_for_session(session_id.as_str()) {
             let registry = registry.clone();
             let prefixed = def.prefixed_name.clone();
+            let session_id = session_id.clone();
             let definition = tools::ToolDefinition {
                 name: prefixed.clone(),
                 description: def.description,
@@ -441,7 +493,12 @@ fn build_all_tools(
             tools.push(Arc::new(DynamicTool::new(definition, move |args| {
                 let registry = registry.clone();
                 let prefixed = prefixed.clone();
-                Box::pin(async move { registry.call_tool(&prefixed, args).await })
+                let session_id = session_id.clone();
+                Box::pin(async move {
+                    registry
+                        .call_tool_for_session(session_id.as_str(), &prefixed, args)
+                        .await
+                })
             })));
         }
     }

@@ -71,7 +71,9 @@ pub fn visible_messages_from_gateway(history: Vec<HistoryEntry>) -> Vec<AgentMes
     history
         .into_iter()
         .map(|entry| match entry.role {
-            HistoryRole::User => AgentMessage::user(format_history_user(entry.speaker_display_name, entry.text)),
+            HistoryRole::User => {
+                AgentMessage::user(format_history_user(entry.speaker_display_name, entry.text))
+            }
             HistoryRole::Assistant => AgentMessage::assistant(entry.text),
         })
         .collect()
@@ -178,10 +180,14 @@ mod tests {
         let final_message = AgentMessage::assistant("done");
 
         for message in [&user, &calls, &result, &final_message] {
-            append_model_message(Some(repo.as_ref()), &session_id, message).await.unwrap();
+            append_model_message(Some(repo.as_ref()), &session_id, message)
+                .await
+                .unwrap();
         }
 
-        let loaded = load_model_history(Some(repo.as_ref()), &session_id, 100).await.unwrap();
+        let loaded = load_model_history(Some(repo.as_ref()), &session_id, 100)
+            .await
+            .unwrap();
         assert_eq!(loaded.len(), 4);
         assert_eq!(loaded[0].role, AgentMessageRole::User);
         assert_eq!(loaded[1].role, AgentMessageRole::Assistant);
@@ -216,7 +222,13 @@ mod tests {
         .unwrap();
 
         assert_eq!(seeded.len(), 2);
-        assert_eq!(load_model_history(Some(repo.as_ref()), &session_id, 100).await.unwrap().len(), 2);
+        assert_eq!(
+            load_model_history(Some(repo.as_ref()), &session_id, 100)
+                .await
+                .unwrap()
+                .len(),
+            2
+        );
     }
 
     #[tokio::test]
@@ -233,10 +245,14 @@ mod tests {
         let final_reply = AgentMessage::assistant("Found one issue.");
 
         for message in [&first_user, &calls, &tool_result, &final_reply] {
-            append_model_message(Some(repo.as_ref()), &session_id, message).await.unwrap();
+            append_model_message(Some(repo.as_ref()), &session_id, message)
+                .await
+                .unwrap();
         }
 
-        let mut second_turn = load_model_history(Some(repo.as_ref()), &session_id, 100).await.unwrap();
+        let mut second_turn = load_model_history(Some(repo.as_ref()), &session_id, 100)
+            .await
+            .unwrap();
         second_turn.push(AgentMessage::user("tell me more"));
 
         assert_eq!(second_turn[0].role, AgentMessageRole::User);

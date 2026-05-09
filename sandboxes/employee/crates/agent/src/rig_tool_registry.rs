@@ -63,7 +63,10 @@ pub fn build_agent_tools(
             ToolSpec::PostStatusUpdate => {
                 if let Some(gateway) = &ctx.gateway {
                     if session_is_cron {
-                        tools.push(post_to_channel_tool(gateway.clone(), derive_channel(session_id)));
+                        tools.push(post_to_channel_tool(
+                            gateway.clone(),
+                            derive_channel(session_id),
+                        ));
                     } else {
                         tools.push(status_update_tool(gateway.clone(), session_id.clone()));
                     }
@@ -72,7 +75,10 @@ pub fn build_agent_tools(
             ToolSpec::PostToChannel => {
                 if let Some(gateway) = &ctx.gateway {
                     if session_is_cron {
-                        tools.push(post_to_channel_tool(gateway.clone(), derive_channel(session_id)));
+                        tools.push(post_to_channel_tool(
+                            gateway.clone(),
+                            derive_channel(session_id),
+                        ));
                     }
                 }
             }
@@ -97,7 +103,7 @@ pub fn build_agent_tools(
             }
             ToolSpec::LoadTools => {
                 if let Some(registry) = &ctx.mcp_registry {
-                    tools.push(load_tools_tool(registry.clone()));
+                    tools.push(load_tools_tool(registry.clone(), session_id.clone()));
                 }
             }
             ToolSpec::Delegate => {
@@ -162,7 +168,10 @@ pub async fn emit_tool_error(
         .await;
 }
 
-fn status_update_tool(gateway: Arc<dyn ChannelGateway>, session_id: SessionId) -> Arc<dyn JsonTool> {
+fn status_update_tool(
+    gateway: Arc<dyn ChannelGateway>,
+    session_id: SessionId,
+) -> Arc<dyn JsonTool> {
     Arc::new(DynamicTool::new(
         ToolDefinition {
             name: "post_status_update".into(),
@@ -192,8 +201,13 @@ fn post_to_channel_tool(gateway: Arc<dyn ChannelGateway>, channel: String) -> Ar
             let gateway = gateway.clone();
             let channel = channel.clone();
             Box::pin(async move {
-                let message = args.get("message").and_then(Value::as_str).ok_or_else(|| anyhow!("message required"))?;
-                gateway.post_to_channel(&channel, Reply::Text(message.to_string())).await?;
+                let message = args
+                    .get("message")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("message required"))?;
+                gateway
+                    .post_to_channel(&channel, Reply::Text(message.to_string()))
+                    .await?;
                 Ok(json!({"message": message, "posted": true, "channel": channel}))
             })
         },
@@ -226,8 +240,15 @@ fn wake_tool(repo: Arc<dyn CronJobRepo>, session_id: SessionId) -> Arc<dyn JsonT
             let repo = repo.clone();
             let session_id = session_id.clone();
             Box::pin(async move {
-                let seconds = args.get("seconds").and_then(Value::as_u64).ok_or_else(|| anyhow!("seconds required"))?;
-                let task_prompt = args.get("task_prompt").and_then(Value::as_str).ok_or_else(|| anyhow!("task_prompt required"))?.to_string();
+                let seconds = args
+                    .get("seconds")
+                    .and_then(Value::as_u64)
+                    .ok_or_else(|| anyhow!("seconds required"))?;
+                let task_prompt = args
+                    .get("task_prompt")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("task_prompt required"))?
+                    .to_string();
                 let now = Utc::now();
                 let id = format!("wake-{}", now.timestamp_millis());
                 let job = domain::cron::CronJob {
@@ -257,7 +278,7 @@ fn wake_tool(repo: Arc<dyn CronJobRepo>, session_id: SessionId) -> Arc<dyn JsonT
     ))
 }
 
-fn load_tools_tool(registry: Arc<McpRegistry>) -> Arc<dyn JsonTool> {
+fn load_tools_tool(registry: Arc<McpRegistry>, session_id: SessionId) -> Arc<dyn JsonTool> {
     Arc::new(DynamicTool::new(
         ToolDefinition {
             name: "load_tools".into(),
@@ -266,6 +287,7 @@ fn load_tools_tool(registry: Arc<McpRegistry>) -> Arc<dyn JsonTool> {
         },
         move |args| {
             let registry = registry.clone();
+            let session_id = session_id.clone();
             Box::pin(async move {
                 let names: Vec<String> = args
                     .get("tool_names")
@@ -274,8 +296,12 @@ fn load_tools_tool(registry: Arc<McpRegistry>) -> Arc<dyn JsonTool> {
                     .iter()
                     .filter_map(|v| v.as_str().map(ToString::to_string))
                     .collect();
-                let loaded = registry.load_tools(&names);
-                Ok(json!({"loaded": loaded, "total_loaded": registry.loaded_tool_names().len(), "still_unloaded": registry.unloaded_tool_names().len()}))
+                let loaded = registry.load_tools_for_session(session_id.as_str(), &names);
+                Ok(json!({
+                    "loaded": loaded,
+                    "total_loaded": registry.loaded_tool_names_for_session(session_id.as_str()).len(),
+                    "still_unloaded": registry.unloaded_tool_names_for_session(session_id.as_str()).len()
+                }))
             })
         },
     ))
@@ -291,8 +317,13 @@ fn check_bash_status_tool(registry: Arc<ProcessRegistry>) -> Arc<dyn JsonTool> {
         move |args| {
             let registry = registry.clone();
             Box::pin(async move {
-                let id = args.get("process_id").and_then(Value::as_str).ok_or_else(|| anyhow!("process_id required"))?;
-                let status = registry.status(id).ok_or_else(|| anyhow!("process not found"))?;
+                let id = args
+                    .get("process_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("process_id required"))?;
+                let status = registry
+                    .status(id)
+                    .ok_or_else(|| anyhow!("process not found"))?;
                 Ok(json!({
                     "process_id": id,
                     "running": status.running,
@@ -315,11 +346,18 @@ fn delegate_tool(repo: Arc<dyn CronJobRepo>, session_id: SessionId) -> Arc<dyn J
             let repo = repo.clone();
             let session_id = session_id.clone();
             Box::pin(async move {
-                let tasks = args.get("tasks").and_then(Value::as_array).ok_or_else(|| anyhow!("tasks required"))?;
+                let tasks = args
+                    .get("tasks")
+                    .and_then(Value::as_array)
+                    .ok_or_else(|| anyhow!("tasks required"))?;
                 let now = Utc::now();
                 let mut jobs = Vec::new();
                 for (idx, task) in tasks.iter().enumerate() {
-                    let goal = task.get("goal").and_then(Value::as_str).ok_or_else(|| anyhow!("task.goal required"))?.to_string();
+                    let goal = task
+                        .get("goal")
+                        .and_then(Value::as_str)
+                        .ok_or_else(|| anyhow!("task.goal required"))?
+                        .to_string();
                     let id = format!("delegate-{}-{idx}", now.timestamp_millis());
                     let child_session = format!("{}-delegate-{}", session_id.as_str(), id);
                     let job = domain::cron::CronJob {
@@ -343,7 +381,9 @@ fn delegate_tool(repo: Arc<dyn CronJobRepo>, session_id: SessionId) -> Arc<dyn J
                         created_by_session: session_id.as_str().to_string(),
                     };
                     repo.create(&job).await?;
-                    jobs.push(json!({"job_id": id, "session_id": child_session, "state": "queued"}));
+                    jobs.push(
+                        json!({"job_id": id, "session_id": child_session, "state": "queued"}),
+                    );
                 }
                 Ok(json!({"jobs": jobs}))
             })
@@ -361,31 +401,64 @@ fn check_delegated_status_tool(repo: Arc<dyn CronJobRepo>) -> Arc<dyn JsonTool> 
         move |args| {
             let repo = repo.clone();
             Box::pin(async move {
-                let id = args.get("job_id").and_then(Value::as_str).ok_or_else(|| anyhow!("job_id required"))?;
-                let job = repo.get(id).await?.ok_or_else(|| anyhow!("job not found"))?;
-                Ok(json!({"job_id": job.id, "state": format!("{:?}", job.state), "last_status": job.last_status, "last_error": job.last_error, "session_id": job.delegated_session_id}))
+                let id = args
+                    .get("job_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("job_id required"))?;
+                let job = repo
+                    .get(id)
+                    .await?
+                    .ok_or_else(|| anyhow!("job not found"))?;
+                Ok(
+                    json!({"job_id": job.id, "state": format!("{:?}", job.state), "last_status": job.last_status, "last_error": job.last_error, "session_id": job.delegated_session_id}),
+                )
             })
         },
     ))
 }
 
-async fn execute_cron(repo: Arc<dyn CronJobRepo>, session_id: SessionId, args: Value) -> Result<Value> {
-    let action = args.get("action").and_then(Value::as_str).ok_or_else(|| anyhow!("action required"))?;
+async fn execute_cron(
+    repo: Arc<dyn CronJobRepo>,
+    session_id: SessionId,
+    args: Value,
+) -> Result<Value> {
+    let action = args
+        .get("action")
+        .and_then(Value::as_str)
+        .ok_or_else(|| anyhow!("action required"))?;
     match action {
         "create" => {
-            let task_prompt = args.get("task_prompt").and_then(Value::as_str).ok_or_else(|| anyhow!("task_prompt required"))?.to_string();
-            let interval_seconds = args.get("interval_seconds").and_then(Value::as_u64).ok_or_else(|| anyhow!("interval_seconds required"))?;
+            let task_prompt = args
+                .get("task_prompt")
+                .and_then(Value::as_str)
+                .ok_or_else(|| anyhow!("task_prompt required"))?
+                .to_string();
+            let interval_seconds = args
+                .get("interval_seconds")
+                .and_then(Value::as_u64)
+                .ok_or_else(|| anyhow!("interval_seconds required"))?;
             let now = Utc::now();
             let id = format!("cron-{}", now.timestamp_millis());
-            let channel = args.get("channel_id").and_then(Value::as_str).map(ToString::to_string).unwrap_or_else(|| derive_channel(&session_id));
+            let channel = args
+                .get("channel_id")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+                .unwrap_or_else(|| derive_channel(&session_id));
             let job = domain::cron::CronJob {
                 id: id.clone(),
-                description: args.get("description").and_then(Value::as_str).map(ToString::to_string).unwrap_or_else(|| task_prompt.chars().take(80).collect()),
+                description: args
+                    .get("description")
+                    .and_then(Value::as_str)
+                    .map(ToString::to_string)
+                    .unwrap_or_else(|| task_prompt.chars().take(80).collect()),
                 channel,
                 task_prompt,
                 cron_expression: None,
                 interval_seconds: Some(interval_seconds),
-                repeat_count: args.get("repeat_count").and_then(Value::as_u64).map(|v| v as u32),
+                repeat_count: args
+                    .get("repeat_count")
+                    .and_then(Value::as_u64)
+                    .map(|v| v as u32),
                 repeat_completed: 0,
                 state: domain::cron::CronJobState::Active,
                 source: domain::cron::CronJobSource::Cron,
@@ -399,29 +472,47 @@ async fn execute_cron(repo: Arc<dyn CronJobRepo>, session_id: SessionId, args: V
                 created_by_session: session_id.as_str().to_string(),
             };
             repo.create(&job).await?;
-            Ok(json!({"job_id": id, "next_run_at": job.next_run_at.to_rfc3339(), "interval_seconds": interval_seconds, "channel": job.channel}))
+            Ok(
+                json!({"job_id": id, "next_run_at": job.next_run_at.to_rfc3339(), "interval_seconds": interval_seconds, "channel": job.channel}),
+            )
         }
         "list" => {
-            let jobs = repo.list_by_source(domain::cron::CronJobSource::Cron).await?;
+            let jobs = repo
+                .list_by_source(domain::cron::CronJobSource::Cron)
+                .await?;
             Ok(json!({"jobs": jobs, "total": jobs.len()}))
         }
         "cancel" => {
-            let id = args.get("job_id").and_then(Value::as_str).ok_or_else(|| anyhow!("job_id required"))?;
+            let id = args
+                .get("job_id")
+                .and_then(Value::as_str)
+                .ok_or_else(|| anyhow!("job_id required"))?;
             repo.delete(id).await?;
             Ok(json!({"cancelled": true, "job_id": id}))
         }
         "pause" => {
-            let id = args.get("job_id").and_then(Value::as_str).ok_or_else(|| anyhow!("job_id required"))?;
-            repo.set_state(id, domain::cron::CronJobState::Paused).await?;
+            let id = args
+                .get("job_id")
+                .and_then(Value::as_str)
+                .ok_or_else(|| anyhow!("job_id required"))?;
+            repo.set_state(id, domain::cron::CronJobState::Paused)
+                .await?;
             Ok(json!({"paused": true, "job_id": id}))
         }
         "resume" => {
-            let id = args.get("job_id").and_then(Value::as_str).ok_or_else(|| anyhow!("job_id required"))?;
-            repo.set_state(id, domain::cron::CronJobState::Active).await?;
+            let id = args
+                .get("job_id")
+                .and_then(Value::as_str)
+                .ok_or_else(|| anyhow!("job_id required"))?;
+            repo.set_state(id, domain::cron::CronJobState::Active)
+                .await?;
             Ok(json!({"resumed": true, "job_id": id}))
         }
         "update" => {
-            let id = args.get("job_id").and_then(Value::as_str).ok_or_else(|| anyhow!("job_id required"))?;
+            let id = args
+                .get("job_id")
+                .and_then(Value::as_str)
+                .ok_or_else(|| anyhow!("job_id required"))?;
             if let Some(prompt) = args.get("task_prompt").and_then(Value::as_str) {
                 repo.update_prompt(id, prompt.to_string()).await?;
             }
@@ -432,5 +523,9 @@ async fn execute_cron(repo: Arc<dyn CronJobRepo>, session_id: SessionId, args: V
 }
 
 fn derive_channel(session_id: &SessionId) -> String {
-    session_id.as_str().split_once('-').map(|(c, _)| c.to_string()).unwrap_or_else(|| session_id.as_str().to_string())
+    session_id
+        .as_str()
+        .split_once('-')
+        .map(|(c, _)| c.to_string())
+        .unwrap_or_else(|| session_id.as_str().to_string())
 }

@@ -52,8 +52,8 @@ impl WriteTool {
     }
 
     async fn execute(&self, args: Value) -> Result<Value> {
-        let parsed: WriteArgs = serde_json::from_value(args)
-            .map_err(|e| anyhow!("invalid arguments: {e}"))?;
+        let parsed: WriteArgs =
+            serde_json::from_value(args).map_err(|e| anyhow!("invalid arguments: {e}"))?;
         let resolved = resolve_within_workspace(
             &self.workspace_root,
             &parsed.path,

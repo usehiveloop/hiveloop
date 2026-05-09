@@ -21,8 +21,8 @@ use mcp::McpRegistry;
 use outbound::{build_registry, OutboundDispatcher, OutboundEmitter};
 use skills::SkillWriter;
 use storage::{
-    init_sqlite_pool, SqliteConfigRepo, SqliteCronJobRepo, SqliteEventRepo, SqliteInboundDedupeRepo,
-    SqliteOutboxRepo, SqliteSessionRepo,
+    init_sqlite_pool, SqliteConfigRepo, SqliteCronJobRepo, SqliteEventRepo,
+    SqliteInboundDedupeRepo, SqliteOutboxRepo, SqliteSessionRepo,
 };
 use tokio::sync::{mpsc, RwLock};
 use tracing::{error, info, warn};
@@ -47,7 +47,8 @@ async fn main() -> Result<()> {
     let bind_addr: SocketAddr = bind_addr_text
         .parse()
         .context("RUNTIME_BIND_ADDR must be a socket address")?;
-    let database_path = std::env::var("DB_PATH").unwrap_or_else(|_| "./data/employee-bridge.db".into());
+    let database_path =
+        std::env::var("DB_PATH").unwrap_or_else(|_| "./data/employee-bridge.db".into());
     let workspace_root_string =
         std::env::var("WORKSPACE_ROOT").unwrap_or_else(|_| "./workspace".into());
     let workspace_root = PathBuf::from(&workspace_root_string);
@@ -174,9 +175,16 @@ async fn main() -> Result<()> {
             let session_repo = session_repo.clone();
             let coordinator = coordinator.clone();
             tokio::spawn(async move {
-                if let Err(e) =
-                    handler::handle_inbound(runner, gateway, cfg, emitter, session_repo, coordinator, inbound)
-                        .await
+                if let Err(e) = handler::handle_inbound(
+                    runner,
+                    gateway,
+                    cfg,
+                    emitter,
+                    session_repo,
+                    coordinator,
+                    inbound,
+                )
+                .await
                 {
                     error!(error = %e, "handler::handle_inbound failed");
                 }
@@ -202,7 +210,11 @@ async fn main() -> Result<()> {
 }
 
 fn strip_mcp_block(sp: &str) -> String {
-    let markers = ["Available MCP tools", "MCP tools loaded", "MCP tools to load"];
+    let markers = [
+        "Available MCP tools",
+        "MCP tools loaded",
+        "MCP tools to load",
+    ];
     for marker in &markers {
         if let Some(idx) = sp.find(marker) {
             return sp[..idx].trim_end().to_string();

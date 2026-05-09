@@ -52,10 +52,8 @@ pub fn resolve_within_workspace(
     }
     let resolved = resolve_relative_to(workspace_root, raw);
 
-    let mut effective_roots: Vec<PathBuf> = allowed_roots
-        .iter()
-        .map(|s| expand_user_path(s))
-        .collect();
+    let mut effective_roots: Vec<PathBuf> =
+        allowed_roots.iter().map(|s| expand_user_path(s)).collect();
     if effective_roots.is_empty() {
         effective_roots.push(workspace_root.to_path_buf());
     }

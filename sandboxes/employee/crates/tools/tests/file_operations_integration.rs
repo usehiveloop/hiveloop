@@ -53,7 +53,9 @@ async fn writing_to_existing_directory_succeeds() {
     let dir = tmp("writable-dir");
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("file.txt");
-    fs().write_file(&path, b"content in subdirectory").await.unwrap();
+    fs().write_file(&path, b"content in subdirectory")
+        .await
+        .unwrap();
     let result = fs().read_file(&path).await.unwrap();
     assert_eq!(String::from_utf8_lossy(&result), "content in subdirectory");
     let _ = std::fs::remove_dir_all(&dir);

@@ -7,7 +7,10 @@ use tools::ProcessRegistry;
 async fn agent_spawns_background_process_and_polls_status() {
     let registry = ProcessRegistry::new();
     let pid = registry.spawn("echo hello", HashMap::new(), 5);
-    assert!(pid.starts_with("bash-"), "process ID should start with bash-");
+    assert!(
+        pid.starts_with("bash-"),
+        "process ID should start with bash-"
+    );
 
     // Poll immediately - process might still be running
     let status = registry.status(&pid).unwrap();
@@ -26,8 +29,14 @@ async fn completed_background_process_shows_exit_code_and_output() {
 
     let status = registry.status(&pid).unwrap();
     if !status.running {
-        assert!(status.exit_code.is_some(), "completed process must have exit code");
-        assert!(status.output.contains("build complete"), "output should contain the message");
+        assert!(
+            status.exit_code.is_some(),
+            "completed process must have exit code"
+        );
+        assert!(
+            status.output.contains("build complete"),
+            "output should contain the message"
+        );
     }
 }
 
@@ -73,6 +82,10 @@ async fn failed_command_shows_error_in_status() {
     let status = registry.status(&pid).unwrap();
     if !status.running {
         assert!(status.exit_code.is_some());
-        assert_ne!(status.exit_code, Some(0), "failed command should have non-zero exit code");
+        assert_ne!(
+            status.exit_code,
+            Some(0),
+            "failed command should have non-zero exit code"
+        );
     }
 }

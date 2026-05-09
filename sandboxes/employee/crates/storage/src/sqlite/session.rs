@@ -125,8 +125,7 @@ impl SessionRepo for SqliteSessionRepo {
         let cursor_text = cursor.map(|t| t.to_rfc3339());
         let status_text = status.map(status_to_str);
 
-        let mut query =
-            String::from("SELECT * FROM sessions WHERE 1 = 1");
+        let mut query = String::from("SELECT * FROM sessions WHERE 1 = 1");
         if cursor_text.is_some() {
             query.push_str(" AND last_activity_at < ?");
         }

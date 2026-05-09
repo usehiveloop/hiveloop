@@ -9,7 +9,10 @@ fn make_event(session_id: &str, user: &str) -> InboundEvent {
         text: "test".into(),
         attachments: vec![],
         raw: serde_json::json!({}),
-        inbound_handle: MessageHandle { channel: "C123".into(), ts: "".into() },
+        inbound_handle: MessageHandle {
+            channel: "C123".into(),
+            ts: "".into(),
+        },
         is_direct_message: false,
         is_directly_addressed: true,
         link_previews: vec![],
@@ -28,7 +31,10 @@ fn cron_worker_job_message_is_identified_as_cron() {
     let event = make_event("C123-cron-cron-1778211804202", "cron");
     let is_cron = event.user == "cron";
     assert!(is_cron, "cron worker messages must be identified");
-    assert!(event.session_id.as_str().contains("-cron-"), "worker cron has -cron- in session");
+    assert!(
+        event.session_id.as_str().contains("-cron-"),
+        "worker cron has -cron- in session"
+    );
 }
 
 #[test]
@@ -60,30 +66,40 @@ fn channel_is_derived_from_session_id() {
 fn channel_extraction_handles_worker_cron() {
     let sid = SessionId::from("C0AS791RGLW-cron-cron-1778211804202");
     let channel = sid.as_str().split_once('-').map(|(c, _)| c).unwrap();
-    assert_eq!(channel, "C0AS791RGLW", "channel extraction must work for worker cron IDs");
+    assert_eq!(
+        channel, "C0AS791RGLW",
+        "channel extraction must work for worker cron IDs"
+    );
 }
 
 #[test]
 fn channel_extraction_handles_delegate_session() {
     let sid = SessionId::from("C0AS791RGLW-delegate-delegate-1");
     let channel = sid.as_str().split_once('-').map(|(c, _)| c).unwrap();
-    assert_eq!(channel, "C0AS791RGLW", "channel extraction must work for delegate IDs");
+    assert_eq!(
+        channel, "C0AS791RGLW",
+        "channel extraction must work for delegate IDs"
+    );
 }
 
 #[test]
 fn routing_decision_matrix() {
     let cases = vec![
-        ("C123-1778247607.836569", "U08P1G9EDNG", "reply"),    // normal user → thread
-        ("C123-cron-cron-1", "cron", "post_to_channel"),       // worker cron → channel
-        ("C123-1778247607.836569", "cron", "reply"),           // wake cron → thread
-        ("C123-delegate-1", "cron", "post_to_channel"),        // delegate cron → channel
+        ("C123-1778247607.836569", "U08P1G9EDNG", "reply"), // normal user → thread
+        ("C123-cron-cron-1", "cron", "post_to_channel"),    // worker cron → channel
+        ("C123-1778247607.836569", "cron", "reply"),        // wake cron → thread
+        ("C123-delegate-1", "cron", "post_to_channel"),     // delegate cron → channel
     ];
 
     for (sid, user, expected) in &cases {
         let event = make_event(sid, user);
         let is_cron = event.user == "cron";
         let is_wake = is_cron && !sid.contains("-cron-") && !sid.contains("-delegate-");
-        let route = if is_cron && !is_wake { "post_to_channel" } else { "reply" };
+        let route = if is_cron && !is_wake {
+            "post_to_channel"
+        } else {
+            "reply"
+        };
         assert_eq!(route, *expected, "session={}, user={}", sid, user);
     }
 }

@@ -63,8 +63,8 @@ impl BashTool {
     }
 
     async fn execute(&self, args: Value) -> Result<Value> {
-        let parsed: BashArgs = serde_json::from_value(args)
-            .map_err(|e| anyhow!("invalid arguments: {e}"))?;
+        let parsed: BashArgs =
+            serde_json::from_value(args).map_err(|e| anyhow!("invalid arguments: {e}"))?;
         let command = parsed.command.trim();
         if command.is_empty() {
             return Err(anyhow!("`command` must not be empty"));
@@ -77,10 +77,7 @@ impl BashTool {
 
         let workdir = resolve_workdir(&self.workspace_root, &self.config.workdir);
         if !workdir.exists() {
-            return Err(anyhow!(
-                "workdir does not exist: {}",
-                workdir.display()
-            ));
+            return Err(anyhow!("workdir does not exist: {}", workdir.display()));
         }
 
         let timeout = parsed
@@ -100,7 +97,9 @@ impl BashTool {
             .or_insert_with(|| std::env::var("PATH").unwrap_or_default());
 
         if parsed.run_in_background {
-            let registry = self.process_registry.as_ref()
+            let registry = self
+                .process_registry
+                .as_ref()
                 .ok_or_else(|| anyhow!("background processes not available"))?;
             let process_id = registry.spawn(command, env, timeout as u64);
             return Ok(json!({
@@ -159,10 +158,7 @@ impl JsonTool for BashTool {
     }
 }
 
-fn command_matches_deny_pattern<'a>(
-    command: &str,
-    deny_patterns: &'a [String],
-) -> Option<&'a str> {
+fn command_matches_deny_pattern<'a>(command: &str, deny_patterns: &'a [String]) -> Option<&'a str> {
     for pattern in deny_patterns {
         if !pattern.is_empty() && command.contains(pattern) {
             return Some(pattern);

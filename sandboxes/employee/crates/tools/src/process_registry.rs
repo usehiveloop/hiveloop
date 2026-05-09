@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use tokio::process::Command;
 use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::process::Command;
 
 pub struct BackgroundProcessStatus {
     pub running: bool,
@@ -23,10 +23,17 @@ pub struct ProcessRegistry {
 
 impl ProcessRegistry {
     pub fn new() -> Self {
-        Self { processes: DashMap::new() }
+        Self {
+            processes: DashMap::new(),
+        }
     }
 
-    pub fn spawn(&self, command: &str, env: HashMap<String, String>, timeout_seconds: u64) -> String {
+    pub fn spawn(
+        &self,
+        command: &str,
+        env: HashMap<String, String>,
+        timeout_seconds: u64,
+    ) -> String {
         let process_id = format!("bash-{}", chrono::Utc::now().timestamp_millis());
         let status = Arc::new(Mutex::new(BackgroundProcessStatus {
             running: true,
@@ -37,12 +44,20 @@ impl ProcessRegistry {
         let status_clone = status.clone();
         let command_owned = command.to_string();
 
-        self.processes.insert(process_id.clone(), BackgroundProcess {
-            status: status_clone,
-            started_at: std::time::Instant::now(),
-        });
+        self.processes.insert(
+            process_id.clone(),
+            BackgroundProcess {
+                status: status_clone,
+                started_at: std::time::Instant::now(),
+            },
+        );
 
-        tokio::spawn(run_background_process(command_owned, env, status, timeout_seconds));
+        tokio::spawn(run_background_process(
+            command_owned,
+            env,
+            status,
+            timeout_seconds,
+        ));
         process_id
     }
 
@@ -78,7 +93,9 @@ async fn run_background_process(
         c
     };
     cmd.kill_on_drop(true);
-    for (k, v) in &env { cmd.env(k, v); }
+    for (k, v) in &env {
+        cmd.env(k, v);
+    }
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::piped());
 
@@ -103,7 +120,9 @@ async fn run_background_process(
         while let Ok(Some(line)) = reader.next_line().await {
             buf.push_str(&line);
             buf.push('\n');
-            if buf.len() > 10240 { buf = buf[buf.len().saturating_sub(10240)..].to_string(); }
+            if buf.len() > 10240 {
+                buf = buf[buf.len().saturating_sub(10240)..].to_string();
+            }
             let mut s = status_out.lock().unwrap();
             s.output = buf.clone();
         }
@@ -116,7 +135,9 @@ async fn run_background_process(
             let mut s = status_err.lock().unwrap();
             s.output.push_str(&line);
             s.output.push('\n');
-            if s.output.len() > 10240 { s.output = s.output[s.output.len().saturating_sub(10240)..].to_string(); }
+            if s.output.len() > 10240 {
+                s.output = s.output[s.output.len().saturating_sub(10240)..].to_string();
+            }
         }
     });
 
