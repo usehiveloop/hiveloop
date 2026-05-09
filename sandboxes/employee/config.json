@@ -1,0 +1,172 @@
+{
+  "agent": {
+    "name": "Aria",
+    "description": "Hiveloop AI employee",
+    "system_prompt": "You are Aria, a friendly AI assistant in Slack. Reply concisely (<= 3 short sentences) using mrkdwn. Never invent features. If you don't know something, say so.\n\nMCP tools are lazy-loaded. Call load_tools(tool_names=[...]) with ALL tools you need in ONE call. Loaded tools appear on the next response.\n\nWhen working on tasks that require multiple tool calls:\n- Call post_status_update at the START to tell the user what you're doing\n- Call post_status_update if the task takes longer than expected\n- Call post_status_update at the END with a summary\n- Never repeat post_status_update content in your final reply"
+  },
+  "model": {
+    "provider": "openai_compatible",
+    "base_url": "https://openrouter.ai/api/v1",
+    "model_id": "deepseek/deepseek-v4-flash",
+    "api_key_env": "OPENROUTER_API_KEY",
+    "temperature": 0.3,
+    "max_output_tokens": 1024,
+    "reasoning_effort": "low",
+    "extra_headers": {},
+    "fallback": null
+  },
+  "multimodal_model": {
+    "provider": "openai_compatible",
+    "base_url": "https://openrouter.ai/api/v1",
+    "model_id": "google/gemini-3-flash-preview",
+    "api_key_env": "OPENROUTER_API_KEY",
+    "temperature": 0.3,
+    "max_output_tokens": 1024,
+    "reasoning_effort": "low",
+    "extra_headers": {},
+    "fallback": null
+  },
+  "limits": {
+    "max_turns_per_session": 50,
+    "input_token_budget": 180000,
+    "output_token_budget": 8000,
+    "tool_call_timeout_seconds": 60,
+    "subagent_max_depth": 2
+  },
+  "context": {
+    "max_history_events": null,
+    "compaction": {
+      "enabled": true,
+      "token_threshold": 90000,
+      "overlap_event_count": 10,
+      "chars_per_token": 4,
+      "summarizer_model": {
+        "provider": "openai_compatible",
+        "base_url": "https://openrouter.ai/api/v1",
+        "model_id": "deepseek/deepseek-v4-flash",
+        "api_key_env": "OPENROUTER_API_KEY",
+        "temperature": 0.3,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "extra_headers": {},
+        "fallback": null
+      }
+    }
+  },
+  "tools": [
+    {
+      "type": "builtin.bash",
+      "config": {
+        "workdir": ".",
+        "timeout_seconds": 60,
+        "max_output_bytes": 5242880,
+        "deny_patterns": [
+          "rm -rf /",
+          "rm -rf ~",
+          "mkfs",
+          "dd if=",
+          ":(){:|:&};:",
+          "shutdown",
+          "reboot"
+        ],
+        "env_passthrough": [
+          "HOME",
+          "PATH",
+          "LANG",
+          "LC_ALL"
+        ],
+        "sandbox": "process_isolated"
+      }
+    },
+    {
+      "type": "builtin.read_file",
+      "config": {
+        "allowed_roots": [],
+        "max_file_size_bytes": 5242880,
+        "deny_globs": [
+          "**/.env",
+          "**/.env.*",
+          "**/secrets/**",
+          "**/id_rsa*",
+          "**/*.pem"
+        ]
+      }
+    },
+    {
+      "type": "builtin.write_file",
+      "config": {
+        "allowed_roots": [],
+        "max_file_size_bytes": 5242880,
+        "deny_globs": [
+          "**/.env",
+          "**/.env.*",
+          "**/secrets/**",
+          "**/.git/**",
+          "**/node_modules/**"
+        ],
+        "atomic": true
+      }
+    },
+    {
+      "type": "builtin.post_status_update"
+    },
+    {
+      "type": "builtin.post_to_channel"
+    },
+    {
+      "type": "builtin.cron"
+    },
+    {
+      "type": "builtin.delegate"
+    },
+    {
+      "type": "builtin.check_delegated_status"
+    },
+    {
+      "type": "builtin.check_bash_status"
+    },
+    {
+      "type": "builtin.wake"
+    },
+    {
+      "type": "builtin.load_tools"
+    }
+  ],
+  "mcp_servers": [],
+  "skills": [],
+  "subagents": [],
+  "slack": {
+    "ignore_users": [],
+    "typing_indicator": true,
+    "reactions_enabled": true,
+    "progressive_messages": {
+      "enabled": true,
+      "edit_interval_ms": 1500
+    },
+    "max_message_length": 39000,
+    "split_long_replies": true,
+    "allowed_channels": [],
+    "require_mention": true,
+    "strict_mention": false,
+    "free_response_channels": [],
+    "allow_bots": "none",
+    "reply_broadcast": false,
+    "reply_prefix": "",
+    "thread_context": {
+      "enabled": false,
+      "max_messages": 20,
+      "cache_ttl_seconds": 60
+    },
+    "mrkdwn_translation": true,
+    "fetch_user_names": true,
+    "extract_blocks_text": true,
+    "extract_link_unfurls": true,
+    "download_attachments": true,
+    "inline_text_files": true,
+    "inline_text_max_bytes": 102400,
+    "reply_in_thread": true,
+    "channel_prompts": {},
+    "retry_max_attempts": 3
+  },
+  "outbound_channels": []
+}

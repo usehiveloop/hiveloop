@@ -1,20 +1,25 @@
-"""Read current config from stdin, apply defaults, print updated config to stdout."""
+"""Read config from stdin, apply sane defaults, print updated config to stdout."""
 import json
+import re
 import sys
 
 d = json.load(sys.stdin)
 
 sp = d['agent']['system_prompt']
-if 'load_tools' not in sp:
-    sp += ('\n\nMCP tools are lazy-loaded. Call load_tools(tool_names=[...]) '
-           'with ALL tools you need in ONE call. Loaded tools appear on the next response.')
 
-if 'When working on tasks' not in sp:
-    sp += ('\n\nWhen working on tasks that require multiple tool calls:\n'
-           '- Call post_status_update at the START to tell the user what you\'re doing\n'
-           '- Call post_status_update if the task takes longer than expected\n'
-           '- Call post_status_update at the END with a summary\n'
-           '- Never repeat post_status_update content in your final reply')
+sp = re.sub(
+    r'\n*\nMCP tools are lazy-loaded.*?final reply',
+    '',
+    sp,
+    flags=re.DOTALL
+).strip()
+
+sp += '\n\nMCP tools are lazy-loaded. Call load_tools(tool_names=[...]) with ALL tools you need in ONE call. Loaded tools appear on the next response.'
+sp += '\n\nWhen working on tasks that require multiple tool calls:'
+sp += '\n- Call post_status_update at the START to tell the user what you\'re doing'
+sp += '\n- Call post_status_update if the task takes longer than expected'
+sp += '\n- Call post_status_update at the END with a summary'
+sp += '\n- Never repeat post_status_update content in your final reply'
 
 d['agent']['system_prompt'] = sp
 
@@ -31,7 +36,8 @@ d['tools'] = tools
 
 if 'context' not in d:
     d['context'] = {}
-if d['context'].get('compaction') is None:
+comp = d['context'].get('compaction')
+if comp is None:
     d['context']['compaction'] = {
         'enabled': True,
         'token_threshold': 90000,

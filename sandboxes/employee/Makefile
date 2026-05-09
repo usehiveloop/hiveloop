@@ -2,6 +2,7 @@
 
 RUNTIME_SECRET ?= local-dev-runtime-token/Zkwn6QkmVIzHtDBWZCS81xXGpuGY172j1659w=
 CONFIG_API := http://localhost:7080
+CONFIG_FILE := ./config.json
 
 build:
 	cargo build
@@ -12,21 +13,22 @@ run: build
 	@: > /tmp/employee-bridge.log
 	@./target/debug/employee-bridge > /tmp/employee-bridge.log 2>&1 &
 	@sleep 10
-	@echo "=== Pushing config ==="
+	@echo "=== Pushing config from $(CONFIG_FILE) ==="
 	@$(MAKE) push-config
 	@echo ""
 	@echo "=== Done. Bot PID: $$(pgrep -f employee-bridge | head -1) ==="
-	@grep -c "error\|panic" /tmp/employee-bridge.log > /dev/null && echo "ISSUES IN LOGS" || echo "Logs clean"
 
 push-config:
 	@for i in 1 2 3 4 5; do \
-		curl -s $(CONFIG_API)/config -H "Authorization: Bearer $(RUNTIME_SECRET)" > /tmp/current_config.json 2>/dev/null && break; \
+		curl -s -X PUT $(CONFIG_API)/config \
+			-H "Authorization: Bearer $(RUNTIME_SECRET)" \
+			-H "Content-Type: application/json" \
+			-d @$(CONFIG_FILE) | \
+			python3 -c "import json,sys; d=json.load(sys.stdin); print('Config applied:', d['applied_at'])"; \
+		exit_code=$$?; \
+		if [ $$exit_code -eq 0 ]; then break; fi; \
 		sleep 2; \
 	done
-	@python3 scripts/apply_config.py < /tmp/current_config.json > /tmp/updated_config.json
-	@curl -s -X PUT $(CONFIG_API)/config -H "Authorization: Bearer $(RUNTIME_SECRET)" \
-		-H "Content-Type: application/json" -d @/tmp/updated_config.json | \
-		python3 -c "import json,sys; d=json.load(sys.stdin); print('Config applied:', d['applied_at'])"
 
 dev:
 	cargo build && cargo watch -x run
@@ -41,5 +43,5 @@ test:
 clean:
 	cargo clean
 	@pgrep -f employee-bridge > /dev/null && pkill -f employee-bridge || true
-	@sqlite3 data/employee-bridge.db "DELETE FROM agent_config;" 2>/dev/null || true
+	@rm -rf data
 	@echo "Cleaned"
