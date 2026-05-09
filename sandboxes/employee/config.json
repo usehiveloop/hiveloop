@@ -156,6 +156,19 @@
         "get_issue_status"
       ],
       "startup_timeout_seconds": null
+    },
+    {
+      "transport": "stdio",
+      "name": "railway",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@railway/mcp-server"
+      ],
+      "env": {},
+      "tool_filter": null,
+      "default_enabled_tools": [],
+      "startup_timeout_seconds": null
     }
   ],
   "skills": [],
