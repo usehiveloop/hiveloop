@@ -92,6 +92,7 @@ impl AgentRunner for RigAgentRunner {
             session_id,
             user_input,
             self.event_repo.as_deref(),
+            self.mcp_registry.as_deref(),
         )
         .await?;
         if let Some(compaction) = snapshot.context.compaction.as_ref().filter(|c| c.enabled) {
@@ -233,8 +234,9 @@ async fn build_initial_messages(
     session_id: &SessionId,
     input: TurnInput,
     event_repo: Option<&dyn storage::EventRepo>,
+    mcp_registry: Option<&McpRegistry>,
 ) -> Result<Vec<AgentMessage>> {
-    let mut messages = vec![AgentMessage::system(system_prompt.to_string())];
+    let mut messages = vec![AgentMessage::system(format_system_prompt(system_prompt, mcp_registry))];
     let mut history = load_model_history(event_repo, session_id, 1000).await?;
     if history.is_empty() && !input.prior_history.is_empty() {
         history = seed_model_history_from_gateway(event_repo, session_id, &input.prior_history).await?;
@@ -247,6 +249,38 @@ async fn build_initial_messages(
     append_model_message(event_repo, session_id, &user).await?;
     messages.push(user);
     Ok(messages)
+}
+
+fn format_system_prompt(base: &str, mcp_registry: Option<&McpRegistry>) -> String {
+    let Some(registry) = mcp_registry else {
+        tracing::info!("no MCP registry; system prompt unchanged");
+        return base.to_string();
+    };
+    let loaded = registry.loaded_tool_names();
+    let unloaded = registry.unloaded_tool_names();
+
+    let mut prompt = base.to_string();
+
+    if !loaded.is_empty() {
+        prompt.push_str("\n\n## Currently loaded tools (use directly)\n");
+        for name in &loaded {
+            prompt.push_str(&format!("- {name}\n"));
+        }
+    }
+    if !unloaded.is_empty() {
+        prompt.push_str("\n## Additional tools available to load via load_tools(tool_names=[...])\n");
+        for name in &unloaded {
+            prompt.push_str(&format!("- {name}\n"));
+        }
+    }
+
+    tracing::info!(
+        loaded_count = loaded.len(),
+        unloaded_count = unloaded.len(),
+        prompt_len = prompt.len(),
+        "system prompt augmented with MCP tool catalog"
+    );
+    prompt
 }
 
 async fn compact_messages_if_needed(
