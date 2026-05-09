@@ -93,6 +93,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&FailedEvent{},
 		&Team{},
 		&EmployeeAsset{},
+		&CloudAgentTask{},
 	); err != nil {
 		return err
 	}
@@ -141,6 +142,9 @@ func AutoMigrate(db *gorm.DB) error {
 
 	// Partial unique: prevent duplicate pending invites per (org, email).
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_org_invite_pending ON org_invites (org_id, email) WHERE accepted_at IS NULL AND revoked_at IS NULL`)
+
+	// Composite index for cloud agent task lookups by employee + cloud agent.
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_cloud_task_employee_agent ON cloud_agent_tasks (employee_agent_id, cloud_agent_id, created_at DESC)`)
 
 	// Partial unique: one live profile per (agent, provider, external account).
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_profile_account ON agent_profiles (agent_id, provider, external_id) WHERE deleted_at IS NULL AND revoked_at IS NULL`)

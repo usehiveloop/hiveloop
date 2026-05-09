@@ -29,6 +29,7 @@ type MCPHandler struct {
 	counter           *counter.Counter
 	memoryTools       mcpserver.MemoryToolsFunc
 	subscriptionTools mcpserver.SubscriptionToolsFunc
+	webTools          mcpserver.WebToolsFunc
 	ServerCache       *mcpserver.ServerCache
 }
 
@@ -53,6 +54,12 @@ func (h *MCPHandler) SetMemoryTools(fn mcpserver.MemoryToolsFunc) {
 // and list_my_subscriptions on MCP servers.
 func (h *MCPHandler) SetSubscriptionTools(fn mcpserver.SubscriptionToolsFunc) {
 	h.subscriptionTools = fn
+}
+
+// SetWebTools sets the callback for registering web_fetch and web_search
+// on MCP servers.
+func (h *MCPHandler) SetWebTools(fn mcpserver.WebToolsFunc) {
+	h.webTools = fn
 }
 
 // StreamableHTTPHandler returns an HTTP handler for the MCP Streamable HTTP transport.
@@ -90,7 +97,7 @@ func (h *MCPHandler) serverFactory(r *http.Request) *mcp.Server {
 			return nil, time.Time{}, err
 		}
 
-		srv, err := mcpserver.BuildServer(ctx, &token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools, h.subscriptionTools)
+		srv, err := mcpserver.BuildServer(ctx, &token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools, h.subscriptionTools, h.webTools)
 		if err != nil {
 			return nil, time.Time{}, err
 		}

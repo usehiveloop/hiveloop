@@ -33,6 +33,7 @@ func setupPublicRoutes(
 	nangoClient *nango.Client,
 	sandboxEncKey *crypto.SymmetricKey,
 	uploadsHandler *handler.UploadsHandler,
+	cloudAgentHandler *handler.CloudAgentHandler,
 ) {
 	r.Get("/healthz", healthz)
 	r.Get("/readyz", readyz(database, redisClient))
@@ -91,6 +92,13 @@ func setupPublicRoutes(
 		r.Put("/internal/employees/{employeeID}/assets/*", uploadsHandler.StreamEmployeeAsset)
 		r.Post("/internal/employees/{employeeID}/assets/move", uploadsHandler.MoveEmployeeAsset)
 		r.Delete("/internal/employees/{employeeID}/assets/*", uploadsHandler.DeleteEmployeeAsset)
+	}
+
+	if cloudAgentHandler != nil {
+		r.Get("/internal/employees/{employeeID}/cloud-agents/", cloudAgentHandler.ListCloudAgents)
+		r.Get("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks", cloudAgentHandler.ListTasks)
+		r.Get("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks/{taskID}", cloudAgentHandler.GetTask)
+		r.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks", cloudAgentHandler.CreateTask)
 	}
 }
 

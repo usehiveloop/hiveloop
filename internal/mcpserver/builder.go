@@ -25,12 +25,18 @@ type MemoryToolsFunc func(server *mcp.Server, agentID string, db *gorm.DB)
 // mcpserver and the subscriptions package.
 type SubscriptionToolsFunc func(server *mcp.Server, token *model.Token, db *gorm.DB)
 
+// WebToolsFunc is a callback that registers web_fetch and web_search on a
+// server. Used to avoid an import cycle between mcpserver and spider.
+type WebToolsFunc func(server *mcp.Server, token *model.Token)
+
 // BuildServer creates an MCP server with tools registered from token scopes.
 // Each scope's connection+actions are turned into MCP tools via the catalog.
 // If addMemoryTools is non-nil, it is called to register memory tools on the
 // same server after integration tools are registered.
 // If addSubscriptionTools is non-nil, it is called to register subscribe_to_events
 // on the same server after memory tools are registered.
+// If addWebTools is non-nil, it is called to register web_fetch and web_search
+// on the same server after subscription tools are registered.
 func BuildServer(
 	ctx context.Context,
 	token *model.Token,
@@ -41,6 +47,7 @@ func BuildServer(
 	ctr *counter.Counter,
 	addMemoryTools MemoryToolsFunc,
 	addSubscriptionTools SubscriptionToolsFunc,
+	addWebTools WebToolsFunc,
 ) (*mcp.Server, error) {
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "hiveloop",
@@ -169,6 +176,10 @@ func BuildServer(
 
 	if addSubscriptionTools != nil {
 		addSubscriptionTools(server, token, db)
+	}
+
+	if addWebTools != nil {
+		addWebTools(server, token)
 	}
 
 	return server, nil
