@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::path::PathBuf;
 use std::pin::Pin;
 use std::sync::Arc;
 
@@ -12,6 +13,8 @@ use outbound::OutboundEmitter;
 use serde_json::{json, Value};
 use storage::CronJobRepo;
 use tools::{JsonTool, ProcessRegistry, ToolDefinition};
+
+use crate::cloud_agents::CloudAgentService;
 
 pub type ToolFuture = Pin<Box<dyn Future<Output = Result<Value>> + Send>>;
 
@@ -48,6 +51,8 @@ pub struct ToolContext {
     pub cron_repo: Option<Arc<dyn CronJobRepo>>,
     pub process_registry: Option<Arc<ProcessRegistry>>,
     pub mcp_registry: Option<Arc<McpRegistry>>,
+    pub workspace_root: PathBuf,
+    pub cloud_agents: Option<Arc<CloudAgentService>>,
 }
 
 pub fn build_agent_tools(
@@ -106,6 +111,15 @@ pub fn build_agent_tools(
                     tools.push(load_tools_tool(registry.clone(), session_id.clone()));
                 }
             }
+            ToolSpec::SkillsList => {
+                tools.push(skills_list_tool(ctx.workspace_root.clone()));
+            }
+            ToolSpec::SkillView => {
+                tools.push(skill_view_tool(ctx.workspace_root.clone()));
+            }
+            ToolSpec::SkillManage => {
+                tools.push(skill_manage_tool(ctx.workspace_root.clone()));
+            }
             ToolSpec::Delegate => {
                 if let Some(repo) = &ctx.cron_repo {
                     if !session_is_cron {
@@ -116,6 +130,34 @@ pub fn build_agent_tools(
             ToolSpec::CheckDelegatedStatus => {
                 if let Some(repo) = &ctx.cron_repo {
                     tools.push(check_delegated_status_tool(repo.clone()));
+                }
+            }
+            ToolSpec::CloudAgentLaunchTask => {
+                if let Some(service) = &ctx.cloud_agents {
+                    tools.push(cloud_agent_launch_task_tool(
+                        service.clone(),
+                        session_id.clone(),
+                    ));
+                }
+            }
+            ToolSpec::CloudAgentTaskStatus => {
+                if let Some(service) = &ctx.cloud_agents {
+                    tools.push(cloud_agent_task_status_tool(service.clone()));
+                }
+            }
+            ToolSpec::CloudAgentListTasks => {
+                if let Some(service) = &ctx.cloud_agents {
+                    tools.push(cloud_agent_list_tasks_tool(service.clone()));
+                }
+            }
+            ToolSpec::CloudAgentTaskSendMessage => {
+                if let Some(service) = &ctx.cloud_agents {
+                    tools.push(cloud_agent_task_send_message_tool(service.clone()));
+                }
+            }
+            ToolSpec::CloudAgentTaskTerminate => {
+                if let Some(service) = &ctx.cloud_agents {
+                    tools.push(cloud_agent_task_terminate_tool(service.clone()));
                 }
             }
             _ => {}
@@ -302,6 +344,269 @@ fn load_tools_tool(registry: Arc<McpRegistry>, session_id: SessionId) -> Arc<dyn
                     "total_loaded": registry.loaded_tool_names_for_session(session_id.as_str()).len(),
                     "still_unloaded": registry.unloaded_tool_names_for_session(session_id.as_str()).len()
                 }))
+            })
+        },
+    ))
+}
+
+fn skills_list_tool(workspace_root: PathBuf) -> Arc<dyn JsonTool> {
+    Arc::new(DynamicTool::new(
+        ToolDefinition {
+            name: "skills_list".into(),
+            description:
+                "List available skills (name + description). Use skill_view(name) to load full content."
+                    .into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Optional category filter to narrow results"
+                    }
+                },
+                "required": []
+            }),
+        },
+        move |args| {
+            let workspace_root = workspace_root.clone();
+            Box::pin(async move {
+                let store = skills::SkillStore::new(workspace_root);
+                Ok(store.list(args.get("category").and_then(Value::as_str)))
+            })
+        },
+    ))
+}
+
+fn skill_view_tool(workspace_root: PathBuf) -> Arc<dyn JsonTool> {
+    Arc::new(DynamicTool::new(
+        ToolDefinition {
+            name: "skill_view".into(),
+            description: "Skills allow loading task workflows plus linked files. Load a skill's full content or access linked files under references/, templates/, scripts/, or assets/.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The skill name (use skills_list to see available skills)."
+                    },
+                    "file_path": {
+                        "type": "string",
+                        "description": "Optional linked file path within the skill, e.g. references/api.md or scripts/check.sh."
+                    }
+                },
+                "required": ["name"]
+            }),
+        },
+        move |args| {
+            let workspace_root = workspace_root.clone();
+            Box::pin(async move {
+                let name = args
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("name required"))?;
+                let store = skills::SkillStore::new(workspace_root);
+                store.view(name, args.get("file_path").and_then(Value::as_str))
+            })
+        },
+    ))
+}
+
+fn skill_manage_tool(workspace_root: PathBuf) -> Arc<dyn JsonTool> {
+    Arc::new(DynamicTool::new(
+        ToolDefinition {
+            name: "skill_manage".into(),
+            description: "Manage filesystem-backed skills in /workspace/.skills. Actions: create, patch, edit, delete, write_file, remove_file. Use only when asked, or after confirming the user wants to save/update procedural memory.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "action": {"type": "string", "enum": ["create", "patch", "edit", "delete", "write_file", "remove_file"]},
+                    "name": {"type": "string", "description": "Skill name: lowercase, numbers, hyphens/underscores, max 64 chars."},
+                    "content": {"type": "string", "description": "Full SKILL.md content. Required for create and edit."},
+                    "old_string": {"type": "string", "description": "Text to find for patch."},
+                    "new_string": {"type": "string", "description": "Replacement text for patch."},
+                    "replace_all": {"type": "boolean", "description": "For patch, replace all matches instead of requiring uniqueness."},
+                    "category": {"type": "string", "description": "Optional category for create when content has no frontmatter."},
+                    "file_path": {"type": "string", "description": "Supporting file path under references/, templates/, scripts/, or assets/."},
+                    "file_content": {"type": "string", "description": "Content for write_file."},
+                    "absorbed_into": {"type": "string", "description": "For delete, skill this was merged into, or empty string for pruning."}
+                },
+                "required": ["action", "name"]
+            }),
+        },
+        move |args| {
+            let workspace_root = workspace_root.clone();
+            Box::pin(async move {
+                let store = skills::SkillStore::new(workspace_root);
+                store.manage(skills::SkillManageArgs {
+                    action: args.get("action").and_then(Value::as_str).unwrap_or_default().to_string(),
+                    name: args.get("name").and_then(Value::as_str).unwrap_or_default().to_string(),
+                    content: args.get("content").and_then(Value::as_str).map(ToString::to_string),
+                    category: args.get("category").and_then(Value::as_str).map(ToString::to_string),
+                    file_path: args.get("file_path").and_then(Value::as_str).map(ToString::to_string),
+                    file_content: args.get("file_content").and_then(Value::as_str).map(ToString::to_string),
+                    old_string: args.get("old_string").and_then(Value::as_str).map(ToString::to_string),
+                    new_string: args.get("new_string").and_then(Value::as_str).map(ToString::to_string),
+                    replace_all: args.get("replace_all").and_then(Value::as_bool).unwrap_or(false),
+                    absorbed_into: args.get("absorbed_into").and_then(Value::as_str).map(ToString::to_string),
+                })
+            })
+        },
+    ))
+}
+
+fn cloud_agent_launch_task_tool(
+    service: Arc<CloudAgentService>,
+    session_id: SessionId,
+) -> Arc<dyn JsonTool> {
+    Arc::new(DynamicTool::new(
+        ToolDefinition {
+            name: "cloud_agent_launch_task".into(),
+            description: "Launch a task on a cloud agent. Use for implementation-heavy, investigative, or long-running work. The prompt must be a complete standalone task prompt; the description is only short searchable metadata.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "agent_id": {"type": "string", "description": "Cloud agent id."},
+                    "description": {"type": "string", "description": "Short searchable task description stored in metadata."},
+                    "prompt": {"type": "string", "description": "Full standalone task prompt for the cloud agent."}
+                },
+                "required": ["agent_id", "description", "prompt"]
+            }),
+        },
+        move |args| {
+            let service = service.clone();
+            let session_id = session_id.clone();
+            Box::pin(async move {
+                let agent_id = args
+                    .get("agent_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("agent_id required"))?;
+                let description = args
+                    .get("description")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("description required"))?;
+                let prompt = args
+                    .get("prompt")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("prompt required"))?;
+                service
+                    .launch_task(agent_id, description, prompt, &session_id)
+                    .await
+            })
+        },
+    ))
+}
+
+fn cloud_agent_task_status_tool(service: Arc<CloudAgentService>) -> Arc<dyn JsonTool> {
+    Arc::new(DynamicTool::new(
+        ToolDefinition {
+            name: "cloud_agent_task_status".into(),
+            description: "Check a cloud-agent task status and recent events. Status is completed when events show ConversationEnded/done, failed on AgentError, otherwise running.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "task_id": {"type": "string", "description": "Cloud-agent task id."}
+                },
+                "required": ["task_id"]
+            }),
+        },
+        move |args| {
+            let service = service.clone();
+            Box::pin(async move {
+                let task_id = args
+                    .get("task_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("task_id required"))?;
+                service.task_status(task_id).await
+            })
+        },
+    ))
+}
+
+fn cloud_agent_list_tasks_tool(service: Arc<CloudAgentService>) -> Arc<dyn JsonTool> {
+    Arc::new(DynamicTool::new(
+        ToolDefinition {
+            name: "cloud_agent_list_tasks".into(),
+            description: "List recent tasks for a cloud agent and cache task ids so later status/message/terminate calls can resolve the agent.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "agent_id": {"type": "string", "description": "Cloud agent id."}
+                },
+                "required": ["agent_id"]
+            }),
+        },
+        move |args| {
+            let service = service.clone();
+            Box::pin(async move {
+                let agent_id = args
+                    .get("agent_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("agent_id required"))?;
+                service.list_tasks(agent_id).await
+            })
+        },
+    ))
+}
+
+fn cloud_agent_task_send_message_tool(service: Arc<CloudAgentService>) -> Arc<dyn JsonTool> {
+    Arc::new(DynamicTool::new(
+        ToolDefinition {
+            name: "cloud_agent_task_send_message".into(),
+            description:
+                "Send feedback, a new request, or an update prompt to a running cloud-agent task."
+                    .into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "task_id": {"type": "string", "description": "Cloud-agent task id."},
+                    "message": {"type": "string", "description": "Message to send to the cloud-agent task."}
+                },
+                "required": ["task_id", "message"]
+            }),
+        },
+        move |args| {
+            let service = service.clone();
+            Box::pin(async move {
+                let task_id = args
+                    .get("task_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("task_id required"))?;
+                let message = args
+                    .get("message")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("message required"))?;
+                service.send_message(task_id, message).await
+            })
+        },
+    ))
+}
+
+fn cloud_agent_task_terminate_tool(service: Arc<CloudAgentService>) -> Arc<dyn JsonTool> {
+    Arc::new(DynamicTool::new(
+        ToolDefinition {
+            name: "cloud_agent_task_terminate".into(),
+            description: "Terminate a cloud-agent task with a reason. Use when the task is no longer needed or should stop.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "task_id": {"type": "string", "description": "Cloud-agent task id."},
+                    "reason": {"type": "string", "description": "Reason for terminating the task."}
+                },
+                "required": ["task_id", "reason"]
+            }),
+        },
+        move |args| {
+            let service = service.clone();
+            Box::pin(async move {
+                let task_id = args
+                    .get("task_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("task_id required"))?;
+                let reason = args
+                    .get("reason")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("reason required"))?;
+                service.terminate_task(task_id, reason).await
             })
         },
     ))

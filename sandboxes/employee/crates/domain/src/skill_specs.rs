@@ -10,6 +10,18 @@ pub struct SkillSpec {
     pub instructions: String,
     #[serde(default)]
     pub files: std::collections::HashMap<String, String>,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub related_skills: Vec<String>,
+    #[serde(default)]
+    pub required_environment_variables: Vec<String>,
+    #[serde(default)]
+    pub required_credential_files: Vec<String>,
+    #[serde(default)]
+    pub pinned: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

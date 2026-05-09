@@ -13,6 +13,7 @@ outbound.workspace = true
 gateway.workspace = true
 storage.workspace = true
 mcp.workspace = true
+skills.workspace = true
 async-trait.workspace = true
 futures.workspace = true
 serde.workspace = true
@@ -32,3 +33,4 @@ base64 = "0.22.1"
 [dev-dependencies]
 tokio = { workspace = true }
 tracing-subscriber.workspace = true
+axum = "0.7"

@@ -9,7 +9,12 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use agent::{AgentRunner, RigAgentRunner};
+use agent::{
+    cloud_agents::{
+        format_cloud_agents_prompt, strip_cloud_agents_block, CloudAgentConfig, CloudAgentService,
+    },
+    AgentRunner, RigAgentRunner,
+};
 use anyhow::{Context, Result};
 use api::ApiState;
 use domain::{
@@ -84,6 +89,34 @@ async fn main() -> Result<()> {
         }
     };
 
+    let cloud_agent_service = match CloudAgentConfig::from_env() {
+        Some(config) => {
+            let service = Arc::new(CloudAgentService::new(config));
+            match service.discover().await {
+                Ok(agents) => {
+                    let cloud_agents_block = format_cloud_agents_prompt(&agents);
+                    let existing = &initial_definition.agent.system_prompt;
+                    let stripped = strip_cloud_agents_block(&strip_mcp_block(existing));
+                    initial_definition.agent.system_prompt =
+                        format!("{stripped}\n\n{cloud_agents_block}");
+                    Some(service)
+                }
+                Err(error) => {
+                    initial_definition.agent.system_prompt =
+                        strip_cloud_agents_block(&initial_definition.agent.system_prompt);
+                    warn!(%error, "cloud-agent discovery failed; cloud-agent tools remain enabled but prompt context was not injected");
+                    Some(service)
+                }
+            }
+        }
+        None => {
+            initial_definition.agent.system_prompt =
+                strip_cloud_agents_block(&initial_definition.agent.system_prompt);
+            info!("cloud-agent env vars missing; cloud-agent tools and prompt injection disabled");
+            None
+        }
+    };
+
     let mcp_registry = Arc::new(McpRegistry::from_specs(&initial_definition.mcp_servers).await);
     let available_mcp = mcp_registry.available_tool_names();
     if !available_mcp.is_empty() {
@@ -100,6 +133,8 @@ async fn main() -> Result<()> {
         let stripped = strip_mcp_block(existing);
         let updated = format!("{stripped}\n\n{mcp_block}");
         initial_definition.agent.system_prompt = updated;
+    }
+    {
         config_repo.upsert(&initial_definition).await?;
     }
 
@@ -129,14 +164,16 @@ async fn main() -> Result<()> {
         config.clone(),
     )?);
 
-    let agent_runner: Arc<dyn AgentRunner> = Arc::new(
-        RigAgentRunner::new(config.clone(), workspace_root.clone())
-            .with_outbound_emitter(emitter.clone())
-            .with_gateway(slack_gateway.clone())
-            .with_cron_repo(cron_repo.clone())
-            .with_event_repo(event_repo.clone())
-            .with_mcp_registry(mcp_registry.clone()),
-    );
+    let mut rig_runner = RigAgentRunner::new(config.clone(), workspace_root.clone())
+        .with_outbound_emitter(emitter.clone())
+        .with_gateway(slack_gateway.clone())
+        .with_cron_repo(cron_repo.clone())
+        .with_event_repo(event_repo.clone())
+        .with_mcp_registry(mcp_registry.clone());
+    if let Some(service) = cloud_agent_service {
+        rig_runner = rig_runner.with_cloud_agents(service);
+    }
+    let agent_runner: Arc<dyn AgentRunner> = Arc::new(rig_runner);
 
     let api_state = ApiState::new(
         config.clone(),
@@ -314,6 +351,14 @@ fn default_builtin_tool_specs() -> Vec<ToolSpec> {
         ToolSpec::CheckBashStatus,
         ToolSpec::Wake,
         ToolSpec::LoadTools,
+        ToolSpec::SkillsList,
+        ToolSpec::SkillView,
+        ToolSpec::SkillManage,
+        ToolSpec::CloudAgentLaunchTask,
+        ToolSpec::CloudAgentTaskStatus,
+        ToolSpec::CloudAgentListTasks,
+        ToolSpec::CloudAgentTaskSendMessage,
+        ToolSpec::CloudAgentTaskTerminate,
     ]
 }
 

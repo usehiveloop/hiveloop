@@ -9,6 +9,7 @@ dependencies = [
  "anyhow",
  "async-stream",
  "async-trait",
+ "axum",
  "base64",
  "chrono",
  "domain",
@@ -21,6 +22,7 @@ dependencies = [
  "schemars 0.8.22",
  "serde",
  "serde_json",
+ "skills",
  "storage",
  "thiserror 1.0.69",
  "tokio",
@@ -2813,6 +2815,7 @@ checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
 name = "skills"
 version = "0.0.1"
 dependencies = [
+ "anyhow",
  "domain",
  "serde_json",
  "tokio",

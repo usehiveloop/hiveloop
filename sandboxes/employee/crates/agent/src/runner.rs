@@ -11,6 +11,7 @@ use outbound::OutboundEmitter;
 use storage::CronJobRepo;
 use tools::{JsonTool, LocalBashOperations, LocalFsOperations, ProcessRegistry, ToolBuildContext};
 
+use crate::cloud_agents::CloudAgentService;
 use crate::history::{append_model_message, load_model_history, seed_model_history_from_gateway};
 use crate::model_client::ChatModelClient;
 use crate::primitives::{
@@ -29,6 +30,7 @@ pub struct RigAgentRunner {
     cron_repo: Option<Arc<dyn CronJobRepo>>,
     event_repo: Option<Arc<dyn storage::EventRepo>>,
     mcp_registry: Option<Arc<McpRegistry>>,
+    cloud_agents: Option<Arc<CloudAgentService>>,
 }
 
 impl RigAgentRunner {
@@ -46,6 +48,7 @@ impl RigAgentRunner {
             cron_repo: None,
             event_repo: None,
             mcp_registry: None,
+            cloud_agents: None,
         }
     }
 
@@ -71,6 +74,11 @@ impl RigAgentRunner {
 
     pub fn with_mcp_registry(mut self, registry: Arc<McpRegistry>) -> Self {
         self.mcp_registry = Some(registry);
+        self
+    }
+
+    pub fn with_cloud_agents(mut self, cloud_agents: Arc<CloudAgentService>) -> Self {
+        self.cloud_agents = Some(cloud_agents);
         self
     }
 }
@@ -103,6 +111,7 @@ impl AgentRunner for RigAgentRunner {
         let cron_repo = self.cron_repo.clone();
         let process_registry = self.tool_context.process_registry.clone();
         let mcp_registry = self.mcp_registry.clone();
+        let cloud_agents = self.cloud_agents.clone();
 
         let mut available_tools = build_all_tools(
             &snapshot.tools,
@@ -113,6 +122,8 @@ impl AgentRunner for RigAgentRunner {
                 cron_repo: cron_repo.clone(),
                 process_registry: Some(process_registry.clone()),
                 mcp_registry: mcp_registry.clone(),
+                workspace_root: tool_context.workspace_root.clone(),
+                cloud_agents: cloud_agents.clone(),
             },
             mcp_registry.clone(),
         );
@@ -231,6 +242,8 @@ impl AgentRunner for RigAgentRunner {
                                         cron_repo: cron_repo.clone(),
                                         process_registry: Some(process_registry.clone()),
                                         mcp_registry: mcp_registry.clone(),
+                                        workspace_root: tool_context.workspace_root.clone(),
+                                        cloud_agents: cloud_agents.clone(),
                                     },
                                     mcp_registry.clone(),
                                 );

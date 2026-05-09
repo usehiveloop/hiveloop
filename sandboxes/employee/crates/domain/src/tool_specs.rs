@@ -25,6 +25,22 @@ pub enum ToolSpec {
     Wake,
     #[serde(rename = "builtin.load_tools")]
     LoadTools,
+    #[serde(rename = "builtin.skills_list")]
+    SkillsList,
+    #[serde(rename = "builtin.skill_view")]
+    SkillView,
+    #[serde(rename = "builtin.skill_manage")]
+    SkillManage,
+    #[serde(rename = "builtin.cloud_agent_launch_task")]
+    CloudAgentLaunchTask,
+    #[serde(rename = "builtin.cloud_agent_task_status")]
+    CloudAgentTaskStatus,
+    #[serde(rename = "builtin.cloud_agent_list_tasks")]
+    CloudAgentListTasks,
+    #[serde(rename = "builtin.cloud_agent_task_send_message")]
+    CloudAgentTaskSendMessage,
+    #[serde(rename = "builtin.cloud_agent_task_terminate")]
+    CloudAgentTaskTerminate,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

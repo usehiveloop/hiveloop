@@ -11,4 +11,5 @@ domain.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 serde_json.workspace = true
+anyhow.workspace = true
 walkdir = "2"
