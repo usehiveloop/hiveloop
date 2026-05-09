@@ -12,8 +12,9 @@ mod write;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use adk_rust::prelude::Tool as AdkTool;
+use async_trait::async_trait;
 use domain::ToolSpec;
+use serde_json::Value;
 
 pub use bash::BashTool;
 pub use edit::EditTool;
@@ -24,6 +25,23 @@ pub use operations::{
 pub use process_registry::ProcessRegistry;
 pub use read::ReadTool;
 pub use write::WriteTool;
+
+#[derive(Debug, Clone)]
+pub struct ToolDefinition {
+    pub name: String,
+    pub description: String,
+    pub parameters: Value,
+}
+
+#[async_trait]
+pub trait JsonTool: Send + Sync {
+    fn definition(&self) -> ToolDefinition;
+    async fn call(&self, args: Value) -> anyhow::Result<Value>;
+}
+
+pub fn schema_for<T: schemars::JsonSchema>() -> Value {
+    serde_json::to_value(schemars::schema_for!(T)).unwrap_or_else(|_| serde_json::json!({"type":"object"}))
+}
 
 pub struct ToolBuildContext {
     pub workspace_root: PathBuf,
@@ -46,8 +64,8 @@ impl ToolBuildContext {
 pub fn build_builtin_tools(
     specs: &[ToolSpec],
     context: &ToolBuildContext,
-) -> Vec<Arc<dyn AdkTool>> {
-    let mut tools: Vec<Arc<dyn AdkTool>> = Vec::new();
+) -> Vec<Arc<dyn JsonTool>> {
+    let mut tools: Vec<Arc<dyn JsonTool>> = Vec::new();
     for spec in specs {
         match spec {
             ToolSpec::Bash(config) => {
@@ -57,26 +75,26 @@ pub fn build_builtin_tools(
                     context.bash.clone(),
                 )
                 .with_process_registry(context.process_registry.clone())
-                .into_adk_tool());
+                .into_tool());
             }
             ToolSpec::ReadFile(config) => {
                 tools.push(ReadTool::new(
                     config.clone(),
                     context.workspace_root.clone(),
                     context.fs.clone(),
-                ).into_adk_tool());
+                ).into_tool());
             }
             ToolSpec::WriteFile(config) => {
                 tools.push(WriteTool::new(
                     config.clone(),
                     context.workspace_root.clone(),
                     context.fs.clone(),
-                ).into_adk_tool());
+                ).into_tool());
                 tools.push(EditTool::new(
                     config.clone(),
                     context.workspace_root.clone(),
                     context.fs.clone(),
-                ).into_adk_tool());
+                ).into_tool());
             }
             ToolSpec::PostStatusUpdate
             | ToolSpec::PostToChannel

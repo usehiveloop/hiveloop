@@ -52,6 +52,11 @@ pub trait EventRepo: Send + Sync + 'static {
         session_id: &SessionId,
         limit: u32,
     ) -> Result<Vec<SessionEvent>>;
+    async fn list_chronological(
+        &self,
+        session_id: &SessionId,
+        limit: u32,
+    ) -> Result<Vec<SessionEvent>>;
 }
 
 #[derive(Debug, Clone)]

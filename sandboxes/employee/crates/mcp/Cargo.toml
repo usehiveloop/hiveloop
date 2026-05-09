@@ -17,4 +17,3 @@ serde_json.workspace = true
 rmcp.workspace = true
 http = "1"
 dashmap = "6"
-adk-rust = { version = "0.7", default-features = false, features = ["tools"] }

@@ -1,6 +1,6 @@
 # employee-bridge
 
-Rust runtime for AI agents that act as real-world employees in Slack (and later Discord, Teams, WhatsApp). One sandbox = one workspace = one bot. Built on `adk-rust`. Configured live via a control-plane HTTP API.
+Rust runtime for AI agents that act as real-world employees in Slack (and later Discord, Teams, WhatsApp). One sandbox = one workspace = one bot. Built on a provider-agnostic Rig-based agent runtime. Configured live via a control-plane HTTP API.
 
 ## Layout
 
@@ -8,7 +8,7 @@ Rust runtime for AI agents that act as real-world employees in Slack (and later 
 crates/
   domain/           # shared types: AgentDefinition, SessionId, InboundEvent, ConfigStore
   gateway/          # ChannelGateway trait + Slack adapter
-  agent/            # AgentRunner trait, adk-rust integration
+  agent/            # AgentRunner trait, Rig-based agent runtime
   storage/          # SQLite repos + migrations
   tools/            # bash, read_file, write_file, ...
   mcp/              # MCP server registry

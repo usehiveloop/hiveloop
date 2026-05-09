@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use adk_rust::prelude::{FunctionTool, Tool as AdkTool};
-use adk_rust::AdkError;
+use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use domain::ReadFileConfig;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,7 @@ use crate::path::{
     build_glob_set, enforce_deny_globs, resolve_within_workspace, PathPolicyError,
 };
 use crate::truncate::{truncate_head, DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, TruncationReason};
+use crate::{schema_for, JsonTool, ToolDefinition};
 
 const TOOL_NAME: &str = "read_file";
 const TOOL_DESCRIPTION: &str =
@@ -53,20 +54,13 @@ impl ReadTool {
         }
     }
 
-    pub fn into_adk_tool(self) -> Arc<dyn AdkTool> {
-        let inner = Arc::new(self);
-        let inner_for_closure = inner.clone();
-        let function_tool = FunctionTool::new(TOOL_NAME, TOOL_DESCRIPTION, move |_ctx, args| {
-            let inner = inner_for_closure.clone();
-            async move { inner.execute(args).await }
-        })
-        .with_parameters_schema::<ReadArgs>();
-        Arc::new(function_tool)
+    pub fn into_tool(self) -> Arc<dyn JsonTool> {
+        Arc::new(self)
     }
 
-    async fn execute(&self, args: Value) -> Result<Value, AdkError> {
+    async fn execute(&self, args: Value) -> Result<Value> {
         let parsed: ReadArgs = serde_json::from_value(args)
-            .map_err(|e| AdkError::tool(format!("invalid arguments: {e}")))?;
+            .map_err(|e| anyhow!("invalid arguments: {e}"))?;
         let resolved = resolve_within_workspace(
             &self.workspace_root,
             &parsed.path,
@@ -79,7 +73,7 @@ impl ReadTool {
         self.operations
             .access(&resolved)
             .await
-            .map_err(|e| AdkError::tool(format!("{}: {e}", parsed.path)))?;
+            .map_err(|e| anyhow!("{}: {e}", parsed.path))?;
 
         if let Some(mime) = self.operations.detect_image_mime(&resolved).await {
             return Ok(json!({
@@ -93,23 +87,23 @@ impl ReadTool {
             .operations
             .read_file(&resolved)
             .await
-            .map_err(|e| AdkError::tool(format!("read failed for {}: {e}", parsed.path)))?;
+            .map_err(|e| anyhow!("read failed for {}: {e}", parsed.path))?;
         let max_bytes = self.config.max_file_size_bytes as usize;
         if bytes.len() > max_bytes {
-            return Err(AdkError::tool(format!(
+            return Err(anyhow!(
                 "{} exceeds max_file_size_bytes ({} > {})",
                 parsed.path,
                 bytes.len(),
                 max_bytes
-            )));
+            ));
         }
         let text = match String::from_utf8(bytes) {
             Ok(text) => text,
             Err(_) => {
-                return Err(AdkError::tool(format!(
+                return Err(anyhow!(
                     "{} is not valid UTF-8",
                     parsed.path
-                )));
+                ));
             }
         };
 
@@ -136,22 +130,37 @@ impl ReadTool {
     }
 }
 
+#[async_trait]
+impl JsonTool for ReadTool {
+    fn definition(&self) -> ToolDefinition {
+        ToolDefinition {
+            name: TOOL_NAME.to_string(),
+            description: TOOL_DESCRIPTION.to_string(),
+            parameters: schema_for::<ReadArgs>(),
+        }
+    }
+
+    async fn call(&self, args: Value) -> Result<Value> {
+        self.execute(args).await
+    }
+}
+
 fn slice_for_offset_limit(
     text: &str,
     offset: Option<usize>,
     limit: Option<usize>,
-) -> Result<String, AdkError> {
+) -> Result<String> {
     if offset.is_none() && limit.is_none() {
         return Ok(text.to_string());
     }
     let lines: Vec<&str> = text.split_inclusive('\n').collect();
     let start = offset.unwrap_or(1).saturating_sub(1);
     if start >= lines.len() && !lines.is_empty() {
-        return Err(AdkError::tool(format!(
+        return Err(anyhow!(
             "offset {} is beyond end of file ({} lines total)",
             start + 1,
             lines.len()
-        )));
+        ));
     }
     let end = match limit {
         Some(n) => (start + n).min(lines.len()),
@@ -160,6 +169,6 @@ fn slice_for_offset_limit(
     Ok(lines[start..end].concat())
 }
 
-fn map_path_error(error: PathPolicyError) -> AdkError {
-    AdkError::tool(error.to_string())
+fn map_path_error(error: PathPolicyError) -> anyhow::Error {
+    anyhow!(error.to_string())
 }

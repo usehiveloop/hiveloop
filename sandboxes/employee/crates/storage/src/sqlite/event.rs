@@ -115,4 +115,14 @@ impl EventRepo for SqliteEventRepo {
         }
         Ok(events)
     }
+
+    async fn list_chronological(
+        &self,
+        session_id: &SessionId,
+        limit: u32,
+    ) -> Result<Vec<SessionEvent>> {
+        let mut events = self.list_recent(session_id, limit).await?;
+        events.reverse();
+        Ok(events)
+    }
 }

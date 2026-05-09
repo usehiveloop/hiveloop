@@ -80,7 +80,7 @@ test:
 	          --test delegate_wake_integration --test scheduler_integration \
 	          --test bash_operations_integration --test file_operations_integration \
 	          --test process_registry_integration --test skills_integration \
-	          --test model_helpers_integration --test handler_routing_integration
+	          --test handler_routing_integration
 
 clean:
 	cargo clean

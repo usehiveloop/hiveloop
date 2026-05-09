@@ -46,7 +46,7 @@ fn row_to_session(row: &sqlx::sqlite::SqliteRow) -> Result<Session> {
     let id: String = row.try_get("id")?;
     let channel: String = row.try_get("channel")?;
     let thread_ts: String = row.try_get("thread_ts")?;
-    let adk_session_id: String = row.try_get("adk_session_id")?;
+    let agent_session_id: String = row.try_get("agent_session_id")?;
     let status_raw: String = row.try_get("status")?;
     let created_at_raw: String = row.try_get("created_at")?;
     let last_activity_at_raw: String = row.try_get("last_activity_at")?;
@@ -54,7 +54,7 @@ fn row_to_session(row: &sqlx::sqlite::SqliteRow) -> Result<Session> {
         id: SessionId::from(id),
         channel,
         thread_ts,
-        adk_session_id,
+        agent_session_id,
         status: status_from_str(&status_raw)?,
         created_at: parse_timestamp(&created_at_raw)?,
         last_activity_at: parse_timestamp(&last_activity_at_raw)?,
@@ -76,13 +76,13 @@ impl SessionRepo for SqliteSessionRepo {
 
     async fn create(&self, session: &Session) -> Result<()> {
         let result = sqlx::query(
-            "INSERT INTO sessions (id, channel, thread_ts, adk_session_id, status, \
+            "INSERT INTO sessions (id, channel, thread_ts, agent_session_id, status, \
              created_at, last_activity_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(session.id.as_str())
         .bind(&session.channel)
         .bind(&session.thread_ts)
-        .bind(&session.adk_session_id)
+        .bind(&session.agent_session_id)
         .bind(status_to_str(session.status))
         .bind(session.created_at.to_rfc3339())
         .bind(session.last_activity_at.to_rfc3339())

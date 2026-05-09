@@ -2,14 +2,12 @@ use dashmap::DashSet;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use adk_rust::prelude::{Content, Tool, ToolContext};
-use adk_rust::tool::McpToolset;
-use adk_rust::{ReadonlyContext, Toolset};
-use tokio::sync::OnceCell;
 use domain::McpSpec;
 use http::{HeaderName, HeaderValue};
 use rmcp::{
-    ServiceExt,
+    model::{CallToolRequestParams, JsonObject},
+    service::RunningService,
+    Peer, RoleClient, ServiceExt,
     transport::{
         TokioChildProcess,
         streamable_http_client::{StreamableHttpClientTransport, StreamableHttpClientTransportConfig},
@@ -19,83 +17,18 @@ use tokio::process::Command;
 use tracing::{error, info, warn};
 
 struct McpEntry {
-    _toolset: Arc<dyn adk_rust::Toolset>,
-    server_name: String,
+    _service: RunningService<RoleClient, ()>,
+    peer: Peer<RoleClient>,
     tool_names: Vec<(String, String)>,
+    tools: Vec<McpToolDefinition>,
 }
 
-/// Wrapper that prefixes an MCP tool's name (e.g., `list_initiatives` →
-/// `linear_list_initiatives`) so it matches the system prompt, and gates
-/// `execute()` on the `loaded` DashSet.
-struct PrefixedGuardTool {
-    inner: Arc<dyn Tool>,
-    loaded: Arc<DashSet<String>>,
-    prefixed_name: String,
-}
-
-#[async_trait::async_trait]
-impl Tool for PrefixedGuardTool {
-    fn name(&self) -> &str { &self.prefixed_name }
-    fn description(&self) -> &str { self.inner.description() }
-    fn declaration(&self) -> serde_json::Value { self.inner.declaration() }
-    fn parameters_schema(&self) -> Option<serde_json::Value> { self.inner.parameters_schema() }
-    fn response_schema(&self) -> Option<serde_json::Value> { self.inner.response_schema() }
-    fn is_long_running(&self) -> bool { self.inner.is_long_running() }
-
-    async fn execute(&self, ctx: Arc<dyn ToolContext>, args: serde_json::Value) -> adk_rust::Result<serde_json::Value> {
-        if self.loaded.contains(self.inner.name()) {
-            self.inner.execute(ctx, args).await
-        } else {
-            Err(adk_rust::AdkError::tool(format!(
-                "Tool '{}' is not loaded yet. Call load_tools(tool_names=[\"{}\"]) first.",
-                self.prefixed_name, self.prefixed_name
-            )))
-        }
-    }
-}
-
-/// Caches all discovered tools from the inner toolset on first call, then
-/// filters by the `loaded` DashSet and prefixes names on each `tools()` call.
-struct LoadedCachingToolset {
-    inner: Arc<dyn Toolset>,
-    loaded: Arc<DashSet<String>>,
-    prefix: String,
-    name: String,
-    cache: OnceCell<Vec<Arc<dyn Tool>>>,
-}
-
-impl LoadedCachingToolset {
-    fn new(inner: Arc<dyn Toolset>, loaded: Arc<DashSet<String>>, prefix: impl Into<String>) -> Self {
-        let prefix = prefix.into();
-        let name = format!("{}_caching", inner.name());
-        Self { inner, loaded, prefix, name, cache: OnceCell::new() }
-    }
-}
-
-#[async_trait::async_trait]
-impl Toolset for LoadedCachingToolset {
-    fn name(&self) -> &str {
-        &self.name
-    }
-
-    async fn tools(&self, ctx: Arc<dyn ReadonlyContext>) -> adk_rust::Result<Vec<Arc<dyn Tool>>> {
-        let all = self.cache.get_or_try_init(|| {
-            let inner = self.inner.clone();
-            let ctx = ctx.clone();
-            Box::pin(async move { inner.tools(ctx).await })
-        }).await?;
-        Ok(all
-            .iter()
-            .filter(|t| self.loaded.contains(t.name()))
-            .map(|t| {
-                Arc::new(PrefixedGuardTool {
-                    inner: t.clone(),
-                    loaded: self.loaded.clone(),
-                    prefixed_name: format!("{}_{}", self.prefix, t.name()),
-                }) as Arc<dyn Tool>
-            })
-            .collect())
-    }
+#[derive(Debug, Clone)]
+pub struct McpToolDefinition {
+    pub prefixed_name: String,
+    pub raw_name: String,
+    pub description: String,
+    pub parameters: serde_json::Value,
 }
 
 pub struct McpRegistry {
@@ -109,8 +42,8 @@ impl McpRegistry {
         let loaded = Arc::new(DashSet::new());
 
         for spec in specs {
-            match connect_and_discover(spec, loaded.clone()).await {
-                Ok((toolset, tool_names, server_name)) => {
+            match connect_and_discover(spec).await {
+                Ok((service, peer, tool_names, tools, server_name)) => {
                     for default_name in spec.default_enabled_tools() {
                         let found = tool_names.iter().find(|(pfx, raw)| {
                             raw == default_name || pfx.as_str() == default_name.as_str()
@@ -123,17 +56,13 @@ impl McpRegistry {
                         }
                     }
                     info!(server = %server_name, tool_count = tool_names.len(), loaded = loaded.len(), "MCP server connected");
-                    entries.push(McpEntry { _toolset: toolset, server_name, tool_names });
+                    entries.push(McpEntry { _service: service, peer, tool_names, tools });
                 }
                 Err(e) => error!(name = %spec.name(), error = %e, "failed to connect MCP server"),
             }
         }
 
         Self { entries, loaded }
-    }
-
-    pub fn toolsets(&self) -> Vec<Arc<dyn adk_rust::Toolset>> {
-        self.entries.iter().map(|e| e._toolset.clone()).collect()
     }
 
     pub fn available_tool_names(&self) -> Vec<String> {
@@ -198,29 +127,47 @@ impl McpRegistry {
 
         loaded
     }
+
+    pub fn loaded_tools(&self) -> Vec<McpToolDefinition> {
+        let mut tools = Vec::new();
+        for entry in &self.entries {
+            for tool in &entry.tools {
+                if self.loaded.contains(&tool.raw_name) {
+                    tools.push(tool.clone());
+                }
+            }
+        }
+        tools.sort_by(|a, b| a.prefixed_name.cmp(&b.prefixed_name));
+        tools
+    }
+
+    pub async fn call_tool(&self, prefixed_name: &str, args: serde_json::Value) -> anyhow::Result<serde_json::Value> {
+        for entry in &self.entries {
+            if let Some((_, raw)) = entry.tool_names.iter().find(|(pfx, _)| pfx == prefixed_name) {
+                if !self.loaded.contains(raw) {
+                    anyhow::bail!("Tool '{prefixed_name}' is not loaded yet. Call load_tools first.");
+                }
+                let arguments = match args {
+                    serde_json::Value::Object(map) => map,
+                    serde_json::Value::Null => JsonObject::new(),
+                    other => {
+                        let mut map = JsonObject::new();
+                        map.insert("value".to_string(), other);
+                        map
+                    }
+                };
+                let result = entry
+                    .peer
+                    .call_tool(CallToolRequestParams::new(raw.clone()).with_arguments(arguments))
+                    .await?;
+                return Ok(serde_json::to_value(result)?);
+            }
+        }
+        anyhow::bail!("MCP tool '{prefixed_name}' not found")
+    }
 }
 
-struct DiscoveryContext {
-    pub invocation_id: String,
-    pub agent_name: String,
-    pub user_id: String,
-    pub app_name: String,
-    pub session_id: String,
-    pub branch: String,
-    pub user_content: Content,
-}
-
-impl ReadonlyContext for DiscoveryContext {
-    fn invocation_id(&self) -> &str { &self.invocation_id }
-    fn agent_name(&self) -> &str { &self.agent_name }
-    fn user_id(&self) -> &str { &self.user_id }
-    fn app_name(&self) -> &str { &self.app_name }
-    fn session_id(&self) -> &str { &self.session_id }
-    fn branch(&self) -> &str { &self.branch }
-    fn user_content(&self) -> &Content { &self.user_content }
-}
-
-async fn connect_and_discover(spec: &McpSpec, loaded: Arc<DashSet<String>>) -> anyhow::Result<(Arc<dyn adk_rust::Toolset>, Vec<(String, String)>, String)> {
+async fn connect_and_discover(spec: &McpSpec) -> anyhow::Result<(RunningService<RoleClient, ()>, Peer<RoleClient>, Vec<(String, String)>, Vec<McpToolDefinition>, String)> {
     let server_name = spec.name().to_string();
 
     match spec {
@@ -229,13 +176,10 @@ async fn connect_and_discover(spec: &McpSpec, loaded: Arc<DashSet<String>>) -> a
             cmd.args(args.iter().map(|a| a.as_str()));
             for (key, value) in env { cmd.env(key, value); }
             info!(%name, "connecting MCP stdio server");
-            let client = ().serve(TokioChildProcess::new(cmd)?).await?;
-            let toolset = McpToolset::new(client).with_name(name.clone());
-            let names = discover_names(&toolset, &server_name, tool_filter).await;
-            let toolset = apply_filter(toolset, tool_filter);
-            let toolset: Arc<dyn adk_rust::Toolset> =
-                Arc::new(LoadedCachingToolset::new(Arc::new(toolset), loaded, &server_name));
-            Ok((toolset, names, server_name))
+            let service = ().serve(TokioChildProcess::new(cmd)?).await?;
+            let peer = service.peer().clone();
+            let (names, tools) = discover_tools(&peer, &server_name, tool_filter).await;
+            Ok((service, peer, names, tools, server_name))
         }
         McpSpec::Http { name, url, headers, tool_filter, .. }
         | McpSpec::StreamableHttp { name, url, headers, tool_filter, .. } => {
@@ -243,35 +187,27 @@ async fn connect_and_discover(spec: &McpSpec, loaded: Arc<DashSet<String>>) -> a
             let custom_headers = build_headers(headers)?;
             if !custom_headers.is_empty() { config.custom_headers = custom_headers; }
             info!(%name, "connecting MCP HTTP server");
-            let client = ().serve(StreamableHttpClientTransport::from_config(config)).await?;
-            let toolset = McpToolset::new(client).with_name(name.clone());
-            let names = discover_names(&toolset, &server_name, tool_filter).await;
-            let toolset = apply_filter(toolset, tool_filter);
-            let toolset: Arc<dyn adk_rust::Toolset> =
-                Arc::new(LoadedCachingToolset::new(Arc::new(toolset), loaded, &server_name));
-            Ok((toolset, names, server_name))
+            let service = ().serve(StreamableHttpClientTransport::from_config(config)).await?;
+            let peer = service.peer().clone();
+            let (names, tools) = discover_tools(&peer, &server_name, tool_filter).await;
+            Ok((service, peer, names, tools, server_name))
         }
     }
 }
 
-async fn discover_names(
-    toolset: &McpToolset,
+async fn discover_tools(
+    peer: &Peer<RoleClient>,
     server_name: &str,
     tool_filter: &Option<domain::ToolFilter>,
-) -> Vec<(String, String)> {
-    let ctx = Arc::new(DiscoveryContext {
-        invocation_id: "discovery".into(), agent_name: "discovery".into(),
-        user_id: "runtime".into(), app_name: "employee-bridge".into(),
-        session_id: "discovery".into(), branch: "main".into(),
-        user_content: Content::new("user"),
-    });
-    let tools = match toolset.tools(ctx).await {
+) -> (Vec<(String, String)>, Vec<McpToolDefinition>) {
+    let discovered = match peer.list_all_tools().await {
         Ok(t) => t,
-        Err(e) => { warn!(error = %e, "failed to discover tools"); return vec![]; }
+        Err(e) => { warn!(error = %e, "failed to discover tools"); return (vec![], vec![]); }
     };
     let mut names = Vec::new();
-    for tool in &tools {
-        let raw = tool.name().to_string();
+    let mut defs = Vec::new();
+    for tool in discovered {
+        let raw = tool.name.to_string();
         if let Some(f) = tool_filter {
             if let Some(ref allow) = f.allow {
                 if !allow.iter().any(|a| a == &raw) { continue; }
@@ -281,24 +217,17 @@ async fn discover_names(
             }
         }
         let prefixed = format!("{}_{}", server_name, raw);
-        names.push((prefixed, raw));
+        names.push((prefixed.clone(), raw.clone()));
+        defs.push(McpToolDefinition {
+            prefixed_name: prefixed,
+            raw_name: raw,
+            description: tool.description.map(|d| d.into_owned()).unwrap_or_default(),
+            parameters: serde_json::Value::Object((*tool.input_schema).clone()),
+        });
     }
-    names
-}
-
-fn apply_filter(toolset: McpToolset, filter: &Option<domain::ToolFilter>) -> McpToolset {
-    let Some(filter) = filter else { return toolset; };
-    let allow = filter.allow.clone();
-    let deny = filter.deny.clone();
-    toolset.with_filter(move |name| {
-        if let Some(ref deny_list) = deny {
-            if deny_list.iter().any(|d| d == name) { return false; }
-        }
-        if let Some(ref allow_list) = allow {
-            return allow_list.iter().any(|a| a == name);
-        }
-        true
-    })
+    names.sort();
+    defs.sort_by(|a, b| a.prefixed_name.cmp(&b.prefixed_name));
+    (names, defs)
 }
 
 fn build_headers(headers: &HashMap<String, String>) -> Result<HashMap<HeaderName, HeaderValue>, anyhow::Error> {

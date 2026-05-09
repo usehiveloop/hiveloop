@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Transparent OpenRouter proxy that logs every request and response.
-
-The proxy keeps the OpenAI-compatible path shape intact. Point model configs at
-http://127.0.0.1:7081/api/v1 and requests will be forwarded to
-https://openrouter.ai/api/v1.
-"""
+"""Transparent OpenRouter proxy that only logs request/response pairs."""
 
 from __future__ import annotations
 
@@ -29,7 +24,6 @@ DEFAULT_TARGET = "https://openrouter.ai/api/v1"
 DEFAULT_LISTEN = "127.0.0.1"
 DEFAULT_PORT = 7081
 DEFAULT_LOG_DIR = Path(__file__).resolve().parent / "logs"
-ARIA_PROMPT_PREFIX = "You are Aria,"
 
 HOP_BY_HOP_HEADERS = {
     "connection",
@@ -81,8 +75,7 @@ def target_for_request(target_base: str, request_target: str) -> tuple[str, str]
     if incoming.query:
         target_path = f"{target_path}?{incoming.query}"
 
-    target_url = f"{base.scheme}://{base.netloc}{target_path}"
-    return base.netloc, target_url
+    return base.netloc, f"{base.scheme}://{base.netloc}{target_path}"
 
 
 def forward_headers(handler: http.server.BaseHTTPRequestHandler, netloc: str, body: bytes) -> dict[str, str]:
@@ -100,110 +93,8 @@ def forward_headers(handler: http.server.BaseHTTPRequestHandler, netloc: str, bo
     return headers
 
 
-def env_flag(name: str, default: bool) -> bool:
-    value = os.environ.get(name)
-    if value is None:
-        return default
-    return value.lower() not in {"0", "false", "no", "off"}
-
-
-def text_block(text: str, cache_control: bool) -> list[dict[str, object]]:
-    block: dict[str, object] = {
-        "type": "text",
-        "text": text,
-    }
-    if cache_control:
-        block["cache_control"] = {"type": "ephemeral"}
-    return [block]
-
-
-def normalize_chat_completion_body(body: bytes, strategy: str) -> tuple[bytes, dict[str, object]]:
-    """Normalize model requests for cache diagnostics.
-
-    OpenRouter/Gemini cache hits depend on a stable leading request shape. The
-    bridge currently emits the instruction as a user message and the tool list
-    arrives in a nondeterministic order, so this proxy fixes those properties
-    before forwarding.
-    """
-    try:
-        payload = json.loads(body)
-    except json.JSONDecodeError:
-        return body, {"enabled": False, "reason": "body is not JSON"}
-
-    if not isinstance(payload, dict) or "messages" not in payload:
-        return body, {"enabled": False, "reason": "not a chat-completion payload"}
-
-    changes: list[str] = []
-    messages = payload.get("messages")
-    if isinstance(messages, list) and messages:
-        first = messages[0]
-        if (
-            isinstance(first, dict)
-            and first.get("role") == "user"
-            and isinstance(first.get("content"), str)
-            and first["content"].startswith(ARIA_PROMPT_PREFIX)
-        ):
-            first["role"] = "system"
-            first["content"] = text_block(first["content"], cache_control=True)
-            changes.append("converted_first_aria_user_message_to_system_cache_block")
-
-        if strategy == "all":
-            converted = 0
-            for message in messages:
-                if not isinstance(message, dict):
-                    continue
-                content = message.get("content")
-                if isinstance(content, str) and content:
-                    message["content"] = text_block(content, cache_control=True)
-                    converted += 1
-                elif isinstance(content, list):
-                    for part in content:
-                        if isinstance(part, dict) and part.get("type") == "text":
-                            part["cache_control"] = {"type": "ephemeral"}
-            if converted:
-                changes.append(f"converted_all_string_messages_to_cache_blocks:{converted}")
-        else:
-            # For Gemini, OpenRouter uses the final cache_control breakpoint.
-            # Mark the latest cacheable message so subsequent growing turns can
-            # reuse the already-seen prefix.
-            for message in reversed(messages):
-                if not isinstance(message, dict):
-                    continue
-                content = message.get("content")
-                if isinstance(content, str) and content:
-                    message["content"] = text_block(content, cache_control=True)
-                    changes.append(f"added_cache_control_to_last_{message.get('role', 'unknown')}_message")
-                    break
-
-    tools = payload.get("tools")
-    if isinstance(tools, list):
-        before = json.dumps(tools, separators=(",", ":"), ensure_ascii=False)
-
-        def tool_sort_key(tool: object) -> str:
-            if isinstance(tool, dict):
-                function = tool.get("function")
-                if isinstance(function, dict):
-                    return str(function.get("name", ""))
-            return json.dumps(tool, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-
-        tools.sort(key=tool_sort_key)
-        after = json.dumps(tools, separators=(",", ":"), ensure_ascii=False)
-        if before != after:
-            changes.append("sorted_tools_by_function_name")
-
-    normalized = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    return normalized, {
-        "enabled": True,
-        "changed": normalized != body,
-        "changes": changes,
-        "strategy": strategy,
-        "original_bytes": len(body),
-        "upstream_bytes": len(normalized),
-    }
-
-
 class OpenRouterProxyHandler(http.server.BaseHTTPRequestHandler):
-    server_version = "openrouter-debug-proxy/1.0"
+    server_version = "openrouter-pass-through-proxy/1.0"
 
     def log_message(self, fmt: str, *args: object) -> None:
         sys.stderr.write("[%s] %s\n" % (utc_now(), fmt % args))
@@ -238,8 +129,6 @@ class OpenRouterProxyHandler(http.server.BaseHTTPRequestHandler):
         request_id = f"{request_id}-{uuid.uuid4().hex[:8]}"
         started = time.monotonic()
         request_body = self.read_request_body()
-        upstream_body = request_body
-        normalization: dict[str, object] = {"enabled": False}
         response_body = bytearray()
         response_status: int | None = None
         response_reason: str | None = None
@@ -250,16 +139,11 @@ class OpenRouterProxyHandler(http.server.BaseHTTPRequestHandler):
 
         try:
             netloc, target_url = target_for_request(self.server.target_base, self.path)
-            if self.server.normalize_cache and self.path.startswith("/api/v1/chat/completions"):
-                upstream_body, normalization = normalize_chat_completion_body(
-                    request_body,
-                    strategy=self.server.cache_strategy,
-                )
-            headers = forward_headers(self, netloc, upstream_body)
+            headers = forward_headers(self, netloc, request_body)
             upstream = self.open_upstream_with_retries(
                 target_url=target_url,
                 headers=headers,
-                body=upstream_body,
+                body=request_body,
                 attempts_log=upstream_attempts,
             )
             response_status = upstream.status_code
@@ -283,7 +167,7 @@ class OpenRouterProxyHandler(http.server.BaseHTTPRequestHandler):
             upstream.close()
         except BrokenPipeError:
             error = "client disconnected while streaming response"
-        except Exception as exc:  # noqa: BLE001 - this is a diagnostics proxy.
+        except Exception as exc:  # noqa: BLE001 - diagnostics proxy.
             error = repr(exc)
             if response_status is None:
                 response_status = 502
@@ -302,8 +186,6 @@ class OpenRouterProxyHandler(http.server.BaseHTTPRequestHandler):
                 duration_ms=round((time.monotonic() - started) * 1000, 3),
                 target_url=target_url,
                 request_body=request_body,
-                upstream_body=upstream_body,
-                normalization=normalization,
                 response_status=response_status,
                 response_reason=response_reason,
                 response_headers=response_headers,
@@ -320,7 +202,6 @@ class OpenRouterProxyHandler(http.server.BaseHTTPRequestHandler):
         body: bytes,
         attempts_log: list[str],
     ) -> requests.Response:
-        last_error: Exception | None = None
         for attempt in range(1, self.server.upstream_max_attempts + 1):
             try:
                 response = requests.request(
@@ -338,13 +219,12 @@ class OpenRouterProxyHandler(http.server.BaseHTTPRequestHandler):
                 requests_exceptions.ConnectionError,
                 requests_exceptions.ChunkedEncodingError,
             ) as exc:
-                last_error = exc
                 attempts_log.append(f"attempt {attempt}: {type(exc).__name__}: {exc}")
                 if attempt < self.server.upstream_max_attempts:
                     time.sleep(min(0.25 * attempt, 1.0))
                     continue
                 raise
-        raise RuntimeError(f"upstream request failed without response: {last_error!r}")
+        raise RuntimeError("upstream request failed without response")
 
     def write_transaction_log(
         self,
@@ -354,8 +234,6 @@ class OpenRouterProxyHandler(http.server.BaseHTTPRequestHandler):
         duration_ms: float,
         target_url: str,
         request_body: bytes,
-        upstream_body: bytes,
-        normalization: dict[str, object],
         response_status: int | None,
         response_reason: str | None,
         response_headers: list[tuple[str, str]],
@@ -375,10 +253,6 @@ class OpenRouterProxyHandler(http.server.BaseHTTPRequestHandler):
                 "target_url": target_url,
                 "headers": redact_headers(self.headers.items()),
                 "body": decode_body(request_body),
-            },
-            "upstream_request": {
-                "body": decode_body(upstream_body),
-                "normalization": normalization,
             },
             "response": {
                 "status": response_status,
@@ -400,19 +274,11 @@ class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Log-and-forward OpenRouter proxy")
+    parser = argparse.ArgumentParser(description="Pass-through logging OpenRouter proxy")
     parser.add_argument("--listen", default=os.environ.get("OPENROUTER_PROXY_LISTEN", DEFAULT_LISTEN))
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=int(os.environ.get("OPENROUTER_PROXY_PORT", str(DEFAULT_PORT))),
-    )
+    parser.add_argument("--port", type=int, default=int(os.environ.get("OPENROUTER_PROXY_PORT", str(DEFAULT_PORT))))
     parser.add_argument("--target", default=os.environ.get("OPENROUTER_PROXY_TARGET", DEFAULT_TARGET))
-    parser.add_argument(
-        "--log-dir",
-        type=Path,
-        default=Path(os.environ.get("OPENROUTER_PROXY_LOG_DIR", str(DEFAULT_LOG_DIR))),
-    )
+    parser.add_argument("--log-dir", type=Path, default=Path(os.environ.get("OPENROUTER_PROXY_LOG_DIR", str(DEFAULT_LOG_DIR))))
     parser.add_argument(
         "--upstream-timeout-seconds",
         type=float,
@@ -422,18 +288,6 @@ def parse_args() -> argparse.Namespace:
         "--upstream-max-attempts",
         type=int,
         default=int(os.environ.get("OPENROUTER_PROXY_UPSTREAM_MAX_ATTEMPTS", "4")),
-    )
-    parser.add_argument(
-        "--normalize-cache",
-        action=argparse.BooleanOptionalAction,
-        default=env_flag("OPENROUTER_PROXY_NORMALIZE_CACHE", True),
-        help="normalize chat-completion requests for cache diagnostics",
-    )
-    parser.add_argument(
-        "--cache-strategy",
-        choices=["latest", "all"],
-        default=os.environ.get("OPENROUTER_PROXY_CACHE_STRATEGY", "latest"),
-        help="cache-control placement strategy for normalized requests",
     )
     return parser.parse_args()
 
@@ -445,13 +299,10 @@ def main() -> None:
     server.log_dir = args.log_dir
     server.upstream_timeout_seconds = args.upstream_timeout_seconds
     server.upstream_max_attempts = max(1, args.upstream_max_attempts)
-    server.normalize_cache = args.normalize_cache
-    server.cache_strategy = args.cache_strategy
 
     print(
-        f"openrouter proxy listening on http://{args.listen}:{args.port}; "
-        f"forwarding to {server.target_base}; logs in {server.log_dir}; "
-        f"normalize_cache={server.normalize_cache}; cache_strategy={server.cache_strategy}",
+        f"openrouter pass-through proxy listening on http://{args.listen}:{args.port}; "
+        f"forwarding to {server.target_base}; logs in {server.log_dir}",
         flush=True,
     )
     server.serve_forever()

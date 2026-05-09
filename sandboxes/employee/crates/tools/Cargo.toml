@@ -18,7 +18,6 @@ tracing.workspace = true
 chrono.workspace = true
 futures.workspace = true
 
-adk-rust = { version = "0.7", default-features = false, features = ["agents", "tools", "sessions", "runner", "openai"] }
 schemars = "0.8"
 globset = "0.4"
 dashmap = "6"

@@ -7,8 +7,6 @@ import argparse
 import json
 from pathlib import Path
 
-from replay_requests import BREAKDOWN_20
-
 
 def parse_usage(response_body: str) -> dict:
     usage = None
@@ -32,11 +30,10 @@ def parse_usage(response_body: str) -> dict:
         return {}
 
 
-def summarize(log_dir: Path, breakdown_20: bool = False) -> dict:
-    if breakdown_20:
-        files = [log_dir / name for name in BREAKDOWN_20]
-    else:
-        files = sorted(log_dir.glob("*.json"), key=lambda p: p.stat().st_mtime)
+def summarize(log_dir: Path, limit: int | None = None) -> dict:
+    files = sorted(log_dir.glob("*.json"), key=lambda p: p.stat().st_mtime)
+    if limit is not None:
+        files = files[-limit:]
     rows = []
     for path in files:
         transaction = json.loads(path.read_text(encoding="utf-8"))
@@ -55,7 +52,6 @@ def summarize(log_dir: Path, breakdown_20: bool = False) -> dict:
                 "cache_write_tokens": cache_write_tokens,
                 "total_tokens": usage.get("total_tokens") or 0,
                 "cost": usage.get("cost") or 0,
-                "normalization": (transaction.get("upstream_request") or {}).get("normalization"),
             }
         )
 
@@ -80,14 +76,14 @@ def summarize(log_dir: Path, breakdown_20: bool = False) -> dict:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Analyze cache metrics in proxy logs")
-    parser.add_argument("--breakdown-20", action="store_true", help="only analyze the fixed 20 source files")
+    parser.add_argument("--limit", type=int, default=None, help="only analyze the newest N log files")
     parser.add_argument("log_dirs", nargs="+", type=Path)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    print(json.dumps([summarize(path, breakdown_20=args.breakdown_20) for path in args.log_dirs], indent=2))
+    print(json.dumps([summarize(path, limit=args.limit) for path in args.log_dirs], indent=2))
 
 
 if __name__ == "__main__":

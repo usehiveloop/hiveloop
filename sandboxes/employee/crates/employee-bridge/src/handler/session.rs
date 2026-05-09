@@ -20,7 +20,7 @@ pub async fn ensure_session_persisted(
                 id: inbound.session_id.clone(),
                 channel: channel.clone(),
                 thread_ts: thread_ts.clone(),
-                adk_session_id: inbound.session_id.as_str().to_string(),
+                agent_session_id: inbound.session_id.as_str().to_string(),
                 status: SessionStatus::Active,
                 created_at: now,
                 last_activity_at: now,

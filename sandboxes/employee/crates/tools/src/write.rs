@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use adk_rust::prelude::{FunctionTool, Tool as AdkTool};
-use adk_rust::AdkError;
+use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use domain::WriteFileConfig;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -11,6 +11,7 @@ use serde_json::{json, Value};
 use crate::mutation_queue::with_file_lock;
 use crate::operations::WriteOperations;
 use crate::path::{build_glob_set, enforce_deny_globs, resolve_within_workspace, PathPolicyError};
+use crate::{schema_for, JsonTool, ToolDefinition};
 
 const TOOL_NAME: &str = "write_file";
 const TOOL_DESCRIPTION: &str =
@@ -46,20 +47,13 @@ impl WriteTool {
         }
     }
 
-    pub fn into_adk_tool(self) -> Arc<dyn AdkTool> {
-        let inner = Arc::new(self);
-        let inner_for_closure = inner.clone();
-        let function_tool = FunctionTool::new(TOOL_NAME, TOOL_DESCRIPTION, move |_ctx, args| {
-            let inner = inner_for_closure.clone();
-            async move { inner.execute(args).await }
-        })
-        .with_parameters_schema::<WriteArgs>();
-        Arc::new(function_tool)
+    pub fn into_tool(self) -> Arc<dyn JsonTool> {
+        Arc::new(self)
     }
 
-    async fn execute(&self, args: Value) -> Result<Value, AdkError> {
+    async fn execute(&self, args: Value) -> Result<Value> {
         let parsed: WriteArgs = serde_json::from_value(args)
-            .map_err(|e| AdkError::tool(format!("invalid arguments: {e}")))?;
+            .map_err(|e| anyhow!("invalid arguments: {e}"))?;
         let resolved = resolve_within_workspace(
             &self.workspace_root,
             &parsed.path,
@@ -72,18 +66,18 @@ impl WriteTool {
         let bytes = parsed.content.as_bytes();
         let max_bytes = self.config.max_file_size_bytes as usize;
         if bytes.len() > max_bytes {
-            return Err(AdkError::tool(format!(
+            return Err(anyhow!(
                 "content size {} exceeds max_file_size_bytes ({})",
                 bytes.len(),
                 max_bytes
-            )));
+            ));
         }
 
         if let Some(parent) = resolved.parent() {
             self.operations
                 .mkdir_all(parent)
                 .await
-                .map_err(|e| AdkError::tool(format!("mkdir {}: {e}", parent.display())))?;
+                .map_err(|e| anyhow!("mkdir {}: {e}", parent.display()))?;
         }
 
         let resolved_for_lock = resolved.clone();
@@ -98,7 +92,7 @@ impl WriteTool {
             async move { operations.write_file(&path_for_write, &payload).await }
         })
         .await;
-        outcome.map_err(|e| AdkError::tool(format!("write failed for {}: {e}", parsed.path)))?;
+        outcome.map_err(|e| anyhow!("write failed for {}: {e}", parsed.path))?;
 
         Ok(json!({
             "path": resolved.display().to_string(),
@@ -107,6 +101,21 @@ impl WriteTool {
     }
 }
 
-fn map_path_error(error: PathPolicyError) -> AdkError {
-    AdkError::tool(error.to_string())
+#[async_trait]
+impl JsonTool for WriteTool {
+    fn definition(&self) -> ToolDefinition {
+        ToolDefinition {
+            name: TOOL_NAME.to_string(),
+            description: TOOL_DESCRIPTION.to_string(),
+            parameters: schema_for::<WriteArgs>(),
+        }
+    }
+
+    async fn call(&self, args: Value) -> Result<Value> {
+        self.execute(args).await
+    }
+}
+
+fn map_path_error(error: PathPolicyError) -> anyhow::Error {
+    anyhow!(error.to_string())
 }

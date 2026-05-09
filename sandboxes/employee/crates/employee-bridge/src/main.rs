@@ -9,7 +9,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use agent::{AdkAgentRunner, AgentRunner};
+use agent::{AgentRunner, RigAgentRunner};
 use anyhow::{Context, Result};
 use api::ApiState;
 use domain::{
@@ -129,10 +129,11 @@ async fn main() -> Result<()> {
     )?);
 
     let agent_runner: Arc<dyn AgentRunner> = Arc::new(
-        AdkAgentRunner::with_in_memory(config.clone(), "employee-bridge", workspace_root.clone())
+        RigAgentRunner::new(config.clone(), workspace_root.clone())
             .with_outbound_emitter(emitter.clone())
             .with_gateway(slack_gateway.clone())
             .with_cron_repo(cron_repo.clone())
+            .with_event_repo(event_repo.clone())
             .with_mcp_registry(mcp_registry.clone()),
     );
 

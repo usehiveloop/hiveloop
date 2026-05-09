@@ -1,7 +1,8 @@
 # OpenRouter Debug Proxy
 
 This folder contains the local diagnostics proxy used to capture every
-OpenAI-compatible request from `employee-bridge` to OpenRouter.
+OpenAI-compatible request from `employee-bridge` to OpenRouter. It is a
+pass-through proxy: it does not normalize or mutate requests.
 
 ## Run With The Bridge
 
@@ -52,6 +53,4 @@ OPENROUTER_PROXY_TARGET=https://openrouter.ai/api/v1
 OPENROUTER_PROXY_LOG_DIR=./openrouter-proxy/logs
 OPENROUTER_PROXY_BASE_URL=http://127.0.0.1:7081/api/v1
 OPENROUTER_PROXY_UPSTREAM_MAX_ATTEMPTS=4
-OPENROUTER_PROXY_NORMALIZE_CACHE=1
-OPENROUTER_PROXY_CACHE_STRATEGY=latest
 ```

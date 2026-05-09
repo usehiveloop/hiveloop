@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use adk_rust::prelude::{FunctionTool, Tool as AdkTool};
-use adk_rust::AdkError;
+use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use domain::BashConfig;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,7 @@ use serde_json::{json, Value};
 use crate::operations::{BashExecOptions, BashOperations};
 use crate::process_registry::ProcessRegistry;
 use crate::truncate::{truncate_tail, TruncationReason};
+use crate::{schema_for, JsonTool, ToolDefinition};
 
 const TOOL_NAME: &str = "bash";
 const TOOL_DESCRIPTION: &str =
@@ -57,36 +58,29 @@ impl BashTool {
         self
     }
 
-    pub fn into_adk_tool(self) -> Arc<dyn AdkTool> {
-        let inner = Arc::new(self);
-        let inner_for_closure = inner.clone();
-        let function_tool = FunctionTool::new(TOOL_NAME, TOOL_DESCRIPTION, move |_ctx, args| {
-            let inner = inner_for_closure.clone();
-            async move { inner.execute(args).await }
-        })
-        .with_parameters_schema::<BashArgs>();
-        Arc::new(function_tool)
+    pub fn into_tool(self) -> Arc<dyn JsonTool> {
+        Arc::new(self)
     }
 
-    async fn execute(&self, args: Value) -> Result<Value, AdkError> {
+    async fn execute(&self, args: Value) -> Result<Value> {
         let parsed: BashArgs = serde_json::from_value(args)
-            .map_err(|e| AdkError::tool(format!("invalid arguments: {e}")))?;
+            .map_err(|e| anyhow!("invalid arguments: {e}"))?;
         let command = parsed.command.trim();
         if command.is_empty() {
-            return Err(AdkError::tool("`command` must not be empty"));
+            return Err(anyhow!("`command` must not be empty"));
         }
         if let Some(matched) = command_matches_deny_pattern(command, &self.config.deny_patterns) {
-            return Err(AdkError::tool(format!(
+            return Err(anyhow!(
                 "command rejected: matches deny pattern `{matched}`"
-            )));
+            ));
         }
 
         let workdir = resolve_workdir(&self.workspace_root, &self.config.workdir);
         if !workdir.exists() {
-            return Err(AdkError::tool(format!(
+            return Err(anyhow!(
                 "workdir does not exist: {}",
                 workdir.display()
-            )));
+            ));
         }
 
         let timeout = parsed
@@ -107,7 +101,7 @@ impl BashTool {
 
         if parsed.run_in_background {
             let registry = self.process_registry.as_ref()
-                .ok_or_else(|| AdkError::tool("background processes not available"))?;
+                .ok_or_else(|| anyhow!("background processes not available"))?;
             let process_id = registry.spawn(command, env, timeout as u64);
             return Ok(json!({
                 "background": true,
@@ -127,7 +121,7 @@ impl BashTool {
             .operations
             .exec(command, options)
             .await
-            .map_err(|e| AdkError::tool(format!("bash exec: {e}")))?;
+            .map_err(|e| anyhow!("bash exec: {e}"))?;
         let output_text = String::from_utf8_lossy(&result.stdout_combined).to_string();
         let truncated = truncate_tail(&output_text, 2000, 50 * 1024);
 
@@ -147,6 +141,21 @@ impl BashTool {
             "total_bytes": truncated.total_bytes,
             "output": truncated.content,
         }))
+    }
+}
+
+#[async_trait]
+impl JsonTool for BashTool {
+    fn definition(&self) -> ToolDefinition {
+        ToolDefinition {
+            name: TOOL_NAME.to_string(),
+            description: TOOL_DESCRIPTION.to_string(),
+            parameters: schema_for::<BashArgs>(),
+        }
+    }
+
+    async fn call(&self, args: Value) -> Result<Value> {
+        self.execute(args).await
     }
 }
 

@@ -3,20 +3,13 @@ use domain::SessionId;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 
-pub mod check_bash_status_tool;
-pub mod check_delegated_status_tool;
-pub mod cron_tool;
-pub mod delegate_tool;
-pub mod load_tools_tool;
-pub mod model_helpers;
-pub mod post_to_channel_tool;
+pub mod model_client;
+pub mod history;
+pub mod primitives;
+pub mod request_builder;
 pub mod runner;
-pub mod session_helpers;
-pub mod status_update_tool;
-pub mod tool_registry;
-mod streaming_fix;
-pub mod wake_tool;
-pub use runner::AdkAgentRunner;
+pub mod rig_tool_registry;
+pub use runner::RigAgentRunner;
 
 #[derive(Debug, Clone)]
 pub struct TurnInput {
