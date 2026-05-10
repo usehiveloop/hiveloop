@@ -230,7 +230,7 @@ POST /internal/employees/{employeeID}/cloud-agents/{agentID}/tasks
 ```json
 {
   "task_id": "t1u2v3w4-...",
-  "message": "You may use the tool cloud_agent_status(t1u2v3w4-...) to get progress events from the task, and the tool cloud_agent_send_message to send messages to this agent."
+  "message": "You may use the tool cloud_agent_task_status(t1u2v3w4-...) to get progress events from the task, and the tool cloud_agent_task_send_message to send messages to this agent."
 }
 ```
 

@@ -1,19 +1,24 @@
 package handler_test
 
 import (
+	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -22,11 +27,41 @@ import (
 const cloudAgentTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- test fixture
 
 type cloudAgentHarness struct {
-	db        *gorm.DB
-	router    *chi.Mux
-	orgID     uuid.UUID
-	agentID   uuid.UUID
-	bridgeKey string
+	db         *gorm.DB
+	router     *chi.Mux
+	orgID      uuid.UUID
+	agentID    uuid.UUID
+	bridgeKey  string
+	fakeBridge *fakeCloudAgentBridge
+}
+
+type sentCloudAgentMessage struct {
+	ConversationID string
+	Content        string
+}
+
+type fakeCloudAgentBridge struct {
+	createdAgentIDs []string
+	sentMessages    []sentCloudAgentMessage
+	ended           []string
+}
+
+func (f *fakeCloudAgentBridge) CreateConversation(_ context.Context, agentID string) (*bridge.CreateConversationResponse, error) {
+	f.createdAgentIDs = append(f.createdAgentIDs, agentID)
+	return &bridge.CreateConversationResponse{
+		ConversationId: fmt.Sprintf("bridge-created-%d", len(f.createdAgentIDs)),
+		StreamUrl:      "http://bridge.local/stream",
+	}, nil
+}
+
+func (f *fakeCloudAgentBridge) SendMessage(_ context.Context, convID string, content string) error {
+	f.sentMessages = append(f.sentMessages, sentCloudAgentMessage{ConversationID: convID, Content: content})
+	return nil
+}
+
+func (f *fakeCloudAgentBridge) EndConversation(_ context.Context, convID string) error {
+	f.ended = append(f.ended, convID)
+	return nil
 }
 
 func newCloudAgentHarness(t *testing.T) *cloudAgentHarness {
@@ -93,26 +128,64 @@ func newCloudAgentHarness(t *testing.T) *cloudAgentHarness {
 		t.Fatalf("create sandbox: %v", err)
 	}
 
-	cloudAgentHandler := handler.NewCloudAgentHandler(database, encKey, nil, nil)
+	fakeBridge := &fakeCloudAgentBridge{}
+	cloudAgentHandler := handler.NewCloudAgentHandlerWithHooks(database, encKey, handler.CloudAgentHandlerHooks{
+		CreateDedicatedSandbox: func(_ context.Context, agent *model.Agent) (*model.Sandbox, error) {
+			encryptedCloudKey, err := encKey.EncryptString("cloud-agent-bridge-key")
+			if err != nil {
+				return nil, err
+			}
+			sb := &model.Sandbox{
+				ID:                    uuid.New(),
+				OrgID:                 agent.OrgID,
+				AgentID:               &agent.ID,
+				EncryptedBridgeAPIKey: encryptedCloudKey,
+				Status:                "running",
+				ExternalID:            fmt.Sprintf("cloud-ext-%s", uuid.New().String()[:8]),
+				BridgeURL:             "http://bridge.local",
+			}
+			if err := database.Create(sb).Error; err != nil {
+				return nil, err
+			}
+			return sb, nil
+		},
+		PushAgentToSandbox: func(context.Context, *model.Agent, *model.Sandbox) error {
+			return nil
+		},
+		GetBridgeClient: func(context.Context, *model.Sandbox) (handler.CloudAgentBridgeClient, error) {
+			return fakeBridge, nil
+		},
+		StopSandbox: func(_ context.Context, sb *model.Sandbox) error {
+			return database.Model(sb).Update("status", "stopped").Error
+		},
+	})
 
 	router := chi.NewRouter()
 	router.Get("/internal/employees/{employeeID}/cloud-agents/", cloudAgentHandler.ListCloudAgents)
 	router.Get("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks", cloudAgentHandler.ListTasks)
 	router.Get("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks/{taskID}", cloudAgentHandler.GetTask)
+	router.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks", cloudAgentHandler.CreateTask)
+	router.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks/{taskID}/message", cloudAgentHandler.SendTaskMessage)
+	router.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks/{taskID}", cloudAgentHandler.TerminateTask)
 
 	t.Cleanup(func() {
 		database.Where("org_id = ?", orgID).Delete(&model.CloudAgentTask{})
-		database.Where("id = ?", sandboxID).Delete(&model.Sandbox{})
+		database.Where("org_id = ?", orgID).Delete(&model.ConversationEvent{})
+		database.Where("org_id = ?", orgID).Delete(&model.AgentConversation{})
+		database.Where("org_id = ?", orgID).Delete(&model.Sandbox{})
+		database.Where("agent_id = ? OR subagent_id = ?", employeeID, employeeID).Delete(&model.AgentSubagent{})
+		database.Where("org_id = ?", orgID).Delete(&model.Agent{})
 		database.Where("id = ?", employeeID).Delete(&model.Agent{})
 		database.Where("id = ?", orgID).Delete(&model.Org{})
 	})
 
 	return &cloudAgentHarness{
-		db:        database,
-		router:    router,
-		orgID:     orgID,
-		agentID:   employeeID,
-		bridgeKey: bridgeKey,
+		db:         database,
+		router:     router,
+		orgID:      orgID,
+		agentID:    employeeID,
+		bridgeKey:  bridgeKey,
+		fakeBridge: fakeBridge,
 	}
 }
 
@@ -121,7 +194,7 @@ func (h *cloudAgentHarness) seedCloudAgent(t *testing.T) (cloudAgentID uuid.UUID
 	cloudAgentID = uuid.New()
 	if err := h.db.Create(&model.Agent{
 		ID:     cloudAgentID,
-		OrgID: &h.orgID,
+		OrgID:  &h.orgID,
 		Name:   "test-cloud-agent",
 		Status: "active",
 	}).Error; err != nil {
@@ -188,7 +261,10 @@ func (h *cloudAgentHarness) seedTask(t *testing.T, cloudAgentID uuid.UUID, brief
 
 func (h *cloudAgentHarness) seedEvent(t *testing.T, convID uuid.UUID, eventType string) {
 	t.Helper()
-	h.db.Create(&model.ConversationEvent{
+	var count int64
+	h.db.Model(&model.ConversationEvent{}).Where("conversation_id = ?", convID).Count(&count)
+	now := time.Now().UTC().Add(time.Duration(count) * time.Second)
+	if err := h.db.Create(&model.ConversationEvent{
 		ID:                   uuid.New(),
 		OrgID:                h.orgID,
 		ConversationID:       convID,
@@ -196,14 +272,31 @@ func (h *cloudAgentHarness) seedEvent(t *testing.T, convID uuid.UUID, eventType 
 		EventType:            eventType,
 		AgentID:              "test-agent",
 		BridgeConversationID: "bridge-conv",
+		Timestamp:            now,
+		SequenceNumber:       count + 1,
 		Data:                 model.RawJSON(`{}`),
-	})
+	}).Error; err != nil {
+		t.Fatalf("create event: %v", err)
+	}
 }
 
 func (h *cloudAgentHarness) doRequest(method, path string) *httptest.ResponseRecorder {
+	return h.doJSONRequest(method, path, nil)
+}
+
+func (h *cloudAgentHarness) doJSONRequest(method, path string, body any) *httptest.ResponseRecorder {
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(method, path, nil)
+	var buf bytes.Buffer
+	if body != nil {
+		if err := json.NewEncoder(&buf).Encode(body); err != nil {
+			panic(err)
+		}
+	}
+	req := httptest.NewRequest(method, path, &buf)
 	req.Header.Set("Authorization", "Bearer "+h.bridgeKey)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	h.router.ServeHTTP(rec, req)
 	return rec
 }
@@ -222,9 +315,9 @@ func TestListCloudAgents_Success(t *testing.T) {
 
 	var body struct {
 		CloudAgents []struct {
-			ID           string `json:"id"`
-			Name         string `json:"name"`
-			RecentTasks  []struct {
+			ID          string `json:"id"`
+			Name        string `json:"name"`
+			RecentTasks []struct {
 				ID           string `json:"id"`
 				Brief        string `json:"brief"`
 				RecentEvents []struct {
@@ -253,7 +346,7 @@ func TestListCloudAgents_Success(t *testing.T) {
 	}
 }
 
-func TestListTasks_Success(t *testing.T) {
+func TestCloudAgentListTasks_Success(t *testing.T) {
 	h := newCloudAgentHarness(t)
 	cloudAgentID := h.seedCloudAgent(t)
 	h.seedTask(t, cloudAgentID, "Task 1")
@@ -282,7 +375,7 @@ func TestListTasks_Success(t *testing.T) {
 	}
 }
 
-func TestGetTask_Success(t *testing.T) {
+func TestCloudAgentGetTask_Success(t *testing.T) {
 	h := newCloudAgentHarness(t)
 	cloudAgentID := h.seedCloudAgent(t)
 	task := h.seedTask(t, cloudAgentID, "Specific task")
@@ -293,9 +386,9 @@ func TestGetTask_Success(t *testing.T) {
 	}
 
 	var body struct {
-		ID                     string `json:"id"`
-		Brief                  string `json:"brief"`
-		ParentConversationType string `json:"parent_conversation_type"`
+		ID                     string         `json:"id"`
+		Brief                  string         `json:"brief"`
+		ParentConversationType string         `json:"parent_conversation_type"`
 		Metadata               map[string]any `json:"metadata"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
@@ -315,7 +408,179 @@ func TestGetTask_Success(t *testing.T) {
 	}
 }
 
-func TestListTasks_Unauthorized(t *testing.T) {
+func TestCloudAgentGetTask_IncludesRecentEvents(t *testing.T) {
+	h := newCloudAgentHarness(t)
+	cloudAgentID := h.seedCloudAgent(t)
+	task := h.seedTask(t, cloudAgentID, "Specific task")
+	h.seedEvent(t, task.ConversationID, "AgentError")
+	h.seedEvent(t, task.ConversationID, "ConversationEnded")
+
+	rec := h.doRequest("GET", fmt.Sprintf("/internal/employees/%s/cloud-agents/%s/tasks/%s", h.agentID, cloudAgentID, task.ID))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var body struct {
+		RecentEvents []struct {
+			EventType string `json:"event_type"`
+		} `json:"recent_events"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(body.RecentEvents) != 2 {
+		t.Fatalf("expected 2 recent events, got %d", len(body.RecentEvents))
+	}
+	if body.RecentEvents[0].EventType != "ConversationEnded" {
+		t.Fatalf("expected newest event first, got %q", body.RecentEvents[0].EventType)
+	}
+}
+
+func TestCloudAgentCreateTask_Success_UsesBridgeContract(t *testing.T) {
+	h := newCloudAgentHarness(t)
+	cloudAgentID := h.seedCloudAgent(t)
+
+	rec := h.doJSONRequest("POST", fmt.Sprintf("/internal/employees/%s/cloud-agents/%s/tasks", h.agentID, cloudAgentID), map[string]any{
+		"brief":                    "Build the billing report.",
+		"parent_conversation_type": "agent_conversation",
+		"parent_conversation_id":   "session-123",
+		"metadata": map[string]any{
+			"description": "billing report",
+			"session_id":  "session-123",
+			"source":      "employee_bridge",
+		},
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if len(h.fakeBridge.createdAgentIDs) != 1 || h.fakeBridge.createdAgentIDs[0] != cloudAgentID.String() {
+		t.Fatalf("expected bridge conversation for agent %s, got %#v", cloudAgentID, h.fakeBridge.createdAgentIDs)
+	}
+	if len(h.fakeBridge.sentMessages) != 1 || h.fakeBridge.sentMessages[0].Content != "Build the billing report." {
+		t.Fatalf("expected brief to be sent exactly once, got %#v", h.fakeBridge.sentMessages)
+	}
+
+	var body struct {
+		TaskID  string `json:"task_id"`
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if body.TaskID == "" {
+		t.Fatal("expected task_id")
+	}
+	if !strings.Contains(body.Message, "cloud_agent_task_status") || !strings.Contains(body.Message, "cloud_agent_task_send_message") {
+		t.Fatalf("response message should reference bridge tool names, got %q", body.Message)
+	}
+
+	var task model.CloudAgentTask
+	if err := h.db.Where("id = ?", body.TaskID).First(&task).Error; err != nil {
+		t.Fatalf("load created task: %v", err)
+	}
+	if task.Brief != "Build the billing report." {
+		t.Fatalf("expected brief to be stored unchanged, got %q", task.Brief)
+	}
+	if task.Metadata["description"] != "billing report" {
+		t.Fatalf("expected metadata description to be preserved, got %v", task.Metadata)
+	}
+}
+
+func TestCloudAgentSendTaskMessage_Success(t *testing.T) {
+	h := newCloudAgentHarness(t)
+	cloudAgentID := h.seedCloudAgent(t)
+	task := h.seedTask(t, cloudAgentID, "Specific task")
+
+	rec := h.doJSONRequest("POST", fmt.Sprintf("/internal/employees/%s/cloud-agents/%s/tasks/%s/message", h.agentID, cloudAgentID, task.ID), map[string]any{
+		"message": "Please narrow the scope.",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var conv model.AgentConversation
+	if err := h.db.Where("id = ?", task.ConversationID).First(&conv).Error; err != nil {
+		t.Fatalf("load conversation: %v", err)
+	}
+	if len(h.fakeBridge.sentMessages) != 1 {
+		t.Fatalf("expected 1 sent message, got %#v", h.fakeBridge.sentMessages)
+	}
+	if got := h.fakeBridge.sentMessages[0]; got.ConversationID != conv.BridgeConversationID || got.Content != "Please narrow the scope." {
+		t.Fatalf("unexpected sent message: %#v", got)
+	}
+}
+
+func TestCloudAgentSendTaskMessage_RejectsEmptyMessage(t *testing.T) {
+	h := newCloudAgentHarness(t)
+	cloudAgentID := h.seedCloudAgent(t)
+	task := h.seedTask(t, cloudAgentID, "Specific task")
+
+	rec := h.doJSONRequest("POST", fmt.Sprintf("/internal/employees/%s/cloud-agents/%s/tasks/%s/message", h.agentID, cloudAgentID, task.ID), map[string]any{
+		"message": "   ",
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestCloudAgentTerminateTask_Success(t *testing.T) {
+	h := newCloudAgentHarness(t)
+	cloudAgentID := h.seedCloudAgent(t)
+	task := h.seedTask(t, cloudAgentID, "Specific task")
+	h.seedEvent(t, task.ConversationID, "message_received")
+
+	rec := h.doJSONRequest("POST", fmt.Sprintf("/internal/employees/%s/cloud-agents/%s/tasks/%s", h.agentID, cloudAgentID, task.ID), map[string]any{
+		"reason": "no longer needed",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var conv model.AgentConversation
+	if err := h.db.Where("id = ?", task.ConversationID).First(&conv).Error; err != nil {
+		t.Fatalf("load conversation: %v", err)
+	}
+	if conv.Status != "ended" || conv.EndedAt == nil {
+		t.Fatalf("expected conversation ended with ended_at, got status=%q ended_at=%v", conv.Status, conv.EndedAt)
+	}
+	if len(h.fakeBridge.ended) != 1 || h.fakeBridge.ended[0] != conv.BridgeConversationID {
+		t.Fatalf("expected bridge conversation %s to be ended, got %#v", conv.BridgeConversationID, h.fakeBridge.ended)
+	}
+
+	var event model.ConversationEvent
+	if err := h.db.Where("conversation_id = ? AND event_type = ?", task.ConversationID, "ConversationEnded").First(&event).Error; err != nil {
+		t.Fatalf("expected ConversationEnded event: %v", err)
+	}
+	if !strings.Contains(string(event.Data), "no longer needed") {
+		t.Fatalf("expected termination reason in event data, got %s", event.Data)
+	}
+}
+
+func TestCloudAgentTerminateTask_UnknownTask(t *testing.T) {
+	h := newCloudAgentHarness(t)
+	cloudAgentID := h.seedCloudAgent(t)
+
+	rec := h.doJSONRequest("POST", fmt.Sprintf("/internal/employees/%s/cloud-agents/%s/tasks/%s", h.agentID, cloudAgentID, uuid.New()), map[string]any{
+		"reason": "no longer needed",
+	})
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestCloudAgentTerminateTask_InvalidTaskID(t *testing.T) {
+	h := newCloudAgentHarness(t)
+	cloudAgentID := h.seedCloudAgent(t)
+
+	rec := h.doJSONRequest("POST", fmt.Sprintf("/internal/employees/%s/cloud-agents/%s/tasks/not-a-uuid", h.agentID, cloudAgentID), map[string]any{
+		"reason": "no longer needed",
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestCloudAgentListTasks_Unauthorized(t *testing.T) {
 	h := newCloudAgentHarness(t)
 	cloudAgentID := h.seedCloudAgent(t)
 
@@ -328,7 +593,7 @@ func TestListTasks_Unauthorized(t *testing.T) {
 	}
 }
 
-func TestListTasks_SubagentNotFound(t *testing.T) {
+func TestCloudAgentListTasks_SubagentNotFound(t *testing.T) {
 	h := newCloudAgentHarness(t)
 	fakeAgentID := uuid.New()
 

@@ -99,6 +99,8 @@ func setupPublicRoutes(
 		r.Get("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks", cloudAgentHandler.ListTasks)
 		r.Get("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks/{taskID}", cloudAgentHandler.GetTask)
 		r.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks", cloudAgentHandler.CreateTask)
+		r.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks/{taskID}/message", cloudAgentHandler.SendTaskMessage)
+		r.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks/{taskID}", cloudAgentHandler.TerminateTask)
 	}
 }
 

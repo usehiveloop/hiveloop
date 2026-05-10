@@ -1,32 +1,66 @@
 package handler
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
+// CloudAgentBridgeClient is the subset of bridge runtime operations used by
+// cloud-agent coordination. Keeping this seam small makes the bridge contract
+// testable without provisioning a real sandbox.
+type CloudAgentBridgeClient interface {
+	CreateConversation(ctx context.Context, agentID string) (*bridge.CreateConversationResponse, error)
+	SendMessage(ctx context.Context, convID string, content string) error
+	EndConversation(ctx context.Context, convID string) error
+}
+
+type CloudAgentHandlerHooks struct {
+	CreateDedicatedSandbox func(ctx context.Context, agent *model.Agent) (*model.Sandbox, error)
+	PushAgentToSandbox     func(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error
+	GetBridgeClient        func(ctx context.Context, sb *model.Sandbox) (CloudAgentBridgeClient, error)
+	StopSandbox            func(ctx context.Context, sb *model.Sandbox) error
+}
+
 type CloudAgentHandler struct {
-	db           *gorm.DB
-	encKey       *crypto.SymmetricKey
-	orchestrator *sandbox.Orchestrator
-	pusher       *sandbox.Pusher
+	db     *gorm.DB
+	encKey *crypto.SymmetricKey
+	hooks  CloudAgentHandlerHooks
 }
 
 func NewCloudAgentHandler(db *gorm.DB, encKey *crypto.SymmetricKey, orchestrator *sandbox.Orchestrator, pusher *sandbox.Pusher) *CloudAgentHandler {
-	return &CloudAgentHandler{db: db, encKey: encKey, orchestrator: orchestrator, pusher: pusher}
+	hooks := CloudAgentHandlerHooks{}
+	if orchestrator != nil {
+		hooks.CreateDedicatedSandbox = orchestrator.CreateDedicatedSandbox
+		hooks.GetBridgeClient = func(ctx context.Context, sb *model.Sandbox) (CloudAgentBridgeClient, error) {
+			return orchestrator.GetBridgeClient(ctx, sb)
+		}
+		hooks.StopSandbox = orchestrator.StopSandbox
+	}
+	if pusher != nil {
+		hooks.PushAgentToSandbox = pusher.PushAgentToSandbox
+	}
+	return NewCloudAgentHandlerWithHooks(db, encKey, hooks)
+}
+
+func NewCloudAgentHandlerWithHooks(db *gorm.DB, encKey *crypto.SymmetricKey, hooks CloudAgentHandlerHooks) *CloudAgentHandler {
+	return &CloudAgentHandler{db: db, encKey: encKey, hooks: hooks}
 }
 
 // authEmployee verifies the bridge bearer token for the employee in the URL.
@@ -256,9 +290,11 @@ func (h *CloudAgentHandler) ListTasks(w http.ResponseWriter, r *http.Request) {
 		tasks = tasks[:limit]
 	}
 
+	eventsByConv := h.recentEventsByConversation(conversationIDsForTasks(tasks), 10)
+
 	items := make([]cloudAgentTaskResponse, len(tasks))
 	for i, t := range tasks {
-		items[i] = taskToResponse(t)
+		items[i] = taskToResponse(t, eventsByConv[t.ConversationID])
 	}
 
 	var nextCursor *string
@@ -297,17 +333,13 @@ func (h *CloudAgentHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var task model.CloudAgentTask
-	if err := h.db.Where("id = ? AND employee_agent_id = ? AND cloud_agent_id = ?", taskID, employee.ID, agentID).First(&task).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "task not found"})
-			return
-		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load task"})
+	task, ok := h.loadTask(w, employee.ID, agentID, taskID)
+	if !ok {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, taskToResponse(task))
+	events := h.recentEventsForConversation(task.ConversationID, 10)
+	writeJSON(w, http.StatusOK, taskToResponse(*task, events))
 }
 
 // CreateTask handles POST /internal/employees/{employeeID}/cloud-agents/{agentID}/tasks.
@@ -319,7 +351,7 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.orchestrator == nil || h.pusher == nil {
+	if h.hooks.CreateDedicatedSandbox == nil || h.hooks.PushAgentToSandbox == nil || h.hooks.GetBridgeClient == nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "sandbox orchestrator not configured"})
 		return
 	}
@@ -364,20 +396,20 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	sb, err := h.orchestrator.CreateDedicatedSandbox(ctx, &cloudAgent)
+	sb, err := h.hooks.CreateDedicatedSandbox(ctx, &cloudAgent)
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to create sandbox for cloud agent", "agent_id", agentID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
 		return
 	}
 
-	if err := h.pusher.PushAgentToSandbox(ctx, &cloudAgent, sb); err != nil {
+	if err := h.hooks.PushAgentToSandbox(ctx, &cloudAgent, sb); err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to push agent to sandbox", "agent_id", agentID, "sandbox_id", sb.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to initialize agent in sandbox"})
 		return
 	}
 
-	client, err := h.orchestrator.GetBridgeClient(ctx, sb)
+	client, err := h.hooks.GetBridgeClient(ctx, sb)
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to get bridge client", "sandbox_id", sb.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to connect to sandbox"})
@@ -448,22 +480,146 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"task_id": task.ID.String(),
-		"message": fmt.Sprintf("You may use the tool cloud_agent_status(%s) to get progress events from the task, and the tool cloud_agent_send_message to send messages to this agent.", task.ID.String()),
+		"message": fmt.Sprintf("You may use the tool cloud_agent_task_status(%s) to get progress events from the task, and the tool cloud_agent_task_send_message to send messages to this agent.", task.ID.String()),
 	})
+}
+
+// SendTaskMessage forwards coordinator feedback to an existing cloud-agent task.
+func (h *CloudAgentHandler) SendTaskMessage(w http.ResponseWriter, r *http.Request) {
+	employee := h.authEmployee(w, r)
+	if employee == nil {
+		return
+	}
+	if h.hooks.GetBridgeClient == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "sandbox bridge client not configured"})
+		return
+	}
+
+	agentID, taskID, ok := h.parseAgentAndTaskIDs(w, r)
+	if !ok {
+		return
+	}
+	if !h.validateSubagent(w, employee.ID, agentID) {
+		return
+	}
+
+	var req struct {
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+	if strings.TrimSpace(req.Message) == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "message is required"})
+		return
+	}
+
+	task, ok := h.loadTask(w, employee.ID, agentID, taskID)
+	if !ok {
+		return
+	}
+	conv, sb, ok := h.loadTaskRuntime(w, *task)
+	if !ok {
+		return
+	}
+
+	ctx := r.Context()
+	client, err := h.hooks.GetBridgeClient(ctx, sb)
+	if err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to get bridge client", "sandbox_id", sb.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to connect to sandbox"})
+		return
+	}
+	if err := client.SendMessage(ctx, conv.BridgeConversationID, req.Message); err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to send message to cloud agent task", "task_id", task.ID, "conversation_id", conv.BridgeConversationID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to send message"})
+		return
+	}
+	h.db.Model(sb).Update("last_active_at", time.Now())
+
+	writeJSON(w, http.StatusOK, map[string]any{"success": true, "message": "message sent"})
+}
+
+// TerminateTask logically ends a cloud-agent task and asks the runtime to stop
+// the backing conversation. Sandbox stop is best-effort so the task record and
+// terminal event remain durable even when infrastructure cleanup is delayed.
+func (h *CloudAgentHandler) TerminateTask(w http.ResponseWriter, r *http.Request) {
+	employee := h.authEmployee(w, r)
+	if employee == nil {
+		return
+	}
+
+	agentID, taskID, ok := h.parseAgentAndTaskIDs(w, r)
+	if !ok {
+		return
+	}
+	if !h.validateSubagent(w, employee.ID, agentID) {
+		return
+	}
+
+	reason := "terminated by coordinator"
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+	if strings.TrimSpace(req.Reason) != "" {
+		reason = strings.TrimSpace(req.Reason)
+	}
+
+	task, ok := h.loadTask(w, employee.ID, agentID, taskID)
+	if !ok {
+		return
+	}
+	conv, sb, ok := h.loadTaskRuntime(w, *task)
+	if !ok {
+		return
+	}
+
+	ctx := r.Context()
+	if h.hooks.GetBridgeClient != nil {
+		client, err := h.hooks.GetBridgeClient(ctx, sb)
+		if err != nil {
+			logging.FromContext(ctx).WarnContext(ctx, "failed to get bridge client for task termination", "sandbox_id", sb.ID, "error", err)
+		} else if err := client.EndConversation(ctx, conv.BridgeConversationID); err != nil {
+			logging.FromContext(ctx).WarnContext(ctx, "failed to end cloud agent bridge conversation", "task_id", task.ID, "conversation_id", conv.BridgeConversationID, "error", err)
+		}
+	}
+
+	now := time.Now().UTC()
+	if err := h.db.Model(&model.AgentConversation{}).
+		Where("id = ?", conv.ID).
+		Updates(map[string]any{"status": "ended", "ended_at": now}).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to mark task ended"})
+		return
+	}
+	h.ensureConversationEndedEvent(ctx, *conv, reason, now)
+
+	if h.hooks.StopSandbox != nil {
+		if err := h.hooks.StopSandbox(ctx, sb); err != nil {
+			logging.FromContext(ctx).WarnContext(ctx, "failed to stop cloud agent sandbox after termination", "task_id", task.ID, "sandbox_id", sb.ID, "error", err)
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"success": true, "message": "task terminated"})
 }
 
 // --- Response types ---
 
 type cloudAgentTaskResponse struct {
-	ID                     string         `json:"id"`
-	CloudAgentID           string         `json:"cloud_agent_id"`
-	SandboxID              string         `json:"sandbox_id"`
-	ConversationID         string         `json:"conversation_id"`
-	ParentConversationType string         `json:"parent_conversation_type"`
-	ParentConversationID   string         `json:"parent_conversation_id"`
-	Brief                  string         `json:"brief"`
-	Metadata               map[string]any `json:"metadata,omitempty"`
-	CreatedAt              string         `json:"created_at"`
+	ID                     string                 `json:"id"`
+	CloudAgentID           string                 `json:"cloud_agent_id"`
+	SandboxID              string                 `json:"sandbox_id"`
+	ConversationID         string                 `json:"conversation_id"`
+	ParentConversationType string                 `json:"parent_conversation_type"`
+	ParentConversationID   string                 `json:"parent_conversation_id"`
+	Brief                  string                 `json:"brief"`
+	Metadata               map[string]any         `json:"metadata,omitempty"`
+	CreatedAt              string                 `json:"created_at"`
+	RecentEvents           []cloudAgentEventBrief `json:"recent_events,omitempty"`
 }
 
 type cloudAgentWithTasks struct {
@@ -492,12 +648,12 @@ type cloudAgentEventBrief struct {
 	CreatedAt string        `json:"created_at"`
 }
 
-func taskToResponse(t model.CloudAgentTask) cloudAgentTaskResponse {
+func taskToResponse(t model.CloudAgentTask, events []model.ConversationEvent) cloudAgentTaskResponse {
 	var meta map[string]any
 	if t.Metadata != nil {
 		meta = map[string]any(t.Metadata)
 	}
-	return cloudAgentTaskResponse{
+	resp := cloudAgentTaskResponse{
 		ID:                     t.ID.String(),
 		CloudAgentID:           t.CloudAgentID.String(),
 		SandboxID:              t.SandboxID.String(),
@@ -507,5 +663,135 @@ func taskToResponse(t model.CloudAgentTask) cloudAgentTaskResponse {
 		Brief:                  t.Brief,
 		Metadata:               meta,
 		CreatedAt:              t.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+	}
+	for _, ev := range events {
+		resp.RecentEvents = append(resp.RecentEvents, cloudAgentEventBrief{
+			EventType: ev.EventType,
+			Data:      ev.Data,
+			CreatedAt: ev.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		})
+	}
+	return resp
+}
+
+func (h *CloudAgentHandler) parseAgentAndTaskIDs(w http.ResponseWriter, r *http.Request) (uuid.UUID, uuid.UUID, bool) {
+	agentID, err := uuid.Parse(chi.URLParam(r, "agentID"))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
+		return uuid.Nil, uuid.Nil, false
+	}
+	taskID, err := uuid.Parse(chi.URLParam(r, "taskID"))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid task_id"})
+		return uuid.Nil, uuid.Nil, false
+	}
+	return agentID, taskID, true
+}
+
+func (h *CloudAgentHandler) loadTask(w http.ResponseWriter, employeeID, agentID, taskID uuid.UUID) (*model.CloudAgentTask, bool) {
+	var task model.CloudAgentTask
+	if err := h.db.Where("id = ? AND employee_agent_id = ? AND cloud_agent_id = ?", taskID, employeeID, agentID).First(&task).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "task not found"})
+			return nil, false
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load task"})
+		return nil, false
+	}
+	return &task, true
+}
+
+func (h *CloudAgentHandler) loadTaskRuntime(w http.ResponseWriter, task model.CloudAgentTask) (*model.AgentConversation, *model.Sandbox, bool) {
+	var conv model.AgentConversation
+	if err := h.db.Where("id = ?", task.ConversationID).First(&conv).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load task conversation"})
+		return nil, nil, false
+	}
+	var sb model.Sandbox
+	if err := h.db.Where("id = ?", task.SandboxID).First(&sb).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load task sandbox"})
+		return nil, nil, false
+	}
+	return &conv, &sb, true
+}
+
+func conversationIDsForTasks(tasks []model.CloudAgentTask) []uuid.UUID {
+	ids := make([]uuid.UUID, 0, len(tasks))
+	for _, task := range tasks {
+		ids = append(ids, task.ConversationID)
+	}
+	return ids
+}
+
+func (h *CloudAgentHandler) recentEventsForConversation(conversationID uuid.UUID, limit int) []model.ConversationEvent {
+	eventsByConv := h.recentEventsByConversation([]uuid.UUID{conversationID}, limit)
+	return eventsByConv[conversationID]
+}
+
+func (h *CloudAgentHandler) recentEventsByConversation(conversationIDs []uuid.UUID, limit int) map[uuid.UUID][]model.ConversationEvent {
+	eventsByConv := make(map[uuid.UUID][]model.ConversationEvent)
+	if len(conversationIDs) == 0 {
+		return eventsByConv
+	}
+
+	type eventRow struct {
+		model.ConversationEvent
+		Rn int `gorm:"column:rn"`
+	}
+	var rows []eventRow
+	h.db.Raw(`
+		SELECT id, conversation_id, event_type, data, created_at, rn
+		FROM (
+			SELECT id, conversation_id, event_type, data, created_at,
+				ROW_NUMBER() OVER (PARTITION BY conversation_id ORDER BY created_at DESC) AS rn
+			FROM conversation_events
+			WHERE conversation_id IN ?
+		) ranked
+		WHERE rn <= ?
+	`, conversationIDs, limit).Scan(&rows)
+
+	for _, row := range rows {
+		eventsByConv[row.ConversationID] = append(eventsByConv[row.ConversationID], row.ConversationEvent)
+	}
+	return eventsByConv
+}
+
+func (h *CloudAgentHandler) ensureConversationEndedEvent(ctx context.Context, conv model.AgentConversation, reason string, now time.Time) {
+	var count int64
+	if err := h.db.Model(&model.ConversationEvent{}).
+		Where("conversation_id = ? AND event_type = ?", conv.ID, "ConversationEnded").
+		Count(&count).Error; err != nil || count > 0 {
+		if err != nil {
+			logging.FromContext(ctx).ErrorContext(ctx, "failed to check existing ConversationEnded event", "conversation_id", conv.ID, "error", err)
+		}
+		return
+	}
+
+	var maxSequence int64
+	if err := h.db.Model(&model.ConversationEvent{}).
+		Select("COALESCE(MAX(sequence_number), 0)").
+		Where("conversation_id = ?", conv.ID).
+		Scan(&maxSequence).Error; err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to load conversation event sequence", "conversation_id", conv.ID, "error", err)
+		return
+	}
+
+	data, _ := json.Marshal(map[string]any{
+		"reason": reason,
+		"source": "cloud_agent_terminate",
+	})
+	event := model.ConversationEvent{
+		OrgID:                conv.OrgID,
+		ConversationID:       conv.ID,
+		EventID:              uuid.New().String(),
+		EventType:            "ConversationEnded",
+		AgentID:              conv.AgentID.String(),
+		BridgeConversationID: conv.BridgeConversationID,
+		Timestamp:            now,
+		SequenceNumber:       maxSequence + 1,
+		Data:                 model.RawJSON(data),
+	}
+	if err := h.db.Create(&event).Error; err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to append ConversationEnded event", "conversation_id", conv.ID, "error", err)
 	}
 }
