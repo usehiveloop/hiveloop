@@ -1,7 +1,9 @@
+mod bridge_gateway;
 mod handler;
 mod scheduler;
 mod session_coordinator;
 
+use bridge_gateway::BridgeGateway;
 use scheduler::CronScheduler;
 use session_coordinator::SessionCoordinator;
 
@@ -163,10 +165,15 @@ async fn main() -> Result<()> {
         slack_app_token,
         config.clone(),
     )?);
+    let http_stream_broker = Arc::new(api::HttpStreamBroker::new());
+    let bridge_gateway: Arc<dyn ChannelGateway> = Arc::new(BridgeGateway::new(
+        slack_gateway.clone(),
+        http_stream_broker.clone(),
+    ));
 
     let mut rig_runner = RigAgentRunner::new(config.clone(), workspace_root.clone())
         .with_outbound_emitter(emitter.clone())
-        .with_gateway(slack_gateway.clone())
+        .with_gateway(bridge_gateway.clone())
         .with_cron_repo(cron_repo.clone())
         .with_event_repo(event_repo.clone())
         .with_mcp_registry(mcp_registry.clone());
@@ -175,6 +182,8 @@ async fn main() -> Result<()> {
     }
     let agent_runner: Arc<dyn AgentRunner> = Arc::new(rig_runner);
 
+    let (inbound_sink, mut inbound_events) = mpsc::channel::<InboundEvent>(256);
+
     let api_state = ApiState::new(
         config.clone(),
         config_repo.clone(),
@@ -182,11 +191,14 @@ async fn main() -> Result<()> {
         event_repo.clone(),
         runtime_secret,
         skill_writer,
+        Some(api::HttpGatewayState {
+            inbound_sink: inbound_sink.clone(),
+            broker: http_stream_broker.clone(),
+        }),
+        Some(mcp_registry.clone()),
     );
     api_state.mark_config_loaded();
     let (api_handle, api_cancel) = api::serve(bind_addr, api_state.clone()).await;
-
-    let (inbound_sink, mut inbound_events) = mpsc::channel::<InboundEvent>(256);
 
     let coordinator = Arc::new(SessionCoordinator::new());
 
@@ -194,7 +206,7 @@ async fn main() -> Result<()> {
     let _scheduler_handle = tokio::spawn(scheduler.run());
 
     let gateway_task = {
-        let gateway = slack_gateway.clone();
+        let gateway = bridge_gateway.clone();
         let api_state_for_gateway = api_state.clone();
         tokio::spawn(async move {
             api_state_for_gateway.mark_gateway_ready();
@@ -206,11 +218,12 @@ async fn main() -> Result<()> {
         info!("listening for inbound events");
         while let Some(inbound) = inbound_events.recv().await {
             let runner = agent_runner.clone();
-            let gateway = slack_gateway.clone();
+            let gateway = bridge_gateway.clone();
             let cfg = config.clone();
             let emitter = emitter.clone();
             let session_repo = session_repo.clone();
             let coordinator = coordinator.clone();
+            let turn_event_sink: Arc<dyn handler::TurnEventSink> = http_stream_broker.clone();
             tokio::spawn(async move {
                 if let Err(e) = handler::handle_inbound(
                     runner,
@@ -219,6 +232,7 @@ async fn main() -> Result<()> {
                     emitter,
                     session_repo,
                     coordinator,
+                    turn_event_sink,
                     inbound,
                 )
                 .await

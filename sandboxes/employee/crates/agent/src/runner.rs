@@ -97,6 +97,7 @@ impl AgentRunner for RigAgentRunner {
 
         let mut messages = build_initial_messages(
             &snapshot.agent.system_prompt,
+            &self.tool_context.workspace_root,
             session_id,
             user_input,
             self.event_repo.as_deref(),
@@ -164,6 +165,9 @@ impl AgentRunner for RigAgentRunner {
                             turn_text.push_str(&text);
                             yield AgentEvent::TokenChunk { text };
                         }
+                        Ok(ModelStreamEvent::ThinkingDelta(text)) => {
+                            yield AgentEvent::ThinkingChunk { text };
+                        }
                         Ok(ModelStreamEvent::ToolCalls(calls)) => tool_calls.extend(calls),
                         Ok(ModelStreamEvent::Usage(usage)) => {
                             tracing::info!(
@@ -229,6 +233,7 @@ impl AgentRunner for RigAgentRunner {
                                 if let Some(system_message) = messages.first_mut() {
                                     *system_message = AgentMessage::system(format_system_prompt(
                                         &snapshot.agent.system_prompt,
+                                        &tool_context.workspace_root,
                                         &session_id,
                                         mcp_registry.as_deref(),
                                     ));
@@ -272,6 +277,7 @@ impl AgentRunner for RigAgentRunner {
 
 async fn build_initial_messages(
     system_prompt: &str,
+    workspace_root: &std::path::Path,
     session_id: &SessionId,
     input: TurnInput,
     event_repo: Option<&dyn storage::EventRepo>,
@@ -279,6 +285,7 @@ async fn build_initial_messages(
 ) -> Result<Vec<AgentMessage>> {
     let mut messages = vec![AgentMessage::system(format_system_prompt(
         system_prompt,
+        workspace_root,
         session_id,
         mcp_registry,
     ))];
@@ -302,17 +309,31 @@ async fn build_initial_messages(
 
 fn format_system_prompt(
     base: &str,
+    workspace_root: &std::path::Path,
     session_id: &SessionId,
     mcp_registry: Option<&McpRegistry>,
 ) -> String {
+    let mut prompt = base.to_string();
+    let skill_store = skills::SkillStore::new(workspace_root);
+    let skill_summaries = skill_store.summaries(None);
+    if !skill_summaries.is_empty() {
+        prompt.push_str("\n\n## Available skills (load when relevant)\n");
+        prompt.push_str("Before using tools for a task, check this list and call skill_view(name) when a skill matches the user's request. Do not load unrelated skills.\n");
+        for skill in &skill_summaries {
+            prompt.push_str(&format!("- {}: {}\n", skill.name, skill.description));
+        }
+    }
+
     let Some(registry) = mcp_registry else {
-        tracing::info!("no MCP registry; system prompt unchanged");
-        return base.to_string();
+        tracing::info!(
+            skill_count = skill_summaries.len(),
+            prompt_len = prompt.len(),
+            "system prompt augmented with skill catalog"
+        );
+        return prompt;
     };
     let loaded = registry.loaded_tool_names_for_session(session_id.as_str());
     let unloaded = registry.unloaded_tool_names_for_session(session_id.as_str());
-
-    let mut prompt = base.to_string();
 
     if !loaded.is_empty() {
         prompt.push_str("\n\n## Currently loaded tools (use directly)\n");
@@ -331,8 +352,9 @@ fn format_system_prompt(
     tracing::info!(
         loaded_count = loaded.len(),
         unloaded_count = unloaded.len(),
+        skill_count = skill_summaries.len(),
         prompt_len = prompt.len(),
-        "system prompt augmented with MCP tool catalog"
+        "system prompt augmented with skill and MCP tool catalogs"
     );
     prompt
 }
@@ -388,6 +410,7 @@ async fn summarize_history(model: &ModelConfig, transcript: String) -> Result<St
     while let Some(event) = stream.next().await {
         match event? {
             ModelStreamEvent::TextDelta(text) => summary.push_str(&text),
+            ModelStreamEvent::ThinkingDelta(_) => {}
             ModelStreamEvent::Done => break,
             _ => {}
         }

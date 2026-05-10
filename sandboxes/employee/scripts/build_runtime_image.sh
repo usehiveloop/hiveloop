@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.cargo/bin:$PATH"
+DOCKER_BIN="${DOCKER_BIN:-$(command -v docker)}"
 IMAGE="${EMPLOYEE_BRIDGE_RUNTIME_IMAGE:-employee-bridge:runtime}"
 BINARY="${EMPLOYEE_BRIDGE_RELEASE_BINARY:-$ROOT/target/release/employee-bridge}"
 PLATFORM="${EMPLOYEE_BRIDGE_RUNTIME_PLATFORM:-}"
@@ -41,7 +43,7 @@ if [[ -n "$PLATFORM" ]]; then
   build_args+=(--platform "$PLATFORM")
 fi
 
-docker build \
+"$DOCKER_BIN" build \
   "${build_args[@]}" \
   -f "$TMP_CONTEXT/Dockerfile.runtime" \
   -t "$IMAGE" \

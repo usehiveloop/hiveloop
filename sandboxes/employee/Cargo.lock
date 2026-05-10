@@ -66,11 +66,14 @@ name = "api"
 version = "0.0.1"
 dependencies = [
  "anyhow",
+ "async-stream",
  "async-trait",
  "axum",
  "chrono",
  "domain",
+ "futures",
  "http",
+ "mcp",
  "outbound",
  "serde",
  "serde_json",
@@ -690,6 +693,7 @@ dependencies = [
  "agent",
  "anyhow",
  "api",
+ "async-trait",
  "chrono",
  "dashmap",
  "domain",
@@ -1581,6 +1585,7 @@ name = "mcp"
 version = "0.0.1"
 dependencies = [
  "anyhow",
+ "arc-swap",
  "async-trait",
  "dashmap",
  "domain",

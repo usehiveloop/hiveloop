@@ -11,7 +11,9 @@ domain.workspace = true
 storage.workspace = true
 skills.workspace = true
 outbound.workspace = true
+mcp.workspace = true
 async-trait.workspace = true
+futures.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
@@ -23,3 +25,4 @@ axum = "0.7"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace"] }
 http = "1"
+async-stream = "0.3.6"

@@ -72,6 +72,13 @@ pub struct SkillStore {
     root: PathBuf,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SkillSummary {
+    pub name: String,
+    pub description: String,
+    pub category: Option<String>,
+}
+
 impl SkillStore {
     pub fn new(workspace_root: impl Into<PathBuf>) -> Self {
         Self {
@@ -80,8 +87,32 @@ impl SkillStore {
     }
 
     pub fn list(&self, category: Option<&str>) -> Value {
+        let summaries = self.summaries(category);
         let mut skills = Vec::new();
         let mut categories = BTreeSet::new();
+
+        for summary in summaries {
+            if let Some(cat) = summary.category.as_deref() {
+                categories.insert(cat.to_string());
+            }
+            skills.push(json!({
+                "name": summary.name,
+                "description": summary.description,
+                "category": summary.category,
+            }));
+        }
+
+        json!({
+            "success": true,
+            "skills": skills,
+            "categories": categories.into_iter().collect::<Vec<_>>(),
+            "count": skills.len(),
+            "hint": "Use skill_view(name) to see full content, tags, and linked files"
+        })
+    }
+
+    pub fn summaries(&self, category: Option<&str>) -> Vec<SkillSummary> {
+        let mut skills = Vec::new();
 
         for dir in self.skill_dirs() {
             let skill_md = dir.join("SKILL.md");
@@ -97,35 +128,20 @@ impl SkillStore {
                 continue;
             };
             let skill_category = meta.get("category").cloned();
-            if let Some(cat) = skill_category.as_deref() {
-                categories.insert(cat.to_string());
-            }
             if let Some(filter) = category {
                 if skill_category.as_deref() != Some(filter) {
                     continue;
                 }
             }
-            skills.push(json!({
-                "name": name,
-                "description": meta.get("description").cloned().unwrap_or_default(),
-                "category": skill_category,
-            }));
+            skills.push(SkillSummary {
+                name,
+                description: meta.get("description").cloned().unwrap_or_default(),
+                category: skill_category,
+            });
         }
 
-        skills.sort_by(|a, b| {
-            a.get("name")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .cmp(b.get("name").and_then(Value::as_str).unwrap_or_default())
-        });
-
-        json!({
-            "success": true,
-            "skills": skills,
-            "categories": categories.into_iter().collect::<Vec<_>>(),
-            "count": skills.len(),
-            "hint": "Use skill_view(name) to see full content, tags, and linked files"
-        })
+        skills.sort_by(|a, b| a.name.cmp(&b.name));
+        skills
     }
 
     pub fn view(&self, name: &str, file_path: Option<&str>) -> anyhow::Result<Value> {

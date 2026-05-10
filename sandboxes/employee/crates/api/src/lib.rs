@@ -1,16 +1,18 @@
 mod auth;
 mod handlers;
+mod http_gateway;
 mod state;
 
 use std::net::SocketAddr;
 
 use axum::{
-    routing::{get, put},
+    routing::{get, post, put},
     Router,
 };
 use tokio::sync::oneshot;
 use tracing::{info, warn};
 
+pub use http_gateway::{HttpGatewayState, HttpStreamBroker, HttpStreamEvent};
 pub use state::ApiState;
 
 pub fn build_router(state: ApiState) -> Router {
@@ -26,6 +28,11 @@ pub fn build_router(state: ApiState) -> Router {
         )
         .route("/healthz", get(handlers::healthz))
         .route("/readyz", get(handlers::readyz))
+        .route("/gateway/http/messages", post(handlers::post_http_message))
+        .route(
+            "/gateway/http/streams/:stream_id",
+            get(handlers::get_http_stream),
+        )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             auth::bearer_auth,

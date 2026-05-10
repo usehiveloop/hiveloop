@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use agent::{AgentEvent, AgentRunner, HistoryEntry, HistoryRole, TurnInput};
 use anyhow::Result;
+use async_trait::async_trait;
 use chrono::Utc;
 use domain::{
     event_types, ConfigStore, HistoryMessage, InboundEvent, OutboundEvent, Reply, SessionId,
@@ -31,6 +32,124 @@ const STATUS_REFRESH_SECONDS: u64 = 2;
 const GENERIC_ERROR_REPLY: &str =
     "Sorry, something went wrong while generating that response. Please try again.";
 
+#[async_trait]
+pub trait TurnEventSink: Send + Sync + 'static {
+    async fn activate_session_stream(&self, _session_id: &SessionId, _stream_id: &str) {}
+
+    async fn clear_active_session_stream(&self, _session_id: &SessionId, _stream_id: &str) {}
+
+    async fn publish_final(&self, _stream_id: &str, _session_id: &SessionId, _text: &str) {}
+
+    async fn publish_agent_event(
+        &self,
+        stream_id: &str,
+        session_id: &SessionId,
+        event: &AgentEvent,
+    );
+}
+
+#[async_trait]
+impl TurnEventSink for api::HttpStreamBroker {
+    async fn activate_session_stream(&self, session_id: &SessionId, stream_id: &str) {
+        self.activate_session_stream(session_id.as_str(), stream_id)
+            .await;
+    }
+
+    async fn clear_active_session_stream(&self, session_id: &SessionId, stream_id: &str) {
+        self.clear_active_session_stream(session_id.as_str(), stream_id)
+            .await;
+    }
+
+    async fn publish_final(&self, stream_id: &str, session_id: &SessionId, text: &str) {
+        self.publish(
+            stream_id,
+            "final",
+            serde_json::json!({
+                "session_id": session_id.as_str(),
+                "text": text,
+            }),
+        )
+        .await;
+        self.publish(
+            stream_id,
+            "done",
+            serde_json::json!({
+                "session_id": session_id.as_str(),
+            }),
+        )
+        .await;
+    }
+
+    async fn publish_agent_event(
+        &self,
+        stream_id: &str,
+        session_id: &SessionId,
+        event: &AgentEvent,
+    ) {
+        match event {
+            AgentEvent::ThinkingChunk { text } => {
+                self.publish(
+                    stream_id,
+                    "thinking",
+                    serde_json::json!({
+                        "session_id": session_id.as_str(),
+                        "text": text,
+                    }),
+                )
+                .await;
+            }
+            AgentEvent::TokenChunk { text } => {
+                self.publish(
+                    stream_id,
+                    "token",
+                    serde_json::json!({
+                        "session_id": session_id.as_str(),
+                        "text": text,
+                    }),
+                )
+                .await;
+            }
+            AgentEvent::ToolCall { id, tool, args } => {
+                self.publish(
+                    stream_id,
+                    "tool_call",
+                    serde_json::json!({
+                        "session_id": session_id.as_str(),
+                        "id": id,
+                        "tool": tool,
+                        "args": args,
+                    }),
+                )
+                .await;
+            }
+            AgentEvent::ToolResult { id, result } => {
+                self.publish(
+                    stream_id,
+                    "tool_result",
+                    serde_json::json!({
+                        "session_id": session_id.as_str(),
+                        "id": id,
+                        "result": result,
+                    }),
+                )
+                .await;
+            }
+            AgentEvent::Error { message } => {
+                self.publish(
+                    stream_id,
+                    "error",
+                    serde_json::json!({
+                        "session_id": session_id.as_str(),
+                        "message": message,
+                    }),
+                )
+                .await;
+            }
+            AgentEvent::FinalMessage { .. } => {}
+        }
+    }
+}
+
 pub async fn handle_inbound(
     runner: Arc<dyn AgentRunner>,
     gateway: Arc<dyn ChannelGateway>,
@@ -38,6 +157,7 @@ pub async fn handle_inbound(
     emitter: Arc<OutboundEmitter>,
     session_repo: Arc<dyn SessionRepo>,
     coordinator: Arc<SessionCoordinator>,
+    turn_event_sink: Arc<dyn TurnEventSink>,
     inbound: InboundEvent,
 ) -> Result<()> {
     let submission = coordinator.submit_or_queue(&inbound.session_id, inbound.text.clone());
@@ -54,6 +174,7 @@ pub async fn handle_inbound(
             emitter.clone(),
             session_repo.clone(),
             &current_inbound,
+            turn_event_sink.clone(),
         )
         .await?;
 
@@ -80,6 +201,7 @@ async fn process_single_turn(
     emitter: Arc<OutboundEmitter>,
     session_repo: Arc<dyn SessionRepo>,
     inbound: &InboundEvent,
+    turn_event_sink: Arc<dyn TurnEventSink>,
 ) -> Result<()> {
     if inbound.text.trim().is_empty() && inbound.attachments.is_empty() {
         return Ok(());
@@ -130,9 +252,24 @@ async fn process_single_turn(
         turn_input = turn_input.with_image(mime, bytes);
     }
 
+    let http_stream_id = session_stream_id(inbound);
+    if let Some(stream_id) = http_stream_id.as_deref() {
+        turn_event_sink
+            .activate_session_stream(&session_id, stream_id)
+            .await;
+    }
+
     let stream_result = runner.run_turn(&session_id, turn_input).await;
     let outcome = match stream_result {
-        Ok(stream) => consume_agent_stream(stream).await,
+        Ok(stream) => {
+            consume_agent_stream(
+                stream,
+                http_stream_id.clone(),
+                &session_id,
+                turn_event_sink.as_ref(),
+            )
+            .await
+        }
         Err(e) => StreamOutcome {
             text: String::new(),
             error: Some(e.to_string()),
@@ -159,6 +296,10 @@ async fn process_single_turn(
         {
             warn!(error = %e, "post_to_channel (cron) failed");
         }
+    } else if let Some(stream_id) = http_stream_id.as_deref() {
+        turn_event_sink
+            .publish_final(stream_id, &session_id, &final_text)
+            .await;
     } else {
         if let Err(e) = gateway.reply(&session_id, Reply::Text(final_text)).await {
             warn!(error = %e, "reply failed");
@@ -187,6 +328,12 @@ async fn process_single_turn(
                     "text": reply_text_for_event,
                 }),
             ))
+            .await;
+    }
+
+    if let Some(stream_id) = http_stream_id.as_deref() {
+        turn_event_sink
+            .clear_active_session_stream(&session_id, stream_id)
             .await;
     }
 
@@ -220,11 +367,20 @@ fn spawn_thinking_status_loop(
 
 async fn consume_agent_stream(
     mut stream: futures::stream::BoxStream<'static, AgentEvent>,
+    stream_id: Option<String>,
+    session_id: &SessionId,
+    event_sink: &dyn TurnEventSink,
 ) -> StreamOutcome {
     let mut accumulated = String::new();
     let mut error_message: Option<String> = None;
     while let Some(event) = stream.next().await {
+        if let Some(stream_id) = stream_id.as_deref() {
+            event_sink
+                .publish_agent_event(stream_id, session_id, &event)
+                .await;
+        }
         match event {
+            AgentEvent::ThinkingChunk { .. } => {}
             AgentEvent::TokenChunk { text } => accumulated.push_str(&text),
             AgentEvent::FinalMessage { text } => accumulated = text,
             AgentEvent::Error { message } => error_message = Some(message),
@@ -235,6 +391,14 @@ async fn consume_agent_stream(
         text: accumulated,
         error: error_message,
     }
+}
+
+fn session_stream_id(inbound: &InboundEvent) -> Option<String> {
+    inbound
+        .raw
+        .get("http_stream_id")
+        .and_then(serde_json::Value::as_str)
+        .map(ToString::to_string)
 }
 
 fn format_final_message(outcome: &StreamOutcome) -> String {

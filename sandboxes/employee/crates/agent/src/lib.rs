@@ -68,6 +68,9 @@ pub enum AgentEvent {
     TokenChunk {
         text: String,
     },
+    ThinkingChunk {
+        text: String,
+    },
     ToolCall {
         id: String,
         tool: String,

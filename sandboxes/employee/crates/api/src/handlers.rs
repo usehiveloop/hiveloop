@@ -8,6 +8,7 @@ use chrono::{DateTime, Utc};
 use domain::{AgentDefinition, SessionId, SessionStatus};
 use serde::{Deserialize, Serialize};
 
+use crate::http_gateway::{stream_response, HttpMessageRequest};
 use crate::state::ApiState;
 
 #[derive(Serialize)]
@@ -31,6 +32,9 @@ pub async fn put_config(
             )
         })?;
     state.skill_writer.sync(&definition.skills);
+    if let Some(registry) = state.mcp_registry.as_ref() {
+        registry.reload_from_specs(&definition.mcp_servers).await;
+    }
     state.config_store.replace(definition.clone());
     state.mark_config_loaded();
     Ok(Json(ConfigResponse {
@@ -126,6 +130,41 @@ pub async fn readyz(State(state): State<ApiState>) -> impl IntoResponse {
     } else {
         StatusCode::SERVICE_UNAVAILABLE
     }
+}
+
+pub async fn post_http_message(
+    State(state): State<ApiState>,
+    Json(request): Json<HttpMessageRequest>,
+) -> Result<Json<crate::http_gateway::HttpMessageResponse>, (StatusCode, String)> {
+    let Some(http_gateway) = state.http_gateway.as_ref() else {
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            "http gateway is not enabled".to_string(),
+        ));
+    };
+    http_gateway
+        .inject_message(request)
+        .await
+        .map(Json)
+        .map_err(|error| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("inject message: {error}"),
+            )
+        })
+}
+
+pub async fn get_http_stream(
+    State(state): State<ApiState>,
+    Path(stream_id): Path<String>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let Some(http_gateway) = state.http_gateway.as_ref() else {
+        return Err(StatusCode::SERVICE_UNAVAILABLE);
+    };
+    stream_response(http_gateway.broker.clone(), stream_id)
+        .await
+        .map(IntoResponse::into_response)
+        .ok_or(StatusCode::NOT_FOUND)
 }
 
 fn parse_cursor(raw: &str) -> Result<DateTime<Utc>, String> {

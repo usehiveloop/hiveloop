@@ -91,6 +91,11 @@ impl ChatModelClient {
                                     yield Ok(ModelStreamEvent::TextDelta(text.to_string()));
                                 }
                             }
+                            if let Some(text) = parse_thinking_delta(delta) {
+                                if !text.is_empty() {
+                                    yield Ok(ModelStreamEvent::ThinkingDelta(text));
+                                }
+                            }
                             if let Some(tool_calls) = delta.get("tool_calls").and_then(|v| v.as_array()) {
                                 tool_accumulator.apply_delta(tool_calls);
                             }
@@ -107,6 +112,20 @@ fn take_sse_event(buffer: &mut String) -> Option<String> {
     let event = buffer[..idx].to_string();
     buffer.replace_range(..idx + 2, "");
     Some(event)
+}
+
+fn parse_thinking_delta(delta: &Value) -> Option<String> {
+    for key in ["reasoning", "reasoning_content", "thinking"] {
+        if let Some(text) = delta.get(key).and_then(Value::as_str) {
+            return Some(text.to_string());
+        }
+    }
+    delta
+        .get("reasoning")
+        .or_else(|| delta.get("thinking"))
+        .and_then(|value| value.get("content"))
+        .and_then(Value::as_str)
+        .map(ToString::to_string)
 }
 
 fn parse_usage(value: &Value) -> Option<ProviderUsage> {
@@ -188,4 +207,36 @@ struct PartialToolCall {
     id: String,
     name: String,
     arguments: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::parse_thinking_delta;
+
+    #[test]
+    fn parses_common_thinking_delta_fields() {
+        assert_eq!(
+            parse_thinking_delta(&json!({"reasoning": "thinking A"})),
+            Some("thinking A".to_string())
+        );
+        assert_eq!(
+            parse_thinking_delta(&json!({"reasoning_content": "thinking B"})),
+            Some("thinking B".to_string())
+        );
+        assert_eq!(
+            parse_thinking_delta(&json!({"thinking": "thinking C"})),
+            Some("thinking C".to_string())
+        );
+        assert_eq!(
+            parse_thinking_delta(&json!({"reasoning": {"content": "thinking D"}})),
+            Some("thinking D".to_string())
+        );
+    }
+
+    #[test]
+    fn ignores_missing_thinking_delta() {
+        assert_eq!(parse_thinking_delta(&json!({"content": "visible"})), None);
+    }
 }

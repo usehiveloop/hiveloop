@@ -108,6 +108,7 @@ pub struct ProviderUsage {
 #[derive(Debug, Clone)]
 pub enum ModelStreamEvent {
     TextDelta(String),
+    ThinkingDelta(String),
     ToolCalls(Vec<ToolCall>),
     Usage(ProviderUsage),
     Done,

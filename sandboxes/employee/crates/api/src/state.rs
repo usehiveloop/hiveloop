@@ -2,8 +2,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use domain::ConfigStore;
+use mcp::McpRegistry;
 use skills::SkillWriter;
 use storage::{ConfigRepo, EventRepo, SessionRepo};
+
+use crate::http_gateway::HttpGatewayState;
 
 #[derive(Clone)]
 pub struct ApiState {
@@ -15,6 +18,8 @@ pub struct ApiState {
     pub gateway_ready: Arc<AtomicBool>,
     pub config_loaded: Arc<AtomicBool>,
     pub skill_writer: Arc<SkillWriter>,
+    pub http_gateway: Option<HttpGatewayState>,
+    pub mcp_registry: Option<Arc<McpRegistry>>,
 }
 
 impl ApiState {
@@ -25,6 +30,8 @@ impl ApiState {
         event_repo: Arc<dyn EventRepo>,
         bearer_token: String,
         skill_writer: Arc<SkillWriter>,
+        http_gateway: Option<HttpGatewayState>,
+        mcp_registry: Option<Arc<McpRegistry>>,
     ) -> Self {
         Self {
             config_store,
@@ -35,6 +42,8 @@ impl ApiState {
             gateway_ready: Arc::new(AtomicBool::new(false)),
             config_loaded: Arc::new(AtomicBool::new(false)),
             skill_writer,
+            http_gateway,
+            mcp_registry,
         }
     }
 
