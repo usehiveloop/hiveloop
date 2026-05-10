@@ -3,22 +3,12 @@ import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 
 const footerLinks = {
-  product: [
-    { label: "Marketplace", href: "/marketplace" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "Documentation", href: "/docs" },
-    { label: "TypeScript SDK", href: "/docs/sdk" },
-    { label: "API Reference", href: "/docs/api" },
-  ],
   resources: [
     { label: "Blog", href: "/blog" },
-    { label: "Changelog", href: "/changelog" },
     { label: "Community", href: "https://discord.gg/hiveloop", external: true },
     { label: "GitHub", href: "https://github.com/usehiveloop", external: true },
-    { label: "Self-hosting", href: "/docs/self-hosting" },
   ],
   company: [
-    { label: "About", href: "/about" },
     { label: "Privacy Policy", href: "/legal/privacy" },
     { label: "Terms of Service", href: "/legal/terms" },
     { label: "Contact", href: "mailto:hello@hiveloop.com", external: true },
@@ -62,42 +52,16 @@ export function MarketingFooter() {
   return (
     <footer className="w-full relative overflow-hidden">
       {/* Top CTA band */}
-      <div className="w-full border-t border-border bg-muted/40">
-        <div className="w-full max-w-424 mx-auto px-4 lg:px-0 py-10 sm:py-14">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div className="flex flex-col gap-1.5">
-              <span className="font-heading text-lg sm:text-xl font-semibold text-foreground">
-                Ready to replace your agent subscriptions?
-              </span>
-              <span className="text-sm text-muted-foreground">
-                Start free. Deploy your first agent in minutes.
-              </span>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <Link href="/auth">
-                <Button size="lg">Get started</Button>
-              </Link>
-              <Link href="/docs">
-                <Button variant="outline" size="lg">
-                  View docs
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Main footer */}
       <div className="w-full border-t border-border">
-        <div className="w-full max-w-424 mx-auto px-4 lg:px-0 py-14 sm:py-16">
-          <div className="grid grid-cols-2 gap-y-10 gap-x-8 sm:grid-cols-12">
+        <div className="w-full max-w-424 mx-auto px-4 lg:px-8 py-14 sm:py-16">
+          <div className="grid grid-cols-1 gap-y-10 gap-x-8 sm:grid-cols-12">
             {/* Brand — full width on mobile, 5 cols on desktop */}
             <div className="col-span-2 sm:col-span-5 flex flex-col gap-6 pr-0 sm:pr-8">
               <Logo className="h-7" />
               <p className="text-[13px] text-muted-foreground leading-relaxed max-w-80">
-                Build, run, and monitor production-grade AI agents. Bring your
-                own keys, pick your models, install from the marketplace or
-                create from scratch.
+                AI employees that learn your ways and take initiative.
               </p>
               <div className="flex items-center gap-0.5">
                 {socialLinks.map((social) => (
@@ -115,11 +79,8 @@ export function MarketingFooter() {
               </div>
             </div>
 
-            {/* Link columns — 2 cols each on a 12 col grid, leave 1 col gap */}
+            {/* Link columns — 2 cols each on a 12 col grid */}
             <div className="col-span-1 sm:col-span-2 sm:col-start-7">
-              <FooterColumn title="Product" links={footerLinks.product} />
-            </div>
-            <div className="col-span-1 sm:col-span-2">
               <FooterColumn title="Resources" links={footerLinks.resources} />
             </div>
             <div className="col-span-1 sm:col-span-2">
@@ -130,7 +91,7 @@ export function MarketingFooter() {
       </div>
 
       {/* Bottom bar */}
-      <div className="w-full border-t border-border">
+      <div className="w-full border-t border-border px-8">
         <div className="w-full max-w-424 mx-auto px-4 lg:px-0 py-5 flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <span className="text-xs text-muted-foreground">
@@ -162,12 +123,6 @@ export function MarketingFooter() {
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               Terms
-            </Link>
-            <Link
-              href="/docs/security"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Security
             </Link>
           </div>
         </div>

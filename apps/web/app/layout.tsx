@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     default: "Hiveloop",
     template: "%s — Hiveloop",
   },
-  description: "The complete platform for building, sharing and running AI agents",
+  description: "Hire AI employees for your team. Autonomous agents that learn, understand your organization, and take initiative.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "48x48" },

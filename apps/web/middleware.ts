@@ -13,7 +13,7 @@ export function middleware(req: NextRequest) {
 
   // Auth page — redirect if already logged in
   if (pathname === "/auth" && hasSession) {
-    return NextResponse.redirect(new URL("/w", req.url))
+    return NextResponse.redirect(new URL("/", req.url))
   }
 
   return NextResponse.next()

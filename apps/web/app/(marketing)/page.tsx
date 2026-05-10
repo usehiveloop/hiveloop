@@ -1,77 +1,17 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Download04Icon, CheckmarkBadge01Icon, ArrowRight01Icon, CpuIcon } from "@hugeicons/core-free-icons"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-
-const marketplaceAgents = [
-  {
-    name: "PR Review Agent",
-    slug: "pr-review-agent",
-    description: "Reviews pull requests for code quality, security issues, and suggests improvements based on your standards.",
-    publisher: { name: "Sarah Chen", avatar: "https://i.pravatar.cc/80?u=sarah" },
-    installs: 12400,
-    integrations: ["GitHub", "Slack", "Linear"],
-    verified: true,
-  },
-  {
-    name: "Customer Support Agent",
-    slug: "customer-support-agent",
-    description: "Handles support tickets by searching your knowledge base, drafting responses, and escalating complex issues.",
-    publisher: { name: "Alex Rivera", avatar: "https://i.pravatar.cc/80?u=alex" },
-    installs: 8900,
-    integrations: ["Intercom", "Notion", "Slack"],
-    verified: true,
-  },
-  {
-    name: "Incident Responder",
-    slug: "incident-responder",
-    description: "Monitors infrastructure alerts, correlates events, creates incident channels, and coordinates response workflows.",
-    publisher: { name: "HiveLoop", avatar: "https://i.pravatar.cc/80?u=hiveloop" },
-    installs: 6200,
-    integrations: ["Slack", "Linear", "GitHub"],
-    verified: true,
-  },
-  {
-    name: "Meeting Summarizer",
-    slug: "meeting-summarizer",
-    description: "Joins calendar meetings, records key decisions and action items, and posts structured summaries to Notion.",
-    publisher: { name: "Tom Wilson", avatar: "https://i.pravatar.cc/80?u=tom" },
-    installs: 7300,
-    integrations: ["Google", "Notion", "Slack"],
-    verified: true,
-  },
-  {
-    name: "Release Manager",
-    slug: "release-manager",
-    description: "Tracks your release pipeline, generates changelogs from merged PRs, and manages deployment approvals.",
-    publisher: { name: "HiveLoop", avatar: "https://i.pravatar.cc/80?u=hiveloop2" },
-    installs: 4500,
-    integrations: ["GitHub", "Slack", "Vercel"],
-    verified: true,
-  },
-  {
-    name: "Security Scanner",
-    slug: "security-scanner",
-    description: "Scans repositories for dependency vulnerabilities, secret leaks, and misconfigurations, then files issues.",
-    publisher: { name: "HiveLoop", avatar: "https://i.pravatar.cc/80?u=hiveloop3" },
-    installs: 3400,
-    integrations: ["GitHub", "Linear"],
-    verified: true,
-  },
-]
-
-function formatInstalls(count: number) {
-  if (count >= 1000) return `${(count / 1000).toFixed(count % 1000 === 0 ? 0 : 1)}k`
-  return count.toString()
-}
+import { ArrowRight01Icon, CpuIcon } from "@hugeicons/core-free-icons"
+import { motion } from "motion/react"
 
 export default function Home() {
   return (
     <div className="w-full bg-background flex flex-col relative">
-      <div className="flex flex-1 px-4 sm:px-6 lg:px-0">
-        <div className="w-full max-w-424 lg:min-h-425 mx-auto relative overflow-hidden">
+      <div className="flex flex-1 px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-424 lg:min-h-325 mx-auto relative overflow-hidden">
           {/* Grid background */}
           <div
             className="absolute inset-0 pointer-events-none"
@@ -91,19 +31,20 @@ export default function Home() {
                 "radial-gradient(circle at 50% 40%, color-mix(in oklch, var(--primary) 12%, transparent) 0%, transparent 70%)",
             }}
           />
-          <div className="relative flex flex-col items-center gap-6 sm:gap-8 pt-12 sm:pt-16 lg:pt-25 px-4 sm:px-8 lg:px-0">
+          <div className="relative flex flex-col items-center gap-6 sm:gap-8 pt-12 sm:pt-16 lg:pt-25 px-6 sm:px-8 lg:px-10">
             <div className="flex items-center gap-2 px-4 py-2 bg-muted border border-border rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
               <span className="font-mono text-[11px] font-medium uppercase tracking-[0.5px] text-muted-foreground">
-                introducing the marketplace with revenue sharing
+                Hire AI employees for your team
               </span>
             </div>
             <h1 className="font-heading text-[28px] sm:text-[40px] lg:text-[56px] font-bold text-foreground text-center leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
-              Run production-grade <br className="hidden sm:block" /> agents for your team
+              The AI employee for any role
             </h1>
             <p className="text-base sm:text-lg lg:text-xl text-muted-foreground text-center leading-relaxed max-w-160">
-              The complete platform for building, running and monitoring real world agents
-              with memory, observability and access control.
+              Hire AI employees that learn your ways, work autonomously,
+              <br className="hidden sm:block" />
+              and take initiative on their own.
             </p>
             <div className="flex flex-col sm:flex-row gap-2.5 pt-2 w-full sm:w-auto">
               <Input
@@ -111,17 +52,17 @@ export default function Home() {
                 placeholder="Enter your email"
                 className="h-10 sm:h-12 sm:w-72 rounded-full text-sm sm:text-base px-5"
               />
-              <Button size="default" className="sm:hidden rounded-full h-10">
-                Join the waitlist
-              </Button>
-              <Button size="lg" className="hidden sm:inline-flex rounded-full h-12">
-                Join the waitlist
-              </Button>
+              <Link href="/demo" className="sm:hidden">
+                <Button size="default" className="rounded-full h-10 w-full">Book a Demo</Button>
+              </Link>
+              <Link href="/demo" className="hidden sm:inline-block">
+                <Button size="lg" className="rounded-full h-12">Book a Demo</Button>
+              </Link>
             </div>
           </div>
 
-          <div className="px-4 lg:px-0">
-            <div className="relative z-10 w-full max-w-5xl bg-black dark:bg-card min-h-60 sm:min-h-80 lg:min-h-180 mt-8 sm:mt-12 lg:mt-16 lg:mx-auto border border-border rounded-4xl shadow-[0_0_60px_-20px_color-mix(in_oklch,var(--primary)_12%,transparent),0_0_20px_-10px_color-mix(in_oklch,var(--primary)_8%,transparent)] flex items-center justify-center">
+          <div className="px-6 lg:px-10">
+            <div className="relative z-10 w-full max-w-5xl bg-black dark:bg-card min-h-60 sm:min-h-80 lg:min-h-180 mt-8 sm:mt-12 lg:mt-16 mx-auto border border-border rounded-4xl shadow-[0_0_60px_-20px_color-mix(in_oklch,var(--primary)_12%,transparent),0_0_20px_-10px_color-mix(in_oklch,var(--primary)_8%,transparent)] flex items-center justify-center">
               <div className="relative flex items-center justify-center">
                 {/* Pulse rings */}
                 <span className="absolute w-12 h-12 lg:w-32 lg:h-32 rounded-full border border-foreground/20 lg:border-2 animate-[ping_2.5s_ease-out_infinite]" />
@@ -144,38 +85,17 @@ export default function Home() {
               </div>
             </div>
           </div>
-
-          {/* Trusted by */}
-          <div className="relative z-10 flex flex-col items-center gap-8 py-20 sm:py-28 px-4">
-            <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
-              Trusted by companies of all sizes
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6 sm:gap-x-16 opacity-40">
-              <span className="text-lg sm:text-xl font-semibold text-muted-foreground tracking-tight">
-                Vercel
-              </span>
-              <span className="text-lg sm:text-xl font-semibold text-muted-foreground tracking-tight">
-                Linear
-              </span>
-              <span className="text-lg sm:text-xl font-semibold text-muted-foreground tracking-tight">
-                Stripe
-              </span>
-              <span className="text-lg sm:text-xl font-semibold text-muted-foreground tracking-tight">
-                Notion
-              </span>
-              <span className="text-lg sm:text-xl font-semibold text-muted-foreground tracking-tight">
-                Raycast
-              </span>
-              <span className="text-lg sm:text-xl font-semibold text-muted-foreground tracking-tight">
-                Supabase
-              </span>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Value proposition: Replace subscriptions */}
-      <section className="w-full px-4 sm:px-6 lg:px-0">
+      {/* Value proposition: AI employees */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="w-full px-6 sm:px-8 lg:px-10"
+      >
         <div className="w-full max-w-424 mx-auto relative">
           {/* Grid background */}
           <div
@@ -203,188 +123,87 @@ export default function Home() {
                 Why Hiveloop
               </p>
               <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
-                Stop paying for 10 subscriptions.{" "}
-                <br className="hidden sm:block" />
-                Build your own agents instead.
+                AI employees that learn, understand, take initiative.
               </h2>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
-                Every AI tool is another $20–50/month. Hiveloop gives you the
-                building blocks to run your own — for a fraction of the cost.
+                Unlike generic AI tools, Hiveloop employees learn your ways of working,
+                understand your organization, and take initiative on their own.
               </p>
             </div>
 
-            {/* Comparison card */}
-            <div className="w-full max-w-5xl mx-auto rounded-4xl border border-border ring-1 ring-foreground/5 shadow-[0_0_60px_-20px_color-mix(in_oklch,var(--primary)_12%,transparent),0_0_20px_-10px_color-mix(in_oklch,var(--primary)_8%,transparent)] overflow-hidden">
-              <div className="grid grid-cols-1 lg:grid-cols-2">
-                {/* Left: Subscriptions */}
-                <div className="p-6 sm:p-8 lg:p-10 bg-muted/50 dark:bg-card/50 border-b lg:border-b-0 lg:border-r border-border">
-                  <div className="flex items-center gap-2 mb-6">
-                    <span className="w-2 h-2 rounded-full bg-destructive" />
-                    <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-destructive">
-                      What you&apos;re paying today
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    {[
-                      { name: "CodeRabbit", desc: "Code review", price: "$30" },
-                      { name: "Cursor", desc: "AI coding", price: "$20" },
-                      { name: "Lovable", desc: "UI generation", price: "$25" },
-                      { name: "Devin", desc: "Autonomous dev", price: "$500" },
-                      { name: "Jasper", desc: "Content writing", price: "$49" },
-                      {
-                        name: "Intercom Fin",
-                        desc: "Support agent",
-                        price: "$99",
-                      },
-                    ].map((tool) => (
-                      <div
-                        key={tool.name}
-                        className="flex items-center justify-between py-3 px-4 rounded-2xl bg-background/60 dark:bg-background/30 border border-border/60"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-foreground">
-                            {tool.name}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {tool.desc}
-                          </span>
-                        </div>
-                        <span className="text-sm font-mono text-muted-foreground line-through decoration-destructive/60">
-                          {tool.price}/mo
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-6 pt-4 border-t border-border/60 flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Monthly total
-                      </span>
-                      <span className="text-2xl font-heading font-bold text-destructive -tracking-[0.5px]">
-                        $723/mo
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        6 separate bills. No shared context.
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        and growing...
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 flex flex-col gap-2.5">
-                    {[
-                      "Locked into each vendor's model",
-                      "No control over prompts or behavior",
-                      "Separate billing for every tool",
-                      "Can't customize or extend features",
-                    ].map((item) => (
-                      <div key={item} className="flex items-center gap-2.5">
-                        <svg className="w-4 h-4 shrink-0 text-destructive" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        <span className="text-sm text-muted-foreground">{item}</span>
-                      </div>
-                    ))}
-                  </div>
+            {/* AI Employees Grid */}
+            <div className="w-full max-w-5xl mx-auto rounded-4xl border border-border ring-1 ring-foreground/5 shadow-[0_0_60px_-20px_color-mix(in_oklch,var(--primary)_12%,transparent),0_0_20px_-10px_color-mix(in_oklch,var(--primary)_8%,transparent)] overflow-hidden bg-background">
+              <div className="p-6 sm:p-8 lg:p-10">
+                <div className="flex items-center gap-2 mb-8">
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-foreground">
+                    AI Employees
+                  </span>
                 </div>
 
-                {/* Right: Hiveloop agents */}
-                <div className="p-6 sm:p-8 lg:p-10 bg-background dark:bg-[oklch(0.14_0.01_55)]">
-                  <div className="flex items-center gap-2 mb-6">
-                    <span className="w-2 h-2 rounded-full bg-green-500" />
-                    <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-foreground">
-                      What you build on Hiveloop
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    {[
-                      {
-                        name: "code-reviewer",
-                        desc: "Reviews PRs on every push",
-                      },
-                      {
-                        name: "ui-builder",
-                        desc: "Generates components from designs",
-                      },
-                      {
-                        name: "content-writer",
-                        desc: "Drafts blog posts from outlines",
-                      },
-                      {
-                        name: "support-agent",
-                        desc: "Answers tickets from your docs",
-                      },
-                      {
-                        name: "code-assistant",
-                        desc: "Helps across the codebase",
-                      },
-                      {
-                        name: "deploy-monitor",
-                        desc: "Watches deploys, alerts on failure",
-                      },
-                    ].map((agent) => (
-                      <div
-                        key={agent.name}
-                        className="flex items-center justify-between py-3 px-4 rounded-2xl bg-muted/40 dark:bg-white/[0.04] border border-border/60"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold font-mono text-foreground">
-                              {agent.name}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {agent.desc}
-                            </span>
-                          </div>
+                <div className="flex flex-col gap-3">
+                  {[
+                    {
+                      name: "code-reviewer",
+                      desc: "Reviews PRs on every push",
+                    },
+                    {
+                      name: "ui-builder",
+                      desc: "Generates components from designs",
+                    },
+                    {
+                      name: "content-writer",
+                      desc: "Drafts blog posts from outlines",
+                    },
+                    {
+                      name: "support-agent",
+                      desc: "Answers tickets from your docs",
+                    },
+                    {
+                      name: "code-assistant",
+                      desc: "Helps across the codebase",
+                    },
+                    {
+                      name: "deploy-monitor",
+                      desc: "Watches deploys, alerts on failure",
+                    },
+                  ].map((agent) => (
+                    <div
+                      key={agent.name}
+                      className="flex items-center justify-between py-3 px-4 rounded-2xl bg-muted/40 dark:bg-white/[0.04] border border-border/60"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold font-mono text-foreground">
+                            {agent.name}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {agent.desc}
+                          </span>
                         </div>
-                        <span className="text-xs font-mono text-green-600 dark:text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
-                          running
-                        </span>
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-6 pt-4 border-t border-border/60 flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        6 agents x $4.99/mo
-                      </span>
-                      <span className="text-2xl font-heading font-bold text-foreground -tracking-[0.5px]">
-                        $29.94/mo
+                      <span className="text-xs font-mono text-green-600 dark:text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
+                        active
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        Same capabilities. You own the agents.
-                      </span>
-                      <span className="text-xs font-mono text-green-600 dark:text-green-400">
-                        saving $693/mo
-                      </span>
-                    </div>
-                  </div>
+                  ))}
+                </div>
 
-                  <div className="mt-5 flex flex-col gap-2.5">
-                    {[
-                      "Bring your own API keys",
-                      "Pick any model — GPT, Claude, Gemini, open-source",
-                      "Install agents from the marketplace",
-                      "Full control over prompts and behavior",
-                    ].map((item) => (
-                      <div key={item} className="flex items-center gap-2.5">
-                        <svg className="w-4 h-4 shrink-0 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        <span className="text-sm text-foreground">{item}</span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="mt-8 flex flex-col items-center gap-2">
+                  <span className="font-mono text-[11px] text-muted-foreground uppercase tracking-[1.5px]">
+                    Hire your first AI employee
+                  </span>
+                  <Link href="/demo">
+                    <Button variant="outline" size="sm" className="rounded-full">
+                      Book a Demo
+                      <HugeiconsIcon
+                        icon={ArrowRight01Icon}
+                        size={14}
+                        className="ml-1 opacity-80"
+                      />
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -393,16 +212,16 @@ export default function Home() {
             <div className="grid grid-cols-3 gap-6 sm:gap-12 lg:gap-20 pt-4 sm:pt-8 px-4">
               {[
                 {
-                  value: "10+",
-                  label: "subscriptions replaced",
+                  value: "Learning",
+                  label: "adapts to your ways",
                 },
                 {
-                  value: "90%",
-                  label: "cost savings vs. individual tools",
+                  value: "Autonomous",
+                  label: "takes initiative",
                 },
                 {
-                  value: "Minutes",
-                  label: "to deploy a new agent",
+                  value: "Integrated",
+                  label: "works with your tools",
                 },
               ].map((stat) => (
                 <div
@@ -420,129 +239,16 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Marketplace */}
-      <section className="w-full px-4 sm:px-6 lg:px-0">
-        <div className="w-full max-w-424 mx-auto relative">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              maskImage:
-                "radial-gradient(ellipse at center, black, transparent 70%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 40%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
-            }}
-          />
-
-          <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
-            {/* Section header */}
-            <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
-                Marketplace
-              </p>
-              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
-                Install an agent in seconds.{" "}
-                <br className="hidden sm:block" />
-                Or build one and get paid.
-              </h2>
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
-                Browse pre-built agents from the community — code review,
-                support, monitoring, and more. Builders earn revenue on every
-                install.
-              </p>
-            </div>
-
-            {/* Agent grid */}
-            <div className="w-full max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 lg:px-0">
-              {marketplaceAgents.map((agent) => (
-                <Link
-                  href={`/marketplace/agents/${agent.slug}`}
-                  key={agent.slug}
-                  className="group flex flex-col gap-4 rounded-2xl border border-border bg-background p-5 transition-colors hover:border-primary"
-                >
-                  {/* Stacked integration logos + install count */}
-                  <div className="flex items-center justify-between">
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <div className="flex items-center cursor-default">
-                            {agent.integrations.map((integration, index) => (
-                              <div
-                                key={integration}
-                                className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[9px] font-bold text-muted-foreground"
-                                style={{ marginLeft: index > 0 ? "-8px" : 0, zIndex: agent.integrations.length - index }}
-                              >
-                                {integration[0]}
-                              </div>
-                            ))}
-                          </div>
-                        }
-                      />
-                      <TooltipContent>
-                        {agent.integrations.join(", ")}
-                      </TooltipContent>
-                    </Tooltip>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <HugeiconsIcon icon={Download04Icon} size={12} />
-                      {formatInstalls(agent.installs)}
-                    </div>
-                  </div>
-
-                  {/* Agent name + verified badge */}
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="font-heading text-sm font-semibold text-foreground transition-colors">
-                      {agent.name}
-                    </h3>
-                    {agent.verified && (
-                      <HugeiconsIcon icon={CheckmarkBadge01Icon} size={15} className="text-green-500 shrink-0" />
-                    )}
-                  </div>
-
-                  {/* Description */}
-                  <p className="text-[13px] leading-relaxed text-muted-foreground line-clamp-2">
-                    {agent.description}
-                  </p>
-
-                  {/* Publisher */}
-                  <div className="flex items-center gap-2 mt-auto pt-2 border-t border-border/50">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={agent.publisher.avatar}
-                      alt={agent.publisher.name}
-                      className="h-5 w-5 rounded-full object-cover"
-                    />
-                    <span className="text-xs text-muted-foreground">{agent.publisher.name}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 pt-2">
-              <Link href="/marketplace">
-                <Button size="lg">Browse the marketplace</Button>
-              </Link>
-              <Link href="/docs">
-                <Button variant="outline" size="lg">
-                  Start building
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      </motion.section>
 
       {/* Agent Forger */}
-      <section className="w-full px-4 sm:px-6 lg:px-0">
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="w-full px-6 sm:px-8 lg:px-10"
+      >
         <div className="w-full max-w-424 mx-auto relative">
           <div
             className="absolute inset-0 pointer-events-none"
@@ -564,19 +270,17 @@ export default function Home() {
 
           <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
             {/* Section header */}
-            <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4">
+            <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4 mt-28">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
                 The Agent Forger
               </p>
               <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
-                From zero to a running agent{" "}
-                <br className="hidden sm:block" />
-                in under five minutes.
+                Meet your AI employee
               </h2>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
-                Build from scratch, let AI forge one for you, or install from
-                the marketplace. Three paths, same result — a production-ready
-                agent.
+                Define behavior, connect tools, and deploy.
+                <br className="hidden sm:block" />
+                Have your AI employee working alongside you today.
               </p>
             </div>
 
@@ -609,9 +313,9 @@ export default function Home() {
                       <path d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016A3.001 3.001 0 0021 9.349m-18 0a2.999 2.999 0 00.97-1.599L5.49 3h13.02l1.52 4.75A2.999 2.999 0 0021 9.349" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   ),
-                  title: "Install from marketplace",
+                  title: "Deploy instantly",
                   description:
-                    "Browse community agents. One click to install, connect your keys, and run.",
+                    "One click to deploy your agent. Connect your keys and run immediately.",
                 },
               ].map((mode) => (
                 <div
@@ -685,10 +389,16 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* Platform features */}
-      <section className="w-full px-4 sm:px-6 lg:px-0">
+      {/* What makes an AI employee effective */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="w-full px-6 sm:px-8 lg:px-10"
+      >
         <div className="w-full max-w-424 mx-auto relative">
           <div
             className="absolute inset-0 pointer-events-none"
@@ -712,16 +422,13 @@ export default function Home() {
             {/* Section header */}
             <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
-                Platform
+                AI Employee Capabilities
               </p>
               <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
-                Everything your agents need{" "}
-                <br className="hidden sm:block" />
-                to run in production.
+                Everything your AI employee needs to work autonomously
               </h2>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
-                Every agent you build or install inherits the full power of the
-                platform — memory, observability, access control, and more.
+                Each AI employee learns, remembers, and takes initiative — just like a human teammate.
               </p>
             </div>
 
@@ -807,10 +514,16 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Start with 1,000 free credits */}
-      <section className="w-full px-4 sm:px-6 lg:px-0">
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="w-full px-6 sm:px-8 lg:px-10"
+      >
         <div className="w-full max-w-424 mx-auto relative pb-20 sm:pb-28 lg:pb-36">
           <div
             className="absolute inset-0 pointer-events-none"
@@ -837,22 +550,21 @@ export default function Home() {
               className="text-primary"
             />
             <p className="font-mono text-[11px] font-medium uppercase tracking-[2px] text-primary">
-              Pricing · Credits-based
+              AI Employees Platform
             </p>
             <h2 className="font-heading text-[36px] sm:text-[52px] lg:text-[64px] font-bold text-foreground leading-[1.03] -tracking-[1px] sm:-tracking-[1.4px] max-w-3xl">
-              Start with{" "}
+              Hire your first
               <span className="italic font-medium text-primary">
-                1,000 free credits.
+                {" "}AI employee today.
               </span>
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl">
-              Enough to build your first agent, watch it run, and decide
-              whether this is the platform for you — before you spend a dollar.
+              Your AI employee learns your ways of working.
             </p>
             <div className="flex flex-col items-center gap-3">
-              <Link href="/auth">
+              <Link href="/demo">
                 <Button size="lg" className="group cursor-pointer">
-                  Get started free
+                  Book a Demo
                   <HugeiconsIcon
                     icon={ArrowRight01Icon}
                     size={15}
@@ -861,18 +573,12 @@ export default function Home() {
                 </Button>
               </Link>
               <p className="font-mono text-[10px] uppercase tracking-[1.8px] text-muted-foreground/70">
-                No card required · Free trial expires after 30 days
+                No card required · First employee free
               </p>
             </div>
-            <Link
-              href="/pricing"
-              className="font-mono text-[11px] uppercase tracking-[1.5px] text-muted-foreground hover:text-foreground transition-colors mt-4"
-            >
-              See full pricing →
-            </Link>
           </div>
         </div>
-      </section>
+      </motion.section>
 
     </div>
   )
