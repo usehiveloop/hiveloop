@@ -40,6 +40,7 @@ pub enum OutboundChannelKind {
 }
 
 pub mod event_types {
+    pub const USER_MESSAGE_RECEIVED: &str = "user.message.received";
     pub const SESSION_CREATED: &str = "session.created";
     pub const SESSION_COMPLETED: &str = "session.completed";
     pub const TOOL_INVOKED: &str = "tool.invoked";

@@ -157,6 +157,8 @@ fn prompt_is_compact_and_strip_is_idempotent() {
 
     let prompt = format_cloud_agents_prompt(&agents);
     assert!(prompt.contains("## Cloud Agents"));
+    assert!(prompt.contains("<cloud_agent_context>"));
+    assert!(prompt.contains("</cloud_agent_context>"));
     assert!(prompt.contains("Builder (agent-code)"));
     assert!(prompt.contains("task-1 - Seed task"));
     assert!(prompt.contains("ToolCall"));
@@ -167,10 +169,13 @@ fn prompt_is_compact_and_strip_is_idempotent() {
     assert!(!prompt.contains("internal"));
 
     let wrapped = format!("base\n\n{prompt}\n\nsuffix");
-    assert_eq!(
-        strip_cloud_agents_block(&strip_cloud_agents_block(&wrapped)),
-        "base\n\nsuffix"
-    );
+    let stripped = strip_cloud_agents_block(&strip_cloud_agents_block(&wrapped));
+    assert!(stripped.contains("## Cloud Agents"));
+    assert!(stripped.contains("When to create a cloud agent task"));
+    assert!(!stripped.contains("<cloud_agent_context>"));
+    assert!(!stripped.contains("Builder (agent-code)"));
+    assert!(stripped.starts_with("base"));
+    assert!(stripped.ends_with("suffix"));
 }
 
 struct FakeControlPlane {

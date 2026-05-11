@@ -88,6 +88,36 @@ pub struct ContextConfig {
     pub max_history_events: Option<u32>,
     #[serde(default)]
     pub compaction: Option<CompactionConfig>,
+    #[serde(default)]
+    pub memory: MemoryContextConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MemoryContextConfig {
+    #[serde(default)]
+    pub entries: Vec<MemoryContextEntry>,
+    #[serde(default = "default_memory_token_budget")]
+    pub token_budget: u32,
+}
+
+impl Default for MemoryContextConfig {
+    fn default() -> Self {
+        Self {
+            entries: Vec::new(),
+            token_budget: default_memory_token_budget(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MemoryContextEntry {
+    pub content: String,
+    #[serde(default)]
+    pub memory_type: String,
+    #[serde(default)]
+    pub source: String,
+    #[serde(default)]
+    pub confidence: Option<f32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -106,4 +136,7 @@ fn default_overlap() -> u32 {
 }
 fn default_chars_per_token() -> u32 {
     4
+}
+fn default_memory_token_budget() -> u32 {
+    1000
 }

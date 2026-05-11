@@ -225,6 +225,7 @@ async fn process_single_turn(
     if !was_new_session {
         let _ = session_repo.touch(&session_id, Utc::now()).await;
     }
+    emit_user_message_received(&emitter, inbound).await;
 
     let skip_typing = is_cron_message(inbound) || !slack.typing_indicator;
     let typing_loop = if skip_typing {
@@ -346,6 +347,42 @@ async fn process_single_turn(
 
     info!(session = %session_id, len = outcome.text.len(), "turn complete");
     Ok(())
+}
+
+async fn emit_user_message_received(emitter: &OutboundEmitter, inbound: &InboundEvent) {
+    let (channel, thread_ts) = derive_channel_and_thread(&inbound.session_id);
+    emitter
+        .emit(OutboundEvent::new(
+            event_types::USER_MESSAGE_RECEIVED,
+            serde_json::json!({
+                "envelope_id": inbound.envelope_id,
+                "session_id": inbound.session_id.as_str(),
+                "channel": channel,
+                "thread_ts": thread_ts,
+                "user": inbound.user,
+                "user_display_name": inbound.user_display_name,
+                "text": inbound.text,
+                "attachments": inbound.attachments.iter().map(|attachment| {
+                    serde_json::json!({
+                        "name": attachment.name,
+                        "mime_type": attachment.mime_type,
+                        "size_bytes": attachment.size_bytes,
+                    })
+                }).collect::<Vec<_>>(),
+                "link_previews": inbound.link_previews,
+                "is_direct_message": inbound.is_direct_message,
+                "is_directly_addressed": inbound.is_directly_addressed,
+            }),
+        ))
+        .await;
+}
+
+fn derive_channel_and_thread(session_id: &SessionId) -> (String, String) {
+    let raw = session_id.as_str();
+    match raw.split_once('-') {
+        Some((channel, thread_ts)) => (channel.to_string(), thread_ts.to_string()),
+        None => (raw.to_string(), String::new()),
+    }
 }
 
 pub(crate) struct StreamOutcome {
