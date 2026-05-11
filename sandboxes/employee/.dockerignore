@@ -1,8 +1,7 @@
-/target
-/dist
-/employee-bridge
-**/*.rs.bk
-Cargo.lock.bak
+target/
+dist/
+.git/
+.github/
 .env
 .env.local
 *.db
