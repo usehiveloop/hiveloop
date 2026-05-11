@@ -173,6 +173,9 @@ func setupV1Routes(
 						r.Post("/{agentID}/profiles/slack", agentProfileHandler.CreateSlack)
 						r.Get("/{agentID}/profiles/slack/channels", agentProfileHandler.ListSlackChannels)
 						r.Patch("/{agentID}/profiles/slack/config", agentProfileHandler.UpdateSlackConfig)
+						r.Post("/{agentID}/profiles/github", agentProfileHandler.CreateGitHub)
+						r.Get("/{agentID}/profiles/github/repositories", agentProfileHandler.ListGitHubRepositories)
+						r.Patch("/{agentID}/profiles/github/repositories", agentProfileHandler.UpdateGitHubRepositories)
 					}
 				})
 				if employeeHandler != nil {

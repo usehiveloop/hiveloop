@@ -198,6 +198,9 @@ func TestIntegration_EmployeesSync_RevokedProfile_400(t *testing.T) {
 
 func TestIntegration_EmployeesSync_NoSandbox_Provisions(t *testing.T) {
 	h := newEmployeeHarness(t)
+	h.cfg.Environment = "production"
+	h.cfg.SentryDSN = "https://public@example.com/1"
+	h.cfg.SentryRelease = "employee-bridge@test"
 	h.platformCredCleanup(t)
 	m := h.createOrg(t)
 	agent := h.seedEmployeeAgent(t, m)
@@ -235,6 +238,15 @@ func TestIntegration_EmployeesSync_NoSandbox_Provisions(t *testing.T) {
 	}
 	if got := h.provider.lastCreateOpts.EnvVars["AGENT_MULTIMODAL_API_KEY_ENV"]; got != "HIVELOOP_PROXY_API_KEY" {
 		t.Errorf("AGENT_MULTIMODAL_API_KEY_ENV = %q, want HIVELOOP_PROXY_API_KEY", got)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars["SENTRY_DSN"]; got != "https://public@example.com/1" {
+		t.Errorf("SENTRY_DSN = %q, want backend configured DSN", got)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars["SENTRY_ENVIRONMENT"]; got != "production" {
+		t.Errorf("SENTRY_ENVIRONMENT = %q, want production", got)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars["SENTRY_RELEASE"]; got != "employee-bridge@test" {
+		t.Errorf("SENTRY_RELEASE = %q, want employee-bridge@test", got)
 	}
 	if _, ok := h.provider.lastCreateOpts.EnvVars["OPENROUTER_API_KEY"]; ok {
 		t.Errorf("OPENROUTER_API_KEY leaked into employee sandbox env")

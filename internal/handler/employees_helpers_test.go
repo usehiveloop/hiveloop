@@ -98,6 +98,7 @@ type employeeHarness struct {
 	provider   *stubEmployeeProvider
 	encKey     *crypto.SymmetricKey
 	kms        *crypto.KeyWrapper
+	cfg        *config.Config
 	sidecar    *sidecarStub
 	sidecarSrv *httptest.Server
 }
@@ -188,7 +189,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 
 	return &employeeHarness{
 		db: db, router: r, provider: provider,
-		encKey: encKey, kms: kms,
+		encKey: encKey, kms: kms, cfg: cfg,
 		sidecar: stub, sidecarSrv: sidecarSrv,
 	}
 }

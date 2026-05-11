@@ -28,8 +28,7 @@ interface EmployeeGroup {
   employees: Employee[]
 }
 
-const COLUMN_GRID =
-  "grid-cols-[1.4fr_1.4fr_1.3fr_0.9fr_1fr_0.7fr_0.9fr]"
+const COLUMN_GRID = "grid-cols-[1.6fr_1.9fr_0.9fr_0.9fr]"
 
 export default function WorkspaceHome() {
   const router = useRouter()
@@ -147,7 +146,7 @@ function EmployeesHeader({
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <FilterField value={filter} onChange={onFilterChange} />
-        <Button render={<Link href="/onboarding" />}>
+        <Button render={<Link href="/w/employees/new" />}>
           <HugeiconsIcon
             icon={Add01Icon}
             strokeWidth={2.25}
@@ -226,10 +225,7 @@ function EmployeeTable({ employees }: { employees: Employee[] }) {
       >
         <span>Employee</span>
         <span>Role</span>
-        <span>Model</span>
         <span>Status</span>
-        <span>Tasks / 7d</span>
-        <span>Success</span>
         <span className="text-right">Last active</span>
       </div>
       <ul className="divide-y divide-border">
@@ -244,7 +240,6 @@ function EmployeeTable({ employees }: { employees: Employee[] }) {
 function EmployeeRow({ employee }: { employee: Employee }) {
   const name = employee.name ?? "Unnamed employee"
   const role = employee.category || employee.description || "Coordinator"
-  const model = employee.model ?? "Default model"
   const status = normalizeStatus(employee.status)
   const lastActive = formatLastActive(
     employee.sandbox?.last_active_at ?? employee.updated_at
@@ -268,15 +263,9 @@ function EmployeeRow({ employee }: { employee: Employee }) {
         <span className="truncate font-medium">{name}</span>
       </div>
       <span className="truncate text-foreground/90">{role}</span>
-      <span className="truncate text-foreground/90">{model}</span>
       <span>
         <StatusBadge status={status} />
       </span>
-      <div className="flex items-center gap-3">
-        <Sparkline points={[]} />
-        <span className="font-medium tabular-nums">—</span>
-      </div>
-      <span className="font-medium tabular-nums">—</span>
       <span className="text-muted-foreground lg:text-right">{lastActive}</span>
     </li>
   )
@@ -318,43 +307,6 @@ function StatusBadge({ status }: { status: Status }) {
   )
 }
 
-function Sparkline({ points }: { points: number[] }) {
-  const w = 80
-  const h = 22
-  if (points.length === 0) {
-    return <span className="block h-[22px] w-20" aria-hidden />
-  }
-  const max = Math.max(...points, 1)
-  const min = Math.min(...points)
-  const range = Math.max(max - min, 1)
-  const stepX = points.length > 1 ? w / (points.length - 1) : w
-  const path = points
-    .map((point, index) => {
-      const x = index * stepX
-      const y = h - ((point - min) / range) * (h - 2) - 1
-      return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`
-    })
-    .join(" ")
-  return (
-    <svg
-      width={w}
-      height={h}
-      viewBox={`0 0 ${w} ${h}`}
-      className="shrink-0 text-primary"
-      aria-hidden
-    >
-      <path
-        d={path}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.4}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
 function EmployeesTableSkeleton() {
   return (
     <div className="flex flex-col gap-12" aria-busy="true">
@@ -371,7 +323,7 @@ function EmployeesTableSkeleton() {
                 COLUMN_GRID
               )}
             >
-              {Array.from({ length: 7 }).map((__, headerIndex) => (
+              {Array.from({ length: 4 }).map((__, headerIndex) => (
                 <Skeleton
                   key={headerIndex}
                   className="h-3 w-20 rounded-md"
@@ -386,7 +338,7 @@ function EmployeesTableSkeleton() {
                   COLUMN_GRID
                 )}
               >
-                {Array.from({ length: 7 }).map((___, cellIndex) => (
+                {Array.from({ length: 4 }).map((___, cellIndex) => (
                   <Skeleton
                     key={cellIndex}
                     className="h-5 w-24 rounded-md"

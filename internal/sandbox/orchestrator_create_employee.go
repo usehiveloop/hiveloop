@@ -124,7 +124,7 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		}
 	}
 	proxyBaseURL := "https://" + strings.TrimRight(proxyHost, "/") + "/v1"
-	return map[string]string{
+	envVars := map[string]string{
 		"RUNTIME_SECRET":               runtimeSecret,
 		"SLACK_BOT_TOKEN":              secrets.SlackBotToken,
 		"SLACK_APP_TOKEN":              secrets.SlackAppToken,
@@ -149,6 +149,14 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		"HIVELOOP_GIT_CREDENTIALS_URL": fmt.Sprintf("https://%s/internal/git-credentials/%s", bridgeHost, agent.ID),
 		"GH_NO_KEYRING":                "1",
 	}
+	if cfg != nil && strings.TrimSpace(cfg.SentryDSN) != "" {
+		envVars["SENTRY_DSN"] = cfg.SentryDSN
+		envVars["SENTRY_ENVIRONMENT"] = cfg.Environment
+		if strings.TrimSpace(cfg.SentryRelease) != "" {
+			envVars["SENTRY_RELEASE"] = cfg.SentryRelease
+		}
+	}
+	return envVars
 }
 
 func buildEmployeeSandboxName(agent *model.Agent) string {

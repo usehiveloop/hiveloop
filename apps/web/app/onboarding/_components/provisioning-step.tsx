@@ -32,7 +32,6 @@ type Stage = {
 }
 
 const STAGES: Stage[] = [
-  { id: "business", label: () => "Saving business context", duration: 800 },
   { id: "sandbox", label: (n) => `Creating ${n}'s sandbox`, duration: 1400 },
   { id: "runtime", label: (n) => `Starting ${n}'s runtime`, duration: 1600 },
   {
@@ -44,7 +43,7 @@ const STAGES: Stage[] = [
 ]
 
 export function ProvisioningStep() {
-  const { form, goBack } = useOnboarding()
+  const { form, goBack, createEmployee, mode } = useOnboarding()
   const router = useRouter()
   const queryClient = useQueryClient()
   const watchedName = useWatch({ control: form.control, name: "agentName" })
@@ -72,11 +71,35 @@ export function ProvisioningStep() {
     "post",
     "/v1/orgs/current/onboarding/complete"
   )
+  const syncEmployee = $api.useMutation("post", "/v1/employees/{id}/sync")
   const startedRef = useRef(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [responseError, setResponseError] = useState<string | null>(null)
 
   const launchEmployee = useCallback(() => {
+    if (mode === "employee") {
+      if (!createEmployee.agentId) {
+        return
+      }
+      syncEmployee.mutate(
+        {
+          params: { path: { id: createEmployee.agentId } },
+        },
+        {
+          onSuccess: async (data) => {
+            const error = getResponseError(data)
+            if (error) {
+              setResponseError(error)
+              return
+            }
+            queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
+            router.push("/w")
+          },
+        }
+      )
+      return
+    }
+
     completeOnboarding.mutate(
       {
         body: {
@@ -105,8 +128,11 @@ export function ProvisioningStep() {
     businessName,
     businessWebsite,
     completeOnboarding,
+    createEmployee.agentId,
+    mode,
     queryClient,
     router,
+    syncEmployee,
   ])
 
   useEffect(() => {
@@ -116,21 +142,33 @@ export function ProvisioningStep() {
   }, [launchEmployee])
 
   useEffect(() => {
-    if (completeOnboarding.isSuccess || completeOnboarding.isError) return
+    if (
+      completeOnboarding.isSuccess ||
+      completeOnboarding.isError ||
+      syncEmployee.isSuccess ||
+      syncEmployee.isError
+    ) return
     if (activeIndex >= STAGES.length - 1) return
     const timer = setTimeout(
       () => setActiveIndex((idx) => idx + 1),
       STAGES[activeIndex].duration
     )
     return () => clearTimeout(timer)
-  }, [activeIndex, completeOnboarding.isError, completeOnboarding.isSuccess])
+  }, [
+    activeIndex,
+    completeOnboarding.isError,
+    completeOnboarding.isSuccess,
+    syncEmployee.isError,
+    syncEmployee.isSuccess,
+  ])
 
-  const isError = completeOnboarding.isError || Boolean(responseError)
-  const isDone = completeOnboarding.isSuccess && !responseError
+  const activeMutation = mode === "employee" ? syncEmployee : completeOnboarding
+  const isError = activeMutation.isError || Boolean(responseError)
+  const isDone = activeMutation.isSuccess && !responseError
   const errorMessage = isError
     ? responseError ??
       extractErrorMessage(
-        completeOnboarding.error,
+        activeMutation.error,
         "Could not launch your AI employee. Try again."
       )
     : null
@@ -140,6 +178,7 @@ export function ProvisioningStep() {
 
   const retry = () => {
     completeOnboarding.reset()
+    syncEmployee.reset()
     setResponseError(null)
     setActiveIndex(0)
     launchEmployee()
@@ -172,7 +211,7 @@ export function ProvisioningStep() {
             </div>
             <div className="flex items-center gap-3">
               <Button variant="outline" onClick={goBack} className="h-10">
-                Edit business details
+                {mode === "employee" ? "Edit employee" : "Edit business details"}
               </Button>
               <Button onClick={retry} className="h-10">
                 Try again

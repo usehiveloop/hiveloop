@@ -14,6 +14,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
 // jsonRoundTripToMap marshal-unmarshals into model.JSON so typed Go structs
@@ -31,12 +32,13 @@ func jsonRoundTripToMap(v any) (model.JSON, error) {
 }
 
 type AgentProfileHandler struct {
-	db  *gorm.DB
-	kms *crypto.KeyWrapper
+	db    *gorm.DB
+	kms   *crypto.KeyWrapper
+	nango *nango.Client
 }
 
-func NewAgentProfileHandler(db *gorm.DB, kms *crypto.KeyWrapper) *AgentProfileHandler {
-	return &AgentProfileHandler{db: db, kms: kms}
+func NewAgentProfileHandler(db *gorm.DB, kms *crypto.KeyWrapper, nangoClient *nango.Client) *AgentProfileHandler {
+	return &AgentProfileHandler{db: db, kms: kms, nango: nangoClient}
 }
 
 type agentProfileResponse struct {
