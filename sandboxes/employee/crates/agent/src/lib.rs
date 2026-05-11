@@ -80,6 +80,10 @@ pub enum AgentEvent {
         id: String,
         result: serde_json::Value,
     },
+    RunEvent {
+        event: String,
+        payload: serde_json::Value,
+    },
     FinalMessage {
         text: String,
     },

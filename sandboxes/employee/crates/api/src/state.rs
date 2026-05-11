@@ -1,10 +1,14 @@
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
+use agent::cloud_agents::CloudTaskIndex;
 use domain::ConfigStore;
 use mcp::McpRegistry;
+use observability::ObservabilityRecorder;
 use skills::SkillWriter;
 use storage::{ConfigRepo, EventRepo, SessionRepo};
+use tokio::sync::RwLock;
 
 use crate::http_gateway::HttpGatewayState;
 
@@ -20,6 +24,9 @@ pub struct ApiState {
     pub skill_writer: Arc<SkillWriter>,
     pub http_gateway: Option<HttpGatewayState>,
     pub mcp_registry: Option<Arc<McpRegistry>>,
+    pub cloud_task_index: Option<Arc<CloudTaskIndex>>,
+    pub cloud_callback_event_ids: Arc<RwLock<HashSet<String>>>,
+    pub observability: ObservabilityRecorder,
 }
 
 impl ApiState {
@@ -32,7 +39,12 @@ impl ApiState {
         skill_writer: Arc<SkillWriter>,
         http_gateway: Option<HttpGatewayState>,
         mcp_registry: Option<Arc<McpRegistry>>,
+        cloud_task_index: Option<Arc<CloudTaskIndex>>,
     ) -> Self {
+        let observability = http_gateway
+            .as_ref()
+            .map(|gateway| gateway.broker.observability())
+            .unwrap_or_default();
         Self {
             config_store,
             config_repo,
@@ -44,6 +56,9 @@ impl ApiState {
             skill_writer,
             http_gateway,
             mcp_registry,
+            cloud_task_index,
+            cloud_callback_event_ids: Arc::new(RwLock::new(HashSet::new())),
+            observability,
         }
     }
 

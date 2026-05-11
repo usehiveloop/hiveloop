@@ -1,6 +1,7 @@
 mod bridge_gateway;
 mod handler;
 mod scheduler;
+mod sentry_support;
 mod session_coordinator;
 
 use bridge_gateway::BridgeGateway;
@@ -33,18 +34,19 @@ use storage::{
 };
 use tokio::sync::{mpsc, RwLock};
 use tracing::{error, info, warn};
-use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
     let _ = dotenvy::dotenv();
 
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-        )
-        .init();
+    let sentry_guard = sentry_support::init_sentry();
+    sentry_support::init_tracing(sentry_guard.is_some());
+    if sentry_guard.is_some() {
+        info!("sentry reporting enabled");
+    } else {
+        info!("sentry reporting disabled; set SENTRY_DSN or SENTRY_SPOTLIGHT=true to enable");
+    }
 
     let slack_bot_token = required_env("SLACK_BOT_TOKEN", "<slack-bot-token>")?;
     let slack_app_token = required_env("SLACK_APP_TOKEN", "<slack-app-token>")?;
@@ -177,8 +179,8 @@ async fn main() -> Result<()> {
         .with_cron_repo(cron_repo.clone())
         .with_event_repo(event_repo.clone())
         .with_mcp_registry(mcp_registry.clone());
-    if let Some(service) = cloud_agent_service {
-        rig_runner = rig_runner.with_cloud_agents(service);
+    if let Some(service) = cloud_agent_service.as_ref() {
+        rig_runner = rig_runner.with_cloud_agents(service.clone());
     }
     let agent_runner: Arc<dyn AgentRunner> = Arc::new(rig_runner);
 
@@ -196,6 +198,7 @@ async fn main() -> Result<()> {
             broker: http_stream_broker.clone(),
         }),
         Some(mcp_registry.clone()),
+        cloud_agent_service.as_ref().map(|service| service.index()),
     );
     api_state.mark_config_loaded();
     let (api_handle, api_cancel) = api::serve(bind_addr, api_state.clone()).await;
@@ -257,6 +260,7 @@ async fn main() -> Result<()> {
     let _ = dispatcher_handle.await;
     let _ = api_cancel.send(());
     let _ = api_handle.await;
+    drop(sentry_guard);
     Ok(())
 }
 

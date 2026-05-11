@@ -1,6 +1,7 @@
 mod auth;
 mod handlers;
 mod http_gateway;
+mod observability_handlers;
 mod state;
 
 use std::net::SocketAddr;
@@ -28,10 +29,23 @@ pub fn build_router(state: ApiState) -> Router {
         )
         .route("/healthz", get(handlers::healthz))
         .route("/readyz", get(handlers::readyz))
+        .route("/debug/sentry-test", post(handlers::post_sentry_test))
         .route("/gateway/http/messages", post(handlers::post_http_message))
+        .route(
+            "/gateway/cloud-agents/callback",
+            post(handlers::post_cloud_agent_callback),
+        )
         .route(
             "/gateway/http/streams/:stream_id",
             get(handlers::get_http_stream),
+        )
+        .route(
+            "/observability/traces/:trace_id/events",
+            get(observability_handlers::get_trace_events),
+        )
+        .route(
+            "/observability/traces/:trace_id/summary",
+            get(observability_handlers::get_trace_summary),
         )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),

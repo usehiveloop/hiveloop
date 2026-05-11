@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/domain",
+    "crates/observability",
     "crates/gateway",
     "crates/agent",
     "crates/storage",
@@ -10,6 +11,7 @@ members = [
     "crates/skills",
     "crates/outbound",
     "crates/api",
+    "crates/eval-harness",
     "crates/employee-bridge",
 ]
 
@@ -18,7 +20,7 @@ version = "0.0.1"
 edition = "2021"
 license = "MIT"
 authors = ["Hiveloop"]
-rust-version = "1.80"
+rust-version = "1.81"
 
 [workspace.dependencies]
 # async
@@ -37,6 +39,7 @@ anyhow = "1"
 # logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+sentry = { version = "0.43", default-features = false, features = ["anyhow", "backtrace", "contexts", "logs", "panic", "release-health", "rustls", "tracing", "ureq"] }
 
 # time
 chrono = { version = "0.4", features = ["serde"] }
@@ -55,6 +58,7 @@ rmcp = { version = "1", features = ["transport-child-process", "transport-stream
 
 # internal crates
 domain = { path = "crates/domain" }
+observability = { path = "crates/observability" }
 gateway = { path = "crates/gateway" }
 agent = { path = "crates/agent" }
 storage = { path = "crates/storage" }

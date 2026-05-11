@@ -68,6 +68,8 @@ pub enum EventKind {
     AssistantMessage,
     ToolCall,
     ToolResult,
+    RunEvent,
+    CloudAgentEvent,
     Error,
 }
 

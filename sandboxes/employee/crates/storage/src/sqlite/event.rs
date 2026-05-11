@@ -23,6 +23,8 @@ fn kind_to_str(kind: EventKind) -> &'static str {
         EventKind::AssistantMessage => "assistant_message",
         EventKind::ToolCall => "tool_call",
         EventKind::ToolResult => "tool_result",
+        EventKind::RunEvent => "run_event",
+        EventKind::CloudAgentEvent => "cloud_agent_event",
         EventKind::Error => "error",
     }
 }
@@ -33,6 +35,8 @@ fn kind_from_str(value: &str) -> Result<EventKind> {
         "assistant_message" => Ok(EventKind::AssistantMessage),
         "tool_call" => Ok(EventKind::ToolCall),
         "tool_result" => Ok(EventKind::ToolResult),
+        "run_event" => Ok(EventKind::RunEvent),
+        "cloud_agent_event" => Ok(EventKind::CloudAgentEvent),
         "error" => Ok(EventKind::Error),
         other => Err(StorageError::Other(anyhow::anyhow!(
             "unknown event kind: {other}"

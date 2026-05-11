@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use async_stream::stream;
-use domain::{ConfigStore, ModelConfig, ReasoningEffort, SessionId};
+use domain::{ConfigStore, ModelConfig, SessionId};
 use futures::{stream::BoxStream, StreamExt};
 use gateway::ChannelGateway;
 use mcp::McpRegistry;
@@ -13,14 +13,12 @@ use tools::{JsonTool, LocalBashOperations, LocalFsOperations, ProcessRegistry, T
 
 use crate::cloud_agents::CloudAgentService;
 use crate::history::{append_model_message, load_model_history, seed_model_history_from_gateway};
-use crate::model_client::ChatModelClient;
-use crate::primitives::{
-    AgentMessage, CacheControlPolicy, MessagePart, ModelRequest, ModelStreamEvent, ToolCall,
-};
+use crate::model_client::{ChatModelClient, ModelClientConfig};
+use crate::primitives::{AgentMessage, MessagePart, ModelRequest, ModelStreamEvent, ToolCall};
 use crate::rig_tool_registry::{
     build_agent_tools, emit_tool_error, emit_tool_invoked, DynamicTool, ToolContext,
 };
-use crate::{AgentError, AgentEvent, AgentRunner, Result, TurnInput};
+use crate::{AgentEvent, AgentRunner, Result, TurnInput};
 
 pub struct RigAgentRunner {
     config: ConfigStore,
@@ -92,8 +90,14 @@ impl AgentRunner for RigAgentRunner {
     ) -> Result<BoxStream<'static, AgentEvent>> {
         let snapshot = self.config.snapshot();
         let model_config = pick_model_for_turn(&snapshot, &user_input);
-        let (client, model_id, cache_policy, reasoning_effort, temperature, max_output_tokens) =
-            build_model_client(model_config)?;
+        let ModelClientConfig {
+            client,
+            model_id,
+            cache_policy,
+            reasoning_effort,
+            temperature,
+            max_output_tokens,
+        } = build_model_client(model_config)?;
 
         let mut messages = build_initial_messages(
             &snapshot.agent.system_prompt,
@@ -137,6 +141,15 @@ impl AgentRunner for RigAgentRunner {
 
         Ok(Box::pin(stream! {
             let mut final_text = String::new();
+            let turn_id = format!("turn-{}", chrono::Utc::now().timestamp_millis());
+            yield AgentEvent::RunEvent {
+                event: "turn_started".to_string(),
+                payload: serde_json::json!({
+                    "session_id": session_id.as_str(),
+                    "turn_id": turn_id,
+                    "model": model_id,
+                }),
+            };
             for _turn in 0..max_turns {
                 let definitions = available_tools.iter().map(|tool| tool.definition()).collect();
                 let request = ModelRequest {
@@ -149,9 +162,29 @@ impl AgentRunner for RigAgentRunner {
                     cache_policy,
                 };
 
+                yield AgentEvent::RunEvent {
+                    event: "model_request_started".to_string(),
+                    payload: serde_json::json!({
+                        "session_id": session_id.as_str(),
+                        "turn_id": turn_id,
+                        "model": model_id,
+                        "messages": messages.len(),
+                        "tools": available_tools.len(),
+                    }),
+                };
+
                 let mut model_stream = match client.stream(request).await {
                     Ok(stream) => stream,
                     Err(error) => {
+                        yield AgentEvent::RunEvent {
+                            event: "model_request_failed".to_string(),
+                            payload: serde_json::json!({
+                                "session_id": session_id.as_str(),
+                                "turn_id": turn_id,
+                                "model": model_id,
+                                "error": error.to_string(),
+                            }),
+                        };
                         yield AgentEvent::Error { message: error.to_string() };
                         return;
                     }
@@ -170,6 +203,22 @@ impl AgentRunner for RigAgentRunner {
                         }
                         Ok(ModelStreamEvent::ToolCalls(calls)) => tool_calls.extend(calls),
                         Ok(ModelStreamEvent::Usage(usage)) => {
+                            yield AgentEvent::RunEvent {
+                                event: "model_usage".to_string(),
+                                payload: serde_json::json!({
+                                    "session_id": session_id.as_str(),
+                                    "turn_id": turn_id,
+                                    "model": model_id,
+                                    "usage": {
+                                        "prompt_tokens": usage.prompt_tokens,
+                                        "completion_tokens": usage.completion_tokens,
+                                        "total_tokens": usage.total_tokens,
+                                        "cached_tokens": usage.cached_tokens,
+                                        "cache_write_tokens": usage.cache_write_tokens,
+                                        "cost": usage.cost,
+                                    }
+                                }),
+                            };
                             tracing::info!(
                                 prompt_tokens = usage.prompt_tokens,
                                 completion_tokens = usage.completion_tokens,
@@ -182,6 +231,15 @@ impl AgentRunner for RigAgentRunner {
                         }
                         Ok(ModelStreamEvent::Done) => {}
                         Err(error) => {
+                            yield AgentEvent::RunEvent {
+                                event: "model_stream_failed".to_string(),
+                                payload: serde_json::json!({
+                                    "session_id": session_id.as_str(),
+                                    "turn_id": turn_id,
+                                    "model": model_id,
+                                    "error": error.to_string(),
+                                }),
+                            };
                             yield AgentEvent::Error { message: error.to_string() };
                             return;
                         }
@@ -270,6 +328,14 @@ impl AgentRunner for RigAgentRunner {
                 }
             }
 
+            yield AgentEvent::RunEvent {
+                event: "turn_completed".to_string(),
+                payload: serde_json::json!({
+                    "session_id": session_id.as_str(),
+                    "turn_id": turn_id,
+                    "text_len": final_text.len(),
+                }),
+            };
             yield AgentEvent::FinalMessage { text: final_text };
         }))
     }
@@ -391,8 +457,14 @@ async fn compact_messages_if_needed(
 }
 
 async fn summarize_history(model: &ModelConfig, transcript: String) -> Result<String> {
-    let (client, model_id, cache_policy, reasoning_effort, temperature, max_output_tokens) =
-        build_model_client(model)?;
+    let ModelClientConfig {
+        client,
+        model_id,
+        cache_policy,
+        reasoning_effort,
+        temperature,
+        max_output_tokens,
+    } = build_model_client(model)?;
     let request = ModelRequest {
         model: model_id,
         messages: vec![
@@ -461,50 +533,8 @@ fn pick_model_for_turn<'a>(
     &snapshot.model
 }
 
-fn build_model_client(
-    model: &ModelConfig,
-) -> Result<(
-    ChatModelClient,
-    String,
-    CacheControlPolicy,
-    Option<String>,
-    Option<f32>,
-    Option<u32>,
-)> {
-    match model {
-        ModelConfig::OpenaiCompatible {
-            base_url,
-            model_id,
-            api_key_env,
-            temperature,
-            max_output_tokens,
-            reasoning_effort,
-            ..
-        } => {
-            let api_key = std::env::var(api_key_env)
-                .map_err(|_| AgentError::Model(format!("env var `{api_key_env}` not set")))?;
-            let cache_policy = if api_key_env == "OPENROUTER_API_KEY"
-                || base_url.contains("openrouter")
-                || base_url.contains("127.0.0.1")
-            {
-                CacheControlPolicy::OpenRouterGeminiEphemeral
-            } else {
-                CacheControlPolicy::Disabled
-            };
-            Ok((
-                ChatModelClient::new(base_url.clone(), api_key),
-                model_id.clone(),
-                cache_policy,
-                reasoning_effort.map(|effort| match effort {
-                    ReasoningEffort::Low => "low".to_string(),
-                    ReasoningEffort::Medium => "medium".to_string(),
-                    ReasoningEffort::High => "high".to_string(),
-                }),
-                *temperature,
-                *max_output_tokens,
-            ))
-        }
-    }
+fn build_model_client(model: &ModelConfig) -> Result<ModelClientConfig> {
+    ChatModelClient::from_model_config(model)
 }
 
 fn build_all_tools(

@@ -134,6 +134,9 @@ impl TurnEventSink for api::HttpStreamBroker {
                 )
                 .await;
             }
+            AgentEvent::RunEvent { event, payload } => {
+                self.publish(stream_id, event, payload.clone()).await;
+            }
             AgentEvent::Error { message } => {
                 self.publish(
                     stream_id,
@@ -384,6 +387,7 @@ async fn consume_agent_stream(
             AgentEvent::TokenChunk { text } => accumulated.push_str(&text),
             AgentEvent::FinalMessage { text } => accumulated = text,
             AgentEvent::Error { message } => error_message = Some(message),
+            AgentEvent::RunEvent { .. } => {}
             _ => {}
         }
     }

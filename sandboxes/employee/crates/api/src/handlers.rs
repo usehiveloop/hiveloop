@@ -1,3 +1,4 @@
+use agent::cloud_agents::CloudAgentEvent;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -5,8 +6,9 @@ use axum::{
     Json,
 };
 use chrono::{DateTime, Utc};
-use domain::{AgentDefinition, SessionId, SessionStatus};
+use domain::{AgentDefinition, EventKind, SessionId, SessionStatus};
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Map, Value};
 
 use crate::http_gateway::{stream_response, HttpMessageRequest};
 use crate::state::ApiState;
@@ -46,6 +48,29 @@ pub async fn put_config(
 pub async fn get_config(State(state): State<ApiState>) -> Json<AgentDefinition> {
     let snapshot = state.config_store.snapshot();
     Json((*snapshot).clone())
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SentryTestRequest {
+    #[serde(default = "default_sentry_test_message")]
+    pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SentryTestResponse {
+    pub event_id: String,
+}
+
+pub async fn post_sentry_test(Json(request): Json<SentryTestRequest>) -> Json<SentryTestResponse> {
+    let message = if request.message.trim().is_empty() {
+        default_sentry_test_message()
+    } else {
+        request.message
+    };
+    let event_id = sentry::capture_message(&message, sentry::Level::Error);
+    Json(SentryTestResponse {
+        event_id: event_id.to_string(),
+    })
 }
 
 #[derive(Deserialize)]
@@ -154,6 +179,92 @@ pub async fn post_http_message(
         })
 }
 
+#[derive(Debug, Deserialize)]
+pub struct CloudAgentCallbackRequest {
+    pub task_id: String,
+    pub agent_id: String,
+    pub event_type: String,
+    pub event_id: String,
+    pub timestamp: DateTime<Utc>,
+    pub metadata: Map<String, Value>,
+    pub data: Value,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CloudAgentCallbackResponse {
+    pub accepted: bool,
+    pub duplicate: bool,
+    pub session_id: Option<String>,
+}
+
+pub async fn post_cloud_agent_callback(
+    State(state): State<ApiState>,
+    Json(request): Json<CloudAgentCallbackRequest>,
+) -> Result<(StatusCode, Json<CloudAgentCallbackResponse>), (StatusCode, String)> {
+    validate_cloud_agent_callback(&request)?;
+
+    let session_id = resolve_cloud_callback_session(&state, &request)
+        .await
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                format!("no session route found for task `{}`", request.task_id),
+            )
+        })?;
+
+    if state
+        .session_repo
+        .get(&session_id)
+        .await
+        .map_err(|error| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("load session: {error}"),
+            )
+        })?
+        .is_none()
+    {
+        return Err((
+            StatusCode::NOT_FOUND,
+            format!("session `{session_id}` not found"),
+        ));
+    }
+
+    if cloud_callback_event_exists(&state, &session_id, &request.event_id).await? {
+        return Ok(cloud_agent_duplicate_response(&session_id));
+    }
+
+    {
+        let mut seen = state.cloud_callback_event_ids.write().await;
+        if !seen.insert(request.event_id.clone()) {
+            return Ok(cloud_agent_duplicate_response(&session_id));
+        }
+    }
+
+    let process_result = persist_and_publish_cloud_agent_callback(&state, &session_id, &request)
+        .await
+        .map(|_| {
+            (
+                StatusCode::ACCEPTED,
+                Json(CloudAgentCallbackResponse {
+                    accepted: true,
+                    duplicate: false,
+                    session_id: Some(session_id.as_str().to_string()),
+                }),
+            )
+        });
+
+    if process_result.is_err() {
+        state
+            .cloud_callback_event_ids
+            .write()
+            .await
+            .remove(&request.event_id);
+    }
+
+    process_result
+}
+
 pub async fn get_http_stream(
     State(state): State<ApiState>,
     Path(stream_id): Path<String>,
@@ -165,6 +276,216 @@ pub async fn get_http_stream(
         .await
         .map(IntoResponse::into_response)
         .ok_or(StatusCode::NOT_FOUND)
+}
+
+async fn resolve_cloud_callback_session(
+    state: &ApiState,
+    request: &CloudAgentCallbackRequest,
+) -> Option<SessionId> {
+    if let Some(session_id) = session_id_from_metadata(&request.metadata) {
+        return Some(session_id);
+    }
+    let index = state.cloud_task_index.as_ref()?;
+    let task = index.resolve_task(&request.task_id).await?;
+    session_id_from_metadata(&task.metadata)
+}
+
+async fn persist_and_publish_cloud_agent_callback(
+    state: &ApiState,
+    session_id: &SessionId,
+    request: &CloudAgentCallbackRequest,
+) -> Result<(), (StatusCode, String)> {
+    let status = cloud_agent_event_status(request);
+    let payload = cloud_agent_event_payload(session_id, request, status);
+
+    state
+        .event_repo
+        .append(session_id, EventKind::CloudAgentEvent, payload.clone())
+        .await
+        .map_err(|error| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("append session event: {error}"),
+            )
+        })?;
+
+    state
+        .session_repo
+        .touch(session_id, request.timestamp)
+        .await
+        .map_err(|error| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("touch session: {error}"),
+            )
+        })?;
+
+    if let Some(status) = status {
+        state
+            .session_repo
+            .set_status(session_id, status)
+            .await
+            .map_err(|error| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("set session status: {error}"),
+                )
+            })?;
+    }
+
+    if let Some(index) = state.cloud_task_index.as_ref() {
+        index
+            .append_event(
+                &request.task_id,
+                CloudAgentEvent {
+                    event_type: request.event_type.clone(),
+                    created_at: Some(request.timestamp.to_rfc3339()),
+                    data: request.data.clone(),
+                },
+            )
+            .await;
+    }
+
+    if let Some(http_gateway) = state.http_gateway.as_ref() {
+        if let Some(stream_id) = http_gateway
+            .broker
+            .stream_id_for_session(session_id.as_str())
+            .await
+        {
+            http_gateway
+                .broker
+                .publish(&stream_id, "cloud_agent_event", payload)
+                .await;
+        }
+    }
+
+    Ok(())
+}
+
+async fn cloud_callback_event_exists(
+    state: &ApiState,
+    session_id: &SessionId,
+    event_id: &str,
+) -> Result<bool, (StatusCode, String)> {
+    let events = state
+        .event_repo
+        .list_recent(session_id, 1000)
+        .await
+        .map_err(|error| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("list session events: {error}"),
+            )
+        })?;
+    Ok(events
+        .iter()
+        .any(|event| event.payload.get("event_id").and_then(Value::as_str) == Some(event_id)))
+}
+
+fn cloud_agent_duplicate_response(
+    session_id: &SessionId,
+) -> (StatusCode, Json<CloudAgentCallbackResponse>) {
+    (
+        StatusCode::OK,
+        Json(CloudAgentCallbackResponse {
+            accepted: false,
+            duplicate: true,
+            session_id: Some(session_id.as_str().to_string()),
+        }),
+    )
+}
+
+fn validate_cloud_agent_callback(
+    request: &CloudAgentCallbackRequest,
+) -> Result<(), (StatusCode, String)> {
+    for (field, value) in [
+        ("task_id", request.task_id.as_str()),
+        ("agent_id", request.agent_id.as_str()),
+        ("event_type", request.event_type.as_str()),
+        ("event_id", request.event_id.as_str()),
+    ] {
+        if value.trim().is_empty() {
+            return Err((StatusCode::BAD_REQUEST, format!("{field} is required")));
+        }
+    }
+    Ok(())
+}
+
+fn session_id_from_metadata(metadata: &Map<String, Value>) -> Option<SessionId> {
+    metadata
+        .get("session_id")
+        .and_then(Value::as_str)
+        .filter(|value| !value.trim().is_empty())
+        .map(SessionId::from)
+        .or_else(|| {
+            let channel = metadata.get("channel").and_then(Value::as_str)?;
+            let thread_ts = metadata.get("thread_ts").and_then(Value::as_str)?;
+            if channel.trim().is_empty() || thread_ts.trim().is_empty() {
+                return None;
+            }
+            Some(SessionId::from_slack(channel, thread_ts))
+        })
+}
+
+fn cloud_agent_event_payload(
+    session_id: &SessionId,
+    request: &CloudAgentCallbackRequest,
+    status: Option<SessionStatus>,
+) -> Value {
+    json!({
+        "source": "cloud_agent_callback",
+        "session_id": session_id.as_str(),
+        "task_id": request.task_id,
+        "agent_id": request.agent_id,
+        "event_type": request.event_type,
+        "event_id": request.event_id,
+        "timestamp": request.timestamp,
+        "metadata": request.metadata,
+        "data": request.data,
+        "status": status.map(session_status_name),
+    })
+}
+
+fn cloud_agent_event_status(request: &CloudAgentCallbackRequest) -> Option<SessionStatus> {
+    let event_type = request.event_type.to_ascii_lowercase();
+    let data_status = request
+        .data
+        .get("status")
+        .and_then(Value::as_str)
+        .map(str::to_ascii_lowercase);
+
+    if event_type.contains("error")
+        || event_type.contains("failed")
+        || data_status
+            .as_deref()
+            .is_some_and(|status| matches!(status, "error" | "errored" | "failed" | "failure"))
+    {
+        return Some(SessionStatus::Errored);
+    }
+
+    if matches!(
+        event_type.as_str(),
+        "conversationended" | "conversation_ended" | "done" | "completed" | "taskcompleted"
+    ) || data_status
+        .as_deref()
+        .is_some_and(|status| matches!(status, "done" | "completed" | "complete" | "success"))
+    {
+        return Some(SessionStatus::Completed);
+    }
+
+    None
+}
+
+fn session_status_name(status: SessionStatus) -> &'static str {
+    match status {
+        SessionStatus::Active => "active",
+        SessionStatus::Completed => "completed",
+        SessionStatus::Errored => "errored",
+    }
+}
+
+fn default_sentry_test_message() -> String {
+    "employee-bridge sentry test event".to_string()
 }
 
 fn parse_cursor(raw: &str) -> Result<DateTime<Utc>, String> {
