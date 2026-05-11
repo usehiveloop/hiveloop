@@ -12,7 +12,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -55,12 +54,6 @@ func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Reques
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "nango is not configured"})
 		return
 	}
-	user, ok := middleware.UserFromContext(r.Context())
-	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing user context"})
-		return
-	}
-
 	var req createGitHubProfileRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
@@ -72,7 +65,7 @@ func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	conn, err := h.loadGitHubConnection(orgID, user.ID, connectionID)
+	conn, err := h.loadGitHubConnection(orgID, connectionID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "github connection not found"})
@@ -228,11 +221,6 @@ func (h *AgentProfileHandler) resolveGitHubProfileContext(w http.ResponseWriter,
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "nango is not configured"})
 		return model.Agent{}, uuid.Nil, model.AgentProfile{}, model.InConnection{}, "", false
 	}
-	user, ok := middleware.UserFromContext(r.Context())
-	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing user context"})
-		return model.Agent{}, uuid.Nil, model.AgentProfile{}, model.InConnection{}, "", false
-	}
 	var profile model.AgentProfile
 	err = h.db.Where(
 		"agent_id = ? AND provider = ? AND deleted_at IS NULL AND revoked_at IS NULL",
@@ -252,7 +240,7 @@ func (h *AgentProfileHandler) resolveGitHubProfileContext(w http.ResponseWriter,
 		writeJSON(w, http.StatusConflict, map[string]string{"error": "github profile is missing its connection"})
 		return model.Agent{}, uuid.Nil, model.AgentProfile{}, model.InConnection{}, "", false
 	}
-	conn, err := h.loadGitHubConnection(orgID, user.ID, connectionID)
+	conn, err := h.loadGitHubConnection(orgID, connectionID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "github connection not found"})
@@ -264,10 +252,10 @@ func (h *AgentProfileHandler) resolveGitHubProfileContext(w http.ResponseWriter,
 	return agent, orgID, profile, conn, inNangoKey(conn.InIntegration.UniqueKey), true
 }
 
-func (h *AgentProfileHandler) loadGitHubConnection(orgID uuid.UUID, userID uuid.UUID, connectionID uuid.UUID) (model.InConnection, error) {
+func (h *AgentProfileHandler) loadGitHubConnection(orgID uuid.UUID, connectionID uuid.UUID) (model.InConnection, error) {
 	var conn model.InConnection
 	err := h.db.Preload("InIntegration").
-		Where("id = ? AND org_id = ? AND user_id = ? AND revoked_at IS NULL", connectionID, orgID, userID).
+		Where("id = ? AND org_id = ? AND revoked_at IS NULL", connectionID, orgID).
 		First(&conn).Error
 	if err != nil {
 		return model.InConnection{}, err
@@ -352,8 +340,13 @@ func mergeGitHubProfileConfig(existing model.JSON, next model.JSON) model.JSON {
 	for k, v := range next {
 		out[k] = v
 	}
-	if selected := selectedGitHubRepositories(existing); len(selected) > 0 {
-		out["selected_repositories"] = reposToJSONList(selected)
+	if stringFromJSON(existing, "in_connection_id") == stringFromJSON(next, "in_connection_id") {
+		if selected := selectedGitHubRepositories(existing); len(selected) > 0 {
+			out["selected_repositories"] = reposToJSONList(selected)
+		}
+	}
+	if _, ok := out["selected_repositories"]; !ok {
+		out["selected_repositories"] = []any{}
 	}
 	return out
 }

@@ -166,6 +166,56 @@ func TestAgentProfileHandler_GitHubProfileAndRepositorySelection(t *testing.T) {
 	if len(listResp.SelectedRepositories) != 1 || listResp.SelectedRepositories[0]["full_name"] != "octocat/alpha" {
 		t.Fatalf("expected selected repos to survive idempotent profile update, got %#v", listResp.SelectedRepositories)
 	}
+
+	otherUser := createTestUser(t, db, fmt.Sprintf("github-profile-other-%s@test.com", uuid.New().String()[:8]))
+	otherConn := model.InConnection{
+		ID:                uuid.New(),
+		OrgID:             org.ID,
+		UserID:            otherUser.ID,
+		InIntegrationID:   integ.ID,
+		NangoConnectionID: "github-conn-456",
+	}
+	if err := db.Create(&otherConn).Error; err != nil {
+		t.Fatalf("create second in-connection: %v", err)
+	}
+	body, _ = json.Marshal(map[string]any{"connection_id": otherConn.ID.String()})
+	req = httptest.NewRequest(http.MethodPost, "/v1/agents/"+agent.ID.String()+"/profiles/github", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected replacing employee github profile to return 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var profileCount int64
+	if err := db.Model(&model.AgentProfile{}).
+		Where("agent_id = ? AND provider = ? AND deleted_at IS NULL", agent.ID, "github").
+		Count(&profileCount).Error; err != nil {
+		t.Fatalf("count github profiles: %v", err)
+	}
+	if profileCount != 1 {
+		t.Fatalf("expected exactly one github profile for employee, got %d", profileCount)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/v1/agents/"+agent.ID.String()+"/profiles/github/repositories", nil)
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200 listing repositories after profile replacement, got %d: %s", rr.Code, rr.Body.String())
+	}
+	listResp = struct {
+		Repositories         []map[string]any `json:"repositories"`
+		SelectedRepositories []map[string]any `json:"selected_repositories"`
+	}{}
+	if err := json.NewDecoder(rr.Body).Decode(&listResp); err != nil {
+		t.Fatalf("decode third list response: %v", err)
+	}
+	if len(listResp.SelectedRepositories) != 0 {
+		t.Fatalf("expected selected repos to reset after switching github connection, got %#v", listResp.SelectedRepositories)
+	}
 }
 
 func TestAgentProfileHandler_CreateGitHubRejectsNonGitHubConnection(t *testing.T) {
@@ -212,7 +262,7 @@ func TestAgentProfileHandler_CreateGitHubRejectsNonGitHubConnection(t *testing.T
 	}
 }
 
-func TestAgentProfileHandler_CreateGitHubRejectsConnectionOwnedByDifferentUser(t *testing.T) {
+func TestAgentProfileHandler_CreateGitHubAllowsOrgConnectionOwnedByDifferentUser(t *testing.T) {
 	db := connectTestDB(t)
 	t.Cleanup(func() {
 		db.Where("provider = ?", "github").Delete(&model.AgentProfile{})
@@ -252,8 +302,8 @@ func TestAgentProfileHandler_CreateGitHubRejectsConnectionOwnedByDifferentUser(t
 	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
-	if rr.Code != http.StatusNotFound {
-		t.Fatalf("expected 404 for another user's connection, got %d: %s", rr.Code, rr.Body.String())
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201 for org-scoped github connection, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
 
