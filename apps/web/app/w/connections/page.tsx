@@ -25,17 +25,21 @@ export default function ConnectionsPage() {
   const [dialogSearch, setDialogSearch] = useState("")
   const [preSelectedId, setPreSelectedId] = useState<string | null>(null)
 
-  const { data: inConnections, isLoading } = $api.useQuery("get", "/v1/in/connections")
+  const { data: inConnections, isLoading } = $api.useQuery(
+    "get",
+    "/v1/in/connections"
+  )
   const { connect, connectingId } = useConnectIntegration()
 
-  const connections = inConnections?.data ?? []
+  const connections = useMemo(() => inConnections?.data ?? [], [inConnections])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return connections
     const query = search.toLowerCase()
-    return connections.filter((connection) =>
-      (connection.display_name ?? "").toLowerCase().includes(query) ||
-      (connection.provider ?? "").toLowerCase().includes(query),
+    return connections.filter(
+      (connection) =>
+        (connection.display_name ?? "").toLowerCase().includes(query) ||
+        (connection.provider ?? "").toLowerCase().includes(query)
     )
   }, [connections, search])
 
@@ -61,7 +65,11 @@ export default function ConnectionsPage() {
         title="Connections"
         actions={
           <Button onClick={() => setAddOpen(true)}>
-            <HugeiconsIcon icon={Add01Icon} size={16} data-icon="inline-start" />
+            <HugeiconsIcon
+              icon={Add01Icon}
+              size={16}
+              data-icon="inline-start"
+            />
             Add connection
           </Button>
         }

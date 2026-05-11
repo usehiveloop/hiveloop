@@ -3,7 +3,11 @@
 import { useMemo } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
+import {
+  Alert02Icon,
+  ArrowRight01Icon,
+  Loading03Icon,
+} from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,11 +19,11 @@ import { StepHeader } from "./step-header"
 import { useOnboarding } from "./context"
 
 export function EmployeeStep() {
-  const { form, goNext, submitEmployee, createEmployee } = useOnboarding()
+  const { form, submitEmployee, createEmployee } = useOnboarding()
 
   const { data: categoriesData, isLoading: categoriesLoading } = $api.useQuery(
     "get",
-    "/v1/agents/categories",
+    "/v1/agents/categories"
   )
   const categories = useMemo(
     () =>
@@ -28,12 +32,18 @@ export function EmployeeStep() {
         name: c.name ?? c.id ?? "",
         description: c.description ?? undefined,
       })),
-    [categoriesData],
+    [categoriesData]
   )
 
   const watchedName = useWatch({ control: form.control, name: "agentName" })
-  const watchedCategory = useWatch({ control: form.control, name: "agentCategory" })
-  const watchedDescription = useWatch({ control: form.control, name: "agentDescription" })
+  const watchedCategory = useWatch({
+    control: form.control,
+    name: "agentCategory",
+  })
+  const watchedDescription = useWatch({
+    control: form.control,
+    name: "agentDescription",
+  })
   const canContinue =
     (watchedName?.trim().length ?? 0) > 0 &&
     watchedCategory.length > 0 &&
@@ -42,7 +52,6 @@ export function EmployeeStep() {
 
   const handleNext = () => {
     submitEmployee()
-    goNext()
   }
 
   return (
@@ -113,13 +122,37 @@ export function EmployeeStep() {
         />
       </div>
 
+      {createEmployee.status === "error" ? (
+        <div className="flex items-start gap-2.5 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-[13px] text-destructive">
+          <HugeiconsIcon
+            icon={Alert02Icon}
+            className="mt-0.5 size-4 shrink-0"
+            strokeWidth={2}
+          />
+          <span className="leading-relaxed">{createEmployee.errorMessage}</span>
+        </div>
+      ) : null}
+
       <Button
         onClick={handleNext}
         disabled={!canContinue}
         className="flex h-12 w-full items-center justify-center gap-2"
       >
-        Next
-        <HugeiconsIcon icon={ArrowRight01Icon} className="size-4" />
+        {createEmployee.status === "pending" ? (
+          <>
+            <HugeiconsIcon
+              icon={Loading03Icon}
+              className="size-4 animate-spin"
+              strokeWidth={2}
+            />
+            Saving employee…
+          </>
+        ) : (
+          <>
+            Next
+            <HugeiconsIcon icon={ArrowRight01Icon} className="size-4" />
+          </>
+        )}
       </Button>
     </div>
   )

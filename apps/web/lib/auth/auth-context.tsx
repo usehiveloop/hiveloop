@@ -1,6 +1,14 @@
 "use client"
 
-import { createContext, useContext, useCallback, useState, useEffect, useRef, useMemo } from "react"
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { $api } from "@/lib/api/hooks"
@@ -15,7 +23,9 @@ const ACTIVE_ORG_COOKIE = "hiveloop_active_org"
 
 function getOrgIdFromCookie(): string | null {
   if (typeof document === "undefined") return null
-  const match = document.cookie.match(new RegExp(`(?:^|; )${ACTIVE_ORG_COOKIE}=([^;]+)`))
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${ACTIVE_ORG_COOKIE}=([^;]+)`)
+  )
   return match ? decodeURIComponent(match[1]) : null
 }
 
@@ -72,9 +82,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const user = (data?.user as User) ?? null
   const orgs = (data?.orgs as Org[]) ?? []
   const plans = (plansQuery.data as Plan[] | undefined) ?? []
-  const isPlatformAdmin = (data as Record<string, unknown>)?.is_platform_admin === true
+  const isPlatformAdmin =
+    (data as Record<string, unknown>)?.is_platform_admin === true
 
-  const [activeOrgId, setActiveOrgId] = useState<string | null>(() => getOrgIdFromCookie())
+  const [activeOrgId, setActiveOrgId] = useState<string | null>(() =>
+    getOrgIdFromCookie()
+  )
 
   const impersonatingInfo = useMemo(() => getImpersonatingInfo(), [])
   const isImpersonating = impersonatingInfo !== null
@@ -90,27 +103,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [isError, router])
 
   useEffect(() => {
-    if (activeOrg?.id && activeOrg.id !== activeOrgId) {
-      setActiveOrgId(activeOrg.id)
-      setOrgIdCookie(activeOrg.id)
+    const nextOrgId = activeOrg?.id
+    if (nextOrgId && nextOrgId !== activeOrgId) {
+      queueMicrotask(() => setActiveOrgId(nextOrgId))
+      setOrgIdCookie(nextOrgId)
     }
   }, [activeOrg?.id, activeOrgId])
 
-  const setActiveOrg = useCallback((org: Org) => {
-    if (org.id) {
-      setActiveOrgId(org.id)
-      setOrgIdCookie(org.id)
-      queryClient.invalidateQueries()
-    }
-  }, [queryClient])
+  const setActiveOrg = useCallback(
+    (org: Org) => {
+      if (org.id) {
+        setActiveOrgId(org.id)
+        setOrgIdCookie(org.id)
+        queryClient.invalidateQueries()
+      }
+    },
+    [queryClient]
+  )
 
-  const addOrg = useCallback((org: Org) => {
-    queryClient.invalidateQueries({ queryKey: ["get", "/auth/me"] })
-    if (org.id) {
-      setActiveOrgId(org.id)
-      setOrgIdCookie(org.id)
-    }
-  }, [queryClient])
+  const addOrg = useCallback(
+    (org: Org) => {
+      queryClient.invalidateQueries({ queryKey: ["get", "/auth/me"] })
+      if (org.id) {
+        setActiveOrgId(org.id)
+        setOrgIdCookie(org.id)
+      }
+    },
+    [queryClient]
+  )
 
   const logout = useCallback(async () => {
     await api.POST("/auth/logout", { body: {} })
@@ -124,7 +144,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ userId }),
     })
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: "impersonation failed" }))
+      const error = await response
+        .json()
+        .catch(() => ({ error: "impersonation failed" }))
       throw new Error(error.error ?? "impersonation failed")
     }
     window.location.reload()
@@ -135,7 +157,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: "POST",
     })
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: "failed to stop impersonating" }))
+      const error = await response
+        .json()
+        .catch(() => ({ error: "failed to stop impersonating" }))
       throw new Error(error.error ?? "failed to stop impersonating")
     }
     window.location.reload()

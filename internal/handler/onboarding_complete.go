@@ -113,14 +113,6 @@ func (h *EmployeeHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	sb, err := h.ensureEmployeeSandbox(ctx, &agent)
-	if err != nil {
-		log.ErrorContext(ctx, "provision employee sandbox during onboarding", "error", err,
-			"agent_id", agent.ID, "org_id", org.ID)
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to provision employee sandbox"})
-		return
-	}
-
 	if err := h.db.WithContext(ctx).Model(&model.Org{}).Where("id = ?", org.ID).Updates(map[string]any{
 		"name":        req.Name,
 		"website":     req.Website,
@@ -133,6 +125,14 @@ func (h *EmployeeHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Requ
 		}
 		log.ErrorContext(ctx, "save org info", "error", err, "org_id", org.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to save business info"})
+		return
+	}
+
+	sb, err := h.ensureEmployeeSandbox(ctx, &agent)
+	if err != nil {
+		log.ErrorContext(ctx, "provision employee sandbox during onboarding", "error", err,
+			"agent_id", agent.ID, "org_id", org.ID)
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to provision employee sandbox"})
 		return
 	}
 

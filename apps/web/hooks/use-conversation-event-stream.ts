@@ -15,7 +15,9 @@ interface StreamToken {
 async function fetchStreamToken(): Promise<StreamToken> {
   const res = await fetch("/api/auth/stream-token")
   if (!res.ok) {
-    throw new Error(res.status === 401 ? "Not authenticated" : "Failed to fetch stream token")
+    throw new Error(
+      res.status === 401 ? "Not authenticated" : "Failed to fetch stream token"
+    )
   }
   return res.json()
 }
@@ -33,7 +35,7 @@ interface RawStreamEvent {
 // reconciliation — that comes later. This is the observation pass.
 export function useConversationEventStream(
   conversationId: string | null,
-  onEvent?: (event: RawStreamEvent) => void,
+  onEvent?: (event: RawStreamEvent) => void
 ) {
   const onEventRef = useRef(onEvent)
   useEffect(() => {
@@ -55,8 +57,6 @@ export function useConversationEventStream(
     const ctrl = new AbortController()
     const url = `${API_URL}/v1/conversations/${conversationId}/stream`
 
-    console.log(`[stream] connecting conv=${conversationId}`)
-
     fetchEventSource(url, {
       signal: ctrl.signal,
       headers: {
@@ -65,10 +65,11 @@ export function useConversationEventStream(
       },
       onopen: async (response) => {
         if (response.ok) {
-          console.log(`[stream] open conv=${conversationId} status=${response.status}`)
           return
         }
-        console.error(`[stream] open failed conv=${conversationId} status=${response.status}`)
+        console.error(
+          `[stream] open failed conv=${conversationId} status=${response.status}`
+        )
         throw new Error(`stream open failed: ${response.status}`)
       },
       onmessage: (msg) => {
@@ -80,8 +81,6 @@ export function useConversationEventStream(
           console.warn("[stream] bad json", msg.data)
           return
         }
-        const seq = parsed.sequence_number !== undefined ? `seq=${parsed.sequence_number} ` : ""
-        console.log(`[stream] ${seq}type=${parsed.event_type ?? "(none)"}`, parsed.data ?? {})
         onEventRef.current?.(parsed)
       },
       onerror: (err) => {
@@ -89,9 +88,7 @@ export function useConversationEventStream(
         console.warn("[stream] error", err)
         // Throwing aborts the auto-retry; let it retry by returning.
       },
-      onclose: () => {
-        console.log(`[stream] closed conv=${conversationId}`)
-      },
+      onclose: () => {},
     }).catch(() => {
       // fetchEventSource swallows non-thrown errors; explicit catch to silence
       // the unhandled promise warning if onopen throws.

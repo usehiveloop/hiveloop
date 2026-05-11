@@ -15,7 +15,11 @@ import {
   Sent02Icon,
 } from "@hugeicons/core-free-icons"
 import { MultiFileDiff, type FileContents } from "@pierre/diffs/react"
-import { Group as PanelGroup, Panel, Separator as PanelResizer } from "react-resizable-panels"
+import {
+  Group as PanelGroup,
+  Panel,
+  Separator as PanelResizer,
+} from "react-resizable-panels"
 import ScrollToBottom from "react-scroll-to-bottom"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -34,7 +38,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Workspace } from "@/app/w/agents/[id]/_components/workspace"
@@ -66,7 +69,6 @@ type Message = {
   diff?: DiffPayload
 }
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // Static demo data — kept for reference while we wire up real conversation events.
 /*
 const stripeHandlerOld = `package handler
@@ -301,8 +303,6 @@ const messages: Message[] = [
   },
 ]
 */
-/* eslint-enable @typescript-eslint/no-unused-vars */
-
 function formatTimestamp(iso: string | undefined): string {
   if (!iso) return ""
   const d = new Date(iso)
@@ -320,7 +320,9 @@ type Todo = { content: string; status: TodoStatus; priority?: string }
 
 function apiTodoToTodo(t: ApiTodo): Todo {
   const status: TodoStatus =
-    t.status === "in_progress" || t.status === "completed" ? t.status : "pending"
+    t.status === "in_progress" || t.status === "completed"
+      ? t.status
+      : "pending"
   return { content: t.content ?? "", status, priority: t.priority }
 }
 
@@ -348,7 +350,7 @@ export default function AgentDetailPage() {
     params: { path: { id } },
   })
 
-  const { sessions } = useAgentSessions(id ?? null)
+  useAgentSessions(id ?? null)
 
   const agentName = agent?.name ?? "Agent"
   const initial = (agentName ?? "?").slice(0, 1).toUpperCase()
@@ -357,17 +359,17 @@ export default function AgentDetailPage() {
     "get",
     "/v1/conversations/{convID}/messages",
     { params: { path: { convID: convId }, query: { limit: 1000 } } },
-    { enabled: Boolean(convId), refetchInterval: 5000 },
+    { enabled: Boolean(convId), refetchInterval: 5000 }
   )
 
   const messages = React.useMemo<Message[]>(
     () => (messagesQuery.data?.data ?? []).map(apiMessageToMessage),
-    [messagesQuery.data],
+    [messagesQuery.data]
   )
 
   const todos = React.useMemo<Todo[]>(
     () => (messagesQuery.data?.latest_todos ?? []).map(apiTodoToTodo),
-    [messagesQuery.data],
+    [messagesQuery.data]
   )
 
   // Subscribe to live SSE events as soon as the conversation page is open.
@@ -385,7 +387,12 @@ export default function AgentDetailPage() {
           maxSize="60%"
           className="flex h-full flex-col"
         >
-          <ChatHeader name={agentName} avatarUrl={agent?.avatar_url ?? null} initial={initial} agentId={id} />
+          <ChatHeader
+            name={agentName}
+            avatarUrl={agent?.avatar_url ?? null}
+            initial={initial}
+            agentId={id}
+          />
 
           <ScrollToBottom
             className="min-h-0 flex-1"
@@ -427,10 +434,15 @@ export default function AgentDetailPage() {
           id="resizer"
           className="relative w-px shrink-0 grow-0 bg-border/60 transition-colors hover:bg-primary/40 data-[separator-state=drag]:bg-primary"
         >
-          <div className="absolute inset-y-0 -left-1 -right-1" />
+          <div className="absolute inset-y-0 -right-1 -left-1" />
         </PanelResizer>
 
-        <Panel id="workspace" defaultSize="75%" minSize="40%" className="flex h-full flex-col bg-muted/20">
+        <Panel
+          id="workspace"
+          defaultSize="75%"
+          minSize="40%"
+          className="flex h-full flex-col bg-muted/20"
+        >
           <Workspace conversationId={convId ?? undefined} />
         </Panel>
       </PanelGroup>
@@ -464,11 +476,15 @@ function ChatHeader({
         </Button>
 
         <Avatar size="sm" className="rounded-md after:rounded-md">
-          {avatarUrl ? <AvatarImage src={avatarUrl} alt={name} className="rounded-md" /> : null}
+          {avatarUrl ? (
+            <AvatarImage src={avatarUrl} alt={name} className="rounded-md" />
+          ) : null}
           <AvatarFallback className="rounded-md">{initial}</AvatarFallback>
         </Avatar>
 
-        <span className="truncate text-[13px] font-medium text-foreground">{name}</span>
+        <span className="truncate text-[13px] font-medium text-foreground">
+          {name}
+        </span>
       </div>
 
       <div className="flex items-center gap-1">
@@ -514,7 +530,9 @@ function MessageBubble({
         {message.body ? <UserMessageBody body={message.body} /> : null}
         {isLastInGroup ? (
           <div className="flex items-center justify-end gap-2">
-            <span className="text-[11px] text-muted-foreground/70">{message.timestamp}</span>
+            <span className="text-[11px] text-muted-foreground/70">
+              {message.timestamp}
+            </span>
             <div className="flex size-6 items-center justify-center rounded-md bg-foreground text-[11px] font-medium text-background">
               U
             </div>
@@ -529,11 +547,21 @@ function MessageBubble({
       {isFirstInGroup ? (
         <div className="flex items-center gap-2">
           <Avatar size="sm" className="rounded-md after:rounded-md">
-            {avatarUrl ? <AvatarImage src={avatarUrl} alt={agentName} className="rounded-md" /> : null}
+            {avatarUrl ? (
+              <AvatarImage
+                src={avatarUrl}
+                alt={agentName}
+                className="rounded-md"
+              />
+            ) : null}
             <AvatarFallback className="rounded-md">{initial}</AvatarFallback>
           </Avatar>
-          <span className="text-[12px] font-medium text-foreground">{agentName}</span>
-          <span className="text-[11px] text-muted-foreground/70">{message.timestamp}</span>
+          <span className="text-[12px] font-medium text-foreground">
+            {agentName}
+          </span>
+          <span className="text-[11px] text-muted-foreground/70">
+            {message.timestamp}
+          </span>
         </div>
       ) : null}
 
@@ -550,7 +578,9 @@ function MessageBubble({
       {message.diff ? <DiffBlock diff={message.diff} /> : null}
 
       {message.body ? (
-        <p className="text-[14px] leading-relaxed text-foreground">{message.body}</p>
+        <p className="text-[14px] leading-relaxed text-foreground">
+          {message.body}
+        </p>
       ) : null}
     </div>
   )
@@ -636,7 +666,7 @@ const previewProseClasses =
 
 function MarkdownView({ content }: { content: string }) {
   return (
-    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-heading prose-h1:text-base prose-h2:text-sm prose-h3:text-[13px] prose-p:text-[12px] prose-p:leading-relaxed prose-li:text-[12px] prose-code:text-[11px] prose-code:before:content-none prose-code:after:content-none prose-pre:rounded-xl prose-table:text-[12px] prose-th:text-[11px] prose-td:text-[11px]">
+    <div className="prose-sm dark:prose-invert prose max-w-none prose-headings:font-heading prose-h1:text-base prose-h2:text-sm prose-h3:text-[13px] prose-p:text-[12px] prose-p:leading-relaxed prose-code:text-[11px] prose-code:before:content-none prose-code:after:content-none prose-pre:rounded-xl prose-li:text-[12px] prose-table:text-[12px] prose-th:text-[11px] prose-td:text-[11px]">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -650,7 +680,11 @@ function MarkdownView({ content }: { content: string }) {
                   style={oneDark}
                   language={match[1]}
                   PreTag="div"
-                  customStyle={{ fontSize: "12px", borderRadius: "12px", margin: 0 }}
+                  customStyle={{
+                    fontSize: "12px",
+                    borderRadius: "12px",
+                    margin: 0,
+                  }}
                 >
                   {codeString}
                 </SyntaxHighlighter>
@@ -658,7 +692,13 @@ function MarkdownView({ content }: { content: string }) {
             }
 
             return (
-              <code className={cn("rounded bg-muted px-1.5 py-0.5 font-mono text-xs", className)} {...props}>
+              <code
+                className={cn(
+                  "rounded bg-muted px-1.5 py-0.5 font-mono text-xs",
+                  className
+                )}
+                {...props}
+              >
                 {children}
               </code>
             )
@@ -710,10 +750,12 @@ function UserMessageBody({ body }: { body: string }) {
           <div className="pointer-events-none">
             {isMarkdown ? (
               <div className={previewProseClasses}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {body}
+                </ReactMarkdown>
               </div>
             ) : (
-              <p className="whitespace-pre-wrap break-words text-[12px] leading-relaxed">
+              <p className="text-[12px] leading-relaxed break-words whitespace-pre-wrap">
                 {body}
               </p>
             )}
@@ -731,7 +773,7 @@ function UserMessageBody({ body }: { body: string }) {
             {isMarkdown ? (
               <MarkdownView content={body} />
             ) : (
-              <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-foreground">
+              <pre className="font-mono text-[11px] leading-relaxed break-words whitespace-pre-wrap text-foreground">
                 {body}
               </pre>
             )}
@@ -745,8 +787,12 @@ function UserMessageBody({ body }: { body: string }) {
 function ThinkingBlock({ text }: { text: string }) {
   return (
     <div className="rounded-lg border border-border/60 bg-muted/40 px-3 py-2">
-      <p className="font-mono text-[10px] uppercase tracking-[1px] text-muted-foreground/60">Thinking</p>
-      <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">{text}</p>
+      <p className="font-mono text-[10px] tracking-[1px] text-muted-foreground/60 uppercase">
+        Thinking
+      </p>
+      <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+        {text}
+      </p>
     </div>
   )
 }
@@ -764,7 +810,7 @@ function ToolGroupChip({ group }: { group: ToolGroup }) {
         className="flex w-full items-center gap-2 px-2.5 py-1 text-left transition-colors hover:bg-muted/60"
       >
         <span
-          className={`size-1.5 shrink-0 rounded-full ${anyRunning ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`}
+          className={`size-1.5 shrink-0 rounded-full ${anyRunning ? "animate-pulse bg-amber-500" : "bg-emerald-500"}`}
         />
         <span className="flex-1 truncate font-mono text-[11px] text-foreground">
           {group.name}
@@ -793,14 +839,19 @@ function ToolGroupChip({ group }: { group: ToolGroup }) {
           >
             <div className="flex flex-col gap-1 border-t border-border/60 px-2.5 py-1.5">
               {group.calls.map((call) => (
-                <div key={call.id || call.title} className="flex items-start gap-2">
+                <div
+                  key={call.id || call.title}
+                  className="flex items-start gap-2"
+                >
                   <span
-                    className={`mt-1.5 size-1.5 shrink-0 rounded-full ${call.status === "running" ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`}
+                    className={`mt-1.5 size-1.5 shrink-0 rounded-full ${call.status === "running" ? "animate-pulse bg-amber-500" : "bg-emerald-500"}`}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-mono text-[11px] text-foreground">{call.title}</p>
+                    <p className="truncate font-mono text-[11px] text-foreground">
+                      {call.title}
+                    </p>
                     {call.summary ? (
-                      <pre className="mt-0.5 max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[10px] leading-relaxed text-muted-foreground/80">
+                      <pre className="mt-0.5 max-h-32 overflow-auto font-mono text-[10px] leading-relaxed break-words whitespace-pre-wrap text-muted-foreground/80">
                         {call.summary}
                       </pre>
                     ) : null}
@@ -835,7 +886,7 @@ function Composer({ todos, convId }: { todos: Todo[]; convId: string | null }) {
         void handleSend()
       }
     },
-    [handleSend],
+    [handleSend]
   )
 
   return (
@@ -854,7 +905,12 @@ function Composer({ todos, convId }: { todos: Todo[]; convId: string | null }) {
           />
           <div className="flex items-center justify-between gap-2 px-1">
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon-sm" disabled aria-label="Attach">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                disabled
+                aria-label="Attach"
+              >
                 <HugeiconsIcon icon={Attachment02Icon} size={14} />
               </Button>
             </div>
@@ -890,14 +946,14 @@ function TodoStrip({ todos }: { todos: Todo[] }) {
         onClick={() => setOpen((prev) => !prev)}
         className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-muted/60"
       >
-        <span className="font-mono text-[10px] uppercase tracking-[1px] text-muted-foreground/70">
+        <span className="font-mono text-[10px] tracking-[1px] text-muted-foreground/70 uppercase">
           Todos
         </span>
         <span className="text-[10px] text-muted-foreground/60">·</span>
         <span className="flex-1 truncate text-[12px] text-foreground">
           {headlineLabel}
         </span>
-        <span className="font-mono text-[11px] tabular-nums text-muted-foreground/70">
+        <span className="font-mono text-[11px] text-muted-foreground/70 tabular-nums">
           {completed}/{todos.length}
         </span>
         <motion.span
@@ -942,7 +998,7 @@ function TodoRow({ todo }: { todo: Todo }) {
           (isDone
             ? "bg-emerald-500"
             : isActive
-              ? "bg-amber-500 animate-pulse"
+              ? "animate-pulse bg-amber-500"
               : "bg-muted-foreground/40")
         }
       />
@@ -961,5 +1017,3 @@ function TodoRow({ todo }: { todo: Todo }) {
     </li>
   )
 }
-
-

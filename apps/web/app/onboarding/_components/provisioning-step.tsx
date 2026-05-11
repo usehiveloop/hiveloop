@@ -1,18 +1,26 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 import { useWatch } from "react-hook-form"
 import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Alert02Icon,
-  ArrowRight01Icon,
   Loading03Icon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
-import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  Avatar,
+  AvatarBadge,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { $api } from "@/lib/api/hooks"
+import { extractErrorMessage } from "@/lib/api/error"
 import { StepHeader } from "./step-header"
 import { useOnboarding } from "./context"
 
@@ -24,41 +32,118 @@ type Stage = {
 }
 
 const STAGES: Stage[] = [
-  { id: "workspace", label: () => "Provisioning workspace", duration: 900 },
-  { id: "compute", label: (n) => `Setting up ${n}'s computer`, duration: 1200 },
-  { id: "chrome", label: (n) => `Installing Chrome for ${n}`, duration: 1500 },
-  { id: "memory", label: () => "Initializing long-term memory", duration: 800 },
-  { id: "skills", label: (n) => `Wiring ${n}'s default skills`, duration: 1000 },
+  { id: "business", label: () => "Saving business context", duration: 800 },
+  { id: "sandbox", label: (n) => `Creating ${n}'s sandbox`, duration: 1400 },
+  { id: "runtime", label: (n) => `Starting ${n}'s runtime`, duration: 1600 },
+  {
+    id: "config",
+    label: () => "Applying tools, skills, and Slack config",
+    duration: 1200,
+  },
+  { id: "ready", label: () => "Checking readiness", duration: 900 },
 ]
 
 export function ProvisioningStep() {
-  const { form, goNext, goBack, createEmployee, retryEmployee, bootstrapped } =
-    useOnboarding()
+  const { form, goBack } = useOnboarding()
+  const router = useRouter()
+  const queryClient = useQueryClient()
   const watchedName = useWatch({ control: form.control, name: "agentName" })
-  const watchedAvatar = useWatch({ control: form.control, name: "agentAvatarUrl" })
+  const watchedAvatar = useWatch({
+    control: form.control,
+    name: "agentAvatarUrl",
+  })
+  const businessName = useWatch({ control: form.control, name: "businessName" })
+  const businessWebsite = useWatch({
+    control: form.control,
+    name: "businessWebsite",
+  })
+  const businessDescription = useWatch({
+    control: form.control,
+    name: "businessDescription",
+  })
+  const businessLogoUrl = useWatch({
+    control: form.control,
+    name: "businessLogoUrl",
+  })
   const agentName = watchedName?.trim() || "your AI employee"
   const agentAvatarUrl = watchedAvatar?.trim() || ""
 
-  const [activeIndex, setActiveIndex] = useState(bootstrapped ? STAGES.length : 0)
+  const completeOnboarding = $api.useMutation(
+    "post",
+    "/v1/orgs/current/onboarding/complete"
+  )
+  const startedRef = useRef(false)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [responseError, setResponseError] = useState<string | null>(null)
+
+  const launchEmployee = useCallback(() => {
+    completeOnboarding.mutate(
+      {
+        body: {
+          name: businessName.trim(),
+          website: businessWebsite.trim(),
+          logo_url: businessLogoUrl?.trim() || "",
+          description: businessDescription.trim(),
+        },
+      },
+      {
+        onSuccess: async (data) => {
+          const error = getResponseError(data)
+          if (error) {
+            setResponseError(error)
+            return
+          }
+          await queryClient.refetchQueries({ queryKey: ["get", "/auth/me"] })
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
+          router.push("/w")
+        },
+      }
+    )
+  }, [
+    businessDescription,
+    businessLogoUrl,
+    businessName,
+    businessWebsite,
+    completeOnboarding,
+    queryClient,
+    router,
+  ])
 
   useEffect(() => {
-    if (bootstrapped) return
-    if (createEmployee.status === "success" || createEmployee.status === "error") return
+    if (startedRef.current) return
+    startedRef.current = true
+    launchEmployee()
+  }, [launchEmployee])
+
+  useEffect(() => {
+    if (completeOnboarding.isSuccess || completeOnboarding.isError) return
     if (activeIndex >= STAGES.length - 1) return
     const timer = setTimeout(
       () => setActiveIndex((idx) => idx + 1),
-      STAGES[activeIndex].duration,
+      STAGES[activeIndex].duration
     )
     return () => clearTimeout(timer)
-  }, [activeIndex, createEmployee.status, bootstrapped])
+  }, [activeIndex, completeOnboarding.isError, completeOnboarding.isSuccess])
 
-  const isError = !bootstrapped && createEmployee.status === "error"
-  const isDone =
-    bootstrapped ||
-    (createEmployee.status === "success" && activeIndex >= STAGES.length - 1)
+  const isError = completeOnboarding.isError || Boolean(responseError)
+  const isDone = completeOnboarding.isSuccess && !responseError
+  const errorMessage = isError
+    ? responseError ??
+      extractErrorMessage(
+        completeOnboarding.error,
+        "Could not launch your AI employee. Try again."
+      )
+    : null
   const progress = isDone
     ? 100
     : Math.min(95, Math.round(((activeIndex + 1) / (STAGES.length + 1)) * 100))
+
+  const retry = () => {
+    completeOnboarding.reset()
+    setResponseError(null)
+    setActiveIndex(0)
+    launchEmployee()
+  }
 
   return (
     <div className="w-full">
@@ -73,21 +158,23 @@ export function ProvisioningStep() {
             className="mx-auto flex w-full max-w-md flex-col items-center gap-6 pt-6 text-center"
           >
             <span className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-              <HugeiconsIcon icon={Alert02Icon} className="size-6" strokeWidth={2} />
+              <HugeiconsIcon
+                icon={Alert02Icon}
+                className="size-6"
+                strokeWidth={2}
+              />
             </span>
             <div className="flex flex-col gap-2">
               <h2 className="font-display text-xl font-semibold tracking-tight">
                 We couldn&apos;t provision {agentName}
               </h2>
-              <p className="text-sm text-muted-foreground">
-                {createEmployee.errorMessage}
-              </p>
+              <p className="text-sm text-muted-foreground">{errorMessage}</p>
             </div>
             <div className="flex items-center gap-3">
               <Button variant="outline" onClick={goBack} className="h-10">
-                Edit details
+                Edit business details
               </Button>
-              <Button onClick={retryEmployee} className="h-10">
+              <Button onClick={retry} className="h-10">
                 Try again
               </Button>
             </div>
@@ -102,10 +189,6 @@ export function ProvisioningStep() {
             className="mx-auto flex w-full max-w-xl flex-col items-center gap-12 pt-6"
           >
             <DoneHeader agentName={agentName} agentAvatarUrl={agentAvatarUrl} />
-            <Button onClick={goNext} className="flex h-11 items-center gap-2 px-5">
-              Connect {agentName} to your workspace
-              <HugeiconsIcon icon={ArrowRight01Icon} className="size-4" />
-            </Button>
           </motion.div>
         ) : (
           <motion.div
@@ -117,15 +200,19 @@ export function ProvisioningStep() {
             className="mx-auto flex w-full max-w-md flex-col gap-8"
           >
             <StepHeader
-              title={`Setting up ${agentName}`}
-              description="This takes a moment. We're provisioning your AI employee's workspace, tools, and memory."
+              title={`Launching ${agentName}`}
+              description="This is the real provisioning step. We're creating the sandbox, starting the runtime, and applying the final employee config."
             />
 
             <div className="flex flex-col gap-5">
               <ol className="flex flex-col gap-3">
                 {STAGES.map((stage, idx) => {
                   const status =
-                    idx < activeIndex ? "done" : idx === activeIndex ? "active" : "pending"
+                    idx < activeIndex
+                      ? "done"
+                      : idx === activeIndex
+                        ? "active"
+                        : "pending"
                   return (
                     <StageRow
                       key={stage.id}
@@ -144,6 +231,12 @@ export function ProvisioningStep() {
   )
 }
 
+function getResponseError(data: unknown): string | null {
+  if (!data || typeof data !== "object" || !("error" in data)) return null
+  const message = (data as { error?: unknown }).error
+  return typeof message === "string" && message.length > 0 ? message : null
+}
+
 function StageRow({
   label,
   status,
@@ -156,7 +249,11 @@ function StageRow({
       <span className="flex size-5 shrink-0 items-center justify-center">
         {status === "done" ? (
           <span className="flex size-5 items-center justify-center rounded-full bg-success/15 text-success">
-            <HugeiconsIcon icon={Tick02Icon} className="size-3" strokeWidth={2.75} />
+            <HugeiconsIcon
+              icon={Tick02Icon}
+              className="size-3"
+              strokeWidth={2.75}
+            />
           </span>
         ) : status === "active" ? (
           <HugeiconsIcon
@@ -201,7 +298,11 @@ function DoneHeader({
       >
         <Avatar className="size-24 rounded-md after:rounded-md">
           {agentAvatarUrl ? (
-            <AvatarImage src={agentAvatarUrl} alt={agentName} className="rounded-md" />
+            <AvatarImage
+              src={agentAvatarUrl}
+              alt={agentName}
+              className="rounded-md"
+            />
           ) : null}
           <AvatarFallback className="rounded-md font-display text-3xl font-semibold">
             {initial}
@@ -211,7 +312,7 @@ function DoneHeader({
       </motion.div>
 
       <div className="flex flex-col items-center gap-2.5">
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-success">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.16em] text-success uppercase">
           <span className="relative flex size-1.5">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-70" />
             <span className="relative inline-flex size-1.5 rounded-full bg-success" />
@@ -222,7 +323,8 @@ function DoneHeader({
           Hi, I&apos;m {agentName}.
         </h1>
         <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-          Workspace, tools, and memory all wired up. Where should I get to work?
+          Workspace, tools, Slack, and memory are ready. Redirecting to your
+          workspace…
         </p>
       </div>
     </header>

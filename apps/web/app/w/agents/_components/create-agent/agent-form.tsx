@@ -97,12 +97,8 @@ export function AgentForm() {
     }
   }, [showLlmKey, form])
 
-  const { data: credentialsData, isLoading: credentialsLoading } = $api.useQuery(
-    "get",
-    "/v1/credentials",
-    {},
-    { enabled: showLlmKey }
-  )
+  const { data: credentialsData, isLoading: credentialsLoading } =
+    $api.useQuery("get", "/v1/credentials", {}, { enabled: showLlmKey })
   const credentials = credentialsData?.data ?? []
 
   const { data: connectionsData } = $api.useQuery("get", "/v1/in/connections")
@@ -115,7 +111,8 @@ export function AgentForm() {
   )
   const skills = skillsData?.data ?? []
 
-  const { data: sandboxTemplatesData, isLoading: sandboxTemplatesLoading } = useSandboxTemplates()
+  const { data: sandboxTemplatesData, isLoading: sandboxTemplatesLoading } =
+    useSandboxTemplates()
   const sandboxTemplates = sandboxTemplatesData?.data ?? []
 
   const { data: categoriesData, isLoading: categoriesLoading } = $api.useQuery(
@@ -169,9 +166,7 @@ export function AgentForm() {
   }
 
   const canSubmit = Boolean(
-    name.trim() &&
-      (!showLlmKey || (credentialId && model)) &&
-      !isSubmitting
+    name.trim() && (!showLlmKey || (credentialId && model)) && !isSubmitting
   )
 
   const isEdit = mode === "edit"
@@ -232,7 +227,9 @@ export function AgentForm() {
             <div className="flex flex-col gap-2">
               <Label htmlFor="desc" className="text-[13px] font-medium">
                 Description{" "}
-                <span className="font-normal text-muted-foreground">(optional)</span>
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
               </Label>
               <Textarea
                 id="desc"
@@ -272,23 +269,54 @@ export function AgentForm() {
           </Section>
 
           {showLlmKey ? (
-          <Section
-            title="LLM key"
-            description="Pick a credential to bill this agent's usage to. The platform picks one automatically when no credential is selected."
-          >
-            <div className="flex flex-col gap-2">
-              {credentialsLoading ? (
-                Array.from({ length: 2 }).map((_, i) => (
-                  <Skeleton key={i} className="h-[60px] w-full rounded-xl" />
-                ))
-              ) : credentials.length === 0 ? (
-                <EmptyWell
-                  icon={Key01Icon}
-                  message="No LLM keys connected yet."
-                  action={
+            <Section
+              title="LLM key"
+              description="Pick a credential to bill this agent's usage to. The platform picks one automatically when no credential is selected."
+            >
+              <div className="flex flex-col gap-2">
+                {credentialsLoading ? (
+                  Array.from({ length: 2 }).map((_, i) => (
+                    <Skeleton key={i} className="h-[60px] w-full rounded-xl" />
+                  ))
+                ) : credentials.length === 0 ? (
+                  <EmptyWell
+                    icon={Key01Icon}
+                    message="No LLM keys connected yet."
+                    action={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAddKeyOpen(true)}
+                      >
+                        <HugeiconsIcon
+                          icon={Key01Icon}
+                          size={14}
+                          data-icon="inline-start"
+                        />
+                        Add LLM key
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <>
+                    {credentials.map((credential) => {
+                      const id = credential.id ?? ""
+                      return (
+                        <LlmKeyCard
+                          key={id}
+                          label={credential.label}
+                          providerId={credential.provider_id ?? ""}
+                          selected={credentialId === id}
+                          onClick={() => {
+                            form.setValue("credentialId", id)
+                          }}
+                        />
+                      )
+                    })}
                     <Button
                       variant="outline"
                       size="sm"
+                      className="mt-1 w-fit"
                       onClick={() => setAddKeyOpen(true)}
                     >
                       <HugeiconsIcon
@@ -298,42 +326,10 @@ export function AgentForm() {
                       />
                       Add LLM key
                     </Button>
-                  }
-                />
-              ) : (
-                <>
-                {credentials.map((credential) => {
-                  const id = credential.id ?? ""
-                  return (
-                    <LlmKeyCard
-                      key={id}
-                      label={credential.label}
-                      providerId={credential.provider_id ?? ""}
-                      selected={credentialId === id}
-                      onClick={() => {
-                        form.setValue("credentialId", id)
-                      }}
-                    />
-                  )
-                })}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-1 w-fit"
-                  onClick={() => setAddKeyOpen(true)}
-                >
-                  <HugeiconsIcon
-                    icon={Key01Icon}
-                    size={14}
-                    data-icon="inline-start"
-                  />
-                  Add LLM key
-                </Button>
-                </>
-              )}
-            </div>
-
-          </Section>
+                  </>
+                )}
+              </div>
+            </Section>
           ) : null}
 
           <Section
@@ -357,48 +353,48 @@ export function AgentForm() {
                 />
               ) : (
                 <>
-                {Array.from(selectedIntegrations).map((connectionId) => {
-                  const connection = connectionsById.get(connectionId)
-                  const actions = selectedActions[connectionId] ?? new Set()
-                  return (
-                    <div
-                      key={connectionId}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/50 p-3"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <IntegrationLogo
-                          provider={connection?.provider ?? ""}
-                          size={32}
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {connection?.display_name ?? connectionId}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {actions.size} action{actions.size !== 1 ? "s" : ""}{" "}
-                            enabled
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="shrink-0 text-destructive hover:text-destructive"
-                        onClick={() => removeIntegration(connectionId)}
+                  {Array.from(selectedIntegrations).map((connectionId) => {
+                    const connection = connectionsById.get(connectionId)
+                    const actions = selectedActions[connectionId] ?? new Set()
+                    return (
+                      <div
+                        key={connectionId}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/50 p-3"
                       >
-                        Remove
-                      </Button>
-                    </div>
-                  )
-                })}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-1 w-fit"
-                  onClick={() => setIntegrationsOpen(true)}
-                >
-                  Manage integrations
-                </Button>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <IntegrationLogo
+                            provider={connection?.provider ?? ""}
+                            size={32}
+                          />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-foreground">
+                              {connection?.display_name ?? connectionId}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {actions.size} action
+                              {actions.size !== 1 ? "s" : ""} enabled
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0 text-destructive hover:text-destructive"
+                          onClick={() => removeIntegration(connectionId)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    )
+                  })}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-1 w-fit"
+                    onClick={() => setIntegrationsOpen(true)}
+                  >
+                    Manage integrations
+                  </Button>
                 </>
               )}
             </div>
@@ -431,60 +427,61 @@ export function AgentForm() {
                 />
               ) : (
                 <>
-                {triggers.map((trigger, index) => (
-                  <div
-                    key={`${trigger.triggerType}-${trigger.connectionId}-${index}`}
-                    className="flex items-start gap-3 rounded-xl border border-border bg-muted/50 p-3"
-                  >
-                    <TriggerTypeAvatar trigger={trigger} size={28} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground">
-                        {triggerDisplayName(trigger)}
-                      </p>
-                      {trigger.triggerType === "webhook" ? (
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {trigger.triggerKeys.map((key) => (
-                            <Badge
-                              key={key}
-                              variant="secondary"
-                              className="font-mono text-[10px]"
-                            >
-                              {key}
-                            </Badge>
-                          ))}
-                        </div>
-                      ) : null}
-                      {trigger.triggerType === "cron" && trigger.cronSchedule ? (
-                        <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-                          {trigger.cronSchedule}
+                  {triggers.map((trigger, index) => (
+                    <div
+                      key={`${trigger.triggerType}-${trigger.connectionId}-${index}`}
+                      className="flex items-start gap-3 rounded-xl border border-border bg-muted/50 p-3"
+                    >
+                      <TriggerTypeAvatar trigger={trigger} size={28} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground">
+                          {triggerDisplayName(trigger)}
                         </p>
-                      ) : null}
-                      {trigger.triggerType === "http" ? (
-                        <div className="mt-2">
-                          <HttpEndpointPill />
-                          {trigger.secretKey ? (
-                            <p className="mt-1.5 text-[11px] text-muted-foreground">
-                              HMAC verification enabled
-                            </p>
-                          ) : null}
-                        </div>
-                      ) : null}
+                        {trigger.triggerType === "webhook" ? (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {trigger.triggerKeys.map((key) => (
+                              <Badge
+                                key={key}
+                                variant="secondary"
+                                className="font-mono text-[10px]"
+                              >
+                                {key}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : null}
+                        {trigger.triggerType === "cron" &&
+                        trigger.cronSchedule ? (
+                          <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                            {trigger.cronSchedule}
+                          </p>
+                        ) : null}
+                        {trigger.triggerType === "http" ? (
+                          <div className="mt-2">
+                            <HttpEndpointPill />
+                            {trigger.secretKey ? (
+                              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                                HMAC verification enabled
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-1 w-fit"
-                  onClick={() => setEditTriggersOpen(true)}
-                >
-                  <HugeiconsIcon
-                    icon={FlashIcon}
-                    size={14}
-                    data-icon="inline-start"
-                  />
-                  Edit triggers
-                </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-1 w-fit"
+                    onClick={() => setEditTriggersOpen(true)}
+                  >
+                    <HugeiconsIcon
+                      icon={FlashIcon}
+                      size={14}
+                      data-icon="inline-start"
+                    />
+                    Edit triggers
+                  </Button>
                 </>
               )}
             </div>
@@ -520,55 +517,55 @@ export function AgentForm() {
                 />
               ) : (
                 <>
-                {skills.map((skill) => {
-                  const preview = toSkillPreview(skill)
-                  if (!preview) return null
-                  const selected = selectedSkills.has(preview.id)
-                  return (
-                    <button
-                      key={preview.id}
-                      type="button"
-                      onClick={() => toggleSkill(preview)}
-                      className={
-                        "flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors " +
-                        (selected
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-muted/50 hover:bg-muted")
-                      }
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground">
-                          {preview.name}
-                        </p>
-                        {preview.description ? (
-                          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-                            {preview.description}
+                  {skills.map((skill) => {
+                    const preview = toSkillPreview(skill)
+                    if (!preview) return null
+                    const selected = selectedSkills.has(preview.id)
+                    return (
+                      <button
+                        key={preview.id}
+                        type="button"
+                        onClick={() => toggleSkill(preview)}
+                        className={
+                          "flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors " +
+                          (selected
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-muted/50 hover:bg-muted")
+                        }
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground">
+                            {preview.name}
                           </p>
+                          {preview.description ? (
+                            <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                              {preview.description}
+                            </p>
+                          ) : null}
+                        </div>
+                        {selected ? (
+                          <HugeiconsIcon
+                            icon={Tick02Icon}
+                            size={16}
+                            className="ml-2 shrink-0 text-primary"
+                          />
                         ) : null}
-                      </div>
-                      {selected ? (
-                        <HugeiconsIcon
-                          icon={Tick02Icon}
-                          size={16}
-                          className="ml-2 shrink-0 text-primary"
-                        />
-                      ) : null}
-                    </button>
-                  )
-                })}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-1 w-fit"
-                  onClick={() => setCreateSkillOpen(true)}
-                >
-                  <HugeiconsIcon
-                    icon={Add01Icon}
-                    size={14}
-                    data-icon="inline-start"
-                  />
-                  Create skill
-                </Button>
+                      </button>
+                    )
+                  })}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-1 w-fit"
+                    onClick={() => setCreateSkillOpen(true)}
+                  >
+                    <HugeiconsIcon
+                      icon={Add01Icon}
+                      size={14}
+                      data-icon="inline-start"
+                    />
+                    Create skill
+                  </Button>
                 </>
               )}
             </div>
@@ -618,9 +615,11 @@ export function AgentForm() {
                     }
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground">Default base image</p>
+                      <p className="text-sm font-medium text-foreground">
+                        Default base image
+                      </p>
                       <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-                        Launch from the platform's standard sandbox image.
+                        Launch from the platform&apos;s standard sandbox image.
                       </p>
                     </div>
                     {!sandboxTemplateId ? (
@@ -640,7 +639,9 @@ export function AgentForm() {
                         key={tmpl.id}
                         type="button"
                         disabled={!ready}
-                        onClick={() => form.setValue("sandboxTemplateId", tmpl.id!)}
+                        onClick={() =>
+                          form.setValue("sandboxTemplateId", tmpl.id!)
+                        }
                         className={
                           "flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors " +
                           (selected
@@ -650,9 +651,12 @@ export function AgentForm() {
                         }
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-foreground">{tmpl.name}</p>
+                          <p className="text-sm font-medium text-foreground">
+                            {tmpl.name}
+                          </p>
                           <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-                            {tmpl.size ?? "default"} · {tmpl.build_status ?? "pending"}
+                            {tmpl.size ?? "default"} ·{" "}
+                            {tmpl.build_status ?? "pending"}
                           </p>
                         </div>
                         {selected ? (
@@ -662,7 +666,10 @@ export function AgentForm() {
                             className="ml-2 shrink-0 text-primary"
                           />
                         ) : !ready ? (
-                          <Badge variant="secondary" className="ml-2 shrink-0 text-[10px]">
+                          <Badge
+                            variant="secondary"
+                            className="ml-2 shrink-0 text-[10px]"
+                          >
                             {tmpl.build_status}
                           </Badge>
                         ) : null}
@@ -677,9 +684,13 @@ export function AgentForm() {
           <Section title="Advanced">
             <div className="flex items-start justify-between gap-6">
               <div className="flex-1">
-                <Label className="text-[13px] font-medium">Workspace memory</Label>
+                <Label className="text-[13px] font-medium">
+                  Workspace memory
+                </Label>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  All agents already have long-term memory. This setting allows this agent to share memories with other agents in your workspace.
+                  All agents already have long-term memory. This setting allows
+                  this agent to share memories with other agents in your
+                  workspace.
                 </p>
               </div>
               <Switch

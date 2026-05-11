@@ -1,11 +1,8 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { $api } from "@/lib/api/hooks"
 import type {
   TriggerConfig,
@@ -67,36 +64,43 @@ export function EditTriggersDialog({
     name: string
     provider: string
   } | null>(null)
-  const [selectedEvents, setSelectedEvents] = useState<Map<string, SelectedEvent>>(new Map())
-  const [configuringEventKey, setConfiguringEventKey] = useState<string | null>(null)
+  const [selectedEvents, setSelectedEvents] = useState<
+    Map<string, SelectedEvent>
+  >(new Map())
+  const [configuringEventKey, setConfiguringEventKey] = useState<string | null>(
+    null
+  )
   const [search, setSearch] = useState("")
-  const navDirection = useRef<1 | -1>(1)
+  const [navDirection, setNavDirection] = useState<1 | -1>(1)
 
   const { data: catalogData } = $api.useQuery(
     "get",
     "/v1/catalog/integrations/{id}/triggers",
     { params: { path: { id: selectedConnection?.provider ?? "" } } },
-    { enabled: !!selectedConnection?.provider },
+    { enabled: !!selectedConnection?.provider }
   )
 
   useEffect(() => {
     if (!catalogData) return
     const catalogTriggers = catalogData.triggers ?? []
-    setSelectedEvents((previous) => {
-      let changed = false
-      const next = new Map(previous)
-      for (const [key, event] of next) {
-        if (Object.keys(event.refs).length > 0) continue
-        const catalogTrigger = catalogTriggers.find((candidate) => candidate.key === key)
-        const refs = (catalogTrigger as Record<string, unknown> | undefined)?.refs as
-          | Record<string, string>
-          | undefined
-        if (refs && Object.keys(refs).length > 0) {
-          next.set(key, { ...event, refs })
-          changed = true
+    queueMicrotask(() => {
+      setSelectedEvents((previous) => {
+        let changed = false
+        const next = new Map(previous)
+        for (const [key, event] of next) {
+          if (Object.keys(event.refs).length > 0) continue
+          const catalogTrigger = catalogTriggers.find(
+            (candidate) => candidate.key === key
+          )
+          const refs = (catalogTrigger as Record<string, unknown> | undefined)
+            ?.refs as Record<string, string> | undefined
+          if (refs && Object.keys(refs).length > 0) {
+            next.set(key, { ...event, refs })
+            changed = true
+          }
         }
-      }
-      return changed ? next : previous
+        return changed ? next : previous
+      })
     })
   }, [catalogData])
 
@@ -124,7 +128,7 @@ export function EditTriggersDialog({
       "http-config",
       "cron-config",
     ]
-    navDirection.current = order.indexOf(nextView) > order.indexOf(view) ? 1 : -1
+    setNavDirection(order.indexOf(nextView) > order.indexOf(view) ? 1 : -1)
     setSearch("")
     setView(nextView)
   }
@@ -160,7 +164,10 @@ export function EditTriggersDialog({
     navigateTo("list")
   }
 
-  function handleSaveCron(input: { cronSchedule: string; instructions: string }) {
+  function handleSaveCron(input: {
+    cronSchedule: string
+    instructions: string
+  }) {
     onAdd({
       triggerType: "cron",
       connectionId: "",
@@ -200,23 +207,30 @@ export function EditTriggersDialog({
     navigateTo("triggers")
   }
 
-  function handlePickConnection(connectionId: string, connectionName: string, provider: string) {
+  function handlePickConnection(
+    connectionId: string,
+    connectionName: string,
+    provider: string
+  ) {
     setSelectedConnection({ id: connectionId, name: connectionName, provider })
     setSelectedEvents(new Map())
     navigateTo("triggers")
   }
 
-  const toggleEvent = useCallback((key: string, displayName: string, refs: Record<string, string>) => {
-    setSelectedEvents((previous) => {
-      const next = new Map(previous)
-      if (next.has(key)) {
-        next.delete(key)
-      } else {
-        next.set(key, { key, displayName, refs, conditions: null })
-      }
-      return next
-    })
-  }, [])
+  const toggleEvent = useCallback(
+    (key: string, displayName: string, refs: Record<string, string>) => {
+      setSelectedEvents((previous) => {
+        const next = new Map(previous)
+        if (next.has(key)) {
+          next.delete(key)
+        } else {
+          next.set(key, { key, displayName, refs, conditions: null })
+        }
+        return next
+      })
+    },
+    []
+  )
 
   const removeEvent = useCallback((key: string) => {
     setSelectedEvents((previous) => {
@@ -259,17 +273,20 @@ export function EditTriggersDialog({
     // all selected keys. A single backend trigger can't hold per-key filters.
     if (editingIndex !== null) {
       const sharedConditions =
-        events.find((event) => event.conditions && event.conditions.conditions.length > 0)
-          ?.conditions ?? null
-      return [{
-        triggerType: "webhook",
-        connectionId: selectedConnection.id,
-        connectionName: selectedConnection.name,
-        provider: selectedConnection.provider,
-        triggerKeys: events.map((event) => event.key),
-        triggerDisplayNames: events.map((event) => event.displayName),
-        conditions: sharedConditions,
-      }]
+        events.find(
+          (event) => event.conditions && event.conditions.conditions.length > 0
+        )?.conditions ?? null
+      return [
+        {
+          triggerType: "webhook",
+          connectionId: selectedConnection.id,
+          connectionName: selectedConnection.name,
+          provider: selectedConnection.provider,
+          triggerKeys: events.map((event) => event.key),
+          triggerDisplayNames: events.map((event) => event.displayName),
+          conditions: sharedConditions,
+        },
+      ]
     }
 
     const withFilters: SelectedEvent[] = []
@@ -344,10 +361,10 @@ export function EditTriggersDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="flex h-[600px] flex-col overflow-hidden p-0 sm:max-w-md">
         <div className="flex h-full flex-col overflow-hidden p-6">
-          <AnimatePresence mode="wait" custom={navDirection.current}>
+          <AnimatePresence mode="wait" custom={navDirection}>
             <motion.div
               key={view}
-              custom={navDirection.current}
+              custom={navDirection}
               variants={innerVariants}
               initial="enter"
               animate="center"
@@ -400,7 +417,10 @@ export function EditTriggersDialog({
                   refs={configuringEvent.refs}
                   initialConditions={configuringEvent.conditions}
                   onConfirm={handleConfirmConditions}
-                  onBack={() => { setConfiguringEventKey(null); navigateTo("triggers") }}
+                  onBack={() => {
+                    setConfiguringEventKey(null)
+                    navigateTo("triggers")
+                  }}
                 />
               )}
               {view === "http-config" && (

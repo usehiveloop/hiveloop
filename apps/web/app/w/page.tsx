@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { PageHeader } from "@/components/page-header"
@@ -36,13 +36,14 @@ export default function WorkspaceHome() {
 
   const { data: employeesData, isLoading: employeesLoading } = $api.useQuery(
     "get",
-    "/v1/employees",
+    "/v1/employees"
   )
-  const employees = employeesData?.data ?? []
+  const employees = useMemo(() => employeesData?.data ?? [], [employeesData])
 
   useEffect(() => {
-    if (!agentId && employees.length > 0 && employees[0]?.id) {
-      setAgentId(employees[0].id)
+    const firstEmployeeId = employees[0]?.id
+    if (!agentId && firstEmployeeId) {
+      queueMicrotask(() => setAgentId(firstEmployeeId))
     }
   }, [agentId, employees])
 
@@ -69,7 +70,7 @@ export default function WorkspaceHome() {
         onError: (err) => {
           toast.error(extractErrorMessage(err, "Could not start chat"))
         },
-      },
+      }
     )
   }
 
@@ -80,14 +81,15 @@ export default function WorkspaceHome() {
     }
   }
 
-  const canSend = Boolean(agentId) && draft.trim().length > 0 && !createChat.isPending
+  const canSend =
+    Boolean(agentId) && draft.trim().length > 0 && !createChat.isPending
 
   return (
     <>
       <PageHeader title="Home" />
       <div className="mx-auto w-full max-w-3xl px-6 pt-16 pb-24">
         <div className="mb-8">
-          <h1 className="font-heading text-[28px] font-medium leading-tight tracking-tight text-foreground">
+          <h1 className="font-heading text-[28px] leading-tight font-medium tracking-tight text-foreground">
             What do you want shipped first?
           </h1>
           <p className="mt-2 text-[14px] text-muted-foreground">
@@ -117,7 +119,7 @@ export default function WorkspaceHome() {
                   <button
                     type="button"
                     disabled={employees.length === 0}
-                    className="flex items-center gap-2 rounded-full border border-border/70 py-1 pl-1 pr-3 text-[12.5px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-full border border-border/70 py-1 pr-3 pl-1 text-[12.5px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
                   >
                     <Avatar className="h-6 w-6">
                       {selected?.avatar_url ? (
@@ -139,7 +141,7 @@ export default function WorkspaceHome() {
                 }
               />
               <PopoverContent align="start" className="w-[340px] p-1.5">
-                <div className="px-2.5 pt-2 pb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-muted-foreground">
+                <div className="px-2.5 pt-2 pb-1.5 text-[10.5px] font-medium tracking-wide text-muted-foreground uppercase">
                   Choose an employee
                 </div>
                 <div className="space-y-0.5">

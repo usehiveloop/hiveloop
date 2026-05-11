@@ -32,8 +32,10 @@ export function EditSkillMetadataDialog({
 
   useEffect(() => {
     if (open && skill) {
-      setName(skill.name ?? "")
-      setDescription(skill.description ?? "")
+      queueMicrotask(() => {
+        setName(skill.name ?? "")
+        setDescription(skill.description ?? "")
+      })
     }
   }, [open, skill])
 
@@ -53,13 +55,15 @@ export function EditSkillMetadataDialog({
         onSuccess: () => {
           toast.success("Skill updated")
           queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
-          queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills/{id}"] })
+          queryClient.invalidateQueries({
+            queryKey: ["get", "/v1/skills/{id}"],
+          })
           onOpenChange(false)
         },
         onError: (error) => {
           toast.error(extractErrorMessage(error, "Failed to update skill"))
         },
-      },
+      }
     )
   }
 

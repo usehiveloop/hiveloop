@@ -38,9 +38,13 @@ const SIZE_PRESETS = {
 
 type SizeName = keyof typeof SIZE_PRESETS
 
-const SIZE_OPTIONS = Object.entries(SIZE_PRESETS) as [SizeName, (typeof SIZE_PRESETS)[SizeName]][]
+const SIZE_OPTIONS = Object.entries(SIZE_PRESETS) as [
+  SizeName,
+  (typeof SIZE_PRESETS)[SizeName],
+][]
 
-const DEFAULT_COMMANDS_PLACEHOLDER = "# One command per line. Lines run with && between them.\napt-get install -y python3 python3-pip\npip3 install requests"
+const DEFAULT_COMMANDS_PLACEHOLDER =
+  "# One command per line. Lines run with && between them.\napt-get install -y python3 python3-pip\npip3 install requests"
 
 interface CreateSandboxTemplateModalProps {
   open: boolean
@@ -48,7 +52,11 @@ interface CreateSandboxTemplateModalProps {
   onSuccess?: (template: SandboxTemplate) => void
 }
 
-export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: CreateSandboxTemplateModalProps) {
+export function CreateSandboxTemplateModal({
+  open,
+  onOpenChange,
+  onSuccess,
+}: CreateSandboxTemplateModalProps) {
   const [name, setName] = useState("")
   const [buildCommandsText, setBuildCommandsText] = useState("")
   const [size, setSize] = useState<SizeName>("small")
@@ -150,7 +158,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
 
       setBuildTemplateId(createdTemplate.id)
       setIsBuilding(true)
-    } catch (err) {
+    } catch {
       toast.error("Failed to create template")
     }
   }
@@ -158,11 +166,32 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
   function getStatusBadge(buildStatus?: string) {
     switch (buildStatus) {
       case "ready":
-        return <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/20">Ready</Badge>
+        return (
+          <Badge
+            variant="default"
+            className="border-green-500/20 bg-green-500/10 text-green-600"
+          >
+            Ready
+          </Badge>
+        )
       case "building":
-        return <Badge variant="default" className="bg-blue-500/10 text-blue-600 border-blue-500/20">Building</Badge>
+        return (
+          <Badge
+            variant="default"
+            className="border-blue-500/20 bg-blue-500/10 text-blue-600"
+          >
+            Building
+          </Badge>
+        )
       case "failed":
-        return <Badge variant="default" className="bg-red-500/10 text-red-600 border-red-500/20">Failed</Badge>
+        return (
+          <Badge
+            variant="default"
+            className="border-red-500/20 bg-red-500/10 text-red-600"
+          >
+            Failed
+          </Badge>
+        )
       default:
         return <Badge variant="secondary">Pending</Badge>
     }
@@ -201,10 +230,12 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {isBuilding ? "Building Sandbox Template" : "Create Sandbox Template"}
+            {isBuilding
+              ? "Building Sandbox Template"
+              : "Create Sandbox Template"}
           </DialogTitle>
           <DialogDescription>
             {isBuilding
@@ -215,7 +246,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
 
         <div className="flex-1 overflow-hidden">
           {!isBuilding ? (
-            <div className="space-y-4 py-4 max-h-[50vh] overflow-y-auto">
+            <div className="max-h-[50vh] space-y-4 overflow-y-auto py-4">
               {!isRetrying && (
                 <>
                   <div className="space-y-2">
@@ -232,7 +263,11 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                   </div>
                   <div className="space-y-2">
                     <Label>Size</Label>
-                    <div role="radiogroup" aria-label="Sandbox size" className="grid grid-cols-2 gap-2">
+                    <div
+                      role="radiogroup"
+                      aria-label="Sandbox size"
+                      className="grid grid-cols-2 gap-2"
+                    >
                       {SIZE_OPTIONS.map(([key, preset]) => {
                         const selected = size === key
                         return (
@@ -260,7 +295,8 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                       })}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Resource allocation for sandboxes built from this template.
+                      Resource allocation for sandboxes built from this
+                      template.
                     </p>
                   </div>
                 </>
@@ -275,30 +311,37 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                   height="240px"
                 />
                 <p className="text-xs text-muted-foreground">
-                  One command per line. Lines are joined with &&. Comments (#) and blanks are ignored.
+                  One command per line. Lines are joined with &&. Comments (#)
+                  and blanks are ignored.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="space-y-4 py-4 h-full">
+            <div className="h-full space-y-4 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{name}</span>
                   {getStatusBadge(template?.build_status)}
                 </div>
                 {isLoading && (
-                  <span className="text-xs text-muted-foreground">Loading...</span>
+                  <span className="text-xs text-muted-foreground">
+                    Loading...
+                  </span>
                 )}
               </div>
 
               {template?.build_status === "failed" && template.build_error && (
-                <div className="rounded-md bg-red-500/10 border border-red-500/20 p-3">
-                  <p className="text-sm font-medium text-red-600">Build Error:</p>
-                  <p className="text-xs text-red-600/80 mt-1">{template.build_error}</p>
+                <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3">
+                  <p className="text-sm font-medium text-red-600">
+                    Build Error:
+                  </p>
+                  <p className="mt-1 text-xs text-red-600/80">
+                    {template.build_error}
+                  </p>
                 </div>
               )}
 
-              <ScrollToBottom className="h-[300px] rounded-md bg-black border">
+              <ScrollToBottom className="h-[300px] rounded-md border bg-black">
                 <SyntaxHighlighter
                   language="bash"
                   style={oneDark}
@@ -310,14 +353,16 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                   }}
                   showLineNumbers
                 >
-                  {logs.length > 0 ? logs.join("\n") : "# Waiting for logs...\n"}
+                  {logs.length > 0
+                    ? logs.join("\n")
+                    : "# Waiting for logs...\n"}
                 </SyntaxHighlighter>
               </ScrollToBottom>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t">
+        <div className="flex justify-end gap-2 border-t pt-4">
           {!isBuilding ? (
             <>
               {isRetrying ? (
@@ -347,7 +392,9 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                   <Button
                     onClick={handleCreateAndBuild}
                     loading={createTemplate.isPending || triggerBuild.isPending}
-                    disabled={createTemplate.isPending || triggerBuild.isPending}
+                    disabled={
+                      createTemplate.isPending || triggerBuild.isPending
+                    }
                   >
                     Build
                   </Button>
@@ -356,11 +403,9 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
             </>
           ) : (
             <>
-              {(template?.build_status === "failed" || template?.build_status === "ready") && (
-                <Button
-                  variant="outline"
-                  onClick={handleRetry}
-                >
+              {(template?.build_status === "failed" ||
+                template?.build_status === "ready") && (
+                <Button variant="outline" onClick={handleRetry}>
                   Retry
                 </Button>
               )}

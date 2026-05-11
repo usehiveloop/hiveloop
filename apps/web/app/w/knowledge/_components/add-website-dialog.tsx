@@ -26,7 +26,10 @@ interface AddWebsiteDialogProps {
 const DEFAULT_MAX_PAGES = 500
 const PAGE_PRICE_CREDITS = 1
 
-export function AddWebsiteDialog({ open, onOpenChange }: AddWebsiteDialogProps) {
+export function AddWebsiteDialog({
+  open,
+  onOpenChange,
+}: AddWebsiteDialogProps) {
   const [name, setName] = useState("")
   const [url, setUrl] = useState("")
   const [maxPages, setMaxPages] = useState<number>(DEFAULT_MAX_PAGES)
@@ -36,10 +39,12 @@ export function AddWebsiteDialog({ open, onOpenChange }: AddWebsiteDialogProps) 
 
   useEffect(() => {
     if (!open) {
-      setName("")
-      setUrl("")
-      setMaxPages(DEFAULT_MAX_PAGES)
-      setRespectRobots(true)
+      queueMicrotask(() => {
+        setName("")
+        setUrl("")
+        setMaxPages(DEFAULT_MAX_PAGES)
+        setRespectRobots(true)
+      })
     }
   }, [open])
 
@@ -68,14 +73,17 @@ export function AddWebsiteDialog({ open, onOpenChange }: AddWebsiteDialogProps) 
         },
       })
       toast.success("Website added — crawl starting")
-      await queryClient.invalidateQueries({ queryKey: ["get", "/v1/rag/sources"] })
+      await queryClient.invalidateQueries({
+        queryKey: ["get", "/v1/rag/sources"],
+      })
       onOpenChange(false)
     } catch (err) {
       toast.error(extractErrorMessage(err, "Failed to add website"))
     }
   }
 
-  const estimatedCredits = Math.max(0, Math.floor(maxPages)) * PAGE_PRICE_CREDITS
+  const estimatedCredits =
+    Math.max(0, Math.floor(maxPages)) * PAGE_PRICE_CREDITS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,7 +91,8 @@ export function AddWebsiteDialog({ open, onOpenChange }: AddWebsiteDialogProps) 
         <DialogHeader>
           <DialogTitle>Add a website</DialogTitle>
           <DialogDescription>
-            Crawls the URL and indexes each page as markdown. The crawl follows links from the seed URL and includes sitemap entries.
+            Crawls the URL and indexes each page as markdown. The crawl follows
+            links from the seed URL and includes sitemap entries.
           </DialogDescription>
         </DialogHeader>
 

@@ -31,7 +31,7 @@ export function GalleryView() {
         title: `Generation ${String(index + 1).padStart(2, "0")}`,
         prompt: PROMPTS[index % PROMPTS.length],
       })),
-    [],
+    []
   )
 
   return (
@@ -47,6 +47,7 @@ export function GalleryView() {
               key={image.id}
               className="group overflow-hidden rounded-lg border border-border/60 bg-muted/30"
             >
+              {/* eslint-disable-next-line @next/next/no-img-element -- remote workspace screenshots are dynamic masonry assets. */}
               <img
                 src={image.url}
                 alt={image.title}
@@ -55,7 +56,9 @@ export function GalleryView() {
               />
               <figcaption className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px]">
                 <span className="truncate text-foreground">{image.title}</span>
-                <span className="truncate font-mono text-muted-foreground/70">{image.prompt}</span>
+                <span className="truncate font-mono text-muted-foreground/70">
+                  {image.prompt}
+                </span>
               </figcaption>
             </figure>
           ))}

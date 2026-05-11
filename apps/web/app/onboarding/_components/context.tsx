@@ -1,13 +1,32 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
 import { useForm, type UseFormReturn } from "react-hook-form"
 import { $api } from "@/lib/api/hooks"
+import { useAuth } from "@/lib/auth/auth-context"
 
 export type Channel = "slack" | "whatsapp"
-export type StepKey = "employee" | "provisioning" | "channel" | "configure" | "business"
+export type StepKey =
+  | "employee"
+  | "provisioning"
+  | "channel"
+  | "configure"
+  | "business"
 
-const STEP_ORDER: StepKey[] = ["employee", "provisioning", "channel", "configure", "business"]
+const STEP_ORDER: StepKey[] = [
+  "employee",
+  "channel",
+  "configure",
+  "business",
+  "provisioning",
+]
 
 export interface OnboardingFormValues {
   agentName: string
@@ -40,7 +59,6 @@ const DEFAULT_VALUES: OnboardingFormValues = {
 interface CreateEmployeeState {
   status: "idle" | "pending" | "success" | "error"
   agentId?: string
-  sandboxId?: string
   errorMessage?: string
 }
 
@@ -63,30 +81,58 @@ const OnboardingContext = createContext<OnboardingContextValue | null>(null)
 
 export function useOnboarding() {
   const ctx = useContext(OnboardingContext)
-  if (!ctx) throw new Error("useOnboarding must be used within OnboardingProvider")
+  if (!ctx)
+    throw new Error("useOnboarding must be used within OnboardingProvider")
   return ctx
 }
 
-export function OnboardingProvider({ children }: { children: React.ReactNode }) {
+export function OnboardingProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const form = useForm<OnboardingFormValues>({
     defaultValues: DEFAULT_VALUES,
     mode: "onChange",
   })
+  const { activeOrg } = useAuth()
   const [step, setStep] = useState<StepKey>("employee")
   const stepIndex = STEP_ORDER.indexOf(step)
 
   const createEmployeeMutation = $api.useMutation("post", "/v1/employees")
   const employeesQuery = $api.useQuery("get", "/v1/employees")
-  const [bootstrapped, setBootstrapped] = useState<{
-    agentId: string
-    sandboxId: string
-  } | null>(null)
+  const bootstrappedRef = useRef(false)
+  const activeOrgRef = useRef<string | null | undefined>(undefined)
+  const firstEmployee = employeesQuery.data?.data?.[0]
+  const bootstrapped = firstEmployee?.id
+    ? {
+        agentId: firstEmployee.id,
+      }
+    : null
 
   useEffect(() => {
-    if (bootstrapped) return
+    const activeOrgId = activeOrg?.id ?? null
+    if (activeOrgRef.current === undefined) {
+      activeOrgRef.current = activeOrgId
+      return
+    }
+    if (activeOrgRef.current === activeOrgId) return
+
+    activeOrgRef.current = activeOrgId
+    bootstrappedRef.current = false
+    queueMicrotask(() => {
+      createEmployeeMutation.reset()
+      form.reset(DEFAULT_VALUES)
+      setStep("employee")
+    })
+  }, [activeOrg?.id, createEmployeeMutation, form])
+
+  useEffect(() => {
+    if (bootstrappedRef.current) return
     if (!employeesQuery.data) return
-    const first = employeesQuery.data.data?.[0]
+    const first = firstEmployee
     if (!first || !first.id) return
+    bootstrappedRef.current = true
 
     form.setValue("agentName", first.name ?? "")
     form.setValue("agentDescription", first.description ?? "")
@@ -94,7 +140,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     form.setValue("agentCategory", first.category ?? "")
 
     const slackProfile = first.profiles?.find(
-      (p) => p.provider === "slack" && p.status === "active",
+      (p) => p.provider === "slack" && p.status === "active"
     )
     if (slackProfile) {
       form.setValue("channel", "slack")
@@ -106,19 +152,14 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       }
     }
 
-    setBootstrapped({
-      agentId: first.id,
-      sandboxId: first.sandbox?.id ?? "",
-    })
-    setStep(slackProfile ? "business" : "provisioning")
-  }, [employeesQuery.data, bootstrapped, form])
+    queueMicrotask(() => setStep(slackProfile ? "business" : "channel"))
+  }, [employeesQuery.data, firstEmployee, form])
 
   const createEmployee: CreateEmployeeState = (() => {
     if (bootstrapped) {
       return {
         status: "success",
         agentId: bootstrapped.agentId,
-        sandboxId: bootstrapped.sandboxId,
       }
     }
     if (createEmployeeMutation.isPending) return { status: "pending" }
@@ -126,16 +167,17 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       return {
         status: "success",
         agentId: createEmployeeMutation.data.agent_id,
-        sandboxId: createEmployeeMutation.data.sandbox_id,
       }
     }
     if (createEmployeeMutation.isError) {
-      const err = createEmployeeMutation.error as unknown as { error?: string } | undefined
+      const err = createEmployeeMutation.error as unknown as
+        | { error?: string }
+        | undefined
       return {
         status: "error",
         errorMessage:
           (err && typeof err === "object" && "error" in err && err.error) ||
-          "Could not provision your AI employee. Try again.",
+          "Could not save your AI employee profile. Try again.",
       }
     }
     return { status: "idle" }
@@ -143,14 +185,19 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const submitEmployee = useCallback(() => {
     const v = form.getValues()
-    createEmployeeMutation.mutate({
-      body: {
-        category: v.agentCategory,
-        name: v.agentName.trim(),
-        description: v.agentDescription.trim(),
-        avatar_url: v.agentAvatarUrl?.trim() || "",
+    createEmployeeMutation.mutate(
+      {
+        body: {
+          category: v.agentCategory,
+          name: v.agentName.trim(),
+          description: v.agentDescription.trim(),
+          avatar_url: v.agentAvatarUrl?.trim() || "",
+        },
       },
-    })
+      {
+        onSuccess: () => setStep("channel"),
+      }
+    )
   }, [form, createEmployeeMutation])
 
   const retryEmployee = useCallback(() => {
@@ -180,7 +227,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         return STEP_ORDER[idx + 1] ?? current
       })
     },
-    [form],
+    [form]
   )
 
   return (

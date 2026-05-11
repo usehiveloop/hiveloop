@@ -44,12 +44,16 @@ interface ConfigurableResource {
 type Step = "connections" | "resources"
 
 function getConfigurableResources(connection: unknown): ConfigurableResource[] {
-  const raw = (connection as Record<string, unknown> | null)?.configurable_resources
+  const raw = (connection as Record<string, unknown> | null)
+    ?.configurable_resources
   if (!Array.isArray(raw)) return []
   return raw as ConfigurableResource[]
 }
 
-function buildSourceConfig(provider: string, picks: ResourceItem[]): Record<string, unknown> {
+function buildSourceConfig(
+  provider: string,
+  picks: ResourceItem[]
+): Record<string, unknown> {
   const lowered = provider.toLowerCase()
   if (
     lowered === "github" ||
@@ -83,44 +87,42 @@ export function AddConnectionDialog({
 
   useEffect(() => {
     if (open) {
-      setStep("connections")
-      setCurrentIdx(0)
-      setSearch("")
-      setSelected(new Set())
-      setPicks(new Map())
+      queueMicrotask(() => {
+        setStep("connections")
+        setCurrentIdx(0)
+        setSearch("")
+        setSelected(new Set())
+        setPicks(new Map())
+      })
     }
   }, [open])
 
-  const { data: connectionsData, isLoading: connectionsLoading } = $api.useQuery(
-    "get",
-    "/v1/in/connections",
-  )
+  const { data: connectionsData, isLoading: connectionsLoading } =
+    $api.useQuery("get", "/v1/in/connections")
   const { data: supportedData, isLoading: supportedLoading } = $api.useQuery(
     "get",
-    "/v1/rag/integrations",
+    "/v1/rag/integrations"
   )
   const isLoading = connectionsLoading || supportedLoading
 
   const supportedIntegrationIds = useMemo(
     () =>
       new Set(
-        (supportedData?.data ?? []).map((i) => i.id).filter((id): id is string => !!id),
+        (supportedData?.data ?? [])
+          .map((i) => i.id)
+          .filter((id): id is string => !!id)
       ),
-    [supportedData],
+    [supportedData]
   )
 
   const connections = (connectionsData?.data ?? []).filter((c) => !c.revoked_at)
-  const connectionsById = useMemo(
-    () => new Map(connections.map((c) => [c.id ?? "", c])),
-    [connections],
-  )
   const orderedSelected = useMemo(
     () => connections.filter((c) => c.id && selected.has(c.id)),
-    [connections, selected],
+    [connections, selected]
   )
   const currentConnection = orderedSelected[currentIdx]
   const currentResourceType = currentConnection
-    ? getConfigurableResources(currentConnection)[0]?.key ?? ""
+    ? (getConfigurableResources(currentConnection)[0]?.key ?? "")
     : ""
 
   const filtered = useMemo(() => {
@@ -129,7 +131,7 @@ export function AddConnectionDialog({
     return connections.filter(
       (c) =>
         (c.display_name ?? "").toLowerCase().includes(query) ||
-        (c.provider ?? "").toLowerCase().includes(query),
+        (c.provider ?? "").toLowerCase().includes(query)
     )
   }, [connections, search])
 
@@ -148,7 +150,10 @@ export function AddConnectionDialog({
       const current = next.get(connId) ?? []
       const idx = current.findIndex((p) => p.id === item.id)
       if (idx >= 0) {
-        next.set(connId, current.filter((_, i) => i !== idx))
+        next.set(
+          connId,
+          current.filter((_, i) => i !== idx)
+        )
       } else {
         next.set(connId, [...current, item])
       }
@@ -186,7 +191,7 @@ export function AddConnectionDialog({
             config: buildSourceConfig(provider, items),
           },
         })
-      }),
+      })
     )
 
     const succeeded = results.filter((r) => r.status === "fulfilled").length
@@ -199,7 +204,7 @@ export function AddConnectionDialog({
       toast.success(
         succeeded === 1
           ? "Connection added to Knowledge Base"
-          : `${succeeded} connections added to Knowledge Base`,
+          : `${succeeded} connections added to Knowledge Base`
       )
     }
     if (failed > 0) {
@@ -211,8 +216,8 @@ export function AddConnectionDialog({
           firstError?.reason,
           failed === 1
             ? "Failed to add connection"
-            : `Failed to add ${failed} connection${failed > 1 ? "s" : ""}`,
-        ),
+            : `Failed to add ${failed} connection${failed > 1 ? "s" : ""}`
+        )
       )
     }
     if (failed === 0) {
@@ -222,13 +227,13 @@ export function AddConnectionDialog({
 
   const selectedCount = selected.size
   const currentPicks = currentConnection
-    ? picks.get(currentConnection.id ?? "") ?? []
+    ? (picks.get(currentConnection.id ?? "") ?? [])
     : []
   const isLastConnection = currentIdx === orderedSelected.length - 1
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex flex-col h-[min(780px,85vh)] p-6">
+      <DialogContent className="flex h-[min(780px,85vh)] flex-col p-6">
         {step === "connections" ? (
           <>
             <DialogHeader>
@@ -242,30 +247,30 @@ export function AddConnectionDialog({
               <HugeiconsIcon
                 icon={Search01Icon}
                 size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
               />
               <Input
                 placeholder="Search connections..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-9"
+                className="h-9 pl-9"
               />
             </div>
 
-            <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
+            <div className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto">
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className="h-[64px] w-full rounded-xl" />
                 ))
               ) : filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <div className="flex flex-col items-center justify-center gap-3 py-12">
                   {search ? (
                     <p className="text-sm text-muted-foreground">
                       No connections found.
                     </p>
                   ) : (
                     <>
-                      <div className="flex items-center justify-center size-12 rounded-full bg-muted">
+                      <div className="flex size-12 items-center justify-center rounded-full bg-muted">
                         <HugeiconsIcon
                           icon={Plug01Icon}
                           size={20}
@@ -276,7 +281,7 @@ export function AddConnectionDialog({
                         <p className="text-sm font-medium text-foreground">
                           No connections yet
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">
+                        <p className="mt-1 max-w-[240px] text-xs text-muted-foreground">
                           Head to the Connections page to connect your first
                           integration, then come back here.
                         </p>
@@ -297,39 +302,45 @@ export function AddConnectionDialog({
                       type="button"
                       onClick={() => !isDisabled && toggle(id)}
                       disabled={isDisabled}
-                      title={isDisabled ? "This integration doesn't support knowledge ingestion yet." : undefined}
-                      className={`group flex items-start gap-4 w-full rounded-xl p-4 text-left transition-colors ${
+                      title={
                         isDisabled
-                          ? "bg-muted/30 border border-transparent opacity-50 cursor-not-allowed"
+                          ? "This integration doesn't support knowledge ingestion yet."
+                          : undefined
+                      }
+                      className={`group flex w-full items-start gap-4 rounded-xl p-4 text-left transition-colors ${
+                        isDisabled
+                          ? "cursor-not-allowed border border-transparent bg-muted/30 opacity-50"
                           : isSelected
-                          ? "bg-primary/5 border border-primary/20 cursor-pointer"
-                          : "bg-muted/50 hover:bg-muted border border-transparent cursor-pointer"
+                            ? "cursor-pointer border border-primary/20 bg-primary/5"
+                            : "cursor-pointer border border-transparent bg-muted/50 hover:bg-muted"
                       }`}
                     >
                       <IntegrationLogo
                         provider={connection.provider ?? ""}
                         size={32}
-                        className="shrink-0 mt-0.5"
+                        className="mt-0.5 shrink-0"
                       />
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-foreground">
                           {connection.display_name}
                         </p>
-                        <p className="text-[13px] text-muted-foreground mt-0.5">
-                          {isDisabled ? "Not supported yet" : connection.provider}
+                        <p className="mt-0.5 text-[13px] text-muted-foreground">
+                          {isDisabled
+                            ? "Not supported yet"
+                            : connection.provider}
                         </p>
                       </div>
                       {isSelected ? (
                         <HugeiconsIcon
                           icon={Tick02Icon}
                           size={16}
-                          className="text-primary shrink-0 mt-0.5"
+                          className="mt-0.5 shrink-0 text-primary"
                         />
                       ) : (
                         <HugeiconsIcon
                           icon={ArrowRight01Icon}
                           size={16}
-                          className="text-muted-foreground/30 shrink-0 mt-0.5"
+                          className="mt-0.5 shrink-0 text-muted-foreground/30"
                         />
                       )}
                     </button>
@@ -338,7 +349,7 @@ export function AddConnectionDialog({
               )}
             </div>
 
-            <div className="pt-4 shrink-0">
+            <div className="shrink-0 pt-4">
               <Button
                 onClick={startConfiguring}
                 disabled={selectedCount === 0}
@@ -356,7 +367,9 @@ export function AddConnectionDialog({
             connection={currentConnection}
             resourceType={currentResourceType}
             picks={currentPicks}
-            onTogglePick={(item) => togglePick(currentConnection.id ?? "", item)}
+            onTogglePick={(item) =>
+              togglePick(currentConnection.id ?? "", item)
+            }
             onBack={backFromResources}
             onNext={() => {
               if (isLastConnection) {
@@ -376,7 +389,12 @@ export function AddConnectionDialog({
 }
 
 interface ResourceStepProps {
-  connection: { id?: string; provider?: string; display_name?: string; configurable_resources?: unknown }
+  connection: {
+    id?: string
+    provider?: string
+    display_name?: string
+    configurable_resources?: unknown
+  }
   resourceType: string
   picks: ResourceItem[]
   onTogglePick: (item: ResourceItem) => void
@@ -403,10 +421,12 @@ function ResourceStep({
     "/v1/in/connections/{id}/resources/{type}",
     {
       params: { path: { id: connection.id ?? "", type: resourceType } },
-    },
+    }
   )
   const items: ResourceItem[] =
-    ((data as Record<string, unknown> | undefined)?.resources as ResourceItem[] | undefined) ?? []
+    ((data as Record<string, unknown> | undefined)?.resources as
+      | ResourceItem[]
+      | undefined) ?? []
   const pickedIds = useMemo(() => new Set(picks.map((p) => p.id)), [picks])
   const resourceLabel = (() => {
     const all = getConfigurableResources(connection)
@@ -419,7 +439,7 @@ function ResourceStep({
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit mb-2"
+          className="mb-2 flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <HugeiconsIcon icon={ArrowLeft01Icon} size={14} />
           Back
@@ -432,17 +452,18 @@ function ResourceStep({
           </span>
         </DialogTitle>
         <DialogDescription className="mt-2">
-          Pick which {resourceLabel.toLowerCase()} to ingest from this connection.
+          Pick which {resourceLabel.toLowerCase()} to ingest from this
+          connection.
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
+      <div className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto">
         {isLoading ? (
           Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-[64px] w-full rounded-xl" />
           ))
         ) : items.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">
+          <p className="py-8 text-center text-sm text-muted-foreground">
             No {resourceLabel.toLowerCase()} available on this connection.
           </p>
         ) : (
@@ -453,18 +474,18 @@ function ResourceStep({
                 key={item.id}
                 type="button"
                 onClick={() => onTogglePick(item)}
-                className={`group flex items-start gap-4 w-full rounded-xl p-4 text-left transition-colors ${
+                className={`group flex w-full items-start gap-4 rounded-xl p-4 text-left transition-colors ${
                   isSelected
-                    ? "bg-primary/5 border border-primary/20 cursor-pointer"
-                    : "bg-muted/50 hover:bg-muted border border-transparent cursor-pointer"
+                    ? "cursor-pointer border border-primary/20 bg-primary/5"
+                    : "cursor-pointer border border-transparent bg-muted/50 hover:bg-muted"
                 }`}
               >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-foreground">
                     {item.name}
                   </p>
                   {item.id !== item.name ? (
-                    <p className="text-[12px] text-muted-foreground mt-0.5 font-mono truncate">
+                    <p className="mt-0.5 truncate font-mono text-[12px] text-muted-foreground">
                       {item.id}
                     </p>
                   ) : null}
@@ -473,10 +494,10 @@ function ResourceStep({
                   <HugeiconsIcon
                     icon={Tick02Icon}
                     size={16}
-                    className="text-primary shrink-0 mt-0.5"
+                    className="mt-0.5 shrink-0 text-primary"
                   />
                 ) : (
-                  <span className="size-4 rounded-full border border-border shrink-0 mt-0.5" />
+                  <span className="mt-0.5 size-4 shrink-0 rounded-full border border-border" />
                 )}
               </button>
             )
@@ -484,7 +505,7 @@ function ResourceStep({
         )}
       </div>
 
-      <div className="pt-4 shrink-0">
+      <div className="shrink-0 pt-4">
         <Button
           onClick={onNext}
           disabled={picks.length === 0}
@@ -494,8 +515,8 @@ function ResourceStep({
           {picks.length === 0
             ? `Select at least one ${resourceLabel.toLowerCase().replace(/s$/, "")}`
             : isLast
-            ? `Add ${picks.length} ${resourceLabel.toLowerCase()} to Knowledge Base`
-            : `Next connection`}
+              ? `Add ${picks.length} ${resourceLabel.toLowerCase()} to Knowledge Base`
+              : `Next connection`}
         </Button>
       </div>
     </>

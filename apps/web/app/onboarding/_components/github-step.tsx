@@ -26,11 +26,11 @@ export function GithubStep() {
 
   const { data: integrations, isLoading: integrationsLoading } = $api.useQuery(
     "get",
-    "/v1/in/integrations/available",
+    "/v1/in/integrations/available"
   )
 
   const githubIntegration = integrations?.find(
-    (integration) => integration.provider === GITHUB_PROVIDER,
+    (integration) => integration.provider === GITHUB_PROVIDER
   )
 
   async function handleConnect() {
@@ -40,30 +40,33 @@ export function GithubStep() {
     setErrorMessage(null)
 
     try {
-      const session = await api.POST("/v1/in/integrations/{id}/connect-session", {
-        params: { path: { id: githubIntegration.id } },
-      })
+      const session = await api.POST(
+        "/v1/in/integrations/{id}/connect-session",
+        {
+          params: { path: { id: githubIntegration.id } },
+        }
+      )
       if (session.error) throw new Error("Failed to create session")
 
-      const { token, provider_config_key: providerConfigKey } = session.data as {
-        token: string
-        provider_config_key: string
-      }
+      const { token, provider_config_key: providerConfigKey } =
+        session.data as {
+          token: string
+          provider_config_key: string
+        }
 
       const nango = new Nango({
         connectSessionToken: token,
         host: process.env.NEXT_PUBLIC_CONNECTIONS_HOST,
       })
 
-      const authResult = await nango.auth(providerConfigKey)
-      console.log("[onboarding/github] nango auth result", authResult)
+      await nango.auth(providerConfigKey)
       goNext()
     } catch (error) {
       if (error instanceof AuthError && error.type === "window_closed") {
         return
       }
       setErrorMessage(
-        extractErrorMessage(error, "Could not connect GitHub. Try again."),
+        extractErrorMessage(error, "Could not connect GitHub. Try again.")
       )
     } finally {
       setConnecting(false)

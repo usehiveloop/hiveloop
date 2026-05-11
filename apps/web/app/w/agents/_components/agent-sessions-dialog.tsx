@@ -22,7 +22,10 @@ interface AgentSessionsDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function AgentSessionsDialog({ agent, onOpenChange }: AgentSessionsDialogProps) {
+export function AgentSessionsDialog({
+  agent,
+  onOpenChange,
+}: AgentSessionsDialogProps) {
   const open = agent !== null
   const { sessions, isLoading } = useAgentSessions(agent?.id ?? null)
 
@@ -53,9 +56,12 @@ export function AgentSessionsDialog({ agent, onOpenChange }: AgentSessionsDialog
                 />
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-foreground">No sessions yet</p>
+                <p className="text-sm font-medium text-foreground">
+                  No sessions yet
+                </p>
                 <p className="mt-1 max-w-[240px] text-xs text-muted-foreground">
-                  Start a new session with this agent and it'll show up here.
+                  Start a new session with this agent and it&apos;ll show up
+                  here.
                 </p>
               </div>
             </div>
@@ -66,7 +72,9 @@ export function AgentSessionsDialog({ agent, onOpenChange }: AgentSessionsDialog
                 const title = session.name ?? session.id
                 const description = [
                   session.status,
-                  session.created_at ? new Date(session.created_at).toLocaleString() : null,
+                  session.created_at
+                    ? new Date(session.created_at).toLocaleString()
+                    : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")

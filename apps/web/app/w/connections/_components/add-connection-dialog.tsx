@@ -13,7 +13,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Loading03Icon, ArrowRight01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
+import {
+  Loading03Icon,
+  ArrowRight01Icon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons"
 import { IntegrationLogo } from "@/components/integration-logo"
 import { CredentialsForm } from "./credentials-form"
 import type { components } from "@/lib/api/schema"
@@ -50,7 +54,7 @@ function needsForm(integration: Integration): boolean {
     | undefined
   if (connectionConfig) {
     const hasRequiredFields = Object.values(connectionConfig).some(
-      (field) => !field.automated,
+      (field) => !field.automated
     )
     if (hasRequiredFields) return true
   }
@@ -68,35 +72,42 @@ export function AddConnectionDialog({
   preSelectedIntegrationId,
   onPreSelectedClear,
 }: AddConnectionDialogProps) {
-  const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null)
+  const [selectedIntegration, setSelectedIntegration] =
+    useState<Integration | null>(null)
 
   const { data, isLoading } = $api.useQuery(
     "get",
     "/v1/in/integrations/available",
     {},
-    { enabled: open },
+    { enabled: open }
   )
 
   const { data: connectionsData } = $api.useQuery(
     "get",
     "/v1/in/connections",
     {},
-    { enabled: open },
+    { enabled: open }
   )
 
   const connectedIntegrationIds = useMemo(() => {
     const connections = connectionsData?.data ?? []
-    return new Set(connections.map((connection) => connection.in_integration_id))
+    return new Set(
+      connections.map((connection) => connection.in_integration_id)
+    )
   }, [connectionsData])
 
-  const integrations = data ?? []
+  const integrations = useMemo(() => data ?? [], [data])
 
   // Handle pre-selected integration from empty state
   useEffect(() => {
-    if (preSelectedIntegrationId && integrations.length > 0 && !selectedIntegration) {
+    if (
+      preSelectedIntegrationId &&
+      integrations.length > 0 &&
+      !selectedIntegration
+    ) {
       const found = integrations.find((i) => i.id === preSelectedIntegrationId)
       if (found && needsForm(found)) {
-        setSelectedIntegration(found)
+        queueMicrotask(() => setSelectedIntegration(found))
       }
     }
   }, [preSelectedIntegrationId, integrations, selectedIntegration])
@@ -107,7 +118,7 @@ export function AddConnectionDialog({
     return integrations.filter(
       (integration) =>
         (integration.display_name ?? "").toLowerCase().includes(query) ||
-        (integration.provider ?? "").toLowerCase().includes(query),
+        (integration.provider ?? "").toLowerCase().includes(query)
     )
   }, [integrations, search])
 
@@ -122,7 +133,7 @@ export function AddConnectionDialog({
   function handleFormSubmit(
     credentials: Record<string, string> | undefined,
     params: Record<string, string>,
-    installation?: "outbound",
+    installation?: "outbound"
   ) {
     if (!selectedIntegration?.id) return
 
@@ -133,7 +144,7 @@ export function AddConnectionDialog({
 
     onConnect(
       selectedIntegration.id,
-      Object.keys(options).length > 0 ? options : undefined,
+      Object.keys(options).length > 0 ? options : undefined
     )
   }
 
@@ -184,37 +195,53 @@ export function AddConnectionDialog({
                   ))}
                 </div>
               ) : filtered.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
+                <div className="flex h-full items-center justify-center">
                   <p className="text-sm text-muted-foreground">
-                    {search ? "No integrations found." : "No integrations available."}
+                    {search
+                      ? "No integrations found."
+                      : "No integrations available."}
                   </p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-1">
                   {filtered.map((integration) => {
                     const isConnecting = connectingId === integration.id
-                    const isConnected = connectedIntegrationIds.has(integration.id)
+                    const isConnected = connectedIntegrationIds.has(
+                      integration.id
+                    )
                     const isDisabled = isConnected || connectingId !== null
                     return (
                       <button
                         key={integration.id}
                         type="button"
                         disabled={isDisabled}
-                        className="flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted cursor-pointer disabled:cursor-not-allowed"
+                        className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted disabled:cursor-not-allowed"
                         onClick={() => handleIntegrationClick(integration)}
                       >
-                        <IntegrationLogo provider={integration.provider ?? ""} size={24} />
+                        <IntegrationLogo
+                          provider={integration.provider ?? ""}
+                          size={24}
+                        />
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">
+                          <p className="truncate text-sm font-medium">
                             {integration.display_name}
                           </p>
                         </div>
                         {isConnected ? (
-                          <HugeiconsIcon icon={Tick02Icon} className="size-4 text-green-500" />
+                          <HugeiconsIcon
+                            icon={Tick02Icon}
+                            className="size-4 text-green-500"
+                          />
                         ) : isConnecting ? (
-                          <HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin text-muted-foreground" />
+                          <HugeiconsIcon
+                            icon={Loading03Icon}
+                            className="size-4 animate-spin text-muted-foreground"
+                          />
                         ) : (
-                          <HugeiconsIcon icon={ArrowRight01Icon} className="size-4 text-muted-foreground" />
+                          <HugeiconsIcon
+                            icon={ArrowRight01Icon}
+                            className="size-4 text-muted-foreground"
+                          />
                         )}
                       </button>
                     )

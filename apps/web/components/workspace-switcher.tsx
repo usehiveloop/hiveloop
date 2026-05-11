@@ -25,6 +25,8 @@ import {
 } from "@hugeicons/core-free-icons"
 import { useAuth } from "@/lib/auth/auth-context"
 import { CreateWorkspaceDialog } from "@/components/create-workspace-dialog"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 function initial(name?: string) {
   return name?.trim().charAt(0).toUpperCase() || "?"
@@ -163,6 +165,102 @@ export function WorkspaceSwitcher() {
         open={createOpen}
         onOpenChange={setCreateOpen}
       />
+    </>
+  )
+}
+
+export function HeaderWorkspaceSwitcher({
+  className,
+}: {
+  className?: string
+}) {
+  const { orgs, activeOrg, setActiveOrg } = useAuth()
+  const [createOpen, setCreateOpen] = React.useState(false)
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-9 max-w-[220px] justify-start gap-2 rounded-xl px-2.5 text-left shadow-none",
+                className
+              )}
+            />
+          }
+        >
+          <OrgAvatar
+            name={activeOrg?.name}
+            logoUrl={activeOrg?.logo_url}
+            size={6}
+          />
+          <span className="min-w-0 flex-1 truncate text-sm font-medium">
+            {activeOrg?.name ?? "Select workspace"}
+          </span>
+          <HugeiconsIcon
+            icon={UnfoldMoreIcon}
+            strokeWidth={2}
+            className="size-4 shrink-0 text-muted-foreground"
+          />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          className="min-w-64"
+          side="bottom"
+          align="start"
+          sideOffset={8}
+        >
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              Workspaces
+            </DropdownMenuLabel>
+            {orgs.map((org) => {
+              const isActive = org.id === activeOrg?.id
+              return (
+                <DropdownMenuItem
+                  key={org.id ?? org.name}
+                  onClick={() => setActiveOrg(org)}
+                  className="gap-2 p-2"
+                >
+                  <OrgAvatar
+                    name={org.name}
+                    logoUrl={org.logo_url}
+                    size={6}
+                  />
+                  <span className="flex-1 truncate">{org.name}</span>
+                  {isActive ? (
+                    <HugeiconsIcon
+                      icon={Tick02Icon}
+                      strokeWidth={2}
+                      className="size-4 text-primary"
+                    />
+                  ) : null}
+                </DropdownMenuItem>
+              )
+            })}
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="gap-2 p-2"
+            onClick={() => setCreateOpen(true)}
+          >
+            <div className="flex size-6 items-center justify-center rounded-md border bg-background">
+              <HugeiconsIcon
+                icon={Add01Icon}
+                strokeWidth={2}
+                className="size-4"
+              />
+            </div>
+            <span className="font-medium text-muted-foreground">
+              Add workspace
+            </span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <CreateWorkspaceDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
   )
 }

@@ -32,7 +32,7 @@ export default function OAuthCallbackPage() {
     exchanged.current = true
 
     exchange.mutate({ body: { token } })
-  }, [token, error, router])
+  }, [token, error, router, exchange])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">

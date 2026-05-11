@@ -37,7 +37,8 @@ function isPublicTemplate(template: SandboxTemplate): boolean {
 
 export function SandboxTemplatesList() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
-  const [deletingTemplate, setDeletingTemplate] = useState<SandboxTemplate | null>(null)
+  const [deletingTemplate, setDeletingTemplate] =
+    useState<SandboxTemplate | null>(null)
 
   const { data: response, isLoading, refetch } = useSandboxTemplates()
   const templates = response?.data ?? []
@@ -48,11 +49,32 @@ export function SandboxTemplatesList() {
   function getStatusBadge(status?: string) {
     switch (status) {
       case "ready":
-        return <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/20">Ready</Badge>
+        return (
+          <Badge
+            variant="default"
+            className="border-green-500/20 bg-green-500/10 text-green-600"
+          >
+            Ready
+          </Badge>
+        )
       case "building":
-        return <Badge variant="default" className="bg-blue-500/10 text-blue-600 border-blue-500/20">Building</Badge>
+        return (
+          <Badge
+            variant="default"
+            className="border-blue-500/20 bg-blue-500/10 text-blue-600"
+          >
+            Building
+          </Badge>
+        )
       case "failed":
-        return <Badge variant="default" className="bg-red-500/10 text-red-600 border-red-500/20">Failed</Badge>
+        return (
+          <Badge
+            variant="default"
+            className="border-red-500/20 bg-red-500/10 text-red-600"
+          >
+            Failed
+          </Badge>
+        )
       default:
         return <Badge variant="secondary">Pending</Badge>
     }
@@ -89,7 +111,7 @@ export function SandboxTemplatesList() {
     )
   }
 
-  function handleCreateSuccess(template: SandboxTemplate) {
+  function handleCreateSuccess(_template: SandboxTemplate) {
     refetch()
   }
 
@@ -99,7 +121,7 @@ export function SandboxTemplatesList() {
         <div className="flex items-center justify-between">
           <div>
             <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-4 w-64 mt-2" />
+            <Skeleton className="mt-2 h-4 w-64" />
           </div>
           <Skeleton className="h-10 w-32" />
         </div>
@@ -117,7 +139,7 @@ export function SandboxTemplatesList() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-medium">Sandbox Templates</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             Custom sandbox environments for your agents.
           </p>
         </div>
@@ -129,26 +151,40 @@ export function SandboxTemplatesList() {
 
       {templates.length === 0 ? (
         <div className="flex flex-col items-center py-14">
-          <div className="text-center mb-6">
-            <h2 className="font-heading text-lg font-semibold text-foreground">No sandbox templates yet</h2>
-            <p className="text-sm text-muted-foreground mt-1.5 max-w-xs">
-              Create a template to define custom sandbox environments for your agents.
+          <div className="mb-6 text-center">
+            <h2 className="font-heading text-lg font-semibold text-foreground">
+              No sandbox templates yet
+            </h2>
+            <p className="mt-1.5 max-w-xs text-sm text-muted-foreground">
+              Create a template to define custom sandbox environments for your
+              agents.
             </p>
           </div>
           <div className="w-full max-w-sm">
             <button
               type="button"
               onClick={() => setCreateModalOpen(true)}
-              className="group flex items-start gap-4 w-full rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted"
+              className="group flex w-full items-start gap-4 rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted"
             >
-              <HugeiconsIcon icon={ContainerIcon} size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Create template</p>
-                <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
-                  Define a custom environment with build commands and dependencies.
+              <HugeiconsIcon
+                icon={ContainerIcon}
+                size={20}
+                className="mt-0.5 shrink-0 text-muted-foreground"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  Create template
+                </p>
+                <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
+                  Define a custom environment with build commands and
+                  dependencies.
                 </p>
               </div>
-              <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground/60 shrink-0 mt-0.5 transition-transform group-hover:translate-x-0.5" />
+              <HugeiconsIcon
+                icon={ArrowRight01Icon}
+                size={16}
+                className="mt-0.5 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5"
+              />
             </button>
           </div>
         </div>
@@ -156,31 +192,43 @@ export function SandboxTemplatesList() {
         <div className="space-y-1.5">
           {templates.map((template) => {
             const isPublic = isPublicTemplate(template)
-            const tags = Array.isArray(template.tags) ? (template.tags as string[]) : []
+            const tags = Array.isArray(template.tags)
+              ? (template.tags as string[])
+              : []
 
             return (
               <div
                 key={template.id}
                 className="flex items-center justify-between rounded-lg border border-border px-4 py-2.5"
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex min-w-0 items-center gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate">{template.name}</span>
+                      <span className="truncate text-sm font-medium">
+                        {template.name}
+                      </span>
                       {getStatusBadge(template.build_status)}
                       {isPublic && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Public</Badge>
+                        <Badge
+                          variant="secondary"
+                          className="px-1.5 py-0 text-[10px]"
+                        >
+                          Public
+                        </Badge>
                       )}
                     </div>
                     {template.description ? (
-                      <p className="text-[12px] text-muted-foreground mt-0.5 truncate">
+                      <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
                         {template.description}
                       </p>
                     ) : null}
                     {tags.length > 0 && (
-                      <div className="flex items-center gap-1 mt-0.5">
+                      <div className="mt-0.5 flex items-center gap-1">
                         {tags.map((tag) => (
-                          <span key={tag} className="text-[11px] text-muted-foreground">
+                          <span
+                            key={tag}
+                            className="text-[11px] text-muted-foreground"
+                          >
                             {tag}
                           </span>
                         ))}
@@ -198,21 +246,33 @@ export function SandboxTemplatesList() {
                       loading={buildMutation.isPending}
                       disabled={template.build_status === "building"}
                     >
-                      <HugeiconsIcon icon={PlayCircleIcon} size={14} className="mr-1" />
+                      <HugeiconsIcon
+                        icon={PlayCircleIcon}
+                        size={14}
+                        className="mr-1"
+                      />
                       Build
                     </Button>
                   )}
                   {!isPublic && (
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-muted outline-none">
-                        <HugeiconsIcon icon={MoreHorizontalIcon} size={16} className="text-muted-foreground" />
+                      <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors outline-none hover:bg-muted">
+                        <HugeiconsIcon
+                          icon={MoreHorizontalIcon}
+                          size={16}
+                          className="text-muted-foreground"
+                        />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onClick={() => setDeletingTemplate(template)}
                         >
-                          <HugeiconsIcon icon={Delete02Icon} size={14} className="mr-2" />
+                          <HugeiconsIcon
+                            icon={Delete02Icon}
+                            size={14}
+                            className="mr-2"
+                          />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -233,7 +293,9 @@ export function SandboxTemplatesList() {
 
       <ConfirmDialog
         open={deletingTemplate !== null}
-        onOpenChange={(open) => { if (!open) setDeletingTemplate(null) }}
+        onOpenChange={(open) => {
+          if (!open) setDeletingTemplate(null)
+        }}
         title="Delete sandbox template"
         description={`This will permanently delete "${deletingTemplate?.name}" and all its data. This action cannot be undone.`}
         confirmText={deletingTemplate?.name ?? ""}

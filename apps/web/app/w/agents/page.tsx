@@ -18,15 +18,16 @@ export default function AgentsPage() {
   const [search, setSearch] = useState("")
 
   const { data, isLoading } = $api.useQuery("get", "/v1/agents")
-  const agents = data?.data ?? []
+  const agents = useMemo(() => data?.data ?? [], [data])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return agents
     const query = search.toLowerCase()
-    return agents.filter((agent) =>
-      (agent.name ?? "").toLowerCase().includes(query) ||
-      (agent.model ?? "").toLowerCase().includes(query) ||
-      (agent.provider_id ?? "").toLowerCase().includes(query),
+    return agents.filter(
+      (agent) =>
+        (agent.name ?? "").toLowerCase().includes(query) ||
+        (agent.model ?? "").toLowerCase().includes(query) ||
+        (agent.provider_id ?? "").toLowerCase().includes(query)
     )
   }, [agents, search])
 
@@ -36,7 +37,11 @@ export default function AgentsPage() {
         title="Agents"
         actions={
           <Button render={<Link href="/w/agents/new" />}>
-            <HugeiconsIcon icon={Add01Icon} size={16} data-icon="inline-start" />
+            <HugeiconsIcon
+              icon={Add01Icon}
+              size={16}
+              data-icon="inline-start"
+            />
             New agent
           </Button>
         }

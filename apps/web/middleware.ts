@@ -11,9 +11,8 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/auth", req.url))
   }
 
-  // Auth page — redirect if already logged in
   if (pathname === "/auth" && hasSession) {
-    return NextResponse.redirect(new URL("/", req.url))
+    return NextResponse.redirect(new URL("/w", req.url))
   }
 
   return NextResponse.next()

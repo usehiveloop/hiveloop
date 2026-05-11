@@ -73,7 +73,7 @@ export function SubscriptionSuccessDialog({
         {features.length > 0 ? (
           <div className="mt-1">
             <p className="mb-2 text-[12px] font-medium text-muted-foreground">
-              What's included
+              What&apos;s included
             </p>
             <ul className="flex flex-col gap-1.5">
               {features.map((feature) => (

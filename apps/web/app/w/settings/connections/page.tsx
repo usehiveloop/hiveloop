@@ -61,7 +61,9 @@ export default function Page() {
   const [addOpen, setAddOpen] = React.useState(false)
   const [dialogSearch, setDialogSearch] = React.useState("")
   const [preSelectedId, setPreSelectedId] = React.useState<string | null>(null)
-  const [disconnecting, setDisconnecting] = React.useState<Connection | null>(null)
+  const [disconnecting, setDisconnecting] = React.useState<Connection | null>(
+    null
+  )
 
   const { data, isLoading } = $api.useQuery("get", "/v1/in/connections")
   const connections = data?.data ?? []
@@ -214,7 +216,7 @@ export default function Page() {
                           Webhook
                         </TooltipTrigger>
                         <TooltipContent>
-                          Webhook delivery isn't fully configured for this
+                          Webhook delivery isn&apos;t fully configured for this
                           connection.
                         </TooltipContent>
                       </Tooltip>
@@ -299,7 +301,9 @@ export default function Page() {
         }}
         title="Disconnect integration"
         description={`This will remove "${disconnecting?.display_name ?? disconnecting?.provider ?? "this connection"}" and any agents using it will lose access. This action cannot be undone.`}
-        confirmText={disconnecting?.display_name ?? disconnecting?.provider ?? ""}
+        confirmText={
+          disconnecting?.display_name ?? disconnecting?.provider ?? ""
+        }
         confirmLabel="Disconnect"
         destructive
         loading={deleteConnection.isPending}

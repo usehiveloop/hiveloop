@@ -42,12 +42,18 @@ export function ManageIntegrationsDialog({
   agentIntegrations,
   onSave,
 }: ManageIntegrationsDialogProps) {
-  const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(new Set())
-  const [selectedActions, setSelectedActions] = useState<Record<string, Set<string>>>({})
+  const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(
+    new Set()
+  )
+  const [selectedActions, setSelectedActions] = useState<
+    Record<string, Set<string>>
+  >({})
   const [search, setSearch] = useState("")
-  const [detailConnectionId, setDetailConnectionId] = useState<string | null>(null)
+  const [detailConnectionId, setDetailConnectionId] = useState<string | null>(
+    null
+  )
   const [actionSearch, setActionSearch] = useState("")
-  const detailDirection = useRef<1 | -1>(1)
+  const [detailDirection, setDetailDirection] = useState<1 | -1>(1)
 
   // Seed local state from agentIntegrations when dialog opens
   useEffect(() => {
@@ -57,16 +63,24 @@ export function ManageIntegrationsDialog({
       for (const [id, config] of Object.entries(agentIntegrations)) {
         actions[id] = new Set(config.actions)
       }
-      setSelectedIntegrations(ids)
-      setSelectedActions(actions)
-      setSearch("")
-      setDetailConnectionId(null)
-      setActionSearch("")
+      queueMicrotask(() => {
+        setSelectedIntegrations(ids)
+        setSelectedActions(actions)
+        setSearch("")
+        setDetailConnectionId(null)
+        setActionSearch("")
+      })
     }
   }, [open, agentIntegrations])
 
-  const { data: connectionsData, isLoading } = $api.useQuery("get", "/v1/in/connections")
-  const connections = connectionsData?.data ?? []
+  const { data: connectionsData, isLoading } = $api.useQuery(
+    "get",
+    "/v1/in/connections"
+  )
+  const connections = useMemo(
+    () => connectionsData?.data ?? [],
+    [connectionsData]
+  )
 
   const filtered = useMemo(() => {
     if (!search.trim()) return connections
@@ -74,7 +88,7 @@ export function ManageIntegrationsDialog({
     return connections.filter(
       (c) =>
         (c.display_name ?? "").toLowerCase().includes(query) ||
-        (c.provider ?? "").toLowerCase().includes(query),
+        (c.provider ?? "").toLowerCase().includes(query)
     )
   }, [connections, search])
 
@@ -97,30 +111,33 @@ export function ManageIntegrationsDialog({
     })
   }, [])
 
-  const toggleAction = useCallback((connectionId: string, actionKey: string) => {
-    setSelectedActions((prev) => {
-      const current = prev[connectionId] ?? new Set<string>()
-      const next = new Set(current)
-      if (next.has(actionKey)) {
-        next.delete(actionKey)
-      } else {
-        next.add(actionKey)
-      }
-      return { ...prev, [connectionId]: next }
-    })
-  }, [])
+  const toggleAction = useCallback(
+    (connectionId: string, actionKey: string) => {
+      setSelectedActions((prev) => {
+        const current = prev[connectionId] ?? new Set<string>()
+        const next = new Set(current)
+        if (next.has(actionKey)) {
+          next.delete(actionKey)
+        } else {
+          next.add(actionKey)
+        }
+        return { ...prev, [connectionId]: next }
+      })
+    },
+    []
+  )
 
   function openDetail(connectionId: string) {
     if (!selectedIntegrations.has(connectionId)) {
       toggleIntegration(connectionId)
     }
-    detailDirection.current = 1
+    setDetailDirection(1)
     setDetailConnectionId(connectionId)
     setActionSearch("")
   }
 
   function closeDetail() {
-    detailDirection.current = -1
+    setDetailDirection(-1)
     setDetailConnectionId(null)
     setActionSearch("")
   }
@@ -153,25 +170,29 @@ export function ManageIntegrationsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex flex-col h-[min(780px,85vh)] p-6">
-        <AnimatePresence mode="wait" custom={detailDirection.current}>
+      <DialogContent className="flex h-[min(780px,85vh)] flex-col p-6">
+        <AnimatePresence mode="wait" custom={detailDirection}>
           {detailConnection && detailConnectionId ? (
             <motion.div
               key={`detail-${detailConnectionId}`}
-              custom={detailDirection.current}
+              custom={detailDirection}
               variants={innerVariants}
               initial="enter"
               animate="center"
               exit="exit"
               transition={{ duration: 0.15, ease: "easeInOut" as const }}
-              className="flex flex-col h-full"
+              className="flex h-full flex-col"
             >
               <ActionDetailView
                 connection={detailConnection}
                 actionSearch={actionSearch}
                 onActionSearchChange={setActionSearch}
-                selectedActions={selectedActions[detailConnectionId] ?? new Set()}
-                onToggleAction={(actionKey) => toggleAction(detailConnectionId, actionKey)}
+                selectedActions={
+                  selectedActions[detailConnectionId] ?? new Set()
+                }
+                onToggleAction={(actionKey) =>
+                  toggleAction(detailConnectionId, actionKey)
+                }
                 onBack={closeDetail}
                 onRemove={() => removeIntegration(detailConnectionId)}
               />
@@ -179,18 +200,19 @@ export function ManageIntegrationsDialog({
           ) : (
             <motion.div
               key="integration-list"
-              custom={detailDirection.current}
+              custom={detailDirection}
               variants={innerVariants}
               initial="enter"
               animate="center"
               exit="exit"
               transition={{ duration: 0.15, ease: "easeInOut" as const }}
-              className="flex flex-col h-full"
+              className="flex h-full flex-col"
             >
               <DialogHeader>
                 <DialogTitle>Manage integrations</DialogTitle>
                 <DialogDescription className="mt-2">
-                  Choose which integrations your agent can access. Only connected integrations are shown.
+                  Choose which integrations your agent can access. Only
+                  connected integrations are shown.
                 </DialogDescription>
               </DialogHeader>
 
@@ -198,30 +220,30 @@ export function ManageIntegrationsDialog({
                 <HugeiconsIcon
                   icon={Search01Icon}
                   size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
                 />
                 <Input
                   placeholder="Search integrations..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9"
+                  className="h-9 pl-9"
                 />
               </div>
 
-              <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
+              <div className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto">
                 {isLoading ? (
                   Array.from({ length: 4 }).map((_, i) => (
                     <Skeleton key={i} className="h-[64px] w-full rounded-xl" />
                   ))
                 ) : filtered.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <div className="flex flex-col items-center justify-center gap-3 py-12">
                     {search ? (
                       <p className="text-sm text-muted-foreground">
                         No integrations found.
                       </p>
                     ) : (
                       <>
-                        <div className="flex items-center justify-center size-12 rounded-full bg-muted">
+                        <div className="flex size-12 items-center justify-center rounded-full bg-muted">
                           <HugeiconsIcon
                             icon={Plug01Icon}
                             size={20}
@@ -232,7 +254,7 @@ export function ManageIntegrationsDialog({
                           <p className="text-sm font-medium text-foreground">
                             No integrations connected
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">
+                          <p className="mt-1 max-w-[240px] text-xs text-muted-foreground">
                             Head to the Connections page to connect your first
                             integration, then come back here.
                           </p>
@@ -244,29 +266,28 @@ export function ManageIntegrationsDialog({
                   filtered.map((connection) => {
                     const connectionId = connection.id ?? ""
                     const isSelected = selectedIntegrations.has(connectionId)
-                    const actionCount =
-                      selectedActions[connectionId]?.size ?? 0
+                    const actionCount = selectedActions[connectionId]?.size ?? 0
                     return (
                       <button
                         key={connectionId}
                         type="button"
                         onClick={() => openDetail(connectionId)}
-                        className={`group flex items-start gap-4 w-full rounded-xl p-4 text-left transition-colors cursor-pointer ${
+                        className={`group flex w-full cursor-pointer items-start gap-4 rounded-xl p-4 text-left transition-colors ${
                           isSelected
-                            ? "bg-primary/5 border border-primary/20"
-                            : "bg-muted/50 hover:bg-muted border border-transparent"
+                            ? "border border-primary/20 bg-primary/5"
+                            : "border border-transparent bg-muted/50 hover:bg-muted"
                         }`}
                       >
                         <IntegrationLogo
                           provider={connection.provider ?? ""}
                           size={32}
-                          className="shrink-0 mt-0.5"
+                          className="mt-0.5 shrink-0"
                         />
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-foreground">
                             {connection.display_name}
                           </p>
-                          <p className="text-[13px] text-muted-foreground mt-0.5">
+                          <p className="mt-0.5 text-[13px] text-muted-foreground">
                             {actionCount > 0
                               ? `${actionCount} of ${connection.actions_count ?? 0} actions selected`
                               : `${connection.actions_count ?? 0} actions available`}
@@ -276,13 +297,13 @@ export function ManageIntegrationsDialog({
                           <HugeiconsIcon
                             icon={Tick02Icon}
                             size={16}
-                            className="text-primary shrink-0 mt-0.5"
+                            className="mt-0.5 shrink-0 text-primary"
                           />
                         ) : (
                           <HugeiconsIcon
                             icon={ArrowRight01Icon}
                             size={16}
-                            className="text-muted-foreground/30 shrink-0 mt-0.5"
+                            className="mt-0.5 shrink-0 text-muted-foreground/30"
                           />
                         )}
                       </button>
@@ -291,7 +312,7 @@ export function ManageIntegrationsDialog({
                 )}
               </div>
 
-              <div className="pt-4 shrink-0">
+              <div className="shrink-0 pt-4">
                 <Button onClick={handleSave} className="w-full">
                   {selectedCount > 0
                     ? `Save with ${selectedCount} integration${selectedCount > 1 ? "s" : ""}`
@@ -335,10 +356,10 @@ function ActionDetailView({
     "get",
     "/v1/catalog/integrations/{id}/actions",
     { params: { path: { id: connection.provider ?? "" } } },
-    { enabled: !!connection.provider },
+    { enabled: !!connection.provider }
   )
 
-  const allActions = actionsData ?? []
+  const allActions = useMemo(() => actionsData ?? [], [actionsData])
 
   const filteredActions = useMemo(() => {
     if (!actionSearch.trim()) return allActions
@@ -347,7 +368,7 @@ function ActionDetailView({
       (action) =>
         (action.display_name ?? "").toLowerCase().includes(query) ||
         (action.description ?? "").toLowerCase().includes(query) ||
-        (action.key ?? "").toLowerCase().includes(query),
+        (action.key ?? "").toLowerCase().includes(query)
     )
   }, [allActions, actionSearch])
 
@@ -381,7 +402,7 @@ function ActionDetailView({
           <button
             type="button"
             onClick={onBack}
-            className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1"
+            className="-ml-1 flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-muted"
           >
             <HugeiconsIcon
               icon={ArrowLeft01Icon}
@@ -390,10 +411,7 @@ function ActionDetailView({
             />
           </button>
           <div className="flex items-center gap-2.5">
-            <IntegrationLogo
-              provider={connection.provider ?? ""}
-              size={20}
-            />
+            <IntegrationLogo provider={connection.provider ?? ""} size={20} />
             <DialogTitle>{connection.display_name}</DialogTitle>
           </div>
         </div>
@@ -406,13 +424,13 @@ function ActionDetailView({
         <HugeiconsIcon
           icon={Search01Icon}
           size={14}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
         />
         <Input
           placeholder="Search actions..."
           value={actionSearch}
           onChange={(e) => onActionSearchChange(e.target.value)}
-          className="pl-9 h-9"
+          className="h-9 pl-9"
         />
       </div>
 
@@ -420,7 +438,7 @@ function ActionDetailView({
         <button
           type="button"
           onClick={toggleAll}
-          className="flex items-center justify-between px-1 py-2 mt-3 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          className="mt-3 flex cursor-pointer items-center justify-between px-1 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           <span>{allSelected ? "Deselect all" : "Select all"}</span>
           <span className="tabular-nums">
@@ -429,11 +447,11 @@ function ActionDetailView({
         </button>
       )}
 
-      <div ref={parentRef} className="flex-1 overflow-y-auto mt-1">
+      <div ref={parentRef} className="mt-1 flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="flex flex-col pt-[52px]">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-[60px] w-full rounded-xl mb-2" />
+              <Skeleton key={i} className="mb-2 h-[60px] w-full rounded-xl" />
             ))}
           </div>
         ) : filteredActions.length === 0 ? (
@@ -465,19 +483,19 @@ function ActionDetailView({
                   <button
                     type="button"
                     onClick={() => onToggleAction(actionKey)}
-                    className={`flex items-start gap-3 w-full rounded-xl p-3 text-left transition-colors cursor-pointer ${
+                    className={`flex w-full cursor-pointer items-start gap-3 rounded-xl p-3 text-left transition-colors ${
                       isSelected
-                        ? "bg-primary/5 border border-primary/20"
-                        : "bg-muted/50 hover:bg-muted border border-transparent"
+                        ? "border border-primary/20 bg-primary/5"
+                        : "border border-transparent bg-muted/50 hover:bg-muted"
                     }`}
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-medium text-foreground truncate">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-sm font-medium text-foreground">
                           {action.display_name}
                         </span>
                         <span
-                          className={`font-mono text-[9px] uppercase tracking-[0.5px] px-1.5 py-0.5 rounded-full shrink-0 ${
+                          className={`shrink-0 rounded-full px-1.5 py-0.5 font-mono text-[9px] tracking-[0.5px] uppercase ${
                             action.access === "read"
                               ? "bg-blue-500/10 text-blue-500"
                               : "bg-green-500/10 text-green-500"
@@ -486,7 +504,7 @@ function ActionDetailView({
                           {action.access}
                         </span>
                       </div>
-                      <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-1">
+                      <p className="mt-0.5 line-clamp-1 text-[12px] text-muted-foreground">
                         {action.description}
                       </p>
                     </div>
@@ -494,7 +512,7 @@ function ActionDetailView({
                       <HugeiconsIcon
                         icon={Tick02Icon}
                         size={16}
-                        className="text-primary shrink-0 mt-0.5"
+                        className="mt-0.5 shrink-0 text-primary"
                       />
                     )}
                   </button>
@@ -505,7 +523,7 @@ function ActionDetailView({
         )}
       </div>
 
-      <div className="pt-4 shrink-0">
+      <div className="shrink-0 pt-4">
         <Button
           variant="outline"
           className="w-full text-destructive hover:text-destructive"

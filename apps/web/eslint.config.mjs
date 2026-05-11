@@ -1,6 +1,6 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import { defineConfig, globalIgnores } from "eslint/config"
+import nextVitals from "eslint-config-next/core-web-vitals"
+import nextTs from "eslint-config-next/typescript"
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -9,6 +9,7 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    ".source/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
@@ -20,7 +21,23 @@ const eslintConfig = defineConfig([
     // failure. Sentry's @sentry/nextjs client auto-captures unhandled
     // errors, so most "log this somewhere" needs are already covered.
     rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
       "no-console": ["error", { allow: ["warn", "error"] }],
+    },
+  },
+  {
+    files: ["app/w/agents/_components/manage-integrations-dialog.tsx"],
+    rules: {
+      // TanStack Virtual intentionally returns imperative functions. This
+      // warning is noisy and not actionable for the virtualized action list.
+      "react-hooks/incompatible-library": "off",
     },
   },
   {
@@ -30,6 +47,6 @@ const eslintConfig = defineConfig([
       "no-console": "off",
     },
   },
-]);
+])
 
-export default eslintConfig;
+export default eslintConfig

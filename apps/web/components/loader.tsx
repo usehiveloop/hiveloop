@@ -77,7 +77,7 @@ export function Loader({ title, description }: LoaderProps) {
 
   useEffect(() => {
     if (title) return
-    setWord(randomWord())
+    queueMicrotask(() => setWord(randomWord()))
     const interval = setInterval(() => setWord(randomWord()), 3000)
     return () => clearInterval(interval)
   }, [title])
@@ -85,9 +85,9 @@ export function Loader({ title, description }: LoaderProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-12">
       <LogoMark className="h-12 w-12 animate-[spin_1s_linear_infinite,pulse_2s_ease-in-out_infinite]" />
-      <div className="text-center h-12 relative overflow-hidden">
+      <div className="relative h-12 overflow-hidden text-center">
         {title ? (
-          <p className="text-lg font-medium text-foreground mt-4">{title}</p>
+          <p className="mt-4 text-lg font-medium text-foreground">{title}</p>
         ) : word ? (
           <AnimatePresence mode="wait">
             <motion.p
@@ -96,14 +96,16 @@ export function Loader({ title, description }: LoaderProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.3, ease: "easeInOut" as const }}
-              className="text-lg font-medium text-foreground mt-4"
+              className="mt-4 text-lg font-medium text-foreground"
             >
               {word}...
             </motion.p>
           </AnimatePresence>
         ) : null}
       </div>
-      {description && <p className="text-sm text-muted-foreground">{description}</p>}
+      {description && (
+        <p className="text-sm text-muted-foreground">{description}</p>
+      )}
     </div>
   )
 }

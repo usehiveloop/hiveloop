@@ -15,7 +15,9 @@ interface StreamToken {
 async function fetchStreamToken(): Promise<StreamToken> {
   const res = await fetch("/api/auth/stream-token")
   if (!res.ok) {
-    throw new Error(res.status === 401 ? "Not authenticated" : "Failed to fetch stream token")
+    throw new Error(
+      res.status === 401 ? "Not authenticated" : "Failed to fetch stream token"
+    )
   }
   return res.json()
 }
@@ -49,7 +51,10 @@ export function useConversationStream(conversationId: string | null) {
   const [error, setError] = useState<string | null>(null)
   const [messages, setMessages] = useState<StreamMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
-  const [tokenStats, setTokenStats] = useState<TokenStats>({ inputTokens: 0, outputTokens: 0 })
+  const [tokenStats, setTokenStats] = useState<TokenStats>({
+    inputTokens: 0,
+    outputTokens: 0,
+  })
   const abortRef = useRef<AbortController | null>(null)
   const streamingMessageIdRef = useRef<string | null>(null)
 
@@ -84,15 +89,17 @@ export function useConversationStream(conversationId: string | null) {
 
   useEffect(() => {
     if (!conversationId || !token) {
-      disconnect()
+      queueMicrotask(disconnect)
       return
     }
 
-    setError(null)
-    setMessages([])
-    setTokenStats({ inputTokens: 0, outputTokens: 0 })
-    setIsStreaming(false)
-    streamingMessageIdRef.current = null
+    queueMicrotask(() => {
+      setError(null)
+      setMessages([])
+      setTokenStats({ inputTokens: 0, outputTokens: 0 })
+      setIsStreaming(false)
+      streamingMessageIdRef.current = null
+    })
 
     const ctrl = new AbortController()
     abortRef.current = ctrl
@@ -102,7 +109,7 @@ export function useConversationStream(conversationId: string | null) {
     fetchEventSource(url, {
       signal: ctrl.signal,
       headers: {
-        "Authorization": `Bearer ${token.access_token}`,
+        Authorization: `Bearer ${token.access_token}`,
         ...(token.org_id ? { "X-Org-ID": token.org_id } : {}),
       },
       onopen: async (response) => {
@@ -171,12 +178,15 @@ export function useConversationStream(conversationId: string | null) {
 
             setMessages((prev) => {
               const idx = prev.findLastIndex(
-                (msg) => msg.role === "agent" && msg.messageId === messageId,
+                (msg) => msg.role === "agent" && msg.messageId === messageId
               )
               if (idx === -1) return prev
 
               const updated = [...prev]
-              updated[idx] = { ...updated[idx], content: updated[idx].content + delta }
+              updated[idx] = {
+                ...updated[idx],
+                content: updated[idx].content + delta,
+              }
               return updated
             })
             break
@@ -191,7 +201,7 @@ export function useConversationStream(conversationId: string | null) {
 
             setMessages((prev) => {
               const idx = prev.findLastIndex(
-                (msg) => msg.role === "agent" && msg.messageId === messageId,
+                (msg) => msg.role === "agent" && msg.messageId === messageId
               )
               if (idx === -1) return prev
 
@@ -248,7 +258,9 @@ export function useConversationStream(conversationId: string | null) {
       },
       onerror: (err) => {
         if (!ctrl.signal.aborted) {
-          setError(err instanceof Error ? err.message : "Stream connection lost")
+          setError(
+            err instanceof Error ? err.message : "Stream connection lost"
+          )
         }
         throw err
       },
@@ -268,7 +280,13 @@ export function useConversationStream(conversationId: string | null) {
 
   useEffect(() => {
     if (tokenError) {
-      setError(tokenError instanceof Error ? tokenError.message : "Failed to fetch stream token")
+      queueMicrotask(() =>
+        setError(
+          tokenError instanceof Error
+            ? tokenError.message
+            : "Failed to fetch stream token"
+        )
+      )
     }
   }, [tokenError])
 

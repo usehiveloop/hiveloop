@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -59,14 +59,21 @@ const slideVariants = {
 function parseAgentResources(raw: unknown): AgentResources {
   if (!raw || typeof raw !== "object") return {}
   const result: AgentResources = {}
-  for (const [connId, resourceTypes] of Object.entries(raw as Record<string, unknown>)) {
+  for (const [connId, resourceTypes] of Object.entries(
+    raw as Record<string, unknown>
+  )) {
     if (!resourceTypes || typeof resourceTypes !== "object") continue
     const parsed: Record<string, ResourceItem[]> = {}
-    for (const [resourceKey, items] of Object.entries(resourceTypes as Record<string, unknown>)) {
+    for (const [resourceKey, items] of Object.entries(
+      resourceTypes as Record<string, unknown>
+    )) {
       if (!Array.isArray(items)) continue
       parsed[resourceKey] = items.filter(
         (item): item is ResourceItem =>
-          typeof item === "object" && item !== null && "id" in item && "name" in item,
+          typeof item === "object" &&
+          item !== null &&
+          "id" in item &&
+          "name" in item
       )
     }
     result[connId] = parsed
@@ -74,7 +81,9 @@ function parseAgentResources(raw: unknown): AgentResources {
   return result
 }
 
-function getConfigurableResources(connection: InConnection): ConfigurableResource[] {
+function getConfigurableResources(
+  connection: InConnection
+): ConfigurableResource[] {
   const raw = (connection as Record<string, unknown>).configurable_resources
   if (!Array.isArray(raw)) return []
   return raw as ConfigurableResource[]
@@ -89,7 +98,7 @@ function BackButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit mb-2"
+      className="mb-2 flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
     >
       <HugeiconsIcon icon={ArrowLeft01Icon} size={14} />
       Back
@@ -110,21 +119,34 @@ interface ConnectionListViewProps {
   saving: boolean
 }
 
-function ConnectionListView({ connections, getSelectedCount, getOrphanCount, onSelect, onSave, saving }: ConnectionListViewProps) {
+function ConnectionListView({
+  connections,
+  getSelectedCount,
+  getOrphanCount,
+  onSelect,
+  onSave,
+  saving,
+}: ConnectionListViewProps) {
   return (
     <>
       <DialogHeader>
         <DialogTitle>Configure resources</DialogTitle>
-        <DialogDescription>Choose which resources each integration can access.</DialogDescription>
+        <DialogDescription>
+          Choose which resources each integration can access.
+        </DialogDescription>
       </DialogHeader>
 
-      <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
+      <div className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto">
         {connections.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-3">
-            <div className="flex items-center justify-center size-12 rounded-full bg-muted">
-              <HugeiconsIcon icon={Plug01Icon} size={20} className="text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center gap-3 py-12">
+            <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+              <HugeiconsIcon
+                icon={Plug01Icon}
+                size={20}
+                className="text-muted-foreground"
+              />
             </div>
-            <p className="text-sm text-muted-foreground text-center">
+            <p className="text-center text-sm text-muted-foreground">
               No integrations with configurable resources.
             </p>
           </div>
@@ -133,12 +155,14 @@ function ConnectionListView({ connections, getSelectedCount, getOrphanCount, onS
             const connectionId = connection.id as string
             const count = getSelectedCount(connectionId)
             const orphans = getOrphanCount(connectionId)
-            const baseDescription = count > 0
-              ? `${count} resource${count !== 1 ? "s" : ""} selected`
-              : "No resources configured"
-            const description = orphans > 0
-              ? `${baseDescription} · ${orphans} no longer accessible`
-              : baseDescription
+            const baseDescription =
+              count > 0
+                ? `${count} resource${count !== 1 ? "s" : ""} selected`
+                : "No resources configured"
+            const description =
+              orphans > 0
+                ? `${baseDescription} · ${orphans} no longer accessible`
+                : baseDescription
             return (
               <ChoiceCard
                 key={connectionId}
@@ -148,11 +172,11 @@ function ConnectionListView({ connections, getSelectedCount, getOrphanCount, onS
                 onClick={() => onSelect(connectionId)}
                 trailing={
                   orphans > 0 ? (
-                    <span className="text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full shrink-0">
+                    <span className="shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                       !{orphans}
                     </span>
                   ) : count > 0 ? (
-                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full shrink-0">
+                    <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                       {count}
                     </span>
                   ) : undefined
@@ -163,7 +187,7 @@ function ConnectionListView({ connections, getSelectedCount, getOrphanCount, onS
         )}
       </div>
 
-      <div className="pt-4 mt-auto">
+      <div className="mt-auto pt-4">
         <Button className="w-full" onClick={onSave} loading={saving}>
           Save resources
         </Button>
@@ -184,16 +208,24 @@ interface ResourceTypeListViewProps {
   onBack: () => void
 }
 
-function ResourceTypeListView({ connection, resourceTypes, getTypeSelectedCount, onSelect, onBack }: ResourceTypeListViewProps) {
+function ResourceTypeListView({
+  connection,
+  resourceTypes,
+  getTypeSelectedCount,
+  onSelect,
+  onBack,
+}: ResourceTypeListViewProps) {
   return (
     <>
       <DialogHeader>
         <BackButton onClick={onBack} />
-        <DialogTitle>{connection.display_name ?? connection.provider}</DialogTitle>
+        <DialogTitle>
+          {connection.display_name ?? connection.provider}
+        </DialogTitle>
         <DialogDescription>Choose resource types to scope</DialogDescription>
       </DialogHeader>
 
-      <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
+      <div className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto">
         {resourceTypes.map((resource) => {
           const count = getTypeSelectedCount(resource.key)
           return (
@@ -204,7 +236,7 @@ function ResourceTypeListView({ connection, resourceTypes, getTypeSelectedCount,
               onClick={() => onSelect(resource.key)}
               trailing={
                 count > 0 ? (
-                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full shrink-0">
+                  <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                     {count} selected
                   </span>
                 ) : undefined
@@ -230,21 +262,44 @@ interface ResourceInstanceListViewProps {
   onBack: () => void
 }
 
-function ResourceInstanceListView({ connectionId, resourceType, selectedItems, isSelected, onToggle, onBack }: ResourceInstanceListViewProps) {
-  const { data, isLoading } = $api.useQuery("get", "/v1/in/connections/{id}/resources/{type}", {
-    params: { path: { id: connectionId, type: resourceType } },
-  })
+function ResourceInstanceListView({
+  connectionId,
+  resourceType,
+  selectedItems,
+  isSelected,
+  onToggle,
+  onBack,
+}: ResourceInstanceListViewProps) {
+  const { data, isLoading } = $api.useQuery(
+    "get",
+    "/v1/in/connections/{id}/resources/{type}",
+    {
+      params: { path: { id: connectionId, type: resourceType } },
+    }
+  )
 
-  const items: ResourceItem[] = ((data as Record<string, unknown> | undefined)?.resources as ResourceItem[] | undefined) ?? []
+  const items: ResourceItem[] = useMemo(
+    () =>
+      ((data as Record<string, unknown> | undefined)?.resources as
+        | ResourceItem[]
+        | undefined) ?? [],
+    [data]
+  )
   const label = resourceType.replace(/_/g, " ")
 
   // Orphans: items selected in the agent's state but not returned by the live
   // item list. Only computed once the live list has resolved to avoid a false
   // warning during load.
-  const reachableIds = useMemo(() => new Set(items.map((item) => item.id)), [items])
+  const reachableIds = useMemo(
+    () => new Set(items.map((item) => item.id)),
+    [items]
+  )
   const orphans = useMemo(
-    () => (isLoading ? [] : selectedItems.filter((item) => !reachableIds.has(item.id))),
-    [isLoading, selectedItems, reachableIds],
+    () =>
+      isLoading
+        ? []
+        : selectedItems.filter((item) => !reachableIds.has(item.id)),
+    [isLoading, selectedItems, reachableIds]
   )
 
   return (
@@ -252,21 +307,27 @@ function ResourceInstanceListView({ connectionId, resourceType, selectedItems, i
       <DialogHeader>
         <BackButton onClick={onBack} />
         <DialogTitle className="capitalize">{label}s</DialogTitle>
-        <DialogDescription>Select which {label}s this agent can access</DialogDescription>
+        <DialogDescription>
+          Select which {label}s this agent can access
+        </DialogDescription>
       </DialogHeader>
 
-      <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
+      <div className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto">
         {orphans.length > 0 && (
           <div className="rounded-xl border border-amber-300/60 bg-amber-500/10 px-3 py-2.5">
             <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
-              {orphans.length} {label}{orphans.length !== 1 ? "s" : ""} no longer accessible
+              {orphans.length} {label}
+              {orphans.length !== 1 ? "s" : ""} no longer accessible
             </p>
-            <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80 mt-0.5">
+            <p className="mt-0.5 text-[11px] text-amber-800/80 dark:text-amber-200/80">
               These will be removed from this agent when you save.
             </p>
             <ul className="mt-2 space-y-0.5">
               {orphans.map((item) => (
-                <li key={item.id} className="font-mono text-[11px] text-amber-900 dark:text-amber-100">
+                <li
+                  key={item.id}
+                  className="font-mono text-[11px] text-amber-900 dark:text-amber-100"
+                >
                   {item.id}
                 </li>
               ))}
@@ -278,7 +339,7 @@ function ResourceInstanceListView({ connectionId, resourceType, selectedItems, i
             <Skeleton key={index} className="h-13 w-full rounded-xl" />
           ))
         ) : items.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">
+          <p className="py-8 text-center text-sm text-muted-foreground">
             No {label}s found.
           </p>
         ) : (
@@ -292,9 +353,13 @@ function ResourceInstanceListView({ connectionId, resourceType, selectedItems, i
                 onClick={() => onToggle(item)}
                 trailing={
                   selected ? (
-                    <HugeiconsIcon icon={Tick02Icon} size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <HugeiconsIcon
+                      icon={Tick02Icon}
+                      size={16}
+                      className="shrink-0 text-emerald-600 dark:text-emerald-400"
+                    />
                   ) : (
-                    <span className="h-4 w-4 rounded-full border border-border shrink-0" />
+                    <span className="h-4 w-4 shrink-0 rounded-full border border-border" />
                   )
                 }
               />
@@ -316,33 +381,48 @@ interface ConfigureResourcesDialogProps {
   agent: Agent | null
 }
 
-export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp }: ConfigureResourcesDialogProps) {
-  // Keep a ref to the last non-null agent so the dialog can animate out with stale data
-  const lastAgent = useRef<Agent | null>(null)
-  if (agentProp) lastAgent.current = agentProp
-  const agent = agentProp ?? lastAgent.current
+export function ConfigureResourcesDialog({
+  open,
+  onOpenChange,
+  agent: agentProp,
+}: ConfigureResourcesDialogProps) {
+  // Keep the last non-null agent in state so the dialog can animate out with stale data.
+  const [displayedAgent, setDisplayedAgent] = useState<Agent | null>(agentProp)
+  useEffect(() => {
+    if (!agentProp) return
+    queueMicrotask(() => setDisplayedAgent(agentProp))
+  }, [agentProp])
+  const agent = agentProp ?? displayedAgent
 
   const queryClient = useQueryClient()
   const updateAgent = $api.useMutation("put", "/v1/agents/{id}")
-  const direction = useRef<1 | -1>(1)
+  const [direction, setDirection] = useState<1 | -1>(1)
 
   const [resources, setResources] = useState<AgentResources>({})
-  const [activeConnectionId, setActiveConnectionId] = useState<string | null>(null)
-  const [activeResourceType, setActiveResourceType] = useState<string | null>(null)
+  const [activeConnectionId, setActiveConnectionId] = useState<string | null>(
+    null
+  )
+  const [activeResourceType, setActiveResourceType] = useState<string | null>(
+    null
+  )
 
   // Reset state when dialog opens
   useEffect(() => {
     if (open && agent) {
-      setResources(parseAgentResources(agent.resources))
-      setActiveConnectionId(null)
-      setActiveResourceType(null)
+      queueMicrotask(() => {
+        setResources(parseAgentResources(agent.resources))
+        setActiveConnectionId(null)
+        setActiveResourceType(null)
+      })
     }
-  }, [open, agent?.resources])
+  }, [open, agent])
 
   // Load connections
   const { data: connectionsData } = $api.useQuery("get", "/v1/in/connections")
   const allConnections = (connectionsData?.data ?? []) as InConnection[]
-  const connectionsById = new Map(allConnections.filter((c) => c.id).map((c) => [c.id!, c]))
+  const connectionsById = new Map(
+    allConnections.filter((c) => c.id).map((c) => [c.id!, c])
+  )
 
   // Eagerly fetch the live item list for every (connection, resource_type) pair the
   // agent currently has in state. We use this for two things:
@@ -383,7 +463,8 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
     statePairs.forEach(({ connId, resourceType }, index) => {
       const query = reachabilityQueries[index]
       if (!query?.data) return
-      const items = ((query.data as { resources?: ResourceItem[] }).resources ?? [])
+      const items =
+        (query.data as { resources?: ResourceItem[] }).resources ?? []
       sets[connId] = sets[connId] ?? {}
       sets[connId][resourceType] = new Set(items.map((i) => i.id))
     })
@@ -391,17 +472,23 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
   }, [statePairs, reachabilityQueries])
 
   // Only connections the agent uses AND that have configurable resources
-  const agentConnectionIds = agent?.integrations && typeof agent.integrations === "object"
-    ? Object.keys(agent.integrations)
-    : []
+  const agentConnectionIds =
+    agent?.integrations && typeof agent.integrations === "object"
+      ? Object.keys(agent.integrations)
+      : []
   const configurableConnections = agentConnectionIds
     .map((id) => connectionsById.get(id))
-    .filter((connection): connection is InConnection =>
-      !!connection && getConfigurableResources(connection).length > 0,
+    .filter(
+      (connection): connection is InConnection =>
+        !!connection && getConfigurableResources(connection).length > 0
     )
 
-  const activeConnection = activeConnectionId ? connectionsById.get(activeConnectionId) ?? null : null
-  const activeResourceTypes = activeConnection ? getConfigurableResources(activeConnection) : []
+  const activeConnection = activeConnectionId
+    ? (connectionsById.get(activeConnectionId) ?? null)
+    : null
+  const activeResourceTypes = activeConnection
+    ? getConfigurableResources(activeConnection)
+    : []
 
   // Selection
   const toggleResource = useCallback(
@@ -419,38 +506,41 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
         }
       })
     },
-    [],
+    []
   )
 
   if (!agent) return null
 
   // Navigation
   function openConnection(connectionId: string) {
-    direction.current = 1
+    setDirection(1)
     setActiveConnectionId(connectionId)
     setActiveResourceType(null)
   }
 
   function openResourceType(resourceType: string) {
-    direction.current = 1
+    setDirection(1)
     setActiveResourceType(resourceType)
   }
 
   function goBackToConnections() {
-    direction.current = -1
+    setDirection(-1)
     setActiveConnectionId(null)
     setActiveResourceType(null)
   }
 
   function goBackToResourceTypes() {
-    direction.current = -1
+    setDirection(-1)
     setActiveResourceType(null)
   }
 
   function getSelectedCount(connectionId: string): number {
     const connResources = resources[connectionId]
     if (!connResources) return 0
-    return Object.values(connResources).reduce((sum, items) => sum + items.length, 0)
+    return Object.values(connResources).reduce(
+      (sum, items) => sum + items.length,
+      0
+    )
   }
 
   // Counts items selected in state for this connection that are NOT returned by
@@ -469,12 +559,21 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
     return count
   }
 
-  function getTypeSelectedCount(connectionId: string, resourceType: string): number {
+  function getTypeSelectedCount(
+    connectionId: string,
+    resourceType: string
+  ): number {
     return (resources[connectionId]?.[resourceType] ?? []).length
   }
 
-  function isResourceSelected(connectionId: string, resourceType: string, resourceId: string): boolean {
-    return (resources[connectionId]?.[resourceType] ?? []).some((item) => item.id === resourceId)
+  function isResourceSelected(
+    connectionId: string,
+    resourceType: string,
+    resourceId: string
+  ): boolean {
+    return (resources[connectionId]?.[resourceType] ?? []).some(
+      (item) => item.id === resourceId
+    )
   }
 
   // Save
@@ -491,55 +590,88 @@ export function ConfigureResourcesDialog({ open, onOpenChange, agent: agentProp 
       const cleanedTypes: Record<string, ResourceItem[]> = {}
       for (const [typeKey, items] of Object.entries(types)) {
         const reachable = reachableSets[connId]?.[typeKey]
-        const filtered = reachable ? items.filter((item) => reachable.has(item.id)) : items
+        const filtered = reachable
+          ? items.filter((item) => reachable.has(item.id))
+          : items
         if (filtered.length > 0) cleanedTypes[typeKey] = filtered
       }
-      if (Object.keys(cleanedTypes).length > 0) cleanedResources[connId] = cleanedTypes
+      if (Object.keys(cleanedTypes).length > 0)
+        cleanedResources[connId] = cleanedTypes
     }
 
     updateAgent.mutate(
-      { params: { path: { id: agent?.id as string } }, body: { resources: cleanedResources } as never },
+      {
+        params: { path: { id: agent?.id as string } },
+        body: { resources: cleanedResources } as never,
+      },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["get", "/v1/agents"] })
           toast.success("Resources updated")
           onOpenChange(false)
         },
-        onError: (error) => toast.error(extractErrorMessage(error, "Failed to save resources")),
-      },
+        onError: (error) =>
+          toast.error(extractErrorMessage(error, "Failed to save resources")),
+      }
     )
   }
 
-  const currentStep = activeResourceType ? "instances" : activeConnectionId ? "types" : "connections"
+  const currentStep = activeResourceType
+    ? "instances"
+    : activeConnectionId
+      ? "types"
+      : "connections"
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md h-195 overflow-hidden flex flex-col">
-        <AnimatePresence mode="wait" custom={direction.current}>
+      <DialogContent className="flex h-195 flex-col overflow-hidden sm:max-w-md">
+        <AnimatePresence mode="wait" custom={direction}>
           <motion.div
-            key={currentStep === "instances" ? `inst-${activeConnectionId}-${activeResourceType}` : currentStep === "types" ? `types-${activeConnectionId}` : "connections"}
-            custom={direction.current}
+            key={
+              currentStep === "instances"
+                ? `inst-${activeConnectionId}-${activeResourceType}`
+                : currentStep === "types"
+                  ? `types-${activeConnectionId}`
+                  : "connections"
+            }
+            custom={direction}
             variants={slideVariants}
             initial="enter"
             animate="center"
             exit="exit"
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="flex flex-col h-full"
+            className="flex h-full flex-col"
           >
-            {currentStep === "instances" && activeConnectionId && activeResourceType ? (
+            {currentStep === "instances" &&
+            activeConnectionId &&
+            activeResourceType ? (
               <ResourceInstanceListView
                 connectionId={activeConnectionId}
                 resourceType={activeResourceType}
-                selectedItems={resources[activeConnectionId]?.[activeResourceType] ?? []}
-                isSelected={(resourceId) => isResourceSelected(activeConnectionId, activeResourceType, resourceId)}
-                onToggle={(item) => toggleResource(activeConnectionId, activeResourceType, item)}
+                selectedItems={
+                  resources[activeConnectionId]?.[activeResourceType] ?? []
+                }
+                isSelected={(resourceId) =>
+                  isResourceSelected(
+                    activeConnectionId,
+                    activeResourceType,
+                    resourceId
+                  )
+                }
+                onToggle={(item) =>
+                  toggleResource(activeConnectionId, activeResourceType, item)
+                }
                 onBack={goBackToResourceTypes}
               />
-            ) : currentStep === "types" && activeConnectionId && activeConnection ? (
+            ) : currentStep === "types" &&
+              activeConnectionId &&
+              activeConnection ? (
               <ResourceTypeListView
                 connection={activeConnection}
                 resourceTypes={activeResourceTypes}
-                getTypeSelectedCount={(resourceType) => getTypeSelectedCount(activeConnectionId, resourceType)}
+                getTypeSelectedCount={(resourceType) =>
+                  getTypeSelectedCount(activeConnectionId, resourceType)
+                }
                 onSelect={openResourceType}
                 onBack={goBackToConnections}
               />

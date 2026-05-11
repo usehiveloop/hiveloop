@@ -13,7 +13,9 @@ type ConnectionConfigField = components["schemas"]["ConnectionConfigField"]
 
 const MAX_SUGGESTIONS = 10
 
-function needsForm(integration: components["schemas"]["inIntegrationAvailableResponse"]): boolean {
+function needsForm(
+  integration: components["schemas"]["inIntegrationAvailableResponse"]
+): boolean {
   const authMode = integration.nango_config?.auth_mode
   const installation = integration.nango_config?.installation
 
@@ -25,7 +27,7 @@ function needsForm(integration: components["schemas"]["inIntegrationAvailableRes
     | undefined
   if (connectionConfig) {
     const hasRequiredFields = Object.values(connectionConfig).some(
-      (field) => !field.automated,
+      (field) => !field.automated
     )
     if (hasRequiredFields) return true
   }
@@ -40,14 +42,22 @@ interface ConnectionsEmptyProps {
   onShowFormFor: (integrationId: string) => void
 }
 
-export function ConnectionsEmpty({ connectingId, onConnect, onShowAll, onShowFormFor }: ConnectionsEmptyProps) {
-  const { data, isLoading } = $api.useQuery("get", "/v1/in/integrations/available")
+export function ConnectionsEmpty({
+  connectingId,
+  onConnect,
+  onShowAll,
+  onShowFormFor,
+}: ConnectionsEmptyProps) {
+  const { data, isLoading } = $api.useQuery(
+    "get",
+    "/v1/in/integrations/available"
+  )
 
-  const integrations = data ?? []
+  const integrations = useMemo(() => data ?? [], [data])
 
   const suggestions = useMemo(() => {
     const popular = integrations.filter((integration) =>
-      (integration.nango_config?.categories ?? []).includes("popular"),
+      (integration.nango_config?.categories ?? []).includes("popular")
     )
 
     if (popular.length >= MAX_SUGGESTIONS) {
@@ -55,12 +65,16 @@ export function ConnectionsEmpty({ connectingId, onConnect, onShowAll, onShowFor
     }
 
     const popularIds = new Set(popular.map((integration) => integration.id))
-    const rest = integrations.filter((integration) => !popularIds.has(integration.id))
+    const rest = integrations.filter(
+      (integration) => !popularIds.has(integration.id)
+    )
 
     return [...popular, ...rest].slice(0, MAX_SUGGESTIONS)
   }, [integrations])
 
-  function handleClick(integration: components["schemas"]["inIntegrationAvailableResponse"]) {
+  function handleClick(
+    integration: components["schemas"]["inIntegrationAvailableResponse"]
+  ) {
     if (needsForm(integration)) {
       onShowFormFor(integration.id!)
     } else {
@@ -69,13 +83,14 @@ export function ConnectionsEmpty({ connectingId, onConnect, onShowAll, onShowFor
   }
 
   return (
-    <div className="flex flex-col items-center pt-[20vh] pb-24 px-4">
-      <div className="text-center mb-8">
+    <div className="flex flex-col items-center px-4 pt-[20vh] pb-24">
+      <div className="mb-8 text-center">
         <h2 className="font-heading text-2xl font-semibold text-foreground">
           Connect your first integration
         </h2>
-        <p className="text-sm text-muted-foreground mt-2 max-w-sm">
-          Give your agents access to the tools you use every day. Pick one to get started.
+        <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+          Give your agents access to the tools you use every day. Pick one to
+          get started.
         </p>
       </div>
 
@@ -95,19 +110,28 @@ export function ConnectionsEmpty({ connectingId, onConnect, onShowAll, onShowFor
                   key={integration.id}
                   type="button"
                   disabled={connectingId !== null}
-                  className="flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted cursor-pointer disabled:cursor-not-allowed"
+                  className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted disabled:cursor-not-allowed"
                   onClick={() => handleClick(integration)}
                 >
-                  <IntegrationLogo provider={integration.provider ?? ""} size={24} />
+                  <IntegrationLogo
+                    provider={integration.provider ?? ""}
+                    size={24}
+                  />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">
+                    <p className="truncate text-sm font-medium">
                       {integration.display_name}
                     </p>
                   </div>
                   {isConnecting ? (
-                    <HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin text-muted-foreground" />
+                    <HugeiconsIcon
+                      icon={Loading03Icon}
+                      className="size-4 animate-spin text-muted-foreground"
+                    />
                   ) : (
-                    <HugeiconsIcon icon={ArrowRight01Icon} className="size-4 text-muted-foreground" />
+                    <HugeiconsIcon
+                      icon={ArrowRight01Icon}
+                      className="size-4 text-muted-foreground"
+                    />
                   )}
                 </button>
               )
@@ -115,7 +139,7 @@ export function ConnectionsEmpty({ connectingId, onConnect, onShowAll, onShowFor
           </div>
         )}
 
-        <p className="text-sm text-muted-foreground text-center mt-6 mb-4">
+        <p className="mt-6 mb-4 text-center text-sm text-muted-foreground">
           Can&apos;t find the integration you&apos;re looking for?
         </p>
         <Button variant="outline" className="w-full" onClick={onShowAll}>
