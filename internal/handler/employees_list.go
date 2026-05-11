@@ -63,6 +63,7 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	q := h.db.WithContext(r.Context()).
 		Preload("Credential").
+		Preload("TeamRef").
 		Where("agents.org_id = ? AND agents.is_employee = true AND agents.is_system = false AND agents.deleted_at IS NULL", org.ID)
 
 	if status := r.URL.Query().Get("status"); status != "" {

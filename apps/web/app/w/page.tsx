@@ -1,31 +1,43 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  ArrowDown01Icon,
-  ArrowUp02Icon,
-  Loading03Icon,
-  Tick02Icon,
+  Add01Icon,
+  ArrowRight01Icon,
+  Search01Icon,
 } from "@hugeicons/core-free-icons"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import { $api } from "@/lib/api/hooks"
-import { extractErrorMessage } from "@/lib/api/error"
+import { useAuth } from "@/lib/auth/auth-context"
+import { cn } from "@/lib/utils"
+import type { components } from "@/lib/api/schema"
+
+type Employee = components["schemas"]["employeeListItem"]
+type Status = "active" | "paused" | "error" | "draft"
+
+interface EmployeeGroup {
+  name: string
+  employees: Employee[]
+}
+
+const COLUMN_GRID =
+  "grid-cols-[1.4fr_1.4fr_1.3fr_0.9fr_1fr_0.7fr_0.9fr]"
 
 export default function WorkspaceHome() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [draft, setDraft] = useState("")
-  const [agentId, setAgentId] = useState<string | null>(null)
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const { activeOrg } = useAuth()
+  const [filter, setFilter] = useState("")
+  const { data, isLoading } = $api.useQuery("get", "/v1/employees")
+  const employees = useMemo(() => data?.data ?? [], [data])
 
   useEffect(() => {
     if (searchParams.get("checkout") === "success") {
@@ -34,180 +46,415 @@ export default function WorkspaceHome() {
     }
   }, [searchParams, router])
 
-  const { data: employeesData, isLoading: employeesLoading } = $api.useQuery(
-    "get",
-    "/v1/employees"
-  )
-  const employees = useMemo(() => employeesData?.data ?? [], [employeesData])
-
-  useEffect(() => {
-    const firstEmployeeId = employees[0]?.id
-    if (!agentId && firstEmployeeId) {
-      queueMicrotask(() => setAgentId(firstEmployeeId))
-    }
-  }, [agentId, employees])
-
-  const selected = employees.find((e) => e.id === agentId) ?? null
-
-  const createChat = $api.useMutation("post", "/v1/employees/{id}/chats")
-
-  function handleSend() {
-    if (!agentId || !draft.trim() || createChat.isPending) return
-    createChat.mutate(
-      {
-        params: { path: { id: agentId } },
-        body: { message: draft.trim() },
-      },
-      {
-        onSuccess: (data) => {
-          if (!data.session_id || !data.stream_url) {
-            toast.error("Could not start chat — missing session id")
-            return
-          }
-          const url = `/w/chats/${data.session_id}?stream=${encodeURIComponent(data.stream_url)}`
-          router.push(url)
-        },
-        onError: (err) => {
-          toast.error(extractErrorMessage(err, "Could not start chat"))
-        },
-      }
+  const filtered = useMemo(() => {
+    const query = filter.trim().toLowerCase()
+    if (!query) return employees
+    return employees.filter((employee) =>
+      [
+        employee.name,
+        employee.description,
+        employee.category,
+        employee.model,
+        employee.team,
+        employee.status,
+        employee.sandbox?.status,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(query)
     )
-  }
+  }, [employees, filter])
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
-
-  const canSend =
-    Boolean(agentId) && draft.trim().length > 0 && !createChat.isPending
+  const groups = useMemo(() => groupEmployees(filtered), [filtered])
+  const activeCount = employees.filter(
+    (employee) => normalizeStatus(employee.status) === "active"
+  ).length
+  const attentionCount = employees.filter((employee) =>
+    ["error", "paused"].includes(normalizeStatus(employee.status))
+  ).length
 
   return (
-    <>
-      <PageHeader title="Home" />
-      <div className="mx-auto w-full max-w-3xl px-6 pt-16 pb-24">
-        <div className="mb-8">
-          <h1 className="font-heading text-[28px] leading-tight font-medium tracking-tight text-foreground">
-            What do you want shipped first?
-          </h1>
-          <p className="mt-2 text-[14px] text-muted-foreground">
-            Pick one of your AI employees, give them a task, watch them work.
+    <main className="mx-auto w-full max-w-6xl px-6 pb-32 pt-14 sm:px-10">
+      <EmployeesHeader
+        orgName={activeOrg?.name ?? "Workspace"}
+        total={employees.length}
+        active={activeCount}
+        attention={attentionCount}
+        filter={filter}
+        onFilterChange={setFilter}
+      />
+
+      <div className="mt-14 flex flex-col gap-12">
+        {isLoading ? (
+          <EmployeesTableSkeleton />
+        ) : employees.length === 0 ? (
+          <EmployeesEmpty />
+        ) : groups.length === 0 ? (
+          <div className="rounded-2xl border border-border px-5 py-12 text-center text-sm text-muted-foreground">
+            No employees match your filter.
+          </div>
+        ) : (
+          groups.map((group) => (
+            <TeamSection key={group.name} group={group} />
+          ))
+        )}
+      </div>
+    </main>
+  )
+}
+
+function EmployeesHeader({
+  orgName,
+  total,
+  active,
+  attention,
+  filter,
+  onFilterChange,
+}: {
+  orgName: string
+  total: number
+  active: number
+  attention: number
+  filter: string
+  onFilterChange: (value: string) => void
+}) {
+  return (
+    <section className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          {orgName} Workforce
+        </p>
+        <h1 className="font-display text-4xl font-medium tracking-tight">
+          All employees
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          <span className="font-semibold text-foreground">{total}</span>{" "}
+          {total === 1 ? "employee" : "employees"},{" "}
+          <span className="font-semibold text-foreground">{active}</span>{" "}
+          active
+          {attention > 0 ? (
+            <>
+              .{" "}
+              <span className="text-destructive underline decoration-destructive/40 underline-offset-4">
+                {attention} need attention.
+              </span>
+            </>
+          ) : (
+            "."
+          )}
+        </p>
+      </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <FilterField value={filter} onChange={onFilterChange} />
+        <Button render={<Link href="/onboarding" />}>
+          <HugeiconsIcon
+            icon={Add01Icon}
+            strokeWidth={2.25}
+            data-icon="inline-start"
+          />
+          New employee
+        </Button>
+      </div>
+    </section>
+  )
+}
+
+function FilterField({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <div className="relative w-full sm:w-60">
+      <HugeiconsIcon
+        icon={Search01Icon}
+        className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        strokeWidth={2}
+      />
+      <Input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Filter employees"
+        className="pl-9"
+      />
+    </div>
+  )
+}
+
+function TeamSection({ group }: { group: EmployeeGroup }) {
+  return (
+    <section className="flex flex-col gap-4">
+      <header className="flex items-baseline justify-between gap-6">
+        <div className="flex items-baseline gap-3">
+          <h2 className="text-base font-semibold tracking-tight">
+            {group.name}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {group.employees.length}{" "}
+            {group.employees.length === 1 ? "employee" : "employees"}
           </p>
         </div>
-
-        <div className="rounded-2xl border border-border bg-background transition-colors focus-within:border-foreground/30">
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              selected
-                ? `Ask ${selected.name ?? "your employee"} for help…`
-                : employeesLoading
-                  ? "Loading employees…"
-                  : "No employees yet — create one from /onboarding."
-            }
-            disabled={employeesLoading || !selected}
-            className="block h-[150px] w-full resize-none bg-transparent px-4 pt-4 text-[14.5px] text-foreground outline-none placeholder:text-muted-foreground/70 disabled:opacity-50"
+        <Link
+          href="/w/teams"
+          className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Open teams
+          <HugeiconsIcon
+            icon={ArrowRight01Icon}
+            className="size-3.5"
+            strokeWidth={2}
           />
-          <div className="flex items-center justify-between gap-2 px-3 pt-1 pb-3">
-            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-              <PopoverTrigger
-                render={
-                  <button
-                    type="button"
-                    disabled={employees.length === 0}
-                    className="flex items-center gap-2 rounded-full border border-border/70 py-1 pr-3 pl-1 text-[12.5px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
-                  >
-                    <Avatar className="h-6 w-6">
-                      {selected?.avatar_url ? (
-                        <AvatarImage src={selected.avatar_url} alt="" />
-                      ) : null}
-                      <AvatarFallback className="text-[10px]">
-                        {(selected?.name ?? "?")[0]?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium text-foreground">
-                      {selected?.name ?? "Select employee"}
-                    </span>
-                    <HugeiconsIcon
-                      icon={ArrowDown01Icon}
-                      size={12}
-                      className="opacity-60"
-                    />
-                  </button>
-                }
-              />
-              <PopoverContent align="start" className="w-[340px] p-1.5">
-                <div className="px-2.5 pt-2 pb-1.5 text-[10.5px] font-medium tracking-wide text-muted-foreground uppercase">
-                  Choose an employee
-                </div>
-                <div className="space-y-0.5">
-                  {employees.map((e) => {
-                    if (!e.id) return null
-                    const isActive = e.id === agentId
-                    return (
-                      <button
-                        key={e.id}
-                        type="button"
-                        onClick={() => {
-                          setAgentId(e.id ?? null)
-                          setPickerOpen(false)
-                        }}
-                        className={`flex w-full items-start gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors ${
-                          isActive ? "bg-muted/60" : "hover:bg-muted/40"
-                        }`}
-                      >
-                        <Avatar className="h-9 w-9">
-                          {e.avatar_url ? (
-                            <AvatarImage src={e.avatar_url} alt="" />
-                          ) : null}
-                          <AvatarFallback>
-                            {(e.name ?? "?")[0]?.toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[13.5px] font-medium text-foreground">
-                            {e.name}
-                          </div>
-                          {e.description ? (
-                            <div className="mt-0.5 truncate text-[11.5px] leading-relaxed text-muted-foreground">
-                              {e.description}
-                            </div>
-                          ) : null}
-                        </div>
-                        <HugeiconsIcon
-                          icon={Tick02Icon}
-                          size={13}
-                          className={`mt-1 shrink-0 text-primary ${isActive ? "" : "opacity-0"}`}
-                        />
-                      </button>
-                    )
-                  })}
-                </div>
-              </PopoverContent>
-            </Popover>
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={!canSend}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-30"
-            >
-              {createChat.isPending ? (
-                <HugeiconsIcon
-                  icon={Loading03Icon}
-                  size={14}
-                  className="animate-spin"
-                />
-              ) : (
-                <HugeiconsIcon icon={ArrowUp02Icon} size={16} />
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
+        </Link>
+      </header>
+
+      <EmployeeTable employees={group.employees} />
+    </section>
   )
+}
+
+function EmployeeTable({ employees }: { employees: Employee[] }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div
+        className={cn(
+          "hidden items-center border-b border-border px-5 py-3 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground lg:grid",
+          COLUMN_GRID
+        )}
+      >
+        <span>Employee</span>
+        <span>Role</span>
+        <span>Model</span>
+        <span>Status</span>
+        <span>Tasks / 7d</span>
+        <span>Success</span>
+        <span className="text-right">Last active</span>
+      </div>
+      <ul className="divide-y divide-border">
+        {employees.map((employee) => (
+          <EmployeeRow key={employee.id ?? employee.name} employee={employee} />
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function EmployeeRow({ employee }: { employee: Employee }) {
+  const name = employee.name ?? "Unnamed employee"
+  const role = employee.category || employee.description || "Coordinator"
+  const model = employee.model ?? "Default model"
+  const status = normalizeStatus(employee.status)
+  const lastActive = formatLastActive(
+    employee.sandbox?.last_active_at ?? employee.updated_at
+  )
+
+  return (
+    <li
+      className={cn(
+        "grid gap-3 px-5 py-4 text-sm transition-colors hover:bg-muted/40 lg:items-center lg:gap-0 lg:py-3.5",
+        "grid-cols-1 lg:grid",
+        COLUMN_GRID
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar size="sm">
+          {employee.avatar_url ? (
+            <AvatarImage src={employee.avatar_url} alt="" />
+          ) : null}
+          <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <span className="truncate font-medium">{name}</span>
+      </div>
+      <span className="truncate text-foreground/90">{role}</span>
+      <span className="truncate text-foreground/90">{model}</span>
+      <span>
+        <StatusBadge status={status} />
+      </span>
+      <div className="flex items-center gap-3">
+        <Sparkline points={[]} />
+        <span className="font-medium tabular-nums">—</span>
+      </div>
+      <span className="font-medium tabular-nums">—</span>
+      <span className="text-muted-foreground lg:text-right">{lastActive}</span>
+    </li>
+  )
+}
+
+const STATUS_PRESETS: Record<
+  Status,
+  { label: string; chip: string; dot: string }
+> = {
+  active: {
+    label: "Active",
+    chip: "bg-success/15 text-success",
+    dot: "bg-success",
+  },
+  paused: {
+    label: "Paused",
+    chip: "bg-muted text-muted-foreground",
+    dot: "bg-muted-foreground/70",
+  },
+  error: {
+    label: "Error",
+    chip: "bg-destructive/15 text-destructive",
+    dot: "bg-destructive",
+  },
+  draft: {
+    label: "Draft",
+    chip: "bg-muted/60 text-muted-foreground",
+    dot: "bg-muted-foreground/50",
+  },
+}
+
+function StatusBadge({ status }: { status: Status }) {
+  const preset = STATUS_PRESETS[status]
+  return (
+    <Badge variant="ghost" className={cn("gap-1.5", preset.chip)}>
+      <span className={cn("size-1.5 rounded-full", preset.dot)} />
+      {preset.label}
+    </Badge>
+  )
+}
+
+function Sparkline({ points }: { points: number[] }) {
+  const w = 80
+  const h = 22
+  if (points.length === 0) {
+    return <span className="block h-[22px] w-20" aria-hidden />
+  }
+  const max = Math.max(...points, 1)
+  const min = Math.min(...points)
+  const range = Math.max(max - min, 1)
+  const stepX = points.length > 1 ? w / (points.length - 1) : w
+  const path = points
+    .map((point, index) => {
+      const x = index * stepX
+      const y = h - ((point - min) / range) * (h - 2) - 1
+      return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`
+    })
+    .join(" ")
+  return (
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      className="shrink-0 text-primary"
+      aria-hidden
+    >
+      <path
+        d={path}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function EmployeesTableSkeleton() {
+  return (
+    <div className="flex flex-col gap-12" aria-busy="true">
+      {Array.from({ length: 2 }).map((_, sectionIndex) => (
+        <section key={sectionIndex} className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-5 w-44 rounded-md" />
+            <Skeleton className="h-3 w-24 rounded-md" />
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-border">
+            <div
+              className={cn(
+                "hidden items-center border-b border-border px-5 py-3 lg:grid",
+                COLUMN_GRID
+              )}
+            >
+              {Array.from({ length: 7 }).map((__, headerIndex) => (
+                <Skeleton
+                  key={headerIndex}
+                  className="h-3 w-20 rounded-md"
+                />
+              ))}
+            </div>
+            {Array.from({ length: 3 }).map((__, rowIndex) => (
+              <div
+                key={rowIndex}
+                className={cn(
+                  "grid gap-3 border-b border-border px-5 py-4 last:border-b-0 lg:gap-0",
+                  COLUMN_GRID
+                )}
+              >
+                {Array.from({ length: 7 }).map((___, cellIndex) => (
+                  <Skeleton
+                    key={cellIndex}
+                    className="h-5 w-24 rounded-md"
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  )
+}
+
+function EmployeesEmpty() {
+  return (
+    <div className="rounded-2xl border border-border px-5 py-16 text-center">
+      <h3 className="text-sm font-semibold text-foreground">
+        No employees yet
+      </h3>
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+        Complete onboarding to create your coordinator employee and connect it
+        to a channel.
+      </p>
+    </div>
+  )
+}
+
+function groupEmployees(employees: Employee[]): EmployeeGroup[] {
+  const groups = new Map<string, Employee[]>()
+  for (const employee of employees) {
+    const key = employee.team?.trim() || "Unassigned"
+    groups.set(key, [...(groups.get(key) ?? []), employee])
+  }
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => {
+      if (a === "Unassigned") return 1
+      if (b === "Unassigned") return -1
+      return a.localeCompare(b)
+    })
+    .map(([name, groupedEmployees]) => ({
+      name,
+      employees: groupedEmployees,
+    }))
+}
+
+function normalizeStatus(status?: string): Status {
+  const normalized = status?.toLowerCase()
+  if (normalized === "paused") return "paused"
+  if (normalized === "error" || normalized === "failed") return "error"
+  if (normalized === "draft") return "draft"
+  return "active"
+}
+
+function formatLastActive(value?: string) {
+  if (!value) return "never run"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "unknown"
+  const diffMs = Date.now() - date.getTime()
+  const diffMinutes = Math.max(0, Math.floor(diffMs / 60000))
+  if (diffMinutes < 1) return "just now"
+  if (diffMinutes < 60) return `${diffMinutes} min ago`
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours} hr ago`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+  }).format(date)
 }

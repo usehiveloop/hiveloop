@@ -25,7 +25,7 @@ import { useAuth } from "@/lib/auth/auth-context"
 import { cn } from "@/lib/utils"
 
 const PRIMARY_NAV = [
-  { label: "Employees", href: "/w/employees", match: "/w/employees" },
+  { label: "Employees", href: "/w", match: "/w" },
   { label: "Teams", href: "/w/teams", match: "/w/teams" },
   { label: "Knowledge", href: "/w/knowledge", match: "/w/knowledge" },
 ]
@@ -41,9 +41,11 @@ function initials(name?: string | null) {
 export function AppTopbar({
   showPrimaryNav = true,
   onboarding = false,
+  logoHref = "/w",
 }: {
   showPrimaryNav?: boolean
   onboarding?: boolean
+  logoHref?: string
 }) {
   const pathname = usePathname()
 
@@ -51,7 +53,7 @@ export function AppTopbar({
     <>
       <header className="sticky top-0 z-30 flex w-full items-center justify-between gap-4 border-b border-border/60 bg-background/90 px-6 py-4 backdrop-blur sm:px-10">
         <div className="flex min-w-0 items-center gap-4">
-          <Link href="/w" aria-label="Hiveloop home" className="shrink-0">
+          <Link href={logoHref} aria-label="Hiveloop home" className="shrink-0">
             <Logo className="h-8" />
           </Link>
           <HeaderWorkspaceSwitcher className="hidden sm:flex" />
@@ -62,7 +64,8 @@ export function AppTopbar({
             >
               {PRIMARY_NAV.map((item) => {
                 const active =
-                  pathname === item.href || pathname.startsWith(`${item.match}/`)
+                  pathname === item.href ||
+                  (item.match !== "/w" && pathname.startsWith(`${item.match}/`))
                 return (
                   <Link
                     key={item.href}
@@ -126,7 +129,8 @@ export function AppTopbar({
         >
           {PRIMARY_NAV.map((item) => {
             const active =
-              pathname === item.href || pathname.startsWith(`${item.match}/`)
+              pathname === item.href ||
+              (item.match !== "/w" && pathname.startsWith(`${item.match}/`))
             return (
               <Link
                 key={item.href}

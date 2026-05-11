@@ -3,11 +3,10 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppTopbar } from "@/components/app-topbar"
 import { ImpersonationBanner } from "@/components/impersonation-banner"
 import { Loader } from "@/components/loader"
 import { OnboardingPanel } from "@/components/onboarding-panel"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context"
 
 function AuthGate({ children }: { children: React.ReactNode }) {
@@ -24,7 +23,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (isLoading || !user || needsOnboarding) {
     return (
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex min-h-0 flex-1 items-center justify-center">
         <Loader description="Loading workspace" />
       </div>
     )
@@ -40,13 +39,13 @@ export default function WorkspaceLayout({
   return (
     <AuthProvider>
       <ImpersonationBanner />
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
+      <div className="flex min-h-screen flex-col bg-background">
+        <AppTopbar />
+        <main className="flex min-h-0 flex-1 flex-col">
           <AuthGate>{children}</AuthGate>
-        </SidebarInset>
+        </main>
         <OnboardingPanel />
-      </SidebarProvider>
+      </div>
     </AuthProvider>
   )
 }

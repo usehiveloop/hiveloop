@@ -57,7 +57,7 @@ export default function SettingsLayout({
 
   return (
     <div className="flex min-h-0 flex-1">
-      <aside className="sticky top-0 hidden h-svh w-64 shrink-0 self-start overflow-y-auto border-r border-border/60 bg-muted/20 md:block">
+      <aside className="sticky top-[65px] hidden h-[calc(100svh-65px)] w-64 shrink-0 self-start overflow-y-auto border-r border-border/60 bg-muted/20 md:block">
         <div className="px-4 pt-5 pb-3">
           <h2 className="text-[13px] font-medium text-foreground">Settings</h2>
           <p className="text-[11px] text-muted-foreground">
