@@ -114,7 +114,7 @@ type Config struct {
 	ProxyHost             string `env:"PROXY_HOST" envDefault:"proxy.hiveloop.com"`                           // LLM proxy hostname (proxy.hiveloop.com)
 
 	// Employee sandbox runtime — ghcr.io/usehiveloop/employee-sandbox image.
-	EmployeeSandboxBaseImagePrefix string `env:"EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX" envDefault:"hiveloop-employee-sandbox-latest-small-v1"`
+	EmployeeSandboxBaseImagePrefix string `env:"EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX" envDefault:"hiveloop-employee-sandbox-0-0-1-small-v1"`
 
 	// Hindsight (agent memory)
 	HindsightAPIURL string `env:"HINDSIGHT_API_URL"` // e.g. http://hindsight.railway.internal:8888 — empty = memory disabled

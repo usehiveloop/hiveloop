@@ -6,31 +6,41 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	daytona "github.com/daytonaio/daytona/libs/sdk-go/pkg/daytona"
 	"github.com/daytonaio/daytona/libs/sdk-go/pkg/types"
 )
 
-const employeeSandboxImageRef = "ghcr.io/usehiveloop/employee-sandbox:latest"
+const employeeSandboxImageRepo = "ghcr.io/usehiveloop/employee-sandbox"
 
 func runEmployeeSandbox(ctx context.Context, args []string) {
 	fs := flag.NewFlagSet("employee-sandbox", flag.ExitOnError)
+	version := fs.String("version", "", "Tag of usehiveloop/employee-sandbox already published to GHCR (required, e.g. v0.0.1)")
 	size := fs.String("size", "all", "Snapshot sizes to register (small, medium, large, xlarge, all)")
 	if err := fs.Parse(args); err != nil {
 		os.Exit(2)
+	}
+	if *version == "" {
+		fmt.Fprintln(os.Stderr, "error: -version is required (e.g. v0.0.1)")
+		os.Exit(1)
 	}
 	targetSizes, err := resolveSizes(*size)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
-	if err := registerEmployeeSandboxSnapshots(ctx, targetSizes); err != nil {
+	if err := registerEmployeeSandboxSnapshots(ctx, *version, targetSizes); err != nil {
 		log.Fatalf("error: %v", err)
 	}
 	log.Println("Done.")
 }
 
-func registerEmployeeSandboxSnapshots(ctx context.Context, targetSizes []string) error {
+func registerEmployeeSandboxSnapshots(ctx context.Context, version string, targetSizes []string) error {
+	cleanVersion := strings.TrimPrefix(version, "v")
+	dashedVersion := strings.ReplaceAll(cleanVersion, ".", "-")
+	imageRef := fmt.Sprintf("%s:%s", employeeSandboxImageRepo, version)
+
 	client, err := daytona.NewClientWithConfig(&types.DaytonaConfig{
 		APIKey: os.Getenv("SANDBOX_PROVIDER_KEY"),
 		APIUrl: os.Getenv("SANDBOX_PROVIDER_URL"),
@@ -46,13 +56,13 @@ func registerEmployeeSandboxSnapshots(ctx context.Context, targetSizes []string)
 		if !ok {
 			return fmt.Errorf("unknown size: %s", sizeName)
 		}
-		name := employeeSandboxSnapshotName(size.Name)
+		name := employeeSandboxSnapshotName(dashedVersion, size.Name)
 		log.Printf("Registering Daytona snapshot %q from %s (cpu=%d, mem=%dGB, disk=%dGB)...",
-			name, employeeSandboxImageRef, size.CPU, size.Memory, size.Disk)
+			name, imageRef, size.CPU, size.Memory, size.Disk)
 
 		_, logChan, err := client.Snapshot.Create(ctx, &types.CreateSnapshotParams{
 			Name:  name,
-			Image: employeeSandboxImageRef,
+			Image: imageRef,
 			Resources: &types.Resources{
 				CPU:    size.CPU,
 				Memory: size.Memory,
@@ -82,6 +92,6 @@ func registerEmployeeSandboxSnapshots(ctx context.Context, targetSizes []string)
 	return nil
 }
 
-func employeeSandboxSnapshotName(size string) string {
-	return fmt.Sprintf("hiveloop-employee-sandbox-latest-%s-v1", size)
+func employeeSandboxSnapshotName(dashedVersion, size string) string {
+	return fmt.Sprintf("hiveloop-employee-sandbox-%s-%s-v1", dashedVersion, size)
 }

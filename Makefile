@@ -64,11 +64,13 @@ build-hermes-templates:
 	@test -n "$(HERMES_VERSION)" || (echo "error: HERMES_VERSION is required (e.g. make build-hermes-templates HERMES_VERSION=v0.0.1)" && exit 1)
 	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates hermes -version=$(HERMES_VERSION) -size=$(or $(SIZE),all)
 
-# Register Daytona snapshots from the production employee sandbox image.
+# Register Daytona snapshots from a usehiveloop/employee-sandbox image already published.
 # Requires SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, SANDBOX_TARGET.
-# Usage: make build-employee-sandbox-templates SIZE=small
+# Usage: make build-employee-sandbox-templates EMPLOYEE_SANDBOX_VERSION=v0.0.1
+#        make build-employee-sandbox-templates EMPLOYEE_SANDBOX_VERSION=v0.0.1 SIZE=small
 build-employee-sandbox-templates:
-	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates employee-sandbox -size=$(or $(SIZE),all)
+	@test -n "$(EMPLOYEE_SANDBOX_VERSION)" || (echo "error: EMPLOYEE_SANDBOX_VERSION is required (e.g. make build-employee-sandbox-templates EMPLOYEE_SANDBOX_VERSION=v0.0.1)" && exit 1)
+	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates employee-sandbox -version=$(EMPLOYEE_SANDBOX_VERSION) -size=$(or $(SIZE),all)
 
 # Upload skill definitions to Hiveloop API (reads HIVELOOP_SKILLS_API_KEY from .env)
 upload-skills:
