@@ -39,10 +39,28 @@ type gitHubProfileRepositoriesResponse struct {
 	SelectedRepositories []gitHubRepository   `json:"selected_repositories"`
 }
 
+type createGitHubProfileResponse struct {
+	Profile agentProfileResponse `json:"profile"`
+}
+
 type updateGitHubRepositoriesRequest struct {
 	Repositories []gitHubRepository `json:"repositories"`
 }
 
+// @Summary Attach a GitHub profile to an AI employee
+// @Description Verifies an org GitHub connection through Nango and stores it as the employee's single GitHub profile.
+// @Tags agent-profiles
+// @Accept json
+// @Produce json
+// @Param agentID path string true "Agent ID (must be an AI employee)"
+// @Param body body createGitHubProfileRequest true "GitHub connection"
+// @Success 201 {object} createGitHubProfileResponse
+// @Success 200 {object} createGitHubProfileResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 502 {object} errorResponse
+// @Security BearerAuth
 // @Router /v1/agents/{agentID}/profiles/github [post]
 func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Request) {
 	agent, orgID, err := h.resolveEmployeeAgent(r)
@@ -130,7 +148,7 @@ func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Reques
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create github profile"})
 			return
 		}
-		writeJSON(w, http.StatusCreated, map[string]any{"profile": toAgentProfileResponse(profile)})
+		writeJSON(w, http.StatusCreated, createGitHubProfileResponse{Profile: toAgentProfileResponse(profile)})
 		return
 	}
 
@@ -145,9 +163,21 @@ func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Reques
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update github profile"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"profile": toAgentProfileResponse(profile)})
+	writeJSON(w, http.StatusOK, createGitHubProfileResponse{Profile: toAgentProfileResponse(profile)})
 }
 
+// @Summary List repositories for an employee GitHub profile
+// @Description Lists repositories visible to the employee's attached GitHub profile and returns any selected repositories.
+// @Tags agent-profiles
+// @Produce json
+// @Param agentID path string true "Agent ID (must be an AI employee)"
+// @Success 200 {object} gitHubProfileRepositoriesResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Failure 502 {object} errorResponse
+// @Security BearerAuth
 // @Router /v1/agents/{agentID}/profiles/github/repositories [get]
 func (h *AgentProfileHandler) ListGitHubRepositories(w http.ResponseWriter, r *http.Request) {
 	_, _, profile, conn, providerConfigKey, ok := h.resolveGitHubProfileContext(w, r)
@@ -170,6 +200,20 @@ func (h *AgentProfileHandler) ListGitHubRepositories(w http.ResponseWriter, r *h
 	})
 }
 
+// @Summary Update selected repositories for an employee GitHub profile
+// @Description Stores the repositories this employee may access from its attached GitHub profile.
+// @Tags agent-profiles
+// @Accept json
+// @Produce json
+// @Param agentID path string true "Agent ID (must be an AI employee)"
+// @Param body body updateGitHubRepositoriesRequest true "Selected repositories"
+// @Success 200 {object} gitHubProfileRepositoriesResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
 // @Router /v1/agents/{agentID}/profiles/github/repositories [patch]
 func (h *AgentProfileHandler) UpdateGitHubRepositories(w http.ResponseWriter, r *http.Request) {
 	_, _, profile, _, _, ok := h.resolveGitHubProfileContext(w, r)

@@ -4845,6 +4845,261 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/agents/{agentID}/profiles/github": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach a GitHub profile to an AI employee
+         * @description Verifies an org GitHub connection through Nango and stores it as the employee's single GitHub profile.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID (must be an AI employee) */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            /** @description GitHub connection */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createGitHubProfileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["createGitHubProfileResponse"];
+                    };
+                };
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["createGitHubProfileResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{agentID}/profiles/github/repositories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List repositories for an employee GitHub profile
+         * @description Lists repositories visible to the employee's attached GitHub profile and returns any selected repositories.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID (must be an AI employee) */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["gitHubProfileRepositoriesResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update selected repositories for an employee GitHub profile
+         * @description Stores the repositories this employee may access from its attached GitHub profile.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID (must be an AI employee) */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            /** @description Selected repositories */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateGitHubRepositoriesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["gitHubProfileRepositoriesResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/v1/agents/{agentID}/profiles/slack": {
         parameters: {
             query?: never;
@@ -7936,9 +8191,9 @@ export interface paths {
         put?: never;
         /**
          * Create an AI employee
-         * @description Persists an Agent (is_employee=true) and provisions a Hermes sandbox.
-         *     On any provisioning failure, the Agent is rolled back so the
-         *     endpoint is transactional from the caller's POV.
+         * @description Persists an Agent (is_employee=true). The employee sandbox is
+         *     provisioned after an active channel profile exists, during onboarding
+         *     completion or explicit sync.
          */
         post: {
             parameters: {
@@ -8102,10 +8357,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Push compiled config to a Hermes employee's sandbox
-         * @description Compiles the agent into a SyncRequest and pushes it to the
-         *     sandbox sidecar. Requires the agent be an employee with at
-         *     least one active slack or whatsapp profile.
+         * Push compiled config to an employee sandbox
+         * @description Compiles the employee config, provisions an employee sandbox if
+         *     needed, pushes it to the runtime, and verifies readiness.
+         *     Requires the agent be an employee with an active Slack profile.
          */
         post: {
             parameters: {
@@ -9731,7 +9986,7 @@ export interface paths {
         /**
          * Complete onboarding
          * @description Saves the org's business info, validates the org has at least
-         *     one employee with an active slack/whatsapp profile, then runs
+         *     one employee with an active Slack profile, then runs
          *     the same compile + sandbox-sync as POST /v1/employees/{id}/sync
          *     on the org's first employee. On success Org.onboarded is set.
          */
@@ -14193,6 +14448,13 @@ export interface components {
             sandbox_id?: string;
             status?: string;
         };
+        createGitHubProfileRequest: {
+            connection_id?: string;
+            label?: string;
+        };
+        createGitHubProfileResponse: {
+            profile?: components["schemas"]["agentProfileResponse"];
+        };
         createInConnectionRequest: {
             meta?: components["schemas"]["JSON"];
             nango_connection_id?: string;
@@ -14400,6 +14662,21 @@ export interface components {
             ttfb_ms?: number;
             upstream_status?: number;
             user_id?: string;
+        };
+        gitHubProfileRepositoriesResponse: {
+            profile?: components["schemas"]["agentProfileResponse"];
+            repositories?: components["schemas"]["gitHubRepository"][];
+            selected_repositories?: components["schemas"]["gitHubRepository"][];
+        };
+        gitHubRepository: {
+            description?: string;
+            full_name?: string;
+            html_url?: string;
+            id?: string;
+            name?: string;
+            node_id?: string;
+            owner?: string;
+            private?: boolean;
         };
         inConnectSessionResponse: {
             provider_config_key?: string;
@@ -15263,6 +15540,9 @@ export interface components {
         };
         updateContentRequest: {
             bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
+        };
+        updateGitHubRepositoriesRequest: {
+            repositories?: components["schemas"]["gitHubRepository"][];
         };
         updateMarketplaceAgentRequest: {
             avatar?: string;

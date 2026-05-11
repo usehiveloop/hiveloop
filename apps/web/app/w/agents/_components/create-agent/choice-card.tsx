@@ -22,7 +22,6 @@ interface ChoiceCardBaseProps {
   title: string
   description: string
   trailing?: React.ReactNode
-  selected?: boolean
 }
 
 type ChoiceCardProps =
@@ -37,7 +36,6 @@ export function ChoiceCard({
   title,
   description,
   trailing,
-  selected = false,
   onClick,
   href,
 }: ChoiceCardProps) {
@@ -45,11 +43,7 @@ export function ChoiceCard({
   const leadingTopOffset = logoSize <= 24 ? "mt-0.5" : ""
   const logoSizeClass = logoSizeClasses[logoSize] ?? "h-5 w-5"
 
-  const className = `group flex ${alignment} gap-4 w-full rounded-xl p-4 text-left transition-colors cursor-pointer ${
-    selected
-      ? "bg-primary/5 ring-1 ring-primary/40 hover:bg-primary/10"
-      : "bg-muted/50 hover:bg-muted"
-  }`
+  const className = `group flex ${alignment} gap-4 w-full rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted cursor-pointer`
 
   const content = (
     <>
@@ -82,7 +76,7 @@ export function ChoiceCard({
   }
 
   return (
-    <button onClick={onClick} aria-pressed={selected} className={className}>
+    <button onClick={onClick} className={className}>
       {content}
     </button>
   )

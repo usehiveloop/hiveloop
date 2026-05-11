@@ -11,6 +11,7 @@ import {
   LockIcon,
   Loading03Icon,
   RepositoryIcon,
+  Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import { ChoiceCard } from "@/app/w/agents/_components/create-agent/choice-card"
 import { Button } from "@/components/ui/button"
@@ -26,55 +27,18 @@ import { integrationLogoURL } from "@/components/integration-logo"
 import { api } from "@/lib/api/client"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
+import type { components } from "@/lib/api/schema"
 import { StepHeader } from "./step-header"
 import { useOnboarding } from "./context"
 
 const GITHUB_PROVIDER = "github"
 
-interface GitHubRepository {
-  id: string
-  node_id?: string
-  name: string
-  full_name: string
-  private: boolean
-  html_url?: string
-  description?: string
-  owner?: string
-}
-
-interface GitHubRepositoriesResponse {
-  repositories: GitHubRepository[]
-  selected_repositories: GitHubRepository[]
-}
-
-async function backendJSON<T>(
-  path: string,
-  init?: RequestInit & { body?: BodyInit | null }
-): Promise<T> {
-  const response = await fetch(`/api/proxy${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  })
-  const data = await response.json().catch(() => null)
-  if (!response.ok) {
-    throw new Error(
-      data && typeof data === "object" && "error" in data
-        ? String(data.error)
-        : `Request failed with status ${response.status}`
-    )
-  }
-  return data as T
-}
+type GitHubRepository = components["schemas"]["gitHubRepository"]
 
 export function GithubStep() {
   const { createEmployee, goBack, goNext } = useOnboarding()
   const queryClient = useQueryClient()
   const [connecting, setConnecting] = useState(false)
-  const [loadingRepositories, setLoadingRepositories] = useState(false)
-  const [savingRepositories, setSavingRepositories] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [repositoryDialogOpen, setRepositoryDialogOpen] = useState(false)
   const [repositories, setRepositories] = useState<GitHubRepository[]>([])
@@ -95,21 +59,38 @@ export function GithubStep() {
     (connection) => connection.provider === GITHUB_PROVIDER
   )
   const agentId = createEmployee.agentId
+  const createGitHubProfile = $api.useMutation(
+    "post",
+    "/v1/agents/{agentID}/profiles/github"
+  )
+  const updateGitHubRepositories = $api.useMutation(
+    "patch",
+    "/v1/agents/{agentID}/profiles/github/repositories"
+  )
+  const repositoriesQuery = $api.useQuery(
+    "get",
+    "/v1/agents/{agentID}/profiles/github/repositories",
+    { params: { path: { agentID: agentId ?? "" } } },
+    { enabled: false, retry: false }
+  )
 
   async function attachProfileAndLoadRepositories(connectionId: string) {
     if (!agentId) {
       throw new Error("Create the employee profile before connecting GitHub.")
     }
-    await backendJSON(`/v1/agents/${agentId}/profiles/github`, {
-      method: "POST",
-      body: JSON.stringify({ connection_id: connectionId }),
+    await createGitHubProfile.mutateAsync({
+      params: { path: { agentID: agentId } },
+      body: { connection_id: connectionId },
     })
-    const data = await backendJSON<GitHubRepositoriesResponse>(
-      `/v1/agents/${agentId}/profiles/github/repositories`
-    )
+    const { data, error } = await repositoriesQuery.refetch()
+    if (error) throw error
+    if (!data) throw new Error("GitHub repositories response was empty")
+
     setRepositories(data.repositories ?? [])
     const selected = data.selected_repositories ?? []
-    setSelectedIDs(new Set(selected.map((repo) => repo.id)))
+    setSelectedIDs(
+      new Set(selected.map((repo) => repo.id).filter((id): id is string => Boolean(id)))
+    )
     setHasSavedRepositories(selected.length > 0)
     setRepositoryDialogOpen(true)
   }
@@ -171,7 +152,6 @@ export function GithubStep() {
 
   async function handleSelectRepositories() {
     if (!githubConnection?.id || loadingRepositories) return
-    setLoadingRepositories(true)
     setErrorMessage(null)
     try {
       await attachProfileAndLoadRepositories(githubConnection.id)
@@ -179,8 +159,6 @@ export function GithubStep() {
       setErrorMessage(
         extractErrorMessage(error, "Could not load GitHub repositories. Try again.")
       )
-    } finally {
-      setLoadingRepositories(false)
     }
   }
 
@@ -195,17 +173,16 @@ export function GithubStep() {
 
   async function handleSaveRepositories() {
     if (!agentId) return
-    const selected = repositories.filter((repo) => selectedIDs.has(repo.id))
+    const selected = repositories.filter((repo) => repo.id && selectedIDs.has(repo.id))
     if (selected.length === 0) {
       setErrorMessage("Select at least one repository for this employee.")
       return
     }
-    setSavingRepositories(true)
     setErrorMessage(null)
     try {
-      await backendJSON(`/v1/agents/${agentId}/profiles/github/repositories`, {
-        method: "PATCH",
-        body: JSON.stringify({ repositories: selected }),
+      await updateGitHubRepositories.mutateAsync({
+        params: { path: { agentID: agentId } },
+        body: { repositories: selected },
       })
       setHasSavedRepositories(true)
       setRepositoryDialogOpen(false)
@@ -214,12 +191,13 @@ export function GithubStep() {
       setErrorMessage(
         extractErrorMessage(error, "Could not save repository access. Try again.")
       )
-    } finally {
-      setSavingRepositories(false)
     }
   }
 
   const loading = integrationsLoading || connectionsLoading
+  const loadingRepositories =
+    createGitHubProfile.isPending || repositoriesQuery.isFetching
+  const savingRepositories = updateGitHubRepositories.isPending
   const busy = connecting || loadingRepositories || savingRepositories
   const choiceDisabled = busy || loading || !githubIntegration
 
@@ -378,23 +356,14 @@ function RepositoryPickerDialog({
           ) : (
             <div className="flex flex-col gap-2">
               {repositories.map((repo) => {
-                const checked = selectedIDs.has(repo.id)
+                const repoID = repo.id ?? repo.full_name ?? repo.name ?? ""
+                const checked = selectedIDs.has(repoID)
                 return (
-                  <ChoiceCard
-                    key={repo.id}
-                    icon={RepositoryIcon}
-                    title={repo.full_name}
-                    description={
-                      repo.description || repo.owner || "GitHub repository"
-                    }
+                  <RepositoryChoiceCard
+                    key={repoID}
+                    repo={repo}
                     selected={checked}
-                    onClick={() => onToggle(repo.id, !checked)}
-                    trailing={
-                      <RepositoryChoiceTrailing
-                        isPrivate={repo.private}
-                        selected={checked}
-                      />
-                    }
+                    onToggle={() => repoID && onToggle(repoID, !checked)}
                   />
                 )
               })}
@@ -419,30 +388,57 @@ function RepositoryPickerDialog({
   )
 }
 
-function RepositoryChoiceTrailing({
-  isPrivate,
+function RepositoryChoiceCard({
+  repo,
   selected,
+  onToggle,
 }: {
-  isPrivate: boolean
+  repo: GitHubRepository
   selected: boolean
+  onToggle: () => void
 }) {
+  const description = repo.description || repo.owner || "GitHub repository"
+
   return (
-    <span className="mt-0.5 flex shrink-0 items-center gap-2">
-      {isPrivate ? (
-        <HugeiconsIcon
-          icon={LockIcon}
-          className="size-4 text-muted-foreground"
-          strokeWidth={2}
-          aria-label="Private repository"
-        />
-      ) : null}
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={selected}
+      className={
+        "group flex w-full items-start gap-4 rounded-xl p-4 text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/30 " +
+        (selected
+          ? "border border-primary/20 bg-primary/5"
+          : "border border-transparent bg-muted/50 hover:bg-muted")
+      }
+    >
+      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-background text-muted-foreground ring-1 ring-border">
+        <HugeiconsIcon icon={RepositoryIcon} className="size-4" strokeWidth={2} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm font-semibold text-foreground">
+            {repo.full_name}
+          </span>
+          {repo.private ? (
+            <HugeiconsIcon
+              icon={LockIcon}
+              className="size-3.5 shrink-0 text-muted-foreground"
+              strokeWidth={2}
+              aria-label="Private repository"
+            />
+          ) : null}
+        </span>
+        <span className="mt-0.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">
+          {description}
+        </span>
+      </span>
       {selected ? (
         <HugeiconsIcon
-          icon={CheckmarkCircle02Icon}
-          className="size-5 text-emerald-600"
-          strokeWidth={2}
+          icon={Tick02Icon}
+          className="mt-0.5 size-4 shrink-0 text-primary"
+          strokeWidth={2.5}
         />
       ) : null}
-    </span>
+    </button>
   )
 }

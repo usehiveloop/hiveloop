@@ -4268,6 +4268,220 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/agents/{agentID}/profiles/github": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Verifies an org GitHub connection through Nango and stores it as the employee's single GitHub profile.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "agent-profiles"
+                ],
+                "summary": "Attach a GitHub profile to an AI employee",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Agent ID (must be an AI employee)",
+                        "name": "agentID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "GitHub connection",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.createGitHubProfileRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.createGitHubProfileResponse"
+                        }
+                    },
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.createGitHubProfileResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/agents/{agentID}/profiles/github/repositories": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lists repositories visible to the employee's attached GitHub profile and returns any selected repositories.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "agent-profiles"
+                ],
+                "summary": "List repositories for an employee GitHub profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Agent ID (must be an AI employee)",
+                        "name": "agentID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.gitHubProfileRepositoriesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stores the repositories this employee may access from its attached GitHub profile.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "agent-profiles"
+                ],
+                "summary": "Update selected repositories for an employee GitHub profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Agent ID (must be an AI employee)",
+                        "name": "agentID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Selected repositories",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.updateGitHubRepositoriesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.gitHubProfileRepositoriesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/agents/{agentID}/profiles/slack": {
             "post": {
                 "security": [
@@ -6903,7 +7117,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Persists an Agent (is_employee=true) and provisions a Hermes sandbox.\nOn any provisioning failure, the Agent is rolled back so the\nendpoint is transactional from the caller's POV.",
+                "description": "Persists an Agent (is_employee=true). The employee sandbox is\nprovisioned after an active channel profile exists, during onboarding\ncompletion or explicit sync.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7036,14 +7250,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Compiles the agent into a SyncRequest and pushes it to the\nsandbox sidecar. Requires the agent be an employee with at\nleast one active slack or whatsapp profile.",
+                "description": "Compiles the employee config, provisions an employee sandbox if\nneeded, pushes it to the runtime, and verifies readiness.\nRequires the agent be an employee with an active Slack profile.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "employees"
                 ],
-                "summary": "Push compiled config to a Hermes employee's sandbox",
+                "summary": "Push compiled config to an employee sandbox",
                 "parameters": [
                     {
                         "type": "string",
@@ -8371,7 +8585,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Saves the org's business info, validates the org has at least\none employee with an active slack/whatsapp profile, then runs\nthe same compile + sandbox-sync as POST /v1/employees/{id}/sync\non the org's first employee. On success Org.onboarded is set.",
+                "description": "Saves the org's business info, validates the org has at least\none employee with an active Slack profile, then runs\nthe same compile + sandbox-sync as POST /v1/employees/{id}/sync\non the org's first employee. On success Org.onboarded is set.",
                 "consumes": [
                     "application/json"
                 ],
@@ -14380,6 +14594,25 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.createGitHubProfileRequest": {
+            "type": "object",
+            "properties": {
+                "connection_id": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.createGitHubProfileResponse": {
+            "type": "object",
+            "properties": {
+                "profile": {
+                    "$ref": "#/definitions/internal_handler.agentProfileResponse"
+                }
+            }
+        },
         "internal_handler.createInConnectionRequest": {
             "type": "object",
             "properties": {
@@ -15004,6 +15237,55 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handler.gitHubProfileRepositoriesResponse": {
+            "type": "object",
+            "properties": {
+                "profile": {
+                    "$ref": "#/definitions/internal_handler.agentProfileResponse"
+                },
+                "repositories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.gitHubRepository"
+                    }
+                },
+                "selected_repositories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.gitHubRepository"
+                    }
+                }
+            }
+        },
+        "internal_handler.gitHubRepository": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "html_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "node_id": {
+                    "type": "string"
+                },
+                "owner": {
+                    "type": "string"
+                },
+                "private": {
+                    "type": "boolean"
                 }
             }
         },
@@ -17612,6 +17894,17 @@ const docTemplate = `{
             "properties": {
                 "bundle": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Bundle"
+                }
+            }
+        },
+        "internal_handler.updateGitHubRepositoriesRequest": {
+            "type": "object",
+            "properties": {
+                "repositories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.gitHubRepository"
+                    }
                 }
             }
         },

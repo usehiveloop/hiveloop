@@ -2059,6 +2059,18 @@ definitions:
       status:
         type: string
     type: object
+  internal_handler.createGitHubProfileRequest:
+    properties:
+      connection_id:
+        type: string
+      label:
+        type: string
+    type: object
+  internal_handler.createGitHubProfileResponse:
+    properties:
+      profile:
+        $ref: '#/definitions/internal_handler.agentProfileResponse'
+    type: object
   internal_handler.createInConnectionRequest:
     properties:
       meta:
@@ -2468,6 +2480,38 @@ definitions:
         type: integer
       user_id:
         type: string
+    type: object
+  internal_handler.gitHubProfileRepositoriesResponse:
+    properties:
+      profile:
+        $ref: '#/definitions/internal_handler.agentProfileResponse'
+      repositories:
+        items:
+          $ref: '#/definitions/internal_handler.gitHubRepository'
+        type: array
+      selected_repositories:
+        items:
+          $ref: '#/definitions/internal_handler.gitHubRepository'
+        type: array
+    type: object
+  internal_handler.gitHubRepository:
+    properties:
+      description:
+        type: string
+      full_name:
+        type: string
+      html_url:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      node_id:
+        type: string
+      owner:
+        type: string
+      private:
+        type: boolean
     type: object
   internal_handler.inConnectSessionResponse:
     properties:
@@ -4172,6 +4216,13 @@ definitions:
     properties:
       bundle:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Bundle'
+    type: object
+  internal_handler.updateGitHubRepositoriesRequest:
+    properties:
+      repositories:
+        items:
+          $ref: '#/definitions/internal_handler.gitHubRepository'
+        type: array
     type: object
   internal_handler.updateMarketplaceAgentRequest:
     properties:
@@ -7031,6 +7082,147 @@ paths:
       summary: Create a conversation
       tags:
       - conversations
+  /v1/agents/{agentID}/profiles/github:
+    post:
+      consumes:
+      - application/json
+      description: Verifies an org GitHub connection through Nango and stores it as
+        the employee's single GitHub profile.
+      parameters:
+      - description: Agent ID (must be an AI employee)
+        in: path
+        name: agentID
+        required: true
+        type: string
+      - description: GitHub connection
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createGitHubProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.createGitHubProfileResponse'
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.createGitHubProfileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Attach a GitHub profile to an AI employee
+      tags:
+      - agent-profiles
+  /v1/agents/{agentID}/profiles/github/repositories:
+    get:
+      description: Lists repositories visible to the employee's attached GitHub profile
+        and returns any selected repositories.
+      parameters:
+      - description: Agent ID (must be an AI employee)
+        in: path
+        name: agentID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.gitHubProfileRepositoriesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List repositories for an employee GitHub profile
+      tags:
+      - agent-profiles
+    patch:
+      consumes:
+      - application/json
+      description: Stores the repositories this employee may access from its attached
+        GitHub profile.
+      parameters:
+      - description: Agent ID (must be an AI employee)
+        in: path
+        name: agentID
+        required: true
+        type: string
+      - description: Selected repositories
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.updateGitHubRepositoriesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.gitHubProfileRepositoriesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update selected repositories for an employee GitHub profile
+      tags:
+      - agent-profiles
   /v1/agents/{agentID}/profiles/slack:
     post:
       consumes:
@@ -8803,9 +8995,9 @@ paths:
       consumes:
       - application/json
       description: |-
-        Persists an Agent (is_employee=true) and provisions a Hermes sandbox.
-        On any provisioning failure, the Agent is rolled back so the
-        endpoint is transactional from the caller's POV.
+        Persists an Agent (is_employee=true). The employee sandbox is
+        provisioned after an active channel profile exists, during onboarding
+        completion or explicit sync.
       parameters:
       - description: Employee definition
         in: body
@@ -8892,9 +9084,9 @@ paths:
   /v1/employees/{id}/sync:
     post:
       description: |-
-        Compiles the agent into a SyncRequest and pushes it to the
-        sandbox sidecar. Requires the agent be an employee with at
-        least one active slack or whatsapp profile.
+        Compiles the employee config, provisions an employee sandbox if
+        needed, pushes it to the runtime, and verifies readiness.
+        Requires the agent be an employee with an active Slack profile.
       parameters:
       - description: Agent UUID
         in: path
@@ -8938,7 +9130,7 @@ paths:
             $ref: '#/definitions/internal_handler.errorResponse'
       security:
       - BearerAuth: []
-      summary: Push compiled config to a Hermes employee's sandbox
+      summary: Push compiled config to an employee sandbox
       tags:
       - employees
   /v1/generations:
@@ -9766,7 +9958,7 @@ paths:
       - application/json
       description: |-
         Saves the org's business info, validates the org has at least
-        one employee with an active slack/whatsapp profile, then runs
+        one employee with an active Slack profile, then runs
         the same compile + sandbox-sync as POST /v1/employees/{id}/sync
         on the org's first employee. On success Org.onboarded is set.
       parameters:
