@@ -16,10 +16,10 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/bootstrap"
 	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/hermes"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
@@ -143,7 +143,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	var employeeHandler *handler.EmployeeHandler
 	if orchestrator != nil {
-		employeeHandler = handler.NewEmployeeHandler(database, orchestrator, hermes.CompileDeps{
+		employeeHandler = handler.NewEmployeeHandler(database, orchestrator, employeeruntime.CompileDeps{
 			DB:         database,
 			Picker:     credentials.NewPickerWithRegistry(database, reg),
 			KMS:        deps.KMS,

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -21,16 +22,16 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/hermes"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/registry"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
-type stubHermesProvider struct {
+type stubEmployeeProvider struct {
 	mu             sync.Mutex
 	endpoint       string
 	failOnCreate   bool
@@ -39,7 +40,9 @@ type stubHermesProvider struct {
 	lastCreateOpts sandbox.CreateSandboxOpts
 }
 
-func (s *stubHermesProvider) CreateSandbox(_ context.Context, opts sandbox.CreateSandboxOpts) (*sandbox.SandboxInfo, error) {
+type stubHermesProvider = stubEmployeeProvider
+
+func (s *stubEmployeeProvider) CreateSandbox(_ context.Context, opts sandbox.CreateSandboxOpts) (*sandbox.SandboxInfo, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.failOnCreate {
@@ -53,49 +56,49 @@ func (s *stubHermesProvider) CreateSandbox(_ context.Context, opts sandbox.Creat
 	}, nil
 }
 
-func (s *stubHermesProvider) GetEndpoint(_ context.Context, _ string, _ int) (string, error) {
+func (s *stubEmployeeProvider) GetEndpoint(_ context.Context, _ string, _ int) (string, error) {
 	return s.endpoint, nil
 }
 
-func (s *stubHermesProvider) DeleteSandbox(_ context.Context, _ string) error {
+func (s *stubEmployeeProvider) DeleteSandbox(_ context.Context, _ string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.deletedCount++
 	return nil
 }
 
-func (s *stubHermesProvider) StartSandbox(context.Context, string) error   { return nil }
-func (s *stubHermesProvider) StopSandbox(context.Context, string) error    { return nil }
-func (s *stubHermesProvider) ArchiveSandbox(context.Context, string) error { return nil }
-func (s *stubHermesProvider) GetStatus(context.Context, string) (sandbox.SandboxStatus, error) {
+func (s *stubEmployeeProvider) StartSandbox(context.Context, string) error   { return nil }
+func (s *stubEmployeeProvider) StopSandbox(context.Context, string) error    { return nil }
+func (s *stubEmployeeProvider) ArchiveSandbox(context.Context, string) error { return nil }
+func (s *stubEmployeeProvider) GetStatus(context.Context, string) (sandbox.SandboxStatus, error) {
 	return sandbox.StatusRunning, nil
 }
-func (s *stubHermesProvider) BuildSnapshot(context.Context, sandbox.BuildSnapshotOpts) (string, error) {
+func (s *stubEmployeeProvider) BuildSnapshot(context.Context, sandbox.BuildSnapshotOpts) (string, error) {
 	return "", nil
 }
-func (s *stubHermesProvider) BuildSnapshotWithLogs(context.Context, sandbox.BuildSnapshotOpts, func(string)) (string, error) {
+func (s *stubEmployeeProvider) BuildSnapshotWithLogs(context.Context, sandbox.BuildSnapshotOpts, func(string)) (string, error) {
 	return "", nil
 }
-func (s *stubHermesProvider) GetSnapshotStatus(context.Context, string) (*sandbox.SnapshotStatusResult, error) {
+func (s *stubEmployeeProvider) GetSnapshotStatus(context.Context, string) (*sandbox.SnapshotStatusResult, error) {
 	return &sandbox.SnapshotStatusResult{State: "ready"}, nil
 }
-func (s *stubHermesProvider) GetSnapshotLogs(context.Context, string) (string, error) {
+func (s *stubEmployeeProvider) GetSnapshotLogs(context.Context, string) (string, error) {
 	return "", nil
 }
-func (s *stubHermesProvider) DeleteSnapshot(context.Context, string) error      { return nil }
-func (s *stubHermesProvider) SetAutoStop(context.Context, string, int) error    { return nil }
-func (s *stubHermesProvider) SetAutoArchive(context.Context, string, int) error { return nil }
-func (s *stubHermesProvider) ExecuteCommand(context.Context, string, string) (string, error) {
+func (s *stubEmployeeProvider) DeleteSnapshot(context.Context, string) error      { return nil }
+func (s *stubEmployeeProvider) SetAutoStop(context.Context, string, int) error    { return nil }
+func (s *stubEmployeeProvider) SetAutoArchive(context.Context, string, int) error { return nil }
+func (s *stubEmployeeProvider) ExecuteCommand(context.Context, string, string) (string, error) {
 	return "", nil
 }
 
 type employeeHarness struct {
-	db        *gorm.DB
-	router    *chi.Mux
-	provider  *stubHermesProvider
-	encKey    *crypto.SymmetricKey
-	kms       *crypto.KeyWrapper
-	sidecar   *sidecarStub
+	db         *gorm.DB
+	router     *chi.Mux
+	provider   *stubEmployeeProvider
+	encKey     *crypto.SymmetricKey
+	kms        *crypto.KeyWrapper
+	sidecar    *sidecarStub
 	sidecarSrv *httptest.Server
 }
 
@@ -109,17 +112,21 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 	stub := &sidecarStub{}
 	sidecarSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/v1/hermes/status":
+		case "/healthz":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`ok`))
+		case "/readyz":
 			if r.Header.Get("Authorization") == "" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"state":"awaiting_initial_config"}`))
-		case "/v1/config/sync":
+		case "/config":
+			body, _ := io.ReadAll(r.Body)
 			stub.mu.Lock()
 			stub.syncConfigCalls++
 			stub.lastSyncBearer = r.Header.Get("Authorization")
+			stub.lastConfigBody = body
 			status := stub.syncConfigStatus
 			errs := stub.syncConfigErrors
 			stub.mu.Unlock()
@@ -128,31 +135,31 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(status)
-			body := map[string]any{
+			respBody := map[string]any{
 				"applied": 3, "deleted": 0, "repos_cloned": 1, "restart_triggered": true,
 			}
 			if len(errs) > 0 {
-				body["errors"] = errs
+				respBody["errors"] = errs
 			}
-			_ = json.NewEncoder(w).Encode(body)
+			_ = json.NewEncoder(w).Encode(respBody)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
 	t.Cleanup(sidecarSrv.Close)
 
-	provider := &stubHermesProvider{endpoint: sidecarSrv.URL}
+	provider := &stubEmployeeProvider{endpoint: sidecarSrv.URL}
 	encKey := newTestEncKey(t)
 	kms := newTestKMS(t)
 
 	cfg := &config.Config{
-		HermesBaseImagePrefix: "hiveloop-hermes-test-small-v1",
-		BridgeHost:            "cp.hiveloop.test",
-		ProxyHost:             "proxy.hiveloop.test",
+		EmployeeSandboxBaseImagePrefix: "hiveloop-employee-sandbox-test-small-v1",
+		BridgeHost:                     "cp.hiveloop.test",
+		ProxyHost:                      "proxy.hiveloop.test",
 	}
 	orch := sandbox.NewOrchestrator(db, provider, nil, encKey, cfg)
 
-	compileDeps := hermes.CompileDeps{
+	compileDeps := employeeruntime.CompileDeps{
 		DB:         db,
 		Picker:     credentials.NewPickerWithRegistry(db, registry.Global()),
 		KMS:        kms,
@@ -185,7 +192,6 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 		sidecar: stub, sidecarSrv: sidecarSrv,
 	}
 }
-
 
 func newTestEncKey(t *testing.T) *crypto.SymmetricKey {
 	t.Helper()

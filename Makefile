@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-proxy test-connect test-integrations test-connections test-setup openapi generate-auth-keys upload-skills test-services-up test-services-down seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-proxy test-connect test-integrations test-connections test-setup openapi generate-auth-keys upload-skills build-employee-sandbox-templates test-services-up test-services-down seed-test local-up local-down local-reset local-status login-test asynq-peek
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -63,6 +63,12 @@ build-templates:
 build-hermes-templates:
 	@test -n "$(HERMES_VERSION)" || (echo "error: HERMES_VERSION is required (e.g. make build-hermes-templates HERMES_VERSION=v0.0.1)" && exit 1)
 	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates hermes -version=$(HERMES_VERSION) -size=$(or $(SIZE),all)
+
+# Register Daytona snapshots from the production employee sandbox image.
+# Requires SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, SANDBOX_TARGET.
+# Usage: make build-employee-sandbox-templates SIZE=small
+build-employee-sandbox-templates:
+	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates employee-sandbox -size=$(or $(SIZE),all)
 
 # Upload skill definitions to Hiveloop API (reads HIVELOOP_SKILLS_API_KEY from .env)
 upload-skills:

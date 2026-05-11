@@ -32,8 +32,8 @@ type Config struct {
 	AWSRegion string `env:"AWS_REGION"`        // AWS region for awskms (default: us-east-1)
 
 	// Redis
-	RedisURL      string        `env:"REDIS_URL"`              // Full URL (e.g. rediss://...), enables TLS automatically
-	RedisAddr     string        `env:"REDIS_ADDR"`             // Fallback: host:port (ignored when REDIS_URL is set)
+	RedisURL      string        `env:"REDIS_URL"`  // Full URL (e.g. rediss://...), enables TLS automatically
+	RedisAddr     string        `env:"REDIS_ADDR"` // Fallback: host:port (ignored when REDIS_URL is set)
 	RedisPassword string        `env:"REDIS_PASSWORD"`
 	RedisDB       int           `env:"REDIS_DB"`
 	RedisCacheTTL time.Duration `env:"REDIS_CACHE_TTL,required"`
@@ -80,8 +80,8 @@ type Config struct {
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:","`
 
 	// Nango (OAuth integration proxy)
-	NangoEndpoint  string `env:"NANGO_ENDPOINT"`    // e.g. http://localhost:3004
-	NangoSecretKey string `env:"NANGO_SECRET_KEY"`  // Nango secret key for API auth
+	NangoEndpoint  string `env:"NANGO_ENDPOINT"`   // e.g. http://localhost:3004
+	NangoSecretKey string `env:"NANGO_SECRET_KEY"` // Nango secret key for API auth
 
 	// GitHub API token used by the skill hydrator. Optional — raises the
 	// anonymous rate limit from 60 req/hr to 5000 req/hr per token.
@@ -97,11 +97,11 @@ type Config struct {
 	TursoGroup    string `env:"TURSO_GROUP" envDefault:"default"`
 
 	// Sandbox provider (global — one provider for the whole platform)
-	SandboxEncryptionKey string `env:"SANDBOX_ENCRYPTION_KEY"` // base64-encoded 32-byte key for encrypting sandbox secrets (Bridge API keys)
+	SandboxEncryptionKey string `env:"SANDBOX_ENCRYPTION_KEY"`                   // base64-encoded 32-byte key for encrypting sandbox secrets (Bridge API keys)
 	SandboxProviderID    string `env:"SANDBOX_PROVIDER_ID" envDefault:"daytona"` // "daytona"
-	SandboxProviderURL string `env:"SANDBOX_PROVIDER_URL"`                     // e.g. https://app.daytona.io/api
-	SandboxProviderKey string `env:"SANDBOX_PROVIDER_KEY"`                     // API key for the sandbox provider
-	SandboxTarget      string `env:"SANDBOX_TARGET"`                           // provider-specific target/region
+	SandboxProviderURL   string `env:"SANDBOX_PROVIDER_URL"`                     // e.g. https://app.daytona.io/api
+	SandboxProviderKey   string `env:"SANDBOX_PROVIDER_KEY"`                     // API key for the sandbox provider
+	SandboxTarget        string `env:"SANDBOX_TARGET"`                           // provider-specific target/region
 
 	// Bridge (agent runtime in sandboxes)
 	BridgeBaseImagePrefix          string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"hiveloop-bridge-1-0-0-small-v1"`           // snapshot for shared/pool sandboxes (ACP-harness runtime)
@@ -110,8 +110,11 @@ type Config struct {
 
 	// Hermes (Hermes-harness sandbox runtime — usehiveloop/hermes image + Go sidecar)
 	HermesBaseImagePrefix string `env:"HERMES_BASE_IMAGE_PREFIX" envDefault:"hiveloop-hermes-0-0-1-small-v1"` // Daytona snapshot name for Hermes sandboxes
-	BridgeHost            string `env:"BRIDGE_HOST"`                                                  // our external hostname for webhook URLs
-	ProxyHost             string `env:"PROXY_HOST" envDefault:"proxy.hiveloop.com"`                   // LLM proxy hostname (proxy.hiveloop.com)
+	BridgeHost            string `env:"BRIDGE_HOST"`                                                          // our external hostname for webhook URLs
+	ProxyHost             string `env:"PROXY_HOST" envDefault:"proxy.hiveloop.com"`                           // LLM proxy hostname (proxy.hiveloop.com)
+
+	// Employee sandbox runtime — ghcr.io/usehiveloop/employee-sandbox image.
+	EmployeeSandboxBaseImagePrefix string `env:"EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX" envDefault:"hiveloop-employee-sandbox-latest-small-v1"`
 
 	// Hindsight (agent memory)
 	HindsightAPIURL string `env:"HINDSIGHT_API_URL"` // e.g. http://hindsight.railway.internal:8888 — empty = memory disabled
@@ -121,9 +124,9 @@ type Config struct {
 
 	// Custom preview domains
 	PreviewCNAMETarget   string `env:"PREVIEW_CNAME_TARGET" envDefault:"preview-proxy.hiveloop.com"`
-	InternalDomainSecret string `env:"INTERNAL_DOMAIN_SECRET"`  // shared secret for Gatekeeper + acme-dns proxy + Caddy admin proxy
-	AcmeDNSAPIURL        string `env:"ACME_DNS_API_URL"`        // acme-dns registration API (e.g. https://acme-dns-api.daytona.hiveloop.com)
-	CaddyAdminURL        string `env:"CADDY_ADMIN_URL"`         // Caddy admin API proxy (e.g. https://caddy-admin.daytona.hiveloop.com)
+	InternalDomainSecret string `env:"INTERNAL_DOMAIN_SECRET"` // shared secret for Gatekeeper + acme-dns proxy + Caddy admin proxy
+	AcmeDNSAPIURL        string `env:"ACME_DNS_API_URL"`       // acme-dns registration API (e.g. https://acme-dns-api.daytona.hiveloop.com)
+	CaddyAdminURL        string `env:"CADDY_ADMIN_URL"`        // Caddy admin API proxy (e.g. https://caddy-admin.daytona.hiveloop.com)
 
 	// Spider (web crawling/search via spider.cloud)
 	SpiderAPIKey  string `env:"SPIDER_CLOUD_API_KEY"`                                  // empty = spider disabled
@@ -155,9 +158,9 @@ type Config struct {
 	SandboxResourceCheckInterval    time.Duration `env:"SANDBOX_RESOURCE_CHECK_INTERVAL" envDefault:"30m"`
 
 	// Asynq worker
-	WorkerHealthPort      int           `env:"WORKER_HEALTH_PORT" envDefault:"8090"`
-	AsynqConcurrency      int           `env:"ASYNQ_CONCURRENCY" envDefault:"30"`
-	AsynqShutdownTimeout  time.Duration `env:"ASYNQ_SHUTDOWN_TIMEOUT" envDefault:"120s"`
+	WorkerHealthPort     int           `env:"WORKER_HEALTH_PORT" envDefault:"8090"`
+	AsynqConcurrency     int           `env:"ASYNQ_CONCURRENCY" envDefault:"30"`
+	AsynqShutdownTimeout time.Duration `env:"ASYNQ_SHUTDOWN_TIMEOUT" envDefault:"120s"`
 
 	// Sentry error tracking + distributed tracing (empty SENTRY_DSN disables
 	// capture). When enabled, the SDK is wired into chi (HTTP transactions),

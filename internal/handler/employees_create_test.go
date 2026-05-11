@@ -10,21 +10,24 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-func TestIntegration_EmployeesCreate_Engineering_Crof_HappyPath(t *testing.T) {
+func TestIntegration_EmployeesCreate_Engineering_OpenRouter_HappyPath(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	crof := h.seedSystemCred(t, "crof", false)
+	or := h.seedSystemCred(t, "openrouter", false)
 
 	rr := h.post(t, org, validEmployeeBody())
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("status = %d, want 201: %s", rr.Code, rr.Body.String())
 	}
 	resp := decodeEmployeeResp(t, rr)
-	if resp["agent_id"] == "" || resp["sandbox_id"] == "" {
-		t.Fatalf("response missing ids: %v", resp)
+	if resp["agent_id"] == "" {
+		t.Fatalf("response missing agent id: %v", resp)
 	}
-	if resp["status"] != "running" {
-		t.Errorf("status = %q, want running", resp["status"])
+	if resp["sandbox_id"] != "" {
+		t.Errorf("sandbox_id = %q, want empty until Slack profile is configured", resp["sandbox_id"])
+	}
+	if resp["status"] != "pending_profile" {
+		t.Errorf("status = %q, want pending_profile", resp["status"])
 	}
 
 	var agent model.Agent
@@ -34,14 +37,14 @@ func TestIntegration_EmployeesCreate_Engineering_Crof_HappyPath(t *testing.T) {
 	if !agent.IsEmployee {
 		t.Errorf("agent.is_employee = false, want true")
 	}
-	if agent.Harness != "hermes" {
-		t.Errorf("agent.harness = %q, want hermes", agent.Harness)
+	if agent.Harness != "employee-sandbox" {
+		t.Errorf("agent.harness = %q, want employee-sandbox", agent.Harness)
 	}
-	if agent.Model != "deepseek-v4-pro-precision" {
-		t.Errorf("agent.model = %q, want deepseek-v4-pro-precision (crof)", agent.Model)
+	if agent.Model != "deepseek/deepseek-v4-flash" {
+		t.Errorf("agent.model = %q, want deepseek/deepseek-v4-flash", agent.Model)
 	}
-	if agent.CredentialID == nil || *agent.CredentialID != crof.ID {
-		t.Errorf("agent.credential_id = %v, want %v (crof)", agent.CredentialID, crof.ID)
+	if agent.CredentialID == nil || *agent.CredentialID != or.ID {
+		t.Errorf("agent.credential_id = %v, want %v (openrouter)", agent.CredentialID, or.ID)
 	}
 	if agent.SystemPrompt == "" {
 		t.Errorf("agent.system_prompt should be set to engineering placeholder")
@@ -53,12 +56,10 @@ func TestIntegration_EmployeesCreate_Engineering_Crof_HappyPath(t *testing.T) {
 		t.Errorf("agent.category = %v, want engineering", agent.Category)
 	}
 
-	var sb model.Sandbox
-	if err := h.db.Where("id = ?", resp["sandbox_id"]).First(&sb).Error; err != nil {
-		t.Fatalf("load sandbox: %v", err)
-	}
-	if sb.AgentID == nil || *sb.AgentID != agent.ID {
-		t.Errorf("sandbox.agent_id mismatch")
+	var sandboxCount int64
+	h.db.Model(&model.Sandbox{}).Where("agent_id = ?", agent.ID).Count(&sandboxCount)
+	if sandboxCount != 0 {
+		t.Errorf("sandbox rows after create = %d, want 0 until onboarding completion", sandboxCount)
 	}
 }
 
@@ -75,19 +76,19 @@ func TestIntegration_EmployeesCreate_FallsBackToOpenrouter(t *testing.T) {
 
 	var agent model.Agent
 	h.db.Where("id = ?", resp["agent_id"]).First(&agent)
-	if agent.Model != "deepseek/deepseek-v4-pro" {
-		t.Errorf("agent.model = %q, want deepseek/deepseek-v4-pro (openrouter)", agent.Model)
+	if agent.Model != "deepseek/deepseek-v4-flash" {
+		t.Errorf("agent.model = %q, want deepseek/deepseek-v4-flash", agent.Model)
 	}
 	if agent.CredentialID == nil || *agent.CredentialID != or.ID {
 		t.Errorf("agent.credential_id mismatch: got %v want %v", agent.CredentialID, or.ID)
 	}
 }
 
-func TestIntegration_EmployeesCreate_PrefersCrofWhenBothPresent(t *testing.T) {
+func TestIntegration_EmployeesCreate_PrefersOpenRouterWhenBothPresent(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	crof := h.seedSystemCred(t, "crof", false)
-	h.seedSystemCred(t, "openrouter", false)
+	or := h.seedSystemCred(t, "openrouter", false)
+	h.seedSystemCred(t, "crof", false)
 
 	rr := h.post(t, org, validEmployeeBody())
 	if rr.Code != http.StatusCreated {
@@ -97,40 +98,29 @@ func TestIntegration_EmployeesCreate_PrefersCrofWhenBothPresent(t *testing.T) {
 
 	var agent model.Agent
 	h.db.Where("id = ?", resp["agent_id"]).First(&agent)
-	if agent.Model != "deepseek-v4-pro-precision" {
-		t.Errorf("crof should win: agent.model = %q", agent.Model)
+	if agent.Model != "deepseek/deepseek-v4-flash" {
+		t.Errorf("openrouter should win: agent.model = %q", agent.Model)
 	}
-	if agent.CredentialID == nil || *agent.CredentialID != crof.ID {
-		t.Errorf("crof should win: agent.credential_id = %v", agent.CredentialID)
+	if agent.CredentialID == nil || *agent.CredentialID != or.ID {
+		t.Errorf("openrouter should win: agent.credential_id = %v", agent.CredentialID)
 	}
 }
 
-func TestIntegration_EmployeesCreate_SkipsRevokedCrof(t *testing.T) {
+func TestIntegration_EmployeesCreate_SkipsRevokedOpenRouter(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", true) // revoked
-	or := h.seedSystemCred(t, "openrouter", false)
+	h.seedSystemCred(t, "openrouter", true)
 
 	rr := h.post(t, org, validEmployeeBody())
-	if rr.Code != http.StatusCreated {
-		t.Fatalf("status = %d: %s", rr.Code, rr.Body.String())
-	}
-	resp := decodeEmployeeResp(t, rr)
-
-	var agent model.Agent
-	h.db.Where("id = ?", resp["agent_id"]).First(&agent)
-	if agent.Model != "deepseek/deepseek-v4-pro" {
-		t.Errorf("revoked crof must be skipped: agent.model = %q", agent.Model)
-	}
-	if agent.CredentialID == nil || *agent.CredentialID != or.ID {
-		t.Errorf("revoked crof must be skipped: cred = %v", agent.CredentialID)
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503: %s", rr.Code, rr.Body.String())
 	}
 }
 
 func TestIntegration_EmployeesCreate_NonAdmin_403(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrgWithRole(t, "member")
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 
 	rr := h.post(t, org, validEmployeeBody())
 	if rr.Code != http.StatusForbidden {
@@ -147,7 +137,7 @@ func TestIntegration_EmployeesCreate_NonAdmin_403(t *testing.T) {
 func TestIntegration_EmployeesCreate_InvalidAvatarURL_400(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 
 	for _, bad := range []string{"javascript:alert(1)", "ftp://example/x", "not-a-url", "/relative/path"} {
 		body := validEmployeeBody()
@@ -178,7 +168,7 @@ func TestIntegration_EmployeesCreate_NoSystemCredential_503(t *testing.T) {
 func TestIntegration_EmployeesCreate_NonEngineeringCategory_400(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 
 	body := validEmployeeBody()
 	body["category"] = "design"
@@ -197,7 +187,7 @@ func TestIntegration_EmployeesCreate_NonEngineeringCategory_400(t *testing.T) {
 func TestIntegration_EmployeesCreate_InvalidCategory_400(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 
 	body := validEmployeeBody()
 	body["category"] = "not-a-real-category"
@@ -210,7 +200,7 @@ func TestIntegration_EmployeesCreate_InvalidCategory_400(t *testing.T) {
 func TestIntegration_EmployeesCreate_MissingFields_400(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 
 	cases := map[string]map[string]any{
 		"missing name":        {"category": "engineering", "description": "desc"},
@@ -231,7 +221,7 @@ func TestIntegration_EmployeesCreate_MissingFields_400(t *testing.T) {
 func TestIntegration_EmployeesCreate_FirstEmployeeAutoCreatesEngineeringTeam(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 
 	var teamCount int64
 	h.db.Model(&model.Team{}).Where("org_id = ?", org.org.ID).Count(&teamCount)
@@ -263,7 +253,7 @@ func TestIntegration_EmployeesCreate_FirstEmployeeAutoCreatesEngineeringTeam(t *
 func TestIntegration_EmployeesCreate_SecondEmployeeReusesEngineeringTeam(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 
 	first := h.post(t, org, validEmployeeBody())
 	if first.Code != http.StatusCreated {
@@ -296,7 +286,7 @@ func TestIntegration_EmployeesCreate_SecondEmployeeReusesEngineeringTeam(t *test
 func TestIntegration_EmployeesCreate_ReusesPreExistingEngineeringTeam(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 
 	preExisting := model.Team{
 		OrgID:       org.org.ID,
@@ -337,7 +327,7 @@ func TestIntegration_EmployeesCreate_TeamsScopedPerOrg(t *testing.T) {
 	h := newEmployeeHarness(t)
 	orgA := h.createOrg(t)
 	orgB := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 
 	rrA := h.post(t, orgA, validEmployeeBody())
 	if rrA.Code != http.StatusCreated {
@@ -363,7 +353,7 @@ func TestIntegration_EmployeesCreate_TeamsScopedPerOrg(t *testing.T) {
 func TestIntegration_EmployeesCreate_AttachesDefaultSkills(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 	gitGithub := h.seedGlobalSkill(t, "git-github", model.SkillStatusPublished)
 	empUploads := h.seedGlobalSkill(t, "employee-public-assets-uploads", model.SkillStatusPublished)
 	agentBrowser := h.seedGlobalSkill(t, "agent-browser", model.SkillStatusPublished)
@@ -428,7 +418,7 @@ func skillIDsFor(t *testing.T, db *gorm.DB, agentID uuid.UUID) map[uuid.UUID]boo
 func TestIntegration_EmployeesCreate_CreatesSubagent(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 
 	body := validEmployeeBody()
 	body["name"] = "Alice Engineer"
@@ -464,13 +454,13 @@ func TestIntegration_EmployeesCreate_CreatesSubagent(t *testing.T) {
 func TestIntegration_EmployeesCreate_SubagentSlug_AutoIncrementsOnCollision(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	cred := h.seedSystemCred(t, "crof", false)
+	cred := h.seedSystemCred(t, "openrouter", false)
 
 	taken := model.Agent{
 		OrgID:        &org.org.ID,
 		Name:         "alice-subagent",
 		SystemPrompt: "x",
-		Model:        "deepseek-v4-pro-precision",
+		Model:        "deepseek/deepseek-v4-flash",
 		CredentialID: &cred.ID,
 		Status:       "active",
 	}
@@ -495,7 +485,7 @@ func TestIntegration_EmployeesCreate_SubagentSlug_AutoIncrementsOnCollision(t *t
 	}
 }
 
-func TestIntegration_EmployeesCreate_SubagentPrefersOpenrouterKimi(t *testing.T) {
+func TestIntegration_EmployeesCreate_SubagentUsesOpenRouterDeepSeek(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
 	or := h.seedSystemCred(t, "openrouter", false)
@@ -510,41 +500,28 @@ func TestIntegration_EmployeesCreate_SubagentPrefersOpenrouterKimi(t *testing.T)
 	h.db.Where("agent_id = ?", agentID).First(&link)
 	var sub model.Agent
 	h.db.Where("id = ?", link.SubagentID).First(&sub)
-	if sub.Model != "moonshotai/kimi-k2.6" {
-		t.Errorf("subagent.model = %q, want moonshotai/kimi-k2.6", sub.Model)
+	if sub.Model != "deepseek/deepseek-v4-flash" {
+		t.Errorf("subagent.model = %q, want deepseek/deepseek-v4-flash", sub.Model)
 	}
 	if sub.CredentialID == nil || *sub.CredentialID != or.ID {
 		t.Errorf("subagent.credential_id = %v, want %v (openrouter)", sub.CredentialID, or.ID)
 	}
 }
 
-func TestIntegration_EmployeesCreate_SubagentFallsBackToCrofDeepseek(t *testing.T) {
+func TestIntegration_EmployeesCreate_SubagentNoCredentialWhenOpenRouterMissing(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	crof := h.seedSystemCred(t, "crof", false)
 
 	rr := h.post(t, org, validEmployeeBody())
-	if rr.Code != http.StatusCreated {
-		t.Fatalf("status = %d: %s", rr.Code, rr.Body.String())
-	}
-	agentID := uuid.MustParse(decodeEmployeeResp(t, rr)["agent_id"])
-
-	var link model.AgentSubagent
-	h.db.Where("agent_id = ?", agentID).First(&link)
-	var sub model.Agent
-	h.db.Where("id = ?", link.SubagentID).First(&sub)
-	if sub.Model != "deepseek-v4-pro-precision" {
-		t.Errorf("subagent.model = %q, want deepseek-v4-pro-precision (crof fallback)", sub.Model)
-	}
-	if sub.CredentialID == nil || *sub.CredentialID != crof.ID {
-		t.Errorf("subagent.credential_id = %v, want %v (crof)", sub.CredentialID, crof.ID)
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503: %s", rr.Code, rr.Body.String())
 	}
 }
 
 func TestIntegration_EmployeesCreate_BestEffort_SkipsMissingDefaultSkill(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 	gitGithub := h.seedGlobalSkill(t, "git-github", model.SkillStatusPublished)
 
 	rr := h.post(t, org, validEmployeeBody())
@@ -563,7 +540,7 @@ func TestIntegration_EmployeesCreate_BestEffort_SkipsMissingDefaultSkill(t *test
 func TestIntegration_EmployeesCreate_IgnoresOrgScopedSkillWithSameName(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 
 	orgScoped := model.Skill{
 		OrgID:      &org.org.ID,
@@ -593,7 +570,7 @@ func TestIntegration_EmployeesCreate_IgnoresOrgScopedSkillWithSameName(t *testin
 func TestIntegration_EmployeesCreate_IgnoresUnpublishedGlobalSkill(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 	h.seedGlobalSkill(t, "git-github", model.SkillStatusDraft)
 
 	rr := h.post(t, org, validEmployeeBody())
@@ -609,24 +586,27 @@ func TestIntegration_EmployeesCreate_IgnoresUnpublishedGlobalSkill(t *testing.T)
 	}
 }
 
-func TestIntegration_EmployeesCreate_RollbackOnSandboxFailure(t *testing.T) {
+func TestIntegration_EmployeesCreate_DoesNotProvisionSandbox(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
-	h.seedSystemCred(t, "crof", false)
+	h.seedSystemCred(t, "openrouter", false)
 	h.provider.failOnCreate = true
 
 	rr := h.post(t, org, validEmployeeBody())
-	if rr.Code != http.StatusInternalServerError {
-		t.Fatalf("status = %d, want 500: %s", rr.Code, rr.Body.String())
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: %s", rr.Code, rr.Body.String())
 	}
 
 	var agentCount, sbCount int64
 	h.db.Model(&model.Agent{}).Where("org_id = ?", org.org.ID).Count(&agentCount)
 	h.db.Model(&model.Sandbox{}).Where("org_id = ?", org.org.ID).Count(&sbCount)
-	if agentCount != 0 {
-		t.Errorf("agent rows after rollback = %d, want 0", agentCount)
+	if agentCount != 2 {
+		t.Errorf("agent rows after create = %d, want employee plus default subagent", agentCount)
 	}
 	if sbCount != 0 {
-		t.Errorf("sandbox rows after rollback = %d, want 0", sbCount)
+		t.Errorf("sandbox rows after create = %d, want 0 until sync/onboarding", sbCount)
+	}
+	if h.provider.createdCount != 0 {
+		t.Errorf("provider create calls = %d, want 0 during employee create", h.provider.createdCount)
 	}
 }

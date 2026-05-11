@@ -61,13 +61,13 @@ func TestIntegration_OnboardingComplete_HappyPath(t *testing.T) {
 	if resp.AgentID != agent.ID.String() {
 		t.Errorf("agent_id = %q, want %s", resp.AgentID, agent.ID)
 	}
-	if resp.Sync["applied"].(float64) != 3 {
-		t.Errorf("sync.applied = %v, want 3 (sidecar stub)", resp.Sync["applied"])
+	if resp.Sync["applied"].(float64) != 1 {
+		t.Errorf("sync.applied = %v, want 1", resp.Sync["applied"])
 	}
 
 	calls, _ := h.sidecar.snapshot()
 	if calls != 1 {
-		t.Errorf("sidecar /v1/config/sync calls = %d, want 1", calls)
+		t.Errorf("runtime /config calls = %d, want 1", calls)
 	}
 
 	var fromDB model.Org
@@ -125,7 +125,7 @@ func TestIntegration_OnboardingComplete_NoActiveProfile_400(t *testing.T) {
 	}
 }
 
-func TestIntegration_OnboardingComplete_NoSandbox_409(t *testing.T) {
+func TestIntegration_OnboardingComplete_NoSandbox_Provisions(t *testing.T) {
 	h := newEmployeeHarness(t)
 	h.platformCredCleanup(t)
 	m := h.createOrg(t)
@@ -133,8 +133,8 @@ func TestIntegration_OnboardingComplete_NoSandbox_409(t *testing.T) {
 	h.seedSlackProfile(t, m, agent.ID)
 
 	rr := h.postCompleteOnboarding(t, m, validOnboardingBody())
-	if rr.Code != http.StatusConflict {
-		t.Fatalf("status = %d, want 409: %s", rr.Code, rr.Body.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rr.Code, rr.Body.String())
 	}
 }
 

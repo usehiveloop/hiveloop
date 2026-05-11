@@ -11,56 +11,70 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-func TestRunSandboxLifecycle_SkipsHermesEmployees(t *testing.T) {
+func TestRunSandboxLifecycle_SkipsPersistentEmployees(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
 
 	hermesAgent := newAgentWithHarness(t, db, org.ID, cred.ID, "hermes")
+	employeeAgent := newAgentWithHarness(t, db, org.ID, cred.ID, "employee-sandbox")
 	claudeAgent := newAgentWithHarness(t, db, org.ID, cred.ID, "claude")
 
 	idleAt := time.Now().Add(-30 * time.Minute)
 	hermesSb := newRunningSandbox(t, db, &org.ID, &hermesAgent.ID, "ext-hermes", idleAt)
+	employeeSb := newRunningSandbox(t, db, &org.ID, &employeeAgent.ID, "ext-employee", idleAt)
 	claudeSb := newRunningSandbox(t, db, &org.ID, &claudeAgent.ID, "ext-claude", idleAt)
 	provider.registerSandbox("ext-hermes", StatusRunning)
+	provider.registerSandbox("ext-employee", StatusRunning)
 	provider.registerSandbox("ext-claude", StatusRunning)
 
 	orch.RunSandboxLifecycle(context.Background())
 
-	var hermesAfter, claudeAfter model.Sandbox
+	var hermesAfter, employeeAfter, claudeAfter model.Sandbox
 	db.Where("id = ?", hermesSb.ID).First(&hermesAfter)
+	db.Where("id = ?", employeeSb.ID).First(&employeeAfter)
 	db.Where("id = ?", claudeSb.ID).First(&claudeAfter)
 
 	if hermesAfter.Status != string(StatusRunning) {
 		t.Errorf("hermes sandbox status = %q, want running (excluded from idle stop)", hermesAfter.Status)
+	}
+	if employeeAfter.Status != string(StatusRunning) {
+		t.Errorf("employee sandbox status = %q, want running (excluded from idle stop)", employeeAfter.Status)
 	}
 	if claudeAfter.Status == string(StatusRunning) {
 		t.Errorf("claude sandbox should have been stopped; status = %q", claudeAfter.Status)
 	}
 }
 
-func TestRunSandboxLifecycle_SkipsHermesFromArchive(t *testing.T) {
+func TestRunSandboxLifecycle_SkipsPersistentEmployeesFromArchive(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
 
 	hermesAgent := newAgentWithHarness(t, db, org.ID, cred.ID, "hermes")
+	employeeAgent := newAgentWithHarness(t, db, org.ID, cred.ID, "employee-sandbox")
 	claudeAgent := newAgentWithHarness(t, db, org.ID, cred.ID, "claude")
 
 	stoppedAt := time.Now().Add(-30 * time.Hour)
 	hermesSb := newStoppedSandbox(t, db, &org.ID, &hermesAgent.ID, "ext-h-stop", stoppedAt)
+	employeeSb := newStoppedSandbox(t, db, &org.ID, &employeeAgent.ID, "ext-e-stop", stoppedAt)
 	claudeSb := newStoppedSandbox(t, db, &org.ID, &claudeAgent.ID, "ext-c-stop", stoppedAt)
 	provider.registerSandbox("ext-h-stop", StatusStopped)
+	provider.registerSandbox("ext-e-stop", StatusStopped)
 	provider.registerSandbox("ext-c-stop", StatusStopped)
 
 	orch.RunSandboxLifecycle(context.Background())
 
-	var hermesAfter, claudeAfter model.Sandbox
+	var hermesAfter, employeeAfter, claudeAfter model.Sandbox
 	db.Where("id = ?", hermesSb.ID).First(&hermesAfter)
+	db.Where("id = ?", employeeSb.ID).First(&employeeAfter)
 	db.Where("id = ?", claudeSb.ID).First(&claudeAfter)
 
 	if hermesAfter.Status != string(StatusStopped) {
 		t.Errorf("hermes sandbox status = %q, want stopped (excluded from archive)", hermesAfter.Status)
+	}
+	if employeeAfter.Status != string(StatusStopped) {
+		t.Errorf("employee sandbox status = %q, want stopped (excluded from archive)", employeeAfter.Status)
 	}
 	if claudeAfter.Status == string(StatusStopped) {
 		t.Errorf("claude sandbox should have been archived; status = %q", claudeAfter.Status)
@@ -72,7 +86,7 @@ func newAgentWithHarness(t *testing.T, db *gorm.DB, orgID, credID uuid.UUID, har
 	a := model.Agent{
 		OrgID: &orgID, Name: "agent-" + uuid.NewString()[:8],
 		CredentialID: &credID, SystemPrompt: "x", Model: "y",
-		Harness: harness, IsEmployee: harness == "hermes",
+		Harness: harness, IsEmployee: harness == "hermes" || harness == "employee-sandbox",
 		Status: "active",
 	}
 	if err := db.Create(&a).Error; err != nil {

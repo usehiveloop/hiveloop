@@ -14,8 +14,6 @@ import (
 	slackprov "github.com/usehiveloop/hiveloop/internal/profiles/slack"
 )
 
-const employeeProfileWhatsapp = "whatsapp"
-
 type syncEmployeeResponse struct {
 	Applied          int      `json:"applied"`
 	Deleted          int      `json:"deleted"`
@@ -24,10 +22,10 @@ type syncEmployeeResponse struct {
 	Errors           []string `json:"errors,omitempty"`
 }
 
-// @Summary Push compiled config to a Hermes employee's sandbox
-// @Description Compiles the agent into a SyncRequest and pushes it to the
-// @Description sandbox sidecar. Requires the agent be an employee with at
-// @Description least one active slack or whatsapp profile.
+// @Summary Push compiled config to an employee sandbox
+// @Description Compiles the employee config, provisions an employee sandbox if
+// @Description needed, pushes it to the runtime, and verifies readiness.
+// @Description Requires the agent be an employee with an active Slack profile.
 // @Tags employees
 // @Produce json
 // @Param id path string true "Agent UUID"
@@ -75,8 +73,8 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 
 	var profileCount int64
 	err = h.db.WithContext(ctx).Model(&model.AgentProfile{}).
-		Where("agent_id = ? AND status = ? AND deleted_at IS NULL AND provider IN ?",
-			agentID, "active", []string{slackprov.Provider, employeeProfileWhatsapp}).
+		Where("agent_id = ? AND status = ? AND deleted_at IS NULL AND provider = ?",
+			agentID, "active", slackprov.Provider).
 		Count(&profileCount).Error
 	if err != nil {
 		log.ErrorContext(ctx, "count employee profiles", "error", err, "agent_id", agentID)
@@ -84,7 +82,7 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if profileCount == 0 {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "employee must have an active slack or whatsapp profile"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "employee must have an active slack profile"})
 		return
 	}
 
@@ -94,12 +92,18 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		Order("created_at DESC").Limit(1).First(&sb).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			writeJSON(w, http.StatusConflict, map[string]string{"error": "no sandbox provisioned for employee"})
+			created, createErr := h.ensureEmployeeSandbox(ctx, &agent)
+			if createErr != nil {
+				log.ErrorContext(ctx, "provision employee sandbox during sync", "error", createErr, "agent_id", agentID)
+				writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to provision employee sandbox"})
+				return
+			}
+			sb = *created
+		} else {
+			log.ErrorContext(ctx, "load employee sandbox", "error", err, "agent_id", agentID)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee sandbox"})
 			return
 		}
-		log.ErrorContext(ctx, "load employee sandbox", "error", err, "agent_id", agentID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee sandbox"})
-		return
 	}
 
 	resp, err := h.runEmployeeSync(ctx, &agent, &sb)

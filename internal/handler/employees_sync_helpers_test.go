@@ -18,6 +18,7 @@ type sidecarStub struct {
 	mu               sync.Mutex
 	syncConfigCalls  int
 	lastSyncBearer   string
+	lastConfigBody   []byte
 	syncConfigStatus int // override; default 200
 	syncConfigErrors []string
 }
@@ -28,6 +29,12 @@ func (s *sidecarStub) snapshot() (calls int, bearer string) {
 	return s.syncConfigCalls, s.lastSyncBearer
 }
 
+func (s *sidecarStub) configBody() []byte {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]byte(nil), s.lastConfigBody...)
+}
+
 func (s *sidecarStub) setStatus(status int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -36,9 +43,9 @@ func (s *sidecarStub) setStatus(status int) {
 
 func (h *employeeHarness) seedEmployeeAgent(t *testing.T, m orgWithMember) model.Agent {
 	t.Helper()
-	cred := h.seedSystemCred(t, "crof", false)
+	cred := h.seedSystemCred(t, "openrouter", false)
 
-	encryptedKey, err := h.encKey.EncryptString("sk-crof-test")
+	encryptedKey, err := h.encKey.EncryptString("sk-openrouter-test")
 	if err != nil {
 		t.Fatalf("encrypt cred: %v", err)
 	}
@@ -53,8 +60,8 @@ func (h *employeeHarness) seedEmployeeAgent(t *testing.T, m orgWithMember) model
 		OrgID:        &m.org.ID,
 		Name:         "agent-" + uuid.NewString()[:8],
 		IsEmployee:   true,
-		Harness:      "hermes",
-		Model:        "deepseek-v4-pro-precision",
+		Harness:      "employee-sandbox",
+		Model:        "deepseek/deepseek-v4-flash",
 		SystemPrompt: "you are a test employee",
 		CredentialID: &credID,
 		Status:       "active",

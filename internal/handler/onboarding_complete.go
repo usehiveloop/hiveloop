@@ -29,7 +29,7 @@ type completeOnboardingResponse struct {
 
 // @Summary Complete onboarding
 // @Description Saves the org's business info, validates the org has at least
-// @Description one employee with an active slack/whatsapp profile, then runs
+// @Description one employee with an active Slack profile, then runs
 // @Description the same compile + sandbox-sync as POST /v1/employees/{id}/sync
 // @Description on the org's first employee. On success Org.onboarded is set.
 // @Tags onboarding
@@ -100,8 +100,8 @@ func (h *EmployeeHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Requ
 
 	var profileCount int64
 	err = h.db.WithContext(ctx).Model(&model.AgentProfile{}).
-		Where("agent_id = ? AND status = ? AND deleted_at IS NULL AND provider IN ?",
-			agent.ID, "active", []string{slackprov.Provider, employeeProfileWhatsapp}).
+		Where("agent_id = ? AND status = ? AND deleted_at IS NULL AND provider = ?",
+			agent.ID, "active", slackprov.Provider).
 		Count(&profileCount).Error
 	if err != nil {
 		log.ErrorContext(ctx, "count employee profiles", "error", err, "agent_id", agent.ID)
@@ -109,7 +109,7 @@ func (h *EmployeeHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if profileCount == 0 {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "employee must have an active slack or whatsapp profile"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "employee must have an active slack profile"})
 		return
 	}
 
@@ -119,12 +119,19 @@ func (h *EmployeeHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Requ
 		Order("created_at DESC").Limit(1).First(&sb).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			writeJSON(w, http.StatusConflict, map[string]string{"error": "no sandbox provisioned for employee"})
+			created, createErr := h.ensureEmployeeSandbox(ctx, &agent)
+			if createErr != nil {
+				log.ErrorContext(ctx, "provision employee sandbox during onboarding", "error", createErr,
+					"agent_id", agent.ID, "org_id", org.ID)
+				writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to provision employee sandbox"})
+				return
+			}
+			sb = *created
+		} else {
+			log.ErrorContext(ctx, "load employee sandbox", "error", err, "agent_id", agent.ID)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee sandbox"})
 			return
 		}
-		log.ErrorContext(ctx, "load employee sandbox", "error", err, "agent_id", agent.ID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee sandbox"})
-		return
 	}
 
 	if err := h.db.WithContext(ctx).Model(&model.Org{}).Where("id = ?", org.ID).Updates(map[string]any{

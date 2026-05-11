@@ -2,8 +2,10 @@
 // Bridge target additionally needs GHCR_USERNAME and GHCR_PAT.
 //
 // Usage:
-//   buildtemplates bridge -version=1.0.0 -bridge-version=v1.0.0 [-size=...]
-//   buildtemplates hermes -version=v0.0.1                       [-size=...]
+//
+//	buildtemplates bridge -version=1.0.0 -bridge-version=v1.0.0 [-size=...]
+//	buildtemplates hermes -version=v0.0.1                       [-size=...]
+//	buildtemplates employee-sandbox                             [-size=...]
 package main
 
 import (
@@ -29,6 +31,8 @@ func main() {
 		runBridge(ctx, args)
 	case "hermes":
 		runHermes(ctx, args)
+	case "employee-sandbox":
+		runEmployeeSandbox(ctx, args)
 	case "-h", "--help", "help":
 		usage()
 	default:
@@ -41,5 +45,6 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
   buildtemplates bridge -version=1.0.0 -bridge-version=v1.0.0 [-size=all|small,medium,large,xlarge]
-  buildtemplates hermes -version=v0.0.1                       [-size=all|small,medium,large,xlarge]`)
+  buildtemplates hermes -version=v0.0.1                       [-size=all|small,medium,large,xlarge]
+  buildtemplates employee-sandbox                             [-size=all|small,medium,large,xlarge]`)
 }

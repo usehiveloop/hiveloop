@@ -18,9 +18,9 @@ import (
 )
 
 // @Summary Create an AI employee
-// @Description Persists an Agent (is_employee=true) and provisions a Hermes sandbox.
-// @Description On any provisioning failure, the Agent is rolled back so the
-// @Description endpoint is transactional from the caller's POV.
+// @Description Persists an Agent (is_employee=true). The employee sandbox is
+// @Description provisioned after an active channel profile exists, during onboarding
+// @Description completion or explicit sync.
 // @Tags employees
 // @Accept json
 // @Produce json
@@ -171,22 +171,13 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sb, err := h.orchestrator.CreateHermesSandbox(r.Context(), &agent)
-	if err != nil {
-		h.rollbackEmployee(r.Context(), org.ID, agent.ID, subagent.ID)
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "provision hermes sandbox",
-			"error", err, "agent_id", agent.ID, "org_id", org.ID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
-		return
-	}
-
 	h.attachGlobalSkills(r.Context(), agent.ID, defaultEmployeeSkills[req.Category])
 	h.attachGlobalSkills(r.Context(), subagent.ID, defaultEmployeeSubagentSkills[req.Category])
 
 	writeJSON(w, http.StatusCreated, createEmployeeResponse{
 		AgentID:   agent.ID.String(),
-		SandboxID: sb.ID.String(),
-		Status:    sb.Status,
+		SandboxID: "",
+		Status:    "pending_profile",
 	})
 }
 

@@ -6,13 +6,13 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/hermes"
+	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
 const (
-	employeeHarness             = "hermes"
+	employeeHarness             = "employee-sandbox"
 	employeeCategoryEngineering = "engineering"
 	engineeringTeamName         = "Engineering"
 )
@@ -28,11 +28,11 @@ var defaultEmployeeSubagentSkills = map[string][]string{
 type EmployeeHandler struct {
 	db           *gorm.DB
 	orchestrator *sandbox.Orchestrator
-	compileDeps  hermes.CompileDeps
+	compileDeps  employeeruntime.CompileDeps
 	agents       *AgentHandler
 }
 
-func NewEmployeeHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, compileDeps hermes.CompileDeps, agents *AgentHandler) *EmployeeHandler {
+func NewEmployeeHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, compileDeps employeeruntime.CompileDeps, agents *AgentHandler) *EmployeeHandler {
 	return &EmployeeHandler{db: db, orchestrator: orchestrator, compileDeps: compileDeps, agents: agents}
 }
 
@@ -56,15 +56,13 @@ type employeeProviderChoice struct {
 
 func pickEmployeeCredential(db *gorm.DB) (*employeeProviderChoice, error) {
 	return pickSystemCredential(db, []struct{ providerID, modelID string }{
-		{"crof", "deepseek-v4-pro-precision"},
-		{"openrouter", "deepseek/deepseek-v4-pro"},
+		{"openrouter", employeeruntime.DefaultEmployeeModel},
 	})
 }
 
 func pickEmployeeSubagentCredential(db *gorm.DB) (*employeeProviderChoice, error) {
 	return pickSystemCredential(db, []struct{ providerID, modelID string }{
-		{"openrouter", "moonshotai/kimi-k2.6"},
-		{"crof", "deepseek-v4-pro-precision"},
+		{"openrouter", employeeruntime.DefaultEmployeeModel},
 	})
 }
 

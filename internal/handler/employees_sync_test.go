@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -44,11 +45,11 @@ func TestIntegration_EmployeesSync_Slack_HappyPath(t *testing.T) {
 	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if resp["applied"].(float64) != 3 {
-		t.Errorf("applied = %v, want 3", resp["applied"])
+	if resp["applied"].(float64) != 1 {
+		t.Errorf("applied = %v, want 1", resp["applied"])
 	}
-	if resp["repos_cloned"].(float64) != 1 {
-		t.Errorf("repos_cloned = %v, want 1", resp["repos_cloned"])
+	if resp["repos_cloned"].(float64) != 0 {
+		t.Errorf("repos_cloned = %v, want 0", resp["repos_cloned"])
 	}
 	if resp["restart_triggered"] != true {
 		t.Errorf("restart_triggered = %v, want true", resp["restart_triggered"])
@@ -56,22 +57,70 @@ func TestIntegration_EmployeesSync_Slack_HappyPath(t *testing.T) {
 
 	calls, bearer := h.sidecar.snapshot()
 	if calls != 1 {
-		t.Errorf("sidecar /v1/config/sync called %d times, want 1", calls)
+		t.Errorf("runtime /config called %d times, want 1", calls)
 	}
 	if bearer == "" || bearer == "Bearer " {
 		t.Errorf("sidecar bearer header missing: %q", bearer)
 	}
+	assertEmployeeRuntimeConfig(t, h.sidecar.configBody())
+}
 
-	var tokenCount int64
-	h.db.Model(&model.Token{}).
-		Where("meta->>'agent_id' = ? AND meta->>'harness' = ?", agent.ID.String(), "hermes").
-		Count(&tokenCount)
-	if tokenCount != 1 {
-		t.Errorf("hermes token rows = %d, want 1", tokenCount)
+func assertEmployeeRuntimeConfig(t *testing.T, body []byte) {
+	t.Helper()
+	if len(body) == 0 {
+		t.Fatal("expected runtime /config request body")
+	}
+	raw := string(body)
+	if strings.Contains(raw, "OPENROUTER_API_KEY") {
+		t.Fatal("runtime config leaked OPENROUTER_API_KEY")
+	}
+	if strings.Contains(raw, "sk-openrouter-test") {
+		t.Fatal("runtime config leaked decrypted OpenRouter credential")
+	}
+	var config struct {
+		Model struct {
+			Provider  string `json:"provider"`
+			BaseURL   string `json:"base_url"`
+			ModelID   string `json:"model_id"`
+			APIKeyEnv string `json:"api_key_env"`
+		} `json:"model"`
+		MultimodalModel struct {
+			Provider  string `json:"provider"`
+			BaseURL   string `json:"base_url"`
+			ModelID   string `json:"model_id"`
+			APIKeyEnv string `json:"api_key_env"`
+		} `json:"multimodal_model"`
+	}
+	if err := json.Unmarshal(body, &config); err != nil {
+		t.Fatalf("decode runtime config: %v", err)
+	}
+	if config.Model.Provider != "openai_compatible" {
+		t.Errorf("model.provider = %q, want openai_compatible", config.Model.Provider)
+	}
+	if config.Model.ModelID != "deepseek/deepseek-v4-flash" {
+		t.Errorf("model.model_id = %q, want deepseek/deepseek-v4-flash", config.Model.ModelID)
+	}
+	if config.Model.BaseURL != "https://proxy.hiveloop.test/v1" {
+		t.Errorf("model.base_url = %q, want https://proxy.hiveloop.test/v1", config.Model.BaseURL)
+	}
+	if config.Model.APIKeyEnv != "HIVELOOP_PROXY_API_KEY" {
+		t.Errorf("model.api_key_env = %q, want HIVELOOP_PROXY_API_KEY", config.Model.APIKeyEnv)
+	}
+	if config.MultimodalModel.Provider != "openai_compatible" {
+		t.Errorf("multimodal_model.provider = %q, want openai_compatible", config.MultimodalModel.Provider)
+	}
+	if config.MultimodalModel.ModelID != "google/gemini-3-flash-preview" {
+		t.Errorf("multimodal_model.model_id = %q, want google/gemini-3-flash-preview", config.MultimodalModel.ModelID)
+	}
+	if config.MultimodalModel.BaseURL != "https://proxy.hiveloop.test/v1" {
+		t.Errorf("multimodal_model.base_url = %q, want https://proxy.hiveloop.test/v1", config.MultimodalModel.BaseURL)
+	}
+	if config.MultimodalModel.APIKeyEnv != "HIVELOOP_PROXY_API_KEY" {
+		t.Errorf("multimodal_model.api_key_env = %q, want HIVELOOP_PROXY_API_KEY", config.MultimodalModel.APIKeyEnv)
 	}
 }
 
-func TestIntegration_EmployeesSync_Whatsapp_HappyPath(t *testing.T) {
+func TestIntegration_EmployeesSync_WhatsappProfileDoesNotSatisfyRuntimeGate(t *testing.T) {
 	h := newEmployeeHarness(t)
 	h.platformCredCleanup(t)
 	m := h.createOrg(t)
@@ -80,8 +129,8 @@ func TestIntegration_EmployeesSync_Whatsapp_HappyPath(t *testing.T) {
 	h.seedWhatsappProfile(t, m, agent.ID)
 
 	rr := h.postSync(t, m, agent.ID.String())
-	if rr.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200: %s", rr.Code, rr.Body.String())
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400: %s", rr.Code, rr.Body.String())
 	}
 }
 
@@ -89,14 +138,14 @@ func TestIntegration_EmployeesSync_NotEmployee_400(t *testing.T) {
 	h := newEmployeeHarness(t)
 	h.platformCredCleanup(t)
 	m := h.createOrg(t)
-	cred := h.seedSystemCred(t, "crof", false)
+	cred := h.seedSystemCred(t, "openrouter", false)
 	credID := cred.ID
 	agent := model.Agent{
 		OrgID:        &m.org.ID,
 		Name:         "not-employee",
 		IsEmployee:   false,
-		Harness:      "hermes",
-		Model:        "deepseek-v4-pro-precision",
+		Harness:      "employee-sandbox",
+		Model:        "deepseek/deepseek-v4-flash",
 		SystemPrompt: "x",
 		CredentialID: &credID,
 		Status:       "active",
@@ -147,7 +196,7 @@ func TestIntegration_EmployeesSync_RevokedProfile_400(t *testing.T) {
 	}
 }
 
-func TestIntegration_EmployeesSync_NoSandbox_409(t *testing.T) {
+func TestIntegration_EmployeesSync_NoSandbox_Provisions(t *testing.T) {
 	h := newEmployeeHarness(t)
 	h.platformCredCleanup(t)
 	m := h.createOrg(t)
@@ -156,8 +205,32 @@ func TestIntegration_EmployeesSync_NoSandbox_409(t *testing.T) {
 	// no sandbox seeded
 
 	rr := h.postSync(t, m, agent.ID.String())
-	if rr.Code != http.StatusConflict {
-		t.Fatalf("status = %d, want 409: %s", rr.Code, rr.Body.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+
+	if h.provider.createdCount != 1 {
+		t.Fatalf("provider create calls = %d, want 1", h.provider.createdCount)
+	}
+	if h.provider.lastCreateOpts.SnapshotID != "hiveloop-employee-sandbox-test-small-v1" {
+		t.Errorf("snapshot = %q, want employee sandbox snapshot", h.provider.lastCreateOpts.SnapshotID)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars["RUNTIME_BIND_ADDR"]; got != "0.0.0.0:7080" {
+		t.Errorf("RUNTIME_BIND_ADDR = %q, want 0.0.0.0:7080", got)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars["HIVELOOP_PROXY_API_KEY"]; len(got) < 5 || got[:5] != "ptok_" {
+		t.Errorf("HIVELOOP_PROXY_API_KEY = %q, want ptok_...", got)
+	}
+	if _, ok := h.provider.lastCreateOpts.EnvVars["OPENROUTER_API_KEY"]; ok {
+		t.Errorf("OPENROUTER_API_KEY leaked into employee sandbox env")
+	}
+
+	var tokenCount int64
+	h.db.Model(&model.Token{}).
+		Where("meta->>'agent_id' = ? AND meta->>'harness' = ?", agent.ID.String(), "employee-sandbox").
+		Count(&tokenCount)
+	if tokenCount != 1 {
+		t.Errorf("employee-sandbox token rows = %d, want 1", tokenCount)
 	}
 }
 
