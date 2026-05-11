@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim
+FROM debian:13.4
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVM_DIR=/usr/local/nvm
