@@ -247,17 +247,17 @@ docker-run:
 # --- RAG test-service targets (Phase 0) ---
 
 # Start the docker-compose services the RAG integration tests need:
-# postgres (for all tranches) + redis (Phase 2 locks) + minio (Phase 0
-# LanceDB spike + Phase 2 vectorstore tests). Creates the
-# hiveloop-rag-test bucket as a side effect.
+# postgres (metadata) + redis (locks) + minio (object storage) + qdrant
+# (vector search). Creates the hiveloop-rag-test bucket as a side effect.
 test-services-up:
-	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose up -d postgres redis minio
+	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose up -d postgres redis minio qdrant
+	@until curl -fsS http://localhost:$${QDRANT_HTTP_PORT:-6333}/readyz >/dev/null 2>&1; do sleep 1; done
 	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose run --rm minio-setup
 
 # Stop those services (keeps data volumes). Use `make down` for a full
 # teardown.
 test-services-down:
-	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose stop postgres redis minio
+	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose stop postgres redis minio qdrant
 
 seed-test:
 	@PORT=$${DB_PORT:-$$(test -s /tmp/agent-test/pg.port && cat /tmp/agent-test/pg.port || echo 5432)}; \

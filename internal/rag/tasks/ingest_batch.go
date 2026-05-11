@@ -209,6 +209,7 @@ func buildPayload(src *ragmodel.RAGSource, d *interfaces.Document, content strin
 	pl := map[string]any{
 		"org_id":         src.OrgIDValue.String(),
 		"rag_source_id":  src.ID.String(),
+		"source":         sourcePayload(src),
 		"doc_id":         d.DocID,
 		"part_index":     partIndex,
 		"semantic_id":    d.SemanticID,
@@ -225,4 +226,22 @@ func buildPayload(src *ragmodel.RAGSource, d *interfaces.Document, content strin
 		pl["metadata"] = d.Metadata
 	}
 	return pl
+}
+
+func sourcePayload(src *ragmodel.RAGSource) map[string]any {
+	if src == nil {
+		return nil
+	}
+	source := map[string]any{
+		"id":   src.ID.String(),
+		"name": src.Name,
+		"kind": src.KindValue.String(),
+	}
+	if provider := strings.TrimSpace(src.SourceKind()); provider != "" {
+		source["provider"] = provider
+	}
+	if src.InConnectionID != nil {
+		source["connection_id"] = src.InConnectionID.String()
+	}
+	return source
 }

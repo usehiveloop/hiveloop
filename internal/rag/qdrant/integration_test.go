@@ -23,10 +23,11 @@ func liveClient(t *testing.T) *qdrant.Client {
 	port, _ := strconv.Atoi(os.Getenv("QDRANT_PORT"))
 	useTLS, _ := strconv.ParseBool(os.Getenv("QDRANT_USE_TLS"))
 	c, err := qdrant.New(qdrant.Config{
-		Host:   host,
-		Port:   port,
-		UseTLS: useTLS,
-		APIKey: os.Getenv("QDRANT_API_KEY"),
+		Host:                   host,
+		Port:                   port,
+		UseTLS:                 useTLS,
+		APIKey:                 os.Getenv("QDRANT_API_KEY"),
+		SkipCompatibilityCheck: true,
 	})
 	if err != nil {
 		t.Fatalf("dial qdrant: %v", err)

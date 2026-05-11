@@ -7,11 +7,12 @@ import (
 )
 
 type Config struct {
-	Host    string
-	Port    int
-	UseTLS  bool
-	APIKey  string
-	Timeout time.Duration
+	Host                   string
+	Port                   int
+	UseTLS                 bool
+	APIKey                 string
+	Timeout                time.Duration
+	SkipCompatibilityCheck bool
 }
 
 type Client struct {
@@ -27,10 +28,11 @@ func New(cfg Config) (*Client, error) {
 		cfg.Timeout = 120 * time.Second
 	}
 	c, err := qc.NewClient(&qc.Config{
-		Host:   cfg.Host,
-		Port:   cfg.Port,
-		UseTLS: cfg.UseTLS,
-		APIKey: cfg.APIKey,
+		Host:                   cfg.Host,
+		Port:                   cfg.Port,
+		UseTLS:                 cfg.UseTLS,
+		APIKey:                 cfg.APIKey,
+		SkipCompatibilityCheck: cfg.SkipCompatibilityCheck,
 	})
 	if err != nil {
 		return nil, err
