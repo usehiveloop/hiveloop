@@ -113,25 +113,12 @@ func (h *EmployeeHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var sb model.Sandbox
-	err = h.db.WithContext(ctx).
-		Where("agent_id = ? AND org_id = ?", agent.ID, org.ID).
-		Order("created_at DESC").Limit(1).First(&sb).Error
+	sb, err := h.ensureEmployeeSandbox(ctx, &agent)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			created, createErr := h.ensureEmployeeSandbox(ctx, &agent)
-			if createErr != nil {
-				log.ErrorContext(ctx, "provision employee sandbox during onboarding", "error", createErr,
-					"agent_id", agent.ID, "org_id", org.ID)
-				writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to provision employee sandbox"})
-				return
-			}
-			sb = *created
-		} else {
-			log.ErrorContext(ctx, "load employee sandbox", "error", err, "agent_id", agent.ID)
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee sandbox"})
-			return
-		}
+		log.ErrorContext(ctx, "provision employee sandbox during onboarding", "error", err,
+			"agent_id", agent.ID, "org_id", org.ID)
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to provision employee sandbox"})
+		return
 	}
 
 	if err := h.db.WithContext(ctx).Model(&model.Org{}).Where("id = ?", org.ID).Updates(map[string]any{
@@ -149,7 +136,7 @@ func (h *EmployeeHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	resp, err := h.runEmployeeSync(ctx, &agent, &sb)
+	resp, err := h.runEmployeeSync(ctx, &agent, sb)
 	if err != nil {
 		log.ErrorContext(ctx, "complete onboarding sync", "error", err,
 			"agent_id", agent.ID, "sandbox_id", sb.ID, "org_id", org.ID)

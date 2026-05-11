@@ -138,6 +138,29 @@ func TestIntegration_OnboardingComplete_NoSandbox_Provisions(t *testing.T) {
 	}
 }
 
+func TestIntegration_OnboardingComplete_ErrorSandbox_ProvisionsFreshRuntime(t *testing.T) {
+	h := newEmployeeHarness(t)
+	h.platformCredCleanup(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	old := h.seedSandbox(t, m, agent.ID)
+	h.seedSlackProfile(t, m, agent.ID)
+	if err := h.db.Model(&old).Updates(map[string]any{
+		"status":        "error",
+		"error_message": "employee runtime not live",
+	}).Error; err != nil {
+		t.Fatalf("mark sandbox error: %v", err)
+	}
+
+	rr := h.postCompleteOnboarding(t, m, validOnboardingBody())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	if h.provider.createdCount != 1 {
+		t.Fatalf("provider create calls = %d, want 1", h.provider.createdCount)
+	}
+}
+
 func TestIntegration_OnboardingComplete_MissingName_400(t *testing.T) {
 	h := newEmployeeHarness(t)
 	m := h.createOrg(t)

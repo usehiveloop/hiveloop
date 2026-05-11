@@ -86,27 +86,14 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var sb model.Sandbox
-	err = h.db.WithContext(ctx).
-		Where("agent_id = ? AND org_id = ?", agentID, org.ID).
-		Order("created_at DESC").Limit(1).First(&sb).Error
+	sb, err := h.ensureEmployeeSandbox(ctx, &agent)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			created, createErr := h.ensureEmployeeSandbox(ctx, &agent)
-			if createErr != nil {
-				log.ErrorContext(ctx, "provision employee sandbox during sync", "error", createErr, "agent_id", agentID)
-				writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to provision employee sandbox"})
-				return
-			}
-			sb = *created
-		} else {
-			log.ErrorContext(ctx, "load employee sandbox", "error", err, "agent_id", agentID)
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee sandbox"})
-			return
-		}
+		log.ErrorContext(ctx, "provision employee sandbox during sync", "error", err, "agent_id", agentID)
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to provision employee sandbox"})
+		return
 	}
 
-	resp, err := h.runEmployeeSync(ctx, &agent, &sb)
+	resp, err := h.runEmployeeSync(ctx, &agent, sb)
 	if err != nil {
 		log.ErrorContext(ctx, "sync employee config", "error", err,
 			"agent_id", agentID, "sandbox_id", sb.ID)

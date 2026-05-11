@@ -16,7 +16,7 @@ func (h *EmployeeHandler) ensureEmployeeSandbox(ctx context.Context, agent *mode
 	}
 	var sb model.Sandbox
 	err := h.db.WithContext(ctx).
-		Where("agent_id = ? AND org_id = ?", agent.ID, *agent.OrgID).
+		Where("agent_id = ? AND org_id = ? AND status <> ?", agent.ID, *agent.OrgID, "error").
 		Order("created_at DESC").Limit(1).First(&sb).Error
 	if err == nil {
 		if h.orchestrator.NeedsURLRefresh(&sb) {

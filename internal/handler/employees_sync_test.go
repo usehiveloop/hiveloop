@@ -234,6 +234,38 @@ func TestIntegration_EmployeesSync_NoSandbox_Provisions(t *testing.T) {
 	}
 }
 
+func TestIntegration_EmployeesSync_ErrorSandbox_ProvisionsFreshRuntime(t *testing.T) {
+	h := newEmployeeHarness(t)
+	h.platformCredCleanup(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	old := h.seedSandbox(t, m, agent.ID)
+	h.seedSlackProfile(t, m, agent.ID)
+	if err := h.db.Model(&old).Updates(map[string]any{
+		"status":        "error",
+		"error_message": "employee runtime not live",
+	}).Error; err != nil {
+		t.Fatalf("mark sandbox error: %v", err)
+	}
+
+	rr := h.postSync(t, m, agent.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+
+	if h.provider.createdCount != 1 {
+		t.Fatalf("provider create calls = %d, want 1", h.provider.createdCount)
+	}
+	var fresh model.Sandbox
+	if err := h.db.Where("agent_id = ? AND status = ?", agent.ID, "running").
+		Order("created_at DESC").First(&fresh).Error; err != nil {
+		t.Fatalf("load fresh sandbox: %v", err)
+	}
+	if fresh.ID == old.ID {
+		t.Fatalf("reused failed sandbox %s; want fresh sandbox", old.ID)
+	}
+}
+
 func TestIntegration_EmployeesSync_OtherOrg_404(t *testing.T) {
 	h := newEmployeeHarness(t)
 	h.platformCredCleanup(t)
