@@ -50,29 +50,6 @@ pub async fn get_config(State(state): State<ApiState>) -> Json<AgentDefinition> 
     Json((*snapshot).clone())
 }
 
-#[derive(Debug, Deserialize)]
-pub struct SentryTestRequest {
-    #[serde(default = "default_sentry_test_message")]
-    pub message: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct SentryTestResponse {
-    pub event_id: String,
-}
-
-pub async fn post_sentry_test(Json(request): Json<SentryTestRequest>) -> Json<SentryTestResponse> {
-    let message = if request.message.trim().is_empty() {
-        default_sentry_test_message()
-    } else {
-        request.message
-    };
-    let event_id = sentry::capture_message(&message, sentry::Level::Error);
-    Json(SentryTestResponse {
-        event_id: event_id.to_string(),
-    })
-}
-
 #[derive(Deserialize)]
 pub struct ListSessionsParams {
     pub cursor: Option<String>,
@@ -230,39 +207,19 @@ pub async fn post_cloud_agent_callback(
         ));
     }
 
-    if cloud_callback_event_exists(&state, &session_id, &request.event_id).await? {
+    let inserted = persist_and_publish_cloud_agent_callback(&state, &session_id, &request).await?;
+    if !inserted {
         return Ok(cloud_agent_duplicate_response(&session_id));
     }
 
-    {
-        let mut seen = state.cloud_callback_event_ids.write().await;
-        if !seen.insert(request.event_id.clone()) {
-            return Ok(cloud_agent_duplicate_response(&session_id));
-        }
-    }
-
-    let process_result = persist_and_publish_cloud_agent_callback(&state, &session_id, &request)
-        .await
-        .map(|_| {
-            (
-                StatusCode::ACCEPTED,
-                Json(CloudAgentCallbackResponse {
-                    accepted: true,
-                    duplicate: false,
-                    session_id: Some(session_id.as_str().to_string()),
-                }),
-            )
-        });
-
-    if process_result.is_err() {
-        state
-            .cloud_callback_event_ids
-            .write()
-            .await
-            .remove(&request.event_id);
-    }
-
-    process_result
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(CloudAgentCallbackResponse {
+            accepted: true,
+            duplicate: false,
+            session_id: Some(session_id.as_str().to_string()),
+        }),
+    ))
 }
 
 pub async fn get_http_stream(
@@ -294,13 +251,18 @@ async fn persist_and_publish_cloud_agent_callback(
     state: &ApiState,
     session_id: &SessionId,
     request: &CloudAgentCallbackRequest,
-) -> Result<(), (StatusCode, String)> {
+) -> Result<bool, (StatusCode, String)> {
     let status = cloud_agent_event_status(request);
     let payload = cloud_agent_event_payload(session_id, request, status);
 
-    state
+    let inserted_id = state
         .event_repo
-        .append(session_id, EventKind::CloudAgentEvent, payload.clone())
+        .append_idempotent(
+            session_id,
+            EventKind::CloudAgentEvent,
+            payload.clone(),
+            &cloud_callback_idempotency_key(request),
+        )
         .await
         .map_err(|error| {
             (
@@ -308,6 +270,9 @@ async fn persist_and_publish_cloud_agent_callback(
                 format!("append session event: {error}"),
             )
         })?;
+    if inserted_id.is_none() {
+        return Ok(false);
+    }
 
     state
         .session_repo
@@ -359,27 +324,7 @@ async fn persist_and_publish_cloud_agent_callback(
         }
     }
 
-    Ok(())
-}
-
-async fn cloud_callback_event_exists(
-    state: &ApiState,
-    session_id: &SessionId,
-    event_id: &str,
-) -> Result<bool, (StatusCode, String)> {
-    let events = state
-        .event_repo
-        .list_recent(session_id, 1000)
-        .await
-        .map_err(|error| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("list session events: {error}"),
-            )
-        })?;
-    Ok(events
-        .iter()
-        .any(|event| event.payload.get("event_id").and_then(Value::as_str) == Some(event_id)))
+    Ok(true)
 }
 
 fn cloud_agent_duplicate_response(
@@ -484,8 +429,11 @@ fn session_status_name(status: SessionStatus) -> &'static str {
     }
 }
 
-fn default_sentry_test_message() -> String {
-    "employee-bridge sentry test event".to_string()
+fn cloud_callback_idempotency_key(request: &CloudAgentCallbackRequest) -> String {
+    format!(
+        "cloud-agent-callback:{}:{}",
+        request.task_id, request.event_id
+    )
 }
 
 fn parse_cursor(raw: &str) -> Result<DateTime<Utc>, String> {

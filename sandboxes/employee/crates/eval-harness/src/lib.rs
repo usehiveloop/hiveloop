@@ -499,6 +499,18 @@ impl EventRepo for NoopEventRepo {
         )))
     }
 
+    async fn append_idempotent(
+        &self,
+        _session_id: &SessionId,
+        _kind: EventKind,
+        _payload: Value,
+        _idempotency_key: &str,
+    ) -> storage::Result<Option<i64>> {
+        Err(StorageError::Other(anyhow!(
+            "NoopEventRepo does not append"
+        )))
+    }
+
     async fn list_recent(
         &self,
         _session_id: &SessionId,

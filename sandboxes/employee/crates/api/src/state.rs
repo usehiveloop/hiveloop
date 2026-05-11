@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -8,7 +7,6 @@ use mcp::McpRegistry;
 use observability::ObservabilityRecorder;
 use skills::SkillWriter;
 use storage::{ConfigRepo, EventRepo, SessionRepo};
-use tokio::sync::RwLock;
 
 use crate::http_gateway::HttpGatewayState;
 
@@ -25,7 +23,6 @@ pub struct ApiState {
     pub http_gateway: Option<HttpGatewayState>,
     pub mcp_registry: Option<Arc<McpRegistry>>,
     pub cloud_task_index: Option<Arc<CloudTaskIndex>>,
-    pub cloud_callback_event_ids: Arc<RwLock<HashSet<String>>>,
     pub observability: ObservabilityRecorder,
 }
 
@@ -57,7 +54,6 @@ impl ApiState {
             http_gateway,
             mcp_registry,
             cloud_task_index,
-            cloud_callback_event_ids: Arc::new(RwLock::new(HashSet::new())),
             observability,
         }
     }

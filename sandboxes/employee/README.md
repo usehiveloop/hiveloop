@@ -44,10 +44,5 @@ Local Spotlight smoke test:
 
 ```bash
 npx -y @spotlightjs/spotlight server --port 8969 --debug
-env -u SENTRY_DSN SENTRY_SPOTLIGHT=true RUNTIME_BIND_ADDR=127.0.0.1:7089 cargo run -p employee-bridge
-source .env
-curl -H "Authorization: Bearer $RUNTIME_SECRET" \
-  -H "content-type: application/json" \
-  -d '{"message":"employee-bridge spotlight smoke test"}' \
-  http://127.0.0.1:7089/debug/sentry-test
+env -u SENTRY_DSN SENTRY_SPOTLIGHT=true cargo test -p employee-bridge sentry_support -- --nocapture
 ```

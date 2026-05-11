@@ -240,7 +240,6 @@ dependencies = [
  "mcp",
  "observability",
  "outbound",
- "sentry",
  "serde",
  "serde_json",
  "skills",

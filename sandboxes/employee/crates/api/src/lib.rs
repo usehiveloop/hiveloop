@@ -29,7 +29,6 @@ pub fn build_router(state: ApiState) -> Router {
         )
         .route("/healthz", get(handlers::healthz))
         .route("/readyz", get(handlers::readyz))
-        .route("/debug/sentry-test", post(handlers::post_sentry_test))
         .route("/gateway/http/messages", post(handlers::post_http_message))
         .route(
             "/gateway/cloud-agents/callback",

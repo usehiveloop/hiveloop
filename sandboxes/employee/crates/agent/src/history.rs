@@ -138,6 +138,16 @@ mod tests {
             Ok(id)
         }
 
+        async fn append_idempotent(
+            &self,
+            session_id: &SessionId,
+            kind: EventKind,
+            payload: serde_json::Value,
+            _idempotency_key: &str,
+        ) -> storage::Result<Option<i64>> {
+            self.append(session_id, kind, payload).await.map(Some)
+        }
+
         async fn list_recent(
             &self,
             session_id: &SessionId,

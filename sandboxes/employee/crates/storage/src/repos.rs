@@ -47,6 +47,13 @@ pub trait EventRepo: Send + Sync + 'static {
         kind: EventKind,
         payload: serde_json::Value,
     ) -> Result<i64>;
+    async fn append_idempotent(
+        &self,
+        session_id: &SessionId,
+        kind: EventKind,
+        payload: serde_json::Value,
+        idempotency_key: &str,
+    ) -> Result<Option<i64>>;
     async fn list_recent(&self, session_id: &SessionId, limit: u32) -> Result<Vec<SessionEvent>>;
     async fn list_chronological(
         &self,

@@ -390,6 +390,7 @@ impl SessionRepo for MemorySessionRepo {
 #[derive(Default)]
 struct MemoryEventRepo {
     events: Mutex<Vec<SessionEvent>>,
+    idempotency_keys: Mutex<HashMap<String, i64>>,
 }
 
 #[async_trait]
@@ -416,6 +417,29 @@ impl EventRepo for MemoryEventRepo {
             created_at: Utc::now(),
         });
         Ok(id)
+    }
+
+    async fn append_idempotent(
+        &self,
+        session_id: &SessionId,
+        kind: EventKind,
+        payload: Value,
+        idempotency_key: &str,
+    ) -> storage::Result<Option<i64>> {
+        if self
+            .idempotency_keys
+            .lock()
+            .unwrap()
+            .contains_key(idempotency_key)
+        {
+            return Ok(None);
+        }
+        let id = self.append(session_id, kind, payload).await?;
+        self.idempotency_keys
+            .lock()
+            .unwrap()
+            .insert(idempotency_key.to_string(), id);
+        Ok(Some(id))
     }
 
     async fn list_recent(

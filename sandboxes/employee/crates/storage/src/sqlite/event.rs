@@ -82,6 +82,61 @@ impl EventRepo for SqliteEventRepo {
         Ok(inserted_id)
     }
 
+    async fn append_idempotent(
+        &self,
+        session_id: &SessionId,
+        kind: EventKind,
+        payload: serde_json::Value,
+        idempotency_key: &str,
+    ) -> Result<Option<i64>> {
+        let mut tx = self.pool.begin().await?;
+        let created_at = Utc::now().to_rfc3339();
+        let inserted_key: Option<String> = sqlx::query_scalar(
+            "INSERT INTO event_idempotency_keys (key, session_id, created_at) \
+             VALUES (?, ?, ?) \
+             ON CONFLICT(key) DO NOTHING \
+             RETURNING key",
+        )
+        .bind(idempotency_key)
+        .bind(session_id.as_str())
+        .bind(&created_at)
+        .fetch_optional(&mut *tx)
+        .await?;
+        if inserted_key.is_none() {
+            tx.commit().await?;
+            return Ok(None);
+        }
+
+        let next_seq: Option<i64> =
+            sqlx::query_scalar("SELECT MAX(seq) FROM session_events WHERE session_id = ?")
+                .bind(session_id.as_str())
+                .fetch_one(&mut *tx)
+                .await?;
+        let seq = next_seq.unwrap_or(0) + 1;
+        let payload_json = serde_json::to_string(&payload)?;
+        let inserted_id: Option<i64> = sqlx::query_scalar(
+            "INSERT INTO session_events (session_id, seq, kind, payload_json, created_at) \
+             VALUES (?, ?, ?, ?, ?) \
+             RETURNING id",
+        )
+        .bind(session_id.as_str())
+        .bind(seq)
+        .bind(kind_to_str(kind))
+        .bind(&payload_json)
+        .bind(&created_at)
+        .fetch_optional(&mut *tx)
+        .await?;
+        if let Some(inserted_id) = inserted_id {
+            sqlx::query("UPDATE event_idempotency_keys SET event_id = ? WHERE key = ?")
+                .bind(inserted_id)
+                .bind(idempotency_key)
+                .execute(&mut *tx)
+                .await?;
+        }
+        tx.commit().await?;
+        Ok(inserted_id)
+    }
+
     async fn list_recent(&self, session_id: &SessionId, limit: u32) -> Result<Vec<SessionEvent>> {
         let limit = limit.min(1000);
         let rows = sqlx::query(
