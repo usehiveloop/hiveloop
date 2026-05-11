@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -48,7 +49,7 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 		return nil, fmt.Errorf("saving sandbox: %w", err)
 	}
 
-	envVars := employeeSandboxEnvVars(o.cfg.BridgeHost, runtimeSecret, &sb, orgID, agent, secrets)
+	envVars := employeeSandboxEnvVars(o.cfg, runtimeSecret, &sb, orgID, agent, secrets)
 	labels := map[string]string{
 		"org_id":     orgID.String(),
 		"sandbox_id": sb.ID.String(),
@@ -111,12 +112,29 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 	return &sb, nil
 }
 
-func employeeSandboxEnvVars(bridgeHost, runtimeSecret string, sb *model.Sandbox, orgID uuid.UUID, agent *model.Agent, secrets *employeeruntime.StartupSecrets) map[string]string {
+func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.Sandbox, orgID uuid.UUID, agent *model.Agent, secrets *employeeruntime.StartupSecrets) map[string]string {
+	bridgeHost := "api.usehiveloop.com"
+	proxyHost := "proxy.hiveloop.com"
+	if cfg != nil {
+		if cfg.BridgeHost != "" {
+			bridgeHost = cfg.BridgeHost
+		}
+		if cfg.ProxyHost != "" {
+			proxyHost = cfg.ProxyHost
+		}
+	}
+	proxyBaseURL := "https://" + strings.TrimRight(proxyHost, "/") + "/v1"
 	return map[string]string{
 		"RUNTIME_SECRET":               runtimeSecret,
 		"SLACK_BOT_TOKEN":              secrets.SlackBotToken,
 		"SLACK_APP_TOKEN":              secrets.SlackAppToken,
 		employeeruntime.ProxyAPIKeyEnv: secrets.ProxyToken,
+		"AGENT_MODEL":                  employeeruntime.DefaultEmployeeModel,
+		"AGENT_BASE_URL":               proxyBaseURL,
+		"AGENT_API_KEY_ENV":            employeeruntime.ProxyAPIKeyEnv,
+		"AGENT_MULTIMODAL_MODEL":       employeeruntime.DefaultEmployeeMultimodalModel,
+		"AGENT_MULTIMODAL_BASE_URL":    proxyBaseURL,
+		"AGENT_MULTIMODAL_API_KEY_ENV": employeeruntime.ProxyAPIKeyEnv,
 		"EMPLOYEE_ID":                  agent.ID.String(),
 		"CLOUD_CONTROL_PLANE_URL":      "https://" + bridgeHost,
 		"BRIDGE_API_KEY":               runtimeSecret,

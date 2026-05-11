@@ -221,6 +221,21 @@ func TestIntegration_EmployeesSync_NoSandbox_Provisions(t *testing.T) {
 	if got := h.provider.lastCreateOpts.EnvVars["HIVELOOP_PROXY_API_KEY"]; len(got) < 5 || got[:5] != "ptok_" {
 		t.Errorf("HIVELOOP_PROXY_API_KEY = %q, want ptok_...", got)
 	}
+	if got := h.provider.lastCreateOpts.EnvVars["AGENT_MODEL"]; got != "deepseek/deepseek-v4-flash" {
+		t.Errorf("AGENT_MODEL = %q, want deepseek/deepseek-v4-flash", got)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars["AGENT_BASE_URL"]; got != "https://proxy.hiveloop.test/v1" {
+		t.Errorf("AGENT_BASE_URL = %q, want https://proxy.hiveloop.test/v1", got)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars["AGENT_API_KEY_ENV"]; got != "HIVELOOP_PROXY_API_KEY" {
+		t.Errorf("AGENT_API_KEY_ENV = %q, want HIVELOOP_PROXY_API_KEY", got)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars["AGENT_MULTIMODAL_MODEL"]; got != "google/gemini-3-flash-preview" {
+		t.Errorf("AGENT_MULTIMODAL_MODEL = %q, want google/gemini-3-flash-preview", got)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars["AGENT_MULTIMODAL_API_KEY_ENV"]; got != "HIVELOOP_PROXY_API_KEY" {
+		t.Errorf("AGENT_MULTIMODAL_API_KEY_ENV = %q, want HIVELOOP_PROXY_API_KEY", got)
+	}
 	if _, ok := h.provider.lastCreateOpts.EnvVars["OPENROUTER_API_KEY"]; ok {
 		t.Errorf("OPENROUTER_API_KEY leaked into employee sandbox env")
 	}
