@@ -135,7 +135,12 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 		return
 	}
 
-	redisPayload, _ := json.Marshal(map[string]any{
+	var cloudTask *model.CloudAgentTask
+	if task, ok := h.cloudAgentTaskForConversation(ctx, conv.ID); ok {
+		cloudTask = task
+	}
+
+	redisPayloadMap := map[string]any{
 		"event_id":        event.EventID,
 		"event_type":      event.EventType,
 		"agent_id":        event.AgentID,
@@ -143,7 +148,12 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 		"timestamp":       event.Timestamp.Format(time.RFC3339),
 		"sequence_number": event.SequenceNumber,
 		"data":            json.RawMessage(event.Data),
-	})
+	}
+	if cloudTask != nil {
+		redisPayloadMap["task_id"] = cloudTask.ID.String()
+		redisPayloadMap["metadata"] = map[string]any(cloudTask.Metadata)
+	}
+	redisPayload, _ := json.Marshal(redisPayloadMap)
 
 	if h.eventBus != nil {
 		_, err := h.eventBus.Publish(ctx, conv.ID.String(), event.EventType, redisPayload)
@@ -174,6 +184,10 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 	case "message_received":
 		h.maybeEnqueueConversationNaming(ctx, &conv)
 	}
+
+	if cloudTask != nil && shouldForwardCloudAgentEvent(event.EventType) {
+		h.forwardCloudAgentEvent(ctx, *cloudTask, &conv, event)
+	}
 }
 
 // maybeEnqueueConversationNaming fires the async title-generation job when a
@@ -200,7 +214,7 @@ func (h *BridgeWebhookHandler) maybeEnqueueConversationNaming(ctx context.Contex
 }
 
 func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *model.AgentConversation, event *webhookEvent) {
-	if event.EventType == "response_chunk" || event.EventType == "reasoning_delta" {
+	if !shouldStoreConversationEvent(event.EventType) {
 		return
 	}
 	dbEvent := model.ConversationEvent{
@@ -218,6 +232,44 @@ func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *m
 		logging.FromContext(ctx).ErrorContext(ctx, "webhook: failed to store event",
 			"event_type", event.EventType,
 			"conversation_id", conv.ID,
+			"error", err,
+		)
+	}
+}
+
+func shouldStoreConversationEvent(eventType string) bool {
+	return eventType != "response_chunk" && eventType != "reasoning_delta"
+}
+
+func shouldForwardCloudAgentEvent(eventType string) bool {
+	return shouldStoreConversationEvent(eventType)
+}
+
+func (h *BridgeWebhookHandler) cloudAgentTaskForConversation(ctx context.Context, conversationID uuid.UUID) (*model.CloudAgentTask, bool) {
+	var task model.CloudAgentTask
+	if err := h.db.WithContext(ctx).Where("conversation_id = ?", conversationID).First(&task).Error; err != nil {
+		return nil, false
+	}
+	return &task, true
+}
+
+func (h *BridgeWebhookHandler) forwardCloudAgentEvent(ctx context.Context, task model.CloudAgentTask, conv *model.AgentConversation, event *webhookEvent) {
+	dbEvent := model.ConversationEvent{
+		OrgID:                conv.OrgID,
+		ConversationID:       conv.ID,
+		EventID:              event.EventID,
+		EventType:            event.EventType,
+		AgentID:              event.AgentID,
+		BridgeConversationID: event.ConversationID,
+		Timestamp:            event.Timestamp,
+		SequenceNumber:       event.SequenceNumber,
+		Data:                 model.RawJSON(event.Data),
+	}
+	if err := dispatchCloudAgentCallback(ctx, h.db, h.encKey, task, dbEvent); err != nil {
+		logging.FromContext(ctx).WarnContext(ctx, "webhook: failed to forward cloud agent event to employee bridge",
+			"task_id", task.ID,
+			"event_id", event.EventID,
+			"event_type", event.EventType,
 			"error", err,
 		)
 	}

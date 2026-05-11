@@ -596,7 +596,7 @@ func (h *CloudAgentHandler) TerminateTask(w http.ResponseWriter, r *http.Request
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to mark task ended"})
 		return
 	}
-	h.ensureConversationEndedEvent(ctx, *conv, reason, now)
+	h.ensureConversationEndedEvent(ctx, *task, *conv, reason, now)
 
 	if h.hooks.StopSandbox != nil {
 		if err := h.hooks.StopSandbox(ctx, sb); err != nil {
@@ -756,7 +756,7 @@ func (h *CloudAgentHandler) recentEventsByConversation(conversationIDs []uuid.UU
 	return eventsByConv
 }
 
-func (h *CloudAgentHandler) ensureConversationEndedEvent(ctx context.Context, conv model.AgentConversation, reason string, now time.Time) {
+func (h *CloudAgentHandler) ensureConversationEndedEvent(ctx context.Context, task model.CloudAgentTask, conv model.AgentConversation, reason string, now time.Time) {
 	var count int64
 	if err := h.db.Model(&model.ConversationEvent{}).
 		Where("conversation_id = ? AND event_type = ?", conv.ID, "ConversationEnded").
@@ -793,5 +793,14 @@ func (h *CloudAgentHandler) ensureConversationEndedEvent(ctx context.Context, co
 	}
 	if err := h.db.Create(&event).Error; err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to append ConversationEnded event", "conversation_id", conv.ID, "error", err)
+		return
+	}
+
+	if err := dispatchCloudAgentCallback(ctx, h.db, h.encKey, task, event); err != nil {
+		logging.FromContext(ctx).WarnContext(ctx, "failed to forward cloud agent termination to employee bridge",
+			"task_id", task.ID,
+			"conversation_id", conv.ID,
+			"error", err,
+		)
 	}
 }

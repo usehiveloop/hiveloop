@@ -3,6 +3,8 @@ package handler_test
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -10,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -31,8 +34,11 @@ type cloudAgentHarness struct {
 	router     *chi.Mux
 	orgID      uuid.UUID
 	agentID    uuid.UUID
+	encKey     *crypto.SymmetricKey
 	bridgeKey  string
 	fakeBridge *fakeCloudAgentBridge
+	callbackMu sync.Mutex
+	callbacks  []map[string]any
 }
 
 type sentCloudAgentMessage struct {
@@ -110,6 +116,33 @@ func newCloudAgentHarness(t *testing.T) *cloudAgentHarness {
 	}
 
 	bridgeKey := "test-bridge-key-cloud-agents"
+	harness := &cloudAgentHarness{
+		db:         database,
+		orgID:      orgID,
+		agentID:    employeeID,
+		encKey:     encKey,
+		bridgeKey:  bridgeKey,
+		fakeBridge: &fakeCloudAgentBridge{},
+	}
+	callbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.Header.Get("Authorization"), "Bearer "+bridgeKey; got != want {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "bad json", http.StatusBadRequest)
+			return
+		}
+		harness.callbackMu.Lock()
+		harness.callbacks = append(harness.callbacks, body)
+		harness.callbackMu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": true})
+	}))
+	t.Cleanup(callbackServer.Close)
+
 	encryptedKey, err := encKey.EncryptString(bridgeKey)
 	if err != nil {
 		t.Fatalf("encrypt bridge key: %v", err)
@@ -123,12 +156,11 @@ func newCloudAgentHarness(t *testing.T) *cloudAgentHarness {
 		EncryptedBridgeAPIKey: encryptedKey,
 		Status:                "running",
 		ExternalID:            "mock-ext-id",
-		BridgeURL:             "http://localhost:25434",
+		BridgeURL:             callbackServer.URL,
 	}).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
 
-	fakeBridge := &fakeCloudAgentBridge{}
 	cloudAgentHandler := handler.NewCloudAgentHandlerWithHooks(database, encKey, handler.CloudAgentHandlerHooks{
 		CreateDedicatedSandbox: func(_ context.Context, agent *model.Agent) (*model.Sandbox, error) {
 			encryptedCloudKey, err := encKey.EncryptString("cloud-agent-bridge-key")
@@ -153,7 +185,7 @@ func newCloudAgentHarness(t *testing.T) *cloudAgentHarness {
 			return nil
 		},
 		GetBridgeClient: func(context.Context, *model.Sandbox) (handler.CloudAgentBridgeClient, error) {
-			return fakeBridge, nil
+			return harness.fakeBridge, nil
 		},
 		StopSandbox: func(_ context.Context, sb *model.Sandbox) error {
 			return database.Model(sb).Update("status", "stopped").Error
@@ -167,6 +199,7 @@ func newCloudAgentHarness(t *testing.T) *cloudAgentHarness {
 	router.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks", cloudAgentHandler.CreateTask)
 	router.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks/{taskID}/message", cloudAgentHandler.SendTaskMessage)
 	router.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks/{taskID}", cloudAgentHandler.TerminateTask)
+	harness.router = router
 
 	t.Cleanup(func() {
 		database.Where("org_id = ?", orgID).Delete(&model.CloudAgentTask{})
@@ -179,14 +212,7 @@ func newCloudAgentHarness(t *testing.T) *cloudAgentHarness {
 		database.Where("id = ?", orgID).Delete(&model.Org{})
 	})
 
-	return &cloudAgentHarness{
-		db:         database,
-		router:     router,
-		orgID:      orgID,
-		agentID:    employeeID,
-		bridgeKey:  bridgeKey,
-		fakeBridge: fakeBridge,
-	}
+	return harness
 }
 
 func (h *cloudAgentHarness) seedCloudAgent(t *testing.T) (cloudAgentID uuid.UUID) {
@@ -216,11 +242,15 @@ func (h *cloudAgentHarness) seedCloudAgent(t *testing.T) (cloudAgentID uuid.UUID
 func (h *cloudAgentHarness) seedTask(t *testing.T, cloudAgentID uuid.UUID, brief string) model.CloudAgentTask {
 	t.Helper()
 	sandboxID := uuid.New()
+	encryptedCloudKey, err := h.encKey.EncryptString("cloud-agent-webhook-key")
+	if err != nil {
+		t.Fatalf("encrypt cloud sandbox key: %v", err)
+	}
 	h.db.Create(&model.Sandbox{
 		ID:                    sandboxID,
 		OrgID:                 &h.orgID,
 		AgentID:               &cloudAgentID,
-		EncryptedBridgeAPIKey: []byte("fake-key"),
+		EncryptedBridgeAPIKey: encryptedCloudKey,
 		Status:                "running",
 		ExternalID:            fmt.Sprintf("ext-%s", uuid.New().String()[:8]),
 		BridgeURL:             "http://localhost:25434",
@@ -299,6 +329,13 @@ func (h *cloudAgentHarness) doJSONRequest(method, path string, body any) *httpte
 	}
 	h.router.ServeHTTP(rec, req)
 	return rec
+}
+
+func signBridgeWebhookPayload(secret string, timestamp int64, payload []byte) string {
+	message := fmt.Sprintf("%d.%s", timestamp, string(payload))
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(message))
+	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
 }
 
 func TestListCloudAgents_Success(t *testing.T) {
@@ -553,6 +590,81 @@ func TestCloudAgentTerminateTask_Success(t *testing.T) {
 	}
 	if !strings.Contains(string(event.Data), "no longer needed") {
 		t.Fatalf("expected termination reason in event data, got %s", event.Data)
+	}
+
+	h.callbackMu.Lock()
+	callbacks := append([]map[string]any(nil), h.callbacks...)
+	h.callbackMu.Unlock()
+	if len(callbacks) != 1 {
+		t.Fatalf("expected 1 employee bridge callback, got %#v", callbacks)
+	}
+	if callbacks[0]["task_id"] != task.ID.String() || callbacks[0]["agent_id"] != cloudAgentID.String() {
+		t.Fatalf("unexpected callback identity: %#v", callbacks[0])
+	}
+	if callbacks[0]["event_type"] != "ConversationEnded" {
+		t.Fatalf("expected ConversationEnded callback, got %#v", callbacks[0])
+	}
+	metadata, ok := callbacks[0]["metadata"].(map[string]any)
+	if !ok || metadata["key"] != "value" {
+		t.Fatalf("expected task metadata in callback, got %#v", callbacks[0]["metadata"])
+	}
+}
+
+func TestBridgeWebhook_ForwardsCloudAgentTaskEventToEmployeeBridge(t *testing.T) {
+	h := newCloudAgentHarness(t)
+	cloudAgentID := h.seedCloudAgent(t)
+	task := h.seedTask(t, cloudAgentID, "Specific task")
+
+	var conv model.AgentConversation
+	if err := h.db.Where("id = ?", task.ConversationID).First(&conv).Error; err != nil {
+		t.Fatalf("load conversation: %v", err)
+	}
+
+	payload, err := json.Marshal([]map[string]any{{
+		"event_id":        "evt-cloud-agent-1",
+		"event_type":      "ConversationEnded",
+		"agent_id":        cloudAgentID.String(),
+		"conversation_id": conv.BridgeConversationID,
+		"timestamp":       time.Now().UTC().Format(time.RFC3339),
+		"sequence_number": 1,
+		"data": map[string]any{
+			"status": "done",
+		},
+	}})
+	if err != nil {
+		t.Fatalf("marshal webhook payload: %v", err)
+	}
+
+	router := chi.NewRouter()
+	webhookHandler := handler.NewBridgeWebhookHandler(h.db, h.encKey, nil, nil)
+	router.Post("/internal/webhooks/bridge/{sandboxID}", webhookHandler.Handle)
+
+	timestamp := time.Now().Unix()
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/internal/webhooks/bridge/%s", task.SandboxID), bytes.NewReader(payload))
+	req.Header.Set("X-Webhook-Timestamp", fmt.Sprintf("%d", timestamp))
+	req.Header.Set("X-Webhook-Signature", signBridgeWebhookPayload("cloud-agent-webhook-key", timestamp, payload))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	h.callbackMu.Lock()
+	callbacks := append([]map[string]any(nil), h.callbacks...)
+	h.callbackMu.Unlock()
+	if len(callbacks) != 1 {
+		t.Fatalf("expected 1 employee bridge callback, got %#v", callbacks)
+	}
+	got := callbacks[0]
+	if got["task_id"] != task.ID.String() || got["agent_id"] != cloudAgentID.String() {
+		t.Fatalf("unexpected callback identity: %#v", got)
+	}
+	if got["event_id"] != "evt-cloud-agent-1" || got["event_type"] != "ConversationEnded" {
+		t.Fatalf("unexpected callback event fields: %#v", got)
+	}
+	metadata, ok := got["metadata"].(map[string]any)
+	if !ok || metadata["key"] != "value" {
+		t.Fatalf("expected task metadata in callback, got %#v", got["metadata"])
 	}
 }
 
