@@ -4,16 +4,11 @@ use super::media::DownloadResults;
 
 pub fn compose_annotated_text(
     inbound: &InboundEvent,
-    slack: &SlackConfig,
-    session_id: &SessionId,
+    _slack: &SlackConfig,
+    _session_id: &SessionId,
     media: &DownloadResults,
 ) -> String {
     let mut composed = inbound.text.clone();
-
-    if let Some(addendum) = lookup_channel_prompt(slack, session_id) {
-        composed.push_str("\n\n[Channel-specific instruction]\n");
-        composed.push_str(&addendum);
-    }
 
     if !inbound.attachments.is_empty() {
         composed.push_str("\n\n[Attached files]");
@@ -57,7 +52,7 @@ pub fn compose_annotated_text(
     composed
 }
 
-fn lookup_channel_prompt(slack: &SlackConfig, session_id: &SessionId) -> Option<String> {
+pub fn lookup_channel_prompt(slack: &SlackConfig, session_id: &SessionId) -> Option<String> {
     let session_str = session_id.as_str();
     let channel = session_str
         .split_once('-')

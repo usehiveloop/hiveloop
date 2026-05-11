@@ -16,6 +16,8 @@ pub enum McpSpec {
         #[serde(default)]
         default_enabled_tools: Vec<String>,
         #[serde(default)]
+        default_enable_all_tools: bool,
+        #[serde(default)]
         startup_timeout_seconds: Option<u32>,
     },
     Http {
@@ -27,6 +29,8 @@ pub enum McpSpec {
         tool_filter: Option<ToolFilter>,
         #[serde(default)]
         default_enabled_tools: Vec<String>,
+        #[serde(default)]
+        default_enable_all_tools: bool,
     },
     StreamableHttp {
         name: String,
@@ -37,6 +41,8 @@ pub enum McpSpec {
         tool_filter: Option<ToolFilter>,
         #[serde(default)]
         default_enabled_tools: Vec<String>,
+        #[serde(default)]
+        default_enable_all_tools: bool,
     },
 }
 
@@ -63,6 +69,23 @@ impl McpSpec {
                 default_enabled_tools,
                 ..
             } => default_enabled_tools,
+        }
+    }
+
+    pub fn default_enable_all_tools(&self) -> bool {
+        match self {
+            Self::Stdio {
+                default_enable_all_tools,
+                ..
+            }
+            | Self::Http {
+                default_enable_all_tools,
+                ..
+            }
+            | Self::StreamableHttp {
+                default_enable_all_tools,
+                ..
+            } => *default_enable_all_tools,
         }
     }
 }

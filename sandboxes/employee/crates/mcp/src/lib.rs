@@ -240,6 +240,12 @@ async fn connect_specs(specs: &[McpSpec]) -> (Vec<McpEntry>, Arc<DashSet<String>
     for spec in specs {
         match connect_and_discover(spec).await {
             Ok((service, peer, tool_names, tools, server_name)) => {
+                if spec.default_enable_all_tools() {
+                    for (_prefixed_name, raw_name) in &tool_names {
+                        default_loaded.insert(raw_name.clone());
+                    }
+                    info!(server = %server_name, loaded = tool_names.len(), "all MCP tools auto-loaded");
+                }
                 for default_name in spec.default_enabled_tools() {
                     let found = tool_names.iter().find(|(pfx, raw)| {
                         raw == default_name || pfx.as_str() == default_name.as_str()
@@ -373,8 +379,33 @@ fn build_headers(
     let mut map = HashMap::new();
     for (key, value) in headers {
         let name = HeaderName::from_bytes(key.as_bytes())?;
-        let val = HeaderValue::from_str(value)?;
+        let expanded = expand_env_placeholders(value);
+        let val = HeaderValue::from_str(&expanded)?;
         map.insert(name, val);
     }
     Ok(map)
+}
+
+fn expand_env_placeholders(value: &str) -> String {
+    let mut output = value.to_string();
+    for (key, env_value) in std::env::vars() {
+        output = output.replace(&format!("${{{key}}}"), &env_value);
+    }
+    output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::expand_env_placeholders;
+
+    #[test]
+    fn expands_env_placeholders_in_header_values() {
+        unsafe {
+            std::env::set_var("HIVELOOP_PROXY_API_KEY", "ptok_test");
+        }
+        assert_eq!(
+            expand_env_placeholders("Bearer ${HIVELOOP_PROXY_API_KEY}"),
+            "Bearer ptok_test"
+        );
+    }
 }

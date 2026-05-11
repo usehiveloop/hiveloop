@@ -17,6 +17,7 @@ pub struct TurnInput {
     pub text: String,
     pub images: Vec<ImageInput>,
     pub prior_history: Vec<HistoryEntry>,
+    pub dynamic_context: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -45,6 +46,7 @@ impl TurnInput {
             text: input.into(),
             images: Vec::new(),
             prior_history: Vec::new(),
+            dynamic_context: Vec::new(),
         }
     }
 
@@ -58,6 +60,14 @@ impl TurnInput {
 
     pub fn with_history(mut self, history: Vec<HistoryEntry>) -> Self {
         self.prior_history = history;
+        self
+    }
+
+    pub fn with_dynamic_context(mut self, context: impl Into<String>) -> Self {
+        let context = context.into();
+        if !context.trim().is_empty() {
+            self.dynamic_context.push(context);
+        }
         self
     }
 }

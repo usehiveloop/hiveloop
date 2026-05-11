@@ -292,6 +292,7 @@ fn test_definition() -> AgentDefinition {
             description: String::new(),
             system_prompt: "test".to_string(),
         },
+        prompt_fragments: Default::default(),
         model: ModelConfig::OpenaiCompatible {
             base_url: "http://localhost".to_string(),
             model_id: "test".to_string(),

@@ -13,16 +13,14 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use agent::{
-    cloud_agents::{
-        format_cloud_agents_prompt, strip_cloud_agents_block, CloudAgentConfig, CloudAgentService,
-    },
+    cloud_agents::{CloudAgentConfig, CloudAgentService},
     AgentRunner, RigAgentRunner,
 };
 use anyhow::{Context, Result};
 use api::ApiState;
 use domain::{
-    AgentDefinition, AgentMeta, BashConfig, ConfigStore, InboundEvent, ModelConfig, ReadFileConfig,
-    ReasoningEffort, SlackConfig, ToolSpec, WriteFileConfig,
+    AgentDefinition, AgentMeta, BashConfig, ConfigStore, InboundEvent, ModelConfig, PromptFragment,
+    PromptFragments, ReadFileConfig, ReasoningEffort, SlackConfig, ToolSpec, WriteFileConfig,
 };
 use gateway::{ChannelGateway, SlackGateway};
 use mcp::McpRegistry;
@@ -80,7 +78,7 @@ async fn main() -> Result<()> {
     let cron_repo: Arc<dyn storage::CronJobRepo> =
         Arc::new(SqliteCronJobRepo::new(sqlite_pool.clone()));
 
-    let mut initial_definition = match config_repo.load().await? {
+    let initial_definition = match config_repo.load().await? {
         Some(persisted) => {
             info!("loaded agent definition from database");
             persisted
@@ -98,46 +96,25 @@ async fn main() -> Result<()> {
             let service = Arc::new(CloudAgentService::new(config));
             match service.discover().await {
                 Ok(agents) => {
-                    let cloud_agents_block = format_cloud_agents_prompt(&agents);
-                    let existing = &initial_definition.agent.system_prompt;
-                    let stripped = strip_cloud_agents_block(&strip_mcp_block(existing));
-                    initial_definition.agent.system_prompt =
-                        format!("{stripped}\n\n{cloud_agents_block}");
+                    info!(
+                        cloud_agent_count = agents.len(),
+                        "cloud-agent discovery succeeded"
+                    );
                     Some(service)
                 }
                 Err(error) => {
-                    initial_definition.agent.system_prompt =
-                        strip_cloud_agents_block(&initial_definition.agent.system_prompt);
                     warn!(%error, "cloud-agent discovery failed; cloud-agent tools remain enabled but prompt context was not injected");
                     Some(service)
                 }
             }
         }
         None => {
-            initial_definition.agent.system_prompt =
-                strip_cloud_agents_block(&initial_definition.agent.system_prompt);
             info!("cloud-agent env vars missing; cloud-agent tools and prompt injection disabled");
             None
         }
     };
 
     let mcp_registry = Arc::new(McpRegistry::from_specs(&initial_definition.mcp_servers).await);
-    let available_mcp = mcp_registry.available_tool_names();
-    if !available_mcp.is_empty() {
-        let loaded = mcp_registry.loaded_tool_names();
-        let unloaded = mcp_registry.unloaded_tool_names();
-
-        let mcp_block = format!(
-            "\n\nMCP tools loaded (ready to use): {}\nMCP tools to load (call load_tools first): {}",
-            if loaded.is_empty() { "none".into() } else { loaded.join(", ") },
-            if unloaded.is_empty() { "none".into() } else { unloaded.join(", ") },
-        );
-
-        let existing = &initial_definition.agent.system_prompt;
-        let stripped = strip_mcp_block(existing);
-        let updated = format!("{stripped}\n\n{mcp_block}");
-        initial_definition.agent.system_prompt = updated;
-    }
     {
         config_repo.upsert(&initial_definition).await?;
     }
@@ -264,20 +241,6 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-fn strip_mcp_block(sp: &str) -> String {
-    let markers = [
-        "Available MCP tools",
-        "MCP tools loaded",
-        "MCP tools to load",
-    ];
-    for marker in &markers {
-        if let Some(idx) = sp.find(marker) {
-            return sp[..idx].trim_end().to_string();
-        }
-    }
-    sp.to_string()
-}
-
 fn required_env(key: &str, hint: &str) -> Result<String> {
     match std::env::var(key) {
         Ok(value) if !value.is_empty() => Ok(value),
@@ -303,9 +266,14 @@ fn bootstrap_agent_definition() -> Result<AgentDefinition> {
         agent: AgentMeta {
             name: "Aria".into(),
             description: "Hiveloop AI employee".into(),
-            system_prompt:
-                "You are Aria, a friendly AI assistant in Slack. Reply concisely (<= 3 short sentences) using mrkdwn. Never invent features. If you don't know something, say so."
-                    .into(),
+            system_prompt: String::new(),
+        },
+        prompt_fragments: PromptFragments {
+            identity: PromptFragment {
+                title: "Identity".into(),
+                content: "You are Aria, a friendly AI employee in Slack. Reply concisely using mrkdwn. Never invent features. If you do not know something, say so.".into(),
+            },
+            ..Default::default()
         },
         model: primary_model,
         multimodal_model,

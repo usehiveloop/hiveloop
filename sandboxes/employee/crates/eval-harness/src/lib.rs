@@ -412,6 +412,7 @@ fn fake_agent_definition() -> AgentDefinition {
             description: "Deterministic eval fake".to_string(),
             system_prompt: "Return deterministic fake responses.".to_string(),
         },
+        prompt_fragments: Default::default(),
         model: ModelConfig::OpenaiCompatible {
             base_url: "http://127.0.0.1/fake".to_string(),
             model_id: "fake-model".to_string(),

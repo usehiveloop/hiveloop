@@ -9,6 +9,8 @@ use crate::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentDefinition {
     pub agent: AgentMeta,
+    #[serde(default)]
+    pub prompt_fragments: PromptFragments,
     pub model: ModelConfig,
     #[serde(default)]
     pub multimodal_model: Option<ModelConfig>,
@@ -35,7 +37,28 @@ pub struct AgentMeta {
     pub name: String,
     #[serde(default)]
     pub description: String,
+    #[serde(default)]
     pub system_prompt: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PromptFragments {
+    #[serde(default)]
+    pub identity: PromptFragment,
+    #[serde(default)]
+    pub company: PromptFragment,
+    #[serde(default)]
+    pub team: PromptFragment,
+    #[serde(default)]
+    pub operating_principles: PromptFragment,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PromptFragment {
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub content: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
