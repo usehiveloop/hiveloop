@@ -8,12 +8,12 @@ import {
   Alert02Icon,
   ArrowLeft01Icon,
   CheckmarkCircle02Icon,
+  LockIcon,
   Loading03Icon,
   RepositoryIcon,
 } from "@hugeicons/core-free-icons"
 import { ChoiceCard } from "@/app/w/agents/_components/create-agent/choice-card"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -340,72 +340,69 @@ function RepositoryPickerDialog({
   saving: boolean
 }) {
   return (
-    <Dialog open={open} onOpenChange={saving ? undefined : onOpenChange}>
-      <DialogContent className="flex h-[min(680px,85vh)] flex-col overflow-hidden p-0 sm:max-w-lg" showCloseButton={!saving}>
-        <DialogHeader className="border-b px-6 py-5 text-left">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-muted">
-              <HugeiconsIcon icon={RepositoryIcon} className="size-5 text-foreground" />
-            </div>
-            <div className="min-w-0">
-              <DialogTitle>Choose repositories</DialogTitle>
-              <DialogDescription className="mt-1">
-                Pick the repos this employee can use. You can adjust this later.
-              </DialogDescription>
-            </div>
-          </div>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!saving) onOpenChange(nextOpen)
+      }}
+    >
+      <DialogContent
+        className="flex h-[min(680px,85vh)] flex-col p-6 sm:max-w-lg"
+        showCloseButton={!saving}
+      >
+        <DialogHeader>
+          <DialogTitle>Choose repositories</DialogTitle>
+          <DialogDescription className="mt-2">
+            Pick the repositories this employee can use. You can adjust this later.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
           {repositories.length === 0 ? (
             <div className="flex h-full min-h-48 flex-col items-center justify-center gap-2 text-center">
-              <p className="text-sm font-medium text-foreground">No repositories found</p>
+              <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+                <HugeiconsIcon
+                  icon={RepositoryIcon}
+                  size={20}
+                  className="text-muted-foreground"
+                />
+              </div>
+              <p className="text-sm font-medium text-foreground">
+                No repositories found
+              </p>
               <p className="max-w-sm text-[13px] leading-relaxed text-muted-foreground">
                 This GitHub profile did not return any repositories. Confirm the
                 connected account has repository access and try again.
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2">
               {repositories.map((repo) => {
                 const checked = selectedIDs.has(repo.id)
                 return (
-                  <button
+                  <ChoiceCard
                     key={repo.id}
-                    type="button"
+                    icon={RepositoryIcon}
+                    title={repo.full_name}
+                    description={
+                      repo.description || repo.owner || "GitHub repository"
+                    }
+                    selected={checked}
                     onClick={() => onToggle(repo.id, !checked)}
-                    className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted/60"
-                  >
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={(value) => onToggle(repo.id, value === true)}
-                      className="mt-0.5"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {repo.full_name}
-                        </p>
-                        {repo.private ? (
-                          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                            Private
-                          </span>
-                        ) : null}
-                      </div>
-                      {repo.description ? (
-                        <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">
-                          {repo.description}
-                        </p>
-                      ) : null}
-                    </div>
-                  </button>
+                    trailing={
+                      <RepositoryChoiceTrailing
+                        isPrivate={repo.private}
+                        selected={checked}
+                      />
+                    }
+                  />
                 )
               })}
             </div>
           )}
         </div>
 
-        <DialogFooter className="border-t px-6 py-4 sm:items-center sm:justify-between">
+        <DialogFooter className="mt-4 sm:items-center sm:justify-between">
           <p className="text-[13px] text-muted-foreground">
             {selectedIDs.size} selected
           </p>
@@ -419,5 +416,33 @@ function RepositoryPickerDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function RepositoryChoiceTrailing({
+  isPrivate,
+  selected,
+}: {
+  isPrivate: boolean
+  selected: boolean
+}) {
+  return (
+    <span className="mt-0.5 flex shrink-0 items-center gap-2">
+      {isPrivate ? (
+        <HugeiconsIcon
+          icon={LockIcon}
+          className="size-4 text-muted-foreground"
+          strokeWidth={2}
+          aria-label="Private repository"
+        />
+      ) : null}
+      {selected ? (
+        <HugeiconsIcon
+          icon={CheckmarkCircle02Icon}
+          className="size-5 text-emerald-600"
+          strokeWidth={2}
+        />
+      ) : null}
+    </span>
   )
 }
