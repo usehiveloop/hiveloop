@@ -30,6 +30,7 @@ type MCPHandler struct {
 	memoryTools       mcpserver.MemoryToolsFunc
 	subscriptionTools mcpserver.SubscriptionToolsFunc
 	webTools          mcpserver.WebToolsFunc
+	knowledgeTools    mcpserver.KnowledgeToolsFunc
 	ServerCache       *mcpserver.ServerCache
 }
 
@@ -60,6 +61,11 @@ func (h *MCPHandler) SetSubscriptionTools(fn mcpserver.SubscriptionToolsFunc) {
 // on MCP servers.
 func (h *MCPHandler) SetWebTools(fn mcpserver.WebToolsFunc) {
 	h.webTools = fn
+}
+
+// SetKnowledgeTools sets the callback for registering knowledge-base tools.
+func (h *MCPHandler) SetKnowledgeTools(fn mcpserver.KnowledgeToolsFunc) {
+	h.knowledgeTools = fn
 }
 
 // StreamableHTTPHandler returns an HTTP handler for the MCP Streamable HTTP transport.
@@ -97,7 +103,7 @@ func (h *MCPHandler) serverFactory(r *http.Request) *mcp.Server {
 			return nil, time.Time{}, err
 		}
 
-		srv, err := mcpserver.BuildServer(ctx, &token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools, h.subscriptionTools, h.webTools)
+		srv, err := mcpserver.BuildServer(ctx, &token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools, h.subscriptionTools, h.webTools, h.knowledgeTools)
 		if err != nil {
 			return nil, time.Time{}, err
 		}
@@ -138,6 +144,12 @@ func (h *MCPHandler) ValidateHasScopes(next http.Handler) http.Handler {
 		if err := h.db.Where("jti = ?", claims.JTI).First(&token).Error; err != nil {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "token not found"})
 			return
+		}
+		if token.Meta != nil {
+			if tokenType, _ := token.Meta["type"].(string); tokenType == "agent_proxy" {
+				next.ServeHTTP(w, r)
+				return
+			}
 		}
 
 		scopes, err := parseTokenScopes(token.Scopes)

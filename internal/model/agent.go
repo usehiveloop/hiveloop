@@ -23,34 +23,36 @@ type Agent struct {
 	TeamRef           *Team            `gorm:"foreignKey:TeamID;constraint:OnDelete:SET NULL"`
 
 	// Bridge AgentDefinition fields
-	SystemPrompt    string             `gorm:"type:text;not null"`
-	ProviderPrompts ProviderPromptsMap `gorm:"type:jsonb;not null;default:'{}'"` // map[provider_group] -> {system_prompt, model}
-	Instructions    *string `gorm:"type:text"`                        // optional markdown instructions for auto-starting runs
-	Model           string  `gorm:"not null"`                         // must match credential's provider
-	Tools        JSON   `gorm:"type:jsonb;not null;default:'{}'"`
-	McpServers   JSON   `gorm:"type:jsonb;not null;default:'{}'"`
-	Skills       JSON   `gorm:"type:jsonb;not null;default:'{}'"`
-	Integrations JSON   `gorm:"type:jsonb;not null;default:'{}'"` // selected integration IDs/configs
-	AgentConfig  JSON   `gorm:"type:jsonb;not null;default:'{}'"` // max_tokens, max_turns, temperature, etc.
-	Permissions  JSON   `gorm:"type:jsonb;not null;default:'{}'"` // tool permission overrides
-	Resources    JSON   `gorm:"type:jsonb;not null;default:'{}'"` // per-connection resource scoping: {connID: {resourceKey: [{id, name}]}}
-	Team         string `gorm:"not null;default:''"` // team tag for memory scoping (e.g. "engineering", "sales")
-	SharedMemory bool   `gorm:"not null;default:false"` // can store shared memories visible to all agents in identity
+	SystemPrompt              string             `gorm:"type:text;not null"`
+	IdentityPrompt            string             `gorm:"type:text;not null;default:''"`
+	PromptOperatingPrinciples string             `gorm:"type:text;not null;default:''"`
+	ProviderPrompts           ProviderPromptsMap `gorm:"type:jsonb;not null;default:'{}'"` // map[provider_group] -> {system_prompt, model}
+	Instructions              *string            `gorm:"type:text"`                        // optional markdown instructions for auto-starting runs
+	Model                     string             `gorm:"not null"`                         // must match credential's provider
+	Tools                     JSON               `gorm:"type:jsonb;not null;default:'{}'"`
+	McpServers                JSON               `gorm:"type:jsonb;not null;default:'{}'"`
+	Skills                    JSON               `gorm:"type:jsonb;not null;default:'{}'"`
+	Integrations              JSON               `gorm:"type:jsonb;not null;default:'{}'"` // selected integration IDs/configs
+	AgentConfig               JSON               `gorm:"type:jsonb;not null;default:'{}'"` // max_tokens, max_turns, temperature, etc.
+	Permissions               JSON               `gorm:"type:jsonb;not null;default:'{}'"` // tool permission overrides
+	Resources                 JSON               `gorm:"type:jsonb;not null;default:'{}'"` // per-connection resource scoping: {connID: {resourceKey: [{id, name}]}}
+	Team                      string             `gorm:"not null;default:''"`              // team tag for memory scoping (e.g. "engineering", "sales")
+	SharedMemory              bool               `gorm:"not null;default:false"`           // can store shared memories visible to all agents in identity
 
 	// Sandbox setup
-	SandboxTools     pq.StringArray `gorm:"type:text[];default:'{}'"`  // enabled sandbox tools (e.g. "chrome")
-	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"`  // shell commands run on dedicated sandbox creation
-	EncryptedEnvVars []byte         `gorm:"type:bytea"`                // AES-256-GCM encrypted JSON map of env vars
+	SandboxTools     pq.StringArray `gorm:"type:text[];default:'{}'"` // enabled sandbox tools (e.g. "chrome")
+	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"` // shell commands run on dedicated sandbox creation
+	EncryptedEnvVars []byte         `gorm:"type:bytea"`               // AES-256-GCM encrypted JSON map of env vars
 
 	Status        string `gorm:"not null;default:'active'"` // active, archived
 	IsSystem      bool   `gorm:"not null;default:false;index"`
 	IsEmployee    bool   `gorm:"not null;default:false;index"` // employee agents own subagents and use a different onboarding flow
-	ProviderGroup string `gorm:"not null;default:''"` // e.g. "anthropic", "openai", "gemini" — set for system agents
+	ProviderGroup string `gorm:"not null;default:''"`          // e.g. "anthropic", "openai", "gemini" — set for system agents
 	// TODO(post-migration): drop agent.Tools column once data archived.
 	Harness   string     `gorm:"type:varchar(32);not null;default:''"` // "claude" or "open_code"
 	DeletedAt *time.Time `gorm:"index"`
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (Agent) TableName() string { return "agents" }
@@ -145,7 +147,6 @@ var ValidBuiltInTools = []BuiltInToolDefinition{
 	{ID: "memory_recall", Name: "Recall memory", Description: "Search long-term memory for relevant context from past conversations.", Category: "memory", Locked: true},
 	{ID: "memory_retain", Name: "Retain memory", Description: "Store important information to long-term memory.", Category: "memory", Locked: true},
 	{ID: "memory_reflect", Name: "Reflect on memory", Description: "Get a synthesized answer by analyzing full memory.", Category: "memory", Locked: true},
-
 }
 
 // validBuiltInToolIDs is a set for fast validation lookups.

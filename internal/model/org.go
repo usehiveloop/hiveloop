@@ -32,6 +32,8 @@ type Org struct {
 	Website     string `gorm:"not null;default:'';size:500"`
 	Description string `gorm:"type:text;not null;default:''"`
 
+	PromptCompany string `gorm:"type:text;not null;default:''"`
+
 	Onboarded bool `gorm:"not null;default:false"`
 
 	CreatedAt time.Time

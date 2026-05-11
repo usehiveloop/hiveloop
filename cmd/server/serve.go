@@ -12,7 +12,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/bootstrap"
 	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/email"
@@ -24,9 +23,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
 	"github.com/usehiveloop/hiveloop/internal/proxy"
-	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
-	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
-	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 	"github.com/usehiveloop/hiveloop/internal/spider"
 	"github.com/usehiveloop/hiveloop/internal/storage"
 	"github.com/usehiveloop/hiveloop/internal/subscriptions"
@@ -205,34 +201,9 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
-	ragSourceHandler := handler.NewRAGSourceHandler(database, enqueuer, ragscheduler.HasPermSyncCapability, billing.NewCreditsService(database))
-	var ragSearchHandler *handler.RAGSearchHandler
-	if cfg.QdrantHost != "" && cfg.LLMAPIURL != "" && cfg.LLMAPIKey != "" && cfg.LLMModel != "" {
-		qd, err := qdrant.New(qdrant.Config{
-			Host: cfg.QdrantHost, Port: cfg.QdrantPort,
-			UseTLS: cfg.QdrantUseTLS, APIKey: cfg.QdrantAPIKey,
-		})
-		if err != nil {
-			slog.Error("rag search: dial qdrant failed — /v1/rag/search disabled", "error", err)
-			return err
-		}
-		embedder := embedclient.NewEmbedder(embedclient.EmbedderConfig{
-			BaseURL: cfg.LLMAPIURL,
-			APIKey:  cfg.LLMAPIKey,
-			Model:   cfg.LLMModel,
-			Dim:     cfg.LLMEmbeddingDim,
-		})
-		var reranker *embedclient.Reranker
-		if cfg.RerankerBaseURL != "" && cfg.RerankerAPIKey != "" && cfg.RerankerModel != "" {
-			reranker = embedclient.NewReranker(embedclient.RerankerConfig{
-				BaseURL: cfg.RerankerBaseURL,
-				APIKey:  cfg.RerankerAPIKey,
-				Model:   cfg.RerankerModel,
-			})
-		}
-		ragSearchHandler = handler.NewRAGSearchHandler(qd, embedder, reranker, cfg.QdrantCollection)
-	} else {
-		slog.Warn("rag search: qdrant or LLM not configured — /v1/rag/search disabled")
+	ragSourceHandler, ragSearchHandler, err := setupRAGRuntime(cfg, database, enqueuer, mcpHandler)
+	if err != nil {
+		return err
 	}
 	systemTaskHandler := buildSystemTaskHandler(database, deps, redisClient)
 	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, teamHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, subscriptionHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, agentHandler, agentProfileHandler, marketplaceHandler, conversationHandler, routerHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, systemTaskHandler, employeeHandler, chatHandler, orchestrator, auditWriter)

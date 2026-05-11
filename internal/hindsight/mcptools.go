@@ -30,12 +30,12 @@ func AddMemoryTools(server *mcp.Server, agent *model.Agent, client *Client) {
 		return
 	}
 	bankID := "org-" + agent.OrgID.String()
-	agentTag := "agent:" + agent.ID.String()
+	memoryTags := employeeMemoryTags(agent)
 
 	var tagGroups []any
-	if !agent.SharedMemory {
+	if len(memoryTags) > 0 {
 		tagGroups = []any{
-			map[string]any{"tags": []string{agentTag}, "match": "all_strict"},
+			map[string]any{"tags": []string{"company:" + agent.OrgID.String()}, "match": "all_strict"},
 		}
 	}
 
@@ -127,6 +127,11 @@ Write the content as a clear, specific factual statement. Bad: "User talked abou
 						"type":        "string",
 						"description": "Describe the nature and source of this information. This significantly improves how the memory is indexed and retrieved. Examples: 'Technical architecture discussion', 'User preference stated during onboarding', 'Decision from Q2 planning meeting'. Do NOT use generic values like 'conversation' or 'chat'.",
 					},
+					"memory_type": map[string]any{
+						"type":        "string",
+						"enum":        []string{"company", "team", "decision"},
+						"description": "The durable memory category. Use company for durable company context, team for team-specific context or conventions, and decision for explicit decisions.",
+					},
 				},
 				"required": []string{"content"},
 			},
@@ -135,6 +140,7 @@ Write the content as a clear, specific factual statement. Bad: "User talked abou
 			var params struct {
 				Content string `json:"content"`
 				Context string `json:"context"`
+				Type    string `json:"memory_type"`
 			}
 			if req.Params.Arguments != nil {
 				_ = json.Unmarshal(req.Params.Arguments, &params)
@@ -143,11 +149,15 @@ Write the content as a clear, specific factual statement. Bad: "User talked abou
 				return toolError("content is required"), nil
 			}
 
+			tags := append([]string{}, memoryTags...)
+			if params.Type != "" {
+				tags = append(tags, "memory_type:"+params.Type)
+			}
 			result, err := client.Retain(ctx, bankID, &RetainRequest{
 				Items: []RetainItem{{
 					Content: params.Content,
 					Context: params.Context,
-					Tags:    []string{agentTag},
+					Tags:    tags,
 				}},
 				Async: true,
 			})
@@ -205,6 +215,23 @@ Reflect is slower than recall (1-3 seconds) but produces deeper, more nuanced an
 		},
 	)
 
+}
+
+func employeeMemoryTags(agent *model.Agent) []string {
+	if agent == nil || agent.OrgID == nil {
+		return nil
+	}
+	tags := []string{
+		"company:" + agent.OrgID.String(),
+		"employee:" + agent.ID.String(),
+		"source:manual",
+	}
+	if agent.Team != "" {
+		tags = append(tags, "team:"+agent.Team)
+	} else if agent.TeamID != nil {
+		tags = append(tags, "team:"+agent.TeamID.String())
+	}
+	return tags
 }
 
 func toolError(msg string) *mcp.CallToolResult {

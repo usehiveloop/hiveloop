@@ -26,17 +26,20 @@ func NewTeamHandler(db *gorm.DB) *TeamHandler {
 type createTeamRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
+	PromptTeam  string `json:"prompt_team,omitempty"`
 }
 
 type updateTeamRequest struct {
 	Name        *string `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
+	PromptTeam  *string `json:"prompt_team,omitempty"`
 }
 
 type teamResponse struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	PromptTeam  string `json:"prompt_team,omitempty"`
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
 }
@@ -46,6 +49,7 @@ func toTeamResponse(t model.Team) teamResponse {
 		ID:          t.ID.String(),
 		Name:        t.Name,
 		Description: t.Description,
+		PromptTeam:  t.PromptTeam,
 		CreatedAt:   t.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   t.UpdatedAt.Format(time.RFC3339),
 	}
@@ -88,6 +92,7 @@ func (h *TeamHandler) Create(w http.ResponseWriter, r *http.Request) {
 		OrgID:       org.ID,
 		Name:        name,
 		Description: strings.TrimSpace(req.Description),
+		PromptTeam:  strings.TrimSpace(req.PromptTeam),
 	}
 
 	if err := h.db.Create(&team).Error; err != nil {
@@ -244,6 +249,9 @@ func (h *TeamHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Description != nil {
 		updates["description"] = strings.TrimSpace(*req.Description)
+	}
+	if req.PromptTeam != nil {
+		updates["prompt_team"] = strings.TrimSpace(*req.PromptTeam)
 	}
 
 	if len(updates) == 0 {

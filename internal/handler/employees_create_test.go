@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -46,8 +47,11 @@ func TestIntegration_EmployeesCreate_Engineering_OpenRouter_HappyPath(t *testing
 	if agent.CredentialID == nil || *agent.CredentialID != or.ID {
 		t.Errorf("agent.credential_id = %v, want %v (openrouter)", agent.CredentialID, or.ID)
 	}
-	if agent.SystemPrompt == "" {
-		t.Errorf("agent.system_prompt should be set to engineering placeholder")
+	if agent.SystemPrompt != "" {
+		t.Errorf("agent.system_prompt = %q, want empty for employee bridge v2", agent.SystemPrompt)
+	}
+	if !strings.Contains(agent.IdentityPrompt, "engineering coordinator employee embedded") {
+		t.Errorf("agent.identity_prompt should be set to engineering identity prompt")
 	}
 	if agent.Status != "active" {
 		t.Errorf("agent.status = %q, want active", agent.Status)
@@ -440,8 +444,11 @@ func TestIntegration_EmployeesCreate_CreatesSubagent(t *testing.T) {
 	if sub.IsEmployee {
 		t.Errorf("subagent.is_employee = true, want false (subagents must not be employees)")
 	}
-	if sub.Name != "alice-engineer-subagent" {
-		t.Errorf("subagent.name = %q, want %q", sub.Name, "alice-engineer-subagent")
+	if sub.Name != "alice-engineer-research-specialist" {
+		t.Errorf("subagent.name = %q, want %q", sub.Name, "alice-engineer-research-specialist")
+	}
+	if !strings.Contains(sub.SystemPrompt, "Research Specialist") {
+		t.Errorf("subagent.system_prompt should identify the research specialist")
 	}
 	if sub.OrgID == nil || *sub.OrgID != org.org.ID {
 		t.Errorf("subagent.org_id mismatch")
@@ -458,7 +465,7 @@ func TestIntegration_EmployeesCreate_SubagentSlug_AutoIncrementsOnCollision(t *t
 
 	taken := model.Agent{
 		OrgID:        &org.org.ID,
-		Name:         "alice-subagent",
+		Name:         "alice-research-specialist",
 		SystemPrompt: "x",
 		Model:        "deepseek/deepseek-v4-flash",
 		CredentialID: &cred.ID,
@@ -480,8 +487,8 @@ func TestIntegration_EmployeesCreate_SubagentSlug_AutoIncrementsOnCollision(t *t
 	h.db.Where("agent_id = ?", agentID).First(&link)
 	var sub model.Agent
 	h.db.Where("id = ?", link.SubagentID).First(&sub)
-	if sub.Name != "alice-subagent-2" {
-		t.Errorf("subagent.name = %q, want %q (auto-incremented suffix)", sub.Name, "alice-subagent-2")
+	if sub.Name != "alice-research-specialist-2" {
+		t.Errorf("subagent.name = %q, want %q (auto-incremented suffix)", sub.Name, "alice-research-specialist-2")
 	}
 }
 

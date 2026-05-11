@@ -14,6 +14,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/employeeprompts"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	slackprov "github.com/usehiveloop/hiveloop/internal/profiles/slack"
 	"github.com/usehiveloop/hiveloop/internal/token"
@@ -43,6 +44,7 @@ type StartupSecrets struct {
 
 type AgentDefinition struct {
 	Agent            AgentMeta        `json:"agent"`
+	PromptFragments  PromptFragments  `json:"prompt_fragments,omitempty"`
 	Model            ModelConfig      `json:"model"`
 	MultimodalModel  *ModelConfig     `json:"multimodal_model,omitempty"`
 	Limits           map[string]any   `json:"limits,omitempty"`
@@ -56,9 +58,20 @@ type AgentDefinition struct {
 }
 
 type AgentMeta struct {
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	SystemPrompt string `json:"system_prompt"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type PromptFragments struct {
+	Identity            PromptFragment `json:"identity,omitempty"`
+	Company             PromptFragment `json:"company,omitempty"`
+	Team                PromptFragment `json:"team,omitempty"`
+	OperatingPrinciples PromptFragment `json:"operating_principles,omitempty"`
+}
+
+type PromptFragment struct {
+	Title   string `json:"title,omitempty"`
+	Content string `json:"content,omitempty"`
 }
 
 type ModelConfig struct {
@@ -141,16 +154,20 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*AgentD
 		return nil, err
 	}
 	mcpServers := jsonArray(agent.McpServers)
+	if ourMCP := buildEmployeeMCPServer(ctx, deps, agent); ourMCP != nil {
+		mcpServers = upsertHiveloopMCPServer(mcpServers, ourMCP)
+	}
 	description := ""
 	if agent.Description != nil {
 		description = *agent.Description
 	}
+	fragments := buildPromptFragments(ctx, deps.DB, agent, description)
 	return &AgentDefinition{
 		Agent: AgentMeta{
-			Name:         agent.Name,
-			Description:  description,
-			SystemPrompt: agent.SystemPrompt,
+			Name:        agent.Name,
+			Description: description,
 		},
+		PromptFragments:  fragments,
 		Model:            proxyModel(deps.Cfg, DefaultEmployeeModel),
 		MultimodalModel:  ptrModel(proxyModel(deps.Cfg, DefaultEmployeeMultimodalModel)),
 		Limits:           defaultLimits(),
@@ -162,6 +179,160 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*AgentD
 		Slack:            map[string]any{},
 		OutboundChannels: []any{},
 	}, nil
+}
+
+func buildPromptFragments(ctx context.Context, db *gorm.DB, agent *model.Agent, description string) PromptFragments {
+	var org model.Org
+	var hasOrg bool
+	var team model.Team
+	var hasTeam bool
+	if agent.OrgID != nil && db != nil {
+		if err := db.WithContext(ctx).Where("id = ?", *agent.OrgID).First(&org).Error; err == nil {
+			hasOrg = true
+		}
+	}
+	if agent.TeamID != nil && db != nil {
+		if err := db.WithContext(ctx).Where("id = ?", *agent.TeamID).First(&team).Error; err == nil {
+			hasTeam = true
+		}
+	}
+
+	fragments := PromptFragments{
+		Identity: PromptFragment{
+			Title: "Your identity",
+			Content: strings.TrimSpace(strings.Join([]string{
+				identityOpening(agent, org, hasOrg, team, hasTeam),
+				"Name: " + agent.Name,
+				optionalLine("Role description", description),
+				employeeIdentityPrompt(agent),
+			}, "\n")),
+		},
+	}
+	if hasOrg {
+		companyContent := strings.TrimSpace(org.PromptCompany)
+		if companyContent == "" {
+			companyContent = defaultCompanyPrompt(org)
+		}
+		if companyContent != "" {
+			fragments.Company = PromptFragment{Title: "About the company", Content: companyContent}
+		}
+	}
+	if fragments.Team.Content == "" && hasTeam {
+		teamContent := strings.TrimSpace(team.PromptTeam)
+		if teamContent == "" {
+			teamContent = defaultTeamPrompt(team)
+		}
+		if teamContent != "" {
+			fragments.Team = PromptFragment{
+				Title:   "About your team",
+				Content: teamContent,
+			}
+		}
+	}
+	if strings.TrimSpace(agent.PromptOperatingPrinciples) != "" {
+		fragments.OperatingPrinciples = PromptFragment{
+			Title:   "Operating principles",
+			Content: strings.TrimSpace(agent.PromptOperatingPrinciples),
+		}
+	}
+	return fragments
+}
+
+func identityOpening(agent *model.Agent, org model.Org, hasOrg bool, team model.Team, hasTeam bool) string {
+	companyName := "this company"
+	if hasOrg && strings.TrimSpace(org.Name) != "" {
+		companyName = strings.TrimSpace(org.Name)
+	}
+	teamName := strings.TrimSpace(agent.Team)
+	if teamName == "" && hasTeam {
+		teamName = strings.TrimSpace(team.Name)
+	}
+	if teamName == "" {
+		teamName = "your"
+	}
+	if teamName == "your" {
+		return fmt.Sprintf("You are a %s employee working on your team.", companyName)
+	}
+	return fmt.Sprintf("You are a %s employee working on the %s team.", companyName, teamName)
+}
+
+func employeeIdentityPrompt(agent *model.Agent) string {
+	if agent.IdentityPrompt != "" {
+		return strings.TrimSpace(agent.IdentityPrompt)
+	}
+	if agent.Category != nil && strings.EqualFold(strings.TrimSpace(*agent.Category), "engineering") {
+		return employeeprompts.EngineeringIdentityPrompt
+	}
+	return employeeprompts.EngineeringIdentityPrompt
+}
+
+func optionalLine(label, value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	return label + ": " + value
+}
+
+func defaultCompanyPrompt(org model.Org) string {
+	var parts []string
+	if org.Name != "" {
+		parts = append(parts, "Company name: "+org.Name)
+	}
+	if org.Website != "" {
+		parts = append(parts, "Website: "+org.Website)
+	}
+	if org.Description != "" {
+		parts = append(parts, "Company description: "+org.Description)
+	}
+	return strings.Join(parts, "\n")
+}
+
+func defaultTeamPrompt(team model.Team) string {
+	var parts []string
+	if team.Name != "" {
+		parts = append(parts, "Team: "+team.Name)
+	}
+	if team.Description != "" {
+		parts = append(parts, "Team description: "+team.Description)
+	}
+	return strings.Join(parts, "\n")
+}
+
+func buildEmployeeMCPServer(ctx context.Context, deps CompileDeps, agent *model.Agent) any {
+	if deps.DB == nil || deps.Cfg == nil || deps.Cfg.MCPBaseURL == "" || agent.OrgID == nil {
+		return nil
+	}
+	var tok model.Token
+	if err := deps.DB.WithContext(ctx).
+		Where("org_id = ? AND expires_at > ? AND meta->>'agent_id' = ? AND meta->>'type' = ?", *agent.OrgID, time.Now(), agent.ID.String(), "agent_proxy").
+		Order("created_at DESC").
+		First(&tok).Error; err != nil {
+		return nil
+	}
+	url := fmt.Sprintf("%s/%s", strings.TrimRight(deps.Cfg.MCPBaseURL, "/"), tok.JTI)
+	return map[string]any{
+		"name":      "hiveloop",
+		"transport": "streamable_http",
+		"url":       url,
+		"headers": map[string]string{
+			"Authorization": "Bearer ${" + ProxyAPIKeyEnv + "}",
+		},
+		"default_enable_all_tools": true,
+	}
+}
+
+func upsertHiveloopMCPServer(servers []any, server any) []any {
+	out := make([]any, 0, len(servers)+1)
+	for _, existing := range servers {
+		if m, ok := existing.(map[string]any); ok {
+			if name, _ := m["name"].(string); name == "hiveloop" {
+				continue
+			}
+		}
+		out = append(out, existing)
+	}
+	return append(out, server)
 }
 
 func proxyModel(cfg *config.Config, modelID string) ModelConfig {

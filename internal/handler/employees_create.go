@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/employeeprompts"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -102,54 +103,56 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	desc := req.Description
 	cat := req.Category
 	agent := model.Agent{
-		OrgID:        &org.ID,
-		Name:         req.Name,
-		Description:  &desc,
-		Category:     &cat,
-		SystemPrompt: engineeringSystemPrompt,
-		Model:        choice.model,
-		CredentialID: &choice.cred.ID,
-		TeamID:       &team.ID,
-		Team:         team.Name,
-		Harness:      employeeHarness,
-		IsEmployee:   true,
-		Status:       "active",
-		Tools:        model.JSON{},
-		McpServers:   model.JSON{},
-		Skills:       model.JSON{},
-		Integrations: model.JSON{},
-		Resources:    model.JSON{},
-		AgentConfig:  model.JSON{},
-		Permissions:  model.JSON{},
+		OrgID:          &org.ID,
+		Name:           req.Name,
+		Description:    &desc,
+		Category:       &cat,
+		SystemPrompt:   "",
+		IdentityPrompt: employeeprompts.EngineeringIdentityPrompt,
+		Model:          choice.model,
+		CredentialID:   &choice.cred.ID,
+		TeamID:         &team.ID,
+		Team:           team.Name,
+		Harness:        employeeHarness,
+		IsEmployee:     true,
+		Status:         "active",
+		Tools:          model.JSON{},
+		McpServers:     model.JSON{},
+		Skills:         model.JSON{},
+		Integrations:   model.JSON{},
+		Resources:      model.JSON{},
+		AgentConfig:    model.JSON{},
+		Permissions:    model.JSON{},
 	}
 	if req.AvatarURL != "" {
 		avatar := req.AvatarURL
 		agent.AvatarURL = &avatar
 	}
 
-	subDesc := fmt.Sprintf("Subagent for %s.", req.Name)
+	subDesc := fmt.Sprintf("Research specialist cloud agent for %s.", req.Name)
 	subagent := model.Agent{
-		OrgID:        &org.ID,
-		Description:  &subDesc,
-		Category:     &cat,
-		SystemPrompt: engineeringSubagentSystemPrompt,
-		Model:        subChoice.model,
-		CredentialID: &subChoice.cred.ID,
-		TeamID:       &team.ID,
-		Team:         team.Name,
-		Harness:      employeeHarness,
-		IsEmployee:   false,
-		Status:       "active",
-		Tools:        model.JSON{},
-		McpServers:   model.JSON{},
-		Skills:       model.JSON{},
-		Integrations: model.JSON{},
-		Resources:    model.JSON{},
-		AgentConfig:  model.JSON{},
-		Permissions:  model.JSON{},
+		OrgID:          &org.ID,
+		Description:    &subDesc,
+		Category:       &cat,
+		SystemPrompt:   researchSpecialistSystemPrompt,
+		IdentityPrompt: researchSpecialistSystemPrompt,
+		Model:          subChoice.model,
+		CredentialID:   &subChoice.cred.ID,
+		TeamID:         &team.ID,
+		Team:           team.Name,
+		Harness:        employeeHarness,
+		IsEmployee:     false,
+		Status:         "active",
+		Tools:          model.JSON{},
+		McpServers:     model.JSON{},
+		Skills:         model.JSON{},
+		Integrations:   model.JSON{},
+		Resources:      model.JSON{},
+		AgentConfig:    model.JSON{},
+		Permissions:    model.JSON{},
 	}
 
-	subBaseSlug := employeeSubagentBaseSlug(req.Name, req.Category)
+	subBaseSlug := employeeResearchSpecialistBaseSlug(req.Name, req.Category)
 
 	err = h.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&agent).Error; err != nil {
@@ -268,6 +271,8 @@ func (h *EmployeeHandler) rollbackEmployee(ctx context.Context, orgID, agentID, 
 	}
 }
 
+const subagentSlugMaxAttempts = 32
+
 func slugifyAgentName(s string) string {
 	var b strings.Builder
 	prevDash := false
@@ -283,15 +288,13 @@ func slugifyAgentName(s string) string {
 	return strings.TrimRight(b.String(), "-")
 }
 
-func employeeSubagentBaseSlug(employeeName, category string) string {
+func employeeResearchSpecialistBaseSlug(employeeName, category string) string {
 	s := slugifyAgentName(employeeName)
 	if s == "" {
 		s = category
 	}
-	return s + "-subagent"
+	return s + "-research-specialist"
 }
-
-const subagentSlugMaxAttempts = 32
 
 func createWithUniqueNameSlug(tx *gorm.DB, agent *model.Agent, baseSlug string) error {
 	for i := 0; i < subagentSlugMaxAttempts; i++ {

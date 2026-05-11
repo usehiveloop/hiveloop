@@ -70,57 +70,61 @@ type agentTriggerResponse struct {
 }
 
 type createAgentRequest struct {
-	Name              string                   `json:"name"`
-	Description       *string                  `json:"description,omitempty"`
-	AvatarURL         *string                  `json:"avatar_url,omitempty"`
-	Category          *string                  `json:"category,omitempty"`
-	CredentialID      string                   `json:"credential_id"`
-	SandboxTemplateID *string                  `json:"sandbox_template_id,omitempty"`
-	SystemPrompt      string                   `json:"system_prompt"`
-	ProviderPrompts   model.ProviderPromptsMap `json:"provider_prompts,omitempty"`
-	Instructions      *string                  `json:"instructions,omitempty"`
-	Model             string                   `json:"model"`
-	Tools             model.JSON               `json:"tools,omitempty"`
-	McpServers        model.JSON               `json:"mcp_servers,omitempty"`
-	Skills            model.JSON               `json:"skills,omitempty"`
-	Integrations      model.JSON               `json:"integrations,omitempty"`
-	AgentConfig       model.JSON               `json:"agent_config,omitempty"`
-	Permissions       model.JSON               `json:"permissions,omitempty"`
-	Resources         model.JSON               `json:"resources,omitempty"`
-	Team              string                   `json:"team,omitempty"`
-	SharedMemory      bool                     `json:"shared_memory,omitempty"`
-	SandboxTools      []string                 `json:"sandbox_tools,omitempty"`
-	SkillIDs          []string                 `json:"skill_ids,omitempty"`
-	Harness           string                   `json:"harness,omitempty"`
-	Triggers          []agentTriggerInput      `json:"triggers,omitempty"`
-	IsEmployee        bool                     `json:"is_employee,omitempty"`
-	SubagentIDs       []string                 `json:"subagent_ids,omitempty"`
+	Name                      string                   `json:"name"`
+	Description               *string                  `json:"description,omitempty"`
+	AvatarURL                 *string                  `json:"avatar_url,omitempty"`
+	Category                  *string                  `json:"category,omitempty"`
+	CredentialID              string                   `json:"credential_id"`
+	SandboxTemplateID         *string                  `json:"sandbox_template_id,omitempty"`
+	SystemPrompt              string                   `json:"system_prompt"`
+	IdentityPrompt            string                   `json:"identity_prompt,omitempty"`
+	PromptOperatingPrinciples string                   `json:"prompt_operating_principles,omitempty"`
+	ProviderPrompts           model.ProviderPromptsMap `json:"provider_prompts,omitempty"`
+	Instructions              *string                  `json:"instructions,omitempty"`
+	Model                     string                   `json:"model"`
+	Tools                     model.JSON               `json:"tools,omitempty"`
+	McpServers                model.JSON               `json:"mcp_servers,omitempty"`
+	Skills                    model.JSON               `json:"skills,omitempty"`
+	Integrations              model.JSON               `json:"integrations,omitempty"`
+	AgentConfig               model.JSON               `json:"agent_config,omitempty"`
+	Permissions               model.JSON               `json:"permissions,omitempty"`
+	Resources                 model.JSON               `json:"resources,omitempty"`
+	Team                      string                   `json:"team,omitempty"`
+	SharedMemory              bool                     `json:"shared_memory,omitempty"`
+	SandboxTools              []string                 `json:"sandbox_tools,omitempty"`
+	SkillIDs                  []string                 `json:"skill_ids,omitempty"`
+	Harness                   string                   `json:"harness,omitempty"`
+	Triggers                  []agentTriggerInput      `json:"triggers,omitempty"`
+	IsEmployee                bool                     `json:"is_employee,omitempty"`
+	SubagentIDs               []string                 `json:"subagent_ids,omitempty"`
 }
 
 type updateAgentRequest struct {
-	Name              *string                  `json:"name,omitempty"`
-	Description       *string                  `json:"description,omitempty"`
-	AvatarURL         *string                  `json:"avatar_url,omitempty"`
-	Category          *string                  `json:"category,omitempty"`
-	CredentialID      *string                  `json:"credential_id,omitempty"`
-	SandboxTemplateID *string                  `json:"sandbox_template_id,omitempty"`
-	SystemPrompt      *string                  `json:"system_prompt,omitempty"`
-	ProviderPrompts   model.ProviderPromptsMap `json:"provider_prompts,omitempty"`
-	Instructions      *string                  `json:"instructions,omitempty"`
-	Model             *string                  `json:"model,omitempty"`
-	Tools             model.JSON               `json:"tools,omitempty"`
-	McpServers        model.JSON               `json:"mcp_servers,omitempty"`
-	Skills            model.JSON               `json:"skills,omitempty"`
-	Integrations      model.JSON               `json:"integrations,omitempty"`
-	AgentConfig       model.JSON               `json:"agent_config,omitempty"`
-	Permissions       model.JSON               `json:"permissions,omitempty"`
-	Resources         model.JSON               `json:"resources,omitempty"`
-	Team              *string                  `json:"team,omitempty"`
-	SharedMemory      *bool                    `json:"shared_memory,omitempty"`
-	SandboxTools      []string                 `json:"sandbox_tools,omitempty"`
-	SkillIDs          *[]string                `json:"skill_ids,omitempty"`
-	Harness           *string                  `json:"harness,omitempty"`
-	Triggers          *[]agentTriggerInput     `json:"triggers,omitempty"`
+	Name                      *string                  `json:"name,omitempty"`
+	Description               *string                  `json:"description,omitempty"`
+	AvatarURL                 *string                  `json:"avatar_url,omitempty"`
+	Category                  *string                  `json:"category,omitempty"`
+	CredentialID              *string                  `json:"credential_id,omitempty"`
+	SandboxTemplateID         *string                  `json:"sandbox_template_id,omitempty"`
+	SystemPrompt              *string                  `json:"system_prompt,omitempty"`
+	IdentityPrompt            *string                  `json:"identity_prompt,omitempty"`
+	PromptOperatingPrinciples *string                  `json:"prompt_operating_principles,omitempty"`
+	ProviderPrompts           model.ProviderPromptsMap `json:"provider_prompts,omitempty"`
+	Instructions              *string                  `json:"instructions,omitempty"`
+	Model                     *string                  `json:"model,omitempty"`
+	Tools                     model.JSON               `json:"tools,omitempty"`
+	McpServers                model.JSON               `json:"mcp_servers,omitempty"`
+	Skills                    model.JSON               `json:"skills,omitempty"`
+	Integrations              model.JSON               `json:"integrations,omitempty"`
+	AgentConfig               model.JSON               `json:"agent_config,omitempty"`
+	Permissions               model.JSON               `json:"permissions,omitempty"`
+	Resources                 model.JSON               `json:"resources,omitempty"`
+	Team                      *string                  `json:"team,omitempty"`
+	SharedMemory              *bool                    `json:"shared_memory,omitempty"`
+	SandboxTools              []string                 `json:"sandbox_tools,omitempty"`
+	SkillIDs                  *[]string                `json:"skill_ids,omitempty"`
+	Harness                   *string                  `json:"harness,omitempty"`
+	Triggers                  *[]agentTriggerInput     `json:"triggers,omitempty"`
 }
 
 type setupRequest struct {
@@ -141,65 +145,69 @@ type agentSkillSummary struct {
 }
 
 type agentResponse struct {
-	ID                string                   `json:"id"`
-	Name              string                   `json:"name"`
-	Description       *string                  `json:"description,omitempty"`
-	AvatarURL         *string                  `json:"avatar_url,omitempty"`
-	Category          *string                  `json:"category,omitempty"`
-	CredentialID      string                   `json:"credential_id"`
-	ProviderID        string                   `json:"provider_id"`
-	SandboxTemplateID *string                  `json:"sandbox_template_id,omitempty"`
-	SystemPrompt      string                   `json:"system_prompt"`
-	ProviderPrompts   model.ProviderPromptsMap `json:"provider_prompts"`
-	Instructions      *string                  `json:"instructions,omitempty"`
-	Model             string                   `json:"model"`
-	Tools             model.JSON               `json:"tools"`
-	McpServers        model.JSON               `json:"mcp_servers"`
-	Skills            model.JSON               `json:"skills"`
-	Integrations      model.JSON               `json:"integrations"`
-	AgentConfig       model.JSON               `json:"agent_config"`
-	Permissions       model.JSON               `json:"permissions"`
-	Resources         model.JSON               `json:"resources"`
-	Team              string                   `json:"team"`
-	SharedMemory      bool                     `json:"shared_memory"`
-	SandboxTools      []string                 `json:"sandbox_tools"`
-	Harness           string                   `json:"harness"`
-	Status            string                   `json:"status"`
-	IsEmployee        bool                     `json:"is_employee"`
-	SubagentIDs       []string                 `json:"subagent_ids,omitempty"`
-	Triggers          []agentTriggerResponse   `json:"triggers"`
-	AttachedSkills    []agentSkillSummary      `json:"attached_skills"`
-	Profiles          []agentProfileResponse   `json:"profiles"`
-	CreatedAt         string                   `json:"created_at"`
-	UpdatedAt         string                   `json:"updated_at"`
+	ID                        string                   `json:"id"`
+	Name                      string                   `json:"name"`
+	Description               *string                  `json:"description,omitempty"`
+	AvatarURL                 *string                  `json:"avatar_url,omitempty"`
+	Category                  *string                  `json:"category,omitempty"`
+	CredentialID              string                   `json:"credential_id"`
+	ProviderID                string                   `json:"provider_id"`
+	SandboxTemplateID         *string                  `json:"sandbox_template_id,omitempty"`
+	SystemPrompt              string                   `json:"system_prompt"`
+	IdentityPrompt            string                   `json:"identity_prompt,omitempty"`
+	PromptOperatingPrinciples string                   `json:"prompt_operating_principles,omitempty"`
+	ProviderPrompts           model.ProviderPromptsMap `json:"provider_prompts"`
+	Instructions              *string                  `json:"instructions,omitempty"`
+	Model                     string                   `json:"model"`
+	Tools                     model.JSON               `json:"tools"`
+	McpServers                model.JSON               `json:"mcp_servers"`
+	Skills                    model.JSON               `json:"skills"`
+	Integrations              model.JSON               `json:"integrations"`
+	AgentConfig               model.JSON               `json:"agent_config"`
+	Permissions               model.JSON               `json:"permissions"`
+	Resources                 model.JSON               `json:"resources"`
+	Team                      string                   `json:"team"`
+	SharedMemory              bool                     `json:"shared_memory"`
+	SandboxTools              []string                 `json:"sandbox_tools"`
+	Harness                   string                   `json:"harness"`
+	Status                    string                   `json:"status"`
+	IsEmployee                bool                     `json:"is_employee"`
+	SubagentIDs               []string                 `json:"subagent_ids,omitempty"`
+	Triggers                  []agentTriggerResponse   `json:"triggers"`
+	AttachedSkills            []agentSkillSummary      `json:"attached_skills"`
+	Profiles                  []agentProfileResponse   `json:"profiles"`
+	CreatedAt                 string                   `json:"created_at"`
+	UpdatedAt                 string                   `json:"updated_at"`
 }
 
 func toAgentResponse(a model.Agent) agentResponse {
 	resp := agentResponse{
-		ID:              a.ID.String(),
-		Name:            a.Name,
-		Description:     a.Description,
-		AvatarURL:       a.AvatarURL,
-		Category:        a.Category,
-		SystemPrompt:    a.SystemPrompt,
-		ProviderPrompts: a.ProviderPrompts,
-		Instructions:    a.Instructions,
-		Model:           a.Model,
-		Tools:           a.Tools,
-		McpServers:      a.McpServers,
-		Skills:          a.Skills,
-		Integrations:    a.Integrations,
-		AgentConfig:     a.AgentConfig,
-		Permissions:     a.Permissions,
-		Resources:       a.Resources,
-		Team:            resolvedAgentTeamName(a),
-		SharedMemory:    a.SharedMemory,
-		SandboxTools:    ensureStringSlice(a.SandboxTools),
-		Harness:         a.Harness,
-		Status:          a.Status,
-		IsEmployee:      a.IsEmployee,
-		CreatedAt:       a.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:       a.UpdatedAt.Format(time.RFC3339),
+		ID:                        a.ID.String(),
+		Name:                      a.Name,
+		Description:               a.Description,
+		AvatarURL:                 a.AvatarURL,
+		Category:                  a.Category,
+		SystemPrompt:              a.SystemPrompt,
+		IdentityPrompt:            a.IdentityPrompt,
+		PromptOperatingPrinciples: a.PromptOperatingPrinciples,
+		ProviderPrompts:           a.ProviderPrompts,
+		Instructions:              a.Instructions,
+		Model:                     a.Model,
+		Tools:                     a.Tools,
+		McpServers:                a.McpServers,
+		Skills:                    a.Skills,
+		Integrations:              a.Integrations,
+		AgentConfig:               a.AgentConfig,
+		Permissions:               a.Permissions,
+		Resources:                 a.Resources,
+		Team:                      resolvedAgentTeamName(a),
+		SharedMemory:              a.SharedMemory,
+		SandboxTools:              ensureStringSlice(a.SandboxTools),
+		Harness:                   a.Harness,
+		Status:                    a.Status,
+		IsEmployee:                a.IsEmployee,
+		CreatedAt:                 a.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:                 a.UpdatedAt.Format(time.RFC3339),
 	}
 	if a.CredentialID != nil {
 		resp.CredentialID = a.CredentialID.String()

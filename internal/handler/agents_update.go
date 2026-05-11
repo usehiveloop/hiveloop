@@ -83,6 +83,12 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.SystemPrompt != nil {
 		updates["system_prompt"] = *req.SystemPrompt
 	}
+	if req.IdentityPrompt != nil {
+		updates["identity_prompt"] = *req.IdentityPrompt
+	}
+	if req.PromptOperatingPrinciples != nil {
+		updates["prompt_operating_principles"] = *req.PromptOperatingPrinciples
+	}
 	if len(req.ProviderPrompts) > 0 {
 		if errMsg := req.ProviderPrompts.Validate(); errMsg != "" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})

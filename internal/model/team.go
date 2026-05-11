@@ -14,6 +14,7 @@ type Team struct {
 	// (idx_team_org_name) so soft-deleted rows don't block name reuse.
 	Name        string     `gorm:"not null"`
 	Description string     `gorm:"type:text;not null;default:''"`
+	PromptTeam  string     `gorm:"type:text;not null;default:''"`
 	DeletedAt   *time.Time `gorm:"index"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time

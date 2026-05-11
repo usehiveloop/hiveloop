@@ -29,6 +29,9 @@ type SubscriptionToolsFunc func(server *mcp.Server, token *model.Token, db *gorm
 // server. Used to avoid an import cycle between mcpserver and spider.
 type WebToolsFunc func(server *mcp.Server, token *model.Token)
 
+// KnowledgeToolsFunc registers org-scoped knowledge-base search tools.
+type KnowledgeToolsFunc func(server *mcp.Server, token *model.Token)
+
 // BuildServer creates an MCP server with tools registered from token scopes.
 // Each scope's connection+actions are turned into MCP tools via the catalog.
 // If addMemoryTools is non-nil, it is called to register memory tools on the
@@ -48,6 +51,7 @@ func BuildServer(
 	addMemoryTools MemoryToolsFunc,
 	addSubscriptionTools SubscriptionToolsFunc,
 	addWebTools WebToolsFunc,
+	addKnowledgeTools KnowledgeToolsFunc,
 ) (*mcp.Server, error) {
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "hiveloop",
@@ -180,6 +184,10 @@ func BuildServer(
 
 	if addWebTools != nil {
 		addWebTools(server, token)
+	}
+
+	if addKnowledgeTools != nil {
+		addKnowledgeTools(server, token)
 	}
 
 	return server, nil
