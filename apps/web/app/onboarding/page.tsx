@@ -9,6 +9,7 @@ import { ProvisioningStep } from "./_components/provisioning-step"
 import { ChannelStep } from "./_components/channel-step"
 import { ConfigureSlackStep } from "./_components/configure-slack-step"
 import { ConfigureWhatsappStep } from "./_components/configure-whatsapp-step"
+import { GithubStep } from "./_components/github-step"
 import { BusinessStep } from "./_components/business-step"
 import { OnboardingProvider, useOnboarding } from "./_components/context"
 
@@ -58,6 +59,7 @@ function Wizard() {
             {step === "channel" && <ChannelStep />}
             {step === "configure" && channel === "slack" && <ConfigureSlackStep />}
             {step === "configure" && channel === "whatsapp" && <ConfigureWhatsappStep />}
+            {step === "github" && <GithubStep />}
             {step === "business" && <BusinessStep />}
           </motion.div>
         </AnimatePresence>
@@ -76,6 +78,7 @@ function OnboardingSkeleton() {
     >
       <span className="sr-only">Loading…</span>
       <div className="flex items-center gap-1.5">
+        <Skeleton className="size-1.5 rounded-full" />
         <Skeleton className="size-1.5 rounded-full" />
         <Skeleton className="size-1.5 rounded-full" />
         <Skeleton className="size-1.5 rounded-full" />

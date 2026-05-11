@@ -18,13 +18,23 @@ export type StepKey =
   | "provisioning"
   | "channel"
   | "configure"
+  | "github"
   | "business"
+export type OnboardingMode = "workspace" | "employee"
 
 const STEP_ORDER: StepKey[] = [
   "employee",
   "channel",
   "configure",
+  "github",
   "business",
+  "provisioning",
+]
+
+const EMPLOYEE_STEP_ORDER: StepKey[] = [
+  "employee",
+  "channel",
+  "configure",
   "provisioning",
 ]
 
@@ -75,6 +85,7 @@ interface OnboardingContextValue {
   retryEmployee: () => void
   bootstrapping: boolean
   bootstrapped: boolean
+  mode: OnboardingMode
 }
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null)
@@ -88,8 +99,10 @@ export function useOnboarding() {
 
 export function OnboardingProvider({
   children,
+  mode = "workspace",
 }: {
   children: React.ReactNode
+  mode?: OnboardingMode
 }) {
   const form = useForm<OnboardingFormValues>({
     defaultValues: DEFAULT_VALUES,
@@ -97,7 +110,8 @@ export function OnboardingProvider({
   })
   const { activeOrg } = useAuth()
   const [step, setStep] = useState<StepKey>("employee")
-  const stepIndex = STEP_ORDER.indexOf(step)
+  const stepOrder = mode === "employee" ? EMPLOYEE_STEP_ORDER : STEP_ORDER
+  const stepIndex = stepOrder.indexOf(step)
 
   const createEmployeeMutation = $api.useMutation("post", "/v1/employees")
   const employeesQuery = $api.useQuery("get", "/v1/employees")
@@ -109,6 +123,7 @@ export function OnboardingProvider({
         agentId: firstEmployee.id,
       }
     : null
+  const shouldBootstrapExistingEmployee = mode === "workspace"
 
   useEffect(() => {
     const activeOrgId = activeOrg?.id ?? null
@@ -128,6 +143,7 @@ export function OnboardingProvider({
   }, [activeOrg?.id, createEmployeeMutation, form])
 
   useEffect(() => {
+    if (!shouldBootstrapExistingEmployee) return
     if (bootstrappedRef.current) return
     if (!employeesQuery.data) return
     const first = firstEmployee
@@ -152,11 +168,11 @@ export function OnboardingProvider({
       }
     }
 
-    queueMicrotask(() => setStep(slackProfile ? "business" : "channel"))
-  }, [employeesQuery.data, firstEmployee, form])
+    queueMicrotask(() => setStep(slackProfile ? "github" : "channel"))
+  }, [employeesQuery.data, firstEmployee, form, shouldBootstrapExistingEmployee])
 
   const createEmployee: CreateEmployeeState = (() => {
-    if (bootstrapped) {
+    if (shouldBootstrapExistingEmployee && bootstrapped) {
       return {
         status: "success",
         agentId: bootstrapped.agentId,
@@ -207,27 +223,27 @@ export function OnboardingProvider({
 
   const goNext = useCallback(() => {
     setStep((current) => {
-      const idx = STEP_ORDER.indexOf(current)
-      return STEP_ORDER[idx + 1] ?? current
+      const idx = stepOrder.indexOf(current)
+      return stepOrder[idx + 1] ?? current
     })
-  }, [])
+  }, [stepOrder])
 
   const goBack = useCallback(() => {
     setStep((current) => {
-      const idx = STEP_ORDER.indexOf(current)
-      return STEP_ORDER[idx - 1] ?? current
+      const idx = stepOrder.indexOf(current)
+      return stepOrder[idx - 1] ?? current
     })
-  }, [])
+  }, [stepOrder])
 
   const selectChannel = useCallback(
     (channel: Channel) => {
       form.setValue("channel", channel, { shouldDirty: true })
       setStep((current) => {
-        const idx = STEP_ORDER.indexOf(current)
-        return STEP_ORDER[idx + 1] ?? current
+        const idx = stepOrder.indexOf(current)
+        return stepOrder[idx + 1] ?? current
       })
     },
-    [form]
+    [form, stepOrder]
   )
 
   return (
@@ -236,7 +252,7 @@ export function OnboardingProvider({
         form,
         step,
         stepIndex,
-        totalSteps: STEP_ORDER.length,
+        totalSteps: stepOrder.length,
         goNext,
         goBack,
         selectChannel,
@@ -244,7 +260,8 @@ export function OnboardingProvider({
         submitEmployee,
         retryEmployee,
         bootstrapping: employeesQuery.isLoading,
-        bootstrapped: Boolean(bootstrapped),
+        bootstrapped: shouldBootstrapExistingEmployee && Boolean(bootstrapped),
+        mode,
       }}
     >
       {children}
