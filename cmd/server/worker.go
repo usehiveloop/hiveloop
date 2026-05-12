@@ -11,7 +11,9 @@ import (
 	"github.com/hibiken/asynqmon"
 
 	"github.com/usehiveloop/hiveloop/internal/bootstrap"
+	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/goroutine"
 	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
@@ -73,8 +75,18 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		Credits:       deps.Credits,
 		Subscriptions: deps.Subscriptions,
 		Enqueuer:      enqueuer,
-		Rag:           ragDeps,
-		RagScheduler:  ragSched,
+		Hindsight:     deps.HindsightClient,
+		EmployeeCompile: employeeruntime.CompileDeps{
+			DB:         deps.DB,
+			Picker:     credentials.NewPickerWithRegistry(deps.DB, deps.Registry),
+			KMS:        deps.KMS,
+			EncKey:     deps.SandboxEncKey,
+			SigningKey: deps.SigningKey,
+			Cfg:        cfg,
+			Hindsight:  deps.HindsightClient,
+		},
+		Rag:          ragDeps,
+		RagScheduler: ragSched,
 	}
 
 	mux := tasks.NewServeMux(workerDeps)

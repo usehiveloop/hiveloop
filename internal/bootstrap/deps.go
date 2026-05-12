@@ -57,6 +57,7 @@ type Deps struct {
 	EventBus        *streaming.EventBus
 	Flusher         *streaming.Flusher
 	Cleanup         *streaming.Cleanup
+	HindsightClient *hindsight.Client
 	Retainer        *hindsight.Retainer         // nil if Hindsight not configured
 	SpiderClient    *spider.Client              // nil if spider not configured
 	ToolUsageWriter *middleware.ToolUsageWriter // nil if spider not configured
@@ -231,8 +232,9 @@ func New(ctx context.Context) (*Deps, error) {
 	cleanup := streaming.NewCleanup(eventBus)
 
 	var retainer *hindsight.Retainer
+	var hClient *hindsight.Client
 	if cfg.HindsightAPIURL != "" {
-		hClient := hindsight.NewClient(cfg.HindsightAPIURL)
+		hClient = hindsight.NewClient(cfg.HindsightAPIURL)
 		retainer = hindsight.NewRetainer(eventBus, database, hClient)
 	}
 
@@ -274,6 +276,7 @@ func New(ctx context.Context) (*Deps, error) {
 		EventBus:        eventBus,
 		Flusher:         flusher,
 		Cleanup:         cleanup,
+		HindsightClient: hClient,
 		Retainer:        retainer,
 		SpiderClient:    spiderClient,
 		ToolUsageWriter: toolUsageWriter,

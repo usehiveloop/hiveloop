@@ -20,6 +20,8 @@ const (
 	TypeConversationName          = "conversation:name"
 	TypeSubscriptionDispatch      = "subscription:dispatch"
 	TypeCronTriggerDispatch       = "cron_trigger:dispatch"
+	TypeEmployeeMemoryRetain      = "employee:memory_retain"
+	TypeEmployeeMemoryRefresh     = "employee:memory_refresh"
 
 	// Periodic tasks (scheduled by the worker)
 	TypeTokenCleanup         = "periodic:token_cleanup"

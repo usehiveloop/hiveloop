@@ -8,7 +8,9 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/billing/subscription"
 	"github.com/usehiveloop/hiveloop/internal/cache"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/hindsight"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/nango"
 	"github.com/usehiveloop/hiveloop/internal/rag/scheduler"
@@ -22,20 +24,22 @@ import (
 
 // WorkerDeps holds the dependencies needed by task handlers.
 type WorkerDeps struct {
-	DB               *gorm.DB
-	Cleanup          *streaming.Cleanup
-	Orchestrator     *sandbox.Orchestrator // nil if sandbox not configured
-	Pusher           *sandbox.Pusher       // nil if sandbox not configured
-	EncKey           *crypto.SymmetricKey  // nil if not configured
+	DB                *gorm.DB
+	Cleanup           *streaming.Cleanup
+	Orchestrator      *sandbox.Orchestrator   // nil if sandbox not configured
+	Pusher            *sandbox.Pusher         // nil if sandbox not configured
+	EncKey            *crypto.SymmetricKey    // nil if not configured
 	EmailSend         EmailSenderFunc         // nil if email not configured
 	EmailSendTemplate EmailTemplateSenderFunc // nil if template email not configured
-	EventBus         *streaming.EventBus   // nil if streaming not configured
-	SkillFetcher     *skills.GitFetcher    // nil disables git skill hydration
-	NangoClient      *nango.Client         // nil disables deterministic enrichment
-	CacheManager     *cache.Manager        // nil disables tasks that need credential decryption
-	Credits          *billing.CreditsService // required for billing-token-spend deduction
-	Subscriptions    *subscription.Service   // required for renewal worker
-	Enqueuer         enqueue.TaskEnqueuer  // required for enqueuing sub-tasks
+	EventBus          *streaming.EventBus     // nil if streaming not configured
+	SkillFetcher      *skills.GitFetcher      // nil disables git skill hydration
+	NangoClient       *nango.Client           // nil disables deterministic enrichment
+	CacheManager      *cache.Manager          // nil disables tasks that need credential decryption
+	Credits           *billing.CreditsService // required for billing-token-spend deduction
+	Subscriptions     *subscription.Service   // required for renewal worker
+	Enqueuer          enqueue.TaskEnqueuer    // required for enqueuing sub-tasks
+	Hindsight         *hindsight.Client       // nil if Hindsight not configured
+	EmployeeCompile   employeeruntime.CompileDeps
 
 	Rag          *ragtasks.Deps
 	RagScheduler *scheduler.Deps
@@ -106,6 +110,11 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		if handler := NewConversationNameHandler(deps.DB, deps.CacheManager); handler != nil {
 			mux.HandleFunc(TypeConversationName, handler.Handle)
 		}
+	}
+
+	if deps.Hindsight != nil {
+		mux.HandleFunc(TypeEmployeeMemoryRetain, NewEmployeeMemoryRetainHandler(deps.DB, deps.Hindsight, deps.Enqueuer).Handle)
+		mux.HandleFunc(TypeEmployeeMemoryRefresh, NewEmployeeMemoryRefreshHandler(deps.DB, deps.EmployeeCompile).Handle)
 	}
 
 	// Router dispatch (Zira routing system).

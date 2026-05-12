@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -17,12 +16,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/hindsight"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
 var obviousSecretPattern = regexp.MustCompile(`(?i)(ptok_|xox[baprs]-|sk-[a-z0-9]|api[_-]?key|secret|token|password)\s*[:=]\s*\S+`)
@@ -30,8 +31,7 @@ var obviousSecretPattern = regexp.MustCompile(`(?i)(ptok_|xox[baprs]-|sk-[a-z0-9
 type EmployeeOutboundWebhookHandler struct {
 	db       *gorm.DB
 	encKey   *crypto.SymmetricKey
-	memory   *hindsight.Client
-	memCfg   hindsight.MemoryConfig
+	enqueuer enqueue.TaskEnqueuer
 	now      func() time.Time
 	maxBytes int64
 }
@@ -42,12 +42,11 @@ type employeeOutboundEvent struct {
 	At        time.Time       `json:"at"`
 }
 
-func NewEmployeeOutboundWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey, memory *hindsight.Client) *EmployeeOutboundWebhookHandler {
+func NewEmployeeOutboundWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey, enqueuer enqueue.TaskEnqueuer) *EmployeeOutboundWebhookHandler {
 	return &EmployeeOutboundWebhookHandler{
 		db:       db,
 		encKey:   encKey,
-		memory:   memory,
-		memCfg:   hindsight.DefaultMemoryConfig(),
+		enqueuer: enqueuer,
 		now:      time.Now,
 		maxBytes: 512 * 1024,
 	}
@@ -86,9 +85,7 @@ func (h *EmployeeOutboundWebhookHandler) Handle(w http.ResponseWriter, r *http.R
 	if event.At.IsZero() {
 		event.At = h.now().UTC()
 	}
-	if h.memory != nil {
-		h.retainEvent(ctx, &sb, &event)
-	}
+	h.storeAndMaybeEnqueue(ctx, &sb, &event)
 	h.db.WithContext(ctx).Model(&sb).Update("last_active_at", h.now())
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
@@ -113,106 +110,56 @@ func (h *EmployeeOutboundWebhookHandler) verifySignature(ctx context.Context, sb
 	return hmac.Equal([]byte(expected), []byte(signature))
 }
 
-func (h *EmployeeOutboundWebhookHandler) retainEvent(ctx context.Context, sb *model.Sandbox, event *employeeOutboundEvent) {
-	if sb.OrgID == nil || sb.AgentID == nil || h.memory == nil {
+func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Context, sb *model.Sandbox, event *employeeOutboundEvent) {
+	if sb.OrgID == nil || sb.AgentID == nil || !shouldStoreEmployeeMemoryEvent(event.EventType) {
 		return
 	}
-	var agent model.Agent
-	if err := h.db.WithContext(ctx).Where("id = ?", *sb.AgentID).First(&agent).Error; err != nil {
-		return
-	}
-	item, ok := buildEmployeeMemoryItem(sb, &agent, event)
-	if !ok {
-		return
-	}
-	bankID := hindsight.OrgBankID(*sb.OrgID)
-	if err := h.memory.ConfigureBank(ctx, bankID, h.memCfg.ToBankConfigUpdate()); err != nil {
-		logging.Capture(ctx, fmt.Errorf("employee outbound webhook: configure memory bank bank_id=%s: %w", bankID, err))
-		logging.FromContext(ctx).WarnContext(ctx, "employee outbound webhook: configure memory bank failed",
-			"bank_id", bankID, "error", err)
-	}
-	if _, err := h.memory.Retain(ctx, bankID, &hindsight.RetainRequest{Items: []hindsight.RetainItem{item}, Async: true}); err != nil {
-		logging.Capture(ctx, fmt.Errorf("employee outbound webhook: retain memory bank_id=%s event_type=%s: %w", bankID, event.EventType, err))
-		logging.FromContext(ctx).WarnContext(ctx, "employee outbound webhook: retain failed",
-			"bank_id", bankID, "event_type", event.EventType, "error", err)
-	}
-}
-
-func buildEmployeeMemoryItem(sb *model.Sandbox, agent *model.Agent, event *employeeOutboundEvent) (hindsight.RetainItem, bool) {
 	payload := map[string]any{}
 	if len(event.Payload) > 0 {
 		_ = json.Unmarshal(event.Payload, &payload)
 	}
-	content := employeeMemoryContent(agent, event.EventType, payload)
-	if shouldSkipMemoryContent(content, event.EventType) {
-		return hindsight.RetainItem{}, false
+	if payloadLooksSensitive(payload) {
+		return
 	}
 	sessionID := stringValue(payload, "session_id")
-	channel := stringValue(payload, "channel")
-	source := employeeEventSource(payload)
-	tags := []string{
-		"company:" + sb.OrgID.String(),
-		"source:" + source,
-		"memory_type:" + employeeEventMemoryType(agent),
+	if sessionID == "" {
+		return
 	}
-	visibility := "visibility:company"
-	teamTag := ""
-	if agent.TeamID != nil {
-		teamTag = "team:" + agent.TeamID.String()
-		visibility = "visibility:team"
-	} else if strings.TrimSpace(agent.Team) != "" {
-		teamTag = "team:" + strings.TrimSpace(agent.Team)
-		visibility = "visibility:team"
+	stored := model.EmployeeMemoryEvent{
+		OrgID:     *sb.OrgID,
+		AgentID:   *sb.AgentID,
+		SandboxID: sb.ID,
+		SessionID: sessionID,
+		EventType: event.EventType,
+		Source:    employeeEventSource(payload),
+		Payload:   model.RawJSON(event.Payload),
+		EventAt:   event.At.UTC(),
 	}
-	if teamTag != "" {
-		tags = append(tags, teamTag)
+	if err := h.db.WithContext(ctx).Create(&stored).Error; err != nil {
+		logging.Capture(ctx, fmt.Errorf("employee outbound webhook: store memory event sandbox_id=%s event_type=%s: %w", sb.ID, event.EventType, err))
+		return
 	}
-	tags = append(tags, visibility)
-	if channel != "" {
-		tags = append(tags, "channel:"+channel)
+	if h.enqueuer == nil || !shouldTriggerEmployeeMemoryCheckpoint(event.EventType) {
+		return
 	}
-	observationScopes := [][]string{{"company:" + sb.OrgID.String()}}
-	if teamTag != "" {
-		observationScopes = append(observationScopes, []string{"company:" + sb.OrgID.String(), teamTag})
+	task, err := tasks.NewEmployeeMemoryRetainTask(tasks.EmployeeMemoryRetainPayload{
+		AgentID:     *sb.AgentID,
+		SandboxID:   sb.ID,
+		SessionID:   sessionID,
+		Reason:      "employee_outbound_checkpoint",
+		SourceEvent: event.EventType,
+	})
+	if err != nil {
+		logging.Capture(ctx, err)
+		return
 	}
-	return hindsight.RetainItem{
-		Content:           content,
-		Context:           fmt.Sprintf("Employee outbound event from %s runtime", source),
-		DocumentID:        employeeMemoryDocumentID(sb.ID, event, sessionID),
-		Tags:              tags,
-		Timestamp:         event.At.UTC().Format(time.RFC3339),
-		Metadata:          employeeMemoryMetadata(sb, agent, event, payload),
-		ObservationScopes: observationScopes,
-	}, true
-}
-
-func employeeMemoryContent(agent *model.Agent, eventType string, payload map[string]any) string {
-	switch eventType {
-	case "user.message.received":
-		speaker := stringValue(payload, "user_display_name")
-		if speaker == "" {
-			speaker = stringValue(payload, "user")
-		}
-		return fmt.Sprintf("Message to employee %s from %s: %s", agent.Name, speaker, stringValue(payload, "text"))
-	case "agent.message.sent":
-		return fmt.Sprintf("Employee %s replied: %s", agent.Name, stringValue(payload, "text"))
-	case "tool.invoked":
-		return fmt.Sprintf("Employee %s used tool %s. Result summary: %s", agent.Name, stringValue(payload, "tool"), stringValue(payload, "result_summary"))
-	default:
-		return ""
+	if _, err := h.enqueuer.EnqueueContext(ctx, task,
+		asynq.ProcessIn(3*time.Second),
+		asynq.Unique(90*time.Second),
+		asynq.TaskID("employee-memory-retain:"+sb.ID.String()+":"+sessionID),
+	); err != nil && !errors.Is(err, asynq.ErrDuplicateTask) {
+		logging.Capture(ctx, fmt.Errorf("employee outbound webhook: enqueue memory retain: %w", err))
 	}
-}
-
-func shouldSkipMemoryContent(content, eventType string) bool {
-	content = strings.TrimSpace(content)
-	if content == "" || strings.HasPrefix(eventType, "error.") {
-		return true
-	}
-	lower := strings.ToLower(content)
-	if lower == "hi" || lower == "hello" || lower == "thanks" || lower == "thank you" {
-		return true
-	}
-	return obviousSecretPattern.MatchString(content)
 }
 
 func employeeEventSource(payload map[string]any) string {
@@ -250,39 +197,31 @@ func sanitizeTagValue(value string) string {
 	return strings.Trim(b.String(), "-_")
 }
 
-func employeeEventMemoryType(agent *model.Agent) string {
-	if agent.TeamID != nil || strings.TrimSpace(agent.Team) != "" {
-		return "team_context"
+func shouldStoreEmployeeMemoryEvent(eventType string) bool {
+	switch eventType {
+	case "user.message.received", "tool.invoked", "agent.message.sent", "session.completed":
+		return true
+	default:
+		return false
 	}
-	return "company_context"
 }
 
-func employeeMemoryDocumentID(sandboxID uuid.UUID, event *employeeOutboundEvent, sessionID string) string {
-	var b bytes.Buffer
-	b.WriteString("employee-event:")
-	b.WriteString(sandboxID.String())
-	b.WriteString(":")
-	b.WriteString(event.EventType)
-	b.WriteString(":")
-	b.WriteString(sessionID)
-	b.WriteString(":")
-	b.WriteString(event.At.UTC().Format(time.RFC3339Nano))
-	return b.String()
+func shouldTriggerEmployeeMemoryCheckpoint(eventType string) bool {
+	switch eventType {
+	case "agent.message.sent", "session.completed":
+		return true
+	default:
+		return false
+	}
 }
 
-func employeeMemoryMetadata(sb *model.Sandbox, agent *model.Agent, event *employeeOutboundEvent, payload map[string]any) map[string]string {
-	meta := map[string]string{
-		"sandbox_id":  sb.ID.String(),
-		"agent_id":    agent.ID.String(),
-		"event_type":  event.EventType,
-		"recorded_at": event.At.UTC().Format(time.RFC3339),
-	}
-	for _, key := range []string{"session_id", "source", "channel", "thread_ts", "user", "tool"} {
-		if value := stringValue(payload, key); value != "" {
-			meta[key] = value
+func payloadLooksSensitive(payload map[string]any) bool {
+	for _, key := range []string{"text", "result_summary", "message", "error"} {
+		if obviousSecretPattern.MatchString(stringValue(payload, key)) {
+			return true
 		}
 	}
-	return meta
+	return false
 }
 
 func stringValue(m map[string]any, key string) string {

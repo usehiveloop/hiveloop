@@ -96,6 +96,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&Team{},
 		&EmployeeAsset{},
 		&CloudAgentTask{},
+		&EmployeeMemoryEvent{},
 	); err != nil {
 		return err
 	}
