@@ -21,7 +21,7 @@ func NewClient(baseURL string) *Client {
 	return &Client{
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 240 * time.Second,
 		},
 	}
 }
@@ -74,7 +74,7 @@ type MentalModelTrigger struct {
 // RecallRequest is the request body for POST /v1/default/banks/{bankID}/memories/recall.
 type RecallRequest struct {
 	Query     string `json:"query"`
-	Budget    string `json:"budget,omitempty"`    // "low", "mid", "high"
+	Budget    string `json:"budget,omitempty"`     // "low", "mid", "high"
 	TagGroups []any  `json:"tag_groups,omitempty"` // complex tag filters
 }
 

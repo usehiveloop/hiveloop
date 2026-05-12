@@ -14,6 +14,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -150,7 +151,7 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 			if err := json.NewDecoder(r.Body).Decode(&retained); err != nil {
 				t.Fatalf("decode retain: %v", err)
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "items_count": 1, "async": true})
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "items_count": 1, "async": false})
 		default:
 			t.Fatalf("unexpected hindsight path: %s", r.URL.Path)
 		}
@@ -181,7 +182,8 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 		}
 	}
 
-	handler := NewEmployeeMemoryRetainHandler(db, hindsight.NewClient(srv.URL), nil)
+	enq := &enqueue.MockClient{}
+	handler := NewEmployeeMemoryRetainHandler(db, hindsight.NewClient(srv.URL), enq)
 	task, err := NewEmployeeMemoryRetainTask(EmployeeMemoryRetainPayload{AgentID: agentID, SandboxID: sandboxID, SessionID: "S1"})
 	if err != nil {
 		t.Fatalf("task: %v", err)
@@ -189,7 +191,7 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 	if err := handler.Handle(context.Background(), task); err != nil {
 		t.Fatalf("handle: %v", err)
 	}
-	if len(retained.Items) != 1 || !retained.Async {
+	if len(retained.Items) != 1 || retained.Async {
 		t.Fatalf("unexpected retain request: %#v", retained)
 	}
 	var count int64
@@ -201,6 +203,7 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 	if count != 3 {
 		t.Fatalf("retained event count = %d", count)
 	}
+	enq.AssertEnqueued(t, TypeEmployeeMemoryRefresh)
 }
 
 func memoryEvent(t *testing.T, orgID, agentID, sandboxID uuid.UUID, sessionID, eventType string, payload map[string]any) model.EmployeeMemoryEvent {

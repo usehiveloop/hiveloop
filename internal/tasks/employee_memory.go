@@ -21,9 +21,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-const (
-	employeeMemoryRefreshDelay = 20 * time.Second
-)
+const employeeMemoryRetainTimeout = 220 * time.Second
 
 var memorySecretPattern = regexp.MustCompile(`(?i)(ptok_|xox[baprs]-|sk-[a-z0-9]|api[_-]?key|secret|token|password)\s*[:=]\s*\S+`)
 
@@ -103,7 +101,9 @@ func (h *EmployeeMemoryRetainHandler) Handle(ctx context.Context, task *asynq.Ta
 		logging.Capture(ctx, fmt.Errorf("employee memory retain: configure bank %s: %w", bankID, err))
 		return fmt.Errorf("configure memory bank: %w", err)
 	}
-	if _, err := h.memory.Retain(ctx, bankID, &hindsight.RetainRequest{Items: []hindsight.RetainItem{item}, Async: true}); err != nil {
+	retainCtx, cancel := context.WithTimeout(ctx, employeeMemoryRetainTimeout)
+	defer cancel()
+	if _, err := h.memory.Retain(retainCtx, bankID, &hindsight.RetainRequest{Items: []hindsight.RetainItem{item}, Async: false}); err != nil {
 		logging.Capture(ctx, fmt.Errorf("employee memory retain: retain bank_id=%s agent_id=%s: %w", bankID, agent.ID, err))
 		return fmt.Errorf("retain employee memory: %w", err)
 	}
@@ -146,7 +146,6 @@ func (h *EmployeeMemoryRetainHandler) enqueueRefresh(ctx context.Context, agentI
 		return
 	}
 	if _, err := h.enqueuer.EnqueueContext(ctx, task,
-		asynq.ProcessIn(employeeMemoryRefreshDelay),
 		asynq.Unique(2*time.Minute),
 		asynq.TaskID("employee-memory-refresh:"+agentID.String()),
 	); err != nil && !errors.Is(err, asynq.ErrDuplicateTask) {

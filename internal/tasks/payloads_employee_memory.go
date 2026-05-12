@@ -27,7 +27,7 @@ func NewEmployeeMemoryRetainTask(payload EmployeeMemoryRetainPayload) (*asynq.Ta
 		body,
 		asynq.Queue(QueueDefault),
 		asynq.MaxRetry(3),
-		asynq.Timeout(2*time.Minute),
+		asynq.Timeout(4*time.Minute),
 	), nil
 }
 
