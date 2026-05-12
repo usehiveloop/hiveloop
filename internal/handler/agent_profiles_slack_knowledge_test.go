@@ -74,6 +74,9 @@ func TestEnsureSlackKnowledgeSourceCreatesOneSourceAndEnqueuesIngest(t *testing.
 	if payload.RAGSourceID != sources[0].ID {
 		t.Fatalf("task source id = %s, want %s", payload.RAGSourceID, sources[0].ID)
 	}
+	if !payload.FromBeginning {
+		t.Fatalf("initial Slack knowledge ingest must run from beginning")
+	}
 }
 
 type recordingEnqueuer struct {

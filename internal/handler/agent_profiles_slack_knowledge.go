@@ -30,7 +30,10 @@ func (h *AgentProfileHandler) ensureSlackKnowledgeSource(ctx context.Context, ag
 	if h.enq == nil {
 		return
 	}
-	task, err := ragtasks.NewIngestTask(ragtasks.IngestPayload{RAGSourceID: source.ID})
+	task, err := ragtasks.NewIngestTask(ragtasks.IngestPayload{
+		RAGSourceID:   source.ID,
+		FromBeginning: source.LastSuccessfulIndexTime == nil || source.Status == ragmodel.RAGSourceStatusInitialIndexing,
+	})
 	if err != nil {
 		logging.Capture(ctx, fmt.Errorf("slack profile: build ingest task failed: %w", err))
 		return
