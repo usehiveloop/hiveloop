@@ -453,8 +453,19 @@ func TestIntegration_EmployeesCreate_CreatesSubagent(t *testing.T) {
 	if !strings.Contains(sub.SystemPrompt, "research/{task_id}/report.md") {
 		t.Errorf("subagent.system_prompt should contain the employee asset report contract")
 	}
-	if !strings.Contains(sub.SystemPrompt, "Do not directly promote findings into memory or knowledge base") {
-		t.Errorf("subagent.system_prompt should prohibit direct memory/KB promotion")
+	for _, want := range []string{
+		"Do not ask clarifying questions",
+		"Use todo tools at the start and throughout the task",
+		"Sequential research workflow",
+		"Use as many parallel agents as needed",
+		"search_knowledge_base",
+		"Inspect available repositories/codebases",
+		"Evidence ledger JSON shape",
+		"Contradiction and freshness pass",
+	} {
+		if !strings.Contains(sub.SystemPrompt, want) {
+			t.Errorf("subagent.system_prompt missing %q", want)
+		}
 	}
 	if sub.AgentConfig["default_cloud_agent_type"] != "business_research_specialist" {
 		t.Errorf("subagent.agent_config = %#v, want business research specialist marker", sub.AgentConfig)
