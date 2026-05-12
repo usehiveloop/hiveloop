@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -152,6 +153,9 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 	if cfg != nil && strings.TrimSpace(cfg.SentryDSN) != "" {
 		envVars["SENTRY_DSN"] = cfg.SentryDSN
 		envVars["SENTRY_ENVIRONMENT"] = cfg.Environment
+		envVars["SENTRY_SAMPLE_RATE"] = "1"
+		envVars["SENTRY_TRACES_SAMPLE_RATE"] = strconv.FormatFloat(cfg.SentryTracesSampleRate, 'f', -1, 64)
+		envVars["SENTRY_ENABLE_LOGS"] = "true"
 		if strings.TrimSpace(cfg.SentryRelease) != "" {
 			envVars["SENTRY_RELEASE"] = cfg.SentryRelease
 		}

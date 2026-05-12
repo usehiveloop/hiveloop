@@ -237,6 +237,7 @@ func TestIntegration_EmployeesSync_NoSandbox_Provisions(t *testing.T) {
 	h.cfg.Environment = "production"
 	h.cfg.SentryDSN = "https://public@example.com/1"
 	h.cfg.SentryRelease = "employee-bridge@test"
+	h.cfg.SentryTracesSampleRate = 0.25
 	h.platformCredCleanup(t)
 	m := h.createOrg(t)
 	agent := h.seedEmployeeAgent(t, m)
@@ -283,6 +284,21 @@ func TestIntegration_EmployeesSync_NoSandbox_Provisions(t *testing.T) {
 	}
 	if got := h.provider.lastCreateOpts.EnvVars["SENTRY_RELEASE"]; got != "employee-bridge@test" {
 		t.Errorf("SENTRY_RELEASE = %q, want employee-bridge@test", got)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars["SENTRY_SAMPLE_RATE"]; got != "1" {
+		t.Errorf("SENTRY_SAMPLE_RATE = %q, want 1", got)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars["SENTRY_TRACES_SAMPLE_RATE"]; got != "0.25" {
+		t.Errorf("SENTRY_TRACES_SAMPLE_RATE = %q, want 0.25", got)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars["SENTRY_ENABLE_LOGS"]; got != "true" {
+		t.Errorf("SENTRY_ENABLE_LOGS = %q, want true", got)
+	}
+	if _, ok := h.provider.lastCreateOpts.EnvVars["SENTRY_DEBUG"]; ok {
+		t.Errorf("SENTRY_DEBUG should not be injected into employee sandbox env")
+	}
+	if _, ok := h.provider.lastCreateOpts.EnvVars["SENTRY_SPOTLIGHT"]; ok {
+		t.Errorf("SENTRY_SPOTLIGHT should not be injected into employee sandbox env")
 	}
 	if _, ok := h.provider.lastCreateOpts.EnvVars["OPENROUTER_API_KEY"]; ok {
 		t.Errorf("OPENROUTER_API_KEY leaked into employee sandbox env")
