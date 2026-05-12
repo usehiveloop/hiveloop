@@ -3,6 +3,7 @@ package slack
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -25,7 +26,7 @@ func TestLoadConfigValidatesHistoryDays(t *testing.T) {
 	}
 }
 
-func TestConnectorIngestsMemberChannelsAndThreadRepliesWithoutJoining(t *testing.T) {
+func TestConnectorIngestsPublicChannelsAndMemberPrivateChannelsWithoutJoining(t *testing.T) {
 	api := &fakeAPI{
 		channels: map[string][]channel{
 			"public_channel": {
@@ -40,6 +41,9 @@ func TestConnectorIngestsMemberChannelsAndThreadRepliesWithoutJoining(t *testing
 		history: map[string][]message{
 			"C1": {
 				{User: "U1", Text: "Deploys must include rollback notes.", Timestamp: "1778457600.000000", ReplyCount: 1},
+			},
+			"C2": {
+				{User: "U4", Text: "Public non-member channels are org knowledge.", Timestamp: "1778458200.000000"},
 			},
 			"G1": {
 				{User: "U2", Text: "Hiring plan moves to next week.", Timestamp: "1778461200.000000"},
@@ -71,8 +75,8 @@ func TestConnectorIngestsMemberChannelsAndThreadRepliesWithoutJoining(t *testing
 		}
 		docs = append(docs, *item.Doc)
 	}
-	if len(docs) != 2 {
-		t.Fatalf("expected two docs for member channels only, got %d: %#v", len(docs), docs)
+	if len(docs) != 3 {
+		t.Fatalf("expected public channels plus member private channel, got %d: %#v", len(docs), docs)
 	}
 	if api.joinCalled {
 		t.Fatalf("connector must not call join")
@@ -87,8 +91,11 @@ func TestConnectorIngestsMemberChannelsAndThreadRepliesWithoutJoining(t *testing
 	if !containsAll(transcript, "Deploys must include rollback notes.", "thread reply", "incident link") {
 		t.Fatalf("thread transcript missing expected content: %s", transcript)
 	}
-	if docs[1].Metadata["visibility"] != "private_channel_org_visible" {
-		t.Fatalf("private visibility metadata = %#v", docs[1].Metadata)
+	if docs[1].DocID != "slack:C2:2026-05-11" {
+		t.Fatalf("public non-member channel was not indexed: %#v", docs)
+	}
+	if docs[2].Metadata["visibility"] != "private_channel_org_visible" {
+		t.Fatalf("private visibility metadata = %#v", docs[2].Metadata)
 	}
 }
 
@@ -125,9 +132,77 @@ func TestConnectorRediscoversNewlyAccessibleChannelsOnNextRun(t *testing.T) {
 	}
 }
 
+func TestConnectorSkipsBotDominatedChannels(t *testing.T) {
+	api := &fakeAPI{
+		channels: map[string][]channel{
+			"public_channel": {
+				{ID: "C1", Name: "humans"},
+				{ID: "C2", Name: "deploy-bot"},
+			},
+		},
+		history: map[string][]message{
+			"C1": {
+				{User: "U1", Text: "Customer escalation policy changed.", Timestamp: "1778457600.000000"},
+				{User: "U2", Text: "Support should loop in product earlier.", Timestamp: "1778457660.000000"},
+			},
+			"C2": {
+				{Username: "ci-bot", Text: "Build passed.", Timestamp: "1778457600.000000", SubType: "bot_message"},
+				{Username: "deploy-bot", Text: "Deploy started.", Timestamp: "1778457660.000000", SubType: "bot_message"},
+				{User: "U1", Text: "Ack.", Timestamp: "1778457720.000000"},
+			},
+		},
+	}
+	conn := NewConnector(Config{
+		AgentProfileID:        "550e8400-e29b-41d4-a716-446655440000",
+		HistoryDays:           90,
+		IncludePublicChannels: true,
+	}, api, slack.Identity{TeamURL: "https://acme.slack.com", TeamID: "T1"})
+
+	start := time.Date(2026, 5, 11, 0, 0, 0, 0, time.UTC)
+	docs := drainDocs(t, conn, start, start.Add(time.Hour))
+	if len(docs) != 1 {
+		t.Fatalf("expected bot-dominated channel to be skipped, got %#v", docs)
+	}
+	if docs[0].DocID != "slack:C1:2026-05-11" {
+		t.Fatalf("unexpected doc indexed: %#v", docs[0])
+	}
+}
+
+func TestConnectorSkipsPublicChannelsSlackRefusesToRead(t *testing.T) {
+	api := &fakeAPI{
+		channels: map[string][]channel{
+			"public_channel": {
+				{ID: "C1", Name: "joined", IsMember: true},
+				{ID: "C2", Name: "not-joined", IsMember: false},
+			},
+		},
+		history: map[string][]message{
+			"C1": {{User: "U1", Text: "Joined public channel context.", Timestamp: "1778457600.000000"}},
+		},
+		historyErr: map[string]error{
+			"C2": errors.New("not_in_channel"),
+		},
+	}
+	conn := NewConnector(Config{
+		AgentProfileID:        "550e8400-e29b-41d4-a716-446655440000",
+		HistoryDays:           90,
+		IncludePublicChannels: true,
+	}, api, slack.Identity{TeamURL: "https://acme.slack.com", TeamID: "T1"})
+
+	start := time.Date(2026, 5, 11, 0, 0, 0, 0, time.UTC)
+	docs := drainDocs(t, conn, start, start.Add(time.Hour))
+	if len(docs) != 1 {
+		t.Fatalf("expected unreadable public channel to be skipped, got %#v", docs)
+	}
+	if docs[0].DocID != "slack:C1:2026-05-11" {
+		t.Fatalf("unexpected doc indexed: %#v", docs[0])
+	}
+}
+
 type fakeAPI struct {
 	channels   map[string][]channel
 	history    map[string][]message
+	historyErr map[string]error
 	replies    map[string][]message
 	oldest     map[string]string
 	joinCalled bool
@@ -143,6 +218,9 @@ func (f *fakeAPI) ListConversations(_ context.Context, conversationTypes []strin
 func (f *fakeAPI) History(_ context.Context, channelID, oldest, _, cursor string) ([]message, string, error) {
 	if cursor != "" {
 		return nil, "", nil
+	}
+	if err := f.historyErr[channelID]; err != nil {
+		return nil, "", err
 	}
 	if f.oldest == nil {
 		f.oldest = map[string]string{}

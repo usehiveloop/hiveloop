@@ -123,7 +123,7 @@ func (c *Connector) accessibleChannels(ctx context.Context) ([]channel, error) {
 	seen := map[string]struct{}{}
 	var out []channel
 	if c.cfg.IncludePublicChannels {
-		channels, err := c.listMemberChannels(ctx, []string{"public_channel"})
+		channels, err := c.listChannels(ctx, []string{"public_channel"}, false)
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +136,7 @@ func (c *Connector) accessibleChannels(ctx context.Context) ([]channel, error) {
 		}
 	}
 	if c.cfg.IncludeJoinedPrivateChannels {
-		channels, err := c.listMemberChannels(ctx, []string{"private_channel"})
+		channels, err := c.listChannels(ctx, []string{"private_channel"}, true)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +151,7 @@ func (c *Connector) accessibleChannels(ctx context.Context) ([]channel, error) {
 	return out, nil
 }
 
-func (c *Connector) listMemberChannels(ctx context.Context, types []string) ([]channel, error) {
+func (c *Connector) listChannels(ctx context.Context, types []string, requireMembership bool) ([]channel, error) {
 	cursor := ""
 	var out []channel
 	for {
@@ -160,7 +160,7 @@ func (c *Connector) listMemberChannels(ctx context.Context, types []string) ([]c
 			return nil, err
 		}
 		for _, ch := range channels {
-			if ch.IsMember {
+			if !requireMembership || ch.IsMember {
 				out = append(out, ch)
 			}
 		}
@@ -176,27 +176,33 @@ func (c *Connector) documentsForChannel(ctx context.Context, ch channel, start, 
 	latest := slackTime(end)
 	cursor := ""
 	var messages []message
-	replies := map[string][]message{}
 	for {
 		page, next, err := c.api.History(ctx, ch.ID, oldest, latest, cursor)
 		if err != nil {
+			if isSlackNotInChannel(err) {
+				return nil, nil
+			}
 			return nil, err
 		}
 		messages = append(messages, page...)
-		for _, msg := range page {
-			if msg.ReplyCount <= 0 || strings.TrimSpace(msg.Timestamp) == "" {
-				continue
-			}
-			threadReplies, err := c.threadReplies(ctx, ch.ID, msg.Timestamp, oldest, latest)
-			if err != nil {
-				return nil, err
-			}
-			replies[msg.Timestamp] = threadReplies
-		}
 		if next == "" {
 			break
 		}
 		cursor = next
+	}
+	if botDominated(messages) {
+		return nil, nil
+	}
+	replies := map[string][]message{}
+	for _, msg := range messages {
+		if msg.ReplyCount <= 0 || strings.TrimSpace(msg.Timestamp) == "" {
+			continue
+		}
+		threadReplies, err := c.threadReplies(ctx, ch.ID, msg.Timestamp, oldest, latest)
+		if err != nil {
+			return nil, err
+		}
+		replies[msg.Timestamp] = threadReplies
 	}
 	return documentsForChannelDay(ch, c.identity.TeamURL, c.identity.TeamID, c.cfg.AgentProfileID, messages, replies), nil
 }
@@ -231,6 +237,31 @@ func slackTime(t time.Time) string {
 		return ""
 	}
 	return fmt.Sprintf("%d.000000", t.UTC().Unix())
+}
+
+func botDominated(messages []message) bool {
+	var total, bots int
+	for _, msg := range messages {
+		if strings.TrimSpace(msg.Text) == "" {
+			continue
+		}
+		total++
+		if isBotMessage(msg) {
+			bots++
+		}
+	}
+	return total > 0 && bots*2 > total
+}
+
+func isBotMessage(msg message) bool {
+	if msg.SubType == "bot_message" {
+		return true
+	}
+	return msg.User == "" && msg.Username != ""
+}
+
+func isSlackNotInChannel(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "not_in_channel")
 }
 
 func (c *Connector) ListAllSlim(ctx context.Context, src interfaces.Source) (<-chan interfaces.SlimDocOrFailure, error) {

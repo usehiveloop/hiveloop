@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-proxy test-connect test-integrations test-connections test-setup openapi generate-auth-keys upload-skills build-employee-sandbox-templates test-services-up test-services-down seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-proxy test-connect test-integrations test-connections test-setup openapi generate-auth-keys upload-skills build-employee-sandbox-templates test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -258,6 +258,32 @@ test-services-up:
 # teardown.
 test-services-down:
 	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose stop postgres redis minio qdrant
+
+# Run the real Slack bot-token RAG ingestion test against local Postgres/Qdrant.
+# Requires read-only Slack bot token and embedding env. By default it loads
+# .env.rag plus ../employee.hiveloop.com/.env when present.
+ragtest-slack-live:
+	@set -a; \
+	[ ! -f .env.rag ] || . ./.env.rag; \
+	[ ! -f ../employee.hiveloop.com/.env ] || . ../employee.hiveloop.com/.env; \
+	set +a; \
+	HIVELOOP_E2E_SLACK_RAG=1 \
+	HIVELOOP_E2E_KEEP_SLACK_RAG=$${HIVELOOP_E2E_KEEP_SLACK_RAG:-1} \
+	QDRANT_HOST=$${QDRANT_HOST:-localhost} \
+	QDRANT_PORT=$${QDRANT_PORT:-6334} \
+	DATABASE_URL=$${DATABASE_URL:-postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable} \
+	go test ./internal/rag/connectors/slack -run TestSlackBotProfileRAGIngestion_Live -count=1 -v
+
+# Run live semantic KB search against an existing local Qdrant collection.
+# Requires HIVELOOP_E2E_KB_COLLECTION and HIVELOOP_E2E_KB_ORG_ID.
+ragtest-kb-search-live:
+	@set -a; \
+	[ ! -f .env.rag ] || . ./.env.rag; \
+	set +a; \
+	HIVELOOP_E2E_KB_SEARCH=1 \
+	QDRANT_HOST=$${QDRANT_HOST:-localhost} \
+	QDRANT_PORT=$${QDRANT_PORT:-6334} \
+	go test ./internal/rag -run TestSearchKnowledgeBase_LiveSlackCollection -count=1 -v
 
 seed-test:
 	@PORT=$${DB_PORT:-$$(test -s /tmp/agent-test/pg.port && cat /tmp/agent-test/pg.port || echo 5432)}; \
