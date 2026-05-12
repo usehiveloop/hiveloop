@@ -193,6 +193,7 @@ func TestObsScopes_BankConfigSendsAllExpectedFields(t *testing.T) {
 		"retain_mission",
 		"reflect_mission",
 		"observations_mission",
+		"entity_labels",
 		"disposition_skepticism",
 		"disposition_literalism",
 		"disposition_empathy",

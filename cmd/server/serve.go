@@ -58,8 +58,10 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	generationWriter := middleware.NewGenerationWriter(ctx, database, reg, 10000)
 
 	mcpHandler := handler.NewMCPHandler(database, signingKey, actionsCatalog, nangoClient, ctr)
+	var hindsightClient *hindsight.Client
 	if cfg.HindsightAPIURL != "" {
-		mcpHandler.SetMemoryTools(hindsight.NewMemoryToolsFunc(hindsight.NewClient(cfg.HindsightAPIURL)))
+		hindsightClient = hindsight.NewClient(cfg.HindsightAPIURL)
+		mcpHandler.SetMemoryTools(hindsight.NewMemoryToolsFunc(hindsightClient))
 	}
 	mcpHandler.SetSubscriptionTools(subscriptions.RegisterTools(subscriptions.NewService(database, actionsCatalog)))
 	if deps.SpiderClient != nil {
@@ -114,6 +116,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	}
 
 	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus, enqueuer)
+	employeeOutboundWebhookHandler := handler.NewEmployeeOutboundWebhookHandler(database, sandboxEncKey, hindsightClient)
 	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey, sandboxEncKey, enqueuer)
 
 	var cloudAgentHandler *handler.CloudAgentHandler
@@ -146,6 +149,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			EncKey:     sandboxEncKey,
 			SigningKey: signingKey,
 			Cfg:        cfg,
+			Hindsight:  hindsightClient,
 		}, agentHandler)
 	}
 	agentProfileHandler := handler.NewAgentProfileHandler(database, deps.KMS, nangoClient)
@@ -193,7 +197,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, plansHandler, bridgeWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, cloudAgentHandler)
+	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, plansHandler, bridgeWebhookHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, cloudAgentHandler)
 
 	if chatHandler != nil {
 		r.Get("/v1/chats/{id}/stream", chatHandler.Stream)

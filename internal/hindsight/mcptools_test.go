@@ -8,7 +8,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-func TestEmployeeMemoryTags(t *testing.T) {
+func TestBaseMemoryTags(t *testing.T) {
 	orgID := uuid.New()
 	teamID := uuid.New()
 	agentID := uuid.New()
@@ -18,14 +18,17 @@ func TestEmployeeMemoryTags(t *testing.T) {
 		TeamID: &teamID,
 	}
 
-	tags := employeeMemoryTags(agent)
+	tags := baseMemoryTags(agent, "manual")
 	want := map[string]bool{
-		"company:" + orgID.String():    false,
-		"employee:" + agentID.String(): false,
-		"team:" + teamID.String():      false,
-		"source:manual":                false,
+		"company:" + orgID.String(): false,
+		"team:" + teamID.String():   false,
+		"source:manual":             false,
+		"visibility:team":           false,
 	}
 	for _, tag := range tags {
+		if tag == "employee:"+agentID.String() {
+			t.Fatalf("memory tags must not include employee-private scoping: %#v", tags)
+		}
 		if _, ok := want[tag]; ok {
 			want[tag] = true
 		}

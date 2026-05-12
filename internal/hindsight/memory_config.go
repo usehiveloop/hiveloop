@@ -21,13 +21,77 @@ type MemoryConfig struct {
 }
 
 const (
-	defaultRetainMission       = "Extract facts, preferences, decisions, relationships, deadlines, and commitments from conversations. Focus on actionable information. Ignore greetings and filler."
-	defaultReflectMission      = "You are a professional assistant with full context of past interactions. Reference past decisions. Be precise."
-	defaultObservationsMission = "Identify durable patterns: preferences, processes, ongoing projects, evolving metrics. Track contradictions with timestamps."
-	defaultSkepticism          = 3
-	defaultLiteralism          = 4
-	defaultEmpathy             = 2
+	defaultRetainMission = `You are retaining memory for an AI employee embedded inside a real company.
+
+Extract durable company memory from source material, including:
+- company identity, positioning, business model, customers, market, goals, and constraints
+- team responsibilities, ownership areas, rituals, working norms, and collaboration preferences
+- people, roles, areas of ownership, and who should be consulted for what
+- active projects, initiatives, milestones, blockers, risks, and historical context
+- explicit decisions, the reasons behind them, and any tradeoffs discussed
+- policies, standards, operating procedures, and recurring workflows
+- technical context: architecture, repositories, stack choices, deploy practices, testing norms, incidents, and operational facts
+- customer context: segments, important accounts, recurring feedback, objections, feature requests, and sentiment
+- explicit feedback about how the AI employee should communicate or behave
+
+Ignore:
+- greetings, jokes, filler, reactions without substance, and ordinary small talk
+- transient task status unless it establishes a durable project fact or decision
+- raw logs, raw transcripts, raw code dumps, and large source dumps
+- duplicate facts already established unless the new evidence changes or contradicts them
+- secrets, credentials, private tokens, or sensitive personal data
+
+Preserve source, speaker, time, channel/project context, and why the information matters when available.
+Distill memories into clear business facts, not chat excerpts.`
+
+	defaultObservationsMission = `Identify durable patterns and evolving company knowledge from retained memories.
+
+Create or update observations about:
+- repeated company/team preferences
+- recurring decisions, policies, or operating norms
+- changes in strategy, priorities, ownership, or technical direction
+- recurring customer feedback, objections, and product requests
+- recurring incidents, blockers, engineering risks, or process failures
+- repeated feedback about how the AI employee should behave
+
+Prefer stable patterns over one-off statements.
+When new evidence contradicts older memory, preserve the transition: what changed, when, who said it, and why.
+Do not create observations from filler, transient task chatter, or isolated low-confidence comments.`
+
+	defaultReflectMission = `You are the long-term memory of an AI employee working inside this company.
+
+When reflecting, synthesize company, team, project, technical, customer, people, policy, preference, and decision memories into a concise, useful answer.
+
+Prioritize:
+- current company/team context
+- durable decisions and their reasoning
+- known ownership and people context
+- team policies, preferences, and communication norms
+- technical and project constraints
+- customer or business context when relevant
+
+Do not invent facts outside memory.
+If memory is incomplete, stale, or conflicting, say so clearly.
+When useful, explain the evidence or source pattern behind the answer.
+Keep the answer practical and employee-like.`
+
+	defaultSkepticism = 3
+	defaultLiteralism = 4
+	defaultEmpathy    = 2
 )
+
+var SupportedMemoryTypes = []string{
+	"company_context",
+	"team_context",
+	"people",
+	"project",
+	"decision",
+	"policy",
+	"preference",
+	"technical_context",
+	"customer_context",
+	"bot_feedback",
+}
 
 // DefaultMemoryConfig returns sensible defaults for general-purpose agents.
 func DefaultMemoryConfig() MemoryConfig {
@@ -102,8 +166,67 @@ func (m MemoryConfig) ToBankConfigUpdate() *BankConfigUpdate {
 		"retain_mission":         retain,
 		"reflect_mission":        reflect,
 		"observations_mission":   observations,
+		"entity_labels":          memoryEntityLabels(),
 		"disposition_skepticism": skep,
 		"disposition_literalism": lit,
 		"disposition_empathy":    emp,
 	}}
+}
+
+func memoryEntityLabels() []map[string]any {
+	return []map[string]any{
+		{
+			"key":         "memory_type",
+			"description": "Durable business-memory category.",
+			"type":        "value",
+			"tag":         true,
+			"optional":    false,
+			"values":      memoryTypeEntityValues(),
+		},
+		{
+			"key":         "visibility",
+			"description": "Whether the memory is company-wide or team-scoped.",
+			"type":        "value",
+			"tag":         true,
+			"optional":    false,
+			"values":      entityValues([]string{"company", "team"}),
+		},
+	}
+}
+
+func memoryTypeEntityValues() []map[string]string {
+	descriptions := map[string]string{
+		"company_context":   "Company identity, market, business model, goals, constraints, or operating context.",
+		"team_context":      "Team responsibilities, ownership areas, rituals, norms, or collaboration context.",
+		"people":            "People, roles, ownership areas, expertise, and who should be consulted for what.",
+		"project":           "Projects, initiatives, milestones, blockers, risks, and historical context.",
+		"decision":          "Explicit decisions, reasons, tradeoffs, and changes in direction.",
+		"policy":            "Rules, standards, procedures, recurring workflows, and team/company conventions.",
+		"preference":        "Durable preferences about communication, execution, process, or collaboration.",
+		"technical_context": "Architecture, repositories, stack choices, deploy practices, testing norms, incidents, and operational facts.",
+		"customer_context":  "Customer segments, accounts, feedback, objections, feature requests, and sentiment.",
+		"bot_feedback":      "Explicit feedback about how the AI employee should communicate, decide, or behave.",
+	}
+	values := make([]map[string]string, 0, len(SupportedMemoryTypes))
+	for _, value := range SupportedMemoryTypes {
+		values = append(values, map[string]string{"value": value, "description": descriptions[value]})
+	}
+	return values
+}
+
+func entityValues(values []string) []map[string]string {
+	out := make([]map[string]string, 0, len(values))
+	for _, value := range values {
+		out = append(out, map[string]string{"value": value})
+	}
+	return out
+}
+
+func IsSupportedMemoryType(value string) bool {
+	for _, supported := range SupportedMemoryTypes {
+		if value == supported {
+			return true
+		}
+	}
+	return false
 }

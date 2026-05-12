@@ -28,6 +28,7 @@ func setupPublicRoutes(
 	orgInviteHandler *handler.OrgInviteHandler,
 	plansHandler *handler.PlansHandler,
 	bridgeWebhookHandler *handler.BridgeWebhookHandler,
+	employeeOutboundWebhookHandler *handler.EmployeeOutboundWebhookHandler,
 	nangoWebhookHandler *handler.NangoWebhookHandler,
 	incomingWebhookHandler *handler.IncomingWebhookHandler,
 	nangoClient *nango.Client,
@@ -67,6 +68,7 @@ func setupPublicRoutes(
 
 	// Webhook receivers (HMAC-verified, no auth middleware)
 	r.Post("/internal/webhooks/bridge/{sandboxID}", bridgeWebhookHandler.Handle)
+	r.Post("/internal/webhooks/employee/{sandboxID}", employeeOutboundWebhookHandler.Handle)
 	r.Post("/internal/webhooks/nango", nangoWebhookHandler.Handle)
 
 	// Sandbox proxy endpoints (bearer-token auth, no middleware)

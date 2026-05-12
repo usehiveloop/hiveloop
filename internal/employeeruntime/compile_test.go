@@ -3,6 +3,7 @@ package employeeruntime
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/hindsight"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -145,6 +147,84 @@ func TestCompile_EmitsTypedPromptFragmentsWithoutRawSystemPrompt(t *testing.T) {
 	}
 }
 
+func TestCompile_PopulatesMemoryContextFromHindsight(t *testing.T) {
+	orgID := uuid.New()
+	teamID := uuid.New()
+	agent := model.Agent{
+		ID:     uuid.New(),
+		OrgID:  &orgID,
+		TeamID: &teamID,
+		Name:   "Aria",
+		Model:  DefaultEmployeeModel,
+	}
+	fake := &fakeMemoryRecall{response: &hindsight.RecallResponse{
+		Results: []any{
+			map[string]any{
+				"content":     "The Platform team requires integration tests for employee-runtime changes.",
+				"source":      "manual",
+				"memory_type": "technical_context",
+				"tags":        []any{"company:" + orgID.String(), "team:" + teamID.String()},
+			},
+		},
+	}}
+
+	def, err := Compile(context.Background(), CompileDeps{Hindsight: fake, Cfg: &config.Config{}}, &agent)
+	if err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	if fake.bankID != "org-"+orgID.String() {
+		t.Fatalf("bank id = %q", fake.bankID)
+	}
+	if len(fake.request.TagGroups) != 1 {
+		t.Fatalf("expected strict org/team tag group, got %#v", fake.request.TagGroups)
+	}
+	memory, ok := def.Context["memory"].(MemoryContext)
+	if !ok {
+		t.Fatalf("memory context missing or wrong type: %#v", def.Context["memory"])
+	}
+	if len(memory.Entries) != 1 {
+		t.Fatalf("memory entries = %#v", memory.Entries)
+	}
+	if memory.Entries[0].MemoryType != "technical_context" {
+		t.Fatalf("memory type = %q", memory.Entries[0].MemoryType)
+	}
+}
+
+func TestCompile_SucceedsWhenHindsightRecallFails(t *testing.T) {
+	orgID := uuid.New()
+	agent := model.Agent{ID: uuid.New(), OrgID: &orgID, Name: "Aria", Model: DefaultEmployeeModel}
+
+	def, err := Compile(context.Background(), CompileDeps{Hindsight: &fakeMemoryRecall{err: errors.New("offline")}, Cfg: &config.Config{}}, &agent)
+	if err != nil {
+		t.Fatalf("compile should not fail when memory recall fails: %v", err)
+	}
+	memory, ok := def.Context["memory"].(MemoryContext)
+	if !ok {
+		t.Fatalf("memory context missing or wrong type: %#v", def.Context["memory"])
+	}
+	if len(memory.Entries) != 0 {
+		t.Fatalf("expected empty memory entries, got %#v", memory.Entries)
+	}
+}
+
+func TestControlPlaneOutboundChannels_EmitsEmployeeWebhookSpec(t *testing.T) {
+	sandboxID := uuid.New()
+	channels := ControlPlaneOutboundChannels(&config.Config{BridgeHost: "api.hiveloop.test"}, sandboxID)
+	if len(channels) != 1 {
+		t.Fatalf("channels = %#v", channels)
+	}
+	channel, ok := channels[0].(map[string]any)
+	if !ok {
+		t.Fatalf("channel has wrong type: %#v", channels[0])
+	}
+	if channel["url"] != "https://api.hiveloop.test/internal/webhooks/employee/"+sandboxID.String() {
+		t.Fatalf("url = %q", channel["url"])
+	}
+	if channel["secret_env"] != "RUNTIME_SECRET" {
+		t.Fatalf("secret env = %q", channel["secret_env"])
+	}
+}
+
 func connectCompileTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	dsn := os.Getenv("DATABASE_URL")
@@ -168,4 +248,23 @@ func connectCompileTestDB(t *testing.T) *gorm.DB {
 		sqlDB.Close()
 	})
 	return db
+}
+
+type fakeMemoryRecall struct {
+	bankID   string
+	request  *hindsight.RecallRequest
+	response *hindsight.RecallResponse
+	err      error
+}
+
+func (f *fakeMemoryRecall) Recall(_ context.Context, bankID string, req *hindsight.RecallRequest) (*hindsight.RecallResponse, error) {
+	f.bankID = bankID
+	f.request = req
+	if f.err != nil {
+		return nil, f.err
+	}
+	if f.response == nil {
+		return &hindsight.RecallResponse{}, nil
+	}
+	return f.response, nil
 }

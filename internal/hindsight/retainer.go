@@ -167,7 +167,7 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 		return
 	}
 
-	bankID := "org-" + agent.OrgID.String()
+	bankID := OrgBankID(*agent.OrgID)
 	if err := r.ensureOrgBankConfigured(ctx, &agent); err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "hindsight retainer: failed to ensure org bank",
 			"agent_id", agent.ID, "org_id", agent.OrgID, "error", err)
@@ -190,14 +190,26 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 	}
 	agentContext += " agent conversation"
 
+	tags := baseMemoryTags(&agent, "manual")
+	if memoryTeamTag(&agent) != "" {
+		tags = append(tags, "memory_type:team_context")
+	} else {
+		tags = append(tags, "memory_type:company_context")
+	}
+	observationScopes := [][]string{{"company:" + agent.OrgID.String()}}
+	if teamTag := memoryTeamTag(&agent); teamTag != "" {
+		observationScopes = append(observationScopes, []string{"company:" + agent.OrgID.String(), teamTag})
+	}
+
 	_, err = r.client.Retain(ctx, bankID, &RetainRequest{
 		Items: []RetainItem{{
 			Content:           transcript,
 			Context:           agentContext,
 			DocumentID:        "conv-" + convID.String(),
-			Tags:              []string{"agent:" + agent.ID.String(), "conv:" + convID.String()},
+			Tags:              tags,
 			Timestamp:         conv.CreatedAt.Format(time.RFC3339),
-			ObservationScopes: [][]string{{"agent:" + agent.ID.String()}},
+			Metadata:          map[string]string{"conversation_id": convID.String(), "agent_id": agent.ID.String()},
+			ObservationScopes: observationScopes,
 		}},
 		Async: true,
 	})

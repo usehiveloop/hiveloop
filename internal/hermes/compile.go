@@ -15,6 +15,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/hindsight"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/token"
 
@@ -26,7 +27,6 @@ const (
 	tokenPrefix            = "ptok_"
 	hermesProxyPathOpenAI  = "/v1"
 	hermesProxyPathDefault = ""
-	hindsightBankFmt       = "bank-%s"
 )
 
 // hermesAnthropicProviders names the credential providers whose upstream
@@ -205,7 +205,7 @@ func buildConfigYAML(agent *model.Agent, cred *model.Credential, proxyToken, jti
 			"provider":             "hindsight",
 		},
 		"hindsight": map[string]any{
-			"bank_id": fmt.Sprintf(hindsightBankFmt, agent.OrgID.String()),
+			"bank_id": hindsight.OrgBankID(*agent.OrgID),
 		},
 		"platform_toolsets": map[string]any{
 			"api_server": hermesAPIServerToolsets,

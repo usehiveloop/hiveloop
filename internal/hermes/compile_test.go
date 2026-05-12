@@ -10,9 +10,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+	yamlv3 "gopkg.in/yaml.v3"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	yamlv3 "gopkg.in/yaml.v3"
 
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/credentials"
@@ -88,8 +88,8 @@ func seedAgentFixture(t *testing.T, db *gorm.DB, kms *crypto.KeyWrapper, encKey 
 		ID: uuid.New(), OrgID: &org.ID, Name: "Test Employee",
 		IsEmployee:   true,
 		CredentialID: &cred.ID, Model: "gpt-4o-mini",
-		SystemPrompt: "You are a helpful test assistant.",
-		Harness:      "hermes",
+		SystemPrompt:     "You are a helpful test assistant.",
+		Harness:          "hermes",
 		EncryptedEnvVars: encEnvBytes,
 		Resources: model.JSON{
 			"github-conn-1": map[string]any{
@@ -252,7 +252,7 @@ func TestCompile(t *testing.T) {
 	memory := cfgYAML["memory"].(map[string]any)
 	require.Equal(t, "hindsight", memory["provider"])
 	hindsight := cfgYAML["hindsight"].(map[string]any)
-	require.Equal(t, "bank-"+agent.OrgID.String(), hindsight["bank_id"])
+	require.Equal(t, "org-"+agent.OrgID.String(), hindsight["bank_id"])
 	tools := cfgYAML["platform_toolsets"].(map[string]any)["api_server"].([]any)
 	for _, name := range tools {
 		require.NotEqual(t, "web", name)

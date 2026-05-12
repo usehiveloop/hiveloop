@@ -6,6 +6,8 @@
 
 -- Extensions for the app database (already selected by default)
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "vector";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- Test database (isolated from dev data)
 SELECT 'CREATE DATABASE hiveloop_test OWNER ' || current_user

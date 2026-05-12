@@ -45,6 +45,7 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 	if err != nil {
 		return nil, fmt.Errorf("compile: %w", err)
 	}
+	def.OutboundChannels = employeeruntime.ControlPlaneOutboundChannels(h.compileDeps.Cfg, sb.ID)
 	client := employeeruntime.NewClient(sb.BridgeURL, apiKey)
 	if err := client.Healthz(ctx); err != nil {
 		return nil, fmt.Errorf("employee runtime healthz: %w", err)

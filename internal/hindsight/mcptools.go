@@ -24,20 +24,14 @@ func NewMemoryToolsFunc(client *Client) func(server *mcp.Server, agentID string,
 }
 
 // AddMemoryTools registers memory tools (recall, retain, reflect) on an existing
-// MCP server. Memory is scoped per org with tag-based agent isolation.
+// MCP server. Memory is scoped per org and optionally narrowed by team tags.
 func AddMemoryTools(server *mcp.Server, agent *model.Agent, client *Client) {
 	if agent.OrgID == nil || client == nil {
 		return
 	}
-	bankID := "org-" + agent.OrgID.String()
-	memoryTags := employeeMemoryTags(agent)
-
-	var tagGroups []any
-	if len(memoryTags) > 0 {
-		tagGroups = []any{
-			map[string]any{"tags": []string{"company:" + agent.OrgID.String()}, "match": "all_strict"},
-		}
-	}
+	bankID := OrgBankID(*agent.OrgID)
+	memoryTags := baseMemoryTags(agent, "manual")
+	tagGroups := recallTagGroups(agent)
 
 	server.AddTool(
 		&mcp.Tool{
@@ -129,8 +123,8 @@ Write the content as a clear, specific factual statement. Bad: "User talked abou
 					},
 					"memory_type": map[string]any{
 						"type":        "string",
-						"enum":        []string{"company", "team", "decision"},
-						"description": "The durable memory category. Use company for durable company context, team for team-specific context or conventions, and decision for explicit decisions.",
+						"enum":        SupportedMemoryTypes,
+						"description": "Durable memory category. Use the closest category for the fact being retained.",
 					},
 				},
 				"required": []string{"content"},
@@ -147,6 +141,9 @@ Write the content as a clear, specific factual statement. Bad: "User talked abou
 			}
 			if params.Content == "" {
 				return toolError("content is required"), nil
+			}
+			if params.Type != "" && !IsSupportedMemoryType(params.Type) {
+				return toolError("unsupported memory_type: " + params.Type), nil
 			}
 
 			tags := append([]string{}, memoryTags...)
@@ -217,21 +214,47 @@ Reflect is slower than recall (1-3 seconds) but produces deeper, more nuanced an
 
 }
 
-func employeeMemoryTags(agent *model.Agent) []string {
+func baseMemoryTags(agent *model.Agent, source string) []string {
 	if agent == nil || agent.OrgID == nil {
 		return nil
 	}
+	if source == "" {
+		source = "manual"
+	}
 	tags := []string{
 		"company:" + agent.OrgID.String(),
-		"employee:" + agent.ID.String(),
-		"source:manual",
+		"source:" + source,
 	}
-	if agent.Team != "" {
-		tags = append(tags, "team:"+agent.Team)
-	} else if agent.TeamID != nil {
-		tags = append(tags, "team:"+agent.TeamID.String())
+	if teamTag := memoryTeamTag(agent); teamTag != "" {
+		tags = append(tags, teamTag, "visibility:team")
+	} else {
+		tags = append(tags, "visibility:company")
 	}
 	return tags
+}
+
+func memoryTeamTag(agent *model.Agent) string {
+	if agent == nil {
+		return ""
+	}
+	if agent.TeamID != nil {
+		return "team:" + agent.TeamID.String()
+	}
+	if agent.Team != "" {
+		return "team:" + agent.Team
+	}
+	return ""
+}
+
+func recallTagGroups(agent *model.Agent) []any {
+	if agent == nil || agent.OrgID == nil {
+		return nil
+	}
+	tags := []string{"company:" + agent.OrgID.String()}
+	if teamTag := memoryTeamTag(agent); teamTag != "" {
+		tags = append(tags, teamTag)
+	}
+	return []any{map[string]any{"tags": tags, "match": "all_strict"}}
 }
 
 func toolError(msg string) *mcp.CallToolResult {

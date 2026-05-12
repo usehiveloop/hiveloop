@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-hiveloop}
       POSTGRES_USER: ${POSTGRES_USER:-hiveloop}
@@ -35,6 +35,25 @@ services:
       - "${QDRANT_PORT:-6334}:6334"
     volumes:
       - qdrantdata:/qdrant/storage
+
+  # --- Hindsight (optional real-memory integration test runtime) ---
+  # Start explicitly with: docker compose --profile hindsight up -d hindsight
+  hindsight:
+    image: ghcr.io/vectorize-io/hindsight:latest-slim
+    profiles: ["hindsight"]
+    env_file:
+      - .env.hindsight
+    environment:
+      HINDSIGHT_API_HOST: 0.0.0.0
+      HINDSIGHT_API_PORT: ${HINDSIGHT_API_PORT:-8888}
+      HINDSIGHT_API_DATABASE_URL: postgresql://${POSTGRES_USER:-hiveloop}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-hiveloop}
+      HINDSIGHT_API_DATABASE_SCHEMA: ${HINDSIGHT_API_DATABASE_SCHEMA:-hindsight}
+      HINDSIGHT_API_RUN_MIGRATIONS_ON_STARTUP: "true"
+    ports:
+      - "${HINDSIGHT_API_LOCAL_PORT:-8888}:${HINDSIGHT_API_PORT:-8888}"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   # --- Mailpit (Email testing) ---
   mailpit:
