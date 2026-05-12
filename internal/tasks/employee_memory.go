@@ -136,6 +136,7 @@ func (h *EmployeeMemoryRetainHandler) enqueueRefresh(ctx context.Context, agentI
 	if h.enqueuer == nil {
 		return
 	}
+	h.updateAgentMemoryRefreshStatus(ctx, agentID, "queued", "")
 	task, err := NewEmployeeMemoryRefreshTask(EmployeeMemoryRefreshPayload{
 		AgentID:   agentID,
 		SandboxID: sandboxID,
@@ -150,6 +151,19 @@ func (h *EmployeeMemoryRetainHandler) enqueueRefresh(ctx context.Context, agentI
 		asynq.TaskID("employee-memory-refresh:"+agentID.String()),
 	); err != nil && !errors.Is(err, asynq.ErrDuplicateTask) {
 		logging.Capture(ctx, fmt.Errorf("employee memory retain: enqueue refresh: %w", err))
+	}
+}
+
+func (h *EmployeeMemoryRetainHandler) updateAgentMemoryRefreshStatus(ctx context.Context, agentID uuid.UUID, status, message string) {
+	if h == nil || h.db == nil || agentID == uuid.Nil {
+		return
+	}
+	updates := map[string]any{
+		"memory_refresh_status": status,
+		"memory_refresh_error":  truncateMemoryRefreshError(message),
+	}
+	if err := h.db.WithContext(ctx).Model(&model.Agent{}).Where("id = ?", agentID).Updates(updates).Error; err != nil {
+		logging.Capture(ctx, fmt.Errorf("employee memory retain: update refresh status: %w", err))
 	}
 }
 
@@ -436,6 +450,17 @@ func (h *EmployeeMemoryRefreshHandler) Handle(ctx context.Context, task *asynq.T
 	if payload.AgentID == uuid.Nil {
 		return nil
 	}
+	h.updateRefreshStatus(ctx, payload.AgentID, "running", "", nil)
+	if err := h.refresh(ctx, payload); err != nil {
+		h.updateRefreshStatus(ctx, payload.AgentID, "failed", err.Error(), nil)
+		return err
+	}
+	now := time.Now().UTC()
+	h.updateRefreshStatus(ctx, payload.AgentID, "succeeded", "", &now)
+	return nil
+}
+
+func (h *EmployeeMemoryRefreshHandler) refresh(ctx context.Context, payload EmployeeMemoryRefreshPayload) error {
 	var agent model.Agent
 	if err := h.db.WithContext(ctx).Where("id = ? AND is_employee = ?", payload.AgentID, true).First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -475,6 +500,30 @@ func (h *EmployeeMemoryRefreshHandler) Handle(ctx context.Context, task *asynq.T
 		"reason", payload.Reason,
 	)
 	return nil
+}
+
+func (h *EmployeeMemoryRefreshHandler) updateRefreshStatus(ctx context.Context, agentID uuid.UUID, status, message string, refreshedAt *time.Time) {
+	if h == nil || h.db == nil || agentID == uuid.Nil {
+		return
+	}
+	updates := map[string]any{
+		"memory_refresh_status": status,
+		"memory_refresh_error":  truncateMemoryRefreshError(message),
+	}
+	if refreshedAt != nil {
+		updates["last_memory_refreshed_at"] = *refreshedAt
+	}
+	if err := h.db.WithContext(ctx).Model(&model.Agent{}).Where("id = ?", agentID).Updates(updates).Error; err != nil {
+		logging.Capture(ctx, fmt.Errorf("employee memory refresh: update status: %w", err))
+	}
+}
+
+func truncateMemoryRefreshError(message string) string {
+	message = strings.TrimSpace(message)
+	if len(message) <= 2000 {
+		return message
+	}
+	return message[:2000]
 }
 
 func (h *EmployeeMemoryRefreshHandler) loadSandbox(ctx context.Context, payload EmployeeMemoryRefreshPayload) (*model.Sandbox, error) {

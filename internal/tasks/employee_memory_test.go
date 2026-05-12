@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,9 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -204,6 +208,95 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 		t.Fatalf("retained event count = %d", count)
 	}
 	enq.AssertEnqueued(t, TypeEmployeeMemoryRefresh)
+	var refreshedAgent model.Agent
+	if err := db.First(&refreshedAgent, "id = ?", agentID).Error; err != nil {
+		t.Fatalf("load agent: %v", err)
+	}
+	if refreshedAgent.MemoryRefreshStatus != "queued" {
+		t.Fatalf("memory refresh status = %q", refreshedAgent.MemoryRefreshStatus)
+	}
+	if refreshedAgent.MemoryRefreshError != "" {
+		t.Fatalf("memory refresh error = %q", refreshedAgent.MemoryRefreshError)
+	}
+}
+
+func TestEmployeeMemoryRefreshHandler_TracksSuccessAndFailure(t *testing.T) {
+	orgID := uuid.New()
+	agentID := uuid.New()
+	sandboxID := uuid.New()
+	db := openTasksMemoryTestDB(t)
+	if err := db.Create(&model.Org{ID: orgID, Name: "refresh-org-" + uuid.NewString()[:8], Active: true}).Error; err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	agent := model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true, Status: "active", Model: employeeruntime.DefaultEmployeeModel}
+	if err := db.Create(&agent).Error; err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+	encKey := testTasksEncKey(t)
+	encryptedSecret, err := encKey.EncryptString("runtime-secret")
+	if err != nil {
+		t.Fatalf("encrypt secret: %v", err)
+	}
+	var configCalls int
+	bridge := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz", "/readyz":
+			w.WriteHeader(http.StatusOK)
+		case "/config":
+			configCalls++
+			if r.Header.Get("Authorization") != "Bearer runtime-secret" {
+				t.Fatalf("authorization = %q", r.Header.Get("Authorization"))
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"applied":1}`))
+		default:
+			t.Fatalf("unexpected bridge path: %s", r.URL.Path)
+		}
+	}))
+	defer bridge.Close()
+	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, AgentID: &agentID, ExternalID: "sb", BridgeURL: bridge.URL, EncryptedBridgeAPIKey: encryptedSecret, Status: "running"}).Error; err != nil {
+		t.Fatalf("create sandbox: %v", err)
+	}
+
+	handler := NewEmployeeMemoryRefreshHandler(db, employeeruntime.CompileDeps{
+		DB:     db,
+		EncKey: encKey,
+		Cfg:    &config.Config{},
+	})
+	task, err := NewEmployeeMemoryRefreshTask(EmployeeMemoryRefreshPayload{AgentID: agentID, SandboxID: sandboxID, Reason: "test"})
+	if err != nil {
+		t.Fatalf("task: %v", err)
+	}
+	if err := handler.Handle(context.Background(), task); err != nil {
+		t.Fatalf("refresh success: %v", err)
+	}
+	var updated model.Agent
+	if err := db.First(&updated, "id = ?", agentID).Error; err != nil {
+		t.Fatalf("load updated agent: %v", err)
+	}
+	if updated.MemoryRefreshStatus != "succeeded" || updated.LastMemoryRefreshedAt == nil || updated.MemoryRefreshError != "" {
+		t.Fatalf("unexpected success memory status: status=%q refreshed=%v error=%q", updated.MemoryRefreshStatus, updated.LastMemoryRefreshedAt, updated.MemoryRefreshError)
+	}
+	if configCalls != 1 {
+		t.Fatalf("config calls = %d", configCalls)
+	}
+
+	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "bridge down", http.StatusBadGateway)
+	}))
+	defer failing.Close()
+	if err := db.Model(&model.Sandbox{}).Where("id = ?", sandboxID).Update("bridge_url", failing.URL).Error; err != nil {
+		t.Fatalf("update sandbox bridge url: %v", err)
+	}
+	if err := handler.Handle(context.Background(), task); err == nil {
+		t.Fatal("expected refresh failure")
+	}
+	if err := db.First(&updated, "id = ?", agentID).Error; err != nil {
+		t.Fatalf("reload updated agent: %v", err)
+	}
+	if updated.MemoryRefreshStatus != "failed" || updated.MemoryRefreshError == "" {
+		t.Fatalf("unexpected failure memory status: status=%q error=%q", updated.MemoryRefreshStatus, updated.MemoryRefreshError)
+	}
 }
 
 func memoryEvent(t *testing.T, orgID, agentID, sandboxID uuid.UUID, sessionID, eventType string, payload map[string]any) model.EmployeeMemoryEvent {
@@ -255,4 +348,17 @@ func openTasksMemoryTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("migrate: %v", err)
 	}
 	return db
+}
+
+func testTasksEncKey(t *testing.T) *crypto.SymmetricKey {
+	t.Helper()
+	key := make([]byte, 32)
+	for i := range key {
+		key[i] = byte(i + 31)
+	}
+	sk, err := crypto.NewSymmetricKey(base64.StdEncoding.EncodeToString(key))
+	if err != nil {
+		t.Fatalf("new symmetric key: %v", err)
+	}
+	return sk
 }

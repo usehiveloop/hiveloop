@@ -48,6 +48,11 @@ type Agent struct {
 	IsSystem      bool   `gorm:"not null;default:false;index"`
 	IsEmployee    bool   `gorm:"not null;default:false;index"` // employee agents own subagents and use a different onboarding flow
 	ProviderGroup string `gorm:"not null;default:''"`          // e.g. "anthropic", "openai", "gemini" — set for system agents
+
+	LastMemoryRefreshedAt *time.Time `gorm:"type:timestamptz"`
+	MemoryRefreshStatus   string     `gorm:"type:varchar(32);not null;default:''"` // queued, running, succeeded, failed
+	MemoryRefreshError    string     `gorm:"type:text;not null;default:''"`
+
 	// TODO(post-migration): drop agent.Tools column once data archived.
 	Harness   string     `gorm:"type:varchar(32);not null;default:''"` // "claude" or "open_code"
 	DeletedAt *time.Time `gorm:"index"`

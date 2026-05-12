@@ -172,6 +172,9 @@ type agentResponse struct {
 	Harness                   string                   `json:"harness"`
 	Status                    string                   `json:"status"`
 	IsEmployee                bool                     `json:"is_employee"`
+	LastMemoryRefreshedAt     *string                  `json:"last_memory_refreshed_at,omitempty"`
+	MemoryRefreshStatus       string                   `json:"memory_refresh_status,omitempty"`
+	MemoryRefreshError        string                   `json:"memory_refresh_error,omitempty"`
 	SubagentIDs               []string                 `json:"subagent_ids,omitempty"`
 	Triggers                  []agentTriggerResponse   `json:"triggers"`
 	AttachedSkills            []agentSkillSummary      `json:"attached_skills"`
@@ -206,8 +209,14 @@ func toAgentResponse(a model.Agent) agentResponse {
 		Harness:                   a.Harness,
 		Status:                    a.Status,
 		IsEmployee:                a.IsEmployee,
+		MemoryRefreshStatus:       a.MemoryRefreshStatus,
+		MemoryRefreshError:        a.MemoryRefreshError,
 		CreatedAt:                 a.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:                 a.UpdatedAt.Format(time.RFC3339),
+	}
+	if a.LastMemoryRefreshedAt != nil {
+		s := a.LastMemoryRefreshedAt.Format(time.RFC3339)
+		resp.LastMemoryRefreshedAt = &s
 	}
 	if a.CredentialID != nil {
 		resp.CredentialID = a.CredentialID.String()
