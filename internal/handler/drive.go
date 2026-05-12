@@ -95,7 +95,7 @@ func (handler *DriveHandler) resolveAgentFromToken(writer http.ResponseWriter, r
 	}
 
 	var agent model.Agent
-	if err := handler.db.Where("id = ? AND org_id = ? AND deleted_at IS NULL", agentIDStr, orgID).First(&agent).Error; err != nil {
+	if err := handler.db.Where("id = ? AND org_id = ?", agentIDStr, orgID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return uuid.Nil, nil, false

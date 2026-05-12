@@ -3,19 +3,31 @@
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Add01Icon,
   ArrowRight01Icon,
+  Delete02Icon,
+  MoreHorizontalIcon,
   Search01Icon,
 } from "@hugeicons/core-free-icons"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/confirm-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { $api } from "@/lib/api/hooks"
+import { extractErrorMessage } from "@/lib/api/error"
 import { useAuth } from "@/lib/auth/auth-context"
 import { cn } from "@/lib/utils"
 import type { components } from "@/lib/api/schema"
@@ -28,14 +40,17 @@ interface EmployeeGroup {
   employees: Employee[]
 }
 
-const COLUMN_GRID = "grid-cols-[1.6fr_1.9fr_0.9fr_0.9fr]"
+const COLUMN_GRID = "grid-cols-[1.6fr_1.9fr_0.9fr_0.9fr_2.5rem]"
 
 export default function WorkspaceHome() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const queryClient = useQueryClient()
   const { activeOrg } = useAuth()
   const [filter, setFilter] = useState("")
+  const [deleting, setDeleting] = useState<Employee | null>(null)
   const { data, isLoading } = $api.useQuery("get", "/v1/employees")
+  const deleteEmployee = $api.useMutation("delete", "/v1/agents/{id}")
   const employees = useMemo(() => data?.data ?? [], [data])
 
   useEffect(() => {
@@ -73,33 +88,212 @@ export default function WorkspaceHome() {
     ["error", "paused"].includes(normalizeStatus(employee.status))
   ).length
 
-  return (
-    <main className="mx-auto w-full max-w-6xl px-6 pb-32 pt-14 sm:px-10">
-      <EmployeesHeader
-        orgName={activeOrg?.name ?? "Workspace"}
-        total={employees.length}
-        active={activeCount}
-        attention={attentionCount}
-        filter={filter}
-        onFilterChange={setFilter}
-      />
+  function handleDeleteEmployee() {
+    if (!deleting?.id) return
 
-      <div className="mt-14 flex flex-col gap-12">
-        {isLoading ? (
-          <EmployeesTableSkeleton />
-        ) : employees.length === 0 ? (
-          <EmployeesEmpty />
-        ) : groups.length === 0 ? (
-          <div className="rounded-2xl border border-border px-5 py-12 text-center text-sm text-muted-foreground">
-            No employees match your filter.
-          </div>
-        ) : (
-          groups.map((group) => (
-            <TeamSection key={group.name} group={group} />
-          ))
+    deleteEmployee.mutate(
+      { params: { path: { id: deleting.id } } },
+      {
+        onSuccess: () => {
+          toast.success(`"${deleting.name ?? "Employee"}" deleted`)
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
+          setDeleting(null)
+        },
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, "Failed to delete employee"))
+          setDeleting(null)
+        },
+      }
+    )
+  }
+
+  return (
+    <>
+      <main className="mx-auto w-full max-w-6xl px-6 pb-32 pt-14 sm:px-10">
+        <EmployeesHeader
+          orgName={activeOrg?.name ?? "Workspace"}
+          total={employees.length}
+          active={activeCount}
+          attention={attentionCount}
+          filter={filter}
+          onFilterChange={setFilter}
+        />
+
+        <div className="mt-14 flex flex-col gap-12">
+          {isLoading ? (
+            <EmployeesTableSkeleton />
+          ) : employees.length === 0 ? (
+            <EmployeesEmpty />
+          ) : groups.length === 0 ? (
+            <div className="rounded-2xl border border-border px-5 py-12 text-center text-sm text-muted-foreground">
+              No employees match your filter.
+            </div>
+          ) : (
+            groups.map((group) => (
+              <TeamSection
+                key={group.name}
+                group={group}
+                onDeleteEmployee={setDeleting}
+              />
+            ))
+          )}
+        </div>
+      </main>
+
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null)
+        }}
+        title="Delete employee"
+        description={`This will permanently delete "${deleting?.name ?? "this employee"}" and all related employee data. This action cannot be undone.`}
+        confirmText={deleting?.name ?? ""}
+        confirmLabel="Delete employee"
+        destructive
+        loading={deleteEmployee.isPending}
+        onConfirm={handleDeleteEmployee}
+      />
+    </>
+  )
+}
+
+function EmployeeActions({ onDelete }: { onDelete: () => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-lg outline-none transition-colors hover:bg-muted">
+        <HugeiconsIcon
+          icon={MoreHorizontalIcon}
+          className="size-4 text-muted-foreground"
+          strokeWidth={2}
+        />
+        <span className="sr-only">Open employee actions</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={4} className="w-44">
+        <DropdownMenuGroup>
+          <DropdownMenuItem variant="destructive" onClick={onDelete}>
+            <HugeiconsIcon icon={Delete02Icon} className="size-4" strokeWidth={2} />
+            Delete employee
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function TeamSection({
+  group,
+  onDeleteEmployee,
+}: {
+  group: EmployeeGroup
+  onDeleteEmployee: (employee: Employee) => void
+}) {
+  return (
+    <section className="flex flex-col gap-4">
+      <header className="flex items-baseline justify-between gap-6">
+        <div className="flex items-baseline gap-3">
+          <h2 className="text-base font-semibold tracking-tight">
+            {group.name}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {group.employees.length}{" "}
+            {group.employees.length === 1 ? "employee" : "employees"}
+          </p>
+        </div>
+        <Link
+          href="/w/teams"
+          className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Open teams
+          <HugeiconsIcon
+            icon={ArrowRight01Icon}
+            className="size-3.5"
+            strokeWidth={2}
+          />
+        </Link>
+      </header>
+
+      <EmployeeTable
+        employees={group.employees}
+        onDeleteEmployee={onDeleteEmployee}
+      />
+    </section>
+  )
+}
+
+function EmployeeTable({
+  employees,
+  onDeleteEmployee,
+}: {
+  employees: Employee[]
+  onDeleteEmployee: (employee: Employee) => void
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div
+        className={cn(
+          "hidden items-center border-b border-border px-5 py-3 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground lg:grid",
+          COLUMN_GRID
         )}
+      >
+        <span>Employee</span>
+        <span>Role</span>
+        <span>Status</span>
+        <span className="text-right">Last active</span>
+        <span className="sr-only">Actions</span>
       </div>
-    </main>
+      <ul className="divide-y divide-border">
+        {employees.map((employee) => (
+          <EmployeeRow
+            key={employee.id ?? employee.name}
+            employee={employee}
+            onDelete={() => onDeleteEmployee(employee)}
+          />
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function EmployeeRow({
+  employee,
+  onDelete,
+}: {
+  employee: Employee
+  onDelete: () => void
+}) {
+  const name = employee.name ?? "Unnamed employee"
+  const role = employee.category || employee.description || "Coordinator"
+  const status = normalizeStatus(employee.status)
+  const lastActive = formatLastActive(
+    employee.sandbox?.last_active_at ?? employee.updated_at
+  )
+
+  return (
+    <li
+      className={cn(
+        "grid gap-3 px-5 py-4 text-sm transition-colors hover:bg-muted/40 lg:items-center lg:gap-0 lg:py-3.5",
+        "grid-cols-1 lg:grid",
+        COLUMN_GRID
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar size="sm">
+          {employee.avatar_url ? (
+            <AvatarImage src={employee.avatar_url} alt="" />
+          ) : null}
+          <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <span className="truncate font-medium">{name}</span>
+      </div>
+      <span className="truncate text-foreground/90">{role}</span>
+      <span>
+        <StatusBadge status={status} />
+      </span>
+      <span className="text-muted-foreground lg:text-right">{lastActive}</span>
+      <div className="flex justify-start lg:justify-end">
+        <EmployeeActions onDelete={onDelete} />
+      </div>
+    </li>
   )
 }
 
@@ -183,93 +377,6 @@ function FilterField({
   )
 }
 
-function TeamSection({ group }: { group: EmployeeGroup }) {
-  return (
-    <section className="flex flex-col gap-4">
-      <header className="flex items-baseline justify-between gap-6">
-        <div className="flex items-baseline gap-3">
-          <h2 className="text-base font-semibold tracking-tight">
-            {group.name}
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {group.employees.length}{" "}
-            {group.employees.length === 1 ? "employee" : "employees"}
-          </p>
-        </div>
-        <Link
-          href="/w/teams"
-          className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Open teams
-          <HugeiconsIcon
-            icon={ArrowRight01Icon}
-            className="size-3.5"
-            strokeWidth={2}
-          />
-        </Link>
-      </header>
-
-      <EmployeeTable employees={group.employees} />
-    </section>
-  )
-}
-
-function EmployeeTable({ employees }: { employees: Employee[] }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
-      <div
-        className={cn(
-          "hidden items-center border-b border-border px-5 py-3 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground lg:grid",
-          COLUMN_GRID
-        )}
-      >
-        <span>Employee</span>
-        <span>Role</span>
-        <span>Status</span>
-        <span className="text-right">Last active</span>
-      </div>
-      <ul className="divide-y divide-border">
-        {employees.map((employee) => (
-          <EmployeeRow key={employee.id ?? employee.name} employee={employee} />
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-function EmployeeRow({ employee }: { employee: Employee }) {
-  const name = employee.name ?? "Unnamed employee"
-  const role = employee.category || employee.description || "Coordinator"
-  const status = normalizeStatus(employee.status)
-  const lastActive = formatLastActive(
-    employee.sandbox?.last_active_at ?? employee.updated_at
-  )
-
-  return (
-    <li
-      className={cn(
-        "grid gap-3 px-5 py-4 text-sm transition-colors hover:bg-muted/40 lg:items-center lg:gap-0 lg:py-3.5",
-        "grid-cols-1 lg:grid",
-        COLUMN_GRID
-      )}
-    >
-      <div className="flex min-w-0 items-center gap-3">
-        <Avatar size="sm">
-          {employee.avatar_url ? (
-            <AvatarImage src={employee.avatar_url} alt="" />
-          ) : null}
-          <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
-        </Avatar>
-        <span className="truncate font-medium">{name}</span>
-      </div>
-      <span className="truncate text-foreground/90">{role}</span>
-      <span>
-        <StatusBadge status={status} />
-      </span>
-      <span className="text-muted-foreground lg:text-right">{lastActive}</span>
-    </li>
-  )
-}
 
 const STATUS_PRESETS: Record<
   Status,
@@ -323,7 +430,7 @@ function EmployeesTableSkeleton() {
                 COLUMN_GRID
               )}
             >
-              {Array.from({ length: 4 }).map((__, headerIndex) => (
+              {Array.from({ length: 5 }).map((__, headerIndex) => (
                 <Skeleton
                   key={headerIndex}
                   className="h-3 w-20 rounded-md"
@@ -338,7 +445,7 @@ function EmployeesTableSkeleton() {
                   COLUMN_GRID
                 )}
               >
-                {Array.from({ length: 4 }).map((___, cellIndex) => (
+                {Array.from({ length: 5 }).map((___, cellIndex) => (
                   <Skeleton
                     key={cellIndex}
                     className="h-5 w-24 rounded-md"

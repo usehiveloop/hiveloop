@@ -12,15 +12,20 @@ import (
 // resource_key, the dispatcher skips routing and continues the existing
 // conversation instead.
 type RouterConversation struct {
-	ID                   uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID                uuid.UUID `gorm:"type:uuid;not null;index"`
-	RouterTriggerID      uuid.UUID `gorm:"type:uuid;not null"`
-	AgentID              uuid.UUID `gorm:"type:uuid;not null;index"`
-	ConnectionID         uuid.UUID `gorm:"type:uuid;not null"`
-	ResourceKey          string    `gorm:"not null;index:idx_rconv_lookup"`
-	BridgeConversationID string    `gorm:"not null"`
-	SandboxID            uuid.UUID `gorm:"type:uuid;not null"`
-	Status               string    `gorm:"not null;default:'active'"` // active, closed
+	ID                   uuid.UUID     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	OrgID                uuid.UUID     `gorm:"type:uuid;not null;index"`
+	Org                  Org           `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
+	RouterTriggerID      uuid.UUID     `gorm:"type:uuid;not null"`
+	RouterTrigger        RouterTrigger `gorm:"foreignKey:RouterTriggerID;constraint:OnDelete:CASCADE"`
+	AgentID              uuid.UUID     `gorm:"type:uuid;not null;index"`
+	Agent                Agent         `gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE"`
+	ConnectionID         uuid.UUID     `gorm:"type:uuid;not null"`
+	Connection           InConnection  `gorm:"foreignKey:ConnectionID;constraint:OnDelete:CASCADE"`
+	ResourceKey          string        `gorm:"not null;index:idx_rconv_lookup"`
+	BridgeConversationID string        `gorm:"not null"`
+	SandboxID            uuid.UUID     `gorm:"type:uuid;not null"`
+	Sandbox              Sandbox       `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
+	Status               string        `gorm:"not null;default:'active'"` // active, closed
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 }

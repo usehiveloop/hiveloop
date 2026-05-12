@@ -84,7 +84,7 @@ func (h *CloudAgentHandler) authEmployee(w http.ResponseWriter, r *http.Request)
 	}
 
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND is_employee = true AND deleted_at IS NULL", agentID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND is_employee = true", agentID).First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})
 			return nil

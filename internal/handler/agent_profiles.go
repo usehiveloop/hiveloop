@@ -101,7 +101,7 @@ func (h *AgentProfileHandler) resolveEmployeeAgent(r *http.Request) (model.Agent
 		return model.Agent{}, org.ID, errors.New("invalid agent id")
 	}
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND org_id = ? AND deleted_at IS NULL", agentID, org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ?", agentID, org.ID).First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return model.Agent{}, org.ID, errAgentNotFound
 		}

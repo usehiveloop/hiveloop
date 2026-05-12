@@ -79,7 +79,7 @@ func (h *RailwayProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND deleted_at IS NULL", agentID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ?", agentID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return

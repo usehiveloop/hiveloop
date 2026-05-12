@@ -140,7 +140,12 @@ func (h *AdminHandler) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.db.Delete(&agent).Error; err != nil {
+	if err := h.db.Transaction(func(tx *gorm.DB) error {
+		if err := deleteAgentNonCascadingReferences(tx, agent.ID); err != nil {
+			return err
+		}
+		return tx.Delete(&agent).Error
+	}); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete agent"})
 		return
 	}

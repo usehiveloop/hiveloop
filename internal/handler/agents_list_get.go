@@ -36,7 +36,7 @@ func (h *AgentHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := h.db.Preload("Credential").Where("agents.org_id = ? AND agents.is_system = false AND agents.is_employee = false AND agents.deleted_at IS NULL", org.ID)
+	q := h.db.Preload("Credential").Where("agents.org_id = ? AND agents.is_system = false AND agents.is_employee = false", org.ID)
 
 	if status := r.URL.Query().Get("status"); status != "" {
 		q = q.Where("agents.status = ?", status)
@@ -100,7 +100,7 @@ func (h *AgentHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 	var agent model.Agent
-	if err := h.db.Preload("Credential").Where("id = ? AND org_id = ? AND is_system = false AND is_employee = false AND deleted_at IS NULL", id, org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Preload("Credential").Where("id = ? AND org_id = ? AND is_system = false AND is_employee = false", id, org.ID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return

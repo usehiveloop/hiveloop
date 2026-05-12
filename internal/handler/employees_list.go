@@ -64,7 +64,7 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 	q := h.db.WithContext(r.Context()).
 		Preload("Credential").
 		Preload("TeamRef").
-		Where("agents.org_id = ? AND agents.is_employee = true AND agents.is_system = false AND agents.deleted_at IS NULL", org.ID)
+		Where("agents.org_id = ? AND agents.is_employee = true AND agents.is_system = false", org.ID)
 
 	if status := r.URL.Query().Get("status"); status != "" {
 		q = q.Where("agents.status = ?", status)
@@ -138,7 +138,7 @@ func loadEmployeeSubagents(db *gorm.DB, agentIDs []uuid.UUID) map[uuid.UUID][]em
 	}
 	var subs []model.Agent
 	if err := db.Select("id, name, avatar_url, description, status").
-		Where("id IN ? AND deleted_at IS NULL", subIDs).
+		Where("id IN ?", subIDs).
 		Find(&subs).Error; err != nil {
 		return nil
 	}

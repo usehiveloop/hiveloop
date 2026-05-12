@@ -110,7 +110,7 @@ func (store *GormRouterTriggerStore) LoadRulesForTrigger(ctx context.Context, tr
 func (store *GormRouterTriggerStore) LoadOrgAgents(ctx context.Context, orgID uuid.UUID) ([]model.Agent, error) {
 	var agents []model.Agent
 	if err := store.db.WithContext(ctx).
-		Where("org_id = ? AND is_system = FALSE AND status = ? AND deleted_at IS NULL", orgID, "active").
+		Where("org_id = ? AND is_system = FALSE AND status = ?", orgID, "active").
 		Find(&agents).Error; err != nil {
 		return nil, fmt.Errorf("loading org agents: %w", err)
 	}

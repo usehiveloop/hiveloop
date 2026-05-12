@@ -79,7 +79,7 @@ func (handler *SandboxDriveHandler) resolveSandboxAgent(writer http.ResponseWrit
 	}
 
 	var agent model.Agent
-	if err := handler.db.Where("sandbox_id = ? AND deleted_at IS NULL", sandbox.ID).First(&agent).Error; err != nil {
+	if err := handler.db.Where("sandbox_id = ?", sandbox.ID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "no agent assigned to this sandbox"})
 			return uuid.Nil, nil, false

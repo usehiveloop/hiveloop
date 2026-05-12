@@ -65,7 +65,7 @@ func (h *ChatHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var agent model.Agent
 	if err := h.db.WithContext(ctx).
-		Where("id = ? AND org_id = ? AND is_employee = true AND deleted_at IS NULL", agentID, org.ID).
+		Where("id = ? AND org_id = ? AND is_employee = true", agentID, org.ID).
 		First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})
@@ -160,7 +160,7 @@ func (h *ChatHandler) Send(w http.ResponseWriter, r *http.Request) {
 
 	var session model.ChatSession
 	if err := h.db.WithContext(ctx).
-		Where("id = ? AND org_id = ? AND user_id = ? AND deleted_at IS NULL",
+		Where("id = ? AND org_id = ? AND user_id = ?",
 			sessionID, org.ID, user.ID).
 		First(&session).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

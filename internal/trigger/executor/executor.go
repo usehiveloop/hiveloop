@@ -87,7 +87,7 @@ func (executor *Executor) continueConversation(ctx context.Context, agentDispatc
 func (executor *Executor) createConversation(ctx context.Context, agentDispatch dispatch.AgentDispatch) error {
 
 	var agent model.Agent
-	if err := executor.db.Where("id = ? AND deleted_at IS NULL", agentDispatch.AgentID).First(&agent).Error; err != nil {
+	if err := executor.db.Where("id = ?", agentDispatch.AgentID).First(&agent).Error; err != nil {
 		return fmt.Errorf("loading agent %s: %w", agentDispatch.AgentID, err)
 	}
 

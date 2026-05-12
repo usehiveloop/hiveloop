@@ -23,12 +23,14 @@ type ConversationSubscription struct {
 	ConversationID uuid.UUID         `gorm:"type:uuid;not null;index:idx_conv_sub_by_conv"`
 	Conversation   AgentConversation `gorm:"foreignKey:ConversationID;constraint:OnDelete:CASCADE"`
 	OrgID          uuid.UUID         `gorm:"type:uuid;not null"`
+	Org            Org               `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
 	AgentID        uuid.UUID         `gorm:"type:uuid;not null"`
-	Provider       string            `gorm:"not null"` // "github-app", "linear", etc.
-	ResourceType   string            `gorm:"not null"` // "github_pull_request", etc.
-	ResourceID     string            `gorm:"not null"` // user-provided, e.g. "hiveloop/hiveloop#99"
-	ResourceKey    string            `gorm:"not null"` // canonical, e.g. "github/hiveloop/hiveloop/pull/99"
-	Source         string            `gorm:"not null;default:'agent'"` // "agent" | "trigger" | (future slots)
+	Agent          Agent             `gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE"`
+	Provider       string            `gorm:"not null"`                  // "github-app", "linear", etc.
+	ResourceType   string            `gorm:"not null"`                  // "github_pull_request", etc.
+	ResourceID     string            `gorm:"not null"`                  // user-provided, e.g. "hiveloop/hiveloop#99"
+	ResourceKey    string            `gorm:"not null"`                  // canonical, e.g. "github/hiveloop/hiveloop/pull/99"
+	Source         string            `gorm:"not null;default:'agent'"`  // "agent" | "trigger" | (future slots)
 	Status         string            `gorm:"not null;default:'active'"` // "active" | "closed"
 	CreatedAt      time.Time
 	ClosedAt       *time.Time

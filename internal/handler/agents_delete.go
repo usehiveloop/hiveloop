@@ -3,9 +3,9 @@ package handler
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/logging"
@@ -34,7 +34,7 @@ func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false AND deleted_at IS NULL", id, org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false", id, org.ID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return
@@ -43,18 +43,24 @@ func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	now := time.Now()
-	if err := h.db.Model(&agent).Update("deleted_at", &now).Error; err != nil {
+	sandboxExternalIDs, err := loadAgentSandboxExternalIDs(h.db, agent.ID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to prepare agent cleanup"})
+		return
+	}
+
+	if err := h.db.Transaction(func(tx *gorm.DB) error {
+		if err := deleteAgentNonCascadingReferences(tx, agent.ID); err != nil {
+			return err
+		}
+		return tx.Delete(&agent).Error
+	}); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete agent"})
 		return
 	}
 
-	if err := deleteAgentTriggers(h.db, agent.ID); err != nil {
-		logging.Capture(r.Context(), fmt.Errorf("clean up agent triggers on delete agent_id=%s: %w", agent.ID, err))
-	}
-
-	if h.enqueuer != nil {
-		task, err := tasks.NewAgentCleanupTask(agent.ID)
+	if h.enqueuer != nil && len(sandboxExternalIDs) > 0 {
+		task, err := tasks.NewAgentCleanupTask(agent.ID, sandboxExternalIDs...)
 		if err != nil {
 			logging.Capture(r.Context(), fmt.Errorf("create agent cleanup task agent_id=%s: %w", agent.ID, err))
 		} else if _, err := h.enqueuer.Enqueue(task); err != nil {
@@ -62,6 +68,50 @@ func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	logging.FromContext(r.Context()).InfoContext(r.Context(), "agent soft-deleted", "agent_id", agent.ID, "org_id", org.ID)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "agent hard-deleted", "agent_id", agent.ID, "org_id", org.ID)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+func loadAgentSandboxExternalIDs(db *gorm.DB, agentID uuid.UUID) ([]string, error) {
+	var externalIDs []string
+	if err := db.Model(&model.Sandbox{}).
+		Where("agent_id = ? AND external_id <> ''", agentID).
+		Pluck("external_id", &externalIDs).Error; err != nil {
+		return nil, err
+	}
+	return externalIDs, nil
+}
+
+func deleteAgentNonCascadingReferences(db *gorm.DB, agentID uuid.UUID) error {
+	if err := deleteAgentTriggers(db, agentID); err != nil {
+		return err
+	}
+	if err := db.Where("agent_id = ?", agentID).Delete(&model.ConversationSubscription{}).Error; err != nil {
+		return fmt.Errorf("delete conversation subscriptions: %w", err)
+	}
+	if err := db.Exec(`DELETE FROM chat_messages WHERE session_id IN (SELECT id FROM chat_sessions WHERE agent_id = ?)`, agentID).Error; err != nil {
+		return fmt.Errorf("delete chat messages: %w", err)
+	}
+	if err := db.Where("agent_id = ?", agentID).Delete(&model.ChatSession{}).Error; err != nil {
+		return fmt.Errorf("delete chat sessions: %w", err)
+	}
+	if err := db.Where("agent_id = ?", agentID).Delete(&model.RouterConversation{}).Error; err != nil {
+		return fmt.Errorf("delete router conversations: %w", err)
+	}
+	if err := db.Where("agent_id = ?", agentID).Delete(&model.EmployeeAsset{}).Error; err != nil {
+		return fmt.Errorf("delete employee assets: %w", err)
+	}
+	if err := db.Where("agent_id = ?", agentID).Delete(&model.HindsightBank{}).Error; err != nil {
+		return fmt.Errorf("delete hindsight banks: %w", err)
+	}
+	if err := db.Where("agent_id = ?", agentID.String()).Delete(&model.ToolUsage{}).Error; err != nil {
+		return fmt.Errorf("delete tool usage: %w", err)
+	}
+	if err := db.Exec(`DELETE FROM generations WHERE token_jti IN (SELECT jti FROM tokens WHERE meta->>'agent_id' = ?)`, agentID.String()).Error; err != nil {
+		return fmt.Errorf("delete agent generations: %w", err)
+	}
+	if err := db.Where("meta->>'agent_id' = ?", agentID.String()).Delete(&model.Token{}).Error; err != nil {
+		return fmt.Errorf("delete agent proxy tokens: %w", err)
+	}
+	return nil
 }

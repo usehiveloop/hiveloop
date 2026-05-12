@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
@@ -38,7 +37,7 @@ func connectDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func createAgent(t *testing.T, db *gorm.DB, deleted bool) model.Agent {
+func createAgent(t *testing.T, db *gorm.DB) model.Agent {
 	t.Helper()
 	orgID := uuid.New()
 	org := model.Org{ID: orgID, Name: "cleanup-test-" + uuid.New().String()[:8], Active: true}
@@ -52,10 +51,6 @@ func createAgent(t *testing.T, db *gorm.DB, deleted bool) model.Agent {
 		SystemPrompt: "test",
 		Model:        "test-model",
 		Status:       "active",
-	}
-	if deleted {
-		now := time.Now()
-		agent.DeletedAt = &now
 	}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
@@ -78,27 +73,9 @@ func makeTask(t *testing.T, agentID uuid.UUID) *asynq.Task {
 	return task
 }
 
-func TestAgentCleanup_HardDeletesSoftDeletedAgent(t *testing.T) {
-	db := connectDB(t)
-	agent := createAgent(t, db, true)
-
-	handler := tasks.NewAgentCleanupHandler(db, nil, nil)
-	task := makeTask(t, agent.ID)
-
-	if err := handler.Handle(context.Background(), task); err != nil {
-		t.Fatalf("handle: %v", err)
-	}
-
-	var count int64
-	db.Model(&model.Agent{}).Where("id = ?", agent.ID).Count(&count)
-	if count != 0 {
-		t.Fatal("agent should be hard-deleted from DB")
-	}
-}
-
 func TestAgentCleanup_HardDeletesActiveAgent(t *testing.T) {
 	db := connectDB(t)
-	agent := createAgent(t, db, false)
+	agent := createAgent(t, db)
 
 	handler := tasks.NewAgentCleanupHandler(db, nil, nil)
 	task := makeTask(t, agent.ID)
@@ -128,7 +105,7 @@ func TestAgentCleanup_AlreadyDeletedIsIdempotent(t *testing.T) {
 func TestAgentCleanup_NilOrchestratorHandledGracefully(t *testing.T) {
 	db := connectDB(t)
 
-	agent := createAgent(t, db, true)
+	agent := createAgent(t, db)
 	handler := tasks.NewAgentCleanupHandler(db, nil, nil)
 
 	if err := handler.Handle(context.Background(), makeTask(t, agent.ID)); err != nil {

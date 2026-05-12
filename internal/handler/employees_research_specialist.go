@@ -46,7 +46,7 @@ func (h *EmployeeHandler) ensureBusinessResearchSpecialist(ctx context.Context, 
 func (h *EmployeeHandler) ensureEmployeeTeam(ctx context.Context, employee *model.Agent) (*model.Team, error) {
 	if employee.TeamID != nil {
 		var team model.Team
-		if err := h.db.WithContext(ctx).Where("id = ? AND org_id = ? AND deleted_at IS NULL", *employee.TeamID, *employee.OrgID).First(&team).Error; err == nil {
+		if err := h.db.WithContext(ctx).Where("id = ? AND org_id = ?", *employee.TeamID, *employee.OrgID).First(&team).Error; err == nil {
 			return &team, nil
 		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("lookup employee team: %w", err)
@@ -130,7 +130,7 @@ func findBusinessResearchSpecialist(ctx context.Context, tx *gorm.DB, employeeID
 		subIDs = append(subIDs, link.SubagentID)
 	}
 	var agents []model.Agent
-	if err := tx.WithContext(ctx).Where("id IN ? AND deleted_at IS NULL", subIDs).Find(&agents).Error; err != nil {
+	if err := tx.WithContext(ctx).Where("id IN ?", subIDs).Find(&agents).Error; err != nil {
 		return nil, err
 	}
 	for i := range agents {

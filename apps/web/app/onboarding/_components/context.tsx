@@ -35,6 +35,7 @@ const EMPLOYEE_STEP_ORDER: StepKey[] = [
   "employee",
   "channel",
   "configure",
+  "github",
   "provisioning",
 ]
 

@@ -38,6 +38,13 @@ func (o *Orchestrator) DeleteSandbox(ctx context.Context, sb *model.Sandbox) err
 	return o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}).Error
 }
 
+func (o *Orchestrator) DeleteSandboxExternal(ctx context.Context, externalID string) error {
+	if err := o.provider.DeleteSandbox(ctx, externalID); err != nil && !errors.Is(err, ErrSandboxNotFound) {
+		return fmt.Errorf("delete sandbox %s from provider: %w", externalID, err)
+	}
+	return nil
+}
+
 func (o *Orchestrator) ArchiveSandbox(ctx context.Context, sb *model.Sandbox) error {
 	if sb.Status != string(StatusStopped) {
 		if err := o.StopSandbox(ctx, sb); err != nil {

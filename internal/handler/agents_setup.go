@@ -31,7 +31,7 @@ func (h *AgentHandler) GetSetup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false AND deleted_at IS NULL", chi.URLParam(r, "id"), org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false", chi.URLParam(r, "id"), org.ID).First(&agent).Error; err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 		return
 	}
@@ -79,7 +79,7 @@ func (h *AgentHandler) UpdateSetup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false AND deleted_at IS NULL", chi.URLParam(r, "id"), org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false", chi.URLParam(r, "id"), org.ID).First(&agent).Error; err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 		return
 	}

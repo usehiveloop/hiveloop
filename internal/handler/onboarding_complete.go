@@ -86,7 +86,7 @@ func (h *EmployeeHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Requ
 
 	var agent model.Agent
 	err := h.db.WithContext(ctx).
-		Where("org_id = ? AND is_employee = true AND is_system = false AND deleted_at IS NULL", org.ID).
+		Where("org_id = ? AND is_employee = true AND is_system = false", org.ID).
 		Order("created_at ASC").Limit(1).First(&agent).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -100,7 +100,7 @@ func (h *EmployeeHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Requ
 
 	var profileCount int64
 	err = h.db.WithContext(ctx).Model(&model.AgentProfile{}).
-		Where("agent_id = ? AND status = ? AND deleted_at IS NULL AND provider = ?",
+		Where("agent_id = ? AND status = ? AND provider = ?",
 			agent.ID, "active", slackprov.Provider).
 		Count(&profileCount).Error
 	if err != nil {

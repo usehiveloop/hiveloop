@@ -70,7 +70,7 @@ func (handler *AgentConversationCreateHandler) Handle(ctx context.Context, task 
 	}()
 
 	var agent model.Agent
-	if err := handler.db.Where("id = ? AND deleted_at IS NULL", payload.AgentID).First(&agent).Error; err != nil {
+	if err := handler.db.Where("id = ?", payload.AgentID).First(&agent).Error; err != nil {
 		return fmt.Errorf("loading agent %s: %w", payload.AgentID, err)
 	}
 

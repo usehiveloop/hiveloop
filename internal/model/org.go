@@ -103,6 +103,8 @@ func AutoMigrate(db *gorm.DB) error {
 
 	db.Exec(`ALTER TABLE agent_conversations DROP COLUMN IF EXISTS parent_conversation_id`)
 	db.Exec(`ALTER TABLE agents DROP COLUMN IF EXISTS agent_type`)
+	db.Exec(`ALTER TABLE agents DROP COLUMN IF EXISTS deleted_at`)
+	installAgentHardDeleteConstraints(db)
 
 	// Partial unique: org-scoped agents have unique (org_id, name).
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_org_name ON agents (org_id, name) WHERE org_id IS NOT NULL`)
@@ -168,4 +170,50 @@ func AutoMigrate(db *gorm.DB) error {
 	// internal/rag would close a cycle.
 
 	return nil
+}
+
+func installAgentHardDeleteConstraints(db *gorm.DB) {
+	db.Exec(`DELETE FROM chat_messages WHERE session_id NOT IN (SELECT id FROM chat_sessions)`)
+	db.Exec(`DELETE FROM chat_sessions WHERE agent_id NOT IN (SELECT id FROM agents)`)
+	db.Exec(`UPDATE sandboxes SET agent_id = NULL WHERE agent_id IS NOT NULL AND agent_id NOT IN (SELECT id FROM agents)`)
+	db.Exec(`DELETE FROM router_conversations WHERE agent_id NOT IN (SELECT id FROM agents)`)
+	db.Exec(`DELETE FROM employee_assets WHERE agent_id NOT IN (SELECT id FROM agents)`)
+	db.Exec(`DELETE FROM hindsight_banks WHERE agent_id IS NOT NULL AND agent_id NOT IN (SELECT id FROM agents)`)
+	db.Exec(`DELETE FROM conversation_subscriptions WHERE agent_id NOT IN (SELECT id FROM agents)`)
+
+	recreateFK(db, "sandboxes", "fk_sandboxes_agent", "agent_id", "agents", "id", "CASCADE")
+	recreateFK(db, "hindsight_banks", "fk_hindsight_banks_agent", "agent_id", "agents", "id", "CASCADE")
+	recreateFK(db, "chat_sessions", "fk_chat_sessions_agent", "agent_id", "agents", "id", "CASCADE")
+	recreateFK(db, "chat_sessions", "fk_chat_sessions_org", "org_id", "orgs", "id", "CASCADE")
+	recreateFK(db, "chat_sessions", "fk_chat_sessions_user", "user_id", "users", "id", "CASCADE")
+	recreateFK(db, "chat_messages", "fk_chat_messages_session", "session_id", "chat_sessions", "id", "CASCADE")
+	recreateFK(db, "router_conversations", "fk_router_conversations_agent", "agent_id", "agents", "id", "CASCADE")
+	recreateFK(db, "employee_assets", "fk_employee_assets_agent", "agent_id", "agents", "id", "CASCADE")
+	recreateFK(db, "employee_assets", "fk_employee_assets_org", "org_id", "orgs", "id", "CASCADE")
+	recreateFK(db, "employee_assets", "fk_employee_assets_sandbox", "sandbox_id", "sandboxes", "id", "CASCADE")
+	recreateFK(db, "conversation_subscriptions", "fk_conversation_subscriptions_agent", "agent_id", "agents", "id", "CASCADE")
+	recreateFK(db, "conversation_subscriptions", "fk_conversation_subscriptions_org", "org_id", "orgs", "id", "CASCADE")
+}
+
+func recreateFK(db *gorm.DB, table, constraint, column, refTable, refColumn, onDelete string) {
+	db.Exec(`
+DO $$
+DECLARE constraint_name text;
+BEGIN
+	FOR constraint_name IN
+		SELECT tc.constraint_name
+		FROM information_schema.table_constraints tc
+		JOIN information_schema.key_column_usage kcu
+			ON tc.constraint_name = kcu.constraint_name
+			AND tc.table_schema = kcu.table_schema
+		WHERE tc.constraint_type = 'FOREIGN KEY'
+			AND tc.table_schema = current_schema()
+			AND tc.table_name = '` + table + `'
+			AND kcu.column_name = '` + column + `'
+	LOOP
+		EXECUTE format('ALTER TABLE %I DROP CONSTRAINT %I', '` + table + `', constraint_name);
+	END LOOP;
+END $$;`)
+	db.Exec(`ALTER TABLE ` + table + ` ADD CONSTRAINT ` + constraint +
+		` FOREIGN KEY (` + column + `) REFERENCES ` + refTable + `(` + refColumn + `) ON DELETE ` + onDelete)
 }

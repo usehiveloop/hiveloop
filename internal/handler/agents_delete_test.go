@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -110,10 +109,21 @@ func (h *agentDeleteHarness) doRequestWithBody(t *testing.T, method, path string
 	return rr
 }
 
-func TestAgentDelete_SoftDeletesAndEnqueuesCleanup(t *testing.T) {
+func TestAgentDelete_HardDeletesAndEnqueuesSandboxCleanup(t *testing.T) {
 	h := newAgentDeleteHarness(t)
 	org, user := h.createTestOrg(t)
 	agent := h.createTestAgent(t, org.ID, "delete-test-"+uuid.New().String()[:8])
+	sandbox := model.Sandbox{
+		OrgID:                 &org.ID,
+		AgentID:               &agent.ID,
+		ExternalID:            "external-" + uuid.New().String(),
+		BridgeURL:             "https://bridge.test",
+		EncryptedBridgeAPIKey: []byte("secret"),
+		Status:                "running",
+	}
+	if err := h.db.Create(&sandbox).Error; err != nil {
+		t.Fatalf("create sandbox: %v", err)
+	}
 
 	rr := h.doRequest(t, "DELETE", "/v1/agents/"+agent.ID.String(), user.ID, org.ID)
 	if rr.Code != http.StatusOK {
@@ -126,13 +136,14 @@ func TestAgentDelete_SoftDeletesAndEnqueuesCleanup(t *testing.T) {
 		t.Fatalf("expected status=deleted, got %v", resp["status"])
 	}
 
-	// Agent should still exist with deleted_at set
-	var softDeleted model.Agent
-	if err := h.db.Where("id = ?", agent.ID).First(&softDeleted).Error; err != nil {
-		t.Fatalf("agent should still exist in DB: %v", err)
+	var count int64
+	h.db.Model(&model.Agent{}).Where("id = ?", agent.ID).Count(&count)
+	if count != 0 {
+		t.Fatal("agent should be hard-deleted from DB")
 	}
-	if softDeleted.DeletedAt == nil {
-		t.Fatal("deleted_at should be set")
+	h.db.Model(&model.Sandbox{}).Where("id = ?", sandbox.ID).Count(&count)
+	if count != 0 {
+		t.Fatal("agent sandbox row should cascade-delete from DB")
 	}
 
 	h.enqueuer.AssertEnqueued(t, tasks.TypeAgentCleanup)
@@ -155,7 +166,7 @@ func TestAgentDelete_HiddenFromListAndGet(t *testing.T) {
 		for _, raw := range data {
 			agentMap := raw.(map[string]any)
 			if agentMap["id"] == agent.ID.String() {
-				t.Fatal("soft-deleted agent should not appear in list")
+				t.Fatal("deleted agent should not appear in list")
 			}
 		}
 	}
@@ -171,8 +182,9 @@ func TestAgentDelete_AlreadyDeletedReturns404(t *testing.T) {
 	org, user := h.createTestOrg(t)
 	agent := h.createTestAgent(t, org.ID, "already-del-"+uuid.New().String()[:8])
 
-	now := time.Now()
-	h.db.Model(&agent).Update("deleted_at", &now)
+	if err := h.db.Delete(&agent).Error; err != nil {
+		t.Fatalf("delete seed agent: %v", err)
+	}
 
 	rr := h.doRequest(t, "DELETE", "/v1/agents/"+agent.ID.String(), user.ID, org.ID)
 	if rr.Code != http.StatusNotFound {
@@ -192,49 +204,52 @@ func TestAgentDelete_WrongOrgReturns404(t *testing.T) {
 	}
 }
 
-func TestAgentDelete_UpdateReturns404ForSoftDeleted(t *testing.T) {
+func TestAgentDelete_UpdateReturns404ForDeleted(t *testing.T) {
 	h := newAgentDeleteHarness(t)
 	org, user := h.createTestOrg(t)
 	agent := h.createTestAgent(t, org.ID, "update-del-"+uuid.New().String()[:8])
 
-	now := time.Now()
-	h.db.Model(&agent).Update("deleted_at", &now)
+	if err := h.db.Delete(&agent).Error; err != nil {
+		t.Fatalf("delete seed agent: %v", err)
+	}
 
 	rr := h.doRequestWithBody(t, "PUT", "/v1/agents/"+agent.ID.String(), user.ID, org.ID, map[string]string{
 		"name": "new-name",
 	})
 	if rr.Code != http.StatusNotFound {
-		t.Fatalf("update: expected 404 for soft-deleted agent, got %d: %s", rr.Code, rr.Body.String())
+		t.Fatalf("update: expected 404 for deleted agent, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
 
-func TestAgentDelete_GetSetupReturns404ForSoftDeleted(t *testing.T) {
+func TestAgentDelete_GetSetupReturns404ForDeleted(t *testing.T) {
 	h := newAgentDeleteHarness(t)
 	org, user := h.createTestOrg(t)
 	agent := h.createTestAgent(t, org.ID, "setup-del-"+uuid.New().String()[:8])
 
-	now := time.Now()
-	h.db.Model(&agent).Update("deleted_at", &now)
+	if err := h.db.Delete(&agent).Error; err != nil {
+		t.Fatalf("delete seed agent: %v", err)
+	}
 
 	rr := h.doRequest(t, "GET", "/v1/agents/"+agent.ID.String()+"/setup", user.ID, org.ID)
 	if rr.Code != http.StatusNotFound {
-		t.Fatalf("get setup: expected 404 for soft-deleted agent, got %d: %s", rr.Code, rr.Body.String())
+		t.Fatalf("get setup: expected 404 for deleted agent, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
 
-func TestAgentDelete_UpdateSetupReturns404ForSoftDeleted(t *testing.T) {
+func TestAgentDelete_UpdateSetupReturns404ForDeleted(t *testing.T) {
 	h := newAgentDeleteHarness(t)
 	org, user := h.createTestOrg(t)
 	agent := h.createTestAgent(t, org.ID, "usetup-del-"+uuid.New().String()[:8])
 
-	now := time.Now()
-	h.db.Model(&agent).Update("deleted_at", &now)
+	if err := h.db.Delete(&agent).Error; err != nil {
+		t.Fatalf("delete seed agent: %v", err)
+	}
 
 	rr := h.doRequestWithBody(t, "PUT", "/v1/agents/"+agent.ID.String()+"/setup", user.ID, org.ID, map[string]any{
 		"setup_commands": []string{"echo hello"},
 	})
 	if rr.Code != http.StatusNotFound {
-		t.Fatalf("update setup: expected 404 for soft-deleted agent, got %d: %s", rr.Code, rr.Body.String())
+		t.Fatalf("update setup: expected 404 for deleted agent, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
 

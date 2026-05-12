@@ -13,7 +13,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
-// AgentCleanupHandler cleans up an agent's sandbox resources and then hard-deletes it.
+// AgentCleanupHandler cleans up provider sandbox resources left behind after an agent hard delete.
 type AgentCleanupHandler struct {
 	db           *gorm.DB
 	orchestrator *sandbox.Orchestrator
@@ -32,6 +32,11 @@ func (h *AgentCleanupHandler) Handle(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("unmarshal agent cleanup payload: %w", err)
 	}
 
+	if len(payload.SandboxExternalIDs) > 0 {
+		h.cleanupExternalSandboxes(ctx, payload.SandboxExternalIDs)
+		return nil
+	}
+
 	var agent model.Agent
 	if err := h.db.Where("id = ?", payload.AgentID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -48,6 +53,20 @@ func (h *AgentCleanupHandler) Handle(ctx context.Context, t *asynq.Task) error {
 
 	logging.FromContext(ctx).InfoContext(ctx, "agent cleanup complete", "agent_id", agent.ID)
 	return nil
+}
+
+func (h *AgentCleanupHandler) cleanupExternalSandboxes(ctx context.Context, externalIDs []string) {
+	if h.orchestrator == nil {
+		return
+	}
+	for _, externalID := range externalIDs {
+		if externalID == "" {
+			continue
+		}
+		if err := h.orchestrator.DeleteSandboxExternal(ctx, externalID); err != nil {
+			logging.Capture(ctx, fmt.Errorf("delete provider sandbox %s: %w", externalID, err))
+		}
+	}
 }
 
 func (h *AgentCleanupHandler) cleanupAgentSandboxes(ctx context.Context, agent *model.Agent) {
