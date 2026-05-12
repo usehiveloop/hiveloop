@@ -58,6 +58,9 @@ func TestBuildEmployeeRetainItem_BundlesSessionAtCheckpoint(t *testing.T) {
 	if !strings.Contains(item.Content, "rollback notes") || !strings.Contains(item.Content, "Employee Aria") {
 		t.Fatalf("unexpected content: %q", item.Content)
 	}
+	if strings.Contains(item.Content, "Tool ") || strings.Contains(item.Content, "bash") || strings.Contains(item.Content, "Checked deployment docs") {
+		t.Fatalf("retain content should not include raw tool calls: %q", item.Content)
+	}
 	if item.Metadata["session_id"] != "S1" || item.Metadata["event_count"] != "3" {
 		t.Fatalf("unexpected metadata: %#v", item.Metadata)
 	}
@@ -80,6 +83,60 @@ func TestBuildEmployeeRetainItem_SkipsNoCheckpointAndSecrets(t *testing.T) {
 	withSecret := append(onlyUser, memoryEvent(t, orgID, agentID, sandboxID, "S1", "agent.message.sent", map[string]any{"text": "api_key=sk-secret"}))
 	if _, ok := buildEmployeeRetainItem(agent, EmployeeMemoryRetainPayload{AgentID: agentID, SandboxID: sandboxID, SessionID: "S1"}, withSecret); ok {
 		t.Fatal("secret-looking transcript should not retain")
+	}
+}
+
+func TestBuildEmployeeRetainItem_SkipsPureBanterWithoutWorkSignal(t *testing.T) {
+	orgID := uuid.New()
+	agentID := uuid.New()
+	sandboxID := uuid.New()
+	agent := &model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria"}
+	events := []model.EmployeeMemoryEvent{
+		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{
+			"source": "slack", "channel": "C123", "user_display_name": "Kim",
+			"text": "Why did the database admin leave the party? Too many relationships.",
+		}),
+		memoryEvent(t, orgID, agentID, sandboxID, "S1", "agent.message.sent", map[string]any{
+			"source": "slack", "text": "Painfully relational.",
+		}),
+	}
+	if _, ok := buildEmployeeRetainItem(agent, EmployeeMemoryRetainPayload{AgentID: agentID, SandboxID: sandboxID, SessionID: "S1"}, events); ok {
+		t.Fatal("pure banter without a work/tool signal should not retain")
+	}
+}
+
+func TestBuildEmployeeRetainItem_PreservesExplicitRememberFactsWithoutTools(t *testing.T) {
+	orgID := uuid.New()
+	teamID := uuid.New()
+	agentID := uuid.New()
+	sandboxID := uuid.New()
+	agent := &model.Agent{ID: agentID, OrgID: &orgID, TeamID: &teamID, Name: "Aria"}
+	events := []model.EmployeeMemoryEvent{
+		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{
+			"source": "slack", "channel": "C123", "user_display_name": "Nora",
+			"text": "Please remember this: Nora owns invoice-failure alerts, and billing answers must use live data when possible.",
+		}),
+		memoryEvent(t, orgID, agentID, sandboxID, "S1", "tool.invoked", map[string]any{
+			"source": "slack", "tool": "bash", "result_summary": "Queried invoices table and found alert owner metadata.",
+		}),
+		memoryEvent(t, orgID, agentID, sandboxID, "S1", "agent.message.sent", map[string]any{
+			"source": "slack", "text": "Remembered. Nora owns invoice-failure alerts, and billing answers should use live data when possible.",
+		}),
+	}
+
+	item, ok := buildEmployeeRetainItem(agent, EmployeeMemoryRetainPayload{
+		AgentID: agentID, SandboxID: sandboxID, SessionID: "S1", SourceEvent: "agent.message.sent",
+	}, events)
+	if !ok {
+		t.Fatal("expected retain item")
+	}
+	for _, want := range []string{"Nora owns invoice-failure alerts", "billing answers must use live data", "Employee Aria"} {
+		if !strings.Contains(item.Content, want) {
+			t.Fatalf("retain content missing %q: %s", want, item.Content)
+		}
+	}
+	if strings.Contains(item.Content, "Queried invoices") || strings.Contains(item.Content, "Tool ") || strings.Contains(item.Content, "bash") {
+		t.Fatalf("retain content leaked tool execution trace: %s", item.Content)
 	}
 }
 
@@ -116,6 +173,7 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 	}
 	for _, event := range []model.EmployeeMemoryEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{"source": "slack", "text": "We require rollback notes."}),
+		memoryEvent(t, orgID, agentID, sandboxID, "S1", "tool.invoked", map[string]any{"source": "slack", "tool": "memory_retain", "result_summary": "retained deployment policy"}),
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "agent.message.sent", map[string]any{"source": "slack", "text": "Done."}),
 	} {
 		if err := db.Create(&event).Error; err != nil {
@@ -140,7 +198,7 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 		Count(&count).Error; err != nil {
 		t.Fatalf("count retained: %v", err)
 	}
-	if count != 2 {
+	if count != 3 {
 		t.Fatalf("retained event count = %d", count)
 	}
 }

@@ -23,36 +23,51 @@ type MemoryConfig struct {
 const (
 	defaultRetainMission = `You are retaining memory for an AI employee embedded inside a real company.
 
-Extract durable company memory from source material, including:
+Extract only durable company memory that will help the employee make better decisions in future conversations.
+
+Keep:
 - company identity, positioning, business model, customers, market, goals, and constraints
 - team responsibilities, ownership areas, rituals, working norms, and collaboration preferences
 - people, roles, areas of ownership, and who should be consulted for what
-- active projects, initiatives, milestones, blockers, risks, and historical context
-- explicit decisions, the reasons behind them, and any tradeoffs discussed
+- active projects, initiatives, milestones, blockers, risks, and historical context only when they are expected to matter after this conversation
+- explicit decisions, the reasons behind them, tradeoffs discussed, and the final outcome
 - policies, standards, operating procedures, and recurring workflows
-- technical context: architecture, repositories, stack choices, deploy practices, testing norms, incidents, and operational facts
-- customer context: segments, important accounts, recurring feedback, objections, feature requests, and sentiment
+- technical context: architecture, repositories, stack choices, deploy practices, testing norms, incidents, and durable operational constraints
+- customer context: segments, important accounts, recurring feedback, objections, feature requests, and durable sentiment
 - explicit feedback about how the AI employee should communicate or behave
 
 Ignore:
 - greetings, jokes, filler, reactions without substance, and ordinary small talk
 - transient task status unless it establishes a durable project fact or decision
+- routine task execution details such as "checked file", "ran command", "updated page", "looked at logs", or "used tool"
+- one-off debugging steps, status updates, and implementation actions unless the result establishes a reusable rule, decision, owner, policy, or technical constraint
+- vague feedback unless it is resolved into a durable preference, expectation, or operating rule
 - raw logs, raw transcripts, raw code dumps, and large source dumps
 - duplicate facts already established unless the new evidence changes or contradicts them
 - secrets, credentials, private tokens, or sensitive personal data
 
-Preserve source, speaker, time, channel/project context, and why the information matters when available.
-Distill memories into clear business facts, not chat excerpts.`
+Write memories as concise facts the employee should know later.
+Do not write memories about the employee merely doing work.
+Preserve source, speaker, time, and channel/project context only when it helps explain authority, ownership, recency, or why the memory matters.`
 
 	defaultObservationsMission = `Identify durable patterns and evolving company knowledge from retained memories.
 
-Create or update observations about:
+Create or update observations only when they synthesize durable patterns across retained memories.
+
+Good observations:
 - repeated company/team preferences
 - recurring decisions, policies, or operating norms
 - changes in strategy, priorities, ownership, or technical direction
 - recurring customer feedback, objections, and product requests
 - recurring incidents, blockers, engineering risks, or process failures
 - repeated feedback about how the AI employee should behave
+
+Bad observations:
+- summaries of a single task being done
+- tool-use summaries
+- "the AI agent checked/updated/ran/fixed" statements
+- one-off requests that are already complete
+- raw status updates or implementation steps
 
 Prefer stable patterns over one-off statements.
 When new evidence contradicts older memory, preserve the transition: what changed, when, who said it, and why.

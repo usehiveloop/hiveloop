@@ -27,6 +27,35 @@ const (
 
 var memorySecretPattern = regexp.MustCompile(`(?i)(ptok_|xox[baprs]-|sk-[a-z0-9]|api[_-]?key|secret|token|password)\s*[:=]\s*\S+`)
 
+var memoryFillerMessages = map[string]struct{}{
+	"+1":             {},
+	"ah":             {},
+	"better":         {},
+	"classic":        {},
+	"closer":         {},
+	"cool":           {},
+	"exactly":        {},
+	"fine":           {},
+	"good":           {},
+	"great":          {},
+	"handy":          {},
+	"hmm":            {},
+	"lol":            {},
+	"nice":           {},
+	"ok":             {},
+	"okay":           {},
+	"one sec":        {},
+	"please":         {},
+	"ship":           {},
+	"thanks":         {},
+	"threading here": {},
+	"ty":             {},
+	"ugh":            {},
+	"works locally":  {},
+	"yep":            {},
+	"yes":            {},
+}
+
 type EmployeeMemoryRetainHandler struct {
 	db       *gorm.DB
 	memory   *hindsight.Client
@@ -129,8 +158,14 @@ func buildEmployeeRetainItem(agent *model.Agent, payload EmployeeMemoryRetainPay
 	if agent == nil || agent.OrgID == nil || len(events) == 0 {
 		return hindsight.RetainItem{}, false
 	}
-	transcript := employeeMemoryTranscript(agent.Name, events)
-	if !meaningfulEmployeeMemoryTranscript(transcript, events) {
+	if employeeMemoryEventsContainSecret(events) {
+		return hindsight.RetainItem{}, false
+	}
+	if !employeeMemoryEventsHaveWorkSignal(events) {
+		return hindsight.RetainItem{}, false
+	}
+	digest := employeeMemoryRetentionDigest(agent.Name, events)
+	if !meaningfulEmployeeMemoryTranscript(digest, events) {
 		return hindsight.RetainItem{}, false
 	}
 	source := dominantEmployeeMemorySource(events)
@@ -144,8 +179,8 @@ func buildEmployeeRetainItem(agent *model.Agent, payload EmployeeMemoryRetainPay
 		observationScopes = append(observationScopes, []string{"company:" + agent.OrgID.String(), teamTag})
 	}
 	return hindsight.RetainItem{
-		Content:           transcript,
-		Context:           fmt.Sprintf("Bundled employee runtime session from %s source. Retain only durable company/team facts, decisions, preferences, and project context.", source),
+		Content:           digest,
+		Context:           fmt.Sprintf("Filtered employee memory digest from %s source. It intentionally omits routine tool use and transient task chatter; retain only durable company/team facts, decisions, preferences, ownership, policies, and reusable technical context.", source),
 		DocumentID:        "employee-session:" + payload.SandboxID.String() + ":" + payload.SessionID,
 		Tags:              tags,
 		Timestamp:         events[0].EventAt.UTC().Format(time.RFC3339),
@@ -154,8 +189,8 @@ func buildEmployeeRetainItem(agent *model.Agent, payload EmployeeMemoryRetainPay
 	}, true
 }
 
-func employeeMemoryTranscript(agentName string, events []model.EmployeeMemoryEvent) string {
-	var buf strings.Builder
+func employeeMemoryRetentionDigest(agentName string, events []model.EmployeeMemoryEvent) string {
+	var lines []string
 	for _, event := range events {
 		payload := employeeMemoryPayload(event)
 		switch event.EventType {
@@ -165,37 +200,69 @@ func employeeMemoryTranscript(agentName string, events []model.EmployeeMemoryEve
 				speaker = "teammate"
 			}
 			text := firstPayloadString(payload, "text", "message")
-			if text != "" {
-				buf.WriteString("Teammate ")
-				buf.WriteString(speaker)
-				buf.WriteString(": ")
-				buf.WriteString(text)
-				buf.WriteString("\n\n")
-			}
-		case "tool.invoked":
-			tool := firstPayloadString(payload, "tool")
-			summary := firstPayloadString(payload, "result_summary")
-			if tool != "" || summary != "" {
-				buf.WriteString("Tool ")
-				buf.WriteString(tool)
-				buf.WriteString(": ")
-				buf.WriteString(summary)
-				buf.WriteString("\n\n")
+			if shouldIncludeEmployeeMemoryMessage(text) {
+				lines = append(lines, fmt.Sprintf("Teammate %s: %s", speaker, text))
 			}
 		case "agent.message.sent":
 			text := firstPayloadString(payload, "text", "message")
-			if text != "" {
-				buf.WriteString("Employee ")
-				buf.WriteString(agentName)
-				buf.WriteString(": ")
-				buf.WriteString(text)
-				buf.WriteString("\n\n")
+			if shouldIncludeEmployeeMemoryMessage(text) {
+				lines = append(lines, fmt.Sprintf("Employee %s: %s", agentName, text))
 			}
-		case "session.completed":
-			buf.WriteString("Session completed.\n\n")
 		}
 	}
+	if len(lines) == 0 {
+		return ""
+	}
+	var buf strings.Builder
+	buf.WriteString("Conversation for memory extraction. This omits raw tool calls, internal commands, and execution trace.\n")
+	buf.WriteString("Retain durable preferences, decisions, ownership, policies, recurring workflows, and stable technical/company context. Do not retain ordinary task execution or status chatter.\n\n")
+	for _, line := range lines {
+		buf.WriteString("- ")
+		buf.WriteString(line)
+		buf.WriteString("\n")
+	}
 	return strings.TrimSpace(buf.String())
+}
+
+func employeeMemoryEventsContainSecret(events []model.EmployeeMemoryEvent) bool {
+	for _, event := range events {
+		payload := employeeMemoryPayload(event)
+		for _, key := range []string{"text", "message", "result_summary"} {
+			if value := firstPayloadString(payload, key); value != "" && memorySecretPattern.MatchString(value) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func employeeMemoryEventsHaveWorkSignal(events []model.EmployeeMemoryEvent) bool {
+	for _, event := range events {
+		if event.EventType != "tool.invoked" {
+			continue
+		}
+		payload := employeeMemoryPayload(event)
+		tool := firstPayloadString(payload, "tool")
+		if strings.TrimSpace(tool) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func shouldIncludeEmployeeMemoryMessage(text string) bool {
+	text = strings.TrimSpace(text)
+	if text == "" || isEmployeeMemoryFiller(text) || memorySecretPattern.MatchString(text) {
+		return false
+	}
+	return true
+}
+
+func isEmployeeMemoryFiller(text string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(text))
+	normalized = strings.Trim(normalized, ".!?:; \t\n\r")
+	_, ok := memoryFillerMessages[normalized]
+	return ok
 }
 
 func meaningfulEmployeeMemoryTranscript(transcript string, events []model.EmployeeMemoryEvent) bool {
