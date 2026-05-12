@@ -65,6 +65,42 @@ func TestIntegration_EmployeesSync_Slack_HappyPath(t *testing.T) {
 	assertEmployeeRuntimeConfig(t, h.sidecar.configBody())
 }
 
+func TestIntegration_EmployeesSync_EnsuresBusinessResearchSpecialist(t *testing.T) {
+	h := newEmployeeHarness(t)
+	h.platformCredCleanup(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	h.seedSandbox(t, m, agent.ID)
+	h.seedSlackProfile(t, m, agent.ID)
+
+	rr := h.postSync(t, m, agent.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	rr = h.postSync(t, m, agent.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("second sync status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+
+	var links []model.AgentSubagent
+	if err := h.db.Where("agent_id = ?", agent.ID).Find(&links).Error; err != nil {
+		t.Fatalf("load subagent links: %v", err)
+	}
+	if len(links) != 1 {
+		t.Fatalf("subagent link count = %d, want exactly 1", len(links))
+	}
+	var sub model.Agent
+	if err := h.db.Where("id = ?", links[0].SubagentID).First(&sub).Error; err != nil {
+		t.Fatalf("load subagent: %v", err)
+	}
+	if sub.AgentConfig["default_cloud_agent_type"] != "business_research_specialist" {
+		t.Fatalf("subagent agent_config = %#v", sub.AgentConfig)
+	}
+	if !strings.Contains(sub.SystemPrompt, "Business Research Specialist") {
+		t.Fatalf("subagent prompt missing Business Research Specialist identity")
+	}
+}
+
 func assertEmployeeRuntimeConfig(t *testing.T, body []byte) {
 	t.Helper()
 	if len(body) == 0 {

@@ -444,11 +444,20 @@ func TestIntegration_EmployeesCreate_CreatesSubagent(t *testing.T) {
 	if sub.IsEmployee {
 		t.Errorf("subagent.is_employee = true, want false (subagents must not be employees)")
 	}
-	if sub.Name != "alice-engineer-research-specialist" {
-		t.Errorf("subagent.name = %q, want %q", sub.Name, "alice-engineer-research-specialist")
+	if sub.Name != "alice-engineer-business-research-specialist" {
+		t.Errorf("subagent.name = %q, want %q", sub.Name, "alice-engineer-business-research-specialist")
 	}
-	if !strings.Contains(sub.SystemPrompt, "Research Specialist") {
-		t.Errorf("subagent.system_prompt should identify the research specialist")
+	if !strings.Contains(sub.SystemPrompt, "Business Research Specialist") {
+		t.Errorf("subagent.system_prompt should identify the business research specialist")
+	}
+	if !strings.Contains(sub.SystemPrompt, "research/{task_id}/report.md") {
+		t.Errorf("subagent.system_prompt should contain the employee asset report contract")
+	}
+	if !strings.Contains(sub.SystemPrompt, "Do not directly promote findings into memory or knowledge base") {
+		t.Errorf("subagent.system_prompt should prohibit direct memory/KB promotion")
+	}
+	if sub.AgentConfig["default_cloud_agent_type"] != "business_research_specialist" {
+		t.Errorf("subagent.agent_config = %#v, want business research specialist marker", sub.AgentConfig)
 	}
 	if sub.OrgID == nil || *sub.OrgID != org.org.ID {
 		t.Errorf("subagent.org_id mismatch")
@@ -465,7 +474,7 @@ func TestIntegration_EmployeesCreate_SubagentSlug_AutoIncrementsOnCollision(t *t
 
 	taken := model.Agent{
 		OrgID:        &org.org.ID,
-		Name:         "alice-research-specialist",
+		Name:         "alice-business-research-specialist",
 		SystemPrompt: "x",
 		Model:        "deepseek/deepseek-v4-flash",
 		CredentialID: &cred.ID,
@@ -487,8 +496,8 @@ func TestIntegration_EmployeesCreate_SubagentSlug_AutoIncrementsOnCollision(t *t
 	h.db.Where("agent_id = ?", agentID).First(&link)
 	var sub model.Agent
 	h.db.Where("id = ?", link.SubagentID).First(&sub)
-	if sub.Name != "alice-research-specialist-2" {
-		t.Errorf("subagent.name = %q, want %q (auto-incremented suffix)", sub.Name, "alice-research-specialist-2")
+	if sub.Name != "alice-business-research-specialist-2" {
+		t.Errorf("subagent.name = %q, want %q (auto-incremented suffix)", sub.Name, "alice-business-research-specialist-2")
 	}
 }
 

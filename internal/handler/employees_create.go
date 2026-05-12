@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/usehiveloop/hiveloop/internal/employeeprompts"
 	"github.com/usehiveloop/hiveloop/internal/logging"
@@ -86,13 +87,6 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	subChoice, err := pickEmployeeSubagentCredential(h.db)
-	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "pick employee subagent credential", "error", err, "org_id", org.ID)
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "no provider credential available for new employee subagent"})
-		return
-	}
-
 	team, err := ensureEngineeringTeam(h.db, org.ID)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "ensure engineering team", "error", err, "org_id", org.ID)
@@ -129,42 +123,18 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		agent.AvatarURL = &avatar
 	}
 
-	subDesc := fmt.Sprintf("Research specialist cloud agent for %s.", req.Name)
-	subagent := model.Agent{
-		OrgID:          &org.ID,
-		Description:    &subDesc,
-		Category:       &cat,
-		SystemPrompt:   researchSpecialistSystemPrompt,
-		IdentityPrompt: researchSpecialistSystemPrompt,
-		Model:          subChoice.model,
-		CredentialID:   &subChoice.cred.ID,
-		TeamID:         &team.ID,
-		Team:           team.Name,
-		Harness:        employeeHarness,
-		IsEmployee:     false,
-		Status:         "active",
-		Tools:          model.JSON{},
-		McpServers:     model.JSON{},
-		Skills:         model.JSON{},
-		Integrations:   model.JSON{},
-		Resources:      model.JSON{},
-		AgentConfig:    model.JSON{},
-		Permissions:    model.JSON{},
-	}
-
-	subBaseSlug := employeeResearchSpecialistBaseSlug(req.Name, req.Category)
+	var subagent *model.Agent
 
 	err = h.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&agent).Error; err != nil {
 			return err
 		}
-		if err := createWithUniqueNameSlug(tx, &subagent, subBaseSlug); err != nil {
+		created, err := h.ensureBusinessResearchSpecialistTx(r.Context(), tx, &agent, team)
+		if err != nil {
 			return err
 		}
-		return tx.Create(&model.AgentSubagent{
-			AgentID:    agent.ID,
-			SubagentID: subagent.ID,
-		}).Error
+		subagent = created
+		return nil
 	})
 	if err != nil {
 		if isDuplicateKeyError(err) {
@@ -177,7 +147,9 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.attachGlobalSkills(r.Context(), agent.ID, defaultEmployeeSkills[req.Category])
-	h.attachGlobalSkills(r.Context(), subagent.ID, defaultEmployeeSubagentSkills[req.Category])
+	if subagent != nil {
+		h.attachGlobalSkills(r.Context(), subagent.ID, defaultEmployeeSubagentSkills[req.Category])
+	}
 
 	writeJSON(w, http.StatusCreated, createEmployeeResponse{
 		AgentID:   agent.ID.String(),
@@ -236,9 +208,13 @@ func (h *EmployeeHandler) attachGlobalSkills(ctx context.Context, agentID uuid.U
 			continue
 		}
 		link := model.AgentSkill{AgentID: agentID, SkillID: skill.ID}
-		if err := h.db.Create(&link).Error; err != nil {
+		result := h.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&link)
+		if result.Error != nil {
 			log.ErrorContext(ctx, "attach default global skill",
-				"error", err, "agent_id", agentID, "skill_id", skill.ID, "skill_name", name)
+				"error", result.Error, "agent_id", agentID, "skill_id", skill.ID, "skill_name", name)
+			continue
+		}
+		if result.RowsAffected == 0 {
 			continue
 		}
 		if err := h.db.Model(&model.Skill{}).
@@ -286,14 +262,6 @@ func slugifyAgentName(s string) string {
 		}
 	}
 	return strings.TrimRight(b.String(), "-")
-}
-
-func employeeResearchSpecialistBaseSlug(employeeName, category string) string {
-	s := slugifyAgentName(employeeName)
-	if s == "" {
-		s = category
-	}
-	return s + "-research-specialist"
 }
 
 func createWithUniqueNameSlug(tx *gorm.DB, agent *model.Agent, baseSlug string) error {

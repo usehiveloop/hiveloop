@@ -86,6 +86,12 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, err := h.ensureBusinessResearchSpecialist(ctx, &agent); err != nil {
+		log.ErrorContext(ctx, "ensure business research specialist", "error", err, "agent_id", agentID, "org_id", org.ID)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "failed to ensure business research specialist"})
+		return
+	}
+
 	sb, err := h.ensureEmployeeSandbox(ctx, &agent)
 	if err != nil {
 		log.ErrorContext(ctx, "provision employee sandbox during sync", "error", err, "agent_id", agentID)
