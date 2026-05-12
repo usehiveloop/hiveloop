@@ -237,6 +237,10 @@ func sourcePayload(src *ragmodel.RAGSource) map[string]any {
 		"name": src.Name,
 		"kind": src.KindValue.String(),
 	}
+	if src.KindValue == ragmodel.RAGSourceKindSlackBotProfile {
+		source["provider"] = "slack"
+		return source
+	}
 	if provider := strings.TrimSpace(src.SourceKind()); provider != "" {
 		source["provider"] = provider
 	}

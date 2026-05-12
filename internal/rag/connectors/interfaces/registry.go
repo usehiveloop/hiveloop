@@ -1,12 +1,18 @@
 package interfaces
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
 	"sync"
 
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+
+	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/nango"
+	slackprofile "github.com/usehiveloop/hiveloop/internal/profiles/slack"
 	"github.com/usehiveloop/hiveloop/internal/spider"
 )
 
@@ -16,6 +22,12 @@ import (
 type BuildDeps struct {
 	Nango  *nango.Client
 	Spider *spider.Client
+	DB     *gorm.DB
+	KMS    *crypto.KeyWrapper
+}
+
+func (d BuildDeps) ResolveSlackProfileSecrets(ctx context.Context, orgID, profileID uuid.UUID) (slackprofile.Secrets, slackprofile.Identity, error) {
+	return slackprofile.LoadProfileSecrets(ctx, d.DB, d.KMS, orgID, profileID)
 }
 
 // Factory constructs a Connector instance bound to a specific Source

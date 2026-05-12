@@ -153,6 +153,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		}, agentHandler)
 	}
 	agentProfileHandler := handler.NewAgentProfileHandler(database, deps.KMS, nangoClient)
+	agentProfileHandler.SetRAGEnqueuer(enqueuer)
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
 
 	var driveHandler *handler.DriveHandler

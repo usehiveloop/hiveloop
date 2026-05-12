@@ -137,7 +137,7 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 func (h *RAGSourceHandler) dispatchInitialIngest(ctx context.Context, src *ragmodel.RAGSource) {
 	switch src.KindValue {
-	case ragmodel.RAGSourceKindIntegration, ragmodel.RAGSourceKindWebsite:
+	case ragmodel.RAGSourceKindIntegration, ragmodel.RAGSourceKindWebsite, ragmodel.RAGSourceKindSlackBotProfile:
 	default:
 		return
 	}

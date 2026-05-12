@@ -124,6 +124,7 @@ func (h *AgentProfileHandler) UpdateSlackConfig(w http.ResponseWriter, r *http.R
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to save profile config"})
 		return
 	}
+	h.ensureSlackKnowledgeSource(r.Context(), agent, &profile)
 
 	writeJSON(w, http.StatusOK, updateSlackConfigResponse{
 		Profile: toAgentProfileResponse(profile),

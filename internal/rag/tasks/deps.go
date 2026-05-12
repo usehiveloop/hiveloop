@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/nango"
 	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
 	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
@@ -19,6 +20,7 @@ type Deps struct {
 	Embedder   *embedclient.Embedder
 	Nango      *nango.Client
 	Spider     *spider.Client
+	KMS        *crypto.KeyWrapper
 	Credits    *billing.CreditsService
 	Collection string
 

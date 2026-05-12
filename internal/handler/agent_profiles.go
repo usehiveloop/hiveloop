@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/nango"
@@ -35,10 +36,15 @@ type AgentProfileHandler struct {
 	db    *gorm.DB
 	kms   *crypto.KeyWrapper
 	nango *nango.Client
+	enq   enqueue.TaskEnqueuer
 }
 
 func NewAgentProfileHandler(db *gorm.DB, kms *crypto.KeyWrapper, nangoClient *nango.Client) *AgentProfileHandler {
 	return &AgentProfileHandler{db: db, kms: kms, nango: nangoClient}
+}
+
+func (h *AgentProfileHandler) SetRAGEnqueuer(enq enqueue.TaskEnqueuer) {
+	h.enq = enq
 }
 
 type agentProfileResponse struct {

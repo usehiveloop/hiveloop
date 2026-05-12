@@ -21,13 +21,15 @@ const (
 	RAGSourceKindIntegration RAGSourceKind = "INTEGRATION"
 	RAGSourceKindWebsite     RAGSourceKind = "WEBSITE"
 	RAGSourceKindFileUpload  RAGSourceKind = "FILE_UPLOAD"
+	RAGSourceKindSlackBotProfile RAGSourceKind = "SLACK_BOT_PROFILE"
 )
 
 func (k RAGSourceKind) IsValid() bool {
 	switch k {
 	case RAGSourceKindIntegration,
 		RAGSourceKindWebsite,
-		RAGSourceKindFileUpload:
+		RAGSourceKindFileUpload,
+		RAGSourceKindSlackBotProfile:
 		return true
 	default:
 		return false

@@ -144,6 +144,7 @@ func (h *AgentProfileHandler) CreateSlack(w http.ResponseWriter, r *http.Request
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create profile"})
 		return
 	}
+	h.ensureSlackKnowledgeSource(r.Context(), agent, &profile)
 
 	writeJSON(w, http.StatusCreated, createSlackProfileResponse{
 		Profile:  toAgentProfileResponse(profile),
