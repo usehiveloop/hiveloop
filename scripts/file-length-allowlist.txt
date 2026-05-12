@@ -45,3 +45,24 @@ internal/hindsight/retainer.go
 internal/trigger/dispatch/router_dispatcher.go
 internal/system/tasks/prompt_writer_resolve.go
 internal/handler/system_tasks_prompt_writer_test.go
+
+# Existing large files grandfathered after CI enforcement was enabled on main.
+cmd/server/serve_routes_v1.go
+internal/tasks/employee_memory_test.go
+internal/tasks/employee_memory.go
+internal/tasks/employee_memory_real_hindsight_integration_test.go
+internal/profiles/slack/slack.go
+internal/handler/cloud_agents_test.go
+internal/handler/agent_profiles_github.go
+internal/handler/employees_sync_test.go
+internal/handler/agent_profiles_github_test.go
+internal/handler/employees_create_test.go
+internal/handler/employees_create.go
+internal/handler/employees_helpers_test.go
+internal/handler/chats_stream.go
+internal/handler/employee_uploads_stream_test.go
+internal/handler/teams_test.go
+internal/handler/teams.go
+internal/handler/cloud_agents.go
+internal/employeeruntime/compile.go
+internal/hermes/compile_test.go

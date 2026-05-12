@@ -77,7 +77,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: "1.25.10"
           cache: true
       - uses: golangci/golangci-lint-action@v6
         with:
@@ -85,7 +85,7 @@ jobs:
           # goinstall builds golangci-lint with the Go toolchain we just set
           # up, so it matches the 1.25 requirement in our go.mod. The default
           # "binary" mode uses the prebuilt release which for v1.64 was
-          # compiled with Go 1.24 and rejects our 1.25.9 target.
+          # compiled with Go 1.24 and rejects our 1.25 target.
           install-mode: goinstall
           # Scope to the maintained packages. cmd/fetchactions-* and
           # skills/upload have pre-existing typecheck failures unrelated to
@@ -99,7 +99,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: "1.25.10"
           cache: true
       - name: go vet
         run: go vet ./internal/... ./cmd/server/...
@@ -113,7 +113,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: "1.25.10"
           cache: true
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -137,7 +137,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: "1.25.10"
           cache: true
       - name: Install gitleaks
         # Pinned prebuilt binary from the official release.
