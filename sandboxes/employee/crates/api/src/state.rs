@@ -2,7 +2,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use agent::cloud_agents::CloudTaskIndex;
-use domain::ConfigStore;
+use async_trait::async_trait;
+use domain::{ConfigStore, OutboundChannelSpec};
 use mcp::McpRegistry;
 use observability::ObservabilityRecorder;
 use skills::SkillWriter;
@@ -22,8 +23,14 @@ pub struct ApiState {
     pub skill_writer: Arc<SkillWriter>,
     pub http_gateway: Option<HttpGatewayState>,
     pub mcp_registry: Option<Arc<McpRegistry>>,
+    pub outbound_reloader: Option<Arc<dyn OutboundConfigReloader>>,
     pub cloud_task_index: Option<Arc<CloudTaskIndex>>,
     pub observability: ObservabilityRecorder,
+}
+
+#[async_trait]
+pub trait OutboundConfigReloader: Send + Sync {
+    async fn reload_outbound_channels(&self, specs: &[OutboundChannelSpec]) -> anyhow::Result<()>;
 }
 
 impl ApiState {
@@ -36,6 +43,7 @@ impl ApiState {
         skill_writer: Arc<SkillWriter>,
         http_gateway: Option<HttpGatewayState>,
         mcp_registry: Option<Arc<McpRegistry>>,
+        outbound_reloader: Option<Arc<dyn OutboundConfigReloader>>,
         cloud_task_index: Option<Arc<CloudTaskIndex>>,
     ) -> Self {
         let observability = http_gateway
@@ -53,6 +61,7 @@ impl ApiState {
             skill_writer,
             http_gateway,
             mcp_registry,
+            outbound_reloader,
             cloud_task_index,
             observability,
         }

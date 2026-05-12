@@ -37,6 +37,17 @@ pub async fn put_config(
     if let Some(registry) = state.mcp_registry.as_ref() {
         registry.reload_from_specs(&definition.mcp_servers).await;
     }
+    if let Some(reloader) = state.outbound_reloader.as_ref() {
+        reloader
+            .reload_outbound_channels(&definition.outbound_channels)
+            .await
+            .map_err(|error| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("reload outbound channels: {error}"),
+                )
+            })?;
+    }
     state.config_store.replace(definition.clone());
     state.mark_config_loaded();
     Ok(Json(ConfigResponse {

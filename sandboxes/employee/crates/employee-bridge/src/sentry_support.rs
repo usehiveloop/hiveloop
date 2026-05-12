@@ -99,6 +99,9 @@ pub fn init_sentry() -> Option<sentry::ClientInitGuard> {
     let guard = sentry::init(options);
     sentry::configure_scope(|scope| {
         scope.set_tag("service", "employee-bridge");
+        for (key, value) in runtime_sentry_tags() {
+            scope.set_tag(key, value);
+        }
         if config.spotlight_url.is_some() {
             scope.set_tag("sentry.spotlight", "true");
         }
@@ -283,6 +286,23 @@ fn f32_env(key: &str) -> Option<f32> {
     non_empty_env(key).and_then(|value| value.parse().ok())
 }
 
+fn runtime_sentry_tags() -> Vec<(&'static str, String)> {
+    let mut tags = Vec::new();
+    if let Some(org_id) = non_empty_env("HIVELOOP_ORG_ID") {
+        tags.push(("org_id", org_id));
+    }
+    if let Some(agent_id) = non_empty_env("HIVELOOP_AGENT_ID") {
+        tags.push(("agent_id", agent_id));
+    }
+    if let Some(employee_id) = non_empty_env("EMPLOYEE_ID") {
+        tags.push(("employee_id", employee_id));
+    }
+    if let Some(sandbox_id) = non_empty_env("HIVELOOP_SANDBOX_ID") {
+        tags.push(("sandbox_id", sandbox_id));
+    }
+    tags
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -324,6 +344,23 @@ mod tests {
         assert_eq!(config.release.as_deref(), Some("employee-bridge@test"));
         assert_eq!(config.traces_sample_rate, 0.25);
         assert!(!config.enable_logs);
+    }
+
+    #[test]
+    fn runtime_sentry_tags_use_hiveloop_identity_env() {
+        let _guard = env_lock().lock().unwrap();
+        EnvGuard::clear_all();
+        std::env::set_var("HIVELOOP_ORG_ID", "org-123");
+        std::env::set_var("HIVELOOP_AGENT_ID", "agent-123");
+        std::env::set_var("EMPLOYEE_ID", "employee-123");
+        std::env::set_var("HIVELOOP_SANDBOX_ID", "sandbox-123");
+
+        let tags = runtime_sentry_tags();
+
+        assert!(tags.contains(&("org_id", "org-123".to_string())));
+        assert!(tags.contains(&("agent_id", "agent-123".to_string())));
+        assert!(tags.contains(&("employee_id", "employee-123".to_string())));
+        assert!(tags.contains(&("sandbox_id", "sandbox-123".to_string())));
     }
 
     #[test]
@@ -406,6 +443,10 @@ mod tests {
                 "SENTRY_DEBUG",
                 "SENTRY_SPOTLIGHT",
                 "SENTRY_SPOTLIGHT_URL",
+                "HIVELOOP_ORG_ID",
+                "HIVELOOP_AGENT_ID",
+                "EMPLOYEE_ID",
+                "HIVELOOP_SANDBOX_ID",
             ] {
                 std::env::remove_var(key);
             }

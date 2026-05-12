@@ -9,14 +9,70 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use domain::{
-    AgentDefinition, AgentMeta, ConfigStore, EventKind, Limits, ModelConfig, Session, SessionEvent,
-    SessionId, SessionStatus,
+    AgentDefinition, AgentMeta, ConfigStore, EventKind, Limits, ModelConfig, OutboundChannelKind,
+    OutboundChannelSpec, Session, SessionEvent, SessionId, SessionStatus,
 };
 use serde_json::{json, Map, Value};
 use skills::SkillWriter;
 use storage::{ConfigRepo, EventRepo, SessionRepo};
 use tokio::sync::mpsc;
 use tower::ServiceExt;
+
+#[tokio::test]
+async fn put_config_reloads_outbound_channels() {
+    let config = ConfigStore::new(test_definition());
+    let config_repo = Arc::new(MemoryConfigRepo::default());
+    let sessions = Arc::new(MemorySessionRepo::default());
+    let events = Arc::new(MemoryEventRepo::default());
+    let reloader = Arc::new(RecordingOutboundReloader::default());
+    let (tx, _rx) = mpsc::channel(1);
+    let broker = Arc::new(api::HttpStreamBroker::new());
+    let state = api::ApiState::new(
+        config,
+        config_repo,
+        sessions,
+        events,
+        "secret".to_string(),
+        Arc::new(SkillWriter::new(test_workspace())),
+        Some(api::HttpGatewayState {
+            inbound_sink: tx,
+            broker,
+        }),
+        None,
+        Some(reloader.clone()),
+        None,
+    );
+    let router = api::build_router(state);
+
+    let mut definition = test_definition();
+    definition.outbound_channels = vec![OutboundChannelSpec {
+        name: "control-plane-memory".to_string(),
+        kind: OutboundChannelKind::Webhook {
+            url: "https://api.usehiveloop.com/internal/webhooks/employee/sandbox-id".to_string(),
+            secret_env: "RUNTIME_SECRET".to_string(),
+            extra_headers: Default::default(),
+        },
+        event_filter: None,
+    }];
+    let response = router
+        .oneshot(
+            Request::builder()
+                .method(Method::PUT)
+                .uri("/config")
+                .header(header::AUTHORIZATION, "Bearer secret")
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(serde_json::to_vec(&definition).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .expect("response");
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        reloader.reloads.lock().unwrap().as_slice(),
+        &[vec!["control-plane-memory".to_string()]]
+    );
+}
 
 #[tokio::test]
 async fn callback_requires_bearer_auth() {
@@ -234,6 +290,7 @@ impl Fixture {
                 broker: broker.clone(),
             }),
             None,
+            None,
             cloud_task_index,
         );
         Self {
@@ -335,6 +392,22 @@ impl ConfigRepo for MemoryConfigRepo {
 
     async fn upsert(&self, def: &AgentDefinition) -> storage::Result<()> {
         *self.definition.lock().unwrap() = Some(def.clone());
+        Ok(())
+    }
+}
+
+#[derive(Default)]
+struct RecordingOutboundReloader {
+    reloads: Mutex<Vec<Vec<String>>>,
+}
+
+#[async_trait]
+impl api::OutboundConfigReloader for RecordingOutboundReloader {
+    async fn reload_outbound_channels(&self, specs: &[OutboundChannelSpec]) -> anyhow::Result<()> {
+        self.reloads
+            .lock()
+            .unwrap()
+            .push(specs.iter().map(|spec| spec.name.clone()).collect());
         Ok(())
     }
 }

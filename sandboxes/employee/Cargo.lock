@@ -937,6 +937,7 @@ dependencies = [
  "sentry",
  "serde_json",
  "skills",
+ "sqlx",
  "storage",
  "tokio",
  "tools",

@@ -17,15 +17,18 @@ use agent::{
     AgentRunner, RigAgentRunner,
 };
 use anyhow::{Context, Result};
-use api::ApiState;
+use api::{ApiState, OutboundConfigReloader};
+use async_trait::async_trait;
 use domain::{
-    AgentDefinition, AgentMeta, BashConfig, ConfigStore, InboundEvent, ModelConfig, PromptFragment,
-    PromptFragments, ReadFileConfig, ReasoningEffort, SlackConfig, ToolSpec, WriteFileConfig,
+    AgentDefinition, AgentMeta, BashConfig, ConfigStore, InboundEvent, ModelConfig,
+    OutboundChannelSpec, PromptFragment, PromptFragments, ReadFileConfig, ReasoningEffort,
+    SlackConfig, ToolSpec, WriteFileConfig,
 };
 use gateway::{ChannelGateway, SlackGateway};
 use mcp::McpRegistry;
-use outbound::{build_registry, OutboundDispatcher, OutboundEmitter};
+use outbound::{build_registry, OutboundDispatcher, OutboundEmitter, OutboundRegistry};
 use skills::SkillWriter;
+use sqlx::SqlitePool;
 use storage::{
     init_sqlite_pool, SqliteConfigRepo, SqliteCronJobRepo, SqliteEventRepo,
     SqliteInboundDedupeRepo, SqliteOutboxRepo, SqliteSessionRepo,
@@ -122,6 +125,10 @@ async fn main() -> Result<()> {
     let registry = build_registry(sqlite_pool.clone(), &initial_definition.outbound_channels)
         .map_err(|e| anyhow::anyhow!("build outbound registry: {e}"))?;
     let registry = Arc::new(RwLock::new(registry));
+    let outbound_reloader: Arc<dyn OutboundConfigReloader> = Arc::new(RegistryReloader {
+        sqlite_pool: sqlite_pool.clone(),
+        registry: registry.clone(),
+    });
 
     let dispatcher = OutboundDispatcher::new(outbox_repo.clone(), registry.clone());
     let (dispatcher_handle, dispatcher_cancel) = dispatcher.spawn();
@@ -175,6 +182,7 @@ async fn main() -> Result<()> {
             broker: http_stream_broker.clone(),
         }),
         Some(mcp_registry.clone()),
+        Some(outbound_reloader),
         cloud_agent_service.as_ref().map(|service| service.index()),
     );
     api_state.mark_config_loaded();
@@ -239,6 +247,23 @@ async fn main() -> Result<()> {
     let _ = api_handle.await;
     drop(sentry_guard);
     Ok(())
+}
+
+struct RegistryReloader {
+    sqlite_pool: Arc<SqlitePool>,
+    registry: Arc<RwLock<OutboundRegistry>>,
+}
+
+#[async_trait]
+impl OutboundConfigReloader for RegistryReloader {
+    async fn reload_outbound_channels(&self, specs: &[OutboundChannelSpec]) -> anyhow::Result<()> {
+        let next = build_registry(self.sqlite_pool.clone(), specs)
+            .map_err(|error| anyhow::anyhow!("build outbound registry: {error}"))?;
+        let names = next.names();
+        *self.registry.write().await = next;
+        info!(channels = ?names, "outbound registry reloaded from config");
+        Ok(())
+    }
 }
 
 fn required_env(key: &str, hint: &str) -> Result<String> {

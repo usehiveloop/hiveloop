@@ -14,7 +14,7 @@ use tokio::sync::oneshot;
 use tracing::{info, warn};
 
 pub use http_gateway::{HttpGatewayState, HttpStreamBroker, HttpStreamEvent};
-pub use state::ApiState;
+pub use state::{ApiState, OutboundConfigReloader};
 
 pub fn build_router(state: ApiState) -> Router {
     Router::new()
