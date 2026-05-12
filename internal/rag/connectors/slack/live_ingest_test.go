@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	qdrantgo "github.com/qdrant/go-client/qdrant"
+	slacksdk "github.com/slack-go/slack"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -29,7 +30,6 @@ func TestSlackBotProfileRAGIngestion_Live(t *testing.T) {
 		t.Skip("set HIVELOOP_E2E_SLACK_RAG=1 to run the real Slack/Qdrant ingestion test")
 	}
 	botToken := requiredEnv(t, "HIVELOOP_E2E_SLACK_BOT_TOKEN")
-	appToken := requiredEnv(t, "HIVELOOP_E2E_SLACK_APP_TOKEN")
 	llmURL := requiredEnv(t, "LLM_API_URL")
 	llmKey := requiredEnv(t, "LLM_API_KEY")
 	llmModel := requiredEnv(t, "LLM_MODEL")
@@ -51,9 +51,9 @@ func TestSlackBotProfileRAGIngestion_Live(t *testing.T) {
 		t.Cleanup(func() { _ = qd.DeleteCollection(context.Background(), collection) })
 	}
 
-	identity, err := slackprofile.VerifyAndIntrospect(ctx, slackprofile.Secrets{BotToken: botToken, AppToken: appToken})
+	identity, err := readonlySlackBotIdentity(botToken)
 	if err != nil {
-		t.Fatalf("verify slack tokens: %v", err)
+		t.Fatalf("verify slack bot token: %v", err)
 	}
 
 	org := model.Org{ID: uuid.New(), Name: "slack-rag-e2e-" + uuid.NewString()[:8]}
@@ -79,7 +79,7 @@ func TestSlackBotProfileRAGIngestion_Live(t *testing.T) {
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	profile := liveSlackRAGProfile(t, db, kms, org.ID, agent.ID, identity, slackprofile.Secrets{BotToken: botToken, AppToken: appToken})
+	profile := liveSlackRAGProfile(t, db, kms, org.ID, agent.ID, identity, slackprofile.Secrets{BotToken: botToken})
 	historyDays := 90
 	indexingStart := time.Now().UTC().AddDate(0, 0, -historyDays)
 	refresh := 600
@@ -158,6 +158,21 @@ func requiredEnv(t *testing.T, key string) string {
 		t.Fatalf("%s not set", key)
 	}
 	return value
+}
+
+func readonlySlackBotIdentity(botToken string) (slackprofile.Identity, error) {
+	resp, err := slacksdk.New(botToken).AuthTest()
+	if err != nil {
+		return slackprofile.Identity{}, err
+	}
+	return slackprofile.Identity{
+		TeamID:      resp.TeamID,
+		TeamName:    resp.Team,
+		TeamURL:     resp.URL,
+		BotUserID:   resp.UserID,
+		BotUsername: resp.User,
+		BotID:       resp.BotID,
+	}, nil
 }
 
 func requiredEnvInt(t *testing.T, key string, fallback int) int {
