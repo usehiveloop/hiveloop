@@ -74,7 +74,7 @@ pub async fn handle_app_mention(
         user_display_name,
         text: replace_bot_mention(&text, bot_id, &snapshot.agent.name),
         attachments,
-        raw: serde_json::Value::Null,
+        raw: serde_json::json!({"source": "slack"}),
         inbound_handle: message_handle(&channel, &message_ts),
         is_direct_message: matches!(
             payload.origin.channel_type,

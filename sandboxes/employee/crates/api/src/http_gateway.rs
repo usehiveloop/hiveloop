@@ -329,6 +329,7 @@ impl HttpGatewayState {
             .await
             .unwrap_or_else(|| (format!("trace-{stream_id}"), format!("turn-{stream_id}")));
         let raw = json!({
+            "source": "http",
             "http_stream_id": stream_id,
             "trace_id": trace_id,
             "turn_id": turn_id,

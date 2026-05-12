@@ -181,6 +181,7 @@ pub async fn emit_tool_invoked(
             event_types::TOOL_INVOKED,
             json!({
                 "session_id": session_id.as_str(),
+                "source": event_source_from_session(session_id),
                 "tool": tool,
                 "args": args,
                 "result_summary": summary,
@@ -202,12 +203,21 @@ pub async fn emit_tool_error(
             event_types::ERROR_TOOL,
             json!({
                 "session_id": session_id.as_str(),
+                "source": event_source_from_session(session_id),
                 "tool": tool,
                 "args": args,
                 "error": error,
             }),
         ))
         .await;
+}
+
+fn event_source_from_session(session_id: &SessionId) -> &'static str {
+    if session_id.as_str().starts_with("http-") {
+        "http"
+    } else {
+        "slack"
+    }
 }
 
 fn status_update_tool(

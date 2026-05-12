@@ -225,7 +225,8 @@ async fn process_single_turn(
     if !was_new_session {
         let _ = session_repo.touch(&session_id, Utc::now()).await;
     }
-    emit_user_message_received(&emitter, inbound).await;
+    let event_source = inbound_event_source(inbound);
+    emit_user_message_received(&emitter, inbound, event_source).await;
 
     let skip_typing = is_cron_message(inbound) || !slack.typing_indicator;
     let typing_loop = if skip_typing {
@@ -320,6 +321,7 @@ async fn process_single_turn(
                 event_types::ERROR_MODEL,
                 serde_json::json!({
                     "session_id": session_id.as_str(),
+                    "source": event_source,
                     "error": error_message,
                 }),
             ))
@@ -333,6 +335,7 @@ async fn process_single_turn(
                 event_types::AGENT_MESSAGE_SENT,
                 serde_json::json!({
                     "session_id": session_id.as_str(),
+                    "source": event_source,
                     "text": reply_text_for_event,
                 }),
             ))
@@ -349,7 +352,11 @@ async fn process_single_turn(
     Ok(())
 }
 
-async fn emit_user_message_received(emitter: &OutboundEmitter, inbound: &InboundEvent) {
+async fn emit_user_message_received(
+    emitter: &OutboundEmitter,
+    inbound: &InboundEvent,
+    source: &'static str,
+) {
     let (channel, thread_ts) = derive_channel_and_thread(&inbound.session_id);
     emitter
         .emit(OutboundEvent::new(
@@ -357,6 +364,7 @@ async fn emit_user_message_received(emitter: &OutboundEmitter, inbound: &Inbound
             serde_json::json!({
                 "envelope_id": inbound.envelope_id,
                 "session_id": inbound.session_id.as_str(),
+                "source": source,
                 "channel": channel,
                 "thread_ts": thread_ts,
                 "user": inbound.user,
@@ -375,6 +383,22 @@ async fn emit_user_message_received(emitter: &OutboundEmitter, inbound: &Inbound
             }),
         ))
         .await;
+}
+
+fn inbound_event_source(inbound: &InboundEvent) -> &'static str {
+    match inbound
+        .raw
+        .get("source")
+        .and_then(|value| value.as_str())
+        .unwrap_or_default()
+    {
+        "http" => "http",
+        "cron" => "cron",
+        "cloud_agent_callback" => "cloud_agent_callback",
+        "slack" => "slack",
+        _ if inbound.session_id.as_str().starts_with("http-") => "http",
+        _ => "slack",
+    }
 }
 
 fn derive_channel_and_thread(session_id: &SessionId) -> (String, String) {
