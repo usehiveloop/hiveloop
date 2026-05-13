@@ -17,7 +17,7 @@ type conversationAssetResponse struct {
 	Path        string `json:"path"`
 	Filename    string `json:"filename"`
 	Key         string `json:"key"`
-	PublicURL   string `json:"public_url"`
+	PublicURL   string `json:"asset_url"`
 	ContentType string `json:"content_type"`
 	Bytes       int64  `json:"bytes"`
 	CreatedAt   string `json:"created_at"`

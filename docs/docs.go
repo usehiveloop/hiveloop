@@ -12066,7 +12066,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "logoURL": {
-                    "description": "LogoURL is a CDN-served URL to the org's square logo. Stored as the\npublic_url returned from POST /v1/uploads/sign with asset_type=org_logo.\nEmpty string when no logo is set.",
+                    "description": "LogoURL is a CDN-served URL to the org's square logo. Stored as the\nasset_url returned from POST /v1/uploads/sign with asset_type=org_logo.\nEmpty string when no logo is set.",
                     "type": "string"
                 },
                 "name": {
@@ -13914,7 +13914,7 @@ const docTemplate = `{
                 "path": {
                     "type": "string"
                 },
-                "public_url": {
+                "asset_url": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -17277,7 +17277,7 @@ const docTemplate = `{
                 "max_size_bytes": {
                     "type": "integer"
                 },
-                "public_url": {
+                "asset_url": {
                     "type": "string"
                 },
                 "required_headers": {

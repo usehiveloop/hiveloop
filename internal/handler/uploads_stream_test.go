@@ -137,7 +137,7 @@ func TestStreamAsset_HappyPath_Image(t *testing.T) {
 
 	var resp struct {
 		ID          string `json:"id"`
-		PublicURL   string `json:"public_url"`
+		PublicURL   string `json:"asset_url"`
 		Key         string `json:"key"`
 		Path        string `json:"path"`
 		Filename    string `json:"filename"`
@@ -161,11 +161,11 @@ func TestStreamAsset_HappyPath_Image(t *testing.T) {
 		t.Fatalf("key: got %q want %q", resp.Key, wantKey)
 	}
 
-	// Verify the object is fetchable via the public URL.
+	// Verify the object is fetchable via the asset URL.
 	getReq, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, resp.PublicURL, nil)
 	getResp, err := http.DefaultClient.Do(getReq)
 	if err != nil {
-		t.Fatalf("get public URL: %v", err)
+		t.Fatalf("get asset URL: %v", err)
 	}
 	defer getResp.Body.Close()
 	if getResp.StatusCode != http.StatusOK {

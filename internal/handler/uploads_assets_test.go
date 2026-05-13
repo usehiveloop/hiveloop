@@ -50,7 +50,7 @@ func (s *streamHarness) seedAsset(t *testing.T, folder, filename, body string) s
 		t.Fatalf("seed asset: got %d: %s", rr.Code, rr.Body.String())
 	}
 	var resp struct {
-		PublicURL string `json:"public_url"`
+		PublicURL string `json:"asset_url"`
 	}
 	_ = json.Unmarshal(rr.Body.Bytes(), &resp)
 	return resp.PublicURL

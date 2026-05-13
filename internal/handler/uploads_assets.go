@@ -67,7 +67,7 @@ func (h *UploadsHandler) DeleteConversationAsset(w http.ResponseWriter, r *http.
 }
 
 type moveAssetRequest struct {
-	// Asset is either the public_url returned at upload time or a relative
+	// Asset is either the asset_url returned at upload time or a relative
 	// "<folder>/<filename>" path inside the conversation drive.
 	Asset string `json:"asset"`
 	// NewPath is the destination folder. "" / "/" means the drive root.
@@ -76,7 +76,7 @@ type moveAssetRequest struct {
 
 type moveAssetResponse struct {
 	ID        uuid.UUID `json:"id"`
-	PublicURL string    `json:"public_url"`
+	PublicURL string    `json:"asset_url"`
 	Key       string    `json:"key"`
 	Path      string    `json:"path"`
 	Filename  string    `json:"filename"`
@@ -84,12 +84,12 @@ type moveAssetResponse struct {
 }
 
 // MoveConversationAsset relabels an asset's folder. Only the database
-// `path` column is touched — the S3 key (and therefore the public URL)
+// `path` column is touched — the S3 key (and therefore the asset URL)
 // stays put. Use this for organising the frontend listing without
 // re-uploading multi-GB objects.
 //
 //	POST /internal/conversations/{conversationID}/assets/move
-//	body: {"asset":"<public_url|folder/filename>","new_path":"archive"}
+//	body: {"asset":"<asset_url|folder/filename>","new_path":"archive"}
 func (h *UploadsHandler) MoveConversationAsset(w http.ResponseWriter, r *http.Request) {
 	if h.encKey == nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "asset endpoints not configured"})
@@ -149,7 +149,7 @@ func (h *UploadsHandler) MoveConversationAsset(w http.ResponseWriter, r *http.Re
 }
 
 // resolveAssetReference accepts either:
-//   - an absolute public URL (must contain "/pub/c/{convID}/<rest>")
+//   - an absolute asset URL (must contain "/pub/c/{convID}/<rest>")
 //   - a relative "<folder>/<filename>" path inside the drive
 //
 // and returns the (folder, filename) pair so callers can rebuild the S3 key.

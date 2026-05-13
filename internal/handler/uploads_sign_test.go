@@ -122,7 +122,7 @@ func TestUploadsSign_Avatar_HappyPath(t *testing.T) {
 	if resp["upload_method"] != "PUT" {
 		t.Fatalf("expected upload_method=PUT, got %v", resp["upload_method"])
 	}
-	if resp["upload_url"] == "" || resp["public_url"] == "" || resp["key"] == "" {
+	if resp["upload_url"] == "" || resp["asset_url"] == "" || resp["key"] == "" {
 		t.Fatalf("missing fields: %#v", resp)
 	}
 	key := resp["key"].(string)

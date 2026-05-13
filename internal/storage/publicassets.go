@@ -39,7 +39,7 @@ type SignedUpload struct {
 	UploadMethod    string            `json:"upload_method"`
 	RequiredHeaders map[string]string `json:"required_headers"`
 	Key             string            `json:"key"`
-	PublicURL       string            `json:"public_url"`
+	PublicURL       string            `json:"asset_url"`
 	ExpiresAt       time.Time         `json:"expires_at"`
 	MaxSizeBytes    int64             `json:"max_size_bytes"`
 }

@@ -16,7 +16,7 @@ import (
 
 type streamAssetResponse struct {
 	ID          uuid.UUID `json:"id"`
-	PublicURL   string    `json:"public_url"`
+	PublicURL   string    `json:"asset_url"`
 	Key         string    `json:"key"`
 	Path        string    `json:"path"`
 	Filename    string    `json:"filename"`
@@ -79,15 +79,15 @@ func (h *UploadsHandler) StreamConversationAsset(w http.ResponseWriter, r *http.
 		Bytes:          stored.Bytes,
 	}
 	if err := h.db.Where("key = ?", stored.Key).Assign(map[string]any{
-		"conversation_id": conv.ID,
-		"org_id":          conv.OrgID,
-		"sandbox_id":      conv.SandboxID,
-		"path":            folder,
-		"filename":        filename,
-		"public_url":      stored.PublicURL,
-		"content_type":    contentType,
-		"bytes":           stored.Bytes,
-		"updated_at":      time.Now(),
+		"conversation_id":     conv.ID,
+		"org_id":              conv.OrgID,
+		"sandbox_id":          conv.SandboxID,
+		"path":                folder,
+		"filename":            filename,
+		assetURLStorageColumn: stored.PublicURL,
+		"content_type":        contentType,
+		"bytes":               stored.Bytes,
+		"updated_at":          time.Now(),
 	}).FirstOrCreate(&asset).Error; err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "persist conversation asset", "conversation_id", conv.ID, "key", stored.Key, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to save asset"})
