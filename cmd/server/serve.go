@@ -153,7 +153,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			Hindsight:  hindsightClient,
 		}, agentHandler)
 	}
-	agentProfileHandler := handler.NewAgentProfileHandler(database, deps.KMS, nangoClient)
+	agentProfileHandler := handler.NewAgentProfileHandler(database, deps.KMS, sandboxEncKey, nangoClient)
 	agentProfileHandler.SetRAGEnqueuer(enqueuer)
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
 

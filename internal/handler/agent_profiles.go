@@ -16,6 +16,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/nango"
+	githubprofile "github.com/usehiveloop/hiveloop/internal/profiles/github"
 )
 
 // jsonRoundTripToMap marshal-unmarshals into model.JSON so typed Go structs
@@ -35,13 +36,14 @@ func jsonRoundTripToMap(v any) (model.JSON, error) {
 type AgentProfileHandler struct {
 	db         *gorm.DB
 	kms        *crypto.KeyWrapper
+	encKey     *crypto.SymmetricKey
 	nango      *nango.Client
 	enq        enqueue.TaskEnqueuer
 	bridgeHost string
 }
 
-func NewAgentProfileHandler(db *gorm.DB, kms *crypto.KeyWrapper, nangoClient *nango.Client) *AgentProfileHandler {
-	return &AgentProfileHandler{db: db, kms: kms, nango: nangoClient}
+func NewAgentProfileHandler(db *gorm.DB, kms *crypto.KeyWrapper, encKey *crypto.SymmetricKey, nangoClient *nango.Client) *AgentProfileHandler {
+	return &AgentProfileHandler{db: db, kms: kms, encKey: encKey, nango: nangoClient}
 }
 
 func (h *AgentProfileHandler) SetRAGEnqueuer(enq enqueue.TaskEnqueuer) {
@@ -65,6 +67,10 @@ type agentProfileResponse struct {
 }
 
 func toAgentProfileResponse(p model.AgentProfile) agentProfileResponse {
+	return toAgentProfileResponseWithIdentity(p, p.Identity)
+}
+
+func toAgentProfileResponseWithIdentity(p model.AgentProfile, identity model.JSON) agentProfileResponse {
 	resp := agentProfileResponse{
 		ID:           p.ID.String(),
 		OrgID:        p.OrgID.String(),
@@ -72,7 +78,7 @@ func toAgentProfileResponse(p model.AgentProfile) agentProfileResponse {
 		Provider:     p.Provider,
 		ExternalID:   p.ExternalID,
 		Label:        p.Label,
-		Identity:     p.Identity,
+		Identity:     identity,
 		Config:       p.Config,
 		Status:       p.Status,
 		StatusReason: p.StatusReason,
@@ -84,6 +90,14 @@ func toAgentProfileResponse(p model.AgentProfile) agentProfileResponse {
 		resp.LastVerifiedAt = &s
 	}
 	return resp
+}
+
+func (h *AgentProfileHandler) toAgentProfileResponse(p model.AgentProfile) (agentProfileResponse, error) {
+	identity, err := githubprofile.DecryptIdentity(h.encKey, p)
+	if err != nil {
+		return agentProfileResponse{}, err
+	}
+	return toAgentProfileResponseWithIdentity(p, identity), nil
 }
 
 var errAgentNotFound = errors.New("agent not found")

@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"context"
 	"crypto/subtle"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -23,9 +25,21 @@ const (
 	gitTokenCacheTTL  = 30 * time.Minute
 )
 
+type gitTokenCacheKey struct {
+	agentID           uuid.UUID
+	providerConfigKey string
+	nangoConnectionID string
+}
+
 type gitTokenEntry struct {
 	token    string
 	cachedAt time.Time
+}
+
+type gitHubTokenConnection struct {
+	conn              model.InConnection
+	providerConfigKey string
+	cacheKey          gitTokenCacheKey
 }
 
 // GitCredentialsHandler serves git credential helper requests from sandboxes.
@@ -35,7 +49,7 @@ type GitCredentialsHandler struct {
 	db     *gorm.DB
 	encKey *crypto.SymmetricKey
 	nango  *nango.Client
-	cache  *expirable.LRU[uuid.UUID, *gitTokenEntry]
+	cache  *expirable.LRU[gitTokenCacheKey, *gitTokenEntry]
 }
 
 // NewGitCredentialsHandler creates a git credentials handler with an in-memory
@@ -45,7 +59,7 @@ func NewGitCredentialsHandler(db *gorm.DB, encKey *crypto.SymmetricKey, nangoCli
 		db:     db,
 		encKey: encKey,
 		nango:  nangoClient,
-		cache:  expirable.NewLRU[uuid.UUID, *gitTokenEntry](gitTokenCacheSize, nil, gitTokenCacheTTL),
+		cache:  expirable.NewLRU[gitTokenCacheKey, *gitTokenEntry](gitTokenCacheSize, nil, gitTokenCacheTTL),
 	}
 }
 
@@ -68,7 +82,7 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	var agent model.Agent
 	if err := h.db.Where("id = ?", agentID).First(&agent).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return
 		}
@@ -97,45 +111,36 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if entry, ok := h.cache.Get(agentID); ok {
-		writeGitCredentials(w, entry.token)
-		return
-	}
-
 	if agent.OrgID == nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent has no org"})
 		return
 	}
 	orgID := *agent.OrgID
 
-	var conn model.InConnection
-	err = h.db.
-		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
-		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider LIKE ?", orgID, "github%").
-		Order("in_connections.created_at ASC").
-		First(&conn).Error
+	tokenConn, err := h.resolveGitHubTokenConnection(r.Context(), orgID, agentID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no github connection for org"})
 			return
 		}
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "git-credentials: failed to resolve github connection",
+			"agent_id", agentID,
+			"error", err,
+		)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up connection"})
 		return
 	}
 
-	var integration model.InIntegration
-	if err := h.db.Where("id = ?", conn.InIntegrationID).First(&integration).Error; err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "git-credentials: failed to load integration", "integration_id", conn.InIntegrationID, "error", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load integration"})
+	if entry, ok := h.cache.Get(tokenConn.cacheKey); ok {
+		writeGitCredentials(w, entry.token)
 		return
 	}
 
-	providerConfigKey := "in_" + integration.UniqueKey
-	nangoConn, err := h.nango.GetConnection(r.Context(), conn.NangoConnectionID, providerConfigKey)
+	nangoConn, err := h.nango.GetConnection(r.Context(), tokenConn.conn.NangoConnectionID, tokenConn.providerConfigKey)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "git-credentials: failed to fetch from nango",
 			"agent_id", agentID,
-			"connection_id", conn.ID,
+			"connection_id", tokenConn.conn.ID,
 			"error", err,
 		)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to fetch github token"})
@@ -153,12 +158,63 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.cache.Add(agentID, &gitTokenEntry{
+	h.cache.Add(tokenConn.cacheKey, &gitTokenEntry{
 		token:    accessToken,
 		cachedAt: time.Now(),
 	})
 
 	writeGitCredentials(w, accessToken)
+}
+
+func (h *GitCredentialsHandler) resolveGitHubTokenConnection(ctx context.Context, orgID uuid.UUID, agentID uuid.UUID) (gitHubTokenConnection, error) {
+	var profile model.AgentProfile
+	err := h.db.WithContext(ctx).
+		Where("agent_id = ? AND provider = ? AND status = ? AND deleted_at IS NULL AND revoked_at IS NULL", agentID, githubProfileProvider, "active").
+		First(&profile).Error
+	if err == nil {
+		connectionID, parseErr := uuid.Parse(stringFromJSON(profile.Config, "in_connection_id"))
+		if parseErr != nil {
+			return gitHubTokenConnection{}, fmt.Errorf("github profile is missing its connection: %w", parseErr)
+		}
+		var conn model.InConnection
+		if loadErr := h.db.WithContext(ctx).
+			Preload("InIntegration").
+			Where("id = ? AND org_id = ? AND revoked_at IS NULL", connectionID, orgID).
+			First(&conn).Error; loadErr != nil {
+			return gitHubTokenConnection{}, loadErr
+		}
+		if conn.InIntegration.Provider != githubProfileProvider {
+			return gitHubTokenConnection{}, fmt.Errorf("github profile connection uses provider %q", conn.InIntegration.Provider)
+		}
+		providerConfigKey := stringFromJSON(profile.Config, "provider_config_key")
+		if providerConfigKey == "" {
+			providerConfigKey = inNangoKey(conn.InIntegration.UniqueKey)
+		}
+		return gitHubTokenConnection{
+			conn:              conn,
+			providerConfigKey: providerConfigKey,
+			cacheKey:          gitTokenCacheKey{agentID: agentID, providerConfigKey: providerConfigKey, nangoConnectionID: conn.NangoConnectionID},
+		}, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return gitHubTokenConnection{}, err
+	}
+
+	var conn model.InConnection
+	if err := h.db.WithContext(ctx).
+		Preload("InIntegration").
+		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
+		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider LIKE ?", orgID, "github%").
+		Order("in_connections.created_at ASC").
+		First(&conn).Error; err != nil {
+		return gitHubTokenConnection{}, err
+	}
+	providerConfigKey := inNangoKey(conn.InIntegration.UniqueKey)
+	return gitHubTokenConnection{
+		conn:              conn,
+		providerConfigKey: providerConfigKey,
+		cacheKey:          gitTokenCacheKey{agentID: agentID, providerConfigKey: providerConfigKey, nangoConnectionID: conn.NangoConnectionID},
+	}, nil
 }
 
 // writeGitCredentials writes a response in git credential helper protocol format.

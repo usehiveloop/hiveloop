@@ -31,7 +31,8 @@ func TestAgentProfileHandler_GitHubProfileAndRepositorySelection(t *testing.T) {
 		db.Where("1=1").Delete(&model.InIntegration{})
 	})
 
-	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
+	mockCfg := &nangoConnMockConfig{}
+	nangoSrv := httptest.NewServer(newNangoConnMock(mockCfg))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
@@ -72,6 +73,7 @@ func TestAgentProfileHandler_GitHubProfileAndRepositorySelection(t *testing.T) {
 		Profile struct {
 			Provider   string         `json:"provider"`
 			ExternalID string         `json:"external_id"`
+			Identity   map[string]any `json:"identity"`
 			Config     map[string]any `json:"config"`
 		} `json:"profile"`
 	}
@@ -84,8 +86,24 @@ func TestAgentProfileHandler_GitHubProfileAndRepositorySelection(t *testing.T) {
 	if createResp.Profile.ExternalID != "octocat" {
 		t.Fatalf("expected octocat external id, got %q", createResp.Profile.ExternalID)
 	}
+	if createResp.Profile.Identity["email"] != "octocat@example.com" {
+		t.Fatalf("expected verified email in identity, got %#v", createResp.Profile.Identity)
+	}
+	if got := countCapturedNangoRequests(mockCfg, http.MethodGet, "/proxy/user/emails"); got != 1 {
+		t.Fatalf("github email requests = %d, want 1", got)
+	}
 	if createResp.Profile.Config["in_connection_id"] != conn.ID.String() {
 		t.Fatalf("expected profile to store in_connection_id=%s, got %v", conn.ID, createResp.Profile.Config["in_connection_id"])
+	}
+	var createdProfile model.AgentProfile
+	if err := db.Where("agent_id = ? AND provider = ?", agent.ID, "github").First(&createdProfile).Error; err != nil {
+		t.Fatalf("load created profile: %v", err)
+	}
+	if len(createdProfile.EncryptedIdentity) == 0 {
+		t.Fatal("expected encrypted identity to be stored")
+	}
+	if len(createdProfile.Identity) != 0 {
+		t.Fatalf("expected plaintext identity to be empty, got %#v", createdProfile.Identity)
 	}
 
 	req = httptest.NewRequest(http.MethodGet, "/v1/agents/"+agent.ID.String()+"/profiles/github/repositories", nil)
@@ -97,6 +115,9 @@ func TestAgentProfileHandler_GitHubProfileAndRepositorySelection(t *testing.T) {
 		t.Fatalf("expected 200 listing repositories, got %d: %s", rr.Code, rr.Body.String())
 	}
 	var listResp struct {
+		Profile struct {
+			Identity map[string]any `json:"identity"`
+		} `json:"profile"`
 		Repositories         []map[string]any `json:"repositories"`
 		SelectedRepositories []map[string]any `json:"selected_repositories"`
 	}
@@ -108,6 +129,9 @@ func TestAgentProfileHandler_GitHubProfileAndRepositorySelection(t *testing.T) {
 	}
 	if len(listResp.SelectedRepositories) != 0 {
 		t.Fatalf("expected no selected repositories for returning unfinished onboarding, got %d", len(listResp.SelectedRepositories))
+	}
+	if listResp.Profile.Identity["email"] != "octocat@example.com" {
+		t.Fatalf("expected decrypted identity email in list response, got %#v", listResp.Profile.Identity)
 	}
 
 	selected := []map[string]any{
@@ -161,6 +185,9 @@ func TestAgentProfileHandler_GitHubProfileAndRepositorySelection(t *testing.T) {
 		t.Fatalf("expected 200 listing repositories after idempotent update, got %d: %s", rr.Code, rr.Body.String())
 	}
 	listResp = struct {
+		Profile struct {
+			Identity map[string]any `json:"identity"`
+		} `json:"profile"`
 		Repositories         []map[string]any `json:"repositories"`
 		SelectedRepositories []map[string]any `json:"selected_repositories"`
 	}{}
@@ -211,6 +238,9 @@ func TestAgentProfileHandler_GitHubProfileAndRepositorySelection(t *testing.T) {
 		t.Fatalf("expected 200 listing repositories after profile replacement, got %d: %s", rr.Code, rr.Body.String())
 	}
 	listResp = struct {
+		Profile struct {
+			Identity map[string]any `json:"identity"`
+		} `json:"profile"`
 		Repositories         []map[string]any `json:"repositories"`
 		SelectedRepositories []map[string]any `json:"selected_repositories"`
 	}{}
@@ -352,6 +382,66 @@ func TestAgentProfileHandler_GitHubRepositorySelectionBlocksSaveWhenHookCreateFa
 	}
 }
 
+func TestAgentProfileHandler_CreateGitHubRequiresVerifiedEmail(t *testing.T) {
+	db := connectTestDB(t)
+	t.Cleanup(func() {
+		db.Where("provider = ?", "github").Delete(&model.AgentProfile{})
+		db.Where("1=1").Delete(&model.InConnection{})
+		db.Where("1=1").Delete(&model.InIntegration{})
+	})
+
+	mockCfg := &nangoConnMockConfig{
+		githubEmails: []map[string]any{
+			{"email": "octocat-unverified@example.com", "verified": false},
+			{"email": "", "verified": true},
+		},
+	}
+	nangoSrv := httptest.NewServer(newNangoConnMock(mockCfg))
+	t.Cleanup(nangoSrv.Close)
+	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
+	_ = nangoClient.FetchProviders(context.Background())
+
+	h := newGitHubProfileTestHandler(t, db, nangoClient)
+	r := chi.NewRouter()
+	r.Post("/v1/agents/{agentID}/profiles/github", h.CreateGitHub)
+
+	user := createTestUser(t, db, fmt.Sprintf("github-no-email-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
+	agent := createGitHubProfileTestEmployee(t, db, org.ID)
+	integ := createTestInIntegration(t, db, "github")
+	conn := model.InConnection{
+		ID:                uuid.New(),
+		OrgID:             org.ID,
+		UserID:            user.ID,
+		InIntegrationID:   integ.ID,
+		NangoConnectionID: "github-no-email-conn",
+	}
+	if err := db.Create(&conn).Error; err != nil {
+		t.Fatalf("create in-connection: %v", err)
+	}
+
+	body, _ := json.Marshal(map[string]any{"connection_id": conn.ID.String()})
+	req := httptest.NewRequest(http.MethodPost, "/v1/agents/"+agent.ID.String()+"/profiles/github", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusBadGateway {
+		t.Fatalf("expected 502 without verified email, got %d: %s", rr.Code, rr.Body.String())
+	}
+	if got := countCapturedNangoRequests(mockCfg, http.MethodGet, "/proxy/user/emails"); got != 1 {
+		t.Fatalf("github email requests = %d, want 1", got)
+	}
+	var profileCount int64
+	if err := db.Model(&model.AgentProfile{}).Where("agent_id = ? AND provider = ?", agent.ID, "github").Count(&profileCount).Error; err != nil {
+		t.Fatalf("count profiles: %v", err)
+	}
+	if profileCount != 0 {
+		t.Fatalf("profiles saved without verified email = %d, want 0", profileCount)
+	}
+}
+
 func TestAgentProfileHandler_CreateGitHubRejectsNonGitHubConnection(t *testing.T) {
 	db := connectTestDB(t)
 	t.Cleanup(func() {
@@ -365,7 +455,7 @@ func TestAgentProfileHandler_CreateGitHubRejectsNonGitHubConnection(t *testing.T
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewAgentProfileHandler(db, nil, nangoClient)
+	h := handler.NewAgentProfileHandler(db, nil, nil, nangoClient)
 	r := chi.NewRouter()
 	r.Post("/v1/agents/{agentID}/profiles/github", h.CreateGitHub)
 
@@ -409,7 +499,7 @@ func TestAgentProfileHandler_CreateGitHubAllowsOrgConnectionOwnedByDifferentUser
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewAgentProfileHandler(db, nil, nangoClient)
+	h := handler.NewAgentProfileHandler(db, nil, testSymmetricKey(t), nangoClient)
 	r := chi.NewRouter()
 	r.Post("/v1/agents/{agentID}/profiles/github", h.CreateGitHub)
 
@@ -529,7 +619,7 @@ func createGitHubProfileTestEmployee(t *testing.T, db interface {
 
 func newGitHubProfileTestHandler(t *testing.T, db *gorm.DB, nangoClient *nango.Client) *handler.AgentProfileHandler {
 	t.Helper()
-	h := handler.NewAgentProfileHandler(db, newTestKMS(t), nangoClient)
+	h := handler.NewAgentProfileHandler(db, newTestKMS(t), testSymmetricKey(t), nangoClient)
 	h.SetBridgeHost("api.hiveloop.test")
 	return h
 }

@@ -22,8 +22,9 @@ type AgentProfile struct {
 	Identity JSON `gorm:"type:jsonb;not null;default:'{}'"`
 	Config   JSON `gorm:"type:jsonb;not null;default:'{}'"`
 
-	EncryptedSecrets []byte `gorm:"type:bytea"`
-	WrappedDEK       []byte `gorm:"type:bytea"`
+	EncryptedIdentity []byte `gorm:"type:bytea"`
+	EncryptedSecrets  []byte `gorm:"type:bytea"`
+	WrappedDEK        []byte `gorm:"type:bytea"`
 
 	Status         string `gorm:"not null;default:'active';index"`
 	StatusReason   string `gorm:"not null;default:''"`

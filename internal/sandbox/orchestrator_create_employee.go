@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,11 +10,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	githubprofile "github.com/usehiveloop/hiveloop/internal/profiles/github"
 )
 
 const (
@@ -30,6 +33,11 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 		return nil, fmt.Errorf("CreateEmployeeSandbox: slack tokens and proxy token are required")
 	}
 	orgID := *agent.OrgID
+
+	gitIdentity, err := o.loadEmployeeGitIdentity(ctx, agent)
+	if err != nil {
+		return nil, fmt.Errorf("loading employee git identity: %w", err)
+	}
 
 	runtimeSecret, err := generateRandomHex(32)
 	if err != nil {
@@ -50,7 +58,7 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 		return nil, fmt.Errorf("saving sandbox: %w", err)
 	}
 
-	envVars := employeeSandboxEnvVars(o.cfg, runtimeSecret, &sb, orgID, agent, secrets)
+	envVars := employeeSandboxEnvVars(o.cfg, runtimeSecret, &sb, orgID, agent, secrets, gitIdentity)
 	labels := map[string]string{
 		"org_id":     orgID.String(),
 		"sandbox_id": sb.ID.String(),
@@ -113,7 +121,12 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 	return &sb, nil
 }
 
-func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.Sandbox, orgID uuid.UUID, agent *model.Agent, secrets *employeeruntime.StartupSecrets) map[string]string {
+type employeeGitIdentity struct {
+	Username string
+	Email    string
+}
+
+func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.Sandbox, orgID uuid.UUID, agent *model.Agent, secrets *employeeruntime.StartupSecrets, gitIdentity *employeeGitIdentity) map[string]string {
 	bridgeHost := "api.usehiveloop.com"
 	proxyHost := "proxy.hiveloop.com"
 	if cfg != nil {
@@ -146,8 +159,8 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		"HIVELOOP_SANDBOX_ID":          sb.ID.String(),
 		"HIVELOOP_ORG_ID":              orgID.String(),
 		"HIVELOOP_AGENT_ID":            agent.ID.String(),
-		"HIVELOOP_GIT_USERNAME":        sanitizeName(agent.Name),
-		"HIVELOOP_GIT_EMAIL":           sanitizeName(agent.Name) + "@usehiveloop.com",
+		"HIVELOOP_GIT_USERNAME":        employeeGitUsername(agent, gitIdentity),
+		"HIVELOOP_GIT_EMAIL":           employeeGitEmail(agent, gitIdentity),
 		"HIVELOOP_GIT_CREDENTIALS_URL": fmt.Sprintf("https://%s/internal/git-credentials/%s", bridgeHost, agent.ID),
 		"GH_NO_KEYRING":                "1",
 	}
@@ -163,6 +176,45 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		}
 	}
 	return envVars
+}
+
+func (o *Orchestrator) loadEmployeeGitIdentity(ctx context.Context, agent *model.Agent) (*employeeGitIdentity, error) {
+	var profile model.AgentProfile
+	err := o.db.WithContext(ctx).
+		Where("agent_id = ? AND provider = ? AND status = ? AND deleted_at IS NULL AND revoked_at IS NULL", agent.ID, githubprofile.Provider, "active").
+		First(&profile).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	identity, err := githubprofile.DecryptIdentity(o.encKey, profile)
+	if err != nil {
+		return nil, err
+	}
+	username, email := githubprofile.GitAuthor(identity, "")
+	if strings.TrimSpace(username) == "" && strings.TrimSpace(email) == "" {
+		return nil, nil
+	}
+	return &employeeGitIdentity{
+		Username: strings.TrimSpace(username),
+		Email:    strings.TrimSpace(email),
+	}, nil
+}
+
+func employeeGitUsername(agent *model.Agent, identity *employeeGitIdentity) string {
+	if identity != nil && strings.TrimSpace(identity.Username) != "" {
+		return strings.TrimSpace(identity.Username)
+	}
+	return sanitizeName(agent.Name)
+}
+
+func employeeGitEmail(agent *model.Agent, identity *employeeGitIdentity) string {
+	if identity != nil && strings.TrimSpace(identity.Email) != "" {
+		return strings.TrimSpace(identity.Email)
+	}
+	return employeeGitUsername(agent, identity) + "@users.noreply.github.com"
 }
 
 func buildEmployeeSandboxName(agent *model.Agent) string {

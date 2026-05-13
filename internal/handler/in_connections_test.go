@@ -18,6 +18,8 @@ type nangoConnMockConfig struct {
 	getConnStatus    int
 	deleteConnStatus int
 	proxyStatus      int
+	emailsStatus     int
+	githubEmails     []map[string]any
 	hookListStatus   int
 	hookCreateStatus int
 	hookUpdateStatus int
@@ -35,6 +37,9 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 	}
 	if cfg.proxyStatus == 0 {
 		cfg.proxyStatus = http.StatusOK
+	}
+	if cfg.emailsStatus == 0 {
+		cfg.emailsStatus = http.StatusOK
 	}
 	if cfg.hookListStatus == 0 {
 		cfg.hookListStatus = http.StatusOK
@@ -117,6 +122,23 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 				"avatar_url": "https://github.com/images/error/octocat_happy.gif",
 				"html_url":   "https://github.com/octocat",
 			})
+			return
+		}
+
+		if r.URL.Path == "/proxy/user/emails" && r.Method == http.MethodGet {
+			w.WriteHeader(cfg.emailsStatus)
+			if cfg.emailsStatus >= 400 {
+				_ = json.NewEncoder(w).Encode(map[string]any{"message": "github emails error"})
+				return
+			}
+			emails := cfg.githubEmails
+			if emails == nil {
+				emails = []map[string]any{
+					{"email": "octocat-unverified@example.com", "verified": false, "primary": false},
+					{"email": "octocat@example.com", "verified": true, "primary": true},
+				}
+			}
+			_ = json.NewEncoder(w).Encode(emails)
 			return
 		}
 

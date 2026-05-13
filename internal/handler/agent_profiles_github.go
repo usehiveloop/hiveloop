@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,9 +15,10 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	githubprofile "github.com/usehiveloop/hiveloop/internal/profiles/github"
 )
 
-const githubProfileProvider = "github"
+const githubProfileProvider = githubprofile.Provider
 
 type createGitHubProfileRequest struct {
 	ConnectionID string `json:"connection_id"`
@@ -94,11 +97,18 @@ func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Reques
 	}
 
 	providerConfigKey := inNangoKey(conn.InIntegration.UniqueKey)
-	identity, err := h.fetchGitHubIdentity(r, conn, providerConfigKey)
+	identity, err := h.fetchGitHubIdentity(r.Context(), conn, providerConfigKey)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "github profile identity fetch failed",
 			"error", err, "org_id", orgID, "agent_id", agent.ID, "connection_id", conn.ID)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "could not verify GitHub profile"})
+		return
+	}
+	encryptedIdentity, err := githubprofile.EncryptIdentity(h.encKey, identity)
+	if err != nil {
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "github profile identity encryption failed",
+			"error", err, "org_id", orgID, "agent_id", agent.ID, "connection_id", conn.ID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not encrypt GitHub profile identity"})
 		return
 	}
 
@@ -133,28 +143,35 @@ func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Reques
 	}
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		profile = model.AgentProfile{
-			ID:             uuid.New(),
-			OrgID:          orgID,
-			AgentID:        agent.ID,
-			Provider:       githubProfileProvider,
-			ExternalID:     externalID,
-			Label:          label,
-			Identity:       identity,
-			Config:         config,
-			Status:         "active",
-			LastVerifiedAt: &now,
+			ID:                uuid.New(),
+			OrgID:             orgID,
+			AgentID:           agent.ID,
+			Provider:          githubProfileProvider,
+			ExternalID:        externalID,
+			Label:             label,
+			Identity:          model.JSON{},
+			EncryptedIdentity: encryptedIdentity,
+			Config:            config,
+			Status:            "active",
+			LastVerifiedAt:    &now,
 		}
 		if err := h.db.Create(&profile).Error; err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create github profile"})
 			return
 		}
-		writeJSON(w, http.StatusCreated, createGitHubProfileResponse{Profile: toAgentProfileResponse(profile)})
+		resp, err := h.toAgentProfileResponse(profile)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to read github profile identity"})
+			return
+		}
+		writeJSON(w, http.StatusCreated, createGitHubProfileResponse{Profile: resp})
 		return
 	}
 
 	profile.ExternalID = externalID
 	profile.Label = label
-	profile.Identity = identity
+	profile.Identity = model.JSON{}
+	profile.EncryptedIdentity = encryptedIdentity
 	profile.Config = mergeGitHubProfileConfig(profile.Config, config)
 	profile.Status = "active"
 	profile.StatusReason = ""
@@ -163,7 +180,12 @@ func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Reques
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update github profile"})
 		return
 	}
-	writeJSON(w, http.StatusOK, createGitHubProfileResponse{Profile: toAgentProfileResponse(profile)})
+	resp, err := h.toAgentProfileResponse(profile)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to read github profile identity"})
+		return
+	}
+	writeJSON(w, http.StatusOK, createGitHubProfileResponse{Profile: resp})
 }
 
 // @Summary List repositories for an employee GitHub profile
@@ -193,8 +215,13 @@ func (h *AgentProfileHandler) ListGitHubRepositories(w http.ResponseWriter, r *h
 		return
 	}
 
+	profileResp, err := h.toAgentProfileResponse(profile)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to read github profile identity"})
+		return
+	}
 	writeJSON(w, http.StatusOK, gitHubProfileRepositoriesResponse{
-		Profile:              toAgentProfileResponse(profile),
+		Profile:              profileResp,
 		Repositories:         repos,
 		SelectedRepositories: selectedGitHubRepositories(profile.Config),
 	})
@@ -287,8 +314,13 @@ func (h *AgentProfileHandler) UpdateGitHubRepositories(w http.ResponseWriter, r 
 		return
 	}
 
+	profileResp, err := h.toAgentProfileResponse(profile)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to read github profile identity"})
+		return
+	}
 	writeJSON(w, http.StatusOK, gitHubProfileRepositoriesResponse{
-		Profile:              toAgentProfileResponse(profile),
+		Profile:              profileResp,
 		Repositories:         nil,
 		SelectedRepositories: selectedGitHubRepositories(profile.Config),
 	})
@@ -349,8 +381,8 @@ func (h *AgentProfileHandler) loadGitHubConnection(orgID uuid.UUID, connectionID
 	return conn, nil
 }
 
-func (h *AgentProfileHandler) fetchGitHubIdentity(r *http.Request, conn model.InConnection, providerConfigKey string) (model.JSON, error) {
-	raw, err := h.nango.RawProxyRequest(r.Context(), http.MethodGet, providerConfigKey, conn.NangoConnectionID, "/user", "", nil, "")
+func (h *AgentProfileHandler) fetchGitHubIdentity(ctx context.Context, conn model.InConnection, providerConfigKey string) (model.JSON, error) {
+	raw, err := h.nango.RawProxyRequest(ctx, http.MethodGet, providerConfigKey, conn.NangoConnectionID, "/user", "", nil, "")
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +393,38 @@ func (h *AgentProfileHandler) fetchGitHubIdentity(r *http.Request, conn model.In
 	if err := json.Unmarshal(raw.Body, &identity); err != nil {
 		return nil, err
 	}
+	email, err := h.fetchGitHubVerifiedEmail(ctx, conn, providerConfigKey)
+	if err != nil {
+		return nil, err
+	}
+	identity["email"] = email
+	identity["email_verified"] = true
 	return identity, nil
+}
+
+type gitHubEmail struct {
+	Email    string `json:"email"`
+	Verified bool   `json:"verified"`
+}
+
+func (h *AgentProfileHandler) fetchGitHubVerifiedEmail(ctx context.Context, conn model.InConnection, providerConfigKey string) (string, error) {
+	raw, err := h.nango.RawProxyRequest(ctx, http.MethodGet, providerConfigKey, conn.NangoConnectionID, "/user/emails", "", nil, "")
+	if err != nil {
+		return "", err
+	}
+	if raw.StatusCode >= 400 {
+		return "", fmt.Errorf("github user emails request failed: %d: %s", raw.StatusCode, string(raw.Body))
+	}
+	var emails []gitHubEmail
+	if err := json.Unmarshal(raw.Body, &emails); err != nil {
+		return "", err
+	}
+	for _, email := range emails {
+		if email.Verified && strings.TrimSpace(email.Email) != "" {
+			return strings.TrimSpace(email.Email), nil
+		}
+	}
+	return "", fmt.Errorf("no verified email found on github account")
 }
 
 func (h *AgentProfileHandler) fetchGitHubRepositories(r *http.Request, conn model.InConnection, providerConfigKey string) ([]gitHubRepository, error) {
