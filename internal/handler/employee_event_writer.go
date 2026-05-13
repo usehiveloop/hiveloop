@@ -56,7 +56,23 @@ func (w *EmployeeEventWriter) drain(ctx context.Context) {
 		if len(batch) == 0 {
 			return
 		}
-		if err := w.db.CreateInBatches(batch, employeeEventBatchSize).Error; err != nil {
+		err := w.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			if err := tx.CreateInBatches(batch, employeeEventBatchSize).Error; err != nil {
+				return err
+			}
+			for _, entry := range batch {
+				if err := syncEmployeeScheduleEvent(tx, entry); err != nil {
+					logging.Capture(ctx, err)
+					logging.FromContext(ctx).WarnContext(ctx, "employee schedule sync failed",
+						"error", err,
+						"event_type", entry.EventType,
+						"agent_id", entry.AgentID,
+					)
+				}
+			}
+			return nil
+		})
+		if err != nil {
 			logging.Capture(ctx, err)
 			logging.FromContext(ctx).ErrorContext(ctx, "employee event batch write failed", "error", err, "count", len(batch))
 		}
@@ -95,7 +111,21 @@ func (w *EmployeeEventWriter) Write(ctx context.Context, entry model.EmployeeMem
 	select {
 	case w.entries <- entry:
 	default:
-		if err := w.db.WithContext(ctx).Create(&entry).Error; err != nil {
+		err := w.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			if err := tx.Create(&entry).Error; err != nil {
+				return err
+			}
+			if err := syncEmployeeScheduleEvent(tx, entry); err != nil {
+				logging.Capture(ctx, err)
+				logging.FromContext(ctx).WarnContext(ctx, "employee schedule sync failed",
+					"error", err,
+					"event_type", entry.EventType,
+					"agent_id", entry.AgentID,
+				)
+			}
+			return nil
+		})
+		if err != nil {
 			logging.Capture(ctx, err)
 			logging.FromContext(ctx).ErrorContext(ctx, "employee event direct write failed", "error", err, "event_type", entry.EventType)
 		}

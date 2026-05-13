@@ -128,7 +128,16 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 	if h.writer != nil {
 		h.writer.Write(ctx, stored)
 	} else {
-		if err := h.db.WithContext(ctx).Create(&stored).Error; err != nil {
+		err := h.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			if err := tx.Create(&stored).Error; err != nil {
+				return err
+			}
+			if err := syncEmployeeScheduleEvent(tx, stored); err != nil {
+				logging.Capture(ctx, fmt.Errorf("employee outbound webhook: sync schedule sandbox_id=%s event_type=%s: %w", sb.ID, event.EventType, err))
+			}
+			return nil
+		})
+		if err != nil {
 			logging.Capture(ctx, fmt.Errorf("employee outbound webhook: store memory event sandbox_id=%s event_type=%s: %w", sb.ID, event.EventType, err))
 			return
 		}
