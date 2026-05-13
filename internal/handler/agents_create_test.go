@@ -62,6 +62,21 @@ func (h *agentCreateHarness) createOrgWithBYOK(t *testing.T, byok bool) (model.O
 	return org, user
 }
 
+func (h *agentCreateHarness) seedGlobalSkill(t *testing.T, name, status string) model.Skill {
+	t.Helper()
+	skill := model.Skill{
+		Slug:       name + "-" + uuid.NewString()[:8],
+		Name:       name,
+		SourceType: model.SkillSourceInline,
+		Status:     status,
+	}
+	if err := h.db.Create(&skill).Error; err != nil {
+		t.Fatalf("seed global skill %s: %v", name, err)
+	}
+	t.Cleanup(func() { h.db.Unscoped().Delete(&skill) })
+	return skill
+}
+
 func (h *agentCreateHarness) post(t *testing.T, userID, orgID uuid.UUID, body any) *httptest.ResponseRecorder {
 	t.Helper()
 	buf := new(bytes.Buffer)

@@ -74,6 +74,7 @@ func TestAgentCreate_Employee_WithValidSubagents_Succeeds(t *testing.T) {
 	org, user := h.createOrgWithBYOK(t, false)
 	subA := h.seedAgent(t, org.ID, "sub-a-"+uuid.New().String()[:8], false)
 	subB := h.seedAgent(t, org.ID, "sub-b-"+uuid.New().String()[:8], false)
+	assetUploads := h.seedGlobalSkill(t, "asset-uploads", model.SkillStatusPublished)
 
 	rr := h.post(t, user.ID, org.ID, map[string]any{
 		"name":         "boss-" + uuid.New().String()[:8],
@@ -105,6 +106,19 @@ func TestAgentCreate_Employee_WithValidSubagents_Succeeds(t *testing.T) {
 	}
 	if count != 2 {
 		t.Fatalf("expected 2 agent_subagents rows for employee, got %d", count)
+	}
+	for _, agentID := range []uuid.UUID{employeeID, subA.ID, subB.ID} {
+		links := skillIDsFor(t, h.db, agentID)
+		if !links[assetUploads.ID] {
+			t.Fatalf("agent %s missing asset upload skill; links=%v", agentID, links)
+		}
+	}
+	var skill model.Skill
+	if err := h.db.Where("id = ?", assetUploads.ID).First(&skill).Error; err != nil {
+		t.Fatalf("reload asset upload skill: %v", err)
+	}
+	if skill.InstallCount != 3 {
+		t.Fatalf("asset upload install_count = %d, want 3", skill.InstallCount)
 	}
 
 	t.Cleanup(func() {

@@ -247,6 +247,12 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		if err := attachSubagents(tx, agent.ID, subagents); err != nil {
 			return err
 		}
+		if req.IsEmployee {
+			attachPublishedGlobalSkills(r.Context(), tx, agent.ID, []string{defaultAssetUploadSkillName})
+			for _, subagentID := range subagentUUIDs {
+				attachPublishedGlobalSkills(r.Context(), tx, subagentID, []string{defaultAssetUploadSkillName})
+			}
+		}
 
 		if err := createAgentTriggers(tx, org.ID, agent.ID, req.Triggers); err != nil {
 			return fmt.Errorf("create triggers: %w", err)
