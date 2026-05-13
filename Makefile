@@ -112,7 +112,7 @@ test-e2e:
 
 # Start services and wait for healthy (no teardown, no tests)
 test-setup:
-	docker compose up -d postgres redis minio
+	docker compose up -d postgres redis minio qdrant
 	@echo "Waiting for services..."
 	@until docker compose exec -T postgres pg_isready -U hiveloop -q 2>/dev/null; do sleep 1; done
 	@echo "  ✓ Postgres"
@@ -120,6 +120,8 @@ test-setup:
 	@echo "  ✓ Redis"
 	@until curl -fsS http://localhost:9000/minio/health/ready >/dev/null 2>&1; do sleep 1; done
 	@echo "  ✓ MinIO"
+	@until curl -fsS http://localhost:$${QDRANT_HTTP_PORT:-6333}/readyz >/dev/null 2>&1; do sleep 1; done
+	@echo "  ✓ Qdrant"
 	docker compose run --rm minio-setup
 	@echo ""
 	@echo "  Infrastructure ready. Run tests with:"

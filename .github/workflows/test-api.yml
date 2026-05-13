@@ -31,6 +31,8 @@ env:
   REDIS_CACHE_TTL: 30m
   MEM_CACHE_TTL: 5m
   MEM_CACHE_MAX_SIZE: 10000
+  QDRANT_HOST: localhost
+  QDRANT_PORT: 6334
   JWT_SIGNING_KEY: local-dev-signing-key-for-tests-only
   CORS_ORIGINS: http://localhost:3000
   # AUTH_RSA_PRIVATE_KEY is generated per-job (see "Generate auth RSA key" steps)
@@ -155,14 +157,9 @@ jobs:
         timeout-minutes: 5
       - name: run internal tests (shard ${{ matrix.shard }}/4)
         run: |
-          # RAG infra-dependent packages need MinIO + Asynq + a live Qdrant;
-          # they run via `make ragtest` against staging, not in this suite.
+          # Live external-provider RAG tests remain opt-in behind env gates;
+          # local Postgres, Redis, MinIO, and Qdrant-backed tests run here.
           PACKAGES=$(go list ./internal/... \
-            | grep -vE '^github.com/usehiveloop/hiveloop/internal/rag$' \
-            | grep -vE '^github.com/usehiveloop/hiveloop/internal/rag/testhelpers$' \
-            | grep -vE '^github.com/usehiveloop/hiveloop/internal/rag/scheduler$' \
-            | grep -vE '^github.com/usehiveloop/hiveloop/internal/rag/tasks$' \
-            | grep -vE '^github.com/usehiveloop/hiveloop/internal/rag/connectors/github$' \
             | awk -v s=${{ matrix.shard }} -v n=4 'NR % n == s')
           echo "Running shard ${{ matrix.shard }} packages:"
           echo "$PACKAGES"
