@@ -4,15 +4,26 @@ use domain::cron::{CronJob, CronJobSource, CronJobState};
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
-use crate::repos::{CronJobRepo, Result, StorageError};
+use crate::repos::{notify_write, CronJobRepo, Result, SharedWriteNotifier, StorageError};
 
 pub struct SqliteCronJobRepo {
     pool: Arc<SqlitePool>,
+    write_notifier: Option<SharedWriteNotifier>,
 }
 
 impl SqliteCronJobRepo {
     pub fn new(pool: Arc<SqlitePool>) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            write_notifier: None,
+        }
+    }
+
+    pub fn with_write_notifier(pool: Arc<SqlitePool>, write_notifier: SharedWriteNotifier) -> Self {
+        Self {
+            pool,
+            write_notifier: Some(write_notifier),
+        }
     }
 }
 
@@ -37,6 +48,7 @@ impl CronJobRepo for SqliteCronJobRepo {
         .bind(&job.delegated_session_id).bind(&job.session_continuation_id)
         .bind(job.created_at.to_rfc3339()).bind(&job.created_by_session)
         .execute(self.pool.as_ref()).await.map_err(StorageError::from)?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 
@@ -90,6 +102,7 @@ impl CronJobRepo for SqliteCronJobRepo {
             .execute(self.pool.as_ref())
             .await
             .map_err(StorageError::from)?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 
@@ -100,6 +113,7 @@ impl CronJobRepo for SqliteCronJobRepo {
             .execute(self.pool.as_ref())
             .await
             .map_err(StorageError::from)?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 
@@ -110,6 +124,7 @@ impl CronJobRepo for SqliteCronJobRepo {
             .execute(self.pool.as_ref())
             .await
             .map_err(StorageError::from)?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 
@@ -120,6 +135,7 @@ impl CronJobRepo for SqliteCronJobRepo {
             .execute(self.pool.as_ref())
             .await
             .map_err(StorageError::from)?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 
@@ -140,6 +156,7 @@ impl CronJobRepo for SqliteCronJobRepo {
         .execute(self.pool.as_ref())
         .await
         .map_err(StorageError::from)?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 
@@ -149,6 +166,7 @@ impl CronJobRepo for SqliteCronJobRepo {
             .execute(self.pool.as_ref())
             .await
             .map_err(StorageError::from)?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 
@@ -158,6 +176,7 @@ impl CronJobRepo for SqliteCronJobRepo {
             .execute(self.pool.as_ref())
             .await
             .map_err(StorageError::from)?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 }

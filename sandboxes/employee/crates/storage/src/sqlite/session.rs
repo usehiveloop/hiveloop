@@ -5,15 +5,26 @@ use chrono::{DateTime, Utc};
 use domain::{Session, SessionId, SessionStatus};
 use sqlx::{Row, SqlitePool};
 
-use crate::repos::{Result, SessionRepo, StorageError};
+use crate::repos::{notify_write, Result, SessionRepo, SharedWriteNotifier, StorageError};
 
 pub struct SqliteSessionRepo {
     pool: Arc<SqlitePool>,
+    write_notifier: Option<SharedWriteNotifier>,
 }
 
 impl SqliteSessionRepo {
     pub fn new(pool: Arc<SqlitePool>) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            write_notifier: None,
+        }
+    }
+
+    pub fn with_write_notifier(pool: Arc<SqlitePool>, write_notifier: SharedWriteNotifier) -> Self {
+        Self {
+            pool,
+            write_notifier: Some(write_notifier),
+        }
     }
 }
 
@@ -89,7 +100,10 @@ impl SessionRepo for SqliteSessionRepo {
         .execute(self.pool.as_ref())
         .await;
         match result {
-            Ok(_) => Ok(()),
+            Ok(_) => {
+                notify_write(&self.write_notifier);
+                Ok(())
+            }
             Err(sqlx::Error::Database(db_err)) if db_err.is_unique_violation() => {
                 Err(StorageError::Conflict)
             }
@@ -103,6 +117,7 @@ impl SessionRepo for SqliteSessionRepo {
             .bind(id.as_str())
             .execute(self.pool.as_ref())
             .await?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 
@@ -112,6 +127,7 @@ impl SessionRepo for SqliteSessionRepo {
             .bind(id.as_str())
             .execute(self.pool.as_ref())
             .await?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 

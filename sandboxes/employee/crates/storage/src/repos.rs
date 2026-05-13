@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use domain::cron::{CronJob, CronJobSource, CronJobState};
 use domain::{AgentDefinition, EventKind, Session, SessionEvent, SessionId, SessionStatus};
+use std::sync::Arc;
 
 #[derive(Debug, thiserror::Error)]
 pub enum StorageError {
@@ -18,6 +19,18 @@ pub enum StorageError {
 }
 
 pub type Result<T> = std::result::Result<T, StorageError>;
+
+pub trait WriteNotifier: Send + Sync + 'static {
+    fn record_write(&self);
+}
+
+pub type SharedWriteNotifier = Arc<dyn WriteNotifier>;
+
+pub fn notify_write(notifier: &Option<SharedWriteNotifier>) {
+    if let Some(notifier) = notifier {
+        notifier.record_write();
+    }
+}
 
 #[async_trait]
 pub trait ConfigRepo: Send + Sync + 'static {

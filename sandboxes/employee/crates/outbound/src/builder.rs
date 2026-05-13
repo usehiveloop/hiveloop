@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use domain::{OutboundChannelKind, OutboundChannelSpec};
 use sqlx::SqlitePool;
+use storage::SharedWriteNotifier;
 use tracing::{info, warn};
 
 use crate::{
@@ -12,8 +13,23 @@ pub fn build_registry(
     sqlite_pool: Arc<SqlitePool>,
     specs: &[OutboundChannelSpec],
 ) -> Result<OutboundRegistry> {
+    build_registry_with_write_notifier(sqlite_pool, specs, None)
+}
+
+pub fn build_registry_with_write_notifier(
+    sqlite_pool: Arc<SqlitePool>,
+    specs: &[OutboundChannelSpec],
+    write_notifier: Option<SharedWriteNotifier>,
+) -> Result<OutboundRegistry> {
     let mut registry = OutboundRegistry::new();
-    registry.add(Arc::new(DatabaseChannel::new(sqlite_pool)));
+    let database_channel: Arc<dyn OutboundChannel> = match write_notifier {
+        Some(write_notifier) => Arc::new(DatabaseChannel::with_write_notifier(
+            sqlite_pool,
+            write_notifier,
+        )),
+        None => Arc::new(DatabaseChannel::new(sqlite_pool)),
+    };
+    registry.add(database_channel);
 
     for spec in specs {
         match build_channel_from_spec(spec) {

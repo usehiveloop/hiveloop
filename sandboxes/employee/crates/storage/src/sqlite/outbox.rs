@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Row, SqlitePool};
 
-use crate::repos::{OutboxRepo, OutboxRow, Result};
+use crate::repos::{notify_write, OutboxRepo, OutboxRow, Result, SharedWriteNotifier};
 
 const STATUS_PENDING: &str = "pending";
 const STATUS_DELIVERED: &str = "delivered";
@@ -12,11 +12,22 @@ const STATUS_FAILED: &str = "failed";
 
 pub struct SqliteOutboxRepo {
     pool: Arc<SqlitePool>,
+    write_notifier: Option<SharedWriteNotifier>,
 }
 
 impl SqliteOutboxRepo {
     pub fn new(pool: Arc<SqlitePool>) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            write_notifier: None,
+        }
+    }
+
+    pub fn with_write_notifier(pool: Arc<SqlitePool>, write_notifier: SharedWriteNotifier) -> Self {
+        Self {
+            pool,
+            write_notifier: Some(write_notifier),
+        }
     }
 }
 
@@ -43,6 +54,7 @@ impl OutboxRepo for SqliteOutboxRepo {
         .bind(&now)
         .fetch_one(self.pool.as_ref())
         .await?;
+        notify_write(&self.write_notifier);
         Ok(id)
     }
 
@@ -82,6 +94,7 @@ impl OutboxRepo for SqliteOutboxRepo {
             .bind(id)
             .execute(self.pool.as_ref())
             .await?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 
@@ -100,6 +113,7 @@ impl OutboxRepo for SqliteOutboxRepo {
         .bind(id)
         .execute(self.pool.as_ref())
         .await?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 
@@ -109,6 +123,7 @@ impl OutboxRepo for SqliteOutboxRepo {
             .bind(id)
             .execute(self.pool.as_ref())
             .await?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 }

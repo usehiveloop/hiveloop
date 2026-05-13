@@ -5,15 +5,26 @@ use chrono::Utc;
 use domain::AgentDefinition;
 use sqlx::SqlitePool;
 
-use crate::repos::{ConfigRepo, Result, StorageError};
+use crate::repos::{notify_write, ConfigRepo, Result, SharedWriteNotifier, StorageError};
 
 pub struct SqliteConfigRepo {
     pool: Arc<SqlitePool>,
+    write_notifier: Option<SharedWriteNotifier>,
 }
 
 impl SqliteConfigRepo {
     pub fn new(pool: Arc<SqlitePool>) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            write_notifier: None,
+        }
+    }
+
+    pub fn with_write_notifier(pool: Arc<SqlitePool>, write_notifier: SharedWriteNotifier) -> Self {
+        Self {
+            pool,
+            write_notifier: Some(write_notifier),
+        }
     }
 }
 
@@ -44,6 +55,7 @@ impl ConfigRepo for SqliteConfigRepo {
         .execute(self.pool.as_ref())
         .await
         .map_err(StorageError::from)?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 }

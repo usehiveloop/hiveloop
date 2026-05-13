@@ -4,15 +4,26 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::SqlitePool;
 
-use crate::repos::{InboundDedupeRepo, Result};
+use crate::repos::{notify_write, InboundDedupeRepo, Result, SharedWriteNotifier};
 
 pub struct SqliteInboundDedupeRepo {
     pool: Arc<SqlitePool>,
+    write_notifier: Option<SharedWriteNotifier>,
 }
 
 impl SqliteInboundDedupeRepo {
     pub fn new(pool: Arc<SqlitePool>) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            write_notifier: None,
+        }
+    }
+
+    pub fn with_write_notifier(pool: Arc<SqlitePool>, write_notifier: SharedWriteNotifier) -> Self {
+        Self {
+            pool,
+            write_notifier: Some(write_notifier),
+        }
     }
 }
 
@@ -28,7 +39,11 @@ impl InboundDedupeRepo for SqliteInboundDedupeRepo {
         .bind(&now)
         .execute(self.pool.as_ref())
         .await?;
-        Ok(result.rows_affected() == 1)
+        let inserted = result.rows_affected() == 1;
+        if inserted {
+            notify_write(&self.write_notifier);
+        }
+        Ok(inserted)
     }
 
     async fn cleanup_older_than(&self, before: DateTime<Utc>) -> Result<u64> {
@@ -37,6 +52,9 @@ impl InboundDedupeRepo for SqliteInboundDedupeRepo {
             .bind(&cutoff)
             .execute(self.pool.as_ref())
             .await?;
+        if result.rows_affected() > 0 {
+            notify_write(&self.write_notifier);
+        }
         Ok(result.rows_affected())
     }
 }

@@ -4,16 +4,28 @@ use async_trait::async_trait;
 use chrono::Utc;
 use domain::{OutboundEvent, DATABASE_CHANNEL_NAME};
 use sqlx::SqlitePool;
+use storage::{notify_write, SharedWriteNotifier};
 
 use crate::{OutboundChannel, OutboundError, Result};
 
 pub struct DatabaseChannel {
     pool: Arc<SqlitePool>,
+    write_notifier: Option<SharedWriteNotifier>,
 }
 
 impl DatabaseChannel {
     pub fn new(pool: Arc<SqlitePool>) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            write_notifier: None,
+        }
+    }
+
+    pub fn with_write_notifier(pool: Arc<SqlitePool>, write_notifier: SharedWriteNotifier) -> Self {
+        Self {
+            pool,
+            write_notifier: Some(write_notifier),
+        }
     }
 }
 
@@ -47,6 +59,7 @@ impl OutboundChannel for DatabaseChannel {
         .execute(self.pool.as_ref())
         .await
         .map_err(|e| OutboundError::Delivery(format!("events_log insert: {e}")))?;
+        notify_write(&self.write_notifier);
         Ok(())
     }
 }

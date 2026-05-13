@@ -1,4 +1,5 @@
 mod bridge_gateway;
+mod db_sync;
 mod handler;
 mod scheduler;
 mod sentry_support;
@@ -19,6 +20,7 @@ use agent::{
 use anyhow::{Context, Result};
 use api::{ApiState, OutboundConfigReloader};
 use async_trait::async_trait;
+use db_sync::{spawn_db_sync, DbSyncConfig};
 use domain::{
     AgentDefinition, AgentMeta, BashConfig, ConfigStore, InboundEvent, ModelConfig,
     OutboundChannelSpec, PromptFragment, PromptFragments, ReadFileConfig, ReasoningEffort,
@@ -26,7 +28,9 @@ use domain::{
 };
 use gateway::{ChannelGateway, SlackGateway};
 use mcp::McpRegistry;
-use outbound::{build_registry, OutboundDispatcher, OutboundEmitter, OutboundRegistry};
+use outbound::{
+    build_registry_with_write_notifier, OutboundDispatcher, OutboundEmitter, OutboundRegistry,
+};
 use skills::SkillWriter;
 use sqlx::SqlitePool;
 use storage::{
@@ -67,19 +71,64 @@ async fn main() -> Result<()> {
     }
     info!(workspace = %workspace_root.display(), "workspace ready");
     info!(database = %database_path, "initializing storage");
-    let sqlite_pool = init_sqlite_pool(PathBuf::from(&database_path)).await?;
-    let config_repo: Arc<dyn storage::ConfigRepo> =
-        Arc::new(SqliteConfigRepo::new(sqlite_pool.clone()));
-    let session_repo: Arc<dyn storage::SessionRepo> =
-        Arc::new(SqliteSessionRepo::new(sqlite_pool.clone()));
-    let event_repo: Arc<dyn storage::EventRepo> =
-        Arc::new(SqliteEventRepo::new(sqlite_pool.clone()));
-    let outbox_repo: Arc<dyn storage::OutboxRepo> =
-        Arc::new(SqliteOutboxRepo::new(sqlite_pool.clone()));
-    let _dedupe_repo: Arc<dyn storage::InboundDedupeRepo> =
-        Arc::new(SqliteInboundDedupeRepo::new(sqlite_pool.clone()));
-    let cron_repo: Arc<dyn storage::CronJobRepo> =
-        Arc::new(SqliteCronJobRepo::new(sqlite_pool.clone()));
+    let database_path = PathBuf::from(&database_path);
+    let sqlite_pool = init_sqlite_pool(database_path.clone()).await?;
+    let db_sync_notifier = DbSyncConfig::from_env(database_path.clone()).map(|config| {
+        info!(
+            threshold = config.write_threshold,
+            interval_seconds = config.interval.as_secs(),
+            "sqlite backup sync enabled"
+        );
+        spawn_db_sync(config)
+    });
+    if db_sync_notifier.is_none() {
+        info!("sqlite backup sync disabled");
+    }
+    let write_notifier: Option<storage::SharedWriteNotifier> = db_sync_notifier
+        .clone()
+        .map(|notifier| -> storage::SharedWriteNotifier { notifier });
+    let config_repo: Arc<dyn storage::ConfigRepo> = match write_notifier.clone() {
+        Some(notifier) => Arc::new(SqliteConfigRepo::with_write_notifier(
+            sqlite_pool.clone(),
+            notifier,
+        )),
+        None => Arc::new(SqliteConfigRepo::new(sqlite_pool.clone())),
+    };
+    let session_repo: Arc<dyn storage::SessionRepo> = match write_notifier.clone() {
+        Some(notifier) => Arc::new(SqliteSessionRepo::with_write_notifier(
+            sqlite_pool.clone(),
+            notifier,
+        )),
+        None => Arc::new(SqliteSessionRepo::new(sqlite_pool.clone())),
+    };
+    let event_repo: Arc<dyn storage::EventRepo> = match write_notifier.clone() {
+        Some(notifier) => Arc::new(SqliteEventRepo::with_write_notifier(
+            sqlite_pool.clone(),
+            notifier,
+        )),
+        None => Arc::new(SqliteEventRepo::new(sqlite_pool.clone())),
+    };
+    let outbox_repo: Arc<dyn storage::OutboxRepo> = match write_notifier.clone() {
+        Some(notifier) => Arc::new(SqliteOutboxRepo::with_write_notifier(
+            sqlite_pool.clone(),
+            notifier,
+        )),
+        None => Arc::new(SqliteOutboxRepo::new(sqlite_pool.clone())),
+    };
+    let _dedupe_repo: Arc<dyn storage::InboundDedupeRepo> = match write_notifier.clone() {
+        Some(notifier) => Arc::new(SqliteInboundDedupeRepo::with_write_notifier(
+            sqlite_pool.clone(),
+            notifier,
+        )),
+        None => Arc::new(SqliteInboundDedupeRepo::new(sqlite_pool.clone())),
+    };
+    let cron_repo: Arc<dyn storage::CronJobRepo> = match write_notifier.clone() {
+        Some(notifier) => Arc::new(SqliteCronJobRepo::with_write_notifier(
+            sqlite_pool.clone(),
+            notifier,
+        )),
+        None => Arc::new(SqliteCronJobRepo::new(sqlite_pool.clone())),
+    };
 
     let initial_definition = match config_repo.load().await? {
         Some(persisted) => {
@@ -122,12 +171,17 @@ async fn main() -> Result<()> {
         config_repo.upsert(&initial_definition).await?;
     }
 
-    let registry = build_registry(sqlite_pool.clone(), &initial_definition.outbound_channels)
-        .map_err(|e| anyhow::anyhow!("build outbound registry: {e}"))?;
+    let registry = build_registry_with_write_notifier(
+        sqlite_pool.clone(),
+        &initial_definition.outbound_channels,
+        write_notifier.clone(),
+    )
+    .map_err(|e| anyhow::anyhow!("build outbound registry: {e}"))?;
     let registry = Arc::new(RwLock::new(registry));
     let outbound_reloader: Arc<dyn OutboundConfigReloader> = Arc::new(RegistryReloader {
         sqlite_pool: sqlite_pool.clone(),
         registry: registry.clone(),
+        write_notifier: write_notifier.clone(),
     });
 
     let dispatcher = OutboundDispatcher::new(outbox_repo.clone(), registry.clone());
@@ -256,13 +310,18 @@ async fn main() -> Result<()> {
 struct RegistryReloader {
     sqlite_pool: Arc<SqlitePool>,
     registry: Arc<RwLock<OutboundRegistry>>,
+    write_notifier: Option<storage::SharedWriteNotifier>,
 }
 
 #[async_trait]
 impl OutboundConfigReloader for RegistryReloader {
     async fn reload_outbound_channels(&self, specs: &[OutboundChannelSpec]) -> anyhow::Result<()> {
-        let next = build_registry(self.sqlite_pool.clone(), specs)
-            .map_err(|error| anyhow::anyhow!("build outbound registry: {error}"))?;
+        let next = build_registry_with_write_notifier(
+            self.sqlite_pool.clone(),
+            specs,
+            self.write_notifier.clone(),
+        )
+        .map_err(|error| anyhow::anyhow!("build outbound registry: {error}"))?;
         let names = next.names();
         *self.registry.write().await = next;
         info!(channels = ?names, "outbound registry reloaded from config");

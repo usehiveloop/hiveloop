@@ -5,15 +5,26 @@ use chrono::{DateTime, Utc};
 use domain::{EventKind, SessionEvent, SessionId};
 use sqlx::{Row, SqlitePool};
 
-use crate::repos::{EventRepo, Result, StorageError};
+use crate::repos::{notify_write, EventRepo, Result, SharedWriteNotifier, StorageError};
 
 pub struct SqliteEventRepo {
     pool: Arc<SqlitePool>,
+    write_notifier: Option<SharedWriteNotifier>,
 }
 
 impl SqliteEventRepo {
     pub fn new(pool: Arc<SqlitePool>) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            write_notifier: None,
+        }
+    }
+
+    pub fn with_write_notifier(pool: Arc<SqlitePool>, write_notifier: SharedWriteNotifier) -> Self {
+        Self {
+            pool,
+            write_notifier: Some(write_notifier),
+        }
     }
 }
 
@@ -79,6 +90,7 @@ impl EventRepo for SqliteEventRepo {
         .fetch_one(&mut *tx)
         .await?;
         tx.commit().await?;
+        notify_write(&self.write_notifier);
         Ok(inserted_id)
     }
 
@@ -134,6 +146,9 @@ impl EventRepo for SqliteEventRepo {
                 .await?;
         }
         tx.commit().await?;
+        if inserted_id.is_some() {
+            notify_write(&self.write_notifier);
+        }
         Ok(inserted_id)
     }
 

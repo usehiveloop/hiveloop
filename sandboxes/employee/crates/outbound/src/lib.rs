@@ -8,7 +8,7 @@ mod webhook;
 use async_trait::async_trait;
 use domain::OutboundEvent;
 
-pub use builder::build_registry;
+pub use builder::{build_registry, build_registry_with_write_notifier};
 pub use database::DatabaseChannel;
 pub use dispatcher::OutboundDispatcher;
 pub use emitter::OutboundEmitter;
