@@ -165,6 +165,8 @@ pub async fn handle_inbound(
 ) -> Result<()> {
     let submission = coordinator.submit_or_queue(&inbound.session_id, inbound.text.clone());
     if matches!(submission, Submission::Queued) {
+        let event_source = inbound_event_source(&inbound);
+        emit_user_message_received(&emitter, &inbound, event_source, true).await;
         return Ok(());
     }
 
@@ -226,7 +228,7 @@ async fn process_single_turn(
         let _ = session_repo.touch(&session_id, Utc::now()).await;
     }
     let event_source = inbound_event_source(inbound);
-    emit_user_message_received(&emitter, inbound, event_source).await;
+    emit_user_message_received(&emitter, inbound, event_source, false).await;
 
     let skip_typing = is_cron_message(inbound) || !slack.typing_indicator;
     let typing_loop = if skip_typing {
@@ -275,6 +277,8 @@ async fn process_single_turn(
                 stream,
                 http_stream_id.clone(),
                 &session_id,
+                &emitter,
+                event_source,
                 turn_event_sink.as_ref(),
             )
             .await
@@ -356,6 +360,7 @@ async fn emit_user_message_received(
     emitter: &OutboundEmitter,
     inbound: &InboundEvent,
     source: &'static str,
+    queued: bool,
 ) {
     let (channel, thread_ts) = derive_channel_and_thread(&inbound.session_id);
     emitter
@@ -380,6 +385,7 @@ async fn emit_user_message_received(
                 "link_previews": inbound.link_previews,
                 "is_direct_message": inbound.is_direct_message,
                 "is_directly_addressed": inbound.is_directly_addressed,
+                "queued": queued,
             }),
         ))
         .await;
@@ -437,11 +443,16 @@ async fn consume_agent_stream(
     mut stream: futures::stream::BoxStream<'static, AgentEvent>,
     stream_id: Option<String>,
     session_id: &SessionId,
+    emitter: &OutboundEmitter,
+    source: &'static str,
     event_sink: &dyn TurnEventSink,
 ) -> StreamOutcome {
     let mut accumulated = String::new();
     let mut error_message: Option<String> = None;
+    let mut sequence: u64 = 0;
     while let Some(event) = stream.next().await {
+        sequence += 1;
+        emit_agent_stream_event(emitter, session_id, source, sequence, &event).await;
         if let Some(stream_id) = stream_id.as_deref() {
             event_sink
                 .publish_agent_event(stream_id, session_id, &event)
@@ -460,6 +471,59 @@ async fn consume_agent_stream(
         text: accumulated,
         error: error_message,
     }
+}
+
+async fn emit_agent_stream_event(
+    emitter: &OutboundEmitter,
+    session_id: &SessionId,
+    source: &'static str,
+    sequence: u64,
+    event: &AgentEvent,
+) {
+    let agent_event = serde_json::to_value(event).unwrap_or_else(|_| {
+        serde_json::json!({
+            "kind": "serialization_error",
+        })
+    });
+    let event_type = match event {
+        AgentEvent::ThinkingChunk { .. } => "agent.stream.thinking",
+        AgentEvent::TokenChunk { .. } => "agent.stream.token",
+        AgentEvent::ToolCall { .. } => "agent.tool.call",
+        AgentEvent::ToolResult { .. } => "agent.tool.result",
+        AgentEvent::RunEvent { event: name, .. } => {
+            let sanitized = name
+                .chars()
+                .map(|ch| match ch {
+                    'a'..='z' | '0'..='9' | '_' | '-' => ch,
+                    'A'..='Z' => ch.to_ascii_lowercase(),
+                    _ => '.',
+                })
+                .collect::<String>()
+                .replace('_', ".");
+            let event_type = format!("agent.run.{sanitized}");
+            let payload = serde_json::json!({
+                "session_id": session_id.as_str(),
+                "source": source,
+                "sequence": sequence,
+                "agent_event": agent_event,
+            });
+            emitter.emit(OutboundEvent::new(event_type, payload)).await;
+            return;
+        }
+        AgentEvent::FinalMessage { .. } => "agent.final_message",
+        AgentEvent::Error { .. } => "agent.error",
+    };
+    emitter
+        .emit(OutboundEvent::new(
+            event_type,
+            serde_json::json!({
+                "session_id": session_id.as_str(),
+                "source": source,
+                "sequence": sequence,
+                "agent_event": agent_event,
+            }),
+        ))
+        .await;
 }
 
 fn session_stream_id(inbound: &InboundEvent) -> Option<String> {
