@@ -359,9 +359,8 @@ func TestIntegration_EmployeesCreate_AttachesDefaultSkills(t *testing.T) {
 	org := h.createOrg(t)
 	h.seedSystemCred(t, "openrouter", false)
 	gitGithub := h.seedGlobalSkill(t, "git-github", model.SkillStatusPublished)
-	empUploads := h.seedGlobalSkill(t, "employee-public-assets-uploads", model.SkillStatusPublished)
+	assetUploads := h.seedGlobalSkill(t, "asset-uploads", model.SkillStatusPublished)
 	agentBrowser := h.seedGlobalSkill(t, "agent-browser", model.SkillStatusPublished)
-	subUploads := h.seedGlobalSkill(t, "public-assets-uploads", model.SkillStatusPublished)
 
 	rr := h.post(t, org, validEmployeeBody())
 	if rr.Code != http.StatusCreated {
@@ -376,12 +375,12 @@ func TestIntegration_EmployeesCreate_AttachesDefaultSkills(t *testing.T) {
 	subagentID := link.SubagentID
 
 	empLinks := skillIDsFor(t, h.db, agentID)
-	if !empLinks[gitGithub.ID] || !empLinks[empUploads.ID] || len(empLinks) != 2 {
-		t.Errorf("employee skills = %v, want exactly {git-github, employee-public-assets-uploads}", empLinks)
+	if !empLinks[gitGithub.ID] || !empLinks[assetUploads.ID] || len(empLinks) != 2 {
+		t.Errorf("employee skills = %v, want exactly {git-github, asset-uploads}", empLinks)
 	}
 
 	subLinks := skillIDsFor(t, h.db, subagentID)
-	wantSub := []uuid.UUID{agentBrowser.ID, gitGithub.ID, subUploads.ID}
+	wantSub := []uuid.UUID{agentBrowser.ID, gitGithub.ID, assetUploads.ID}
 	for _, id := range wantSub {
 		if !subLinks[id] {
 			t.Errorf("subagent missing skill %v", id)
@@ -393,9 +392,8 @@ func TestIntegration_EmployeesCreate_AttachesDefaultSkills(t *testing.T) {
 
 	wantInstallCount := map[uuid.UUID]int{
 		gitGithub.ID:    2,
-		empUploads.ID:   1,
+		assetUploads.ID: 2,
 		agentBrowser.ID: 1,
-		subUploads.ID:   1,
 	}
 	for skillID, want := range wantInstallCount {
 		var reloaded model.Skill

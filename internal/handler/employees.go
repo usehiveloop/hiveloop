@@ -18,11 +18,11 @@ const (
 )
 
 var defaultEmployeeSkills = map[string][]string{
-	employeeCategoryEngineering: {"git-github", "employee-public-assets-uploads"},
+	employeeCategoryEngineering: {"git-github", "asset-uploads"},
 }
 
 var defaultEmployeeSubagentSkills = map[string][]string{
-	employeeCategoryEngineering: {"agent-browser", "git-github", "public-assets-uploads"},
+	employeeCategoryEngineering: {"agent-browser", "git-github", "asset-uploads"},
 }
 
 type EmployeeHandler struct {

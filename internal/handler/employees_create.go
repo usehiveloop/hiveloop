@@ -196,6 +196,7 @@ func (h *EmployeeHandler) attachGlobalSkills(ctx context.Context, agentID uuid.U
 		var skill model.Skill
 		err := h.db.
 			Where("org_id IS NULL AND status = ? AND name = ?", model.SkillStatusPublished, name).
+			Order("created_at DESC").
 			First(&skill).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {

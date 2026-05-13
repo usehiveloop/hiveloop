@@ -1,6 +1,6 @@
 ---
 name: git-github
-description: Use whenever you need to perform common human git or GitHub activities from the CLI — creating branches, writing commits, opening pull requests (including PRs with screenshots, GIFs, or video demos in the description), commenting on PRs or issues, reacting (👍 / 🚀 / 👀), adding labels, requesting reviews, merging, checking status, fetching diffs. Always inspect the repo first to discover its branch-naming, commit, label, and PR conventions before acting. PR images and demo media are always uploaded through the `public-assets-uploads` skill, never gists or base64 — load that skill before composing a PR body that includes any asset. Triggers include: "open a PR", "create a pull request", "comment on PR", "react to that comment", "label this PR", "create a branch", "commit this", "follow the commit convention", "attach a screenshot", "embed an image in the PR", "include a demo video", "before/after screenshots", "request a review", "merge this", "draft PR".
+description: Use whenever you need to perform common human git or GitHub activities from the CLI — creating branches, writing commits, opening pull requests (including PRs with screenshots, GIFs, or video demos in the description), commenting on PRs or issues, reacting (👍 / 🚀 / 👀), adding labels, requesting reviews, merging, checking status, fetching diffs. Always inspect the repo first to discover its branch-naming, commit, label, and PR conventions before acting. PR images and demo media are always uploaded through the `asset-uploads` skill, never gists or base64 — load that skill before composing a PR body that includes any asset. Triggers include: "open a PR", "create a pull request", "comment on PR", "react to that comment", "label this PR", "create a branch", "commit this", "follow the commit convention", "attach a screenshot", "embed an image in the PR", "include a demo video", "before/after screenshots", "request a review", "merge this", "draft PR".
 ---
 
 # Git + GitHub workflows from the CLI
@@ -223,25 +223,25 @@ test -f .github/PULL_REQUEST_TEMPLATE.md && cat .github/PULL_REQUEST_TEMPLATE.md
 
 **This is the only supported way to host an image in a PR description.** Do not commit screenshots into the project repo, do not paste data-URIs into markdown, do not create a gist, do not call GitHub's `user-attachments` endpoint, do not upload to imgur or any other host. All of these are wrong.
 
-Every PR image, video, GIF, before/after screenshot, demo recording, etc. must be uploaded through our **public assets drive** so the URL is stable, owned by us, and tied to this conversation.
+Every PR image, video, GIF, before/after screenshot, demo recording, etc. must be uploaded through our **assets drive** so the URL is stable, owned by us, and tied to the current employee/task asset folder.
 
-**Load the `public-assets-uploads` skill before generating the PR body.** It documents the exact `curl` invocation, the env vars (`HIVELOOP_ASSETS_UPLOAD_URL`, `HIVELOOP_CONVERSATION_ID`, `BRIDGE_CONTROL_PLANE_API_KEY`), the response shape, and the conventions for organising assets into folders. Do not try to reconstruct the upload protocol from memory — load the skill, follow it.
+**Load the `asset-uploads` skill before generating the PR body.** It documents the exact `curl` invocation, the env vars (`HIVELOOP_DRIVE_UPLOAD_URL`, `UPLOAD_BEARER`), the response shape, and the conventions for organising assets into folders. Do not try to reconstruct the upload protocol from memory — load the skill, follow it.
 
 Workflow:
 
 ```bash
-# 1. Load the public-assets-uploads skill (don't skip this — the curl
+# 1. Load the asset-uploads skill (don't skip this — the curl
 #    incantation, headers, and URL shape are all in there).
 
 # 2. Upload the screenshot using that skill's curl invocation. It returns
-#    a JSON response with a `public_url` field. Capture it:
+#    a JSON response with an `asset_url` field. Capture it:
 URL=$(
   curl -fsS -X PUT \
-    -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" \
+    -H "Authorization: Bearer $UPLOAD_BEARER" \
     -H "Content-Type: image/png" \
     --upload-file ./screenshot.png \
-    "$HIVELOOP_ASSETS_UPLOAD_URL/$HIVELOOP_CONVERSATION_ID/assets/pr/screenshot.png" \
-  | jq -r .public_url
+    "$HIVELOOP_DRIVE_UPLOAD_URL/pr/screenshot.png" \
+  | jq -r .asset_url
 )
 
 # 3. Embed the URL in the PR body. Use a descriptive folder so future
@@ -257,7 +257,7 @@ EOF
 
 For multiple images or a before/after pair, run the upload step once per file and paste each URL. For animated demos, upload an `.mp4` or `.webm` and embed it the same way (GitHub renders video URLs inline).
 
-If you ever find yourself reaching for `gh gist`, `git push` to a gist repo, base64 inside markdown, or a third-party host: stop. Load `public-assets-uploads` skill and use it.
+If you ever find yourself reaching for `gh gist`, `git push` to a gist repo, base64 inside markdown, or a third-party host: stop. Load `asset-uploads` skill and use it.
 
 ### 4c. Update an existing PR
 
@@ -446,8 +446,8 @@ gh pr view <number> --comments
 | `--no-verify` to skip a failing hook | Fix the underlying issue and commit again — never bypass without explicit user approval |
 | Force-pushing to a shared branch | Use `--force-with-lease` on your own branch; never force-push `main` |
 | Inventing labels that don't exist | `gh label list` first; only create new labels if asked |
-| Committing screenshots into the project repo to embed in a PR | Upload them via the `public-assets-uploads` skill — that's the only supported host |
-| Reaching for gists, imgur, base64 data-URIs, or `gh api user-attachments` for PR images | All wrong. Load `public-assets-uploads` and use it; it returns a stable public URL you can paste into the PR body |
+| Committing screenshots into the project repo to embed in a PR | Upload them via the `asset-uploads` skill — that's the only supported host |
+| Reaching for gists, imgur, base64 data-URIs, or `gh api user-attachments` for PR images | All wrong. Load `asset-uploads` and use it; it returns a stable file URL you can paste into the PR body |
 | Merging without checking CI | `gh pr checks <n>` and `mergeStateStatus` before `gh pr merge` |
 | Approving / merging someone else's PR without being asked | Don't. Ask the user first |
 

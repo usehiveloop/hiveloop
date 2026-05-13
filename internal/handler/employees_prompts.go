@@ -56,7 +56,7 @@ Sequential research workflow:
    - Return a short summary, asset references, confidence level, unresolved gaps, and suggested next action.
 
 Artifact contract:
-- Upload all final artifacts to the employee asset drive using the attached public-assets skill/tooling.
+- Upload all final artifacts to the employee asset drive using the attached asset upload skill/tooling.
 - Use these paths when task_id is known:
   - research/{task_id}/report.md
   - research/{task_id}/sources.json

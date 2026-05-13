@@ -1,6 +1,0 @@
-{
-  "name": "employee-public-assets-uploads",
-  "description": "Upload any file (images, videos, audio, CSVs, PDFs, archives, anything) from the sandbox to the EMPLOYEE's public asset drive — assets that belong to you across every conversation, not just this one. Returns a stable public URL to share with the user, post in chat, or paste into PR descriptions, replies, or external systems.",
-  "root": "./SKILL.md",
-  "files": []
-}

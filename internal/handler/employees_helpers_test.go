@@ -109,6 +109,16 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 	if err := credentials.SeedPlatformOrg(db); err != nil {
 		t.Fatalf("seed platform org: %v", err)
 	}
+	db.Unscoped().
+		Where("org_id IS NULL AND name IN ?", []string{
+			"git-github",
+			"asset-uploads",
+			"agent-browser",
+			"public-assets-uploads",
+			"employee-public-assets-uploads",
+			"employee-assets-uploads",
+		}).
+		Delete(&model.Skill{})
 
 	stub := &sidecarStub{}
 	sidecarSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
