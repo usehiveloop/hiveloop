@@ -39,7 +39,7 @@ type AgentProfileHandler struct {
 	encKey     *crypto.SymmetricKey
 	nango      *nango.Client
 	enq        enqueue.TaskEnqueuer
-	bridgeHost string
+	webhookURL string
 }
 
 func NewAgentProfileHandler(db *gorm.DB, kms *crypto.KeyWrapper, encKey *crypto.SymmetricKey, nangoClient *nango.Client) *AgentProfileHandler {

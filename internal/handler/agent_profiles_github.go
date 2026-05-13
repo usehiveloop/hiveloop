@@ -270,6 +270,8 @@ func (h *AgentProfileHandler) UpdateGitHubRepositories(w http.ResponseWriter, r 
 
 	webhookURL, err := h.githubEmployeeWebhookURL(agent.ID)
 	if err != nil {
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "github webhook url setup failed",
+			"error", err, "agent_id", agent.ID, "profile_id", profile.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "github webhook setup is not configured"})
 		return
 	}

@@ -110,7 +110,8 @@ type Config struct {
 
 	// Hermes (Hermes-harness sandbox runtime — usehiveloop/hermes image + Go sidecar)
 	HermesBaseImagePrefix string `env:"HERMES_BASE_IMAGE_PREFIX" envDefault:"hiveloop-hermes-0-0-1-small-v1"` // Daytona snapshot name for Hermes sandboxes
-	BridgeHost            string `env:"BRIDGE_HOST"`                                                          // our external hostname for webhook URLs
+	BridgeHost            string `env:"BRIDGE_HOST"`                                                          // legacy runtime host setting
+	APIWebhookBaseURL     string `env:"API_WEBHOOK_BASE_URL" envDefault:"https://api.usehiveloop.com"`        // public API base URL for provider webhook callbacks
 	ProxyHost             string `env:"PROXY_HOST" envDefault:"proxy.hiveloop.com"`                           // LLM proxy hostname (proxy.hiveloop.com)
 
 	// Employee sandbox runtime — ghcr.io/usehiveloop/employee-sandbox image.

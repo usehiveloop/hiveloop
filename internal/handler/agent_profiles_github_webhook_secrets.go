@@ -14,19 +14,19 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-func (h *AgentProfileHandler) SetBridgeHost(host string) {
-	h.bridgeHost = strings.TrimRight(strings.TrimSpace(host), "/")
+func (h *AgentProfileHandler) SetWebhookBaseURL(baseURL string) {
+	h.webhookURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
 }
 
 func (h *AgentProfileHandler) githubEmployeeWebhookURL(agentID uuid.UUID) (string, error) {
-	host := strings.TrimRight(strings.TrimSpace(h.bridgeHost), "/")
-	if host == "" {
-		return "", fmt.Errorf("bridge host is not configured")
+	baseURL := strings.TrimRight(strings.TrimSpace(h.webhookURL), "/")
+	if baseURL == "" {
+		return "", fmt.Errorf("api webhook base url is not configured")
 	}
-	if strings.HasPrefix(host, "http://") || strings.HasPrefix(host, "https://") {
-		return fmt.Sprintf("%s/internal/webhooks/github/employees/%s", host, agentID), nil
+	if strings.HasPrefix(baseURL, "http://") || strings.HasPrefix(baseURL, "https://") {
+		return fmt.Sprintf("%s/internal/webhooks/github/employees/%s", baseURL, agentID), nil
 	}
-	return fmt.Sprintf("https://%s/internal/webhooks/github/employees/%s", host, agentID), nil
+	return fmt.Sprintf("https://%s/internal/webhooks/github/employees/%s", baseURL, agentID), nil
 }
 
 func (h *AgentProfileHandler) ensureGitHubWebhookSecret(ctx context.Context, profile *model.AgentProfile) (string, error) {

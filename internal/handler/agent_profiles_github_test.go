@@ -620,7 +620,7 @@ func createGitHubProfileTestEmployee(t *testing.T, db interface {
 func newGitHubProfileTestHandler(t *testing.T, db *gorm.DB, nangoClient *nango.Client) *handler.AgentProfileHandler {
 	t.Helper()
 	h := handler.NewAgentProfileHandler(db, newTestKMS(t), testSymmetricKey(t), nangoClient)
-	h.SetBridgeHost("api.hiveloop.test")
+	h.SetWebhookBaseURL("https://api.hiveloop.test")
 	return h
 }
 

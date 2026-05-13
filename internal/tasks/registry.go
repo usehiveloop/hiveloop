@@ -78,6 +78,9 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 
 	// Agent cleanup (works with or without orchestrator/pusher — handles nil gracefully)
 	mux.HandleFunc(TypeAgentCleanup, NewAgentCleanupHandler(deps.DB, deps.Orchestrator, deps.Pusher).Handle)
+	if deps.NangoClient != nil {
+		mux.HandleFunc(TypeAgentProfileNangoCleanup, NewAgentProfileNangoCleanupHandler(deps.NangoClient).Handle)
+	}
 
 	// Sandbox template build
 	if deps.Orchestrator != nil {

@@ -149,6 +149,59 @@ func TestAgentDelete_HardDeletesAndEnqueuesSandboxCleanup(t *testing.T) {
 	h.enqueuer.AssertEnqueued(t, tasks.TypeAgentCleanup)
 }
 
+func TestAgentDelete_EnqueuesNangoProfileConnectionCleanup(t *testing.T) {
+	h := newAgentDeleteHarness(t)
+	org, user := h.createTestOrg(t)
+	agent := h.createTestAgent(t, org.ID, "delete-nango-"+uuid.New().String()[:8])
+	profile := model.AgentProfile{
+		OrgID:      org.ID,
+		AgentID:    agent.ID,
+		Provider:   "github",
+		ExternalID: "octocat",
+		Label:      "GitHub",
+		Config: model.JSON{
+			"nango_connection_id": "github-conn-123",
+			"provider_config_key": "in_github",
+		},
+		Status: "active",
+	}
+	if err := h.db.Create(&profile).Error; err != nil {
+		t.Fatalf("create profile: %v", err)
+	}
+
+	rr := h.doRequest(t, "DELETE", "/v1/agents/"+agent.ID.String(), user.ID, org.ID)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var payload tasks.AgentProfileNangoCleanupPayload
+	found := false
+	for _, task := range h.enqueuer.Tasks() {
+		if task.TypeName != tasks.TypeAgentProfileNangoCleanup {
+			continue
+		}
+		found = true
+		if err := json.Unmarshal(task.Payload, &payload); err != nil {
+			t.Fatalf("decode cleanup payload: %v", err)
+		}
+	}
+	if !found {
+		t.Fatal("expected nango profile cleanup task")
+	}
+	if payload.AgentID != agent.ID {
+		t.Fatalf("agent id = %s, want %s", payload.AgentID, agent.ID)
+	}
+	if len(payload.Connections) != 1 {
+		t.Fatalf("connections = %#v", payload.Connections)
+	}
+	if payload.Connections[0].ConnectionID != "github-conn-123" {
+		t.Fatalf("connection id = %q", payload.Connections[0].ConnectionID)
+	}
+	if payload.Connections[0].ProviderConfigKey != "in_github" {
+		t.Fatalf("provider config key = %q", payload.Connections[0].ProviderConfigKey)
+	}
+}
+
 func TestAgentDelete_HiddenFromListAndGet(t *testing.T) {
 	h := newAgentDeleteHarness(t)
 	org, user := h.createTestOrg(t)

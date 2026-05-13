@@ -154,7 +154,9 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		}, agentHandler)
 	}
 	agentProfileHandler := handler.NewAgentProfileHandler(database, deps.KMS, sandboxEncKey, nangoClient)
+	agentProfileHandler.SetWebhookBaseURL(cfg.APIWebhookBaseURL)
 	agentProfileHandler.SetRAGEnqueuer(enqueuer)
+	githubEmployeeWebhookHandler := handler.NewGitHubEmployeeWebhookHandler(database, deps.KMS)
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
 
 	var driveHandler *handler.DriveHandler
@@ -202,13 +204,14 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	r.Use(chimw.RealIP)
 	r.Use(sentryobs.Middleware())
 	r.Use(sentryobs.Recoverer())
+	r.Use(sentryobs.Capture5xxResponses())
 	r.Use(middleware.SecurityHeaders())
 	r.Use(middleware.CORS(cfg.CORSOrigins))
 	r.Use(middleware.RequestLog(logger))
 
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, plansHandler, bridgeWebhookHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler, cloudAgentHandler)
+	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, plansHandler, bridgeWebhookHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, githubEmployeeWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler, cloudAgentHandler)
 
 	if chatHandler != nil {
 		r.Get("/v1/chats/{id}/stream", chatHandler.Stream)

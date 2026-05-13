@@ -35,6 +35,17 @@ func (*nullTransport) Flush(time.Duration) bool              { return true }
 func (*nullTransport) FlushWithContext(context.Context) bool { return true }
 func (*nullTransport) Close()                                {}
 
+type captureTransport struct {
+	event atomic.Pointer[sentrygo.Event]
+}
+
+func (*captureTransport) Configure(sentrygo.ClientOptions)      {}
+func (t *captureTransport) SendEvent(event *sentrygo.Event)     { t.event.Store(event) }
+func (*captureTransport) SendEvents([]*sentrygo.Event)          {}
+func (*captureTransport) Flush(time.Duration) bool              { return true }
+func (*captureTransport) FlushWithContext(context.Context) bool { return true }
+func (*captureTransport) Close()                                {}
+
 type testUserKey struct{}
 type testOrgKey struct{}
 
@@ -116,5 +127,35 @@ func TestMiddleware_OrgOnlyRequest(t *testing.T) {
 	}
 	if ev.Tags["org_id"] != "org-only" {
 		t.Fatalf("tag org_id = %q, want org-only", ev.Tags["org_id"])
+	}
+}
+
+func TestCapture5xxResponses_CapturesUnhandledServerResponse(t *testing.T) {
+	transport := &captureTransport{}
+	if err := sentrygo.Init(sentrygo.ClientOptions{
+		Dsn:       "",
+		Transport: transport,
+	}); err != nil {
+		t.Fatalf("sentry init: %v", err)
+	}
+	prev := initialized.Load()
+	initialized.Store(true)
+	t.Cleanup(func() { initialized.Store(prev) })
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	req := httptest.NewRequest(http.MethodPatch, "/v1/agents/agent/profiles/github/repositories", nil)
+	Middleware()(Capture5xxResponses()(handler)).ServeHTTP(httptest.NewRecorder(), req)
+
+	ev := transport.event.Load()
+	if ev == nil {
+		t.Fatal("expected Sentry event for 5xx response")
+	}
+	if ev.Tags["http.status_code"] != "500" {
+		t.Fatalf("http.status_code tag = %q, want 500", ev.Tags["http.status_code"])
+	}
+	if ev.Tags["http.route"] != "/v1/agents/agent/profiles/github/repositories" {
+		t.Fatalf("http.route tag = %q", ev.Tags["http.route"])
 	}
 }

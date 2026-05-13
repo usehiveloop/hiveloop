@@ -33,6 +33,39 @@ func NewAgentCleanupTask(agentID uuid.UUID, sandboxExternalIDs ...string) (*asyn
 	), nil
 }
 
+// NangoConnectionDeleteTarget identifies one Nango connection to remove.
+type NangoConnectionDeleteTarget struct {
+	ConnectionID      string    `json:"connection_id"`
+	ProviderConfigKey string    `json:"provider_config_key"`
+	ProfileID         uuid.UUID `json:"profile_id,omitempty"`
+	Provider          string    `json:"provider,omitempty"`
+}
+
+// AgentProfileNangoCleanupPayload is the payload for TypeAgentProfileNangoCleanup tasks.
+type AgentProfileNangoCleanupPayload struct {
+	AgentID     uuid.UUID                     `json:"agent_id"`
+	Connections []NangoConnectionDeleteTarget `json:"connections"`
+}
+
+// NewAgentProfileNangoCleanupTask creates a task that permanently deletes Nango
+// connections captured from agent profiles before the agent row is hard-deleted.
+func NewAgentProfileNangoCleanupTask(agentID uuid.UUID, connections []NangoConnectionDeleteTarget) (*asynq.Task, error) {
+	payload, err := json.Marshal(AgentProfileNangoCleanupPayload{
+		AgentID:     agentID,
+		Connections: connections,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("marshal agent profile nango cleanup payload: %w", err)
+	}
+	return asynq.NewTask(
+		TypeAgentProfileNangoCleanup,
+		payload,
+		asynq.Queue(QueueDefault),
+		asynq.MaxRetry(5),
+		asynq.Timeout(2*time.Minute),
+	), nil
+}
+
 // SandboxTemplateBuildPayload is the payload for TypeSandboxTemplateBuild tasks.
 type SandboxTemplateBuildPayload struct {
 	TemplateID uuid.UUID `json:"template_id"`
