@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -50,8 +51,11 @@ func newEmployeeStreamHarness(t *testing.T) *employeeStreamHarness {
 		t.Fatalf("create org: %v", err)
 	}
 	t.Cleanup(func() {
+		db.Where("org_id = ?", orgID).Delete(&model.CloudAgentTask{})
+		db.Where("org_id = ?", orgID).Delete(&model.AgentConversation{})
 		db.Where("org_id = ?", orgID).Delete(&model.EmployeeAsset{})
 		db.Where("org_id = ?", orgID).Delete(&model.Sandbox{})
+		db.Exec("DELETE FROM agent_subagents WHERE agent_id IN (SELECT id FROM agents WHERE org_id = ?) OR subagent_id IN (SELECT id FROM agents WHERE org_id = ?)", orgID, orgID)
 		db.Where("org_id = ?", orgID).Delete(&model.Agent{})
 		db.Where("id = ?", orgID).Delete(&model.Org{})
 	})
@@ -99,6 +103,68 @@ func (h *employeeStreamHarness) seedEmployee(t *testing.T, isEmployee bool) empl
 	return employeeStreamFixture{agentID: agentID, sandboxID: sandboxID, bridgeKey: bridgeKey}
 }
 
+func (h *employeeStreamHarness) seedSubagentTaskSandbox(t *testing.T, employeeID uuid.UUID) string {
+	t.Helper()
+	encKey := testSymmetricKey(t)
+
+	cloudAgentID := uuid.New()
+	if err := h.db.Create(&model.Agent{
+		ID:     cloudAgentID,
+		OrgID:  &h.orgID,
+		Name:   "cloud-agent-" + uuid.New().String()[:8],
+		Status: "active",
+	}).Error; err != nil {
+		t.Fatalf("create cloud agent: %v", err)
+	}
+	if err := h.db.Create(&model.AgentSubagent{AgentID: employeeID, SubagentID: cloudAgentID}).Error; err != nil {
+		t.Fatalf("create subagent link: %v", err)
+	}
+
+	bridgeKey := "cloud-bridge-" + uuid.New().String()
+	encrypted, err := encKey.EncryptString(bridgeKey)
+	if err != nil {
+		t.Fatalf("encrypt cloud key: %v", err)
+	}
+	sandboxID := uuid.New()
+	if err := h.db.Create(&model.Sandbox{
+		ID:                    sandboxID,
+		OrgID:                 &h.orgID,
+		AgentID:               &cloudAgentID,
+		EncryptedBridgeAPIKey: encrypted,
+		Status:                "running",
+		ExternalID:            "cloud-ext-" + uuid.New().String()[:8],
+		BridgeURL:             "http://cloud.local",
+	}).Error; err != nil {
+		t.Fatalf("create cloud sandbox: %v", err)
+	}
+	convID := uuid.New()
+	if err := h.db.Create(&model.AgentConversation{
+		ID:                   convID,
+		OrgID:                h.orgID,
+		AgentID:              cloudAgentID,
+		SandboxID:            sandboxID,
+		BridgeConversationID: "bridge-" + uuid.New().String(),
+		Status:               "active",
+	}).Error; err != nil {
+		t.Fatalf("create cloud conversation: %v", err)
+	}
+	if err := h.db.Create(&model.CloudAgentTask{
+		ID:                     uuid.New(),
+		OrgID:                  h.orgID,
+		EmployeeAgentID:        employeeID,
+		CloudAgentID:           cloudAgentID,
+		SandboxID:              sandboxID,
+		ConversationID:         convID,
+		ParentConversationType: "agent_conversation",
+		ParentConversationID:   "session-123",
+		Brief:                  "research",
+		Metadata:               model.JSON{},
+	}).Error; err != nil {
+		t.Fatalf("create cloud task: %v", err)
+	}
+	return bridgeKey
+}
+
 func (h *employeeStreamHarness) put(t *testing.T, path string, body io.Reader, contentType, bearer string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPut, path, body)
@@ -134,7 +200,7 @@ func TestEmployeeStream_HappyPath(t *testing.T) {
 		Path      string `json:"path"`
 		Filename  string `json:"filename"`
 		Bytes     int64  `json:"bytes"`
-		PublicURL string `json:"public_url"`
+		PublicURL string `json:"asset_url"`
 	}
 	_ = json.Unmarshal(rr.Body.Bytes(), &resp)
 
@@ -192,6 +258,30 @@ func TestEmployeeStream_CrossEmployeeBearerRejected(t *testing.T) {
 	)
 	if rr.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401 when employee A's bearer hits employee B's URL: %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestEmployeeStream_SubagentTaskBearerCanUploadToEmployeeDrive(t *testing.T) {
+	h := newEmployeeStreamHarness(t)
+	emp := h.seedEmployee(t, true)
+	subagentKey := h.seedSubagentTaskSandbox(t, emp.agentID)
+
+	rr := h.put(t,
+		fmt.Sprintf("/internal/employees/%s/assets/tasks/%s/report.md", emp.agentID, uuid.New()),
+		bytes.NewReader([]byte("# report")),
+		"text/markdown",
+		subagentKey,
+	)
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201 for employee-owned subagent bearer: %s", rr.Code, rr.Body.String())
+	}
+
+	var resp struct {
+		Key string `json:"key"`
+	}
+	_ = json.Unmarshal(rr.Body.Bytes(), &resp)
+	if !strings.HasPrefix(resp.Key, "pub/e/"+emp.agentID.String()+"/tasks/") {
+		t.Fatalf("uploaded to wrong employee drive key: %q", resp.Key)
 	}
 }
 
@@ -275,7 +365,7 @@ func TestEmployeeAssets_MoveRelabelsFolderOnly(t *testing.T) {
 	}
 	var createResp struct {
 		Key       string `json:"key"`
-		PublicURL string `json:"public_url"`
+		PublicURL string `json:"asset_url"`
 	}
 	_ = json.Unmarshal(createRR.Body.Bytes(), &createResp)
 
@@ -289,7 +379,7 @@ func TestEmployeeAssets_MoveRelabelsFolderOnly(t *testing.T) {
 	var moveResp struct {
 		Path      string `json:"path"`
 		Key       string `json:"key"`
-		PublicURL string `json:"public_url"`
+		PublicURL string `json:"asset_url"`
 	}
 	_ = json.Unmarshal(moveRR.Body.Bytes(), &moveResp)
 
@@ -300,7 +390,7 @@ func TestEmployeeAssets_MoveRelabelsFolderOnly(t *testing.T) {
 		t.Errorf("S3 key should not change on move: was %q now %q", createResp.Key, moveResp.Key)
 	}
 	if moveResp.PublicURL != createResp.PublicURL {
-		t.Errorf("public_url should not change on move")
+		t.Errorf("asset_url should not change on move")
 	}
 }
 

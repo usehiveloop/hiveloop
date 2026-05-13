@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/bridge"
@@ -36,6 +37,10 @@ func NewOrchestrator(db *gorm.DB, provider Provider, turso *turso.Provisioner, e
 }
 
 func (o *Orchestrator) CreateDedicatedSandbox(ctx context.Context, agent *model.Agent) (*model.Sandbox, error) {
+	return o.CreateDedicatedSandboxWithEnv(ctx, agent, nil)
+}
+
+func (o *Orchestrator) CreateDedicatedSandboxWithEnv(ctx context.Context, agent *model.Agent, extraEnv map[string]string) (*model.Sandbox, error) {
 	if agent.OrgID == nil {
 		return nil, fmt.Errorf("cannot create dedicated sandbox for agent without org_id")
 	}
@@ -44,7 +49,11 @@ func (o *Orchestrator) CreateDedicatedSandbox(ctx context.Context, agent *model.
 		return nil, fmt.Errorf("loading org: %w", err)
 	}
 
-	return o.createSandbox(ctx, &org, agent)
+	return o.createSandbox(ctx, &org, agent, extraEnv)
+}
+
+func (o *Orchestrator) EmployeeTaskDriveUploadURL(employeeID, taskID uuid.UUID) string {
+	return employeeDriveUploadURL(o.cfg, employeeID, "tasks/"+taskID.String())
 }
 
 // GetBridgeClient returns a BridgeClient connected to the sandbox.

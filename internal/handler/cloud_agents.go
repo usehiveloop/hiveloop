@@ -32,10 +32,11 @@ type CloudAgentBridgeClient interface {
 }
 
 type CloudAgentHandlerHooks struct {
-	CreateDedicatedSandbox func(ctx context.Context, agent *model.Agent) (*model.Sandbox, error)
+	CreateDedicatedSandbox func(ctx context.Context, agent *model.Agent, extraEnv map[string]string) (*model.Sandbox, error)
 	PushAgentToSandbox     func(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error
 	GetBridgeClient        func(ctx context.Context, sb *model.Sandbox) (CloudAgentBridgeClient, error)
 	StopSandbox            func(ctx context.Context, sb *model.Sandbox) error
+	TaskDriveUploadURL     func(employeeID uuid.UUID, taskID uuid.UUID) string
 }
 
 type CloudAgentHandler struct {
@@ -47,11 +48,12 @@ type CloudAgentHandler struct {
 func NewCloudAgentHandler(db *gorm.DB, encKey *crypto.SymmetricKey, orchestrator *sandbox.Orchestrator, pusher *sandbox.Pusher) *CloudAgentHandler {
 	hooks := CloudAgentHandlerHooks{}
 	if orchestrator != nil {
-		hooks.CreateDedicatedSandbox = orchestrator.CreateDedicatedSandbox
+		hooks.CreateDedicatedSandbox = orchestrator.CreateDedicatedSandboxWithEnv
 		hooks.GetBridgeClient = func(ctx context.Context, sb *model.Sandbox) (CloudAgentBridgeClient, error) {
 			return orchestrator.GetBridgeClient(ctx, sb)
 		}
 		hooks.StopSandbox = orchestrator.StopSandbox
+		hooks.TaskDriveUploadURL = orchestrator.EmployeeTaskDriveUploadURL
 	}
 	if pusher != nil {
 		hooks.PushAgentToSandbox = pusher.PushAgentToSandbox
@@ -396,7 +398,13 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	sb, err := h.hooks.CreateDedicatedSandbox(ctx, &cloudAgent)
+	taskID := uuid.New()
+	extraEnv := map[string]string{}
+	if h.hooks.TaskDriveUploadURL != nil {
+		extraEnv["HIVELOOP_DRIVE_UPLOAD_URL"] = h.hooks.TaskDriveUploadURL(employee.ID, taskID)
+	}
+
+	sb, err := h.hooks.CreateDedicatedSandbox(ctx, &cloudAgent, extraEnv)
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to create sandbox for cloud agent", "agent_id", agentID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
@@ -423,12 +431,6 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := client.SendMessage(ctx, bridgeResp.ConversationId, req.Brief); err != nil {
-		logging.FromContext(ctx).ErrorContext(ctx, "failed to send brief to cloud agent", "conversation_id", bridgeResp.ConversationId, "error", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to send task brief"})
-		return
-	}
-
 	var metadata model.JSON
 	if req.Metadata != nil {
 		metadata = model.JSON(req.Metadata)
@@ -436,6 +438,7 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	orgID := *employee.OrgID
 	task := model.CloudAgentTask{
+		ID:                     taskID,
 		OrgID:                  orgID,
 		EmployeeAgentID:        employee.ID,
 		CloudAgentID:           agentID,
@@ -465,6 +468,12 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 	if err := h.db.Create(&task).Error; err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to save cloud agent task", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to save task"})
+		return
+	}
+
+	if err := client.SendMessage(ctx, bridgeResp.ConversationId, req.Brief); err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to send brief to cloud agent", "conversation_id", bridgeResp.ConversationId, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to send task brief"})
 		return
 	}
 

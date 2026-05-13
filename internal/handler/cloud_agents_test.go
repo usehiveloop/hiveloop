@@ -30,15 +30,16 @@ import (
 const cloudAgentTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- test fixture
 
 type cloudAgentHarness struct {
-	db         *gorm.DB
-	router     *chi.Mux
-	orgID      uuid.UUID
-	agentID    uuid.UUID
-	encKey     *crypto.SymmetricKey
-	bridgeKey  string
-	fakeBridge *fakeCloudAgentBridge
-	callbackMu sync.Mutex
-	callbacks  []map[string]any
+	db                *gorm.DB
+	router            *chi.Mux
+	orgID             uuid.UUID
+	agentID           uuid.UUID
+	encKey            *crypto.SymmetricKey
+	bridgeKey         string
+	fakeBridge        *fakeCloudAgentBridge
+	createdSandboxEnv map[string]string
+	callbackMu        sync.Mutex
+	callbacks         []map[string]any
 }
 
 type sentCloudAgentMessage struct {
@@ -162,7 +163,8 @@ func newCloudAgentHarness(t *testing.T) *cloudAgentHarness {
 	}
 
 	cloudAgentHandler := handler.NewCloudAgentHandlerWithHooks(database, encKey, handler.CloudAgentHandlerHooks{
-		CreateDedicatedSandbox: func(_ context.Context, agent *model.Agent) (*model.Sandbox, error) {
+		CreateDedicatedSandbox: func(_ context.Context, agent *model.Agent, extraEnv map[string]string) (*model.Sandbox, error) {
+			harness.createdSandboxEnv = extraEnv
 			encryptedCloudKey, err := encKey.EncryptString("cloud-agent-bridge-key")
 			if err != nil {
 				return nil, err
@@ -189,6 +191,9 @@ func newCloudAgentHarness(t *testing.T) *cloudAgentHarness {
 		},
 		StopSandbox: func(_ context.Context, sb *model.Sandbox) error {
 			return database.Model(sb).Update("status", "stopped").Error
+		},
+		TaskDriveUploadURL: func(employeeID uuid.UUID, taskID uuid.UUID) string {
+			return fmt.Sprintf("https://api.test/internal/employees/%s/assets/tasks/%s", employeeID, taskID)
 		},
 	})
 
@@ -506,6 +511,9 @@ func TestCloudAgentCreateTask_Success_UsesBridgeContract(t *testing.T) {
 	}
 	if body.TaskID == "" {
 		t.Fatal("expected task_id")
+	}
+	if h.createdSandboxEnv["HIVELOOP_DRIVE_UPLOAD_URL"] != fmt.Sprintf("https://api.test/internal/employees/%s/assets/tasks/%s", h.agentID, body.TaskID) {
+		t.Fatalf("task-scoped drive upload url = %q", h.createdSandboxEnv["HIVELOOP_DRIVE_UPLOAD_URL"])
 	}
 	if !strings.Contains(body.Message, "cloud_agent_task_status") || !strings.Contains(body.Message, "cloud_agent_task_send_message") {
 		t.Fatalf("response message should reference bridge tool names, got %q", body.Message)

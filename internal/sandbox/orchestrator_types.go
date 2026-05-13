@@ -29,6 +29,7 @@ const (
 func baseEnvVars(cfg *config.Config, bridgeAPIKey string, sandboxID uuid.UUID, webhookURL string) map[string]string {
 	envVars := map[string]string{
 		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
+		"UPLOAD_BEARER":                bridgeAPIKey,
 		"BRIDGE_LISTEN_ADDR":           fmt.Sprintf("0.0.0.0:%d", BridgePort),
 		"BRIDGE_LOG_FORMAT":            "json",
 		"BRIDGE_WEB_URL":               fmt.Sprintf("https://%s/spider", cfg.BridgeHost),
@@ -80,6 +81,27 @@ func setDriveEndpoint(envVars map[string]string, sandboxID uuid.UUID, cfg *confi
 func setAssetsUploadURL(envVars map[string]string, cfg *config.Config) {
 	envVars["HIVELOOP_ASSETS_UPLOAD_URL"] = fmt.Sprintf("https://%s/internal/conversations", cfg.BridgeHost)
 	envVars["HIVELOOP_EMPLOYEE_ASSETS_UPLOAD_URL"] = fmt.Sprintf("https://%s/internal/employees", cfg.BridgeHost)
+}
+
+func employeeDriveUploadURL(cfg *config.Config, employeeID uuid.UUID, folder string) string {
+	bridgeHost := "api.usehiveloop.com"
+	if cfg != nil && strings.TrimSpace(cfg.BridgeHost) != "" {
+		bridgeHost = strings.TrimRight(strings.TrimSpace(cfg.BridgeHost), "/")
+	}
+	base := fmt.Sprintf("https://%s/internal/employees/%s/assets", bridgeHost, employeeID)
+	folder = strings.Trim(strings.TrimSpace(folder), "/")
+	if folder == "" {
+		return base
+	}
+	return base + "/" + folder
+}
+
+func setEmployeeDriveUploadURL(envVars map[string]string, cfg *config.Config, employeeID uuid.UUID, folder string) {
+	envVars["HIVELOOP_DRIVE_UPLOAD_URL"] = employeeDriveUploadURL(cfg, employeeID, folder)
+}
+
+func setUploadBearer(envVars map[string]string, bearer string) {
+	envVars["UPLOAD_BEARER"] = bearer
 }
 
 type repoResource struct {

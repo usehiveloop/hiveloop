@@ -9,7 +9,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent *model.Agent) (*model.Sandbox, error) {
+func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent *model.Agent, extraEnv map[string]string) (*model.Sandbox, error) {
 	var storageURL, authToken string
 	if o.turso != nil {
 		var err error
@@ -57,6 +57,10 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	if agent != nil {
 		o.mergeUserEnvVars(ctx, envVars, agent.EncryptedEnvVars)
 	}
+	for key, value := range extraEnv {
+		envVars[key] = value
+	}
+	setUploadBearer(envVars, bridgeAPIKey)
 
 	snapshotID := o.resolveSnapshot(agent)
 	name := o.buildSandboxName(agent)

@@ -139,6 +139,7 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		"EMPLOYEE_ID":                  agent.ID.String(),
 		"CLOUD_CONTROL_PLANE_URL":      "https://" + bridgeHost,
 		"BRIDGE_API_KEY":               runtimeSecret,
+		"UPLOAD_BEARER":                runtimeSecret,
 		"WORKSPACE_ROOT":               "/workspace",
 		"DB_PATH":                      "/app/data/employee-bridge.db",
 		"RUNTIME_BIND_ADDR":            fmt.Sprintf("0.0.0.0:%d", EmployeeSandboxPort),
@@ -150,6 +151,7 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		"HIVELOOP_GIT_CREDENTIALS_URL": fmt.Sprintf("https://%s/internal/git-credentials/%s", bridgeHost, agent.ID),
 		"GH_NO_KEYRING":                "1",
 	}
+	setEmployeeDriveUploadURL(envVars, cfg, agent.ID, "employee")
 	if cfg != nil && strings.TrimSpace(cfg.SentryDSN) != "" {
 		envVars["SENTRY_DSN"] = cfg.SentryDSN
 		envVars["SENTRY_ENVIRONMENT"] = cfg.Environment

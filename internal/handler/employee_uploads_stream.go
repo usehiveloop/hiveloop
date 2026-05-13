@@ -70,12 +70,37 @@ func (h *UploadsHandler) authEmployee(w http.ResponseWriter, r *http.Request) (*
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to verify credentials"})
 		return nil, nil, false
 	}
-	if subtle.ConstantTimeCompare([]byte(bearer), []byte(wantKey)) != 1 {
+	if subtle.ConstantTimeCompare([]byte(bearer), []byte(wantKey)) != 1 && !h.bearerMatchesEmployeeSubagentSandbox(r, agent.ID, bearer) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid bridge api key"})
 		return nil, nil, false
 	}
 
 	return &agent, &sandbox, true
+}
+
+func (h *UploadsHandler) bearerMatchesEmployeeSubagentSandbox(r *http.Request, employeeID uuid.UUID, bearer string) bool {
+	if bearer == "" || h.encKey == nil {
+		return false
+	}
+	var sandboxes []model.Sandbox
+	if err := h.db.
+		Joins("JOIN cloud_agent_tasks ON cloud_agent_tasks.sandbox_id = sandboxes.id").
+		Where("cloud_agent_tasks.employee_agent_id = ? AND sandboxes.status NOT IN (?, ?)", employeeID, "archived", "error").
+		Find(&sandboxes).Error; err != nil {
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "load employee subagent sandboxes for asset auth", "employee_id", employeeID, "error", err)
+		return false
+	}
+	for _, sandbox := range sandboxes {
+		wantKey, err := h.encKey.DecryptString(sandbox.EncryptedBridgeAPIKey)
+		if err != nil {
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt subagent bridge api key", "employee_id", employeeID, "sandbox_id", sandbox.ID, "error", err)
+			continue
+		}
+		if subtle.ConstantTimeCompare([]byte(bearer), []byte(wantKey)) == 1 {
+			return true
+		}
+	}
+	return false
 }
 
 func buildEmployeeAssetKey(agentID uuid.UUID, folder, filename string) string {
@@ -138,15 +163,15 @@ func (h *UploadsHandler) StreamEmployeeAsset(w http.ResponseWriter, r *http.Requ
 		Bytes:       stored.Bytes,
 	}
 	if err := h.db.Where("key = ?", stored.Key).Assign(map[string]any{
-		"agent_id":     agent.ID,
-		"org_id":       *agent.OrgID,
-		"sandbox_id":   sandbox.ID,
-		"path":         folder,
-		"filename":     filename,
-		"public_url":   stored.PublicURL,
-		"content_type": contentType,
-		"bytes":        stored.Bytes,
-		"updated_at":   time.Now(),
+		"agent_id":            agent.ID,
+		"org_id":              *agent.OrgID,
+		"sandbox_id":          sandbox.ID,
+		"path":                folder,
+		"filename":            filename,
+		assetURLStorageColumn: stored.PublicURL,
+		"content_type":        contentType,
+		"bytes":               stored.Bytes,
+		"updated_at":          time.Now(),
 	}).FirstOrCreate(&asset).Error; err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "persist employee asset", "agent_id", agent.ID, "key", stored.Key, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to save asset"})
@@ -211,10 +236,10 @@ func (h *UploadsHandler) DeleteEmployeeAsset(w http.ResponseWriter, r *http.Requ
 }
 
 // MoveEmployeeAsset relabels an asset's folder. Only the database `path`
-// column is touched — the S3 key (and therefore the public URL) stays put.
+// column is touched — the S3 key (and therefore the asset URL) stays put.
 //
 //	POST /internal/employees/{employeeID}/assets/move
-//	body: {"asset":"<public_url|folder/filename>","new_path":"archive"}
+//	body: {"asset":"<asset_url|folder/filename>","new_path":"archive"}
 func (h *UploadsHandler) MoveEmployeeAsset(w http.ResponseWriter, r *http.Request) {
 	if h.encKey == nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "asset endpoints not configured"})
