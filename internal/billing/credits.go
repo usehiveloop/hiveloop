@@ -17,10 +17,10 @@ import (
 // zero. Handlers should translate this into HTTP 402 Payment Required.
 var ErrInsufficientCredits = errors.New("billing: insufficient credits")
 
-// ErrAlreadyRecorded is returned when Spend hits the unique index on
-// (org_id, reason, ref_type, ref_id) — meaning this exact deduction has
-// already been applied. Callers should treat this as success, not an error;
-// it means the caller retried after the first attempt already committed.
+// ErrAlreadyRecorded is returned when a non-empty
+// (org_id, reason, ref_type, ref_id) tuple has already been applied. Callers
+// should treat this as success, not an error; it means the caller retried
+// after the first attempt already committed.
 var ErrAlreadyRecorded = errors.New("billing: spend already recorded (idempotent replay)")
 
 // Grant reasons (stored in credit_ledger_entries.reason).
@@ -85,6 +85,11 @@ func GrantWithTx(tx *gorm.DB, orgID uuid.UUID, amount int64, reason, refType, re
 	if amount <= 0 {
 		return fmt.Errorf("grant amount must be positive (got %d)", amount)
 	}
+	if alreadyRecorded, err := ledgerEntryExists(tx, orgID, reason, refType, refID); err != nil {
+		return err
+	} else if alreadyRecorded {
+		return ErrAlreadyRecorded
+	}
 	return tx.Create(&model.CreditLedgerEntry{
 		OrgID:     orgID,
 		Amount:    amount,
@@ -98,8 +103,8 @@ func GrantWithTx(tx *gorm.DB, orgID uuid.UUID, amount int64, reason, refType, re
 // Spend deducts credits. amount must be positive.
 //
 // Returns ErrInsufficientCredits if the org's balance would drop below zero,
-// and ErrAlreadyRecorded when a deduction with the same
-// (org_id, reason, ref_type, ref_id) has already been written — async task
+// and ErrAlreadyRecorded when a deduction with the same non-empty
+// (org_id, reason, ref_type, ref_id) has already been written. Async task
 // retries hit this and should treat it as success.
 //
 // Spend serialises concurrent spends for a given org by taking a row-level
@@ -115,7 +120,6 @@ func (s *CreditsService) Spend(orgID uuid.UUID, amount int64, reason, refType, r
 	return err
 }
 
-// Caller translates SQLSTATE 23505 to ErrAlreadyRecorded via IsUniqueViolation.
 func SpendWithTx(tx *gorm.DB, orgID uuid.UUID, amount int64, reason, refType, refID string) error {
 	if amount <= 0 {
 		return fmt.Errorf("spend amount must be positive (got %d)", amount)
@@ -134,6 +138,11 @@ func SpendWithTx(tx *gorm.DB, orgID uuid.UUID, amount int64, reason, refType, re
 	if current < amount {
 		return ErrInsufficientCredits
 	}
+	if alreadyRecorded, err := ledgerEntryExists(tx, orgID, reason, refType, refID); err != nil {
+		return err
+	} else if alreadyRecorded {
+		return ErrAlreadyRecorded
+	}
 
 	return tx.Create(&model.CreditLedgerEntry{
 		OrgID:   orgID,
@@ -142,6 +151,20 @@ func SpendWithTx(tx *gorm.DB, orgID uuid.UUID, amount int64, reason, refType, re
 		RefType: refType,
 		RefID:   refID,
 	}).Error
+}
+
+func ledgerEntryExists(tx *gorm.DB, orgID uuid.UUID, reason, refType, refID string) (bool, error) {
+	if refID == "" {
+		return false, nil
+	}
+	var count int64
+	if err := tx.Model(&model.CreditLedgerEntry{}).
+		Where("org_id = ? AND reason = ? AND ref_type = ? AND ref_id = ?", orgID, reason, refType, refID).
+		Limit(1).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("check credit ledger idempotency: %w", err)
+	}
+	return count > 0, nil
 }
 
 func IsUniqueViolation(err error) bool { return isUniqueViolation(err) }
