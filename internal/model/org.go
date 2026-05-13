@@ -43,6 +43,12 @@ type Org struct {
 func (Org) TableName() string { return "orgs" }
 
 func AutoMigrate(db *gorm.DB) error {
+	unlock, err := acquireMigrationLock(db)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
 	if err := db.AutoMigrate(
 		&Org{},
 		&User{},
@@ -177,6 +183,19 @@ func AutoMigrate(db *gorm.DB) error {
 	// internal/rag would close a cycle.
 
 	return nil
+}
+
+func acquireMigrationLock(db *gorm.DB) (func(), error) {
+	if db == nil || db.Dialector == nil || db.Dialector.Name() != "postgres" {
+		return func() {}, nil
+	}
+	const lockID int64 = 724780141001
+	if err := db.Exec(`SELECT pg_advisory_lock(?)`, lockID).Error; err != nil {
+		return nil, err
+	}
+	return func() {
+		_ = db.Exec(`SELECT pg_advisory_unlock(?)`, lockID).Error
+	}, nil
 }
 
 func installAgentHardDeleteConstraints(db *gorm.DB) {
