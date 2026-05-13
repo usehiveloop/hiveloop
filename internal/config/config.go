@@ -133,11 +133,12 @@ type Config struct {
 	SpiderBaseURL string `env:"SPIDER_BASE_URL" envDefault:"https://api.spider.cloud"` // Spider.cloud API endpoint
 
 	// S3 (agent drive storage — empty AWS_S3_BUCKET_NAME disables the drive)
-	S3Bucket    string `env:"AWS_S3_BUCKET_NAME"`
-	S3Region    string `env:"AWS_DEFAULT_REGION" envDefault:"us-east-1"`
-	S3Endpoint  string `env:"AWS_ENDPOINT_URL"` // for MinIO / R2 / local dev
-	S3AccessKey string `env:"AWS_ACCESS_KEY_ID"`
-	S3SecretKey string `env:"AWS_SECRET_ACCESS_KEY"`
+	S3Bucket                     string `env:"AWS_S3_BUCKET_NAME"`
+	S3Region                     string `env:"AWS_DEFAULT_REGION" envDefault:"us-east-1"`
+	S3Endpoint                   string `env:"AWS_ENDPOINT_URL"` // for MinIO / R2 / local dev
+	S3AccessKey                  string `env:"AWS_ACCESS_KEY_ID"`
+	S3SecretKey                  string `env:"AWS_SECRET_ACCESS_KEY"`
+	EmployeeSQLiteBackupMaxBytes int64  `env:"EMPLOYEE_SQLITE_BACKUP_MAX_BYTES" envDefault:"536870912"`
 
 	// Public assets (avatars, org logos, generic public uploads). Empty
 	// PUBLIC_ASSETS_S3_BUCKET disables the /v1/uploads/sign endpoint.

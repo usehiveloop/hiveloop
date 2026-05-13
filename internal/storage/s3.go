@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -55,6 +56,30 @@ func (sc *S3Client) Upload(ctx context.Context, key string, body io.Reader, cont
 	_, err := sc.client.PutObject(ctx, input)
 	if err != nil {
 		return fmt.Errorf("s3 upload %q: %w", key, err)
+	}
+	return nil
+}
+
+// Stream uploads body to the bucket without buffering the whole object.
+func (sc *S3Client) Stream(ctx context.Context, key string, body io.Reader, contentType string) error {
+	if key == "" {
+		return fmt.Errorf("S3 key is required")
+	}
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	tm := transfermanager.New(sc.client, func(o *transfermanager.Options) {
+		o.PartSizeBytes = 8 * 1024 * 1024
+		o.Concurrency = 5
+	})
+	_, err := tm.UploadObject(ctx, &transfermanager.UploadObjectInput{
+		Bucket:      aws.String(sc.bucket),
+		Key:         aws.String(key),
+		Body:        body,
+		ContentType: aws.String(contentType),
+	})
+	if err != nil {
+		return fmt.Errorf("s3 stream upload %q: %w", key, err)
 	}
 	return nil
 }

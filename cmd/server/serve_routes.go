@@ -30,10 +30,12 @@ func setupPublicRoutes(
 	bridgeWebhookHandler *handler.BridgeWebhookHandler,
 	employeeOutboundWebhookHandler *handler.EmployeeOutboundWebhookHandler,
 	nangoWebhookHandler *handler.NangoWebhookHandler,
+	githubEmployeeWebhookHandler *handler.GitHubEmployeeWebhookHandler,
 	incomingWebhookHandler *handler.IncomingWebhookHandler,
 	nangoClient *nango.Client,
 	sandboxEncKey *crypto.SymmetricKey,
 	uploadsHandler *handler.UploadsHandler,
+	sqliteBackupHandler *handler.EmployeeSQLiteBackupHandler,
 	cloudAgentHandler *handler.CloudAgentHandler,
 ) {
 	r.Get("/healthz", healthz)
@@ -70,6 +72,9 @@ func setupPublicRoutes(
 	r.Post("/internal/webhooks/bridge/{sandboxID}", bridgeWebhookHandler.Handle)
 	r.Post("/internal/webhooks/employee/{sandboxID}", employeeOutboundWebhookHandler.Handle)
 	r.Post("/internal/webhooks/nango", nangoWebhookHandler.Handle)
+	if githubEmployeeWebhookHandler != nil {
+		r.Post("/internal/webhooks/github/employees/{agentID}", githubEmployeeWebhookHandler.Handle)
+	}
 
 	// Sandbox proxy endpoints (bearer-token auth, no middleware)
 	if nangoClient != nil && sandboxEncKey != nil {
@@ -94,6 +99,10 @@ func setupPublicRoutes(
 		r.Put("/internal/employees/{employeeID}/assets/*", uploadsHandler.StreamEmployeeAsset)
 		r.Post("/internal/employees/{employeeID}/assets/move", uploadsHandler.MoveEmployeeAsset)
 		r.Delete("/internal/employees/{employeeID}/assets/*", uploadsHandler.DeleteEmployeeAsset)
+	}
+
+	if sqliteBackupHandler != nil {
+		r.Put("/internal/employees/{employeeID}/sqlite-backup", sqliteBackupHandler.Upload)
 	}
 
 	if cloudAgentHandler != nil {
