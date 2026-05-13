@@ -160,11 +160,49 @@ jobs:
           # Live external-provider RAG tests remain opt-in behind env gates;
           # local Postgres, Redis, MinIO, and Qdrant-backed tests run here.
           PACKAGES=$(go list ./internal/... \
+            | grep -vE '^github.com/usehiveloop/hiveloop/internal/handler$' \
             | awk -v s=${{ matrix.shard }} -v n=4 'NR % n == s')
           echo "Running shard ${{ matrix.shard }} packages:"
           echo "$PACKAGES"
           go test $PACKAGES -race -count=1
         timeout-minutes: 10
+      - name: cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans 2>/dev/null || true
+
+  # internal/handler dominates race-test wall clock, so shard by test name instead
+  # of running the whole package on one runner.
+  test-handler:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.10"
+          cache: true
+      - name: Generate auth RSA key
+        run: |
+          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
+          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
+      - name: start infrastructure
+        run: make test-setup
+        timeout-minutes: 5
+      - name: run handler tests (shard ${{ matrix.shard }}/8)
+        run: |
+          TESTS=$(go test ./internal/handler -list '^Test' | awk -v s=${{ matrix.shard }} -v n=8 'NR % n == s')
+          echo "Running handler shard ${{ matrix.shard }} tests:"
+          echo "$TESTS"
+          if [ -z "$TESTS" ]; then
+            echo "No tests assigned to this shard"
+            exit 0
+          fi
+          PATTERN=$(printf '%s\n' "$TESTS" | paste -sd'|' -)
+          go test ./internal/handler -race -count=1 -v -run "^(${PATTERN})$"
+        timeout-minutes: 5
       - name: cleanup
         if: always()
         run: docker compose down -v --remove-orphans 2>/dev/null || true
@@ -204,6 +242,7 @@ jobs:
         test-proxy,
         test-connect,
         test-core,
+        test-handler,
         test-e2e-core,
       ]
     runs-on: ubuntu-latest
@@ -215,6 +254,7 @@ jobs:
              [ "${{ needs.test-proxy.result }}" != "success" ] || \
              [ "${{ needs.test-connect.result }}" != "success" ] || \
              [ "${{ needs.test-core.result }}" != "success" ] || \
+             [ "${{ needs.test-handler.result }}" != "success" ] || \
              [ "${{ needs.test-e2e-core.result }}" != "success" ]; then
             echo "One or more test jobs failed"
             exit 1
