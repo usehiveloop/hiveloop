@@ -116,7 +116,8 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	}
 
 	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus, enqueuer)
-	employeeOutboundWebhookHandler := handler.NewEmployeeOutboundWebhookHandler(database, sandboxEncKey, enqueuer)
+	employeeEventWriter := handler.NewEmployeeEventWriter(ctx, database, 20000)
+	employeeOutboundWebhookHandler := handler.NewEmployeeOutboundWebhookHandler(database, sandboxEncKey, enqueuer, employeeEventWriter)
 	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey, sandboxEncKey, enqueuer)
 
 	var cloudAgentHandler *handler.CloudAgentHandler
@@ -254,6 +255,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	auditWriter.Shutdown(shutdownCtx)
 	generationWriter.Shutdown(shutdownCtx)
+	employeeEventWriter.Shutdown(shutdownCtx)
 	if deps.ToolUsageWriter != nil {
 		deps.ToolUsageWriter.Shutdown(shutdownCtx)
 	}

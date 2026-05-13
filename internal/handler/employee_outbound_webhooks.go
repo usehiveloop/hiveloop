@@ -32,6 +32,7 @@ type EmployeeOutboundWebhookHandler struct {
 	db       *gorm.DB
 	encKey   *crypto.SymmetricKey
 	enqueuer enqueue.TaskEnqueuer
+	writer   *EmployeeEventWriter
 	now      func() time.Time
 	maxBytes int64
 }
@@ -42,14 +43,18 @@ type employeeOutboundEvent struct {
 	At        time.Time       `json:"at"`
 }
 
-func NewEmployeeOutboundWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey, enqueuer enqueue.TaskEnqueuer) *EmployeeOutboundWebhookHandler {
-	return &EmployeeOutboundWebhookHandler{
+func NewEmployeeOutboundWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey, enqueuer enqueue.TaskEnqueuer, writers ...*EmployeeEventWriter) *EmployeeOutboundWebhookHandler {
+	h := &EmployeeOutboundWebhookHandler{
 		db:       db,
 		encKey:   encKey,
 		enqueuer: enqueuer,
 		now:      time.Now,
 		maxBytes: 512 * 1024,
 	}
+	if len(writers) > 0 {
+		h.writer = writers[0]
+	}
+	return h
 }
 
 func (h *EmployeeOutboundWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
@@ -111,35 +116,24 @@ func (h *EmployeeOutboundWebhookHandler) verifySignature(ctx context.Context, sb
 }
 
 func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Context, sb *model.Sandbox, event *employeeOutboundEvent) {
-	if sb.OrgID == nil || sb.AgentID == nil || !shouldStoreEmployeeMemoryEvent(event.EventType) {
-		return
-	}
 	payload := map[string]any{}
 	if len(event.Payload) > 0 {
 		_ = json.Unmarshal(event.Payload, &payload)
 	}
-	if payloadLooksSensitive(payload) {
-		return
-	}
 	sessionID := stringValue(payload, "session_id")
-	if sessionID == "" {
+	stored, ok := employeeMemoryEventFromOutbound(sb, event, payload, sessionID)
+	if !ok {
 		return
 	}
-	stored := model.EmployeeMemoryEvent{
-		OrgID:     *sb.OrgID,
-		AgentID:   *sb.AgentID,
-		SandboxID: sb.ID,
-		SessionID: sessionID,
-		EventType: event.EventType,
-		Source:    employeeEventSource(payload),
-		Payload:   model.RawJSON(event.Payload),
-		EventAt:   event.At.UTC(),
+	if h.writer != nil {
+		h.writer.Write(ctx, stored)
+	} else {
+		if err := h.db.WithContext(ctx).Create(&stored).Error; err != nil {
+			logging.Capture(ctx, fmt.Errorf("employee outbound webhook: store memory event sandbox_id=%s event_type=%s: %w", sb.ID, event.EventType, err))
+			return
+		}
 	}
-	if err := h.db.WithContext(ctx).Create(&stored).Error; err != nil {
-		logging.Capture(ctx, fmt.Errorf("employee outbound webhook: store memory event sandbox_id=%s event_type=%s: %w", sb.ID, event.EventType, err))
-		return
-	}
-	if h.enqueuer == nil || !shouldTriggerEmployeeMemoryCheckpoint(event.EventType) {
+	if h.enqueuer == nil || sessionID == "" || !shouldTriggerEmployeeMemoryCheckpoint(event.EventType) {
 		return
 	}
 	task, err := tasks.NewEmployeeMemoryRetainTask(tasks.EmployeeMemoryRetainPayload{
@@ -160,6 +154,22 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 	); err != nil && !errors.Is(err, asynq.ErrDuplicateTask) {
 		logging.Capture(ctx, fmt.Errorf("employee outbound webhook: enqueue memory retain: %w", err))
 	}
+}
+
+func employeeMemoryEventFromOutbound(sb *model.Sandbox, event *employeeOutboundEvent, payload map[string]any, sessionID string) (model.EmployeeMemoryEvent, bool) {
+	if sb.OrgID == nil || sb.AgentID == nil {
+		return model.EmployeeMemoryEvent{}, false
+	}
+	return model.EmployeeMemoryEvent{
+		OrgID:     *sb.OrgID,
+		AgentID:   *sb.AgentID,
+		SandboxID: sb.ID,
+		SessionID: sessionID,
+		EventType: event.EventType,
+		Source:    employeeEventSource(payload),
+		Payload:   model.RawJSON(event.Payload),
+		EventAt:   event.At.UTC(),
+	}, true
 }
 
 func employeeEventSource(payload map[string]any) string {
@@ -195,15 +205,6 @@ func sanitizeTagValue(value string) string {
 		}
 	}
 	return strings.Trim(b.String(), "-_")
-}
-
-func shouldStoreEmployeeMemoryEvent(eventType string) bool {
-	switch eventType {
-	case "user.message.received", "tool.invoked", "agent.message.sent", "session.completed":
-		return true
-	default:
-		return false
-	}
 }
 
 func shouldTriggerEmployeeMemoryCheckpoint(eventType string) bool {
