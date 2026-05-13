@@ -16,7 +16,7 @@ type Skill struct {
 	PublisherID *uuid.UUID `gorm:"type:uuid;index"`
 	Publisher   *User      `gorm:"foreignKey:PublisherID;constraint:OnDelete:SET NULL"`
 
-	Slug        string  `gorm:"not null;uniqueIndex"`
+	Slug        string  `gorm:"not null;index"`
 	Name        string  `gorm:"not null"`
 	Description *string `gorm:"type:text"`
 

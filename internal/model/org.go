@@ -137,6 +137,11 @@ func AutoMigrate(db *gorm.DB) error {
 
 	// Partial unique: a git-sourced skill can only have one version per commit SHA.
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_skill_versions_skill_sha ON skill_versions (skill_id, commit_sha) WHERE commit_sha IS NOT NULL`)
+	db.Exec(`DROP INDEX IF EXISTS idx_skills_slug`)
+	db.Exec(`DROP INDEX IF EXISTS uni_skills_slug`)
+	db.Exec(`ALTER TABLE skills DROP CONSTRAINT IF EXISTS uni_skills_slug`)
+	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_skills_global_slug ON skills (slug) WHERE org_id IS NULL`)
+	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_skills_org_slug ON skills (org_id, slug) WHERE org_id IS NOT NULL`)
 	// GIN index for skill tag filtering in the marketplace.
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_skills_tags ON skills USING GIN (tags)`)
 

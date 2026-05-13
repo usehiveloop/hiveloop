@@ -510,8 +510,8 @@ func defaultLimits() map[string]any {
 func defaultTools() []map[string]any {
 	return []map[string]any{
 		{"type": "builtin.bash", "config": map[string]any{"workdir": ".", "timeout_seconds": 60, "max_output_bytes": 5 * 1024 * 1024, "deny_patterns": []string{"rm -rf /", "rm -rf ~", "mkfs", "dd if=", ":(){:|:&};:", "shutdown", "reboot"}, "env_passthrough": []string{"HOME", "PATH", "LANG", "LC_ALL", ProxyAPIKeyEnv}, "sandbox": "process_isolated"}},
-		{"type": "builtin.read_file", "config": map[string]any{"allowed_roots": []string{}, "max_file_size_bytes": 5 * 1024 * 1024, "deny_globs": []string{"**/.env", "**/.env.*", "**/secrets/**", "**/id_rsa*", "**/*.pem"}}},
-		{"type": "builtin.write_file", "config": map[string]any{"allowed_roots": []string{}, "max_file_size_bytes": 5 * 1024 * 1024, "deny_globs": []string{"**/.env", "**/.env.*", "**/secrets/**", "**/.git/**", "**/node_modules/**"}, "atomic": true}},
+		{"type": "builtin.read_file", "config": map[string]any{"allowed_roots": []string{}, "max_file_size_bytes": 5 * 1024 * 1024, "deny_globs": []string{}}},
+		{"type": "builtin.write_file", "config": map[string]any{"allowed_roots": []string{}, "max_file_size_bytes": 5 * 1024 * 1024, "deny_globs": []string{}, "atomic": true}},
 		{"type": "builtin.post_status_update"}, {"type": "builtin.post_to_channel"},
 		{"type": "builtin.cron"}, {"type": "builtin.delegate"}, {"type": "builtin.check_delegated_status"},
 		{"type": "builtin.check_bash_status"}, {"type": "builtin.wake"}, {"type": "builtin.load_tools"},

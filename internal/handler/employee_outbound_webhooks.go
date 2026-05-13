@@ -133,6 +133,11 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 			return
 		}
 	}
+	if event.EventType == "skill.synced" {
+		if err := h.syncSkillEvent(ctx, sb, payload); err != nil {
+			logging.Capture(ctx, fmt.Errorf("employee outbound webhook: sync skill sandbox_id=%s: %w", sb.ID, err))
+		}
+	}
 	if h.enqueuer == nil || sessionID == "" || !shouldTriggerEmployeeMemoryCheckpoint(event.EventType) {
 		return
 	}
