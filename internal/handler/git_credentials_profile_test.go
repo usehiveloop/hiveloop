@@ -113,6 +113,63 @@ func TestGitCredentials_ProfileConnectionChangeBypassesCache(t *testing.T) {
 	}
 }
 
+func TestGitCredentials_SubagentUsesEmployeeGitHubProfileConnection(t *testing.T) {
+	requestedPaths := []string{}
+	nangoHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestedPaths = append(requestedPaths, r.URL.String())
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"provider": "github",
+			"credentials": map[string]any{
+				"access_token": "ghs_employee_profile_token",
+			},
+		})
+	})
+
+	harness := newGitCredsHarness(t, nangoHandler)
+	employeeID := uuid.New()
+	employee := model.Agent{
+		ID:         employeeID,
+		OrgID:      &harness.orgID,
+		Name:       "employee-owner",
+		Status:     "active",
+		IsEmployee: true,
+	}
+	if err := harness.db.Create(&employee).Error; err != nil {
+		t.Fatalf("create employee: %v", err)
+	}
+	link := model.AgentSubagent{AgentID: employeeID, SubagentID: harness.agentID}
+	if err := harness.db.Create(&link).Error; err != nil {
+		t.Fatalf("create agent subagent link: %v", err)
+	}
+	t.Cleanup(func() {
+		harness.db.Where("agent_id = ? AND subagent_id = ?", employeeID, harness.agentID).Delete(&model.AgentSubagent{})
+		harness.db.Where("id = ?", employeeID).Delete(&model.Agent{})
+	})
+
+	profileConnID, profileNangoID, providerConfigKey := createGitProfileConnectionForGitCreds(t, harness.db, harness.orgID, employeeID, "employee-profile")
+
+	req := httptest.NewRequest(http.MethodPost,
+		"/internal/git-credentials/"+harness.agentID.String(), nil)
+	req.Header.Set("Authorization", "Bearer "+harness.bridgeKey)
+	recorder := httptest.NewRecorder()
+	harness.router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+	if recorder.Body.String() != "username=x-access-token\npassword=ghs_employee_profile_token\n" {
+		t.Fatalf("unexpected response body: %q", recorder.Body.String())
+	}
+	if len(requestedPaths) != 1 {
+		t.Fatalf("nango calls = %d, want 1: %#v", len(requestedPaths), requestedPaths)
+	}
+	want := fmt.Sprintf("/connection/%s?provider_config_key=%s", profileNangoID, providerConfigKey)
+	if requestedPaths[0] != want {
+		t.Fatalf("nango path = %q, want %q (employee profile conn %s)", requestedPaths[0], want, profileConnID)
+	}
+}
+
 func createGitProfileConnectionForGitCreds(t *testing.T, db *gorm.DB, orgID uuid.UUID, agentID uuid.UUID, suffix string) (uuid.UUID, string, string) {
 	t.Helper()
 	connID, nangoID, providerConfigKey := createGitConnectionForGitCreds(t, db, orgID, suffix)

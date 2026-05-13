@@ -1,0 +1,248 @@
+Hiveloop Security / Reliability Fixes TODO
+
+P0
+
+1. Narrow API keys can escalate to "all".
+   - Problem: /v1/api-keys accepts API-key auth without requiring an admin/JWT or a dedicated scope, and APIKeyHandler.Create accepts "all".
+   - Fix: require JWT org admin or an explicit high-trust scope for API key management. Prevent API keys from minting broader scopes than they already have.
+   - Key files: cmd/server/serve_routes_v1.go, internal/handler/api_keys.go, internal/model/api_key.go, internal/middleware/apikeyauth.go
+
+2. Agent MCP integrations can be forged across orgs.
+   - Problem: agent create/update stores integration connection IDs after only exclusivity validation; missing or foreign connection IDs are not rejected. MCP later loads connections by id without org_id.
+   - Fix: validate every integration connection ID belongs to the current org and is not revoked. Make MCP builder load connections by id + org_id or token/org context.
+   - Key files: internal/handler/agents_helpers.go, internal/handler/agents_create.go, internal/handler/agents_update.go, internal/sandbox/pusher_helpers.go, internal/mcpserver/builder.go
+
+3. Next proxy refresh lock can swap user sessions.
+   - Problem: web/admin proxies use one module-level refreshPromise shared by all users.
+   - Fix: key refresh in-flight locks by refresh token/session fingerprint, or remove global dedupe and refresh per request.
+   - Key files: apps/web/app/api/proxy/[...path]/route.ts, apps/admin/app/api/proxy/[...path]/route.ts
+
+4. Shared subagents can inherit the wrong employee GitHub identity/token.
+   - Problem: subagents are many-to-many, but GitHub identity/token resolution picks the first linked employee by created_at instead of the employee dispatching the task.
+   - Fix: pass employee context into sandbox creation and git credential resolution for delegated subagent tasks. Do not infer owner from first agent_subagents row.
+   - Key files: internal/model/agent_subagent.go, internal/handler/cloud_agents.go, internal/handler/git_credentials.go, internal/sandbox/orchestrator_git_identity.go
+
+5. GitHub profiles can be bound to another user's org connection.
+   - Problem: GitHub profile connection lookup is scoped to org, not current user, while org connection IDs are exposed in responses.
+   - Fix: require conn.UserID == current user for profile binding, or add explicit admin/consent flow for assigning another user's connection.
+   - Key files: internal/handler/agent_profiles_github.go, internal/handler/in_connections.go
+
+P1
+
+6. GitHub repo selection limits are bypassed by agent resources and raw token access.
+   - Problem: selected repositories are stored on the profile, but agent resources can name arbitrary repos. Git credentials return a raw token without repo/path scoping. Repo fields are interpolated into shell commands.
+   - Fix: validate agent resources against selected GitHub profile repos before saving and before clone. Quote shell args or avoid shell string construction. Consider returning repo-scoped credentials only when possible.
+   - Key files: internal/handler/agent_profiles_github.go, internal/handler/agents_create.go, internal/handler/agents_update.go, internal/sandbox/orchestrator_helpers.go, internal/handler/git_credentials.go
+
+7. Reconnect sessions are not scoped to current org.
+   - Problem: reconnect endpoint loads InConnection by id + revoked_at only.
+   - Fix: load by id + org_id + revoked_at, and optionally ensure the caller owns the connection or is org admin.
+   - Key files: internal/handler/in_connections_session.go, cmd/server/serve_routes_v1.go
+
+8. Nango webhook routing can be hijacked by duplicate nango_connection_id.
+   - Problem: connection creation accepts client-supplied nango_connection_id, the model has no uniqueness constraint, and webhook lookup orders newest first by nango_connection_id.
+   - Fix: add a uniqueness constraint over nango_connection_id/provider or nango_connection_id/integration. Verify Nango connection ownership before creating local records.
+   - Key files: internal/handler/in_connections_create.go, internal/model/in_connection.go, internal/handler/nango_webhooks_identify.go
+
+9. Public /spider routes can spend platform capacity.
+   - Problem: /spider routes are registered without auth when SpiderClient is configured; usage attribution is skipped without token claims.
+   - Fix: put /spider behind internal sandbox bearer auth, JWT/API auth with quotas, or remove public mounting.
+   - Key files: cmd/server/serve_routes_admin.go, internal/handler/spider.go, internal/spider/client.go, apps/web/app/api/proxy/[...path]/route.ts
+
+10. Old sandbox bridge keys can still mint GitHub tokens.
+    - Problem: git credentials authenticate against all sandbox rows for an agent without checking active/running status or expiry.
+    - Fix: accept only running/live sandboxes, rotate bridge keys on stop/archive, and revoke/invalidate token cache when sandbox state changes.
+    - Key files: internal/handler/git_credentials.go, internal/sandbox/orchestrator_delete.go, internal/sandbox/orchestrator_types.go
+
+11. Subscription renewal can double-charge.
+    - Problem: renewal charges Paystack before taking the DB lock; parallel workers can both charge externally.
+    - Fix: lock or claim the subscription before charging, and send a stable idempotency/reference key to Paystack.
+    - Key files: internal/billing/subscription/renew.go, internal/billing/paystack/charge.go
+
+12. Credit grant idempotency is race-prone.
+    - Problem: ledger idempotency is read-before-write with no unique constraint.
+    - Fix: add a unique index for org_id + reason + ref_type + ref_id when ref_id is non-empty, then handle conflict as already recorded.
+    - Key files: internal/model/credit_ledger.go, internal/billing/credits_idempotency.go, internal/billing/credits.go
+
+13. Webhook dedupe is ineffective.
+    - Problem: Nango and direct webhooks generate random delivery IDs, while task uniqueness expects delivery_id to identify provider redeliveries.
+    - Fix: derive delivery_id from provider delivery header/event ID/payload ID where available. Store/dedupe dispatches at DB level where provider IDs exist.
+    - Key files: internal/handler/nango_webhooks_dispatch.go, internal/handler/incoming_webhooks.go, internal/tasks/payloads_trigger.go
+
+14. Failed dedicated sandbox setup/clone can leave live provider sandboxes running.
+    - Problem: provider auto-stop/archive is disabled, but setup/clone failure only marks DB status error. Lifecycle only cleans running/stopped rows.
+    - Fix: delete or stop provider sandbox on setup/clone failure, or include error rows in cleanup with strong retry semantics.
+    - Key files: internal/sandbox/orchestrator_create_dedicated.go, internal/sandbox/orchestrator_helpers.go, internal/sandbox/orchestrator_lifecycle.go
+
+15. Subagent task upload bearer is not restricted to the task folder.
+    - Problem: a task-scoped upload URL is issued, but auth accepts any sandbox for the employee and allows writes/deletes/moves outside the task folder.
+    - Fix: bind bearer/sandbox/task to an allowed path prefix and enforce it on PUT, DELETE, and MOVE.
+    - Key files: internal/handler/cloud_agents.go, internal/handler/employee_uploads_stream.go
+
+P2
+
+16. GitHub webhook setup is not fully wired in production.
+    - Problem: AgentProfileHandler never receives bridgeHost, so repo selection webhook setup fails. GitHub employee webhook receiver is defined but not mounted in production routes.
+    - Fix: call SetBridgeHost(cfg.BridgeHost) during server setup and mount POST /internal/webhooks/github/employees/{agentID}.
+    - Key files: cmd/server/serve.go, cmd/server/serve_routes.go, internal/handler/agent_profiles_github.go, internal/handler/agent_profiles_github_webhook_secrets.go, internal/handler/github_employee_webhooks.go
+
+17. Direct incoming webhooks use connection UUID as bearer secret.
+    - Problem: direct webhook endpoint is unauthenticated and treats connectionID as the secret.
+    - Fix: add provider HMAC verification where supported, per-connection webhook secrets where not supported, and rotateable webhook URLs.
+    - Key files: internal/handler/incoming_webhooks.go
+
+18. Bridge/employee webhook signatures lack replay protection.
+    - Problem: signatures cover timestamp/payload in some paths, but there is no freshness window or delivery nonce dedupe.
+    - Fix: enforce timestamp skew limits and store delivery IDs/nonces for replay rejection.
+    - Key files: internal/handler/bridge_webhooks.go, internal/handler/employee_outbound_webhooks.go
+
+19. Nango webhook signature can fail open if NANGO_SECRET_KEY is empty.
+    - Problem: HMAC verification accepts whatever configured secret exists; config does not require NANGO_SECRET_KEY.
+    - Fix: fail server startup or disable Nango webhooks when NANGO_SECRET_KEY is empty.
+    - Key files: internal/config/config.go, cmd/server/serve.go, internal/handler/nango_webhooks.go, internal/handler/nango_webhooks_identify.go
+
+20. CORS fails open when CORS_ORIGINS is omitted.
+    - Problem: empty allowed origins means Access-Control-Allow-Origin: *.
+    - Fix: require explicit origins in production or default to deny cross-origin browser requests.
+    - Key files: internal/config/config.go, internal/middleware/cors.go, cmd/server/serve.go
+
+21. Revoked Railway connections can continue from cache.
+    - Problem: Railway token cache returns cached token before checking DB revocation state.
+    - Fix: include revocation/version in cache key or check DB revocation before using cached token. Purge cache on revoke.
+    - Key files: internal/handler/railway_proxy.go, internal/handler/in_connections_revoke.go
+
+22. Revoked agent profiles can still feed employee runtime state.
+    - Problem: some profile/runtime queries filter status/deleted_at but not revoked_at.
+    - Fix: add revoked_at IS NULL everywhere active profile secrets/runtime state are loaded.
+    - Key files: internal/model/agent_profile.go, internal/hermes/compile_env.go, internal/handler/employees_sync.go
+
+23. Deleting agents can leave external sandboxes running.
+    - Problem: user delete commits DB deletion then separately enqueues cleanup; admin delete does not enqueue cleanup; provider delete failures are logged as success.
+    - Fix: make cleanup durable before DB deletion or use outbox. Add admin cleanup path and retry failed provider deletes.
+    - Key files: internal/handler/agents_delete.go, internal/handler/admin_agents.go, internal/tasks/agent_cleanup.go
+
+24. Setup command failure can persist platform secrets into visible sandbox errors.
+    - Problem: setup errors can include provider command output and are stored/returned as error_message while secrets are in env.
+    - Fix: redact known secret env names and suppress raw command output in user-visible errors.
+    - Key files: internal/sandbox/orchestrator_types.go, internal/sandbox/daytona/driver_lifecycle.go, internal/sandbox/orchestrator_helpers.go, internal/sandbox/orchestrator_create_dedicated.go, internal/handler/sandboxes.go
+
+25. Git author env overrides bypass GitHub identity enforcement.
+    - Problem: user env can set GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, or GIT_COMMITTER_EMAIL, overriding system git config.
+    - Fix: block or overwrite git author/committer env vars when connected GitHub identity must be authoritative.
+    - Key files: internal/handler/agents_setup.go, internal/sandbox/orchestrator_helpers.go, cmd/buildtemplates/image.go
+
+26. Legacy sandbox-drive endpoint cannot resolve the sandbox's agent.
+    - Problem: sandboxes store AgentID on sandboxes, but resolveSandboxAgent queries agents.sandbox_id.
+    - Fix: resolve through sandboxes.agent_id or remove the legacy env/endpoint if superseded.
+    - Key files: internal/model/sandbox.go, internal/handler/sandbox_drive.go, internal/sandbox/orchestrator_types.go
+
+27. Production compose omits runtime env required by the Next session proxy.
+    - Problem: web container does not set SESSION_SECRET/API_URL runtime env required by route handlers.
+    - Fix: add required envs and startup validation.
+    - Key files: hosting/docker-compose.production.yml, apps/web/lib/auth/session.ts, apps/web/app/api/proxy/[...path]/route.ts
+
+
+Current Architecture Scan TODOs
+===============================
+
+Context
+-------
+- Scan date: 2026-05-13.
+- Scope: /Users/bahdcoder/code/hiveloop.com and /Users/bahdcoder/code/employee.hiveloop.com.
+- Important assumption: Hermes is no longer the target employee runtime. Hermes-specific work in todo.txt is obsolete unless live code still references it.
+- Do not treat todo.txt as authoritative anymore. It mixes old Hermes work with current architecture work.
+
+
+P0
+--
+
+28. Retire or quarantine Hermes-era code paths.
+    - Problem: the repo still contains Hermes implementation, tests, config, and template registration even though employee runtime has moved to employee-sandbox.
+    - Fix: delete or archive Hermes runtime code, remove stale build targets/config, and replace old docs with employee-sandbox equivalents.
+    - Key files: internal/hermes/*, cmd/buildtemplates/hermes.go, Makefile, internal/config/config.go, internal/sandbox/orchestrator_create_hermes.go
+
+29. Migrate web chat streaming away from Hermes/sidecar semantics if web chat is still live.
+    - Problem: chat streaming still says it replays history through Hermes and calls EnsureHermesSandboxReady/openSidecarStream paths.
+    - Fix: decide whether web chat should use employee-bridge semantics, regular bridge semantics, or be removed. Do not leave Hermes naming on active runtime paths.
+    - Key files: internal/handler/chats_stream.go, internal/handler/chats_helpers_test.go, internal/sandbox/orchestrator_lifecycle.go
+
+30. Add a real RAG schema migration path.
+    - Problem: current model.AutoMigrate does not include RAG tables, while RAG sources, attempts, and attempt errors are active code paths.
+    - Fix: add an explicit RAG migration/boot path for active RAG tables and wire it in server and worker startup.
+    - Key files: internal/model/org.go, internal/rag/model/rag_source.go, internal/rag/model/index_attempt.go, internal/rag/model/index_attempt_error.go, cmd/server/serve.go, cmd/server/worker.go
+
+31. Wire or intentionally remove rag_embedding_models.
+    - Problem: SeedRegistry exists and model comments reference rag_embedding_models, but boot does not call embedder.SeedRegistry.
+    - Fix: either seed registry during RAG migration/boot or remove the table/model expectation deliberately.
+    - Key files: internal/rag/embedder/seed.go, internal/rag/model/embedding_model.go, internal/rag/model/index_attempt.go
+
+
+P1
+--
+
+32. Clean stale admin schema references after backend support was removed.
+    - Problem: admin UI still references marketplace_agents.sandbox_type, but backend model support is gone.
+    - Fix: remove stale admin UI/API type references or intentionally re-add backend support.
+    - Key files: apps/admin/app/dashboard/agents/page.tsx, apps/admin/app/dashboard/sandboxes/page.tsx
+
+33. Tighten RAG route authorization back to admin.
+    - Problem: RAG routes currently use ResolveUser with a TODO to restore RequireOrgAdmin once admin UI is gated.
+    - Fix: complete UI permission handling and restore org-admin middleware.
+    - Key files: cmd/server/serve_routes_v1.go
+
+34. Finish MCP scope resource validation.
+    - Problem: MCP scope validation checks actions but still passes nil for connection resources.
+    - Fix: load connection resource constraints from connection metadata and validate requested resources against them.
+    - Key files: internal/mcp/scope.go, internal/model/in_connection.go, internal/mcp/catalog
+
+35. Drop or migrate the post-migration agent.Tools column.
+    - Problem: Agent.Tools still carries a TODO(post-migration) and generated API docs expose it.
+    - Fix: archive any remaining data, remove the column/model field, regenerate OpenAPI/types, and update callers.
+    - Key files: internal/model/agent.go, apps/web/lib/api/schema.d.ts, apps/admin/lib/api/schema.d.ts, docs/openapi.json
+
+36. Decide employee category expansion beyond engineering.
+    - Problem: categories list contains many categories, but POST /v1/employees rejects anything except engineering.
+    - Fix: either hide unsupported categories in employee creation UI/API, or add per-category identity prompts/default team setup.
+    - Key files: internal/handler/agents_categories.go, internal/handler/employees_create.go, internal/employeeprompts/prompts.go
+
+37. Define non-Slack employee startup profile support before adding non-Slack gateways.
+    - Problem: employee startup currently requires an active Slack profile and decrypts only Slack tokens.
+    - Fix: keep Slack-only as explicit v1 contract, or add provider-specific startup profile support for future gateways.
+    - Key files: internal/employeeruntime/compile.go, internal/handler/employees_sync.go, internal/handler/onboarding_complete.go
+
+38. Replace Hermes E2E todo with employee-sandbox E2E.
+    - Problem: todo.txt asks for Compile -> SDK -> Hermes container tests, which is obsolete.
+    - Fix: add or verify an employee-sandbox E2E that creates an employee, connects Slack/GitHub profiles, provisions the sandbox, pushes /config, checks /healthz and /readyz, and verifies model/proxy/env behavior.
+    - Key files: internal/handler/employees_create_test.go, internal/handler/employees_sync_test.go, internal/sandbox/orchestrator_create_employee.go, e2e
+
+
+P2
+--
+
+39. Reconcile DB cleanup findings from db-todos.txt.
+    - Problem: db-todos.txt still lists production-only columns/tables/indexes that need final decisions.
+    - Fix: keep active RAG tables, remove stale columns after backup, and decide whether subscription indexes should become explicit migrations.
+    - Key files: db-todos.txt, internal/model/org.go, internal/rag/model, apps/admin
+
+40. Refactor application files still grandfathered in file-length allowlist.
+    - Problem: scripts/file-length-allowlist.txt still lists application files over the 300-line limit, including current active employee/RAG code.
+    - Fix: split touched large application files opportunistically and remove allowlist entries as they fall under the limit.
+    - Key files: scripts/file-length-allowlist.txt
+
+41. Update trigger architecture docs or implementation around per-agent child tasks.
+    - Problem: trigger-architecture docs still say per-agent TypeAgentRun child tasks are TODO, while current router dispatch code has evolved.
+    - Fix: either implement the missing child task model or update the architecture doc to match current RouterDispatchHandler behavior.
+    - Key files: trigger-architecture/02-dispatcher-runtime.md, internal/tasks/router_dispatch.go, internal/trigger/dispatch/router_dispatcher.go
+
+
+Obsolete Hermes Items From todo.txt
+-----------------------------------
+- Build Hermes Daytona image and wire HERMES_BASE_IMAGE_PREFIX.
+- Make ghcr.io/usehiveloop/hermes public or configure Daytona pull credentials for Hermes.
+- Add Hermes-harness branch for production employee creation.
+- Wire internal/hermes/Compile into onboarding completion.
+- Custom Hermes MCP tools, Hermes provider dispatch, Hermes Hindsight proxy, Hermes setup commands, and Hermes tools/permissions mapping.
+- Hermes sidecar WhatsApp endpoint work.
+- Hermes Compile -> SDK -> Sidecar E2E.
+
+These should not be implemented as written. If any capability is still needed, rewrite it against employee-sandbox/employee-bridge first.

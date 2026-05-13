@@ -19,6 +19,11 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		}
 	}
 
+	gitIdentity, err := o.loadAgentGitIdentity(ctx, agent)
+	if err != nil {
+		return nil, fmt.Errorf("loading sandbox git identity: %w", err)
+	}
+
 	bridgeAPIKey, err := generateRandomHex(32)
 	if err != nil {
 		return nil, fmt.Errorf("generating bridge api key: %w", err)
@@ -60,6 +65,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	for key, value := range extraEnv {
 		envVars[key] = value
 	}
+	setGitIdentityEnvVars(envVars, agent, gitIdentity)
 	setUploadBearer(envVars, bridgeAPIKey)
 
 	snapshotID := o.resolveSnapshot(agent)

@@ -37,17 +37,21 @@ func TestImageRuntimeContract(t *testing.T) {
 	got := provider.createCalls[0].EnvVars
 
 	required := map[string]string{
-		"HOME":                "/work",
-		"CLAUDE_CONFIG_DIR":   "/work/.claude",
-		"OPENCODE_CONFIG_DIR": "/work/.opencode",
-		"NO_BROWSER":          "1",
-		"BRIDGE_LISTEN_ADDR":  "0.0.0.0:25434",
-		"BRIDGE_STORAGE_PATH": "/work/bridge.db",
+		"HOME":                  "/work",
+		"CLAUDE_CONFIG_DIR":     "/work/.claude",
+		"OPENCODE_CONFIG_DIR":   "/work/.opencode",
+		"NO_BROWSER":            "1",
+		"BRIDGE_LISTEN_ADDR":    "0.0.0.0:25434",
+		"BRIDGE_STORAGE_PATH":   "/work/bridge.db",
+		"HIVELOOP_GIT_USERNAME": sanitizeName(agent.Name),
 	}
 	for k, want := range required {
 		if got[k] != want {
 			t.Errorf("env %s = %q, want %q", k, got[k], want)
 		}
+	}
+	if want := sanitizeName(agent.Name) + "@users.noreply.github.com"; got["HIVELOOP_GIT_EMAIL"] != want {
+		t.Errorf("env HIVELOOP_GIT_EMAIL = %q, want %q", got["HIVELOOP_GIT_EMAIL"], want)
 	}
 
 	dropped := []string{
