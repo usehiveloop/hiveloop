@@ -12,6 +12,11 @@ import (
 
 func TestCreateDedicatedSandbox(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
+	orch.cfg.Environment = "production"
+	orch.cfg.SentryDSN = "https://backend@example.com/2"
+	orch.cfg.AgentSandboxSentryDSN = "https://agent@example.com/3"
+	orch.cfg.SentryRelease = "agent-bridge@test"
+	orch.cfg.SentryTracesSampleRate = 0.35
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, cred.ID)
@@ -37,6 +42,22 @@ func TestCreateDedicatedSandbox(t *testing.T) {
 	}
 	if provider.count() != 1 {
 		t.Errorf("expected 1 sandbox, got %d", provider.count())
+	}
+	env := provider.createCalls[len(provider.createCalls)-1].EnvVars
+	if got := env["SENTRY_DSN"]; got != "https://agent@example.com/3" {
+		t.Fatalf("SENTRY_DSN = %q, want agent sandbox DSN", got)
+	}
+	if got := env["SENTRY_ENVIRONMENT"]; got != "production" {
+		t.Fatalf("SENTRY_ENVIRONMENT = %q, want production", got)
+	}
+	if got := env["SENTRY_RELEASE"]; got != "agent-bridge@test" {
+		t.Fatalf("SENTRY_RELEASE = %q, want agent-bridge@test", got)
+	}
+	if got := env["SENTRY_TRACES_SAMPLE_RATE"]; got != "0.35" {
+		t.Fatalf("SENTRY_TRACES_SAMPLE_RATE = %q, want 0.35", got)
+	}
+	if got := env["SENTRY_ENABLE_LOGS"]; got != "true" {
+		t.Fatalf("SENTRY_ENABLE_LOGS = %q, want true", got)
 	}
 }
 

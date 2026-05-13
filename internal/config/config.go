@@ -174,6 +174,8 @@ type Config struct {
 	SentryRelease            string  `env:"SENTRY_RELEASE"`
 	SentryTracesSampleRate   float64 `env:"SENTRY_TRACES_SAMPLE_RATE" envDefault:"0.1"`
 	SentryProfilesSampleRate float64 `env:"SENTRY_PROFILES_SAMPLE_RATE" envDefault:"0.0"`
+	EmployeeSandboxSentryDSN string  `env:"EMPLOYEE_SANDBOX_SENTRY_DSN"`
+	AgentSandboxSentryDSN    string  `env:"AGENT_SANDBOX_SENTRY_DSN"`
 
 	// Qdrant (vector store, gRPC). Empty QdrantHost disables RAG.
 	QdrantHost       string `env:"QDRANT_HOST"`

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -47,7 +48,26 @@ func baseEnvVars(cfg *config.Config, bridgeAPIKey string, sandboxID uuid.UUID, w
 	if webhookURL != "" {
 		envVars["BRIDGE_WEBHOOK_URL"] = webhookURL
 	}
+	agentSentryDSN := ""
+	if cfg != nil {
+		agentSentryDSN = cfg.AgentSandboxSentryDSN
+	}
+	setSandboxSentryEnvVars(envVars, cfg, agentSentryDSN)
 	return envVars
+}
+
+func setSandboxSentryEnvVars(envVars map[string]string, cfg *config.Config, dsn string) {
+	if cfg == nil || strings.TrimSpace(dsn) == "" {
+		return
+	}
+	envVars["SENTRY_DSN"] = strings.TrimSpace(dsn)
+	envVars["SENTRY_ENVIRONMENT"] = cfg.Environment
+	envVars["SENTRY_SAMPLE_RATE"] = "1"
+	envVars["SENTRY_TRACES_SAMPLE_RATE"] = strconv.FormatFloat(cfg.SentryTracesSampleRate, 'f', -1, 64)
+	envVars["SENTRY_ENABLE_LOGS"] = "true"
+	if strings.TrimSpace(cfg.SentryRelease) != "" {
+		envVars["SENTRY_RELEASE"] = cfg.SentryRelease
+	}
 }
 
 func setOrgEnvVars(envVars map[string]string, orgID uuid.UUID) {

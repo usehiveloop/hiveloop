@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -157,16 +156,11 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		"GH_NO_KEYRING":                "1",
 	}
 	setEmployeeDriveUploadURL(envVars, cfg, agent.ID, "employee")
-	if cfg != nil && strings.TrimSpace(cfg.SentryDSN) != "" {
-		envVars["SENTRY_DSN"] = cfg.SentryDSN
-		envVars["SENTRY_ENVIRONMENT"] = cfg.Environment
-		envVars["SENTRY_SAMPLE_RATE"] = "1"
-		envVars["SENTRY_TRACES_SAMPLE_RATE"] = strconv.FormatFloat(cfg.SentryTracesSampleRate, 'f', -1, 64)
-		envVars["SENTRY_ENABLE_LOGS"] = "true"
-		if strings.TrimSpace(cfg.SentryRelease) != "" {
-			envVars["SENTRY_RELEASE"] = cfg.SentryRelease
-		}
+	employeeSentryDSN := ""
+	if cfg != nil {
+		employeeSentryDSN = cfg.EmployeeSandboxSentryDSN
 	}
+	setSandboxSentryEnvVars(envVars, cfg, employeeSentryDSN)
 	return envVars
 }
 
