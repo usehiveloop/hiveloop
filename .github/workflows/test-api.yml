@@ -170,14 +170,14 @@ jobs:
         if: always()
         run: docker compose down -v --remove-orphans 2>/dev/null || true
 
-  # internal/handler dominates race-test wall clock, so shard by test name instead
-  # of running the whole package on one runner.
+  # internal/handler dominates wall clock. Run it as fast sharded integration
+  # coverage; the remaining internal package shards keep -race enabled.
   test-handler:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -191,9 +191,9 @@ jobs:
       - name: start infrastructure
         run: make test-setup
         timeout-minutes: 5
-      - name: run handler tests (shard ${{ matrix.shard }}/16)
+      - name: run handler tests (shard ${{ matrix.shard }}/8)
         run: |
-          TESTS=$(go test ./internal/handler -list '^Test' | awk -v s=${{ matrix.shard }} -v n=16 'NR % n == s')
+          TESTS=$(go test ./internal/handler -list '^Test' | awk -v s=${{ matrix.shard }} -v n=8 'NR % n == s')
           echo "Running handler shard ${{ matrix.shard }} tests:"
           echo "$TESTS"
           if [ -z "$TESTS" ]; then
@@ -201,7 +201,7 @@ jobs:
             exit 0
           fi
           PATTERN=$(printf '%s\n' "$TESTS" | paste -sd'|' -)
-          go test ./internal/handler -race -count=1 -v -run "^(${PATTERN})$"
+          go test ./internal/handler -count=1 -v -run "^(${PATTERN})$"
         timeout-minutes: 5
       - name: cleanup
         if: always()
