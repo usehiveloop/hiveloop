@@ -33,10 +33,11 @@ func jsonRoundTripToMap(v any) (model.JSON, error) {
 }
 
 type AgentProfileHandler struct {
-	db    *gorm.DB
-	kms   *crypto.KeyWrapper
-	nango *nango.Client
-	enq   enqueue.TaskEnqueuer
+	db         *gorm.DB
+	kms        *crypto.KeyWrapper
+	nango      *nango.Client
+	enq        enqueue.TaskEnqueuer
+	bridgeHost string
 }
 
 func NewAgentProfileHandler(db *gorm.DB, kms *crypto.KeyWrapper, nangoClient *nango.Client) *AgentProfileHandler {

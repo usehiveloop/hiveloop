@@ -216,7 +216,7 @@ func (h *AgentProfileHandler) ListGitHubRepositories(w http.ResponseWriter, r *h
 // @Security BearerAuth
 // @Router /v1/agents/{agentID}/profiles/github/repositories [patch]
 func (h *AgentProfileHandler) UpdateGitHubRepositories(w http.ResponseWriter, r *http.Request) {
-	_, _, profile, _, _, ok := h.resolveGitHubProfileContext(w, r)
+	agent, _, profile, conn, providerConfigKey, ok := h.resolveGitHubProfileContext(w, r)
 	if !ok {
 		return
 	}
@@ -235,11 +235,50 @@ func (h *AgentProfileHandler) UpdateGitHubRepositories(w http.ResponseWriter, r 
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "repositories must include id and full_name"})
 			return
 		}
+		if _, _, err := splitGitHubRepoFullName(repo.FullName); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+	}
+
+	webhookURL, err := h.githubEmployeeWebhookURL(agent.ID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "github webhook setup is not configured"})
+		return
+	}
+	webhookSecret, err := h.ensureGitHubWebhookSecret(r.Context(), &profile)
+	if err != nil {
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "github webhook secret setup failed",
+			"error", err, "profile_id", profile.ID, "agent_id", agent.ID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to prepare GitHub webhook secret"})
+		return
 	}
 
 	cfg := model.JSON{}
 	for k, v := range profile.Config {
 		cfg[k] = v
+	}
+	webhooks := githubWebhookMetadataByRepo(cfg)
+	for _, repo := range req.Repositories {
+		if githubWebhookMetadataMatches(webhooks[repo.FullName], webhookURL) {
+			continue
+		}
+		meta, err := h.ensureGitHubRepositoryWebhook(r.Context(), conn, providerConfigKey, repo, webhookURL, webhookSecret)
+		if err != nil {
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "github repository webhook setup failed",
+				"error", err, "profile_id", profile.ID, "agent_id", agent.ID, "repository", repo.FullName)
+			writeJSON(w, http.StatusBadGateway, map[string]string{
+				"error": fmt.Sprintf("failed to create GitHub webhook for %s", repo.FullName),
+			})
+			return
+		}
+		webhooks[repo.FullName] = meta
+		cfg[githubWebhookConfigKey] = githubWebhookMetadataToJSON(webhooks)
+		profile.Config = cfg
+		if err := h.db.Model(&profile).Update("config", profile.Config).Error; err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to save GitHub webhook metadata"})
+			return
+		}
 	}
 	cfg["selected_repositories"] = reposToJSONList(req.Repositories)
 	profile.Config = cfg

@@ -18,6 +18,9 @@ type nangoConnMockConfig struct {
 	getConnStatus    int
 	deleteConnStatus int
 	proxyStatus      int
+	hookListStatus   int
+	hookCreateStatus int
+	hookUpdateStatus int
 }
 
 func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
@@ -32,6 +35,15 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 	}
 	if cfg.proxyStatus == 0 {
 		cfg.proxyStatus = http.StatusOK
+	}
+	if cfg.hookListStatus == 0 {
+		cfg.hookListStatus = http.StatusOK
+	}
+	if cfg.hookCreateStatus == 0 {
+		cfg.hookCreateStatus = http.StatusCreated
+	}
+	if cfg.hookUpdateStatus == 0 {
+		cfg.hookUpdateStatus = http.StatusOK
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -134,6 +146,51 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 					"html_url":  "https://github.com/octocat/private-beta",
 					"owner":     map[string]any{"login": "octocat"},
 				},
+			})
+			return
+		}
+
+		if strings.HasPrefix(r.URL.Path, "/proxy/repos/") && strings.HasSuffix(r.URL.Path, "/hooks") {
+			switch r.Method {
+			case http.MethodGet:
+				w.WriteHeader(cfg.hookListStatus)
+				if cfg.hookListStatus >= 400 {
+					_ = json.NewEncoder(w).Encode(map[string]any{"message": "github hook list error"})
+					return
+				}
+				_ = json.NewEncoder(w).Encode([]map[string]any{})
+				return
+			case http.MethodPost:
+				w.WriteHeader(cfg.hookCreateStatus)
+				if cfg.hookCreateStatus >= 400 {
+					_ = json.NewEncoder(w).Encode(map[string]any{"message": "github hook create error"})
+					return
+				}
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"id":         9001,
+					"name":       "web",
+					"active":     true,
+					"events":     []string{"pull_request", "pull_request_review", "pull_request_review_comment", "pull_request_review_thread", "issue_comment", "workflow_run", "workflow_job", "commit_comment", "issues"},
+					"config":     map[string]any{"url": "https://api.hiveloop.test/internal/webhooks/github/employees/test"},
+					"created_at": time.Now().UTC().Format(time.RFC3339),
+				})
+				return
+			}
+		}
+
+		if strings.Contains(r.URL.Path, "/hooks/") && r.Method == http.MethodPatch {
+			w.WriteHeader(cfg.hookUpdateStatus)
+			if cfg.hookUpdateStatus >= 400 {
+				_ = json.NewEncoder(w).Encode(map[string]any{"message": "github hook update error"})
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id":         9001,
+				"name":       "web",
+				"active":     true,
+				"events":     []string{"pull_request", "pull_request_review", "pull_request_review_comment", "pull_request_review_thread", "issue_comment", "workflow_run", "workflow_job", "commit_comment", "issues"},
+				"config":     map[string]any{"url": "https://api.hiveloop.test/internal/webhooks/github/employees/test"},
+				"created_at": time.Now().UTC().Format(time.RFC3339),
 			})
 			return
 		}
