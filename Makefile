@@ -112,12 +112,15 @@ test-e2e:
 
 # Start services and wait for healthy (no teardown, no tests)
 test-setup:
-	docker compose up -d postgres redis
+	docker compose up -d postgres redis minio
 	@echo "Waiting for services..."
 	@until docker compose exec -T postgres pg_isready -U hiveloop -q 2>/dev/null; do sleep 1; done
 	@echo "  ✓ Postgres"
 	@until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
 	@echo "  ✓ Redis"
+	@until curl -fsS http://localhost:9000/minio/health/ready >/dev/null 2>&1; do sleep 1; done
+	@echo "  ✓ MinIO"
+	docker compose run --rm minio-setup
 	@echo ""
 	@echo "  Infrastructure ready. Run tests with:"
 	@echo "    make test-auth"
