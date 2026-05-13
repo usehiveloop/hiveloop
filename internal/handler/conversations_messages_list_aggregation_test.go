@@ -123,6 +123,29 @@ func TestListMessages_TurnCompletedSeparatesAgentMessages(t *testing.T) {
 	}
 }
 
+func TestListMessages_RendersRecoveredResponseCompletedBody(t *testing.T) {
+	h := newMessagesListHarness(t)
+
+	h.seed(t, []model.ConversationEvent{
+		{SequenceNumber: 1, EventType: "message_received", Data: mustJSON(t, map[string]any{"content": "say hello"})},
+		{SequenceNumber: 2, EventType: "response_completed", Data: mustJSON(t, map[string]any{"message_id": "m1", "full_response": "hello from bridge"})},
+		{SequenceNumber: 3, EventType: "turn_completed", Data: mustJSON(t, map[string]any{"stop_reason": "endturn"})},
+	})
+
+	rr := h.get(t, "")
+	page := decodeMessagesPage(t, rr)
+	if len(page.Data) != 2 {
+		t.Fatalf("messages: got %d, want 2", len(page.Data))
+	}
+	agent := page.Data[1]
+	if agent["author"] != "agent" {
+		t.Fatalf("agent author: got %v", agent["author"])
+	}
+	if agent["body"] != "hello from bridge" {
+		t.Fatalf("agent body: got %v, want hello from bridge", agent["body"])
+	}
+}
+
 func TestListMessages_StartedWithoutCompletionIsHidden(t *testing.T) {
 	h := newMessagesListHarness(t)
 

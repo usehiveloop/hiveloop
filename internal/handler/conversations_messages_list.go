@@ -164,6 +164,16 @@ func aggregateMessages(events []model.ConversationEvent) ([]conversationMessageR
 				Summary: summaryFromRawOutput(data["raw_output"]),
 			})
 
+		case "response_completed":
+			body, _ := data["full_response"].(string)
+			if body == "" {
+				body, _ = data["content"].(string)
+			}
+			if body != "" {
+				m := ensureAgent(e)
+				m.Body += body
+			}
+
 		case "turn_completed":
 			current = nil
 		}

@@ -72,7 +72,7 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 	proxyBaseURL := fmt.Sprintf("https://%s", p.cfg.ProxyHost)
 
 	providerGroup := subagents.MapProviderToGroup(cred.ProviderID, agent.Model)
-	systemPrompt, _ := agent.ResolveProviderConfig(providerGroup)
+	systemPrompt, modelName := agent.ResolveProviderConfig(providerGroup)
 
 	if repoContext := buildRepoContext(agent.Resources); repoContext != "" {
 		systemPrompt += "\n\n" + repoContext
@@ -86,14 +86,14 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 		Harness:      harnessFromAgent(agent.Harness),
 		Provider: bridgepkg.ProviderConfig{
 			ProviderType: providerType,
-			Model:        agent.Model,
+			Model:        modelName,
 			ApiKey:       proxyToken,
 			BaseUrl:      &proxyBaseURL,
 		},
 	}
 
 	authorCfg := decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig)
-	def.Config = applyAgentConfigDefaults(authorCfg, cred.ProviderID, agent.Model)
+	def.Config = applyAgentConfigDefaults(authorCfg, cred.ProviderID, modelName)
 	applyHarnessOptionalFields(def.Config, authorCfg)
 
 	mcpServers := decodeJSONAs[[]bridgepkg.McpServerDefinition](agent.McpServers)

@@ -23,12 +23,12 @@ import (
 // webhookTestHarness sets up the full chain: org → identity → credential → agent → sandbox → conversation
 type webhookTestHarness struct {
 	*testHarness
-	encKey   *crypto.SymmetricKey
-	org      model.Org
-	sandbox  model.Sandbox
-	conv     model.AgentConversation
-	secret   string // plaintext Bridge API key
-	router   *chi.Mux
+	encKey  *crypto.SymmetricKey
+	org     model.Org
+	sandbox model.Sandbox
+	conv    model.AgentConversation
+	secret  string // plaintext Bridge API key
+	router  *chi.Mux
 }
 
 func newWebhookTestHarness(t *testing.T) *webhookTestHarness {
@@ -73,7 +73,7 @@ func newWebhookTestHarness(t *testing.T) *webhookTestHarness {
 	bridgeSecret := "test-bridge-secret-" + suffix
 	encryptedKey, _ := encKey.EncryptString(bridgeSecret)
 	sandbox := model.Sandbox{
-		OrgID: &org.ID,
+		OrgID:      &org.ID,
 		ExternalID: "wh-ext-" + suffix, BridgeURL: "https://test:25434",
 		EncryptedBridgeAPIKey: encryptedKey, Status: "running",
 	}
@@ -147,13 +147,13 @@ func TestWebhook_PersistsEvents(t *testing.T) {
 	if len(events) != 3 {
 		t.Fatalf("expected 3 events, got %d", len(events))
 	}
-	if events[0].EventType != "ConversationCreated" {
+	if events[0].EventType != "conversation_created" {
 		t.Errorf("event 0: got %q", events[0].EventType)
 	}
-	if events[1].EventType != "MessageReceived" {
+	if events[1].EventType != "message_received" {
 		t.Errorf("event 1: got %q", events[1].EventType)
 	}
-	if events[2].EventType != "ResponseCompleted" {
+	if events[2].EventType != "response_completed" {
 		t.Errorf("event 2: got %q", events[2].EventType)
 	}
 }
@@ -162,7 +162,7 @@ func TestWebhook_ConversationEndedUpdatesStatus(t *testing.T) {
 	wh := newWebhookTestHarness(t)
 
 	body := fmt.Sprintf(`[
-		{"event_id":"e1","event_type":"ConversationEnded","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}}
+		{"event_id":"e1","event_type":"conversation_ended","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}}
 	]`, wh.conv.BridgeConversationID)
 
 	rr := wh.signedRequest(t, body)
@@ -178,13 +178,21 @@ func TestWebhook_ConversationEndedUpdatesStatus(t *testing.T) {
 	if conv.EndedAt == nil {
 		t.Error("ended_at should be set")
 	}
+
+	var event model.ConversationEvent
+	if err := wh.db.Where("conversation_id = ?", wh.conv.ID).First(&event).Error; err != nil {
+		t.Fatalf("load stored event: %v", err)
+	}
+	if event.EventType != "conversation_ended" {
+		t.Errorf("stored event_type: got %q, want conversation_ended", event.EventType)
+	}
 }
 
 func TestWebhook_AgentErrorUpdatesStatus(t *testing.T) {
 	wh := newWebhookTestHarness(t)
 
 	body := fmt.Sprintf(`[
-		{"event_id":"e1","event_type":"AgentError","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{"error":"something broke"}}
+		{"event_id":"e1","event_type":"agent_error","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{"error":"something broke"}}
 	]`, wh.conv.BridgeConversationID)
 
 	rr := wh.signedRequest(t, body)
@@ -323,13 +331,13 @@ func TestWebhook_MultipleEventTypes(t *testing.T) {
 
 	var events []model.ConversationEvent
 	wh.db.Where("conversation_id = ?", wh.conv.ID).Order("created_at ASC").Find(&events)
-	if len(events) != 6 {
-		t.Fatalf("expected 6 events, got %d", len(events))
+	if len(events) != 5 {
+		t.Fatalf("expected 5 stored events, got %d", len(events))
 	}
 
 	expectedTypes := []string{
-		"ConversationCreated", "MessageReceived", "ResponseStarted",
-		"ResponseChunk", "ResponseCompleted", "TurnCompleted",
+		"conversation_created", "message_received", "response_started",
+		"response_completed", "turn_completed",
 	}
 	for i, et := range expectedTypes {
 		if events[i].EventType != et {
@@ -339,7 +347,7 @@ func TestWebhook_MultipleEventTypes(t *testing.T) {
 
 	// Verify payload data is stored
 	var respEvent model.ConversationEvent
-	wh.db.Where("conversation_id = ? AND event_type = 'ResponseCompleted'", wh.conv.ID).First(&respEvent)
+	wh.db.Where("conversation_id = ? AND event_type = 'response_completed'", wh.conv.ID).First(&respEvent)
 	var data map[string]any
 	if err := json.Unmarshal(respEvent.Data, &data); err != nil {
 		t.Fatal("response_completed data should be valid JSON")

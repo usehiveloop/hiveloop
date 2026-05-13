@@ -40,6 +40,22 @@ export interface TokenStats {
   turnNumber?: number
 }
 
+function responseDelta(data: Record<string, unknown>): string {
+  if (typeof data.delta === "string") return data.delta
+  if (typeof data.text === "string") return data.text
+  const content = data.content as
+    | { type?: unknown; text?: unknown }
+    | undefined
+  if (
+    content &&
+    (content.type === undefined || content.type === "text") &&
+    typeof content.text === "string"
+  ) {
+    return content.text
+  }
+  return ""
+}
+
 /**
  * Hook for streaming conversation events via SSE directly from the backend.
  *
@@ -172,15 +188,31 @@ export function useConversationStream(conversationId: string | null) {
           }
 
           case "response_chunk": {
-            const delta = data.delta as string
-            const messageId = data.message_id as string
+            const delta = responseDelta(data)
+            const messageId =
+              (data.message_id as string | undefined) ??
+              streamingMessageIdRef.current ??
+              event_id
             if (!delta) break
+            streamingMessageIdRef.current = messageId
+            setIsStreaming(true)
 
             setMessages((prev) => {
               const idx = prev.findLastIndex(
                 (msg) => msg.role === "agent" && msg.messageId === messageId
               )
-              if (idx === -1) return prev
+              if (idx === -1) {
+                return [
+                  ...prev,
+                  {
+                    id: event_id,
+                    role: "agent",
+                    content: delta,
+                    messageId,
+                    timestamp,
+                  },
+                ]
+              }
 
               const updated = [...prev]
               updated[idx] = {
@@ -193,8 +225,13 @@ export function useConversationStream(conversationId: string | null) {
           }
 
           case "response_completed": {
-            const messageId = data.message_id as string
-            const fullResponse = data.full_response as string | undefined
+            const messageId =
+              (data.message_id as string | undefined) ??
+              streamingMessageIdRef.current ??
+              event_id
+            const fullResponse =
+              (data.full_response as string | undefined) ??
+              (data.content as string | undefined)
             const inputTokens = data.input_tokens as number | undefined
             const outputTokens = data.output_tokens as number | undefined
             const model = data.model as string | undefined
@@ -203,6 +240,21 @@ export function useConversationStream(conversationId: string | null) {
               const idx = prev.findLastIndex(
                 (msg) => msg.role === "agent" && msg.messageId === messageId
               )
+              if (idx === -1 && fullResponse) {
+                return [
+                  ...prev,
+                  {
+                    id: event_id,
+                    role: "agent",
+                    content: fullResponse,
+                    messageId,
+                    timestamp,
+                    inputTokens,
+                    outputTokens,
+                    model,
+                  },
+                ]
+              }
               if (idx === -1) return prev
 
               const updated = [...prev]
@@ -230,6 +282,8 @@ export function useConversationStream(conversationId: string | null) {
               model: data.model as string | undefined,
               turnNumber: data.turn_number as number | undefined,
             })
+            streamingMessageIdRef.current = null
+            setIsStreaming(false)
             break
           }
 
@@ -250,6 +304,12 @@ export function useConversationStream(conversationId: string | null) {
           }
 
           case "done": {
+            setIsStreaming(false)
+            streamingMessageIdRef.current = null
+            break
+          }
+
+          case "conversation_ended": {
             setIsStreaming(false)
             streamingMessageIdRef.current = null
             break

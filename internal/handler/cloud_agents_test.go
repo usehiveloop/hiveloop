@@ -454,8 +454,8 @@ func TestCloudAgentGetTask_IncludesRecentEvents(t *testing.T) {
 	h := newCloudAgentHarness(t)
 	cloudAgentID := h.seedCloudAgent(t)
 	task := h.seedTask(t, cloudAgentID, "Specific task")
-	h.seedEvent(t, task.ConversationID, "AgentError")
-	h.seedEvent(t, task.ConversationID, "ConversationEnded")
+	h.seedEvent(t, task.ConversationID, "agent_error")
+	h.seedEvent(t, task.ConversationID, "conversation_ended")
 
 	rec := h.doRequest("GET", fmt.Sprintf("/internal/employees/%s/cloud-agents/%s/tasks/%s", h.agentID, cloudAgentID, task.ID))
 	if rec.Code != http.StatusOK {
@@ -473,7 +473,7 @@ func TestCloudAgentGetTask_IncludesRecentEvents(t *testing.T) {
 	if len(body.RecentEvents) != 2 {
 		t.Fatalf("expected 2 recent events, got %d", len(body.RecentEvents))
 	}
-	if body.RecentEvents[0].EventType != "ConversationEnded" {
+	if body.RecentEvents[0].EventType != "conversation_ended" {
 		t.Fatalf("expected newest event first, got %q", body.RecentEvents[0].EventType)
 	}
 }
@@ -593,8 +593,8 @@ func TestCloudAgentTerminateTask_Success(t *testing.T) {
 	}
 
 	var event model.ConversationEvent
-	if err := h.db.Where("conversation_id = ? AND event_type = ?", task.ConversationID, "ConversationEnded").First(&event).Error; err != nil {
-		t.Fatalf("expected ConversationEnded event: %v", err)
+	if err := h.db.Where("conversation_id = ? AND event_type = ?", task.ConversationID, "conversation_ended").First(&event).Error; err != nil {
+		t.Fatalf("expected conversation_ended event: %v", err)
 	}
 	if !strings.Contains(string(event.Data), "no longer needed") {
 		t.Fatalf("expected termination reason in event data, got %s", event.Data)
@@ -609,8 +609,8 @@ func TestCloudAgentTerminateTask_Success(t *testing.T) {
 	if callbacks[0]["task_id"] != task.ID.String() || callbacks[0]["agent_id"] != cloudAgentID.String() {
 		t.Fatalf("unexpected callback identity: %#v", callbacks[0])
 	}
-	if callbacks[0]["event_type"] != "ConversationEnded" {
-		t.Fatalf("expected ConversationEnded callback, got %#v", callbacks[0])
+	if callbacks[0]["event_type"] != "conversation_ended" {
+		t.Fatalf("expected conversation_ended callback, got %#v", callbacks[0])
 	}
 	metadata, ok := callbacks[0]["metadata"].(map[string]any)
 	if !ok || metadata["key"] != "value" {
@@ -667,7 +667,7 @@ func TestBridgeWebhook_ForwardsCloudAgentTaskEventToEmployeeBridge(t *testing.T)
 	if got["task_id"] != task.ID.String() || got["agent_id"] != cloudAgentID.String() {
 		t.Fatalf("unexpected callback identity: %#v", got)
 	}
-	if got["event_id"] != "evt-cloud-agent-1" || got["event_type"] != "ConversationEnded" {
+	if got["event_id"] != "evt-cloud-agent-1" || got["event_type"] != "conversation_ended" {
 		t.Fatalf("unexpected callback event fields: %#v", got)
 	}
 	metadata, ok := got["metadata"].(map[string]any)

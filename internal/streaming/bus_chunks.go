@@ -17,6 +17,41 @@ func (b *EventBus) chunkSetKey(convID string) string {
 	return "acc_msgs:" + convID
 }
 
+func (b *EventBus) activeChunkMessageKey(convID string) string {
+	return "acc_active:" + convID
+}
+
+func (b *EventBus) ResolveChunkMessageID(ctx context.Context, convID, explicitMessageID, eventID string) (string, error) {
+	if explicitMessageID != "" {
+		return explicitMessageID, nil
+	}
+	if eventID == "" {
+		return "", nil
+	}
+
+	key := b.activeChunkMessageKey(convID)
+	created, err := b.redis.SetNX(ctx, key, eventID, chunkAccTTL).Result()
+	if err != nil {
+		return "", err
+	}
+	if created {
+		return eventID, nil
+	}
+
+	messageID, err := b.redis.Get(ctx, key).Result()
+	if err == redis.Nil {
+		if _, setErr := b.redis.SetNX(ctx, key, eventID, chunkAccTTL).Result(); setErr != nil {
+			return "", setErr
+		}
+		return eventID, nil
+	}
+	if err != nil {
+		return "", err
+	}
+	_ = b.redis.Expire(ctx, key, chunkAccTTL).Err()
+	return messageID, nil
+}
+
 func (b *EventBus) AppendChunk(ctx context.Context, convID, messageID, delta string) error {
 	key := b.chunkKey(convID, messageID)
 	setKey := b.chunkSetKey(convID)
@@ -27,6 +62,10 @@ func (b *EventBus) AppendChunk(ctx context.Context, convID, messageID, delta str
 	pipe.Expire(ctx, setKey, chunkAccTTL)
 	_, err := pipe.Exec(ctx)
 	return err
+}
+
+func (b *EventBus) ClearActiveChunkMessage(ctx context.Context, convID string) error {
+	return b.redis.Del(ctx, b.activeChunkMessageKey(convID)).Err()
 }
 
 func (b *EventBus) DropChunk(ctx context.Context, convID, messageID string) error {

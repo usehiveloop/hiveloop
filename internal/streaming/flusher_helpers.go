@@ -13,35 +13,68 @@ import (
 
 func (f *Flusher) accumulateChunk(ctx context.Context, convID, dataStr string) {
 	var envelope struct {
-		Data struct {
+		EventID string `json:"event_id"`
+		Data    struct {
 			Delta     string `json:"delta"`
 			MessageID string `json:"message_id"`
+			Text      string `json:"text"`
+			Content   struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal([]byte(dataStr), &envelope); err != nil {
 		return
 	}
-	if envelope.Data.MessageID == "" || envelope.Data.Delta == "" {
+	delta := envelope.Data.Delta
+	if delta == "" && (envelope.Data.Content.Type == "" || envelope.Data.Content.Type == "text") {
+		delta = envelope.Data.Content.Text
+	}
+	if delta == "" {
+		delta = envelope.Data.Text
+	}
+	if delta == "" {
 		return
 	}
-	if err := f.bus.AppendChunk(ctx, convID, envelope.Data.MessageID, envelope.Data.Delta); err != nil {
+
+	messageID, err := f.bus.ResolveChunkMessageID(ctx, convID, envelope.Data.MessageID, envelope.EventID)
+	if err != nil {
+		logging.FromContext(ctx).WarnContext(ctx, "flusher: failed to resolve chunk message id", "conversation_id", convID, "error", err)
+		return
+	}
+	if messageID == "" {
+		return
+	}
+
+	if err := f.bus.AppendChunk(ctx, convID, messageID, delta); err != nil {
 		logging.FromContext(ctx).WarnContext(ctx, "flusher: failed to accumulate chunk", "conversation_id", convID, "error", err)
 	}
 }
 
-func buildRecoveredEvent(conv *model.AgentConversation, messageID, content string) model.ConversationEvent {
+func buildRecoveredEvent(conv *model.AgentConversation, terminal model.ConversationEvent, messageID, content string) model.ConversationEvent {
 	data, _ := json.Marshal(map[string]any{
 		"message_id":    messageID,
 		"full_response": content,
 		"recovered":     true,
 	})
+	timestamp := terminal.Timestamp
+	if timestamp.IsZero() {
+		timestamp = time.Now()
+	}
+	sequenceNumber := terminal.SequenceNumber
+	if sequenceNumber > 0 {
+		sequenceNumber--
+	}
 	return model.ConversationEvent{
 		OrgID:                conv.OrgID,
 		ConversationID:       conv.ID,
 		EventID:              "recovered-" + messageID,
 		EventType:            "response_completed",
+		AgentID:              terminal.AgentID,
 		BridgeConversationID: conv.BridgeConversationID,
-		Timestamp:            time.Now(),
+		Timestamp:            timestamp,
+		SequenceNumber:       sequenceNumber,
 		Data:                 model.RawJSON(data),
 	}
 }

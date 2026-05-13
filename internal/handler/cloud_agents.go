@@ -16,6 +16,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/bridge"
+	"github.com/usehiveloop/hiveloop/internal/bridgeevents"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -768,10 +769,10 @@ func (h *CloudAgentHandler) recentEventsByConversation(conversationIDs []uuid.UU
 func (h *CloudAgentHandler) ensureConversationEndedEvent(ctx context.Context, task model.CloudAgentTask, conv model.AgentConversation, reason string, now time.Time) {
 	var count int64
 	if err := h.db.Model(&model.ConversationEvent{}).
-		Where("conversation_id = ? AND event_type = ?", conv.ID, "ConversationEnded").
+		Where("conversation_id = ? AND event_type IN ?", conv.ID, []string{bridgeevents.EventConversationEnded, "ConversationEnded"}).
 		Count(&count).Error; err != nil || count > 0 {
 		if err != nil {
-			logging.FromContext(ctx).ErrorContext(ctx, "failed to check existing ConversationEnded event", "conversation_id", conv.ID, "error", err)
+			logging.FromContext(ctx).ErrorContext(ctx, "failed to check existing conversation ended event", "conversation_id", conv.ID, "error", err)
 		}
 		return
 	}
@@ -793,7 +794,7 @@ func (h *CloudAgentHandler) ensureConversationEndedEvent(ctx context.Context, ta
 		OrgID:                conv.OrgID,
 		ConversationID:       conv.ID,
 		EventID:              uuid.New().String(),
-		EventType:            "ConversationEnded",
+		EventType:            bridgeevents.EventConversationEnded,
 		AgentID:              conv.AgentID.String(),
 		BridgeConversationID: conv.BridgeConversationID,
 		Timestamp:            now,
@@ -801,7 +802,7 @@ func (h *CloudAgentHandler) ensureConversationEndedEvent(ctx context.Context, ta
 		Data:                 model.RawJSON(data),
 	}
 	if err := h.db.Create(&event).Error; err != nil {
-		logging.FromContext(ctx).ErrorContext(ctx, "failed to append ConversationEnded event", "conversation_id", conv.ID, "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to append conversation ended event", "conversation_id", conv.ID, "error", err)
 		return
 	}
 

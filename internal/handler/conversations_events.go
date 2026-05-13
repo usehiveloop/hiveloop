@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/bridgeevents"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -19,7 +20,7 @@ import (
 // @Tags conversations
 // @Produce json
 // @Param convID path string true "Conversation ID"
-// @Param type query string false "Filter by event type (e.g. MessageReceived, ResponseCompleted)"
+// @Param type query string false "Filter by event type (e.g. message_received, response_completed)"
 // @Param limit query int false "Page size (default 50, max 100)"
 // @Param cursor query string false "Pagination cursor — sequence_number from previous page's tail. Returns events with sequence_number strictly less than this value."
 // @Success 200 {object} paginatedResponse[conversationEventResponse]
@@ -52,7 +53,7 @@ func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request)
 
 	q := h.db.Where("conversation_id = ?", conv.ID)
 	if eventType := r.URL.Query().Get("type"); eventType != "" {
-		q = q.Where("event_type = ?", eventType)
+		q = q.Where("event_type = ?", bridgeevents.NormalizeEventType(eventType))
 	}
 	if beforeSeq != nil {
 		q = q.Where("sequence_number < ?", *beforeSeq)

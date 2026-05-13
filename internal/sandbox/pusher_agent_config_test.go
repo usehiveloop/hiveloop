@@ -134,11 +134,11 @@ func TestPusherAgentConfig_HarnessOptionalFields(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			agent := model.Agent{
 				ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
-				Name: "Cfg Agent " + tc.name + "-" + uuid.New().String()[:8],
-				Model: "claude-sonnet-4-5",
+				Name:         "Cfg Agent " + tc.name + "-" + uuid.New().String()[:8],
+				Model:        "claude-sonnet-4-5",
 				SystemPrompt: "test agent",
 				Status:       "active",
-				Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
+				Tools:        model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 				Integrations: model.JSON{}, AgentConfig: tc.agentCfg, Permissions: model.JSON{},
 			}
 			if err := db.Create(&agent).Error; err != nil {
@@ -181,5 +181,66 @@ func TestPusherAgentConfig_HarnessOptionalFields(t *testing.T) {
 			}
 			tc.assertion(t, cfgRaw)
 		})
+	}
+}
+
+func TestPusherAgentConfig_ProviderPromptModelOverride(t *testing.T) {
+	db := setupPusherTestDB(t)
+	encKey := testPusherEncKey(t)
+	signingKey := []byte("test-signing-key-for-provider-model")
+
+	org := model.Org{ID: uuid.New(), Name: "provider-model-org-" + uuid.New().String()[:8], Active: true}
+	if err := db.Create(&org).Error; err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	t.Cleanup(func() { db.Where("id = ?", org.ID).Delete(&model.Org{}) })
+
+	encrypted, err := encKey.EncryptString("sk-provider-model")
+	if err != nil {
+		t.Fatalf("encrypt: %v", err)
+	}
+	cred := model.Credential{
+		ID: uuid.New(), OrgID: org.ID,
+		ProviderID: "openai", Label: "Cfg OpenAI",
+		EncryptedKey: encrypted, WrappedDEK: []byte("test"),
+		BaseURL: "https://api.openai.com", AuthScheme: "bearer",
+	}
+	if err := db.Create(&cred).Error; err != nil {
+		t.Fatalf("create cred: %v", err)
+	}
+	t.Cleanup(func() { db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
+
+	agent := model.Agent{
+		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
+		Name:  "Provider Model Override " + uuid.New().String()[:8],
+		Model: "gpt-5-pro",
+		ProviderPrompts: model.ProviderPromptsMap{
+			"openai": {SystemPrompt: "Use the provider-specific prompt.", Model: "kimi-k2"},
+		},
+		SystemPrompt: "fallback prompt",
+		Status:       "active",
+		Tools:        model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
+		Integrations: model.JSON{}, AgentConfig: model.JSON{}, Permissions: model.JSON{},
+	}
+	if err := db.Create(&agent).Error; err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
+
+	cfg := &config.Config{ProxyHost: "proxy.cfg.test", MCPBaseURL: "https://mcp.cfg.test"}
+	pusher := NewPusher(db, nil, signingKey, cfg, nil)
+
+	def := pusher.buildAgentDefinition(t.Context(), &agent, &cred, "ptok_cfg", uuid.New().String())
+	if def.Provider.Model != "kimi-k2" {
+		t.Fatalf("provider.model = %q, want kimi-k2", def.Provider.Model)
+	}
+	if def.SystemPrompt != "Use the provider-specific prompt." {
+		t.Fatalf("system_prompt = %q, want provider-specific prompt", def.SystemPrompt)
+	}
+	if def.Config == nil || def.Config.MaxTokens == nil {
+		t.Fatal("expected config.max_tokens")
+	}
+	if *def.Config.MaxTokens != 209715 {
+		t.Fatalf("config.max_tokens = %d, want kimi default 209715", *def.Config.MaxTokens)
 	}
 }

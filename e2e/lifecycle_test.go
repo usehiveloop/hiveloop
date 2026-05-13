@@ -70,10 +70,10 @@ func newLifecycleHarness(t *testing.T) *lifecycleHarness {
 
 	now := time.Now()
 	events := []model.ConversationEvent{
-		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e1", EventType: "ConversationCreated", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 1, Data: model.RawJSON(`{}`)},
-		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e2", EventType: "MessageReceived", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 2, Data: model.RawJSON(`{"content":"hello"}`)},
-		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e3", EventType: "ResponseCompleted", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 3, Data: model.RawJSON(`{"content":"hi","usage":{"input_tokens":10}}`)},
-		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e4", EventType: "TurnCompleted", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 4, Data: model.RawJSON(`{}`)},
+		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e1", EventType: "conversation_created", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 1, Data: model.RawJSON(`{}`)},
+		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e2", EventType: "message_received", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 2, Data: model.RawJSON(`{"content":"hello"}`)},
+		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e3", EventType: "response_completed", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 3, Data: model.RawJSON(`{"content":"hi","usage":{"input_tokens":10}}`)},
+		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e4", EventType: "turn_completed", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 4, Data: model.RawJSON(`{}`)},
 	}
 	for i := range events {
 		h.db.Create(&events[i])
@@ -151,9 +151,9 @@ func TestListEvents_FilterByType(t *testing.T) {
 	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	if len(resp.Data) != 1 {
-		t.Fatalf("expected 1 MessageReceived event, got %d", len(resp.Data))
+		t.Fatalf("expected 1 message_received event, got %d", len(resp.Data))
 	}
-	if resp.Data[0].EventType != "MessageReceived" {
+	if resp.Data[0].EventType != "message_received" {
 		t.Errorf("event_type: got %q", resp.Data[0].EventType)
 	}
 }
@@ -170,7 +170,7 @@ func TestListEvents_NotFound(t *testing.T) {
 func TestListEvents_IncludesPayload(t *testing.T) {
 	lh := newLifecycleHarness(t)
 
-	rr := lh.request(t, http.MethodGet, "/v1/conversations/"+lh.conv.ID.String()+"/events?type=ResponseCompleted")
+	rr := lh.request(t, http.MethodGet, "/v1/conversations/"+lh.conv.ID.String()+"/events?type=response_completed")
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rr.Code)
 	}

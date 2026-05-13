@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/bridgeevents"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/logging"
@@ -128,6 +129,7 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandbox, event *webhookEvent) {
+	event.EventType = bridgeevents.NormalizeEventType(event.EventType)
 
 	var conv model.AgentConversation
 	if err := h.db.WithContext(ctx).Where("bridge_conversation_id = ? AND sandbox_id = ?",
@@ -169,19 +171,19 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 	}
 
 	switch event.EventType {
-	case "ConversationEnded":
+	case bridgeevents.EventConversationEnded:
 		now := time.Now()
 		h.db.WithContext(ctx).Model(&conv).Updates(map[string]any{
 			"status":   "ended",
 			"ended_at": now,
 		})
-	case "AgentError":
+	case bridgeevents.EventAgentError:
 		h.db.WithContext(ctx).Model(&conv).Update("status", "error")
 		logging.FromContext(ctx).WarnContext(ctx, "webhook: agent error",
 			"conversation_id", conv.ID,
 			"error", string(event.Data),
 		)
-	case "message_received":
+	case bridgeevents.EventMessageReceived:
 		h.maybeEnqueueConversationNaming(ctx, &conv)
 	}
 
@@ -214,14 +216,15 @@ func (h *BridgeWebhookHandler) maybeEnqueueConversationNaming(ctx context.Contex
 }
 
 func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *model.AgentConversation, event *webhookEvent) {
-	if !shouldStoreConversationEvent(event.EventType) {
+	eventType := bridgeevents.NormalizeEventType(event.EventType)
+	if !shouldStoreConversationEvent(eventType) {
 		return
 	}
 	dbEvent := model.ConversationEvent{
 		OrgID:                conv.OrgID,
 		ConversationID:       conv.ID,
 		EventID:              event.EventID,
-		EventType:            event.EventType,
+		EventType:            eventType,
 		AgentID:              event.AgentID,
 		BridgeConversationID: event.ConversationID,
 		Timestamp:            event.Timestamp,
@@ -238,7 +241,8 @@ func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *m
 }
 
 func shouldStoreConversationEvent(eventType string) bool {
-	return eventType != "response_chunk" && eventType != "reasoning_delta"
+	eventType = bridgeevents.NormalizeEventType(eventType)
+	return eventType != bridgeevents.EventResponseChunk && eventType != bridgeevents.EventReasoningDelta
 }
 
 func shouldForwardCloudAgentEvent(eventType string) bool {

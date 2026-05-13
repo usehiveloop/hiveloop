@@ -3,11 +3,13 @@ package streaming
 import (
 	"context"
 	"encoding/json"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/usehiveloop/hiveloop/internal/bridgeevents"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -38,6 +40,8 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 	msgs := streams[0].Messages
 	events := make([]model.ConversationEvent, 0, len(msgs))
 	entryIDs := make([]string, 0, len(msgs))
+	recoveredMsgIDs := make([]string, 0)
+	recoveredSeen := make(map[string]struct{})
 
 	convUUID, err := uuid.Parse(convID)
 	if err != nil {
@@ -53,18 +57,17 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 		return
 	}
 
-	batchHasTerminal := false
-
 	for _, msg := range msgs {
 		eventType, _ := msg.Values["event_type"].(string)
+		eventType = bridgeevents.NormalizeEventType(eventType)
 		dataStr, _ := msg.Values["data"].(string)
 
-		if eventType == "response_chunk" {
+		if eventType == bridgeevents.EventResponseChunk {
 			f.accumulateChunk(ctx, convID, dataStr)
 			entryIDs = append(entryIDs, msg.ID)
 			continue
 		}
-		if eventType == "reasoning_delta" {
+		if eventType == bridgeevents.EventReasoningDelta {
 			entryIDs = append(entryIDs, msg.ID)
 			continue
 		}
@@ -83,7 +86,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 			continue
 		}
 
-		events = append(events, model.ConversationEvent{
+		dbEvent := model.ConversationEvent{
 			OrgID:                conv.OrgID,
 			ConversationID:       conv.ID,
 			EventID:              full.EventID,
@@ -93,10 +96,10 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 			Timestamp:            full.Timestamp,
 			SequenceNumber:       full.SequenceNumber,
 			Data:                 model.RawJSON(full.Data),
-		})
+		}
 		entryIDs = append(entryIDs, msg.ID)
 
-		if eventType == "response_completed" {
+		if eventType == bridgeevents.EventResponseCompleted {
 			var d struct {
 				MessageID string `json:"message_id"`
 			}
@@ -107,19 +110,10 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 			}
 		}
 
-		if eventType == "done" || eventType == "ConversationEnded" || eventType == "AgentError" {
-			batchHasTerminal = true
+		if bridgeevents.IsTerminalEventType(eventType) {
+			f.appendRecoveredEvents(ctx, convID, &conv, dbEvent, &events, &recoveredMsgIDs, recoveredSeen)
 		}
-	}
-
-	var recoveredMsgIDs []string
-	if batchHasTerminal {
-		if recovered, err := f.bus.PeekChunks(ctx, convID); err == nil {
-			for messageID, content := range recovered {
-				events = append(events, buildRecoveredEvent(&conv, messageID, content))
-				recoveredMsgIDs = append(recoveredMsgIDs, messageID)
-			}
-		}
+		events = append(events, dbEvent)
 	}
 
 	if err := f.db.CreateInBatches(events, 50).Error; err != nil {
@@ -139,5 +133,35 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 
 	if err := f.bus.Trim(ctx, convID, trimMaxLen); err != nil {
 		logging.FromContext(ctx).WarnContext(ctx, "flusher: trim failed", "conversation_id", convID, "error", err)
+	}
+}
+
+func (f *Flusher) appendRecoveredEvents(
+	ctx context.Context,
+	convID string,
+	conv *model.AgentConversation,
+	terminal model.ConversationEvent,
+	events *[]model.ConversationEvent,
+	recoveredMsgIDs *[]string,
+	recoveredSeen map[string]struct{},
+) {
+	recovered, err := f.bus.PeekChunks(ctx, convID)
+	if err == nil && len(recovered) > 0 {
+		messageIDs := make([]string, 0, len(recovered))
+		for messageID := range recovered {
+			messageIDs = append(messageIDs, messageID)
+		}
+		sort.Strings(messageIDs)
+		for _, messageID := range messageIDs {
+			if _, ok := recoveredSeen[messageID]; ok {
+				continue
+			}
+			recoveredSeen[messageID] = struct{}{}
+			*events = append(*events, buildRecoveredEvent(conv, terminal, messageID, recovered[messageID]))
+			*recoveredMsgIDs = append(*recoveredMsgIDs, messageID)
+		}
+	}
+	if err := f.bus.ClearActiveChunkMessage(ctx, convID); err != nil {
+		logging.FromContext(ctx).WarnContext(ctx, "flusher: clear active chunk message failed", "conversation_id", convID, "error", err)
 	}
 }
