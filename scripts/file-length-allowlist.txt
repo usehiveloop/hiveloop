@@ -57,7 +57,6 @@ internal/handler/agent_profiles_github.go
 internal/handler/employees_sync_test.go
 internal/handler/agent_profiles_github_test.go
 internal/handler/employees_create_test.go
-internal/handler/employees_create.go
 internal/handler/employees_helpers_test.go
 internal/handler/chats_stream.go
 internal/handler/employee_uploads_stream_test.go
@@ -66,3 +65,7 @@ internal/handler/teams.go
 internal/handler/cloud_agents.go
 internal/employeeruntime/compile.go
 internal/hermes/compile_test.go
+internal/bootstrap/deps.go
+internal/handler/employee_uploads_stream.go
+internal/handler/agents_delete_test.go
+internal/skills/global_seed.go
