@@ -17,13 +17,14 @@ import (
 // Bundle is the JSON shape persisted in SkillVersion.Bundle. The Phase 4
 // resolver adapts it into a bridge.SkillDefinition at agent-run time.
 type Bundle struct {
-	ID               string          `json:"id"`
-	Title            string          `json:"title"`
-	Description      string          `json:"description"`
-	Content          string          `json:"content"`
-	ParametersSchema json.RawMessage `json:"parameters_schema,omitempty"`
-	Manifest         map[string]any  `json:"manifest,omitempty"`
-	References       []Reference     `json:"references,omitempty"`
+	ID               string            `json:"id"`
+	Title            string            `json:"title"`
+	Description      string            `json:"description"`
+	Content          string            `json:"content"`
+	ParametersSchema json.RawMessage   `json:"parameters_schema,omitempty"`
+	Manifest         map[string]any    `json:"manifest,omitempty"`
+	References       []Reference       `json:"references,omitempty"`
+	Files            map[string]string `json:"files,omitempty"`
 }
 
 // Reference is a sibling file shipped alongside SKILL.md (scripts, templates,

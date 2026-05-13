@@ -1,0 +1,183 @@
+package skills_test
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/google/uuid"
+
+	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/skills"
+)
+
+func TestSeedGlobalSkills_CreatesPublishedOrgNullSkillAndOverridesContent(t *testing.T) {
+	db := connectDB(t)
+	name := "seed-test-" + uuid.New().String()
+	dir := t.TempDir()
+	writeGlobalSkill(t, dir, name, "first description", "# First\n", nil)
+
+	result, err := skills.SeedGlobalSkills(context.Background(), db, dir)
+	if err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	if result.Created != 1 || result.Updated != 0 || result.Unchanged != 0 {
+		t.Fatalf("first result = %+v", result)
+	}
+
+	var skill model.Skill
+	if err := db.Where("org_id IS NULL AND name = ?", name).First(&skill).Error; err != nil {
+		t.Fatalf("load seeded skill: %v", err)
+	}
+	if skill.Status != model.SkillStatusPublished {
+		t.Fatalf("status = %q", skill.Status)
+	}
+	if skill.OrgID != nil {
+		t.Fatalf("org_id should be null")
+	}
+	firstVersion := *skill.LatestVersionID
+
+	result, err = skills.SeedGlobalSkills(context.Background(), db, dir)
+	if err != nil {
+		t.Fatalf("seed unchanged: %v", err)
+	}
+	if result.Updated != 1 {
+		t.Fatalf("second seed should refresh existing content, got %+v", result)
+	}
+	if err := db.Where("org_id IS NULL AND name = ?", name).First(&skill).Error; err != nil {
+		t.Fatalf("reload seeded skill: %v", err)
+	}
+	if *skill.LatestVersionID == firstVersion {
+		t.Fatalf("second seed should replace latest version")
+	}
+
+	writeGlobalSkill(t, dir, name, "second description", "# Second\n", nil)
+	result, err = skills.SeedGlobalSkills(context.Background(), db, dir)
+	if err != nil {
+		t.Fatalf("seed override: %v", err)
+	}
+	if result.Updated != 1 {
+		t.Fatalf("override result = %+v", result)
+	}
+	if err := db.Where("org_id IS NULL AND name = ?", name).First(&skill).Error; err != nil {
+		t.Fatalf("reload updated skill: %v", err)
+	}
+	if *skill.LatestVersionID == firstVersion {
+		t.Fatalf("updated seed should create a new latest version")
+	}
+	var version model.SkillVersion
+	if err := db.Where("id = ?", *skill.LatestVersionID).First(&version).Error; err != nil {
+		t.Fatalf("load version: %v", err)
+	}
+	if !strings.Contains(string(version.Bundle), "# Second") {
+		t.Fatalf("latest bundle did not contain updated content: %s", string(version.Bundle))
+	}
+}
+
+func TestSeedGlobalSkills_FetchesManifestReferenceURLs(t *testing.T) {
+	db := connectDB(t)
+	name := "seed-ref-test-" + uuid.New().String()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("remote reference body"))
+	}))
+	t.Cleanup(server.Close)
+
+	dir := t.TempDir()
+	writeGlobalSkill(t, dir, name, "has refs", "# Skill\n", []map[string]string{{
+		"path": "references/remote.md",
+		"url":  server.URL + "/remote.md",
+	}})
+
+	if _, err := skills.SeedGlobalSkills(context.Background(), db, dir); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	var skill model.Skill
+	if err := db.Where("org_id IS NULL AND name = ?", name).First(&skill).Error; err != nil {
+		t.Fatalf("load skill: %v", err)
+	}
+	var version model.SkillVersion
+	if err := db.Where("id = ?", *skill.LatestVersionID).First(&version).Error; err != nil {
+		t.Fatalf("load version: %v", err)
+	}
+	if !strings.Contains(string(version.Bundle), "remote reference body") {
+		t.Fatalf("bundle missing remote reference: %s", string(version.Bundle))
+	}
+}
+
+func TestSeedGlobalSkills_ArchivesObsoleteUploadSkillNames(t *testing.T) {
+	db := connectDB(t)
+	dir := t.TempDir()
+	writeGlobalSkill(t, dir, "asset-uploads", "new uploads", "# Asset uploads\n", nil)
+
+	for _, name := range []string{"public-assets-uploads", "employee-public-assets-uploads", "employee-assets-uploads"} {
+		skill := model.Skill{
+			OrgID:      nil,
+			Slug:       model.GenerateSlug(name) + "-" + uuid.New().String()[:8],
+			Name:       name,
+			SourceType: model.SkillSourceInline,
+			RepoRef:    "main",
+			Status:     model.SkillStatusPublished,
+		}
+		if err := db.Create(&skill).Error; err != nil {
+			t.Fatalf("create obsolete skill %s: %v", name, err)
+		}
+	}
+
+	if _, err := skills.SeedGlobalSkills(context.Background(), db, dir); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	var publishedOld int64
+	if err := db.Model(&model.Skill{}).
+		Where("org_id IS NULL AND name IN ? AND status = ?", []string{"public-assets-uploads", "employee-public-assets-uploads", "employee-assets-uploads"}, model.SkillStatusPublished).
+		Count(&publishedOld).Error; err != nil {
+		t.Fatalf("count obsolete skills: %v", err)
+	}
+	if publishedOld != 0 {
+		t.Fatalf("expected obsolete upload skills to be archived, got %d still published", publishedOld)
+	}
+}
+
+func TestSeedGlobalSkills_RealBundledDirectory(t *testing.T) {
+	if os.Getenv("RUN_REAL_GLOBAL_SKILLS_SEED") != "1" {
+		t.Skip("set RUN_REAL_GLOBAL_SKILLS_SEED=1 to seed the real global-skills directory")
+	}
+	db := connectDB(t)
+
+	result, err := skills.SeedGlobalSkills(context.Background(), db, "global-skills")
+	if err != nil {
+		t.Fatalf("seed real global skills: %v", err)
+	}
+	if result.Created+result.Updated+result.Unchanged == 0 {
+		t.Fatalf("expected at least one bundled skill, got %+v", result)
+	}
+}
+
+func writeGlobalSkill(t *testing.T, root, name, description, content string, files []map[string]string) {
+	t.Helper()
+	skillDir := filepath.Join(root, name)
+	if err := os.MkdirAll(skillDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	manifest := map[string]any{
+		"name":        name,
+		"description": description,
+		"root":        "./SKILL.md",
+		"files":       files,
+	}
+	body, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "skill.json"), body, 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(content), 0o644); err != nil {
+		t.Fatalf("write skill: %v", err)
+	}
+}

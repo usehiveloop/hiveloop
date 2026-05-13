@@ -21,7 +21,8 @@ import (
 //	  "references": [
 //	    { "path": "scripts/foo.py", "body": "..." },
 //	    { "path": "reference/api.md", "body": "..." }
-//	  ]
+//	  ],
+//	  "files": { "scripts/foo.py": "..." }
 //	}
 type SkillVersion struct {
 	ID      uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`

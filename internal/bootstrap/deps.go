@@ -28,6 +28,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/registry"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 	"github.com/usehiveloop/hiveloop/internal/sandbox/daytona"
+	"github.com/usehiveloop/hiveloop/internal/skills"
 	"github.com/usehiveloop/hiveloop/internal/spider"
 	"github.com/usehiveloop/hiveloop/internal/storage"
 	"github.com/usehiveloop/hiveloop/internal/streaming"
@@ -96,6 +97,15 @@ func New(ctx context.Context) (*Deps, error) {
 
 	if err := credentials.SeedPlatformOrg(database); err != nil {
 		return nil, fmt.Errorf("seeding platform org: %w", err)
+	}
+	if result, err := skills.SeedGlobalSkills(ctx, database, "global-skills"); err != nil {
+		return nil, fmt.Errorf("seeding global skills: %w", err)
+	} else {
+		logging.FromContext(ctx).InfoContext(ctx, "global skills seeded",
+			"created", result.Created,
+			"updated", result.Updated,
+			"unchanged", result.Unchanged,
+		)
 	}
 
 	credentialPicker := credentials.NewPicker(database)
