@@ -24,6 +24,19 @@ docker-compose.yml
 # Test artifacts
 e2e/
 strix_runs/
+*.test
+coverage.out
+codedb.snapshot
+logs.txt
+
+# Local frontend/service workspaces are not needed for Go server images
+apps/
+packages/
+services/
+node_modules/
+venv/
+.venv*/
+.ignored/
 
 # Claude / AI agents
 .claude/

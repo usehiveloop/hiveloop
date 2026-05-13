@@ -25,6 +25,7 @@ FROM alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata
 
 COPY --from=build /hiveloop /hiveloop
+COPY --from=build /src/global-skills /global-skills
 
 EXPOSE 8090
 

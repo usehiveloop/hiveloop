@@ -25,6 +25,7 @@ FROM alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata nginx
 
 COPY --from=build /hiveloop /hiveloop
+COPY --from=build /src/global-skills /global-skills
 COPY proxy.nginx.conf /etc/nginx/http.d/default.conf
 
 EXPOSE 80 8080
