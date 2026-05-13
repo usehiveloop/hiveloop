@@ -237,11 +237,19 @@ func createWithUniqueNameSlug(tx *gorm.DB, agent *model.Agent, baseSlug string) 
 		agent.Name = candidate
 		agent.ID = uuid.Nil
 
+		exists, err := agentNameExists(tx, agent.OrgID, candidate)
+		if err != nil {
+			return err
+		}
+		if exists {
+			continue
+		}
+
 		sp := fmt.Sprintf("sp_subagent_attempt_%d", i)
 		if err := tx.SavePoint(sp).Error; err != nil {
 			return fmt.Errorf("savepoint: %w", err)
 		}
-		err := tx.Create(agent).Error
+		err = tx.Create(agent).Error
 		if err == nil {
 			return nil
 		}
@@ -253,4 +261,18 @@ func createWithUniqueNameSlug(tx *gorm.DB, agent *model.Agent, baseSlug string) 
 		}
 	}
 	return fmt.Errorf("could not allocate unique subagent name after %d attempts (base=%s)", subagentSlugMaxAttempts, baseSlug)
+}
+
+func agentNameExists(tx *gorm.DB, orgID *uuid.UUID, name string) (bool, error) {
+	var count int64
+	query := tx.Model(&model.Agent{}).Where("name = ?", name)
+	if orgID == nil {
+		query = query.Where("org_id IS NULL")
+	} else {
+		query = query.Where("org_id = ?", *orgID)
+	}
+	if err := query.Count(&count).Error; err != nil {
+		return false, fmt.Errorf("check agent name: %w", err)
+	}
+	return count > 0, nil
 }

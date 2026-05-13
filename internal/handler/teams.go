@@ -87,6 +87,13 @@ func (h *TeamHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name is required"})
 		return
 	}
+	if exists, err := h.teamNameExists(org.ID, name, nil); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create team"})
+		return
+	} else if exists {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "a team with this name already exists"})
+		return
+	}
 
 	team := model.Team{
 		OrgID:       org.ID,
@@ -245,6 +252,13 @@ func (h *TeamHandler) Update(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name cannot be empty"})
 			return
 		}
+		if exists, err := h.teamNameExists(org.ID, name, &team.ID); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update team"})
+			return
+		} else if exists {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "a team with this name already exists"})
+			return
+		}
 		updates["name"] = name
 	}
 	if req.Description != nil {
@@ -318,4 +332,17 @@ func isUniqueViolation(err error) bool {
 	return strings.Contains(msg, "SQLSTATE 23505") ||
 		strings.Contains(msg, "unique constraint") ||
 		strings.Contains(msg, "duplicate key value")
+}
+
+func (h *TeamHandler) teamNameExists(orgID uuid.UUID, name string, excludeID *uuid.UUID) (bool, error) {
+	var count int64
+	query := h.db.Model(&model.Team{}).
+		Where("org_id = ? AND name = ? AND deleted_at IS NULL", orgID, name)
+	if excludeID != nil {
+		query = query.Where("id <> ?", *excludeID)
+	}
+	if err := query.Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

@@ -134,10 +134,9 @@ func (svc *Service) Subscribe(ctx context.Context, req SubscribeRequest) (*Subsc
 }
 
 // upsertActiveSubscription implements idempotent insert for subscriptions.
-// The schema enforces uniqueness of (conversation_id, resource_key) among
-// active rows via a partial unique index; partial indexes can't be targeted
-// by Postgres ON CONFLICT without matching the predicate, which GORM
-// doesn't expose cleanly, so we do a transactional find-or-create instead.
+// Deployments should enforce uniqueness of active (conversation_id,
+// resource_key) rows at the database layer; this transactional find-or-create
+// keeps the application path idempotent for normal retries.
 //
 // Returns the final stored row, whether it already existed (idempotent=true),
 // and any error.
@@ -208,4 +207,3 @@ func (svc *Service) loadAgent(ctx context.Context, agentID, orgID uuid.UUID) (*m
 	}
 	return &agent, nil
 }
-

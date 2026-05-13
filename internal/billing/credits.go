@@ -38,9 +38,8 @@ const (
 // RefType for expiry offset entries: ref_id is the expired grant entry's ID.
 const RefTypeExpiredGrant = "expired_grant"
 
-// RefType for welcome grants: ref_id is the new user's ID. Combined with the
-// idx_credit_ledger_idempotent unique index, this guarantees one welcome
-// grant per user even if signup is retried.
+// RefType for welcome grants: ref_id is the new user's ID. Deployments should
+// enforce idempotency for this tuple at the database layer.
 const RefTypeSignup = "signup"
 
 // FreePlanSlug is the slug of the default plan every new org starts on.
@@ -239,7 +238,7 @@ func (s *CreditsService) SweepAllExpiredGrants(ctx context.Context) error {
 // Locks the org row FOR UPDATE so concurrent Spend calls serialise behind it
 // — the replay's view of the ledger is consistent for the duration of the
 // transaction. Idempotent via the ledger's unique index on
-// (org_id, reason, ref_type, ref_id) WHERE ref_id != ''.
+// (org_id, reason, ref_type, ref_id) WHERE ref_id != ”.
 func (s *CreditsService) SweepOrgExpiredGrants(ctx context.Context, orgID uuid.UUID, now time.Time) error {
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var org model.Org
@@ -277,4 +276,3 @@ func (s *CreditsService) SweepOrgExpiredGrants(ctx context.Context, orgID uuid.U
 		return nil
 	})
 }
-
