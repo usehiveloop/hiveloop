@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+
+	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -60,7 +63,8 @@ func buildConnectionProviderConfig(nangoResp map[string]any) model.JSON {
 }
 
 func isDuplicateKeyError(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "duplicate key")
+	return errors.Is(err, gorm.ErrDuplicatedKey) ||
+		(err != nil && strings.Contains(err.Error(), "duplicate key"))
 }
 
 func buildNangoConfig(integResp map[string]any, template map[string]any, callbackURL string) model.JSON {

@@ -9,9 +9,9 @@ import (
 
 type Agent struct {
 	ID                uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID             *uuid.UUID       `gorm:"type:uuid;index:idx_agent_org_id"` // nil for system agents
+	OrgID             *uuid.UUID       `gorm:"type:uuid;index:idx_agent_org_id;uniqueIndex:idx_agent_org_name"` // nil for system agents
 	Org               *Org             `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	Name              string           `gorm:"not null"`
+	Name              string           `gorm:"not null;uniqueIndex:idx_agent_org_name"`
 	Description       *string          `gorm:"type:text"`
 	AvatarURL         *string          `gorm:"type:text"`
 	Category          *string          `gorm:"type:text;index"`

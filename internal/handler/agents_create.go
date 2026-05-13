@@ -214,6 +214,13 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := h.db.Transaction(func(tx *gorm.DB) error {
+		exists, err := agentNameExists(tx, agent.OrgID, agent.Name)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return gorm.ErrDuplicatedKey
+		}
 		if err := tx.Create(&agent).Error; err != nil {
 			return err
 		}
