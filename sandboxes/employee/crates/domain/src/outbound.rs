@@ -50,6 +50,14 @@ pub mod event_types {
     pub const ERROR_MODEL: &str = "error.model";
     pub const CONFIG_APPLIED: &str = "config.applied";
     pub const SKILL_SYNCED: &str = "skill.synced";
+    pub const SCHEDULE_CREATED: &str = "schedule.created";
+    pub const SCHEDULE_UPDATED: &str = "schedule.updated";
+    pub const SCHEDULE_PAUSED: &str = "schedule.paused";
+    pub const SCHEDULE_RESUMED: &str = "schedule.resumed";
+    pub const SCHEDULE_CANCELLED: &str = "schedule.cancelled";
+    pub const SCHEDULE_RUN_STARTED: &str = "schedule.run_started";
+    pub const SCHEDULE_RUN_COMPLETED: &str = "schedule.run_completed";
+    pub const SCHEDULE_RUN_FAILED: &str = "schedule.run_failed";
 }
 
 pub const DATABASE_CHANNEL_NAME: &str = "database";

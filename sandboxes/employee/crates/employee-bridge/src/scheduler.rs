@@ -1,9 +1,12 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use agent::rig_tool_registry::{emit_schedule_event, schedule_run_key, ScheduleRunPayload};
 use chrono::Utc;
 use domain::cron::CronJobState;
+use domain::event_types;
 use domain::{CronJob, InboundEvent, MessageHandle, SessionId};
+use outbound::OutboundEmitter;
 use storage::CronJobRepo;
 use tokio::sync::mpsc;
 use tracing::{error, info};
@@ -14,11 +17,20 @@ const STALE_GRACE_MULTIPLIER: f64 = 0.5;
 pub struct CronScheduler {
     repo: Arc<dyn CronJobRepo>,
     inbound_sink: mpsc::Sender<InboundEvent>,
+    emitter: Option<Arc<OutboundEmitter>>,
 }
 
 impl CronScheduler {
-    pub fn new(repo: Arc<dyn CronJobRepo>, inbound_sink: mpsc::Sender<InboundEvent>) -> Self {
-        Self { repo, inbound_sink }
+    pub fn new(
+        repo: Arc<dyn CronJobRepo>,
+        inbound_sink: mpsc::Sender<InboundEvent>,
+        emitter: Option<Arc<OutboundEmitter>>,
+    ) -> Self {
+        Self {
+            repo,
+            inbound_sink,
+            emitter,
+        }
     }
 
     pub async fn run(self) {
@@ -63,6 +75,9 @@ impl CronScheduler {
     }
 
     async fn dispatch_job(&self, job: CronJob) {
+        let scheduled_at = job.next_run_at;
+        let started_at = Utc::now();
+        let run_key = schedule_run_key(&job.id, scheduled_at);
         let is_recurring = job.interval_seconds.map(|v| v > 0).unwrap_or(false);
         let is_one_shot = job.interval_seconds == Some(0);
         let is_wake = job.session_continuation_id.is_some();
@@ -85,11 +100,39 @@ impl CronScheduler {
 
         if let Err(e) = self
             .repo
-            .record_run(&job.id, Utc::now(), "running", None)
+            .record_run(&job.id, started_at, "running", None)
             .await
         {
             error!(job_id = %job.id, error = %e, "cron: failed to record run start");
         }
+        let running_job = self
+            .repo
+            .get(&job.id)
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| {
+                let mut job = job.clone();
+                job.last_run_at = Some(started_at);
+                job.last_status = Some("running".to_string());
+                job
+            });
+        emit_schedule_event(
+            self.emitter.clone(),
+            event_types::SCHEDULE_RUN_STARTED,
+            &running_job,
+            &session_id,
+            "scheduler",
+            Some(ScheduleRunPayload {
+                run_key: run_key.clone(),
+                scheduled_at,
+                started_at: Some(started_at),
+                completed_at: None,
+                duration_ms: None,
+                error: None,
+            }),
+        )
+        .await;
 
         let inbound = InboundEvent {
             envelope_id: envelope_id.clone(),
@@ -117,12 +160,67 @@ impl CronScheduler {
 
         if let Err(e) = self.inbound_sink.send(inbound).await {
             error!(job_id = %job.id, error = %e, "cron: failed to dispatch");
+            let failed_at = Utc::now();
             let _ = self
                 .repo
-                .record_run(&job.id, Utc::now(), "error", Some(&e.to_string()))
+                .record_run(&job.id, failed_at, "error", Some(&e.to_string()))
                 .await;
+            let failed_job = self
+                .repo
+                .get(&job.id)
+                .await
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| {
+                    let mut job = running_job.clone();
+                    job.last_run_at = Some(failed_at);
+                    job.last_status = Some("error".to_string());
+                    job.last_error = Some(e.to_string());
+                    job
+                });
+            emit_schedule_event(
+                self.emitter.clone(),
+                event_types::SCHEDULE_RUN_FAILED,
+                &failed_job,
+                &session_id,
+                "scheduler",
+                Some(ScheduleRunPayload {
+                    run_key,
+                    scheduled_at,
+                    started_at: Some(started_at),
+                    completed_at: Some(failed_at),
+                    duration_ms: Some((failed_at - started_at).num_milliseconds()),
+                    error: Some(e.to_string()),
+                }),
+            )
+            .await;
             return;
         }
+
+        let completed_at = Utc::now();
+        let completed_job = self
+            .repo
+            .get(&job.id)
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or(running_job);
+        emit_schedule_event(
+            self.emitter.clone(),
+            event_types::SCHEDULE_RUN_COMPLETED,
+            &completed_job,
+            &session_id,
+            "scheduler",
+            Some(ScheduleRunPayload {
+                run_key,
+                scheduled_at,
+                started_at: Some(started_at),
+                completed_at: Some(completed_at),
+                duration_ms: Some((completed_at - started_at).num_milliseconds()),
+                error: None,
+            }),
+        )
+        .await;
 
         if is_one_shot || is_wake {
             let _ = self.repo.set_state(&job.id, CronJobState::Completed).await;

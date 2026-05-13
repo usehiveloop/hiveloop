@@ -190,7 +190,11 @@ async fn main() -> Result<()> {
 
     let coordinator = Arc::new(SessionCoordinator::new());
 
-    let scheduler = CronScheduler::new(cron_repo.clone(), inbound_sink.clone());
+    let scheduler = CronScheduler::new(
+        cron_repo.clone(),
+        inbound_sink.clone(),
+        Some(emitter.clone()),
+    );
     let _scheduler_handle = tokio::spawn(scheduler.run());
 
     let gateway_task = {
