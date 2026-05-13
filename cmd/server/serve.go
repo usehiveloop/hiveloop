@@ -119,7 +119,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	employeeEventWriter := handler.NewEmployeeEventWriter(ctx, database, 20000)
 	employeeOutboundWebhookHandler := handler.NewEmployeeOutboundWebhookHandler(database, sandboxEncKey, enqueuer, employeeEventWriter)
 	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey, sandboxEncKey, enqueuer)
-	githubEmployeeWebhookHandler := handler.NewGitHubEmployeeWebhookHandler(database, deps.KMS)
 
 	var cloudAgentHandler *handler.CloudAgentHandler
 	if orchestrator != nil && agentPusher != nil {
@@ -156,7 +155,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	}
 	agentProfileHandler := handler.NewAgentProfileHandler(database, deps.KMS, nangoClient)
 	agentProfileHandler.SetRAGEnqueuer(enqueuer)
-	agentProfileHandler.SetBridgeHost(cfg.BridgeHost)
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
 
 	var driveHandler *handler.DriveHandler
@@ -210,7 +208,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, plansHandler, bridgeWebhookHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, githubEmployeeWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler, cloudAgentHandler)
+	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, plansHandler, bridgeWebhookHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler, cloudAgentHandler)
 
 	if chatHandler != nil {
 		r.Get("/v1/chats/{id}/stream", chatHandler.Stream)

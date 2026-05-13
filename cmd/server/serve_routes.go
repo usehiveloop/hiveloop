@@ -30,7 +30,6 @@ func setupPublicRoutes(
 	bridgeWebhookHandler *handler.BridgeWebhookHandler,
 	employeeOutboundWebhookHandler *handler.EmployeeOutboundWebhookHandler,
 	nangoWebhookHandler *handler.NangoWebhookHandler,
-	githubEmployeeWebhookHandler *handler.GitHubEmployeeWebhookHandler,
 	incomingWebhookHandler *handler.IncomingWebhookHandler,
 	nangoClient *nango.Client,
 	sandboxEncKey *crypto.SymmetricKey,
@@ -72,9 +71,6 @@ func setupPublicRoutes(
 	r.Post("/internal/webhooks/bridge/{sandboxID}", bridgeWebhookHandler.Handle)
 	r.Post("/internal/webhooks/employee/{sandboxID}", employeeOutboundWebhookHandler.Handle)
 	r.Post("/internal/webhooks/nango", nangoWebhookHandler.Handle)
-	if githubEmployeeWebhookHandler != nil {
-		r.Post("/internal/webhooks/github/employees/{agentID}", githubEmployeeWebhookHandler.Handle)
-	}
 
 	// Sandbox proxy endpoints (bearer-token auth, no middleware)
 	if nangoClient != nil && sandboxEncKey != nil {
