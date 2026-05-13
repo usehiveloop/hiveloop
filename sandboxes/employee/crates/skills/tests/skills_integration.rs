@@ -265,6 +265,40 @@ fn skill_manage_write_file_is_limited_to_skill_support_dirs() {
     assert!(err.contains("references/"));
 }
 
+// SCENARIO: A locally authored skill must sync back to control plane with full content.
+// The snapshot contains SKILL.md plus every supported file body.
+#[test]
+fn skill_sync_snapshot_includes_content_metadata_and_files() {
+    let root = setup_temp_dir("skill-sync-snapshot-1");
+    let store = SkillStore::new(root.clone());
+    store
+        .manage(SkillManageArgs {
+            action: "create".into(),
+            name: "debugger".into(),
+            content: Some(
+                "---\nname: debugger\ndescription: Debug production issues\ntags: [debug, prod]\n---\n\n# Debug\nCheck logs.".into(),
+            ),
+            ..Default::default()
+        })
+        .unwrap();
+    store
+        .manage(SkillManageArgs {
+            action: "write_file".into(),
+            name: "debugger".into(),
+            file_path: Some("references/errors.md".into()),
+            file_content: Some("# Errors".into()),
+            ..Default::default()
+        })
+        .unwrap();
+
+    let snapshot = store.sync_snapshot("debugger").unwrap();
+    assert_eq!(snapshot["name"], "debugger");
+    assert_eq!(snapshot["description"], "Debug production issues");
+    assert!(snapshot["content"].as_str().unwrap().contains("# Debug"));
+    assert_eq!(snapshot["files"]["references/errors.md"], "# Errors");
+    assert_eq!(snapshot["tags"][0], "debug");
+}
+
 // SCENARIO: Curated skills are pinned.
 // The agent cannot patch, edit, or delete pinned skills.
 #[test]

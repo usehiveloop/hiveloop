@@ -53,6 +53,7 @@ pub struct ToolContext {
     pub mcp_registry: Option<Arc<McpRegistry>>,
     pub workspace_root: PathBuf,
     pub cloud_agents: Option<Arc<CloudAgentService>>,
+    pub outbound_emitter: Option<Arc<OutboundEmitter>>,
 }
 
 pub fn build_agent_tools(
@@ -118,7 +119,11 @@ pub fn build_agent_tools(
                 tools.push(skill_view_tool(ctx.workspace_root.clone()));
             }
             ToolSpec::SkillManage => {
-                tools.push(skill_manage_tool(ctx.workspace_root.clone()));
+                tools.push(skill_manage_tool(
+                    ctx.workspace_root.clone(),
+                    session_id.clone(),
+                    ctx.outbound_emitter.clone(),
+                ));
             }
             ToolSpec::Delegate => {
                 if let Some(repo) = &ctx.cron_repo {
@@ -421,7 +426,11 @@ fn skill_view_tool(workspace_root: PathBuf) -> Arc<dyn JsonTool> {
     ))
 }
 
-fn skill_manage_tool(workspace_root: PathBuf) -> Arc<dyn JsonTool> {
+fn skill_manage_tool(
+    workspace_root: PathBuf,
+    session_id: SessionId,
+    emitter: Option<Arc<OutboundEmitter>>,
+) -> Arc<dyn JsonTool> {
     Arc::new(DynamicTool::new(
         ToolDefinition {
             name: "skill_manage".into(),
@@ -445,11 +454,27 @@ fn skill_manage_tool(workspace_root: PathBuf) -> Arc<dyn JsonTool> {
         },
         move |args| {
             let workspace_root = workspace_root.clone();
+            let session_id = session_id.clone();
+            let emitter = emitter.clone();
             Box::pin(async move {
                 let store = skills::SkillStore::new(workspace_root);
-                store.manage(skills::SkillManageArgs {
-                    action: args.get("action").and_then(Value::as_str).unwrap_or_default().to_string(),
-                    name: args.get("name").and_then(Value::as_str).unwrap_or_default().to_string(),
+                let action = args
+                    .get("action")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .to_string();
+                let name = args
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .to_string();
+                let absorbed_into = args
+                    .get("absorbed_into")
+                    .and_then(Value::as_str)
+                    .map(ToString::to_string);
+                let result = store.manage(skills::SkillManageArgs {
+                    action: action.clone(),
+                    name: name.clone(),
                     content: args.get("content").and_then(Value::as_str).map(ToString::to_string),
                     category: args.get("category").and_then(Value::as_str).map(ToString::to_string),
                     file_path: args.get("file_path").and_then(Value::as_str).map(ToString::to_string),
@@ -457,11 +482,53 @@ fn skill_manage_tool(workspace_root: PathBuf) -> Arc<dyn JsonTool> {
                     old_string: args.get("old_string").and_then(Value::as_str).map(ToString::to_string),
                     new_string: args.get("new_string").and_then(Value::as_str).map(ToString::to_string),
                     replace_all: args.get("replace_all").and_then(Value::as_bool).unwrap_or(false),
-                    absorbed_into: args.get("absorbed_into").and_then(Value::as_str).map(ToString::to_string),
-                })
+                    absorbed_into: absorbed_into.clone(),
+                })?;
+                emit_skill_synced(emitter, &session_id, &store, &action, &name, absorbed_into).await;
+                Ok(result)
             })
         },
     ))
+}
+
+async fn emit_skill_synced(
+    emitter: Option<Arc<OutboundEmitter>>,
+    session_id: &SessionId,
+    store: &skills::SkillStore,
+    action: &str,
+    name: &str,
+    absorbed_into: Option<String>,
+) {
+    let Some(emitter) = emitter else { return };
+    let mut payload = json!({
+        "session_id": session_id.as_str(),
+        "source": event_source_from_session(session_id),
+        "action": action,
+        "name": name,
+    });
+    if action == "delete" {
+        payload["deleted"] = Value::Bool(true);
+        if let Some(absorbed_into) = absorbed_into {
+            payload["absorbed_into"] = Value::String(absorbed_into);
+        }
+    } else {
+        match store.sync_snapshot(name) {
+            Ok(snapshot) => {
+                if let Some(obj) = snapshot.as_object() {
+                    for (key, value) in obj {
+                        payload[key] = value.clone();
+                    }
+                }
+            }
+            Err(error) => {
+                tracing::warn!(%error, skill = %name, "skill sync snapshot failed");
+                return;
+            }
+        }
+    }
+    emitter
+        .emit(OutboundEvent::new(event_types::SKILL_SYNCED, payload))
+        .await;
 }
 
 fn cloud_agent_launch_task_tool(
@@ -791,6 +858,7 @@ async fn execute_cron(
                 json!({"job_id": id, "next_run_at": job.next_run_at.to_rfc3339(), "interval_seconds": interval_seconds, "channel": job.channel}),
             )
         }
+
         "list" => {
             let jobs = repo
                 .list_by_source(domain::cron::CronJobSource::Cron)
@@ -843,4 +911,213 @@ fn derive_channel(session_id: &SessionId) -> String {
         .split_once('-')
         .map(|(c, _)| c.to_string())
         .unwrap_or_else(|| session_id.as_str().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use async_trait::async_trait;
+    use chrono::{DateTime, Utc};
+    use domain::ToolSpec;
+    use outbound::{OutboundChannel, OutboundError, OutboundRegistry};
+    use std::fs;
+    use std::sync::Mutex;
+    use storage::{OutboxRepo, OutboxRow};
+    use tokio::sync::RwLock;
+
+    #[derive(Default)]
+    struct FakeOutbox {
+        rows: Mutex<Vec<(String, String, Value)>>,
+    }
+
+    #[async_trait]
+    impl OutboxRepo for FakeOutbox {
+        async fn enqueue(
+            &self,
+            channel_name: &str,
+            event_type: &str,
+            payload: Value,
+        ) -> storage::Result<i64> {
+            let mut rows = self.rows.lock().expect("outbox lock");
+            rows.push((channel_name.to_string(), event_type.to_string(), payload));
+            Ok(rows.len() as i64)
+        }
+
+        async fn claim_due(&self, _limit: u32) -> storage::Result<Vec<OutboxRow>> {
+            Ok(Vec::new())
+        }
+
+        async fn mark_delivered(&self, _id: i64) -> storage::Result<()> {
+            Ok(())
+        }
+
+        async fn schedule_retry(
+            &self,
+            _id: i64,
+            _attempts: i32,
+            _next_retry_at: DateTime<Utc>,
+        ) -> storage::Result<()> {
+            Ok(())
+        }
+
+        async fn mark_failed(&self, _id: i64) -> storage::Result<()> {
+            Ok(())
+        }
+    }
+
+    struct SkillSyncChannel;
+
+    #[async_trait]
+    impl OutboundChannel for SkillSyncChannel {
+        fn name(&self) -> &str {
+            "skill-sync"
+        }
+
+        fn kind(&self) -> &'static str {
+            "test"
+        }
+
+        fn accepts(&self, event_type: &str) -> bool {
+            event_type == event_types::SKILL_SYNCED
+        }
+
+        async fn deliver(&self, _event: &OutboundEvent) -> outbound::Result<()> {
+            Err(OutboundError::Delivery("not used in emitter tests".into()))
+        }
+    }
+
+    fn temp_workspace() -> PathBuf {
+        let path = std::env::temp_dir().join(format!(
+            "employee-bridge-skill-sync-{}",
+            Utc::now().timestamp_nanos_opt().unwrap_or_default()
+        ));
+        fs::create_dir_all(&path).expect("create temp workspace");
+        path
+    }
+
+    fn skill_manage_test_tool(workspace: PathBuf, outbox: Arc<FakeOutbox>) -> Arc<dyn JsonTool> {
+        let registry = OutboundRegistry::new().with_channel(Arc::new(SkillSyncChannel));
+        let emitter = Arc::new(OutboundEmitter::new(
+            outbox,
+            Arc::new(RwLock::new(registry)),
+        ));
+        let ctx = ToolContext {
+            gateway: None,
+            cron_repo: None,
+            process_registry: None,
+            mcp_registry: None,
+            workspace_root: workspace,
+            cloud_agents: None,
+            outbound_emitter: Some(emitter),
+        };
+        build_agent_tools(
+            &[ToolSpec::SkillManage],
+            &SessionId::from("C123-456.789"),
+            &ctx,
+        )
+        .into_iter()
+        .find(|tool| tool.definition().name == "skill_manage")
+        .expect("skill_manage tool")
+    }
+
+    #[tokio::test]
+    async fn skill_manage_create_emits_complete_sync_snapshot() {
+        let workspace = temp_workspace();
+        let outbox = Arc::new(FakeOutbox::default());
+        let tool = skill_manage_test_tool(workspace.clone(), outbox.clone());
+
+        tool.call(json!({
+            "action": "create",
+            "name": "debug-deploys",
+            "category": "engineering",
+            "content": "---\nname: debug-deploys\ndescription: Debug deploy failures.\ntags: deploy, debug\n---\n# Debug\nCheck logs first."
+        }))
+        .await
+        .expect("skill create");
+        tool.call(json!({
+            "action": "write_file",
+            "name": "debug-deploys",
+            "file_path": "references/errors.md",
+            "file_content": "# Errors"
+        }))
+        .await
+        .expect("supporting file write");
+
+        let rows = outbox.rows.lock().expect("outbox lock");
+        assert_eq!(rows.len(), 2);
+        let (_, event_type, payload) = &rows[1];
+        assert_eq!(event_type, event_types::SKILL_SYNCED);
+        assert_eq!(payload["action"], "write_file");
+        assert_eq!(payload["name"], "debug-deploys");
+        assert_eq!(payload["source"], "slack");
+        assert_eq!(payload["description"], "Debug deploy failures.");
+        assert_eq!(payload["files"]["references/errors.md"], "# Errors");
+        assert!(payload["content"]
+            .as_str()
+            .expect("content string")
+            .contains("# Debug"));
+
+        let _ = fs::remove_dir_all(workspace);
+    }
+
+    #[tokio::test]
+    async fn skill_manage_failed_call_emits_no_sync_event() {
+        let workspace = temp_workspace();
+        let outbox = Arc::new(FakeOutbox::default());
+        let tool = skill_manage_test_tool(workspace.clone(), outbox.clone());
+
+        let result = tool
+            .call(json!({
+                "action": "write_file",
+                "name": "missing-skill",
+                "file_path": "references/errors.md",
+                "content": "# Errors"
+            }))
+            .await;
+
+        assert!(result.is_err());
+        assert!(outbox.rows.lock().expect("outbox lock").is_empty());
+        let _ = fs::remove_dir_all(workspace);
+    }
+
+    #[tokio::test]
+    async fn skill_manage_delete_emits_tombstone() {
+        let workspace = temp_workspace();
+        let outbox = Arc::new(FakeOutbox::default());
+        let tool = skill_manage_test_tool(workspace.clone(), outbox.clone());
+
+        tool.call(json!({
+            "action": "create",
+            "name": "debug-deploys",
+            "content": "---\nname: debug-deploys\n---\n# Debug"
+        }))
+        .await
+        .expect("skill create");
+        tool.call(json!({
+            "action": "create",
+            "name": "deploy-ops",
+            "content": "---\nname: deploy-ops\n---\n# Deploy ops"
+        }))
+        .await
+        .expect("absorbed target create");
+        tool.call(json!({
+            "action": "delete",
+            "name": "debug-deploys",
+            "absorbed_into": "deploy-ops"
+        }))
+        .await
+        .expect("skill delete");
+
+        let rows = outbox.rows.lock().expect("outbox lock");
+        assert_eq!(rows.len(), 3);
+        let (_, event_type, payload) = &rows[2];
+        assert_eq!(event_type, event_types::SKILL_SYNCED);
+        assert_eq!(payload["action"], "delete");
+        assert_eq!(payload["deleted"], true);
+        assert_eq!(payload["absorbed_into"], "deploy-ops");
+        assert!(payload.get("content").is_none());
+
+        let _ = fs::remove_dir_all(workspace);
+    }
 }

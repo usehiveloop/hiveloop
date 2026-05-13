@@ -49,6 +49,7 @@ pub mod event_types {
     pub const ERROR_TOOL: &str = "error.tool";
     pub const ERROR_MODEL: &str = "error.model";
     pub const CONFIG_APPLIED: &str = "config.applied";
+    pub const SKILL_SYNCED: &str = "skill.synced";
 }
 
 pub const DATABASE_CHANNEL_NAME: &str = "database";

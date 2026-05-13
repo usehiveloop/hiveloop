@@ -134,6 +134,7 @@ impl AgentRunner for RigAgentRunner {
                 mcp_registry: mcp_registry.clone(),
                 workspace_root: tool_context.workspace_root.clone(),
                 cloud_agents: cloud_agents.clone(),
+                outbound_emitter: self.outbound_emitter.clone(),
             },
             mcp_registry.clone(),
         );
@@ -315,6 +316,7 @@ impl AgentRunner for RigAgentRunner {
                                         mcp_registry: mcp_registry.clone(),
                                         workspace_root: tool_context.workspace_root.clone(),
                                         cloud_agents: cloud_agents.clone(),
+                                        outbound_emitter: emitter.clone(),
                                     },
                                     mcp_registry.clone(),
                                 );

@@ -216,6 +216,43 @@ impl SkillStore {
         }
     }
 
+    pub fn sync_snapshot(&self, name: &str) -> anyhow::Result<Value> {
+        validate_skill_name(name)?;
+        let dir = self.skill_dir(name);
+        let skill_md = dir.join("SKILL.md");
+        if !skill_md.exists() {
+            anyhow::bail!("skill '{name}' not found");
+        }
+
+        let content = fs::read_to_string(&skill_md)?;
+        let meta = parse_frontmatter(&content);
+        let mut files = BTreeMap::new();
+        for allowed in ALLOWED_FILE_DIRS {
+            let root = dir.join(allowed);
+            if !root.exists() {
+                continue;
+            }
+            for entry in WalkDir::new(&root).into_iter().flatten() {
+                if !entry.file_type().is_file() {
+                    continue;
+                }
+                let rel = entry.path().strip_prefix(&dir)?;
+                let rel_string = rel.to_string_lossy().to_string();
+                files.insert(rel_string, fs::read_to_string(entry.path())?);
+            }
+        }
+
+        Ok(json!({
+            "name": meta.get("name").cloned().unwrap_or_else(|| name.to_string()),
+            "description": meta.get("description").cloned().unwrap_or_default(),
+            "category": meta.get("category").cloned(),
+            "tags": csv_or_json_array(meta.get("tags")),
+            "related_skills": csv_or_json_array(meta.get("related_skills")),
+            "content": content,
+            "files": files,
+        }))
+    }
+
     fn create(&self, args: SkillManageArgs) -> anyhow::Result<Value> {
         let dir = self.skill_dir(&args.name);
         if dir.exists() {

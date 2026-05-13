@@ -334,24 +334,12 @@ fn default_builtin_tool_specs() -> Vec<ToolSpec> {
         ToolSpec::ReadFile(ReadFileConfig {
             allowed_roots: vec![],
             max_file_size_bytes: 5 * 1024 * 1024,
-            deny_globs: vec![
-                "**/.env".into(),
-                "**/.env.*".into(),
-                "**/secrets/**".into(),
-                "**/id_rsa*".into(),
-                "**/*.pem".into(),
-            ],
+            deny_globs: vec![],
         }),
         ToolSpec::WriteFile(WriteFileConfig {
             allowed_roots: vec![],
             max_file_size_bytes: 5 * 1024 * 1024,
-            deny_globs: vec![
-                "**/.env".into(),
-                "**/.env.*".into(),
-                "**/secrets/**".into(),
-                "**/.git/**".into(),
-                "**/node_modules/**".into(),
-            ],
+            deny_globs: vec![],
             atomic: true,
         }),
         ToolSpec::PostStatusUpdate,
