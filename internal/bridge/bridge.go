@@ -118,12 +118,6 @@ func (c *BridgeClient) RotateAPIKey(ctx context.Context, agentID string, newKey 
 	return doVoid(c, ctx, http.MethodPatch, "/push/agents/"+agentID+"/api-key", payload)
 }
 
-// HydrateConversations pushes conversation history to an agent.
-func (c *BridgeClient) HydrateConversations(ctx context.Context, agentID string, conversations []ConversationRecord) error {
-	payload := HydrateConversationsRequest{Conversations: conversations}
-	return doVoid(c, ctx, http.MethodPost, "/push/agents/"+agentID+"/conversations", payload)
-}
-
 // CreateConversation creates a new conversation for an agent with default settings.
 func (c *BridgeClient) CreateConversation(ctx context.Context, agentID string) (*CreateConversationResponse, error) {
 	return c.CreateConversationWithOptions(ctx, agentID, CreateConversationRequest{})

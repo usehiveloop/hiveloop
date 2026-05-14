@@ -1,0 +1,95 @@
+use axum::extract::DefaultBodyLimit;
+use axum::middleware as axum_mw;
+use axum::routing::{delete, get, patch, post, put};
+use axum::Router;
+use tower_http::cors::CorsLayer;
+use tower_http::trace::TraceLayer;
+
+use crate::handlers::{
+    agents, conversations, events, health, metrics, permissions, push, stream, ws_handler,
+};
+use crate::middleware::bearer_auth;
+use crate::state::AppState;
+
+/// Maximum request body size, in bytes. Skill payloads with multi-file
+/// bundles routinely exceed axum's 2 MiB default; bumping to 25 MiB so
+/// the control plane can push agents with non-trivial skill assets without
+/// silent 413s. Override at runtime via `BRIDGE_MAX_BODY_BYTES`.
+pub const DEFAULT_MAX_BODY_BYTES: usize = 25 * 1024 * 1024;
+
+fn max_body_bytes() -> usize {
+    std::env::var("BRIDGE_MAX_BODY_BYTES")
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+        .unwrap_or(DEFAULT_MAX_BODY_BYTES)
+}
+
+/// Build the axum router with all routes and middleware.
+pub fn build_router(state: AppState) -> Router {
+    // Push routes — authenticated via bearer token
+    let push_routes = Router::new()
+        .route("/push/agents", post(push::push_agents))
+        .route("/push/agents/{agent_id}", put(push::upsert_agent))
+        .route("/push/agents/{agent_id}", delete(push::remove_agent))
+        .route(
+            "/push/agents/{agent_id}/api-key",
+            patch(push::update_agent_api_key),
+        )
+        .route("/push/diff", post(push::push_diff))
+        .layer(axum_mw::from_fn_with_state(state.clone(), bearer_auth));
+
+    Router::new()
+        // Health
+        .route("/health", get(health::health))
+        // Agents
+        .route("/agents", get(agents::list_agents))
+        .route("/agents/{agent_id}", get(agents::get_agent))
+        // Conversations
+        .route(
+            "/agents/{agent_id}/conversations",
+            post(conversations::create_conversation),
+        )
+        .route(
+            "/conversations/{conv_id}/messages",
+            post(conversations::send_message),
+        )
+        .route(
+            "/conversations/{conv_id}",
+            delete(conversations::end_conversation),
+        )
+        .route(
+            "/conversations/{conv_id}/abort",
+            post(conversations::abort_conversation),
+        )
+        // Tool approvals
+        .route(
+            "/agents/{agent_id}/conversations/{conv_id}/approvals",
+            get(permissions::list_approvals),
+        )
+        .route(
+            "/agents/{agent_id}/conversations/{conv_id}/approvals",
+            post(permissions::bulk_resolve_approvals),
+        )
+        .route(
+            "/agents/{agent_id}/conversations/{conv_id}/approvals/{request_id}",
+            post(permissions::resolve_approval),
+        )
+        // SSE streaming
+        .route(
+            "/conversations/{conv_id}/stream",
+            get(stream::stream_conversation),
+        )
+        // WebSocket event stream (all events, all agents, all conversations)
+        .route("/ws/events", get(ws_handler::ws_events))
+        // Polling fallback for events (when WS/SSE fails)
+        .route("/events", get(events::poll_events))
+        // Metrics
+        .route("/metrics", get(metrics::get_metrics))
+        // Push (authenticated)
+        .merge(push_routes)
+        // Middleware
+        .layer(DefaultBodyLimit::max(max_body_bytes()))
+        .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive())
+        .with_state(state)
+}

@@ -1,0 +1,81 @@
+name: sandbox-runtime-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sandboxes/runtime/**"
+      - ".github/workflows/sandbox-runtime-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "sandboxes/runtime/**"
+      - ".github/workflows/sandbox-runtime-ci.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  fmt:
+    name: fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: check formatting
+        working-directory: sandboxes/runtime
+        run: cargo fmt --all -- --check
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: sandbox-runtime-build
+          workspaces: sandboxes/runtime -> target
+      - name: build workspace
+        working-directory: sandboxes/runtime
+        run: cargo build --workspace --locked
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: sandbox-runtime-clippy
+          workspaces: sandboxes/runtime -> target
+      - name: run clippy
+        working-directory: sandboxes/runtime
+        run: cargo clippy --workspace --locked -- -D warnings
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: sandbox-runtime-test
+          workspaces: sandboxes/runtime -> target
+      - name: run tests
+        working-directory: sandboxes/runtime
+        run: cargo test --workspace --locked --exclude bridge-e2e --exclude storage-e2e

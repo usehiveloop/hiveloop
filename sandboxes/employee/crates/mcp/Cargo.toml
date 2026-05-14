@@ -1,0 +1,20 @@
+[package]
+name = "mcp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+domain.workspace = true
+async-trait.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+serde_json.workspace = true
+arc-swap.workspace = true
+rmcp.workspace = true
+http = "1"
+dashmap = "6"

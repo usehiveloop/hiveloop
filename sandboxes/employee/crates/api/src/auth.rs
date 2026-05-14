@@ -1,0 +1,39 @@
+use axum::{
+    extract::State,
+    http::{header::AUTHORIZATION, Request, StatusCode},
+    middleware::Next,
+    response::Response,
+};
+
+use crate::state::ApiState;
+
+pub async fn bearer_auth(
+    State(state): State<ApiState>,
+    request: Request<axum::body::Body>,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    if request.uri().path() == "/healthz" {
+        return Ok(next.run(request).await);
+    }
+    let authorization_header = request
+        .headers()
+        .get(AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or("");
+    let expected = format!("Bearer {}", state.bearer_token.as_str());
+    if !constant_time_eq(authorization_header.as_bytes(), expected.as_bytes()) {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+    Ok(next.run(request).await)
+}
+
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff: u8 = 0;
+    for (left, right) in a.iter().zip(b.iter()) {
+        diff |= left ^ right;
+    }
+    diff == 0
+}

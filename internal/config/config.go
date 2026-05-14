@@ -106,7 +106,7 @@ type Config struct {
 	// Bridge (agent runtime in sandboxes)
 	BridgeBaseImagePrefix          string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"hiveloop-bridge-1-0-0-small-v1"`           // snapshot for shared/pool sandboxes (ACP-harness runtime)
 	BridgeBaseDedicatedImagePrefix string `env:"BRIDGE_BASE_DEDICATED_IMAGE_PREFIX" envDefault:"hiveloop-bridge-1-0-0-small-v1"` // snapshot for dedicated agent sandboxes (ACP-harness runtime)
-	BridgeBinaryVersion            string `env:"BRIDGE_BINARY_VERSION,required"`                                                 // usehiveloop/bridge release tag installed into user-template snapshots (e.g. v1.0.0)
+	BridgeBinaryVersion            string `env:"BRIDGE_BINARY_VERSION,required"`                                                 // usehiveloop/hiveloop release tag installed into user-template snapshots (e.g. v1.0.0)
 
 	// Hermes (Hermes-harness sandbox runtime — usehiveloop/hermes image + Go sidecar)
 	HermesBaseImagePrefix string `env:"HERMES_BASE_IMAGE_PREFIX" envDefault:"hiveloop-hermes-0-0-1-small-v1"` // Daytona snapshot name for Hermes sandboxes

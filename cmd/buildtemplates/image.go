@@ -11,11 +11,11 @@ import (
 
 const (
 	// Debian 13 (trixie) ships glibc 2.41; bookworm-slim's 2.36 is too old for
-	// the prebuilt usehiveloop/bridge binary, which is linked against glibc ≥ 2.39.
+	// the prebuilt bridge binary, which is linked against glibc >= 2.39.
 	baseImage = "node:22-trixie-slim"
 	workDir   = "/work"
 
-	// ACP harness versions must match useportal.bridge's Dockerfile so
+	// ACP harness versions must match sandboxes/runtime/docker/Dockerfile so
 	// bridge dispatches to a known-compatible binary.
 	claudeACPVersion = "0.31.4"
 	openCodeVersion  = "1.14.32"
@@ -76,10 +76,10 @@ func snapshotName(version, size string) string {
 	return fmt.Sprintf("hiveloop-bridge-%s-%s-v1", strings.ReplaceAll(version, ".", "-"), size)
 }
 
-func buildBridgeImage(version, bridgeVersion string) *daytona.DockerImage {
+func buildBridgeImage(version, bridgeVersion string, useLocalBridgeBinary bool) *daytona.DockerImage {
 	tag := "v" + strings.TrimPrefix(bridgeVersion, "v")
 	bridgeDownloadURL := fmt.Sprintf(
-		"https://github.com/usehiveloop/bridge/releases/download/%s/bridge-%s-x86_64-unknown-linux-gnu.tar.gz",
+		"https://github.com/usehiveloop/hiveloop/releases/download/%s/bridge-%s-x86_64-unknown-linux-gnu.tar.gz",
 		tag, tag,
 	)
 
@@ -181,10 +181,15 @@ func buildBridgeImage(version, bridgeVersion string) *daytona.DockerImage {
 			`ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh`,
 	)
 
-	image = image.Run(fmt.Sprintf(
-		`curl -fsSL %q | tar -xzf - -C /usr/local/bin/ bridge && chmod +x /usr/local/bin/bridge`,
-		bridgeDownloadURL,
-	))
+	if useLocalBridgeBinary {
+		image = image.Copy("bridge", "/usr/local/bin/bridge")
+		image = image.Run("chmod +x /usr/local/bin/bridge")
+	} else {
+		image = image.Run(fmt.Sprintf(
+			`curl -fsSL %q | tar -xzf - -C /usr/local/bin/ bridge && chmod +x /usr/local/bin/bridge`,
+			bridgeDownloadURL,
+		))
+	}
 
 	// Image-level ENV mirrors orchestrator_types.baseEnvVars so a manual
 	// `docker run` (without the orchestrator) lands in the same shape.

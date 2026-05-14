@@ -8,19 +8,16 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
+	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
 
 // testDBURL mirrors internal/middleware/integration_test.go:26 — the
 // hiveloop_test database on the dev Postgres instance at localhost:5433.
 const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
-// ConnectTestDB opens a real Postgres connection, runs
-// `model.AutoMigrate` (which in turn calls `rag.AutoMigrate`), and
-// registers `t.Cleanup` to close the underlying *sql.DB.
-//
-// Unlike the private helper in the middleware package, this one
-// imports the rag package so the RAG schema is migrated alongside the
-// core Hiveloop schema.
+// ConnectTestDB opens a real Postgres connection, runs the core and
+// RAG AutoMigrate steps, and registers `t.Cleanup` to close the
+// underlying *sql.DB.
 //
 // A test that needs a test DB but the service isn't running should see
 // a hard, loud failure — see rule 7 of TESTING.md.
@@ -49,6 +46,21 @@ func ConnectTestDB(t *testing.T) *gorm.DB {
 
 	if err := model.AutoMigrate(db); err != nil {
 		t.Fatalf("model.AutoMigrate failed: %v", err)
+	}
+	if err := db.AutoMigrate(
+		&ragmodel.RAGEmbeddingModel{},
+		&ragmodel.RAGSource{},
+		&ragmodel.RAGSearchSettings{},
+		&ragmodel.RAGSyncState{},
+		&ragmodel.RAGSyncRecord{},
+		&ragmodel.RAGExternalUserGroup{},
+		&ragmodel.RAGExternalIdentity{},
+		&ragmodel.RAGPublicExternalUserGroup{},
+		&ragmodel.RAGUserExternalUserGroup{},
+		&ragmodel.RAGIndexAttempt{},
+		&ragmodel.RAGIndexAttemptError{},
+	); err != nil {
+		t.Fatalf("rag AutoMigrate failed: %v", err)
 	}
 
 	t.Cleanup(func() { _ = sqlDB.Close() })
