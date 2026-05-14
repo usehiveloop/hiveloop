@@ -787,6 +787,10 @@ definitions:
         items:
           $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Reference'
         type: array
+      required_environment_variables:
+        items:
+          type: string
+        type: array
       title:
         type: string
     type: object
@@ -2403,6 +2407,8 @@ definitions:
         type: array
       updated_at:
         type: string
+      upgrade_available:
+        type: boolean
     type: object
   internal_handler.employeeSandboxSummary:
     properties:
@@ -2550,6 +2556,8 @@ definitions:
         type: string
       owner:
         type: string
+      permissions:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       private:
         type: boolean
     type: object

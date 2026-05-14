@@ -15016,6 +15016,12 @@
               "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_skills.Reference"
             }
           },
+          "required_environment_variables": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "title": {
             "type": "string"
           }
@@ -17468,6 +17474,9 @@
           },
           "updated_at": {
             "type": "string"
+          },
+          "upgrade_available": {
+            "type": "boolean"
           }
         }
       },
@@ -17694,6 +17703,9 @@
           },
           "owner": {
             "type": "string"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/JSON"
           },
           "private": {
             "type": "boolean"

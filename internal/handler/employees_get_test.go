@@ -102,6 +102,57 @@ func TestIntegration_EmployeesGet_HappyPath_LoadsProfilesSubagentsAndSandbox(t *
 	}
 }
 
+func TestIntegration_EmployeesGet_ReportsSandboxUpgradeAvailability(t *testing.T) {
+	h := newEmployeeHarness(t)
+	h.platformCredCleanup(t)
+	m := h.createOrg(t)
+	emp := h.seedEmployeeAgent(t, m)
+	sb := h.seedSandbox(t, m, emp.ID)
+	h.setSandboxSnapshot(t, sb.ID, &h.cfg.EmployeeSandboxBaseImagePrefix)
+
+	rr := h.getEmployee(t, m, emp.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	var item map[string]any
+	if err := json.Unmarshal(rr.Body.Bytes(), &item); err != nil {
+		t.Fatalf("decode matching snapshot response: %v", err)
+	}
+	if item["upgrade_available"] != false {
+		t.Fatalf("matching sandbox upgrade_available = %v, want false", item["upgrade_available"])
+	}
+	if _, exposed := item["snapshot_id"]; exposed {
+		t.Fatalf("employee response exposed snapshot_id: %#v", item)
+	}
+
+	outdatedSnapshot := "older-employee-sandbox"
+	h.setSandboxSnapshot(t, sb.ID, &outdatedSnapshot)
+	rr = h.getEmployee(t, m, emp.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("outdated status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	item = map[string]any{}
+	if err := json.Unmarshal(rr.Body.Bytes(), &item); err != nil {
+		t.Fatalf("decode outdated snapshot response: %v", err)
+	}
+	if item["upgrade_available"] != true {
+		t.Fatalf("outdated sandbox upgrade_available = %v, want true", item["upgrade_available"])
+	}
+
+	h.setSandboxSnapshot(t, sb.ID, nil)
+	rr = h.getEmployee(t, m, emp.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("legacy status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	item = map[string]any{}
+	if err := json.Unmarshal(rr.Body.Bytes(), &item); err != nil {
+		t.Fatalf("decode legacy snapshot response: %v", err)
+	}
+	if item["upgrade_available"] != true {
+		t.Fatalf("legacy sandbox upgrade_available = %v, want true", item["upgrade_available"])
+	}
+}
+
 func TestIntegration_EmployeesGet_RejectsNonEmployee(t *testing.T) {
 	h := newEmployeeHarness(t)
 	h.platformCredCleanup(t)

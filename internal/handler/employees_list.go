@@ -28,12 +28,14 @@ type employeeSandboxSummary struct {
 	ErrorMessage *string `json:"error_message,omitempty"`
 	LastActiveAt *string `json:"last_active_at,omitempty"`
 	CreatedAt    string  `json:"created_at"`
+	snapshotID   *string
 }
 
 type employeeListItem struct {
 	agentResponse
-	Subagents []employeeSubagentSummary `json:"subagents"`
-	Sandbox   *employeeSandboxSummary   `json:"sandbox,omitempty"`
+	UpgradeAvailable bool                      `json:"upgrade_available"`
+	Subagents        []employeeSubagentSummary `json:"subagents"`
+	Sandbox          *employeeSandboxSummary   `json:"sandbox,omitempty"`
 }
 
 // @Summary List AI employees
@@ -95,6 +97,7 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 	profiles := h.agents.loadAgentProfiles(agentIDs...)
 	subagents := loadEmployeeSubagents(h.db, agentIDs)
 	sandboxes := loadLatestSandboxPerAgent(h.db, org.ID, agentIDs)
+	currentSnapshotID := h.currentEmployeeSandboxSnapshotID()
 
 	items := make([]employeeListItem, len(agents))
 	for i, a := range agents {
@@ -108,9 +111,10 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 			base.SubagentIDs[j] = s.ID
 		}
 		items[i] = employeeListItem{
-			agentResponse: base,
-			Subagents:     subs,
-			Sandbox:       sandboxes[a.ID],
+			agentResponse:    base,
+			UpgradeAvailable: employeeSandboxUpgradeAvailable(sandboxes[a.ID], currentSnapshotID),
+			Subagents:        subs,
+			Sandbox:          sandboxes[a.ID],
 		}
 	}
 
@@ -175,12 +179,31 @@ func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 		base.SubagentIDs[i] = subagent.ID
 	}
 	sandbox := loadLatestSandboxPerAgent(h.db, org.ID, []uuid.UUID{agent.ID})[agent.ID]
+	currentSnapshotID := h.currentEmployeeSandboxSnapshotID()
 
 	writeJSON(w, http.StatusOK, employeeListItem{
-		agentResponse: base,
-		Subagents:     subagents,
-		Sandbox:       sandbox,
+		agentResponse:    base,
+		UpgradeAvailable: employeeSandboxUpgradeAvailable(sandbox, currentSnapshotID),
+		Subagents:        subagents,
+		Sandbox:          sandbox,
 	})
+}
+
+func (h *EmployeeHandler) currentEmployeeSandboxSnapshotID() string {
+	if h == nil || h.compileDeps.Cfg == nil {
+		return ""
+	}
+	return h.compileDeps.Cfg.EmployeeSandboxBaseImagePrefix
+}
+
+func employeeSandboxUpgradeAvailable(summary *employeeSandboxSummary, currentSnapshotID string) bool {
+	if summary == nil {
+		return false
+	}
+	if summary.snapshotID == nil || *summary.snapshotID == "" {
+		return currentSnapshotID != ""
+	}
+	return *summary.snapshotID != currentSnapshotID
 }
 
 func loadEmployeeSubagents(db *gorm.DB, agentIDs []uuid.UUID) map[uuid.UUID][]employeeSubagentSummary {
@@ -250,6 +273,7 @@ func loadLatestSandboxPerAgent(db *gorm.DB, orgID uuid.UUID, agentIDs []uuid.UUI
 			ExternalID:   sb.ExternalID,
 			ErrorMessage: sb.ErrorMessage,
 			CreatedAt:    sb.CreatedAt.Format(time.RFC3339),
+			snapshotID:   sb.SnapshotID,
 		}
 		if sb.LastActiveAt != nil {
 			t := sb.LastActiveAt.Format(time.RFC3339)

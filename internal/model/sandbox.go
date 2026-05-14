@@ -14,6 +14,7 @@ type Sandbox struct {
 	Agent                 *Agent           `gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE"`
 	SandboxTemplateID     *uuid.UUID       `gorm:"type:uuid"`
 	SandboxTemplate       *SandboxTemplate `gorm:"foreignKey:SandboxTemplateID;constraint:OnDelete:SET NULL"`
+	SnapshotID            *string          `gorm:"column:snapshot_id"`
 	ExternalID            string           `gorm:"not null"` // Daytona workspace ID
 	BridgeURL             string           `gorm:"not null"` // pre-authenticated URL to reach Bridge
 	BridgeURLExpiresAt    *time.Time       // when BridgeURL expires (nil = never)

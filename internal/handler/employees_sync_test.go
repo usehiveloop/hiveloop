@@ -355,6 +355,18 @@ func TestIntegration_EmployeesSync_NoSandbox_Provisions(t *testing.T) {
 	if tokenCount != 1 {
 		t.Errorf("employee-sandbox token rows = %d, want 1", tokenCount)
 	}
+
+	var storedSandbox model.Sandbox
+	if err := h.db.Where("agent_id = ?", agent.ID).Order("created_at DESC").First(&storedSandbox).Error; err != nil {
+		t.Fatalf("load stored employee sandbox: %v", err)
+	}
+	gotSnapshotID := ""
+	if storedSandbox.SnapshotID != nil {
+		gotSnapshotID = *storedSandbox.SnapshotID
+	}
+	if gotSnapshotID != h.cfg.EmployeeSandboxBaseImagePrefix {
+		t.Errorf("stored sandbox snapshot_id = %q, want %q", gotSnapshotID, h.cfg.EmployeeSandboxBaseImagePrefix)
+	}
 }
 
 func TestIntegration_EmployeesSync_ErrorSandbox_ProvisionsFreshRuntime(t *testing.T) {

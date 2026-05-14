@@ -12726,6 +12726,12 @@ const docTemplate = `{
                         "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Reference"
                     }
                 },
+                "required_environment_variables": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "title": {
                     "type": "string"
                 }
@@ -15178,6 +15184,9 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "upgrade_available": {
+                    "type": "boolean"
                 }
             }
         },
@@ -15404,6 +15413,9 @@ const docTemplate = `{
                 },
                 "owner": {
                     "type": "string"
+                },
+                "permissions": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "private": {
                     "type": "boolean"

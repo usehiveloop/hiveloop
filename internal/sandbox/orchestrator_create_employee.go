@@ -44,9 +44,11 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 		return nil, fmt.Errorf("encrypting runtime secret: %w", err)
 	}
 
+	snapshotID := o.cfg.EmployeeSandboxBaseImagePrefix
 	sb := model.Sandbox{
 		OrgID:                 &orgID,
 		AgentID:               &agent.ID,
+		SnapshotID:            &snapshotID,
 		EncryptedBridgeAPIKey: encryptedSecret,
 		Status:                "creating",
 	}
@@ -64,7 +66,7 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 
 	info, err := o.provider.CreateSandbox(ctx, CreateSandboxOpts{
 		Name:       buildEmployeeSandboxName(agent),
-		SnapshotID: o.cfg.EmployeeSandboxBaseImagePrefix,
+		SnapshotID: snapshotID,
 		EnvVars:    envVars,
 		Labels:     labels,
 	})

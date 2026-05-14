@@ -96,6 +96,7 @@ func (h *employeeHarness) seedSandbox(t *testing.T, m orgWithMember, agentID uui
 	sb := model.Sandbox{
 		OrgID:                 &m.org.ID,
 		AgentID:               &agentID,
+		SnapshotID:            &h.cfg.EmployeeSandboxBaseImagePrefix,
 		ExternalID:            "stub-sb-" + uuid.NewString()[:8],
 		BridgeURL:             h.sidecarSrv.URL,
 		EncryptedBridgeAPIKey: encryptedKey,
@@ -105,6 +106,19 @@ func (h *employeeHarness) seedSandbox(t *testing.T, m orgWithMember, agentID uui
 		t.Fatalf("create sandbox: %v", err)
 	}
 	return sb
+}
+
+func (h *employeeHarness) setSandboxSnapshot(t *testing.T, sandboxID uuid.UUID, snapshotID *string) {
+	t.Helper()
+	var value any
+	if snapshotID != nil {
+		value = *snapshotID
+	}
+	if err := h.db.Model(&model.Sandbox{}).
+		Where("id = ?", sandboxID).
+		Updates(map[string]any{"snapshot_id": value}).Error; err != nil {
+		t.Fatalf("set sandbox snapshot: %v", err)
+	}
 }
 
 func (h *employeeHarness) seedSlackProfile(t *testing.T, m orgWithMember, agentID uuid.UUID) model.AgentProfile {

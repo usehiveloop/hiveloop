@@ -138,6 +138,61 @@ func TestIntegration_EmployeesList_HappyPath_LoadsAllRelations(t *testing.T) {
 	}
 }
 
+func TestIntegration_EmployeesList_ReportsSandboxUpgradeAvailability(t *testing.T) {
+	h := newEmployeeHarness(t)
+	h.platformCredCleanup(t)
+	m := h.createOrg(t)
+
+	matching := h.seedEmployeeAgent(t, m)
+	matchingSandbox := h.seedSandbox(t, m, matching.ID)
+	h.setSandboxSnapshot(t, matchingSandbox.ID, &h.cfg.EmployeeSandboxBaseImagePrefix)
+
+	outdated := h.seedEmployeeAgent(t, m)
+	outdatedSandbox := h.seedSandbox(t, m, outdated.ID)
+	outdatedSnapshot := "older-employee-sandbox"
+	h.setSandboxSnapshot(t, outdatedSandbox.ID, &outdatedSnapshot)
+
+	legacy := h.seedEmployeeAgent(t, m)
+	legacySandbox := h.seedSandbox(t, m, legacy.ID)
+	h.setSandboxSnapshot(t, legacySandbox.ID, nil)
+
+	rr := h.listEmployees(t, m)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+
+	var resp struct {
+		Data []map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	got := make(map[string]bool, len(resp.Data))
+	for _, item := range resp.Data {
+		if _, exposed := item["snapshot_id"]; exposed {
+			t.Fatalf("employee response exposed snapshot_id: %#v", item)
+		}
+		if sandbox, ok := item["sandbox"].(map[string]any); ok {
+			if _, exposed := sandbox["snapshot_id"]; exposed {
+				t.Fatalf("employee sandbox response exposed snapshot_id: %#v", sandbox)
+			}
+		}
+		id, _ := item["id"].(string)
+		upgrade, _ := item["upgrade_available"].(bool)
+		got[id] = upgrade
+	}
+
+	if got[matching.ID.String()] {
+		t.Errorf("matching sandbox upgrade_available = true, want false")
+	}
+	if !got[outdated.ID.String()] {
+		t.Errorf("outdated sandbox upgrade_available = false, want true")
+	}
+	if !got[legacy.ID.String()] {
+		t.Errorf("legacy sandbox upgrade_available = false, want true")
+	}
+}
+
 func TestIntegration_EmployeesList_ExcludesNonEmployees(t *testing.T) {
 	h := newEmployeeHarness(t)
 	h.platformCredCleanup(t)

@@ -13876,6 +13876,7 @@ export interface components {
             };
             parameters_schema?: number[];
             references?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Reference"][];
+            required_environment_variables?: string[];
             title?: string;
         };
         "github_com_usehiveloop_hiveloop_internal_skills.Reference": {
@@ -14701,6 +14702,7 @@ export interface components {
             tools?: components["schemas"]["JSON"];
             triggers?: components["schemas"]["agentTriggerResponse"][];
             updated_at?: string;
+            upgrade_available?: boolean;
         };
         employeeSandboxSummary: {
             created_at?: string;
@@ -14775,6 +14777,7 @@ export interface components {
             name?: string;
             node_id?: string;
             owner?: string;
+            permissions?: components["schemas"]["JSON"];
             private?: boolean;
         };
         inConnectSessionResponse: {
