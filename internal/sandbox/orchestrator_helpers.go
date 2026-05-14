@@ -3,11 +3,14 @@ package sandbox
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	githubprofile "github.com/usehiveloop/hiveloop/internal/profiles/github"
+	"gorm.io/gorm"
 )
 
 func disableProviderLifecycle(ctx context.Context, provider Provider, sb *model.Sandbox, externalID string) {
@@ -77,12 +80,71 @@ func (o *Orchestrator) cloneAgentRepositories(ctx context.Context, sb *model.San
 		return nil
 	}
 
-	if _, err := o.ExecuteCommand(ctx, sb, "mkdir -p /home/daytona/repos"); err != nil {
-		return fmt.Errorf("creating repos directory: %w", err)
+	return o.cloneRepositories(ctx, sb, repos, "/home/daytona/repos")
+}
+
+func (o *Orchestrator) cloneEmployeeSelectedRepositories(ctx context.Context, sb *model.Sandbox, agent *model.Agent) error {
+	repos, err := o.loadEmployeeSelectedGitHubRepositories(ctx, agent)
+	if err != nil {
+		return err
+	}
+	if len(repos) == 0 {
+		return nil
+	}
+	return o.cloneRepositories(ctx, sb, repos, "/workspace/repos")
+}
+
+func (o *Orchestrator) loadEmployeeSelectedGitHubRepositories(ctx context.Context, agent *model.Agent) ([]repoResource, error) {
+	if agent == nil {
+		return nil, nil
 	}
 
+	var profile model.AgentProfile
+	err := o.db.WithContext(ctx).
+		Where("agent_id = ? AND provider = ? AND status = ? AND deleted_at IS NULL AND revoked_at IS NULL",
+			agent.ID, githubprofile.Provider, "active").
+		First(&profile).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("load employee github profile: %w", err)
+	}
+
+	raw := profile.Config["selected_repositories"]
+	if raw == nil {
+		return nil, nil
+	}
+	data, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("marshal selected github repositories: %w", err)
+	}
+	var selected []struct {
+		Name     string `json:"name"`
+		FullName string `json:"full_name"`
+	}
+	if err := json.Unmarshal(data, &selected); err != nil {
+		return nil, fmt.Errorf("decode selected github repositories: %w", err)
+	}
+
+	repos := make([]repoResource, 0, len(selected))
+	for _, repo := range selected {
+		name := strings.TrimSpace(repo.Name)
+		fullName := strings.TrimSpace(repo.FullName)
+		if name == "" || fullName == "" {
+			continue
+		}
+		repos = append(repos, repoResource{ID: fullName, Name: name})
+	}
+	return repos, nil
+}
+
+func (o *Orchestrator) cloneRepositories(ctx context.Context, sb *model.Sandbox, repos []repoResource, baseDir string) error {
+	if _, err := o.ExecuteCommand(ctx, sb, "mkdir -p "+baseDir); err != nil {
+		return fmt.Errorf("creating repos directory: %w", err)
+	}
 	for _, repo := range repos {
-		repoPath := "/home/daytona/repos/" + repo.Name
+		repoPath := baseDir + "/" + repo.Name
 		cloneURL := "https://github.com/" + repo.ID + ".git"
 
 		if _, err := o.ExecuteCommand(ctx, sb,

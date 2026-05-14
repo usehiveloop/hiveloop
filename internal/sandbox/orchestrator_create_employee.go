@@ -111,6 +111,14 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 		return nil, fmt.Errorf("waiting for employee runtime: %w", err)
 	}
 
+	if err := o.cloneEmployeeSelectedRepositories(ctx, &sb, agent); err != nil {
+		o.markSandboxError(ctx, &sb, map[string]any{
+			"status":        "error",
+			"error_message": fmt.Sprintf("repository cloning failed: %v", err),
+		})
+		return nil, fmt.Errorf("cloning employee repositories: %w", err)
+	}
+
 	disableProviderLifecycle(ctx, o.provider, &sb, info.ExternalID)
 	logging.FromContext(ctx).InfoContext(ctx, "employee sandbox created",
 		"sandbox_id", sb.ID, "external_id", info.ExternalID, "agent_id", agent.ID)
