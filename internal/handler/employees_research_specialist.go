@@ -13,10 +13,12 @@ import (
 )
 
 const (
-	defaultCloudAgentTypeKey                 = "default_cloud_agent_type"
-	defaultCloudAgentVersionKey              = "default_cloud_agent_version"
-	defaultBusinessResearchSpecialistType    = "business_research_specialist"
-	defaultBusinessResearchSpecialistVersion = 1
+	defaultCloudAgentTypeKey                    = "default_cloud_agent_type"
+	defaultCloudAgentVersionKey                 = "default_cloud_agent_version"
+	defaultBusinessResearchSpecialistType       = "business_research_specialist"
+	defaultBusinessResearchSpecialistVersion    = 1
+	defaultSoftwareEngineeringSpecialistType    = "software_engineering_specialist"
+	defaultSoftwareEngineeringSpecialistVersion = 1
 )
 
 func (h *EmployeeHandler) ensureBusinessResearchSpecialist(ctx context.Context, employee *model.Agent) (*model.Agent, error) {

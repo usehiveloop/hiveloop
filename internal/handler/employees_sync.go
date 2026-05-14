@@ -91,6 +91,11 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "failed to ensure business research specialist"})
 		return
 	}
+	if _, err := h.ensureSoftwareEngineeringSpecialist(ctx, &agent); err != nil {
+		log.ErrorContext(ctx, "ensure software engineering specialist", "error", err, "agent_id", agentID, "org_id", org.ID)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "failed to ensure software engineering specialist"})
+		return
+	}
 
 	sb, err := h.ensureEmployeeSandbox(ctx, &agent)
 	if err != nil {

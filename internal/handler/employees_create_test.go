@@ -368,32 +368,33 @@ func TestIntegration_EmployeesCreate_AttachesDefaultSkills(t *testing.T) {
 	}
 	agentID := uuid.MustParse(decodeEmployeeResp(t, rr)["agent_id"])
 
-	var link model.AgentSubagent
-	if err := h.db.Where("agent_id = ?", agentID).First(&link).Error; err != nil {
-		t.Fatalf("load AgentSubagent link: %v", err)
+	subagents := defaultSubagentsByType(t, h.db, agentID)
+	if len(subagents) != 2 {
+		t.Fatalf("default subagent count = %d, want 2: %#v", len(subagents), subagents)
 	}
-	subagentID := link.SubagentID
 
 	empLinks := skillIDsFor(t, h.db, agentID)
 	if !empLinks[gitGithub.ID] || !empLinks[assetUploads.ID] || len(empLinks) != 2 {
 		t.Errorf("employee skills = %v, want exactly {git-github, asset-uploads}", empLinks)
 	}
 
-	subLinks := skillIDsFor(t, h.db, subagentID)
-	wantSub := []uuid.UUID{agentBrowser.ID, gitGithub.ID, assetUploads.ID}
-	for _, id := range wantSub {
-		if !subLinks[id] {
-			t.Errorf("subagent missing skill %v", id)
+	for typ, subagent := range subagents {
+		subLinks := skillIDsFor(t, h.db, subagent.ID)
+		wantSub := []uuid.UUID{agentBrowser.ID, gitGithub.ID, assetUploads.ID}
+		for _, id := range wantSub {
+			if !subLinks[id] {
+				t.Errorf("%s subagent missing skill %v", typ, id)
+			}
 		}
-	}
-	if len(subLinks) != 3 {
-		t.Errorf("subagent skills count = %d, want 3 (got %v)", len(subLinks), subLinks)
+		if len(subLinks) != 3 {
+			t.Errorf("%s subagent skills count = %d, want 3 (got %v)", typ, len(subLinks), subLinks)
+		}
 	}
 
 	wantInstallCount := map[uuid.UUID]int{
-		gitGithub.ID:    2,
-		assetUploads.ID: 2,
-		agentBrowser.ID: 1,
+		gitGithub.ID:    3,
+		assetUploads.ID: 3,
+		agentBrowser.ID: 2,
 	}
 	for skillID, want := range wantInstallCount {
 		var reloaded model.Skill
@@ -417,7 +418,33 @@ func skillIDsFor(t *testing.T, db *gorm.DB, agentID uuid.UUID) map[uuid.UUID]boo
 	return out
 }
 
-func TestIntegration_EmployeesCreate_CreatesSubagent(t *testing.T) {
+func defaultSubagentsByType(t *testing.T, db *gorm.DB, agentID uuid.UUID) map[string]model.Agent {
+	t.Helper()
+	var links []model.AgentSubagent
+	if err := db.Where("agent_id = ?", agentID).Find(&links).Error; err != nil {
+		t.Fatalf("load AgentSubagent links: %v", err)
+	}
+	subIDs := make([]uuid.UUID, 0, len(links))
+	for _, link := range links {
+		subIDs = append(subIDs, link.SubagentID)
+	}
+	var agents []model.Agent
+	if len(subIDs) > 0 {
+		if err := db.Where("id IN ?", subIDs).Find(&agents).Error; err != nil {
+			t.Fatalf("load subagent agents: %v", err)
+		}
+	}
+	out := make(map[string]model.Agent, len(agents))
+	for _, agent := range agents {
+		typ, _ := agent.AgentConfig["default_cloud_agent_type"].(string)
+		if typ != "" {
+			out[typ] = agent
+		}
+	}
+	return out
+}
+
+func TestIntegration_EmployeesCreate_CreatesDefaultCloudAgents(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
 	h.seedSystemCred(t, "openrouter", false)
@@ -430,25 +457,42 @@ func TestIntegration_EmployeesCreate_CreatesSubagent(t *testing.T) {
 	}
 	agentID := uuid.MustParse(decodeEmployeeResp(t, rr)["agent_id"])
 
-	var link model.AgentSubagent
-	if err := h.db.Where("agent_id = ?", agentID).First(&link).Error; err != nil {
-		t.Fatalf("AgentSubagent link not created: %v", err)
+	subagents := defaultSubagentsByType(t, h.db, agentID)
+	if len(subagents) != 2 {
+		t.Fatalf("default subagent count = %d, want 2: %#v", len(subagents), subagents)
 	}
-
-	var sub model.Agent
-	if err := h.db.Where("id = ?", link.SubagentID).First(&sub).Error; err != nil {
-		t.Fatalf("subagent agent not created: %v", err)
+	research, ok := subagents["business_research_specialist"]
+	if !ok {
+		t.Fatalf("business research specialist not created: %#v", subagents)
 	}
-	if sub.IsEmployee {
-		t.Errorf("subagent.is_employee = true, want false (subagents must not be employees)")
+	software, ok := subagents["software_engineering_specialist"]
+	if !ok {
+		t.Fatalf("software engineering specialist not created: %#v", subagents)
 	}
-	if sub.Name != "alice-engineer-business-research-specialist" {
-		t.Errorf("subagent.name = %q, want %q", sub.Name, "alice-engineer-business-research-specialist")
+	for typ, sub := range subagents {
+		if sub.IsEmployee {
+			t.Errorf("%s.is_employee = true, want false (subagents must not be employees)", typ)
+		}
+		if sub.OrgID == nil || *sub.OrgID != org.org.ID {
+			t.Errorf("%s.org_id mismatch", typ)
+		}
+		if sub.Category == nil || *sub.Category != "engineering" {
+			t.Errorf("%s.category = %v, want engineering", typ, sub.Category)
+		}
+		if sub.Harness != "employee-sandbox" {
+			t.Errorf("%s.harness = %q, want employee-sandbox", typ, sub.Harness)
+		}
+		if sub.Status != "active" {
+			t.Errorf("%s.status = %q, want active", typ, sub.Status)
+		}
 	}
-	if !strings.Contains(sub.SystemPrompt, "Business Research Specialist") {
+	if research.Name != "alice-engineer-business-research-specialist" {
+		t.Errorf("research.name = %q, want %q", research.Name, "alice-engineer-business-research-specialist")
+	}
+	if !strings.Contains(research.SystemPrompt, "Business Research Specialist") {
 		t.Errorf("subagent.system_prompt should identify the business research specialist")
 	}
-	if !strings.Contains(sub.SystemPrompt, "research/{task_id}/report.md") {
+	if !strings.Contains(research.SystemPrompt, "research/{task_id}/report.md") {
 		t.Errorf("subagent.system_prompt should contain the employee asset report contract")
 	}
 	for _, want := range []string{
@@ -461,18 +505,39 @@ func TestIntegration_EmployeesCreate_CreatesSubagent(t *testing.T) {
 		"Evidence ledger JSON shape",
 		"Contradiction and freshness pass",
 	} {
-		if !strings.Contains(sub.SystemPrompt, want) {
+		if !strings.Contains(research.SystemPrompt, want) {
 			t.Errorf("subagent.system_prompt missing %q", want)
 		}
 	}
-	if sub.AgentConfig["default_cloud_agent_type"] != "business_research_specialist" {
-		t.Errorf("subagent.agent_config = %#v, want business research specialist marker", sub.AgentConfig)
+	if research.AgentConfig["default_cloud_agent_type"] != "business_research_specialist" {
+		t.Errorf("research.agent_config = %#v, want business research specialist marker", research.AgentConfig)
 	}
-	if sub.OrgID == nil || *sub.OrgID != org.org.ID {
-		t.Errorf("subagent.org_id mismatch")
+	if software.Name != "alice-engineer-software-engineering-specialist" {
+		t.Errorf("software.name = %q, want %q", software.Name, "alice-engineer-software-engineering-specialist")
 	}
-	if sub.Status != "active" {
-		t.Errorf("subagent.status = %q, want active", sub.Status)
+	if !strings.Contains(software.SystemPrompt, "Software Engineering Specialist") {
+		t.Errorf("software.system_prompt should identify the software engineering specialist")
+	}
+	for _, want := range []string{
+		"implementation, debugging, codebase changes, and verification",
+		"Load and follow the git-github skill",
+		"Prefer reading the existing codebase before changing it",
+		"Read recent git logs, recent merged PRs when available, and the repository PR template",
+		"For browser-facing work, load the agent-browser skill",
+		"Load the asset-uploads skill before uploading screenshots, videos, or other evidence assets",
+		"Do not create standalone summary.md, changes.md, verification.md",
+		"Create a pull request using the repository's PR template exactly when one exists",
+		"Attach uploaded images and videos directly in the PR content",
+	} {
+		if !strings.Contains(software.SystemPrompt, want) {
+			t.Errorf("software.system_prompt missing %q", want)
+		}
+	}
+	if software.AgentConfig["default_cloud_agent_type"] != "software_engineering_specialist" {
+		t.Errorf("software.agent_config = %#v, want software engineering specialist marker", software.AgentConfig)
+	}
+	if _, ok := software.AgentConfig["asset_output_contract"]; ok {
+		t.Errorf("software.agent_config should not define asset_output_contract: %#v", software.AgentConfig)
 	}
 }
 
@@ -492,6 +557,17 @@ func TestIntegration_EmployeesCreate_SubagentSlug_AutoIncrementsOnCollision(t *t
 	if err := h.db.Create(&taken).Error; err != nil {
 		t.Fatalf("seed colliding agent: %v", err)
 	}
+	takenSoftware := model.Agent{
+		OrgID:        &org.org.ID,
+		Name:         "alice-software-engineering-specialist",
+		SystemPrompt: "x",
+		Model:        "deepseek/deepseek-v4-flash",
+		CredentialID: &cred.ID,
+		Status:       "active",
+	}
+	if err := h.db.Create(&takenSoftware).Error; err != nil {
+		t.Fatalf("seed colliding software agent: %v", err)
+	}
 
 	body := validEmployeeBody()
 	body["name"] = "Alice"
@@ -501,12 +577,14 @@ func TestIntegration_EmployeesCreate_SubagentSlug_AutoIncrementsOnCollision(t *t
 	}
 	agentID := uuid.MustParse(decodeEmployeeResp(t, rr)["agent_id"])
 
-	var link model.AgentSubagent
-	h.db.Where("agent_id = ?", agentID).First(&link)
-	var sub model.Agent
-	h.db.Where("id = ?", link.SubagentID).First(&sub)
-	if sub.Name != "alice-business-research-specialist-2" {
-		t.Errorf("subagent.name = %q, want %q (auto-incremented suffix)", sub.Name, "alice-business-research-specialist-2")
+	subagents := defaultSubagentsByType(t, h.db, agentID)
+	research := subagents["business_research_specialist"]
+	if research.Name != "alice-business-research-specialist-2" {
+		t.Errorf("research.name = %q, want %q (auto-incremented suffix)", research.Name, "alice-business-research-specialist-2")
+	}
+	software := subagents["software_engineering_specialist"]
+	if software.Name != "alice-software-engineering-specialist-2" {
+		t.Errorf("software.name = %q, want %q (auto-incremented suffix)", software.Name, "alice-software-engineering-specialist-2")
 	}
 }
 
@@ -521,15 +599,17 @@ func TestIntegration_EmployeesCreate_SubagentUsesOpenRouterDeepSeek(t *testing.T
 	}
 	agentID := uuid.MustParse(decodeEmployeeResp(t, rr)["agent_id"])
 
-	var link model.AgentSubagent
-	h.db.Where("agent_id = ?", agentID).First(&link)
-	var sub model.Agent
-	h.db.Where("id = ?", link.SubagentID).First(&sub)
-	if sub.Model != "deepseek/deepseek-v4-flash" {
-		t.Errorf("subagent.model = %q, want deepseek/deepseek-v4-flash", sub.Model)
+	subagents := defaultSubagentsByType(t, h.db, agentID)
+	if len(subagents) != 2 {
+		t.Fatalf("default subagent count = %d, want 2: %#v", len(subagents), subagents)
 	}
-	if sub.CredentialID == nil || *sub.CredentialID != or.ID {
-		t.Errorf("subagent.credential_id = %v, want %v (openrouter)", sub.CredentialID, or.ID)
+	for typ, sub := range subagents {
+		if sub.Model != "deepseek/deepseek-v4-flash" {
+			t.Errorf("%s.model = %q, want deepseek/deepseek-v4-flash", typ, sub.Model)
+		}
+		if sub.CredentialID == nil || *sub.CredentialID != or.ID {
+			t.Errorf("%s.credential_id = %v, want %v (openrouter)", typ, sub.CredentialID, or.ID)
+		}
 	}
 }
 
@@ -625,8 +705,8 @@ func TestIntegration_EmployeesCreate_DoesNotProvisionSandbox(t *testing.T) {
 	var agentCount, sbCount int64
 	h.db.Model(&model.Agent{}).Where("org_id = ?", org.org.ID).Count(&agentCount)
 	h.db.Model(&model.Sandbox{}).Where("org_id = ?", org.org.ID).Count(&sbCount)
-	if agentCount != 2 {
-		t.Errorf("agent rows after create = %d, want employee plus default subagent", agentCount)
+	if agentCount != 3 {
+		t.Errorf("agent rows after create = %d, want employee plus two default subagents", agentCount)
 	}
 	if sbCount != 0 {
 		t.Errorf("sandbox rows after create = %d, want 0 until sync/onboarding", sbCount)

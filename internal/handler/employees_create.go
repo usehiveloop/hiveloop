@@ -122,7 +122,7 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		agent.AvatarURL = &avatar
 	}
 
-	var subagent *model.Agent
+	var subagents []*model.Agent
 
 	err = h.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&agent).Error; err != nil {
@@ -132,7 +132,12 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
-		subagent = created
+		subagents = append(subagents, created)
+		created, err = h.ensureSoftwareEngineeringSpecialistTx(r.Context(), tx, &agent, team)
+		if err != nil {
+			return err
+		}
+		subagents = append(subagents, created)
 		return nil
 	})
 	if err != nil {
@@ -140,13 +145,16 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": fmt.Sprintf("employee with name %q already exists", req.Name)})
 			return
 		}
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "create employee + subagent", "error", err, "org_id", org.ID)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "create employee + subagents", "error", err, "org_id", org.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create employee"})
 		return
 	}
 
 	h.attachGlobalSkills(r.Context(), agent.ID, defaultEmployeeSkills[req.Category])
-	if subagent != nil {
+	for _, subagent := range subagents {
+		if subagent == nil {
+			continue
+		}
 		h.attachGlobalSkills(r.Context(), subagent.ID, defaultEmployeeSubagentSkills[req.Category])
 	}
 

@@ -109,15 +109,13 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 	if err := credentials.SeedPlatformOrg(db); err != nil {
 		t.Fatalf("seed platform org: %v", err)
 	}
+	defaultSkillNames := []string{
+		"git-github",
+		"asset-uploads",
+		"agent-browser",
+	}
 	db.Unscoped().
-		Where("org_id IS NULL AND name IN ?", []string{
-			"git-github",
-			"asset-uploads",
-			"agent-browser",
-			"public-assets-uploads",
-			"employee-public-assets-uploads",
-			"employee-assets-uploads",
-		}).
+		Where("org_id IS NULL AND (name IN ? OR slug IN ?)", defaultSkillNames, defaultSkillNames).
 		Delete(&model.Skill{})
 
 	stub := &sidecarStub{}
@@ -305,7 +303,7 @@ func decodeEmployeeResp(t *testing.T, rr *httptest.ResponseRecorder) map[string]
 func (h *employeeHarness) seedGlobalSkill(t *testing.T, name, status string) model.Skill {
 	t.Helper()
 	skill := model.Skill{
-		Slug:       name,
+		Slug:       name + "-" + uuid.NewString()[:8],
 		Name:       name,
 		SourceType: model.SkillSourceInline,
 		Status:     status,

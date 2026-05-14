@@ -90,7 +90,7 @@ func TestIntegration_EmployeesSync_MarksDraftEmployeeActiveAfterRuntimeReady(t *
 	}
 }
 
-func TestIntegration_EmployeesSync_EnsuresBusinessResearchSpecialist(t *testing.T) {
+func TestIntegration_EmployeesSync_EnsuresDefaultCloudAgents(t *testing.T) {
 	h := newEmployeeHarness(t)
 	h.platformCredCleanup(t)
 	m := h.createOrg(t)
@@ -111,18 +111,23 @@ func TestIntegration_EmployeesSync_EnsuresBusinessResearchSpecialist(t *testing.
 	if err := h.db.Where("agent_id = ?", agent.ID).Find(&links).Error; err != nil {
 		t.Fatalf("load subagent links: %v", err)
 	}
-	if len(links) != 1 {
-		t.Fatalf("subagent link count = %d, want exactly 1", len(links))
+	if len(links) != 2 {
+		t.Fatalf("subagent link count = %d, want exactly 2", len(links))
 	}
-	var sub model.Agent
-	if err := h.db.Where("id = ?", links[0].SubagentID).First(&sub).Error; err != nil {
-		t.Fatalf("load subagent: %v", err)
+	subagents := defaultSubagentsByType(t, h.db, agent.ID)
+	research, ok := subagents["business_research_specialist"]
+	if !ok {
+		t.Fatalf("business research specialist not ensured: %#v", subagents)
 	}
-	if sub.AgentConfig["default_cloud_agent_type"] != "business_research_specialist" {
-		t.Fatalf("subagent agent_config = %#v", sub.AgentConfig)
+	software, ok := subagents["software_engineering_specialist"]
+	if !ok {
+		t.Fatalf("software engineering specialist not ensured: %#v", subagents)
 	}
-	if !strings.Contains(sub.SystemPrompt, "Business Research Specialist") {
+	if !strings.Contains(research.SystemPrompt, "Business Research Specialist") {
 		t.Fatalf("subagent prompt missing Business Research Specialist identity")
+	}
+	if !strings.Contains(software.SystemPrompt, "Software Engineering Specialist") {
+		t.Fatalf("subagent prompt missing Software Engineering Specialist identity")
 	}
 }
 
