@@ -1,21 +1,28 @@
-# Allowlist for gitleaks false positives.
-#
-# Each entry is a fingerprint in the form:
-#   <commit-sha>:<file>:<rule>:<line>
-#
-# Fingerprints below are Paystack "email_token" sample strings copied from
-# the public Paystack Subscriptions docs into testdata. They're not real
-# credentials; gitleaks' generic-api-key rule flags them for entropy alone.
-# The next commit removes the fields from the fixtures (the parser never
-# read them), but the intermediate commit still carries them in git history,
-# which origin/main..HEAD scans catch.
-ecf822bd72292431d5d21d3ad5fcebb90468e277:internal/billing/paystack/testdata/subscription_disable_complete.json:generic-api-key:7
-ecf822bd72292431d5d21d3ad5fcebb90468e277:internal/billing/paystack/testdata/invoice_payment_failed.json:generic-api-key:31
-ecf822bd72292431d5d21d3ad5fcebb90468e277:internal/billing/paystack/testdata/subscription_not_renew.json:generic-api-key:8
-
-# Hardcoded dev KMS_KEY introduced in 7edebbfc (PR #148) and removed in
-# 87badb12. The value is gone from HEAD — local-up.sh now sources from
-# .env or generates an ephemeral key. These fingerprints are for the
-# intermediate commits that still carry the literal in their diffs.
-7edebbfca24ff1bd483b79be7fd6a0e1d4d9c412:scripts/local-up.sh:generic-api-key:153
-7edebbfca24ff1bd483b79be7fd6a0e1d4d9c412:skills/local-testing/SKILL.md:generic-api-key:51
+# Imported sandbox history contains documented/example bearer tokens and one
+# old local-dev runtime token. These are false positives for this monorepo PR;
+# keep current files free of high-entropy literals.
+c80f723258d25a359950f55c36b4d7d34c7f3832:sandboxes/employee/Makefile:generic-api-key:3
+888f5ead4101424e945f3aa80c7da5c50d5296c2:sandboxes/runtime/e2e/lsp-smoke/run_smoke.sh:curl-auth-header:146
+f1dfc8dcf0d2476c0910267b8ddc11987cd14a64:sandboxes/runtime/docs/api-reference/push-api.md:curl-auth-header:434
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/api-reference/authentication.md:curl-auth-header:51
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/getting-started/quickstart.md:curl-auth-header:33
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/tutorials/github-integration.md:curl-auth-header:97
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/tutorials/customer-support-agent.md:curl-auth-header:98
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/tutorials/code-review-agent.md:curl-auth-header:83
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/api-reference/push-api.md:curl-auth-header:82
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/api-reference/push-api.md:curl-auth-header:129
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/api-reference/push-api.md:curl-auth-header:177
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/api-reference/push-api.md:curl-auth-header:237
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/api-reference/push-api.md:curl-auth-header:285
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/tutorials/multi-agent-system.md:curl-auth-header:116
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/tutorials/multi-agent-system.md:curl-auth-header:121
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/tutorials/multi-agent-system.md:curl-auth-header:126
+fc9e6a598652c59f154ed08c9fbad47d8462080e:sandboxes/runtime/docs/tutorials/multi-agent-system.md:curl-auth-header:170
+d3d259b7703b0c41b8f3ca9d96c24a373371eb85:sandboxes/runtime/integration.md:curl-auth-header:54
+d3d259b7703b0c41b8f3ca9d96c24a373371eb85:sandboxes/runtime/integration.md:curl-auth-header:97
+d3d259b7703b0c41b8f3ca9d96c24a373371eb85:sandboxes/runtime/integration.md:curl-auth-header:179
+d3d259b7703b0c41b8f3ca9d96c24a373371eb85:sandboxes/runtime/integration.md:curl-auth-header:203
+d3d259b7703b0c41b8f3ca9d96c24a373371eb85:sandboxes/runtime/integration.md:curl-auth-header:216
+d3d259b7703b0c41b8f3ca9d96c24a373371eb85:sandboxes/runtime/integration.md:curl-auth-header:653
+d3d259b7703b0c41b8f3ca9d96c24a373371eb85:sandboxes/runtime/integration.md:curl-auth-header:677
+6e8d6c029171c1979077374210f0812e1923ce3e:sandboxes/runtime/crates/tools/src/web_search.rs:generic-api-key:394

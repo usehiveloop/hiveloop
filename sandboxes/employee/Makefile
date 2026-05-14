@@ -1,6 +1,6 @@
 .PHONY: build run run-direct dev test clean push-config start-openrouter-proxy stop-openrouter-proxy proxy-config
 
-RUNTIME_SECRET ?= local-dev-runtime-token/Zkwn6QkmVIzHtDBWZCS81xXGpuGY172j1659w=
+RUNTIME_SECRET ?= local-dev-runtime-token
 CONFIG_API := http://localhost:7080
 CONFIG_FILE := ./config.json
 PROXY_CONFIG_FILE := ./openrouter-proxy/config.proxy.json
