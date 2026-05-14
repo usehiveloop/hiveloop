@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type MouseEvent } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import Nango, { AuthError } from "@nangohq/frontend"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -10,9 +10,11 @@ import {
   CheckmarkCircle02Icon,
   LockIcon,
   Loading03Icon,
+  RefreshIcon,
   RepositoryIcon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
+import { toast } from "sonner"
 import { ChoiceCard } from "@/app/w/agents/_components/create-agent/choice-card"
 import { Button } from "@/components/ui/button"
 import {
@@ -41,6 +43,7 @@ export function GithubStep() {
   const { createEmployee, goBack, goNext } = useOnboarding()
   const queryClient = useQueryClient()
   const [connecting, setConnecting] = useState(false)
+  const [reconnecting, setReconnecting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [repositoryErrorMessage, setRepositoryErrorMessage] = useState<string | null>(null)
   const [repositoryDialogOpen, setRepositoryDialogOpen] = useState(false)
@@ -66,6 +69,7 @@ export function GithubStep() {
   const githubProfile = employee?.profiles?.find(
     (profile) => profile.provider === GITHUB_PROVIDER && profile.status === "active"
   )
+  const githubConnectionID = stringFromProfileConfig(githubProfile, "in_connection_id")
   const savedRepositories = selectedRepositoriesFromProfile(githubProfile)
   const hasSavedRepositories = savedRepositories.length > 0
 
@@ -112,6 +116,18 @@ export function GithubStep() {
     await queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
     await employeeQuery.refetch()
     await loadRepositories()
+  }
+
+  async function refreshProfile(connectionId: string) {
+    if (!agentId) {
+      throw new Error("Create the employee profile before reconnecting GitHub.")
+    }
+    await createGitHubProfile.mutateAsync({
+      params: { path: { agentID: agentId } },
+      body: { connection_id: connectionId },
+    })
+    await queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
+    await employeeQuery.refetch()
   }
 
   async function handleConnect() {
@@ -165,6 +181,42 @@ export function GithubStep() {
     }
   }
 
+  async function handleReconnect(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation()
+    if (!githubProfile || !githubConnectionID || reconnecting) return
+
+    setReconnecting(true)
+    setErrorMessage(null)
+    setRepositoryErrorMessage(null)
+
+    try {
+      const session = await api.POST("/v1/in/connections/{id}/reconnect-session", {
+        params: { path: { id: githubConnectionID } },
+      })
+      if (session.error) throw session.error
+
+      const { token, provider_config_key: providerConfigKey } =
+        session.data as { token: string; provider_config_key: string }
+
+      const nango = new Nango({
+        connectSessionToken: token,
+        host: process.env.NEXT_PUBLIC_CONNECTIONS_HOST,
+      })
+
+      await nango.reconnect(providerConfigKey)
+      await refreshProfile(githubConnectionID)
+      await queryClient.invalidateQueries({ queryKey: ["get", "/v1/in/connections"] })
+      toast.success("GitHub profile reconnected")
+    } catch (error) {
+      if (error instanceof AuthError && error.type === "window_closed") {
+        return
+      }
+      setErrorMessage(extractErrorMessage(error, "Could not reconnect GitHub. Try again."))
+    } finally {
+      setReconnecting(false)
+    }
+  }
+
   async function handleSelectRepositories() {
     if (!githubProfile || loadingRepositories) return
     setErrorMessage(null)
@@ -213,7 +265,7 @@ export function GithubStep() {
   const loadingRepositories =
     createGitHubProfile.isPending || repositoriesQuery.isFetching
   const savingRepositories = updateGitHubRepositories.isPending
-  const busy = connecting || loadingRepositories || savingRepositories
+  const busy = connecting || reconnecting || loadingRepositories || savingRepositories
   const choiceDisabled = busy || loading || !githubIntegration || !agentId
 
   return (
@@ -258,11 +310,26 @@ export function GithubStep() {
                 strokeWidth={2}
               />
             ) : githubProfile ? (
-              <HugeiconsIcon
-                icon={CheckmarkCircle02Icon}
-                className="size-5 shrink-0 text-emerald-600"
-                strokeWidth={2}
-              />
+              <span className="flex shrink-0 items-center gap-1.5">
+                <HugeiconsIcon
+                  icon={CheckmarkCircle02Icon}
+                  className="size-5 text-emerald-600"
+                  strokeWidth={2}
+                />
+                <button
+                  type="button"
+                  onClick={handleReconnect}
+                  disabled={reconnecting || !githubConnectionID}
+                  aria-label="Reconnect GitHub profile"
+                  className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                >
+                  <HugeiconsIcon
+                    icon={reconnecting ? Loading03Icon : RefreshIcon}
+                    className={"size-4" + (reconnecting ? " animate-spin" : "")}
+                    strokeWidth={2}
+                  />
+                </button>
+              </span>
             ) : undefined
           }
         />
@@ -322,6 +389,11 @@ function selectedRepositoriesFromProfile(
   const raw = profile?.config?.selected_repositories
   if (!Array.isArray(raw)) return []
   return raw.filter(isGitHubRepository)
+}
+
+function stringFromProfileConfig(profile: AgentProfile | undefined, key: string): string | null {
+  const value = profile?.config?.[key]
+  return typeof value === "string" && value.length > 0 ? value : null
 }
 
 function isGitHubRepository(value: unknown): value is GitHubRepository {
