@@ -160,19 +160,16 @@ export function OnboardingProvider({
     activeOrgRef.current = activeOrgId
     bootstrappedRef.current = false
     queueMicrotask(() => {
-      createEmployeeMutation.reset()
       form.reset(DEFAULT_VALUES)
       setStep("employee")
     })
-  }, [activeOrg?.id, createEmployeeMutation, form])
+  }, [activeOrg?.id, form])
 
   useEffect(() => {
     bootstrappedRef.current = false
-    createEmployeeMutation.reset()
-    updateEmployeeMutation.reset()
     form.reset(DEFAULT_VALUES)
     queueMicrotask(() => setStep("employee"))
-  }, [employeeId, createEmployeeMutation, form, updateEmployeeMutation])
+  }, [employeeId, form])
 
   useEffect(() => {
     if (!shouldBootstrapExistingEmployee && !employeeId) return
