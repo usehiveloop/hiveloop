@@ -147,6 +147,77 @@ func TestCompile_EmitsTypedPromptFragmentsWithoutRawSystemPrompt(t *testing.T) {
 	}
 }
 
+func TestCompile_SerializesSkillOptionalArraysAsEmptyArrays(t *testing.T) {
+	db := connectCompileTestDB(t)
+	org := model.Org{Name: "Skills-" + uuid.NewString()}
+	if err := db.Create(&org).Error; err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	category := "engineering"
+	agent := model.Agent{
+		ID:           uuid.New(),
+		OrgID:        &org.ID,
+		Name:         "Aria",
+		Category:     &category,
+		Model:        DefaultEmployeeModel,
+		Tools:        model.JSON{},
+		McpServers:   model.JSON{},
+		Skills:       model.JSON{},
+		Integrations: model.JSON{},
+		Resources:    model.JSON{},
+		AgentConfig:  model.JSON{},
+		Permissions:  model.JSON{},
+	}
+	if err := db.Create(&agent).Error; err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+	desc := "Upload generated artifacts."
+	skill := model.Skill{
+		ID:          uuid.New(),
+		Slug:        "asset-uploads",
+		Name:        "Asset uploads",
+		Description: &desc,
+		SourceType:  model.SkillSourceInline,
+		RepoRef:     "main",
+		Status:      model.SkillStatusPublished,
+	}
+	if err := db.Create(&skill).Error; err != nil {
+		t.Fatalf("create skill: %v", err)
+	}
+	bundle := model.RawJSON(`{"description":"Upload generated artifacts.","content":"Use the upload endpoint.","files":{}}`)
+	version := model.SkillVersion{ID: uuid.New(), SkillID: skill.ID, Version: "v1", Bundle: bundle}
+	if err := db.Create(&version).Error; err != nil {
+		t.Fatalf("create skill version: %v", err)
+	}
+	if err := db.Model(&skill).Update("latest_version_id", version.ID).Error; err != nil {
+		t.Fatalf("update latest version: %v", err)
+	}
+	if err := db.Create(&model.AgentSkill{AgentID: agent.ID, SkillID: skill.ID}).Error; err != nil {
+		t.Fatalf("attach skill: %v", err)
+	}
+
+	def, err := Compile(context.Background(), CompileDeps{DB: db, Cfg: &config.Config{}}, &agent)
+	if err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	body, err := json.Marshal(def)
+	if err != nil {
+		t.Fatalf("marshal definition: %v", err)
+	}
+	if strings.Contains(string(body), `"related_skills":null`) {
+		t.Fatalf("related_skills serialized as null: %s", string(body))
+	}
+	if !strings.Contains(string(body), `"related_skills":[]`) {
+		t.Fatalf("related_skills did not serialize as empty array: %s", string(body))
+	}
+	if strings.Contains(string(body), `"required_environment_variables":null`) {
+		t.Fatalf("required_environment_variables serialized as null: %s", string(body))
+	}
+	if strings.Contains(string(body), `"required_credential_files":null`) {
+		t.Fatalf("required_credential_files serialized as null: %s", string(body))
+	}
+}
+
 func TestCompile_PopulatesMemoryContextFromHindsight(t *testing.T) {
 	orgID := uuid.New()
 	teamID := uuid.New()

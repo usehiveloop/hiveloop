@@ -662,12 +662,15 @@ func buildSkills(ctx context.Context, db *gorm.DB, agentID uuid.UUID) ([]SkillSp
 		tags := []string(skill.Tags)
 		sort.Strings(tags)
 		out = append(out, SkillSpec{
-			Name:         skill.Slug,
-			Description:  description,
-			Trigger:      map[string]any{"type": "keyword", "patterns": []string{skill.Slug, skill.Name}},
-			Instructions: composeInstructions(skill, bundle),
-			Files:        bundle.Files,
-			Tags:         tags,
+			Name:                         skill.Slug,
+			Description:                  description,
+			Trigger:                      map[string]any{"type": "keyword", "patterns": []string{skill.Slug, skill.Name}},
+			Instructions:                 composeInstructions(skill, bundle),
+			Files:                        bundle.Files,
+			Tags:                         tags,
+			RelatedSkills:                []string{},
+			RequiredEnvironmentVariables: []string{},
+			RequiredCredentialFiles:      []string{},
 		})
 	}
 	return out, nil

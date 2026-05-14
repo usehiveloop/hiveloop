@@ -103,6 +103,7 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.ErrorContext(ctx, "sync employee config", "error", err,
 			"agent_id", agentID, "sandbox_id", sb.ID)
+		logging.Capture(ctx, err)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "sandbox rejected sync"})
 		return
 	}
