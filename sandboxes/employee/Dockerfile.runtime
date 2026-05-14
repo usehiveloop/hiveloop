@@ -64,9 +64,15 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY employee-bridge /usr/local/bin/employee-bridge
+COPY docker/runtime/git-credential-hiveloop /usr/local/bin/git-credential-hiveloop
+COPY docker/runtime/gh-wrapper /usr/local/bin/gh-wrapper
 
 RUN chmod +x /usr/local/bin/employee-bridge \
-  && mkdir -p /app/data /workspace
+  && mkdir -p /app/data /workspace \
+  && chmod +x /usr/local/bin/git-credential-hiveloop \
+  && chmod +x /usr/local/bin/gh-wrapper \
+  && git config --system credential.helper /usr/local/bin/git-credential-hiveloop \
+  && ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh
 
 ENV DB_PATH=/app/data/employee-bridge.db
 ENV WORKSPACE_ROOT=/workspace
@@ -74,4 +80,4 @@ ENV RUNTIME_BIND_ADDR=0.0.0.0:7080
 
 EXPOSE 7080
 
-ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/employee-bridge"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/bin/sh", "-c", "git config --system user.name \"$HIVELOOP_GIT_USERNAME\"; git config --system user.email \"$HIVELOOP_GIT_EMAIL\"; exec /usr/local/bin/employee-bridge"]

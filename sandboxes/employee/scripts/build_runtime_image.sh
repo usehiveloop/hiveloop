@@ -37,6 +37,8 @@ fi
 
 cp "$ROOT/Dockerfile.runtime" "$TMP_CONTEXT/Dockerfile.runtime"
 cp "$BINARY" "$TMP_CONTEXT/employee-bridge"
+mkdir -p "$TMP_CONTEXT/docker"
+cp -R "$ROOT/docker/runtime" "$TMP_CONTEXT/docker/runtime"
 
 build_args=()
 if [[ -n "$PLATFORM" ]]; then
