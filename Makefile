@@ -1,8 +1,11 @@
 .PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-proxy test-connect test-integrations test-connections test-setup openapi generate-auth-keys upload-skills build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: sandbox-runtime-build sandbox-runtime-test sandbox-runtime-fmt-check sandbox-runtime-clippy sandbox-runtime-openapi sandbox-employee-build sandbox-employee-test sandbox-employee-fmt-check sandbox-employee-image sandbox-employee-image-test
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 IMAGE   ?= usehiveloop/hiveloop
+SANDBOX_RUNTIME_DIR ?= sandboxes/runtime
+SANDBOX_EMPLOYEE_DIR ?= sandboxes/employee
 
 # Generate base64-encoded RSA private key for AUTH_RSA_PRIVATE_KEY env var
 generate-auth-keys:
@@ -43,16 +46,17 @@ openapi:
 # SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, SANDBOX_TARGET.
 # Usage: make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0
 #        make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0 SIZE=small
+#        make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0 BRIDGE_BINARY=sandboxes/runtime/target/release/bridge
 # VERSION drives the GHCR image tag and Daytona snapshot name. Bump it on every
 # rebuild — Daytona freezes the snapshot's mirrored image at create time, so
 # reusing a VERSION leaves the old bytes in the control-plane registry.
-# BRIDGE_VERSION is the usehiveloop/bridge release tag installed into the image
-# and is independent of VERSION; keep it pinned and bump VERSION when you only
-# need to rebuild the surrounding image.
+# BRIDGE_VERSION is the monorepo release tag installed into the image, either
+# from ghcr.io/usehiveloop/hiveloop release assets or from BRIDGE_BINARY when
+# building the runtime bridge directly from sandboxes/runtime.
 build-templates:
 	@test -n "$(VERSION)" || (echo "error: VERSION is required (e.g. make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0)" && exit 1)
 	@test -n "$(BRIDGE_VERSION)" || (echo "error: BRIDGE_VERSION is required (e.g. make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0)" && exit 1)
-	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates bridge -version=$(VERSION) -bridge-version=$(BRIDGE_VERSION) -size=$(or $(SIZE),all)
+	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates bridge -version=$(VERSION) -bridge-version=$(BRIDGE_VERSION) -size=$(or $(SIZE),all) $(if $(BRIDGE_BINARY),-bridge-binary=$(BRIDGE_BINARY),)
 
 # Register Daytona snapshots from a usehiveloop/hermes image already published
 # to GHCR by the hermes repo's CI. No image build happens here — the snapshots
@@ -121,6 +125,38 @@ generate-bridge-client:
 	go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest \
 		--config=internal/bridge/oapi-codegen.yaml openapi/bridge.generated.json
 	rm openapi/bridge.generated.json
+
+sandbox-runtime-build:
+	cd $(SANDBOX_RUNTIME_DIR) && cargo build --release -p bridge
+
+sandbox-runtime-test:
+	cd $(SANDBOX_RUNTIME_DIR) && cargo test --workspace --exclude bridge-e2e --exclude storage-e2e
+
+sandbox-runtime-fmt-check:
+	cd $(SANDBOX_RUNTIME_DIR) && cargo fmt --all -- --check
+
+sandbox-runtime-clippy:
+	cd $(SANDBOX_RUNTIME_DIR) && cargo clippy --workspace -- -D warnings
+
+sandbox-runtime-openapi:
+	$(MAKE) -C $(SANDBOX_RUNTIME_DIR) openapi
+	cp $(SANDBOX_RUNTIME_DIR)/openapi.json openapi/bridge.json
+	$(MAKE) generate-bridge-client
+
+sandbox-employee-build:
+	cd $(SANDBOX_EMPLOYEE_DIR) && cargo build --workspace --all-targets --locked
+
+sandbox-employee-test:
+	cd $(SANDBOX_EMPLOYEE_DIR) && cargo test --workspace --locked
+
+sandbox-employee-fmt-check:
+	cd $(SANDBOX_EMPLOYEE_DIR) && cargo fmt --all --check
+
+sandbox-employee-image:
+	cd $(SANDBOX_EMPLOYEE_DIR) && cargo build --release --locked -p employee-bridge && scripts/build_runtime_image.sh
+
+sandbox-employee-image-test:
+	cd $(SANDBOX_EMPLOYEE_DIR) && scripts/test_runtime_image.sh
 
 # Generate all embedded assets. Note: the model registry is hand-curated in
 # internal/registry/models.go and is NOT a generate target — additions go
@@ -296,11 +332,11 @@ test-services-down:
 
 # Run the real Slack bot-token RAG ingestion test against local Postgres/Qdrant.
 # Requires read-only Slack bot token and embedding env. By default it loads
-# .env.rag plus ../employee.hiveloop.com/.env when present.
+# .env.rag plus sandboxes/employee/.env when present.
 ragtest-slack-live:
 	@set -a; \
 	[ ! -f .env.rag ] || . ./.env.rag; \
-	[ ! -f ../employee.hiveloop.com/.env ] || . ../employee.hiveloop.com/.env; \
+	[ ! -f sandboxes/employee/.env ] || . sandboxes/employee/.env; \
 	set +a; \
 	HIVELOOP_E2E_SLACK_RAG=1 \
 	HIVELOOP_E2E_KEEP_SLACK_RAG=$${HIVELOOP_E2E_KEEP_SLACK_RAG:-1} \

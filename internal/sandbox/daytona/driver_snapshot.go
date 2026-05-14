@@ -28,7 +28,7 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 
 	tag := "v" + strings.TrimPrefix(d.bridgeBinaryVersion, "v")
 	bridgeDownloadURL := fmt.Sprintf(
-		"https://github.com/usehiveloop/bridge/releases/download/%s/bridge-%s-x86_64-unknown-linux-gnu.tar.gz",
+		"https://github.com/usehiveloop/hiveloop/releases/download/%s/bridge-%s-x86_64-unknown-linux-gnu.tar.gz",
 		tag, tag,
 	)
 

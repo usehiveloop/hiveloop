@@ -53,66 +53,6 @@ func (e ApprovalStatus) Valid() bool {
 	}
 }
 
-// Defines values for ContentBlock0Type.
-const (
-	Text ContentBlock0Type = "text"
-)
-
-// Valid indicates whether the value is a known member of the ContentBlock0Type enum.
-func (e ContentBlock0Type) Valid() bool {
-	switch e {
-	case Text:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for ContentBlock1Type.
-const (
-	ContentBlock1TypeToolCall ContentBlock1Type = "tool_call"
-)
-
-// Valid indicates whether the value is a known member of the ContentBlock1Type enum.
-func (e ContentBlock1Type) Valid() bool {
-	switch e {
-	case ContentBlock1TypeToolCall:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for ContentBlock2Type.
-const (
-	ContentBlock2TypeToolResult ContentBlock2Type = "tool_result"
-)
-
-// Valid indicates whether the value is a known member of the ContentBlock2Type enum.
-func (e ContentBlock2Type) Valid() bool {
-	switch e {
-	case ContentBlock2TypeToolResult:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for ContentBlock3Type.
-const (
-	Image ContentBlock3Type = "image"
-)
-
-// Valid indicates whether the value is a known member of the ContentBlock3Type enum.
-func (e ContentBlock3Type) Valid() bool {
-	switch e {
-	case Image:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for Harness.
 const (
 	Claude   Harness = "claude"
@@ -203,30 +143,6 @@ func (e ProviderType) Valid() bool {
 	case Together:
 		return true
 	case XAi:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for Role.
-const (
-	Assistant Role = "assistant"
-	System    Role = "system"
-	Tool      Role = "tool"
-	User      Role = "user"
-)
-
-// Valid indicates whether the value is a known member of the Role enum.
-func (e Role) Valid() bool {
-	switch e {
-	case Assistant:
-		return true
-	case System:
-		return true
-	case Tool:
-		return true
-	case User:
 		return true
 	default:
 		return false
@@ -485,85 +401,6 @@ type BulkResolveApprovalsResponse struct {
 	Resolved []string `json:"resolved"`
 }
 
-// ContentBlock A content block within a message.
-type ContentBlock struct {
-	union json.RawMessage
-}
-
-// ContentBlock0 Plain text content
-type ContentBlock0 struct {
-	// Text The text content
-	Text string            `json:"text"`
-	Type ContentBlock0Type `json:"type"`
-}
-
-// ContentBlock0Type defines model for ContentBlock.0.Type.
-type ContentBlock0Type string
-
-// ContentBlock1 defines model for .
-type ContentBlock1 struct {
-	// Arguments Arguments to pass to the tool
-	Arguments interface{} `json:"arguments"`
-
-	// Id Unique identifier for this tool call
-	Id string `json:"id"`
-
-	// Name Name of the tool to call
-	Name string            `json:"name"`
-	Type ContentBlock1Type `json:"type"`
-}
-
-// ContentBlock1Type defines model for ContentBlock.1.Type.
-type ContentBlock1Type string
-
-// ContentBlock2 defines model for .
-type ContentBlock2 struct {
-	// Content The result content
-	Content string `json:"content"`
-
-	// IsError Whether the tool execution resulted in an error
-	IsError *bool `json:"is_error,omitempty"`
-
-	// ToolCallId ID of the tool call this result corresponds to
-	ToolCallId string            `json:"tool_call_id"`
-	Type       ContentBlock2Type `json:"type"`
-}
-
-// ContentBlock2Type defines model for ContentBlock.2.Type.
-type ContentBlock2Type string
-
-// ContentBlock3 An image attachment
-type ContentBlock3 struct {
-	// Data Base64-encoded image data
-	Data string `json:"data"`
-
-	// MediaType MIME type of the image
-	MediaType string            `json:"media_type"`
-	Type      ContentBlock3Type `json:"type"`
-}
-
-// ContentBlock3Type defines model for ContentBlock.3.Type.
-type ContentBlock3Type string
-
-// ConversationRecord A conversation with its full message history, as returned by the control plane.
-type ConversationRecord struct {
-	// AgentId Agent that owns this conversation.
-	AgentId string `json:"agent_id"`
-
-	// CreatedAt When the conversation was created.
-	CreatedAt time.Time `json:"created_at"`
-	Id        String    `json:"id"`
-
-	// Messages Full message history.
-	Messages []Message `json:"messages"`
-
-	// Title Optional human-readable title.
-	Title *string `json:"title,omitempty"`
-
-	// UpdatedAt When the conversation was last updated.
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
 // CreateConversationRequest Optional request body for creating a conversation with per-call overrides.
 type CreateConversationRequest struct {
 	// ApiKey When provided, overrides the agent's LLM API key for this conversation only.
@@ -621,17 +458,6 @@ type HealthResponse struct {
 	UptimeSecs int64 `json:"uptime_secs"`
 }
 
-// HydrateConversationsRequest defines model for HydrateConversationsRequest.
-type HydrateConversationsRequest struct {
-	Conversations []ConversationRecord `json:"conversations"`
-}
-
-// HydrateConversationsResponse Response for hydrating conversations.
-type HydrateConversationsResponse struct {
-	// Hydrated Number of conversations hydrated.
-	Hydrated int `json:"hydrated"`
-}
-
 // McpServerDefinition Definition of an MCP server that an agent connects to.
 type McpServerDefinition struct {
 	// Name Name of the MCP server
@@ -674,22 +500,6 @@ type McpTransport1 struct {
 
 // McpTransport1Type defines model for McpTransport.1.Type.
 type McpTransport1Type string
-
-// Message A message in a conversation.
-type Message struct {
-	// Content Content blocks of the message
-	Content []ContentBlock `json:"content"`
-
-	// Role Role of a message sender in a conversation.
-	Role Role `json:"role"`
-
-	// SystemReminder Optional per-message system reminder injected by the control plane.
-	// Wrapped in `<system-reminder>` tags and prepended to the user message.
-	SystemReminder *string `json:"system_reminder,omitempty"`
-
-	// Timestamp Timestamp when the message was created
-	Timestamp time.Time `json:"timestamp"`
-}
 
 // MetricsResponse Complete metrics response for GET /metrics.
 type MetricsResponse struct {
@@ -821,9 +631,6 @@ type ResolveApprovalResponse struct {
 	Status string `json:"status"`
 }
 
-// Role Role of a message sender in a conversation.
-type Role string
-
 // SendMessageRequest Request body for creating a message.
 type SendMessageRequest struct {
 	// Content The text content to send. When [`full_message`](Self::full_message) is
@@ -920,18 +727,6 @@ type SkillSource string
 // String defines model for String.
 type String = string
 
-// ToolCall A request to call a tool.
-type ToolCall struct {
-	// Arguments Arguments to pass to the tool
-	Arguments interface{} `json:"arguments"`
-
-	// Id Unique identifier for this tool call
-	Id string `json:"id"`
-
-	// Name Name of the tool to call
-	Name string `json:"name"`
-}
-
 // ToolCallStatsSnapshot Serializable snapshot of per-tool call statistics.
 type ToolCallStatsSnapshot struct {
 	// AvgLatencyMs Average latency in milliseconds
@@ -968,18 +763,6 @@ type ToolCallStatsSnapshot struct {
 // ToolPermission Permission level for a tool within an agent.
 type ToolPermission string
 
-// ToolResult The result of a tool execution.
-type ToolResult struct {
-	// Content The result content
-	Content string `json:"content"`
-
-	// IsError Whether the tool execution resulted in an error
-	IsError *bool `json:"is_error,omitempty"`
-
-	// ToolCallId ID of the tool call this result corresponds to
-	ToolCallId string `json:"tool_call_id"`
-}
-
 // UpsertAgentResponse Response for upserting an agent.
 type UpsertAgentResponse struct {
 	// Status Status of the operation: "unchanged", "updated", or "created".
@@ -1004,125 +787,8 @@ type PushAgentsJSONRequestBody = PushAgentsRequest
 // UpsertAgentJSONRequestBody defines body for UpsertAgent for application/json ContentType.
 type UpsertAgentJSONRequestBody = AgentDefinition
 
-// HydrateConversationsJSONRequestBody defines body for HydrateConversations for application/json ContentType.
-type HydrateConversationsJSONRequestBody = HydrateConversationsRequest
-
 // PushDiffJSONRequestBody defines body for PushDiff for application/json ContentType.
 type PushDiffJSONRequestBody = PushDiffRequest
-
-// AsContentBlock0 returns the union data inside the ContentBlock as a ContentBlock0
-func (t ContentBlock) AsContentBlock0() (ContentBlock0, error) {
-	var body ContentBlock0
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromContentBlock0 overwrites any union data inside the ContentBlock as the provided ContentBlock0
-func (t *ContentBlock) FromContentBlock0(v ContentBlock0) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeContentBlock0 performs a merge with any union data inside the ContentBlock, using the provided ContentBlock0
-func (t *ContentBlock) MergeContentBlock0(v ContentBlock0) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsContentBlock1 returns the union data inside the ContentBlock as a ContentBlock1
-func (t ContentBlock) AsContentBlock1() (ContentBlock1, error) {
-	var body ContentBlock1
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromContentBlock1 overwrites any union data inside the ContentBlock as the provided ContentBlock1
-func (t *ContentBlock) FromContentBlock1(v ContentBlock1) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeContentBlock1 performs a merge with any union data inside the ContentBlock, using the provided ContentBlock1
-func (t *ContentBlock) MergeContentBlock1(v ContentBlock1) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsContentBlock2 returns the union data inside the ContentBlock as a ContentBlock2
-func (t ContentBlock) AsContentBlock2() (ContentBlock2, error) {
-	var body ContentBlock2
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromContentBlock2 overwrites any union data inside the ContentBlock as the provided ContentBlock2
-func (t *ContentBlock) FromContentBlock2(v ContentBlock2) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeContentBlock2 performs a merge with any union data inside the ContentBlock, using the provided ContentBlock2
-func (t *ContentBlock) MergeContentBlock2(v ContentBlock2) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsContentBlock3 returns the union data inside the ContentBlock as a ContentBlock3
-func (t ContentBlock) AsContentBlock3() (ContentBlock3, error) {
-	var body ContentBlock3
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromContentBlock3 overwrites any union data inside the ContentBlock as the provided ContentBlock3
-func (t *ContentBlock) FromContentBlock3(v ContentBlock3) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeContentBlock3 performs a merge with any union data inside the ContentBlock, using the provided ContentBlock3
-func (t *ContentBlock) MergeContentBlock3(v ContentBlock3) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t ContentBlock) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	return b, err
-}
-
-func (t *ContentBlock) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	return err
-}
 
 // AsMcpTransport0 returns the union data inside the McpTransport as a McpTransport0
 func (t McpTransport) AsMcpTransport0() (McpTransport0, error) {

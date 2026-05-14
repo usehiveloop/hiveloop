@@ -256,4 +256,4 @@ No breaking changes between the two documented versions — v0.18.0 is purely ad
 
 ## See Also
 
-- [GitHub Releases](https://github.com/useportal-app/bridge/releases)
+- [GitHub Releases](https://github.com/usehiveloop/hiveloop/releases)

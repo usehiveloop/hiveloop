@@ -3,7 +3,7 @@
 //
 // Usage:
 //
-//	buildtemplates bridge -version=1.0.0 -bridge-version=v1.0.0 [-size=...]
+//	buildtemplates bridge -version=1.0.0 -bridge-version=v1.0.0 [-size=...] [-bridge-binary=...]
 //	buildtemplates hermes -version=v0.0.1                       [-size=...]
 //	buildtemplates employee-sandbox -version=v0.0.1             [-size=...]
 package main
@@ -44,7 +44,7 @@ func main() {
 
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
-  buildtemplates bridge -version=1.0.0 -bridge-version=v1.0.0 [-size=all|small,medium,large,xlarge]
+  buildtemplates bridge -version=1.0.0 -bridge-version=v1.0.0 [-size=all|small,medium,large,xlarge] [-bridge-binary=...] [-register-snapshots=false]
   buildtemplates hermes -version=v0.0.1                       [-size=all|small,medium,large,xlarge]
   buildtemplates employee-sandbox -version=v0.0.1             [-size=all|small,medium,large,xlarge]`)
 }

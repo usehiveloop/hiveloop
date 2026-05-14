@@ -400,6 +400,7 @@
           "crate::handlers::stream"
         ],
         "summary": "GET /conversations/:conv_id/stream — SSE stream for a conversation.",
+        "description": "Multi-subscriber: any number of clients can attach to the same\nconversation; each gets an independent broadcast receiver. Clients\nreconnecting after a disconnect can pass `Last-Event-ID` (a numeric\n`sequence_number`) to receive any persisted events with sequence\nstrictly greater than the last seen value before the live stream resumes.",
         "operationId": "stream_conversation",
         "parameters": [
           {
@@ -601,62 +602,6 @@
           },
           "404": {
             "description": "Agent not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/push/agents/{agent_id}/conversations": {
-      "post": {
-        "tags": [
-          "crate::handlers::push"
-        ],
-        "summary": "POST /push/agents/{agent_id}/conversations — hydrate conversations for an agent.",
-        "operationId": "hydrate_conversations",
-        "parameters": [
-          {
-            "name": "agent_id",
-            "in": "path",
-            "description": "Agent identifier",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HydrateConversationsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Conversations hydrated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HydrateConversationsResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "404": {
-            "description": "Agent not found"
-          },
-          "409": {
-            "description": "Agent has active conversations"
           }
         },
         "security": [
@@ -1407,34 +1352,6 @@
             "type": "integer",
             "format": "int64",
             "description": "Server uptime in seconds.",
-            "minimum": 0
-          }
-        }
-      },
-      "HydrateConversationsRequest": {
-        "type": "object",
-        "required": [
-          "conversations"
-        ],
-        "properties": {
-          "conversations": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ConversationRecord"
-            }
-          }
-        }
-      },
-      "HydrateConversationsResponse": {
-        "type": "object",
-        "description": "Response for hydrating conversations.",
-        "required": [
-          "hydrated"
-        ],
-        "properties": {
-          "hydrated": {
-            "type": "integer",
-            "description": "Number of conversations hydrated.",
             "minimum": 0
           }
         }

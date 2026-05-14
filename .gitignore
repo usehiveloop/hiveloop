@@ -70,3 +70,12 @@ node_modules/.pnpm-workspace-state-v1.json
 # codedb local index snapshot (generated)
 codedb.snapshot
 **/codedb.snapshot
+
+# Imported sandbox workspaces
+sandboxes/runtime/target/
+sandboxes/runtime/.lsp-servers/
+sandboxes/runtime/.bridge-attachments/
+sandboxes/employee/target/
+sandboxes/employee/logs/
+sandboxes/employee/workspace/
+sandboxes/employee/openrouter-proxy/conversations/

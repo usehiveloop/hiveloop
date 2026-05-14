@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"debug/elf"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -20,8 +22,11 @@ const ghcrNamespace = "usehiveloop"
 func runBridge(ctx context.Context, args []string) {
 	fs := flag.NewFlagSet("bridge", flag.ExitOnError)
 	version := fs.String("version", "", "Image version (required, e.g. 1.0.0)")
-	bridgeVersion := fs.String("bridge-version", "", "usehiveloop/bridge release tag (required, e.g. v1.0.0)")
+	bridgeVersion := fs.String("bridge-version", "", "usehiveloop/hiveloop release tag for the bridge binary (required, e.g. v1.0.0)")
+	bridgeBinary := fs.String("bridge-binary", "", "Optional local Linux x86_64 bridge binary to copy into the image instead of downloading a release asset")
 	size := fs.String("size", "all", "Snapshot sizes to register (small, medium, large, xlarge, all)")
+	registerSnapshots := fs.Bool("register-snapshots", true, "Register Daytona snapshots after pushing the image")
+	tagLatest := fs.Bool("latest", true, "Also tag and push ghcr.io/usehiveloop/sandbox-bridge:latest")
 	if err := fs.Parse(args); err != nil {
 		os.Exit(2)
 	}
@@ -34,7 +39,7 @@ func runBridge(ctx context.Context, args []string) {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
-	if err := buildAndPush(ctx, *version, *bridgeVersion, targetSizes); err != nil {
+	if err := buildAndPush(ctx, *version, *bridgeVersion, *bridgeBinary, targetSizes, *registerSnapshots, *tagLatest); err != nil {
 		log.Fatalf("error: %v", err)
 	}
 	log.Println("Done.")
@@ -55,7 +60,7 @@ func resolveSizes(s string) ([]string, error) {
 	return out, nil
 }
 
-func buildAndPush(ctx context.Context, version, bridgeVersion string, targetSizes []string) error {
+func buildAndPush(ctx context.Context, version, bridgeVersion, bridgeBinary string, targetSizes []string, registerSnapshots, tagLatest bool) error {
 	// Strip a leading "v" so downstream formatters that prepend "v" don't double it.
 	version = strings.TrimPrefix(version, "v")
 
@@ -69,13 +74,23 @@ func buildAndPush(ctx context.Context, version, bridgeVersion string, targetSize
 		return fmt.Errorf("docker login: %w", err)
 	}
 
-	dockerfile := buildBridgeImage(version, bridgeVersion).Dockerfile()
-
 	tmpDir, err := os.MkdirTemp("", "buildtemplates-*")
 	if err != nil {
 		return fmt.Errorf("creating temp dir: %w", err)
 	}
 	defer os.RemoveAll(tmpDir)
+
+	useLocalBridgeBinary := bridgeBinary != ""
+	if useLocalBridgeBinary {
+		if err := validateLinuxAMD64ELF(bridgeBinary); err != nil {
+			return fmt.Errorf("invalid bridge binary: %w", err)
+		}
+		if err := copyFileIntoContext(bridgeBinary, filepath.Join(tmpDir, "bridge"), 0o755); err != nil {
+			return fmt.Errorf("copying bridge binary into docker context: %w", err)
+		}
+	}
+
+	dockerfile := buildBridgeImage(version, bridgeVersion, useLocalBridgeBinary).Dockerfile()
 
 	dockerfilePath := filepath.Join(tmpDir, "Dockerfile")
 	if err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0o600); err != nil {
@@ -86,12 +101,16 @@ func buildAndPush(ctx context.Context, version, bridgeVersion string, targetSize
 	pkg := "sandbox-bridge"
 	versionedTag := fmt.Sprintf("%s/%s/%s:v%s", ghcrRegistry, ghcrNamespace, pkg, version)
 	latestTag := fmt.Sprintf("%s/%s/%s:latest", ghcrRegistry, ghcrNamespace, pkg)
+	tags := []string{versionedTag}
+	if tagLatest {
+		tags = append(tags, latestTag)
+	}
 
 	log.Printf("Building %s...", versionedTag)
-	if err := dockerBuild(ctx, tmpDir, dockerfilePath, versionedTag, latestTag); err != nil {
+	if err := dockerBuild(ctx, tmpDir, dockerfilePath, tags...); err != nil {
 		return fmt.Errorf("docker build: %w", err)
 	}
-	for _, tag := range []string{versionedTag, latestTag} {
+	for _, tag := range tags {
 		log.Printf("Pushing %s...", tag)
 		if err := dockerPush(ctx, tag); err != nil {
 			return fmt.Errorf("docker push %s: %w", tag, err)
@@ -101,7 +120,52 @@ func buildAndPush(ctx context.Context, version, bridgeVersion string, targetSize
 
 	log.Printf("Verify the package is public (one-time per package): https://github.com/orgs/%s/packages/container/package/%s/settings", ghcrNamespace, pkg)
 
+	if !registerSnapshots {
+		log.Printf("Skipping Daytona snapshot registration.")
+		return nil
+	}
+
 	return createDaytonaSnapshots(ctx, version, versionedTag, targetSizes)
+}
+
+func validateLinuxAMD64ELF(path string) error {
+	binary, err := elf.Open(path)
+	if err != nil {
+		return fmt.Errorf("%s is not an ELF binary: %w", path, err)
+	}
+	defer binary.Close()
+
+	if binary.FileHeader.Class != elf.ELFCLASS64 || binary.FileHeader.Machine != elf.EM_X86_64 {
+		return fmt.Errorf("%s must be a 64-bit x86_64 ELF binary for the linux/amd64 image, got class=%s machine=%s", path, binary.FileHeader.Class, binary.FileHeader.Machine)
+	}
+	return nil
+}
+
+func copyFileIntoContext(src, dst string, mode os.FileMode) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	info, err := in.Stat()
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		return fmt.Errorf("%s is a directory", src)
+	}
+
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, in); err != nil {
+		return err
+	}
+	return out.Chmod(mode)
 }
 
 func createDaytonaSnapshots(ctx context.Context, version, imageRef string, targetSizes []string) error {
@@ -186,4 +250,3 @@ func dockerPush(ctx context.Context, tag string) error {
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
-

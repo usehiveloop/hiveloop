@@ -9,8 +9,8 @@ Contributing to Bridge development.
 Clone and build:
 
 ```bash
-git clone https://github.com/useportal-app/bridge.git
-cd bridge
+git clone https://github.com/usehiveloop/hiveloop.git
+cd hiveloop/sandboxes/runtime
 make build
 ```
 

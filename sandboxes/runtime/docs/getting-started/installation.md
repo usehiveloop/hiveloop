@@ -52,8 +52,8 @@ rustc --version
 ## Step 2: Clone the Repository
 
 ```bash
-git clone https://github.com/useportal-app/bridge.git
-cd bridge
+git clone https://github.com/usehiveloop/hiveloop.git
+cd hiveloop/sandboxes/runtime
 ```
 
 ---
