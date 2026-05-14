@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
+	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -131,8 +132,10 @@ func assertEmployeeRuntimeConfig(t *testing.T, body []byte) {
 		t.Fatal("expected runtime /config request body")
 	}
 	raw := string(body)
-	if strings.Contains(raw, "OPENROUTER_API_KEY") {
-		t.Fatal("runtime config leaked OPENROUTER_API_KEY")
+	for _, forbidden := range employeeruntime.EmployeeForbiddenRawProviderEnvKeys() {
+		if strings.Contains(raw, forbidden) {
+			t.Fatalf("runtime config leaked raw provider key %s", forbidden)
+		}
 	}
 	if strings.Contains(raw, "sk-openrouter-test") {
 		t.Fatal("runtime config leaked decrypted OpenRouter credential")
@@ -163,8 +166,8 @@ func assertEmployeeRuntimeConfig(t *testing.T, body []byte) {
 	if config.Model.BaseURL != "https://proxy.hiveloop.test/v1" {
 		t.Errorf("model.base_url = %q, want https://proxy.hiveloop.test/v1", config.Model.BaseURL)
 	}
-	if config.Model.APIKeyEnv != "HIVELOOP_PROXY_API_KEY" {
-		t.Errorf("model.api_key_env = %q, want HIVELOOP_PROXY_API_KEY", config.Model.APIKeyEnv)
+	if config.Model.APIKeyEnv != employeeruntime.ProxyAPIKeyEnv {
+		t.Errorf("model.api_key_env = %q, want %s", config.Model.APIKeyEnv, employeeruntime.ProxyAPIKeyEnv)
 	}
 	if config.MultimodalModel.Provider != "openai_compatible" {
 		t.Errorf("multimodal_model.provider = %q, want openai_compatible", config.MultimodalModel.Provider)
@@ -175,8 +178,8 @@ func assertEmployeeRuntimeConfig(t *testing.T, body []byte) {
 	if config.MultimodalModel.BaseURL != "https://proxy.hiveloop.test/v1" {
 		t.Errorf("multimodal_model.base_url = %q, want https://proxy.hiveloop.test/v1", config.MultimodalModel.BaseURL)
 	}
-	if config.MultimodalModel.APIKeyEnv != "HIVELOOP_PROXY_API_KEY" {
-		t.Errorf("multimodal_model.api_key_env = %q, want HIVELOOP_PROXY_API_KEY", config.MultimodalModel.APIKeyEnv)
+	if config.MultimodalModel.APIKeyEnv != employeeruntime.ProxyAPIKeyEnv {
+		t.Errorf("multimodal_model.api_key_env = %q, want %s", config.MultimodalModel.APIKeyEnv, employeeruntime.ProxyAPIKeyEnv)
 	}
 }
 
@@ -280,43 +283,57 @@ func TestIntegration_EmployeesSync_NoSandbox_Provisions(t *testing.T) {
 	if h.provider.lastCreateOpts.SnapshotID != "hiveloop-employee-sandbox-test-small-v1" {
 		t.Errorf("snapshot = %q, want employee sandbox snapshot", h.provider.lastCreateOpts.SnapshotID)
 	}
-	if got := h.provider.lastCreateOpts.EnvVars["RUNTIME_BIND_ADDR"]; got != "0.0.0.0:7080" {
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvRuntimeBindAddr]; got != "0.0.0.0:7080" {
 		t.Errorf("RUNTIME_BIND_ADDR = %q, want 0.0.0.0:7080", got)
 	}
-	if got := h.provider.lastCreateOpts.EnvVars["HIVELOOP_PROXY_API_KEY"]; len(got) < 5 || got[:5] != "ptok_" {
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.ProxyAPIKeyEnv]; len(got) < 5 || got[:5] != "ptok_" {
 		t.Errorf("HIVELOOP_PROXY_API_KEY = %q, want ptok_...", got)
 	}
-	if got := h.provider.lastCreateOpts.EnvVars["AGENT_MODEL"]; got != "deepseek/deepseek-v4-flash" {
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvAgentModel]; got != employeeruntime.DefaultEmployeeModel {
 		t.Errorf("AGENT_MODEL = %q, want deepseek/deepseek-v4-flash", got)
 	}
-	if got := h.provider.lastCreateOpts.EnvVars["AGENT_BASE_URL"]; got != "https://proxy.hiveloop.test/v1" {
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvAgentBaseURL]; got != "https://proxy.hiveloop.test/v1" {
 		t.Errorf("AGENT_BASE_URL = %q, want https://proxy.hiveloop.test/v1", got)
 	}
-	if got := h.provider.lastCreateOpts.EnvVars["AGENT_API_KEY_ENV"]; got != "HIVELOOP_PROXY_API_KEY" {
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvAgentAPIKeyEnv]; got != employeeruntime.ProxyAPIKeyEnv {
 		t.Errorf("AGENT_API_KEY_ENV = %q, want HIVELOOP_PROXY_API_KEY", got)
 	}
-	if got := h.provider.lastCreateOpts.EnvVars["AGENT_MULTIMODAL_MODEL"]; got != "google/gemini-3-flash-preview" {
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvAgentMultimodalModel]; got != employeeruntime.DefaultEmployeeMultimodalModel {
 		t.Errorf("AGENT_MULTIMODAL_MODEL = %q, want google/gemini-3-flash-preview", got)
 	}
-	if got := h.provider.lastCreateOpts.EnvVars["AGENT_MULTIMODAL_API_KEY_ENV"]; got != "HIVELOOP_PROXY_API_KEY" {
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvAgentMultimodalBaseURL]; got != "https://proxy.hiveloop.test/v1" {
+		t.Errorf("AGENT_MULTIMODAL_BASE_URL = %q, want https://proxy.hiveloop.test/v1", got)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvAgentMultimodalAPIKeyEnv]; got != employeeruntime.ProxyAPIKeyEnv {
 		t.Errorf("AGENT_MULTIMODAL_API_KEY_ENV = %q, want HIVELOOP_PROXY_API_KEY", got)
 	}
-	if got := h.provider.lastCreateOpts.EnvVars["SENTRY_DSN"]; got != "https://employee@example.com/1" {
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvCloudControlPlaneURL]; got != "https://cp.hiveloop.test" {
+		t.Errorf("CLOUD_CONTROL_PLANE_URL = %q, want https://cp.hiveloop.test", got)
+	}
+	wantDriveURL := "https://cp.hiveloop.test/internal/employees/" + agent.ID.String() + "/assets/employee"
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvDriveUploadURL]; got != wantDriveURL {
+		t.Errorf("HIVELOOP_DRIVE_UPLOAD_URL = %q, want %q", got, wantDriveURL)
+	}
+	wantGitCredsURL := "https://cp.hiveloop.test/internal/git-credentials/" + agent.ID.String()
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvGitCredentialsURL]; got != wantGitCredsURL {
+		t.Errorf("HIVELOOP_GIT_CREDENTIALS_URL = %q, want %q", got, wantGitCredsURL)
+	}
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvSentryDSN]; got != "https://employee@example.com/1" {
 		t.Errorf("SENTRY_DSN = %q, want employee sandbox DSN", got)
 	}
-	if got := h.provider.lastCreateOpts.EnvVars["SENTRY_ENVIRONMENT"]; got != "production" {
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvSentryEnvironment]; got != "production" {
 		t.Errorf("SENTRY_ENVIRONMENT = %q, want production", got)
 	}
-	if got := h.provider.lastCreateOpts.EnvVars["SENTRY_RELEASE"]; got != "employee-bridge@test" {
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvSentryRelease]; got != "employee-bridge@test" {
 		t.Errorf("SENTRY_RELEASE = %q, want employee-bridge@test", got)
 	}
-	if got := h.provider.lastCreateOpts.EnvVars["SENTRY_SAMPLE_RATE"]; got != "1" {
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvSentrySampleRate]; got != "1" {
 		t.Errorf("SENTRY_SAMPLE_RATE = %q, want 1", got)
 	}
-	if got := h.provider.lastCreateOpts.EnvVars["SENTRY_TRACES_SAMPLE_RATE"]; got != "0.25" {
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvSentryTracesSampleRate]; got != "0.25" {
 		t.Errorf("SENTRY_TRACES_SAMPLE_RATE = %q, want 0.25", got)
 	}
-	if got := h.provider.lastCreateOpts.EnvVars["SENTRY_ENABLE_LOGS"]; got != "true" {
+	if got := h.provider.lastCreateOpts.EnvVars[employeeruntime.EmployeeEnvSentryEnableLogs]; got != "true" {
 		t.Errorf("SENTRY_ENABLE_LOGS = %q, want true", got)
 	}
 	if _, ok := h.provider.lastCreateOpts.EnvVars["SENTRY_DEBUG"]; ok {
@@ -325,8 +342,10 @@ func TestIntegration_EmployeesSync_NoSandbox_Provisions(t *testing.T) {
 	if _, ok := h.provider.lastCreateOpts.EnvVars["SENTRY_SPOTLIGHT"]; ok {
 		t.Errorf("SENTRY_SPOTLIGHT should not be injected into employee sandbox env")
 	}
-	if _, ok := h.provider.lastCreateOpts.EnvVars["OPENROUTER_API_KEY"]; ok {
-		t.Errorf("OPENROUTER_API_KEY leaked into employee sandbox env")
+	for _, forbidden := range employeeruntime.EmployeeForbiddenRawProviderEnvKeys() {
+		if _, ok := h.provider.lastCreateOpts.EnvVars[forbidden]; ok {
+			t.Errorf("%s leaked into employee sandbox env", forbidden)
+		}
 	}
 
 	var tokenCount int64

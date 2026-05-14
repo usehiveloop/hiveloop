@@ -112,21 +112,7 @@ func (d *Driver) CreateSandbox(ctx context.Context, opts sandbox.CreateSandboxOp
 		return nil, fmt.Errorf("daytona: CreateSandbox requires a SnapshotID")
 	}
 
-	envVars := make(map[string]string, len(opts.EnvVars))
-	maps.Copy(envVars, opts.EnvVars)
-
-	// SDK switches on value types; passing pointers silently drops fields.
-	params := sdktypes.SnapshotParams{
-		SandboxBaseParams: sdktypes.SandboxBaseParams{
-			Name:    opts.Name,
-			EnvVars: envVars,
-			Labels:  opts.Labels,
-			Public:  false,
-		},
-		Snapshot: opts.SnapshotID,
-	}
-
-	sb, err := d.sdk.Create(ctx, params)
+	sb, err := d.sdk.Create(ctx, snapshotParamsFromCreateOpts(opts))
 	if err != nil {
 		return nil, fmt.Errorf("creating sandbox: %w", err)
 	}
@@ -139,6 +125,22 @@ func (d *Driver) CreateSandbox(ctx context.Context, opts sandbox.CreateSandboxOp
 		ExternalID: sb.ID,
 		Status:     sandbox.StatusRunning,
 	}, nil
+}
+
+func snapshotParamsFromCreateOpts(opts sandbox.CreateSandboxOpts) sdktypes.SnapshotParams {
+	envVars := make(map[string]string, len(opts.EnvVars))
+	maps.Copy(envVars, opts.EnvVars)
+
+	// SDK switches on value types; passing pointers silently drops fields.
+	return sdktypes.SnapshotParams{
+		SandboxBaseParams: sdktypes.SandboxBaseParams{
+			Name:    opts.Name,
+			EnvVars: envVars,
+			Labels:  opts.Labels,
+			Public:  false,
+		},
+		Snapshot: opts.SnapshotID,
+	}
 }
 
 func (d *Driver) DeleteSandbox(ctx context.Context, externalID string) error {

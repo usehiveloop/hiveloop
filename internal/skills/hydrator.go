@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,14 +18,15 @@ import (
 // Bundle is the JSON shape persisted in SkillVersion.Bundle. The Phase 4
 // resolver adapts it into a bridge.SkillDefinition at agent-run time.
 type Bundle struct {
-	ID               string            `json:"id"`
-	Title            string            `json:"title"`
-	Description      string            `json:"description"`
-	Content          string            `json:"content"`
-	ParametersSchema json.RawMessage   `json:"parameters_schema,omitempty"`
-	Manifest         map[string]any    `json:"manifest,omitempty"`
-	References       []Reference       `json:"references,omitempty"`
-	Files            map[string]string `json:"files,omitempty"`
+	ID                           string            `json:"id"`
+	Title                        string            `json:"title"`
+	Description                  string            `json:"description"`
+	Content                      string            `json:"content"`
+	ParametersSchema             json.RawMessage   `json:"parameters_schema,omitempty"`
+	Manifest                     map[string]any    `json:"manifest,omitempty"`
+	References                   []Reference       `json:"references,omitempty"`
+	Files                        map[string]string `json:"files,omitempty"`
+	RequiredEnvironmentVariables []string          `json:"required_environment_variables,omitempty"`
 }
 
 // Reference is a sibling file shipped alongside SKILL.md (scripts, templates,
@@ -90,12 +92,13 @@ func HydrateFromGit(ctx context.Context, db *gorm.DB, fetcher *GitFetcher, skill
 		}
 
 		bundle := &Bundle{
-			ID:          skill.Slug,
-			Title:       manifestString(parsed.Manifest, "name", skill.Name),
-			Description: manifestString(parsed.Manifest, "description", derefString(skill.Description)),
-			Content:     parsed.SkillBody,
-			Manifest:    parsed.Manifest,
-			References:  parsed.References,
+			ID:                           skill.Slug,
+			Title:                        manifestString(parsed.Manifest, "name", skill.Name),
+			Description:                  manifestString(parsed.Manifest, "description", derefString(skill.Description)),
+			Content:                      parsed.SkillBody,
+			Manifest:                     parsed.Manifest,
+			References:                   parsed.References,
+			RequiredEnvironmentVariables: manifestStringSlice(parsed.Manifest, "required_environment_variables"),
 		}
 
 		raw, err := json.Marshal(bundle)
@@ -172,6 +175,43 @@ func manifestString(manifest map[string]any, key, defaultValue string) string {
 		}
 	}
 	return defaultValue
+}
+
+func manifestStringSlice(manifest map[string]any, key string) []string {
+	if manifest == nil {
+		return nil
+	}
+	raw, ok := manifest[key]
+	if !ok {
+		return nil
+	}
+	seen := map[string]bool{}
+	var out []string
+	switch value := raw.(type) {
+	case []string:
+		for _, item := range value {
+			item = strings.TrimSpace(item)
+			if item == "" || seen[item] {
+				continue
+			}
+			seen[item] = true
+			out = append(out, item)
+		}
+	case []any:
+		for _, item := range value {
+			s, ok := item.(string)
+			if !ok {
+				continue
+			}
+			s = strings.TrimSpace(s)
+			if s == "" || seen[s] {
+				continue
+			}
+			seen[s] = true
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 func derefString(s *string) string {

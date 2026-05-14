@@ -34,11 +34,12 @@ type GlobalSeedResult struct {
 }
 
 type globalSkillManifest struct {
-	Name        string                    `json:"name"`
-	Description string                    `json:"description"`
-	Root        string                    `json:"root"`
-	Files       []globalSkillManifestFile `json:"files"`
-	Internal    bool                      `json:"internal,omitempty"`
+	Name                         string                    `json:"name"`
+	Description                  string                    `json:"description"`
+	Root                         string                    `json:"root"`
+	Files                        []globalSkillManifestFile `json:"files"`
+	Internal                     bool                      `json:"internal,omitempty"`
+	RequiredEnvironmentVariables []string                  `json:"required_environment_variables,omitempty"`
 }
 
 type globalSkillManifestFile struct {
@@ -187,12 +188,13 @@ func loadGlobalSkill(ctx context.Context, dir string, manifest globalSkillManife
 	}
 
 	bundle := &Bundle{
-		ID:          model.GenerateSlug(manifest.Name),
-		Title:       manifest.Name,
-		Description: manifest.Description,
-		Content:     string(content),
-		References:  references,
-		Files:       files,
+		ID:                           model.GenerateSlug(manifest.Name),
+		Title:                        manifest.Name,
+		Description:                  manifest.Description,
+		Content:                      string(content),
+		References:                   references,
+		Files:                        files,
+		RequiredEnvironmentVariables: manifest.RequiredEnvironmentVariables,
 	}
 	return loadedGlobalSkill{manifest: manifest, bundle: bundle}, nil
 }

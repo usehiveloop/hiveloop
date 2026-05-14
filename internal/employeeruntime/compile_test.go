@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -174,6 +175,7 @@ func TestCompile_SerializesSkillOptionalArraysAsEmptyArrays(t *testing.T) {
 	desc := "Upload generated artifacts."
 	skill := model.Skill{
 		ID:          uuid.New(),
+		OrgID:       &org.ID,
 		Slug:        "asset-uploads",
 		Name:        "Asset uploads",
 		Description: &desc,
@@ -215,6 +217,74 @@ func TestCompile_SerializesSkillOptionalArraysAsEmptyArrays(t *testing.T) {
 	}
 	if strings.Contains(string(body), `"required_credential_files":null`) {
 		t.Fatalf("required_credential_files serialized as null: %s", string(body))
+	}
+}
+
+func TestCompile_PreservesSkillRequiredEnvironmentVariables(t *testing.T) {
+	db := connectCompileTestDB(t)
+	org := model.Org{Name: "Skill env-" + uuid.NewString()}
+	if err := db.Create(&org).Error; err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	category := "engineering"
+	agent := model.Agent{
+		ID:           uuid.New(),
+		OrgID:        &org.ID,
+		Name:         "Aria",
+		Category:     &category,
+		Model:        DefaultEmployeeModel,
+		Tools:        model.JSON{},
+		McpServers:   model.JSON{},
+		Skills:       model.JSON{},
+		Integrations: model.JSON{},
+		Resources:    model.JSON{},
+		AgentConfig:  model.JSON{},
+		Permissions:  model.JSON{},
+	}
+	if err := db.Create(&agent).Error; err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+	desc := "Upload generated artifacts."
+	skill := model.Skill{
+		ID:          uuid.New(),
+		OrgID:       &org.ID,
+		Slug:        "asset-uploads",
+		Name:        "Asset uploads",
+		Description: &desc,
+		SourceType:  model.SkillSourceInline,
+		RepoRef:     "main",
+		Status:      model.SkillStatusPublished,
+	}
+	if err := db.Create(&skill).Error; err != nil {
+		t.Fatalf("create skill: %v", err)
+	}
+	bundle := model.RawJSON(`{
+		"description":"Upload generated artifacts.",
+		"content":"Use the upload endpoint.",
+		"files":{},
+		"required_environment_variables":["UPLOAD_BEARER","HIVELOOP_DRIVE_UPLOAD_URL","UPLOAD_BEARER"]
+	}`)
+	version := model.SkillVersion{ID: uuid.New(), SkillID: skill.ID, Version: "v1", Bundle: bundle}
+	if err := db.Create(&version).Error; err != nil {
+		t.Fatalf("create skill version: %v", err)
+	}
+	if err := db.Model(&skill).Update("latest_version_id", version.ID).Error; err != nil {
+		t.Fatalf("update latest version: %v", err)
+	}
+	if err := db.Create(&model.AgentSkill{AgentID: agent.ID, SkillID: skill.ID}).Error; err != nil {
+		t.Fatalf("attach skill: %v", err)
+	}
+
+	def, err := Compile(context.Background(), CompileDeps{DB: db, Cfg: &config.Config{}}, &agent)
+	if err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	if len(def.Skills) != 1 {
+		t.Fatalf("skills = %#v", def.Skills)
+	}
+	want := []string{EmployeeEnvDriveUploadURL, EmployeeEnvUploadBearer}
+	if !reflect.DeepEqual(def.Skills[0].RequiredEnvironmentVariables, want) {
+		t.Fatalf("required env vars = %#v, want %#v", def.Skills[0].RequiredEnvironmentVariables, want)
 	}
 }
 
@@ -291,9 +361,64 @@ func TestControlPlaneOutboundChannels_EmitsEmployeeWebhookSpec(t *testing.T) {
 	if channel["url"] != "https://api.hiveloop.test/internal/webhooks/employee/"+sandboxID.String() {
 		t.Fatalf("url = %q", channel["url"])
 	}
-	if channel["secret_env"] != "RUNTIME_SECRET" {
+	if channel["secret_env"] != EmployeeEnvRuntimeSecret {
 		t.Fatalf("secret env = %q", channel["secret_env"])
 	}
+}
+
+func TestCompile_ReferencesProxyEnvInsteadOfRawProviderKeys(t *testing.T) {
+	orgID := uuid.New()
+	agent := &model.Agent{ID: uuid.New(), OrgID: &orgID, Name: "Aria", Model: DefaultEmployeeModel}
+
+	def, err := Compile(context.Background(), CompileDeps{Cfg: &config.Config{ProxyHost: "proxy.hiveloop.test"}}, agent)
+	if err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	if def.Model.APIKeyEnv != ProxyAPIKeyEnv {
+		t.Fatalf("model.api_key_env = %q, want %q", def.Model.APIKeyEnv, ProxyAPIKeyEnv)
+	}
+	if def.Model.BaseURL != "https://proxy.hiveloop.test/v1" {
+		t.Fatalf("model.base_url = %q", def.Model.BaseURL)
+	}
+	if def.MultimodalModel == nil || def.MultimodalModel.APIKeyEnv != ProxyAPIKeyEnv {
+		t.Fatalf("multimodal_model.api_key_env = %#v, want %q", def.MultimodalModel, ProxyAPIKeyEnv)
+	}
+	if employeeMCPAuthorizationHeader() != "Bearer ${"+ProxyAPIKeyEnv+"}" {
+		t.Fatalf("MCP auth header references wrong env: %q", employeeMCPAuthorizationHeader())
+	}
+
+	bashConfig, ok := def.Tools[0]["config"].(map[string]any)
+	if !ok {
+		t.Fatalf("bash tool config has wrong type: %#v", def.Tools[0]["config"])
+	}
+	envPassthrough, ok := bashConfig["env_passthrough"].([]string)
+	if !ok {
+		t.Fatalf("env_passthrough has wrong type: %#v", bashConfig["env_passthrough"])
+	}
+	for _, key := range []string{EmployeeEnvHome, EmployeeEnvPath, EmployeeEnvLang, EmployeeEnvLCAll, ProxyAPIKeyEnv} {
+		if !containsString(envPassthrough, key) {
+			t.Fatalf("env_passthrough missing %s: %#v", key, envPassthrough)
+		}
+	}
+
+	body, err := json.Marshal(def)
+	if err != nil {
+		t.Fatalf("marshal definition: %v", err)
+	}
+	for _, forbidden := range EmployeeForbiddenRawProviderEnvKeys() {
+		if strings.Contains(string(body), forbidden) {
+			t.Fatalf("runtime config leaked raw provider key %s: %s", forbidden, string(body))
+		}
+	}
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
 }
 
 func connectCompileTestDB(t *testing.T) *gorm.DB {

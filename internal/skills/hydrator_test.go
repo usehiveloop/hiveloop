@@ -138,7 +138,7 @@ func TestHydrateFromGit(t *testing.T) {
 	orgID := createOrg(t, db)
 
 	sha := "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
-	skillBody := "---\nname: greet\ndescription: say hi\n---\n# How to greet\nUse hello."
+	skillBody := "---\nname: greet\ndescription: say hi\nrequired_environment_variables:\n  - HIVELOOP_DRIVE_UPLOAD_URL\n  - UPLOAD_BEARER\n---\n# How to greet\nUse hello."
 	tarball := buildFakeTarball(t, map[string]string{
 		"SKILL.md":       skillBody,
 		"scripts/run.sh": "#!/bin/sh\necho hi",
@@ -187,6 +187,11 @@ func TestHydrateFromGit(t *testing.T) {
 	}
 	if len(parsed.References) != 1 || parsed.References[0].Path != "scripts/run.sh" {
 		t.Errorf("references = %+v", parsed.References)
+	}
+	if len(parsed.RequiredEnvironmentVariables) != 2 ||
+		parsed.RequiredEnvironmentVariables[0] != "HIVELOOP_DRIVE_UPLOAD_URL" ||
+		parsed.RequiredEnvironmentVariables[1] != "UPLOAD_BEARER" {
+		t.Errorf("required environment variables = %+v", parsed.RequiredEnvironmentVariables)
 	}
 
 	sv2, err := skills.HydrateFromGit(context.Background(), db, fetcher, skill.ID)

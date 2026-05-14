@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-proxy test-connect test-integrations test-connections test-setup openapi generate-auth-keys upload-skills build-employee-sandbox-templates test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-proxy test-connect test-integrations test-connections test-setup openapi generate-auth-keys upload-skills build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -71,6 +71,36 @@ build-hermes-templates:
 build-employee-sandbox-templates:
 	@test -n "$(EMPLOYEE_SANDBOX_VERSION)" || (echo "error: EMPLOYEE_SANDBOX_VERSION is required (e.g. make build-employee-sandbox-templates EMPLOYEE_SANDBOX_VERSION=v0.0.1)" && exit 1)
 	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates employee-sandbox -version=$(EMPLOYEE_SANDBOX_VERSION) -size=$(or $(SIZE),all)
+
+# Inspect a running employee sandbox's process env using the redacted doctor.
+# Usage: make employee-env-doctor SANDBOX_ID=48a54bb8-cd44-4454-845d-3be611f9090b
+#        make employee-env-doctor SANDBOX_ID=... DOCTOR_SENSITIVE=1
+DOCTOR_JSON ?= false
+DOCTOR_INCLUDE_UNEXPECTED ?= 1
+DOCTOR_SENSITIVE ?= 0
+DOCTOR_ENV_FILE ?= .env
+DOCTOR_PID ?=
+employee-env-doctor:
+	@test -n "$(SANDBOX_ID)" || (echo "error: SANDBOX_ID is required (e.g. make employee-env-doctor SANDBOX_ID=48a54bb8-cd44-4454-845d-3be611f9090b)" && exit 1)
+	@flags="-id $(SANDBOX_ID) -json=$(DOCTOR_JSON) -env-file=$(DOCTOR_ENV_FILE)"; \
+	if [ -n "$(DOCTOR_PID)" ]; then flags="$$flags -pid $(DOCTOR_PID)"; fi; \
+	if [ "$(DOCTOR_INCLUDE_UNEXPECTED)" = "1" ]; then flags="$$flags -include-unexpected"; fi; \
+	if [ "$(DOCTOR_SENSITIVE)" = "1" ]; then flags="$$flags --sensitive"; fi; \
+	go run ./cmd/employee-env-doctor $$flags
+
+# Upload a debug collector to an employee sandbox, run it, download the archive,
+# extract it locally, and print absolute paths to extracted files.
+# Usage: make employee-debug-pack SANDBOX_ID=48a54bb8-cd44-4454-845d-3be611f9090b
+#        make employee-debug-pack SANDBOX_ID=... DEBUG_SENSITIVE=1
+DEBUG_ENV_FILE ?= .env
+DEBUG_LOCAL_DIR ?= /tmp
+DEBUG_SENSITIVE ?= 0
+DEBUG_TIMEOUT ?= 10m
+employee-debug-pack:
+	@test -n "$(SANDBOX_ID)" || (echo "error: SANDBOX_ID is required (e.g. make employee-debug-pack SANDBOX_ID=48a54bb8-cd44-4454-845d-3be611f9090b)" && exit 1)
+	@flags="-id $(SANDBOX_ID) -env-file=$(DEBUG_ENV_FILE) -local-dir=$(DEBUG_LOCAL_DIR) -timeout=$(DEBUG_TIMEOUT)"; \
+	if [ "$(DEBUG_SENSITIVE)" = "1" ]; then flags="$$flags --sensitive"; fi; \
+	go run ./cmd/employee-debug-pack $$flags
 
 # Upload skill definitions to Hiveloop API (reads HIVELOOP_SKILLS_API_KEY from .env)
 upload-skills:

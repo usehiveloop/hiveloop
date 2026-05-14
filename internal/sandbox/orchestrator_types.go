@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -29,18 +30,18 @@ const (
 
 func baseEnvVars(cfg *config.Config, bridgeAPIKey string, sandboxID uuid.UUID, webhookURL string) map[string]string {
 	envVars := map[string]string{
-		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
-		"UPLOAD_BEARER":                bridgeAPIKey,
-		"BRIDGE_LISTEN_ADDR":           fmt.Sprintf("0.0.0.0:%d", BridgePort),
-		"BRIDGE_LOG_FORMAT":            "json",
-		"BRIDGE_WEB_URL":               fmt.Sprintf("https://%s/spider", cfg.BridgeHost),
-		"HIVELOOP_SANDBOX_ID":          sandboxID.String(),
+		"BRIDGE_CONTROL_PLANE_API_KEY":          bridgeAPIKey,
+		employeeruntime.EmployeeEnvUploadBearer: bridgeAPIKey,
+		"BRIDGE_LISTEN_ADDR":                    fmt.Sprintf("0.0.0.0:%d", BridgePort),
+		"BRIDGE_LOG_FORMAT":                     "json",
+		"BRIDGE_WEB_URL":                        fmt.Sprintf("https://%s/spider", cfg.BridgeHost),
+		employeeruntime.EmployeeEnvSandboxID:    sandboxID.String(),
 		// HOME=/work so bridge.db survives provider stop/start; the harnesses
 		// read their config from CLAUDE_CONFIG_DIR / OPENCODE_CONFIG_DIR.
-		"HOME":                "/work",
-		"CLAUDE_CONFIG_DIR":   "/work/.claude",
-		"OPENCODE_CONFIG_DIR": "/work/.opencode",
-		"NO_BROWSER":          "1",
+		employeeruntime.EmployeeEnvHome: "/work",
+		"CLAUDE_CONFIG_DIR":             "/work/.claude",
+		"OPENCODE_CONFIG_DIR":           "/work/.opencode",
+		"NO_BROWSER":                    "1",
 		// SQLite persistence for bridge conversation/session state. /work is
 		// HOME and survives provider stop/start.
 		"BRIDGE_STORAGE_PATH": "/work/bridge.db",
@@ -60,30 +61,30 @@ func setSandboxSentryEnvVars(envVars map[string]string, cfg *config.Config, dsn 
 	if cfg == nil || strings.TrimSpace(dsn) == "" {
 		return
 	}
-	envVars["SENTRY_DSN"] = strings.TrimSpace(dsn)
-	envVars["SENTRY_ENVIRONMENT"] = cfg.Environment
-	envVars["SENTRY_SAMPLE_RATE"] = "1"
-	envVars["SENTRY_TRACES_SAMPLE_RATE"] = strconv.FormatFloat(cfg.SentryTracesSampleRate, 'f', -1, 64)
-	envVars["SENTRY_ENABLE_LOGS"] = "true"
+	envVars[employeeruntime.EmployeeEnvSentryDSN] = strings.TrimSpace(dsn)
+	envVars[employeeruntime.EmployeeEnvSentryEnvironment] = cfg.Environment
+	envVars[employeeruntime.EmployeeEnvSentrySampleRate] = "1"
+	envVars[employeeruntime.EmployeeEnvSentryTracesSampleRate] = strconv.FormatFloat(cfg.SentryTracesSampleRate, 'f', -1, 64)
+	envVars[employeeruntime.EmployeeEnvSentryEnableLogs] = "true"
 	if strings.TrimSpace(cfg.SentryRelease) != "" {
-		envVars["SENTRY_RELEASE"] = cfg.SentryRelease
+		envVars[employeeruntime.EmployeeEnvSentryRelease] = cfg.SentryRelease
 	}
 }
 
 func setOrgEnvVars(envVars map[string]string, orgID uuid.UUID) {
-	envVars["HIVELOOP_ORG_ID"] = orgID.String()
+	envVars[employeeruntime.EmployeeEnvOrgID] = orgID.String()
 }
 
 func setAgentEnvVars(envVars map[string]string, agent *model.Agent, cfg *config.Config) {
 	if agent == nil {
 		return
 	}
-	envVars["HIVELOOP_AGENT_ID"] = agent.ID.String()
-	envVars["HIVELOOP_GIT_CREDENTIALS_URL"] = fmt.Sprintf("https://%s/internal/git-credentials/%s", cfg.BridgeHost, agent.ID)
+	envVars[employeeruntime.EmployeeEnvAgentID] = agent.ID.String()
+	envVars[employeeruntime.EmployeeEnvGitCredentialsURL] = fmt.Sprintf("https://%s/internal/git-credentials/%s", cfg.BridgeHost, agent.ID)
 	envVars["HIVELOOP_RAILWAY_API_URL"] = fmt.Sprintf("https://%s/internal/railway-proxy/%s", cfg.BridgeHost, agent.ID)
 	envVars["HIVELOOP_RAILWAY_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
 	envVars["HIVELOOP_VERCEL_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
-	envVars["GH_NO_KEYRING"] = "1"
+	envVars[employeeruntime.EmployeeEnvGitHubNoKeyring] = "1"
 }
 
 func setDriveEndpoint(envVars map[string]string, sandboxID uuid.UUID, cfg *config.Config) {
@@ -117,11 +118,11 @@ func employeeDriveUploadURL(cfg *config.Config, employeeID uuid.UUID, folder str
 }
 
 func setEmployeeDriveUploadURL(envVars map[string]string, cfg *config.Config, employeeID uuid.UUID, folder string) {
-	envVars["HIVELOOP_DRIVE_UPLOAD_URL"] = employeeDriveUploadURL(cfg, employeeID, folder)
+	envVars[employeeruntime.EmployeeEnvDriveUploadURL] = employeeDriveUploadURL(cfg, employeeID, folder)
 }
 
 func setUploadBearer(envVars map[string]string, bearer string) {
-	envVars["UPLOAD_BEARER"] = bearer
+	envVars[employeeruntime.EmployeeEnvUploadBearer] = bearer
 }
 
 type repoResource struct {

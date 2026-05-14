@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -109,6 +110,72 @@ func TestSeedGlobalSkills_FetchesManifestReferenceURLs(t *testing.T) {
 	}
 }
 
+func TestSeedGlobalSkills_PreservesRequiredEnvironmentVariables(t *testing.T) {
+	db := connectDB(t)
+	name := "seed-env-test-" + uuid.New().String()
+	dir := t.TempDir()
+	writeGlobalSkill(t, dir, name, "requires upload env", "# Skill\n", nil)
+
+	manifestPath := filepath.Join(dir, name, "skill.json")
+	body, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	var manifest map[string]any
+	if err := json.Unmarshal(body, &manifest); err != nil {
+		t.Fatalf("decode manifest: %v", err)
+	}
+	manifest["required_environment_variables"] = []string{"HIVELOOP_DRIVE_UPLOAD_URL", "UPLOAD_BEARER"}
+	body, err = json.Marshal(manifest)
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, body, 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	if _, err := skills.SeedGlobalSkills(context.Background(), db, dir); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	var skill model.Skill
+	if err := db.Where("org_id IS NULL AND name = ?", name).First(&skill).Error; err != nil {
+		t.Fatalf("load skill: %v", err)
+	}
+	var version model.SkillVersion
+	if err := db.Where("id = ?", *skill.LatestVersionID).First(&version).Error; err != nil {
+		t.Fatalf("load version: %v", err)
+	}
+	var bundle skills.Bundle
+	if err := json.Unmarshal(version.Bundle, &bundle); err != nil {
+		t.Fatalf("decode bundle: %v", err)
+	}
+	want := []string{"HIVELOOP_DRIVE_UPLOAD_URL", "UPLOAD_BEARER"}
+	if !reflect.DeepEqual(bundle.RequiredEnvironmentVariables, want) {
+		t.Fatalf("required env vars = %#v, want %#v", bundle.RequiredEnvironmentVariables, want)
+	}
+}
+
+func TestBundledAssetUploadsSkillDeclaresUploadEnv(t *testing.T) {
+	dir, err := skillsForRepoTest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := os.ReadFile(filepath.Join(dir, "global-skills", "asset-uploads", "skill.json"))
+	if err != nil {
+		t.Fatalf("read bundled asset uploads manifest: %v", err)
+	}
+	var parsed struct {
+		RequiredEnvironmentVariables []string `json:"required_environment_variables"`
+	}
+	if err := json.Unmarshal(manifest, &parsed); err != nil {
+		t.Fatalf("decode manifest: %v", err)
+	}
+	want := []string{"HIVELOOP_DRIVE_UPLOAD_URL", "UPLOAD_BEARER"}
+	if !reflect.DeepEqual(parsed.RequiredEnvironmentVariables, want) {
+		t.Fatalf("asset upload env vars = %#v, want %#v", parsed.RequiredEnvironmentVariables, want)
+	}
+}
+
 func TestSeedGlobalSkills_ArchivesObsoleteUploadSkillNames(t *testing.T) {
 	db := connectDB(t)
 	dir := t.TempDir()
@@ -179,5 +246,22 @@ func writeGlobalSkill(t *testing.T, root, name, description, content string, fil
 	}
 	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(content), 0o644); err != nil {
 		t.Fatalf("write skill: %v", err)
+	}
+}
+
+func skillsForRepoTest() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(cwd, "go.mod")); err == nil {
+			return cwd, nil
+		}
+		parent := filepath.Dir(cwd)
+		if parent == cwd {
+			return "", os.ErrNotExist
+		}
+		cwd = parent
 	}
 }

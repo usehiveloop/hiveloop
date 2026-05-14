@@ -24,7 +24,6 @@ import (
 const (
 	DefaultEmployeeModel           = "deepseek/deepseek-v4-flash"
 	DefaultEmployeeMultimodalModel = "google/gemini-3-flash-preview"
-	ProxyAPIKeyEnv                 = "HIVELOOP_PROXY_API_KEY"
 	proxyTokenTTL                  = 24 * time.Hour
 )
 
@@ -212,7 +211,7 @@ func ControlPlaneOutboundChannels(cfg *config.Config, sandboxID uuid.UUID) []any
 			"name":       "control-plane-memory",
 			"type":       "webhook",
 			"url":        fmt.Sprintf("https://%s/internal/webhooks/employee/%s", bridgeHost, sandboxID),
-			"secret_env": "RUNTIME_SECRET",
+			"secret_env": EmployeeEnvRuntimeSecret,
 		},
 	}
 }
@@ -456,10 +455,14 @@ func buildEmployeeMCPServer(ctx context.Context, deps CompileDeps, agent *model.
 		"transport": "streamable_http",
 		"url":       url,
 		"headers": map[string]string{
-			"Authorization": "Bearer ${" + ProxyAPIKeyEnv + "}",
+			"Authorization": employeeMCPAuthorizationHeader(),
 		},
 		"default_enable_all_tools": true,
 	}
+}
+
+func employeeMCPAuthorizationHeader() string {
+	return "Bearer ${" + ProxyAPIKeyEnv + "}"
 }
 
 func upsertHiveloopMCPServer(servers []any, server any) []any {
@@ -509,7 +512,7 @@ func defaultLimits() map[string]any {
 
 func defaultTools() []map[string]any {
 	return []map[string]any{
-		{"type": "builtin.bash", "config": map[string]any{"workdir": ".", "timeout_seconds": 60, "max_output_bytes": 5 * 1024 * 1024, "deny_patterns": []string{"rm -rf /", "rm -rf ~", "mkfs", "dd if=", ":(){:|:&};:", "shutdown", "reboot"}, "env_passthrough": []string{"HOME", "PATH", "LANG", "LC_ALL", ProxyAPIKeyEnv}, "sandbox": "process_isolated"}},
+		{"type": "builtin.bash", "config": map[string]any{"workdir": ".", "timeout_seconds": 60, "max_output_bytes": 5 * 1024 * 1024, "deny_patterns": []string{"rm -rf /", "rm -rf ~", "mkfs", "dd if=", ":(){:|:&};:", "shutdown", "reboot"}, "env_passthrough": []string{EmployeeEnvHome, EmployeeEnvPath, EmployeeEnvLang, EmployeeEnvLCAll, ProxyAPIKeyEnv}, "sandbox": "process_isolated"}},
 		{"type": "builtin.read_file", "config": map[string]any{"allowed_roots": []string{}, "max_file_size_bytes": 5 * 1024 * 1024, "deny_globs": []string{}}},
 		{"type": "builtin.write_file", "config": map[string]any{"allowed_roots": []string{}, "max_file_size_bytes": 5 * 1024 * 1024, "deny_globs": []string{}, "atomic": true}},
 		{"type": "builtin.post_status_update"}, {"type": "builtin.post_to_channel"},
@@ -592,9 +595,11 @@ func scopesFromIntegrations(integrations model.JSON) model.JSON {
 }
 
 type skillBundle struct {
-	Description string            `json:"description"`
-	Content     string            `json:"content"`
-	Files       map[string]string `json:"files"`
+	Description                  string            `json:"description"`
+	Content                      string            `json:"content"`
+	Files                        map[string]string `json:"files"`
+	Manifest                     map[string]any    `json:"manifest"`
+	RequiredEnvironmentVariables []string          `json:"required_environment_variables"`
 }
 
 func buildSkills(ctx context.Context, db *gorm.DB, agentID uuid.UUID) ([]SkillSpec, error) {
@@ -661,6 +666,10 @@ func buildSkills(ctx context.Context, db *gorm.DB, agentID uuid.UUID) ([]SkillSp
 		}
 		tags := []string(skill.Tags)
 		sort.Strings(tags)
+		requiredEnv := normalizeRequiredEnvironmentVariables(bundle.RequiredEnvironmentVariables)
+		if len(requiredEnv) == 0 {
+			requiredEnv = requiredEnvironmentVariablesFromManifest(bundle.Manifest)
+		}
 		out = append(out, SkillSpec{
 			Name:                         skill.Slug,
 			Description:                  description,
@@ -669,11 +678,53 @@ func buildSkills(ctx context.Context, db *gorm.DB, agentID uuid.UUID) ([]SkillSp
 			Files:                        bundle.Files,
 			Tags:                         tags,
 			RelatedSkills:                []string{},
-			RequiredEnvironmentVariables: []string{},
+			RequiredEnvironmentVariables: requiredEnv,
 			RequiredCredentialFiles:      []string{},
 		})
 	}
 	return out, nil
+}
+
+func normalizeRequiredEnvironmentVariables(values []string) []string {
+	if len(values) == 0 {
+		return []string{}
+	}
+	seen := make(map[string]bool, len(values))
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		out = append(out, value)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func requiredEnvironmentVariablesFromManifest(manifest map[string]any) []string {
+	if len(manifest) == 0 {
+		return []string{}
+	}
+	raw, ok := manifest["required_environment_variables"]
+	if !ok {
+		return []string{}
+	}
+	switch value := raw.(type) {
+	case []string:
+		return normalizeRequiredEnvironmentVariables(value)
+	case []any:
+		values := make([]string, 0, len(value))
+		for _, item := range value {
+			if s, ok := item.(string); ok {
+				values = append(values, s)
+			}
+		}
+		return normalizeRequiredEnvironmentVariables(values)
+	default:
+		return []string{}
+	}
 }
 
 func composeInstructions(skill model.Skill, bundle skillBundle) string {

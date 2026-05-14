@@ -17,16 +17,17 @@ import (
 )
 
 type employeeSkillSyncPayload struct {
-	Action        string            `json:"action"`
-	Name          string            `json:"name"`
-	Description   string            `json:"description"`
-	Category      string            `json:"category"`
-	Tags          []string          `json:"tags"`
-	RelatedSkills []string          `json:"related_skills"`
-	Content       string            `json:"content"`
-	Files         map[string]string `json:"files"`
-	Deleted       bool              `json:"deleted"`
-	AbsorbedInto  string            `json:"absorbed_into"`
+	Action                       string            `json:"action"`
+	Name                         string            `json:"name"`
+	Description                  string            `json:"description"`
+	Category                     string            `json:"category"`
+	Tags                         []string          `json:"tags"`
+	RelatedSkills                []string          `json:"related_skills"`
+	RequiredEnvironmentVariables []string          `json:"required_environment_variables"`
+	Content                      string            `json:"content"`
+	Files                        map[string]string `json:"files"`
+	Deleted                      bool              `json:"deleted"`
+	AbsorbedInto                 string            `json:"absorbed_into"`
 }
 
 func (h *EmployeeOutboundWebhookHandler) syncSkillEvent(ctx context.Context, sb *model.Sandbox, raw map[string]any) error {
@@ -94,13 +95,14 @@ func (h *EmployeeOutboundWebhookHandler) upsertSyncedSkill(ctx context.Context, 
 	}
 	now := time.Now()
 	bundle := &skillpkg.Bundle{
-		ID:          slug,
-		Title:       title,
-		Description: description,
-		Content:     contentBody,
-		Manifest:    manifest,
-		References:  referencesFromFiles(payload.Files),
-		Files:       payload.Files,
+		ID:                           slug,
+		Title:                        title,
+		Description:                  description,
+		Content:                      contentBody,
+		Manifest:                     manifest,
+		References:                   referencesFromFiles(payload.Files),
+		Files:                        payload.Files,
+		RequiredEnvironmentVariables: payload.RequiredEnvironmentVariables,
 	}
 
 	return h.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
