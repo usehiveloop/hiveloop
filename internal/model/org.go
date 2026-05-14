@@ -42,7 +42,19 @@ type Org struct {
 
 func (Org) TableName() string { return "orgs" }
 
-func AutoMigrate(db *gorm.DB) error {
+const autoMigrateAdvisoryLockKey int64 = 548713429
+
+func AutoMigrate(db *gorm.DB) (err error) {
+	if err := db.Exec("SELECT pg_advisory_lock(?)", autoMigrateAdvisoryLockKey).Error; err != nil {
+		return err
+	}
+	defer func() {
+		unlockErr := db.Exec("SELECT pg_advisory_unlock(?)", autoMigrateAdvisoryLockKey).Error
+		if err == nil && unlockErr != nil {
+			err = unlockErr
+		}
+	}()
+
 	if err := db.AutoMigrate(
 		&Org{},
 		&User{},
