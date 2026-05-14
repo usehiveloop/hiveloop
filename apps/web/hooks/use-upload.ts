@@ -6,7 +6,7 @@ import { $api } from "@/lib/api/hooks"
 export type UploadAssetType = "avatar" | "org_logo" | "generic"
 
 export interface UploadResult {
-  /** Durable, CDN-served URL — store this. */
+  /** Durable, CDN-served asset URL — store this. */
   publicUrl: string
   /** Storage key, useful for debugging. */
   key: string
@@ -35,7 +35,7 @@ interface UseUploadResult {
  *
  * 1. POST /v1/uploads/sign with content-type + size → presigned URL
  * 2. PUT the file directly to that URL with the required headers
- * 3. Resolves with the durable public CDN URL
+ * 3. Resolves with the durable CDN asset URL
  *
  * The hook is policy-aware via `assetType` — pick "avatar" (5MB images),
  * "org_logo" (5MB images, requires orgId), or "generic" (25MB images + pdf/txt).
@@ -66,9 +66,14 @@ export function useUpload(assetType: UploadAssetType): UseUploadResult {
           upload_method: string
           required_headers: Record<string, string>
           key: string
-          public_url: string
+          asset_url?: string
+          public_url?: string
           expires_at: string
           max_size_bytes: number
+        }
+        const assetUrl = signed.asset_url ?? signed.public_url
+        if (!assetUrl) {
+          throw new Error("Upload signer did not return an asset URL")
         }
 
         const putResponse = await fetch(signed.upload_url, {
@@ -83,7 +88,7 @@ export function useUpload(assetType: UploadAssetType): UseUploadResult {
         }
 
         return {
-          publicUrl: signed.public_url,
+          publicUrl: assetUrl,
           key: signed.key,
           expiresAt: signed.expires_at,
           maxSizeBytes: signed.max_size_bytes,
