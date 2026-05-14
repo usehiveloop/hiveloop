@@ -371,7 +371,7 @@ func TestAgentProfileHandler_GitHubRepositorySelectionBlocksSaveWhenHookCreateFa
 		"id":        "101",
 		"name":      "alpha",
 		"full_name": "octocat/alpha",
-	}}, http.StatusBadGateway)
+	}}, http.StatusBadRequest)
 
 	var profile model.AgentProfile
 	if err := db.Where("agent_id = ? AND provider = ?", agent.ID, "github").First(&profile).Error; err != nil {
@@ -379,6 +379,9 @@ func TestAgentProfileHandler_GitHubRepositorySelectionBlocksSaveWhenHookCreateFa
 	}
 	if got := selectedRepoCount(t, profile.Config); got != 0 {
 		t.Fatalf("selected repos saved after hook failure = %d, want 0", got)
+	}
+	if got := webhookMetadataCount(t, profile.Config); got != 0 {
+		t.Fatalf("webhook metadata entries after hook failure = %d, want 0", got)
 	}
 }
 
