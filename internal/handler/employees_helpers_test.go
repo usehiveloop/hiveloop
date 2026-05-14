@@ -185,6 +185,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 	r.Route("/v1/employees", func(r chi.Router) {
 		r.Use(middleware.ResolveOrgFromHeader(db))
 		r.Get("/", h.List)
+		r.Get("/{id}", h.Get)
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireOrgAdmin(db))
 			r.Post("/", h.Create)

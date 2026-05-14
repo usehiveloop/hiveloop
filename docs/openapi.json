@@ -7553,7 +7553,7 @@
             }
           },
           {
-            "description": "Filter by event type (e.g. MessageReceived, ResponseCompleted)",
+            "description": "Filter by event type (e.g. message_received, response_completed)",
             "name": "type",
             "in": "query",
             "schema": {
@@ -8504,6 +8504,83 @@
           },
           "503": {
             "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/employees/{id}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns one employee agent in the org with sub-agents,\nskills (metadata only \u2014 no bundle content), profiles,\ntriggers, and the latest sandbox row.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "Get an AI employee",
+        "parameters": [
+          {
+            "description": "Employee agent ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/employeeListItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
             "content": {
               "application/json": {
                 "schema": {
@@ -13935,9 +14012,6 @@
             "description": "nil for system agents",
             "type": "string"
           },
-          "deletedAt": {
-            "type": "string"
-          },
           "description": {
             "type": "string"
           },
@@ -13953,6 +14027,9 @@
             "type": "string"
           },
           "id": {
+            "type": "string"
+          },
+          "identityPrompt": {
             "type": "string"
           },
           "instructions": {
@@ -13974,8 +14051,18 @@
           "isSystem": {
             "type": "boolean"
           },
+          "lastMemoryRefreshedAt": {
+            "type": "string"
+          },
           "mcpServers": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "memoryRefreshError": {
+            "type": "string"
+          },
+          "memoryRefreshStatus": {
+            "description": "queued, running, succeeded, failed",
+            "type": "string"
           },
           "model": {
             "description": "must match credential's provider",
@@ -13998,6 +14085,9 @@
                 "$ref": "#/components/schemas/JSON"
               }
             ]
+          },
+          "promptOperatingPrinciples": {
+            "type": "string"
           },
           "providerGroup": {
             "description": "e.g. \"anthropic\", \"openai\", \"gemini\" \u2014 set for system agents",
@@ -14350,6 +14440,9 @@
             "description": "Denormalised slug of the org's active plan (\"free\" when no active sub).\nSource of truth lives in the subscriptions table; this is cached on\nthe org row so request-path checks don't need a join.",
             "type": "string"
           },
+          "promptCompany": {
+            "type": "string"
+          },
           "rateLimit": {
             "type": "integer"
           },
@@ -14674,13 +14767,15 @@
             "type": "string"
           },
           "name": {
-            "description": "Uniqueness is enforced by a partial index created in AutoMigrate\n(idx_team_org_name) so soft-deleted rows don't block name reuse.",
             "type": "string"
           },
           "org": {
             "$ref": "#/components/schemas/Org"
           },
           "orgID": {
+            "type": "string"
+          },
+          "promptTeam": {
             "type": "string"
           },
           "updatedAt": {
@@ -14895,6 +14990,12 @@
           },
           "description": {
             "type": "string"
+          },
+          "files": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "id": {
             "type": "string"
@@ -15905,6 +16006,9 @@
           "id": {
             "type": "string"
           },
+          "identity_prompt": {
+            "type": "string"
+          },
           "instructions": {
             "type": "string"
           },
@@ -15914,8 +16018,17 @@
           "is_employee": {
             "type": "boolean"
           },
+          "last_memory_refreshed_at": {
+            "type": "string"
+          },
           "mcp_servers": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "memory_refresh_error": {
+            "type": "string"
+          },
+          "memory_refresh_status": {
+            "type": "string"
           },
           "model": {
             "type": "string"
@@ -15931,6 +16044,9 @@
             "items": {
               "$ref": "#/components/schemas/agentProfileResponse"
             }
+          },
+          "prompt_operating_principles": {
+            "type": "string"
           },
           "provider_id": {
             "type": "string"
@@ -16161,6 +16277,9 @@
           "agent_id": {
             "type": "string"
           },
+          "asset_url": {
+            "type": "string"
+          },
           "bytes": {
             "type": "integer"
           },
@@ -16183,9 +16302,6 @@
             "type": "string"
           },
           "path": {
-            "type": "string"
-          },
-          "asset_url": {
             "type": "string"
           },
           "updated_at": {
@@ -16642,6 +16758,9 @@
           "harness": {
             "type": "string"
           },
+          "identity_prompt": {
+            "type": "string"
+          },
           "instructions": {
             "type": "string"
           },
@@ -16662,6 +16781,9 @@
           },
           "permissions": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "prompt_operating_principles": {
+            "type": "string"
           },
           "provider_prompts": {
             "$ref": "#/components/schemas/ProviderPromptsMap"
@@ -17089,6 +17211,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "prompt_team": {
+            "type": "string"
           }
         }
       },
@@ -17242,6 +17367,9 @@
           "id": {
             "type": "string"
           },
+          "identity_prompt": {
+            "type": "string"
+          },
           "instructions": {
             "type": "string"
           },
@@ -17251,8 +17379,17 @@
           "is_employee": {
             "type": "boolean"
           },
+          "last_memory_refreshed_at": {
+            "type": "string"
+          },
           "mcp_servers": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "memory_refresh_error": {
+            "type": "string"
+          },
+          "memory_refresh_status": {
+            "type": "string"
           },
           "model": {
             "type": "string"
@@ -17268,6 +17405,9 @@
             "items": {
               "$ref": "#/components/schemas/agentProfileResponse"
             }
+          },
+          "prompt_operating_principles": {
+            "type": "string"
           },
           "provider_id": {
             "type": "string"
@@ -18153,6 +18293,9 @@
           },
           "plan": {
             "$ref": "#/components/schemas/planDTO"
+          },
+          "prompt_company": {
+            "type": "string"
           },
           "rate_limit": {
             "type": "integer"
@@ -19539,6 +19682,9 @@
       "signUploadResponse": {
         "type": "object",
         "properties": {
+          "asset_url": {
+            "type": "string"
+          },
           "expires_at": {
             "type": "string"
           },
@@ -19547,9 +19693,6 @@
           },
           "max_size_bytes": {
             "type": "integer"
-          },
-          "asset_url": {
-            "type": "string"
           },
           "required_headers": {
             "type": "object",
@@ -19898,6 +20041,9 @@
           "name": {
             "type": "string"
           },
+          "prompt_team": {
+            "type": "string"
+          },
           "updated_at": {
             "type": "string"
           }
@@ -20098,6 +20244,9 @@
           "harness": {
             "type": "string"
           },
+          "identity_prompt": {
+            "type": "string"
+          },
           "instructions": {
             "type": "string"
           },
@@ -20115,6 +20264,9 @@
           },
           "permissions": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "prompt_operating_principles": {
+            "type": "string"
           },
           "provider_prompts": {
             "$ref": "#/components/schemas/ProviderPromptsMap"
@@ -20212,6 +20364,9 @@
             "type": "string"
           },
           "name": {
+            "type": "string"
+          },
+          "prompt_company": {
             "type": "string"
           }
         }
@@ -20325,6 +20480,9 @@
             "type": "string"
           },
           "name": {
+            "type": "string"
+          },
+          "prompt_team": {
             "type": "string"
           }
         }

@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
@@ -119,6 +121,66 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 		result.NextCursor = &c
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+
+// Get handles GET /v1/employees/{id}.
+// @Summary Get an AI employee
+// @Description Returns one employee agent in the org with sub-agents,
+// @Description skills (metadata only — no bundle content), profiles,
+// @Description triggers, and the latest sandbox row.
+// @Tags employees
+// @Produce json
+// @Param id path string true "Employee agent ID"
+// @Success 200 {object} employeeListItem
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/employees/{id} [get]
+func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	agentID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid employee id"})
+		return
+	}
+
+	var agent model.Agent
+	if err := h.db.WithContext(r.Context()).
+		Preload("Credential").
+		Preload("TeamRef").
+		Where("agents.id = ? AND agents.org_id = ? AND agents.is_employee = true AND agents.is_system = false", agentID, org.ID).
+		First(&agent).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get employee"})
+		return
+	}
+
+	base := toAgentResponse(agent)
+	base.Triggers = h.agents.loadAgentTriggers(agent.ID)[agent.ID]
+	base.AttachedSkills = h.agents.loadAgentSkills(agent.ID)[agent.ID]
+	base.Profiles = h.agents.loadAgentProfiles(agent.ID)[agent.ID]
+	subagents := loadEmployeeSubagents(h.db, []uuid.UUID{agent.ID})[agent.ID]
+	base.SubagentIDs = make([]string, len(subagents))
+	for i, subagent := range subagents {
+		base.SubagentIDs[i] = subagent.ID
+	}
+	sandbox := loadLatestSandboxPerAgent(h.db, org.ID, []uuid.UUID{agent.ID})[agent.ID]
+
+	writeJSON(w, http.StatusOK, employeeListItem{
+		agentResponse: base,
+		Subagents:     subagents,
+		Sandbox:       sandbox,
+	})
 }
 
 func loadEmployeeSubagents(db *gorm.DB, agentIDs []uuid.UUID) map[uuid.UUID][]employeeSubagentSummary {

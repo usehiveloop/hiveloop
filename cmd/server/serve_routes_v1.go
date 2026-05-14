@@ -180,6 +180,7 @@ func setupV1Routes(
 				})
 				if employeeHandler != nil {
 					r.Get("/employees", employeeHandler.List)
+					r.Get("/employees/{id}", employeeHandler.Get)
 					r.Group(func(r chi.Router) {
 						r.Use(middleware.RequireOrgAdmin(database))
 						r.Post("/employees", employeeHandler.Create)

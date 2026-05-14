@@ -84,8 +84,6 @@ definitions:
       credentialID:
         description: nil for system agents
         type: string
-      deletedAt:
-        type: string
       description:
         type: string
       encryptedEnvVars:
@@ -97,6 +95,8 @@ definitions:
         description: 'TODO(post-migration): drop agent.Tools column once data archived.'
         type: string
       id:
+        type: string
+      identityPrompt:
         type: string
       instructions:
         description: optional markdown instructions for auto-starting runs
@@ -111,8 +111,15 @@ definitions:
         type: boolean
       isSystem:
         type: boolean
+      lastMemoryRefreshedAt:
+        type: string
       mcpServers:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      memoryRefreshError:
+        type: string
+      memoryRefreshStatus:
+        description: queued, running, succeeded, failed
+        type: string
       model:
         description: must match credential's provider
         type: string
@@ -127,6 +134,8 @@ definitions:
         allOf:
         - $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
         description: tool permission overrides
+      promptOperatingPrinciples:
+        type: string
       providerGroup:
         description: e.g. "anthropic", "openai", "gemini" — set for system agents
         type: string
@@ -380,6 +389,8 @@ definitions:
           Source of truth lives in the subscriptions table; this is cached on
           the org row so request-path checks don't need a join.
         type: string
+      promptCompany:
+        type: string
       rateLimit:
         type: integer
       updatedAt:
@@ -611,13 +622,12 @@ definitions:
       id:
         type: string
       name:
-        description: |-
-          Uniqueness is enforced by a partial index created in AutoMigrate
-          (idx_team_org_name) so soft-deleted rows don't block name reuse.
         type: string
       org:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Org'
       orgID:
+        type: string
+      promptTeam:
         type: string
       updatedAt:
         type: string
@@ -760,6 +770,10 @@ definitions:
         type: string
       description:
         type: string
+      files:
+        additionalProperties:
+          type: string
+        type: object
       id:
         type: string
       manifest:
@@ -1421,14 +1435,22 @@ definitions:
         type: string
       id:
         type: string
+      identity_prompt:
+        type: string
       instructions:
         type: string
       integrations:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       is_employee:
         type: boolean
+      last_memory_refreshed_at:
+        type: string
       mcp_servers:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      memory_refresh_error:
+        type: string
+      memory_refresh_status:
+        type: string
       model:
         type: string
       name:
@@ -1439,6 +1461,8 @@ definitions:
         items:
           $ref: '#/definitions/internal_handler.agentProfileResponse'
         type: array
+      prompt_operating_principles:
+        type: string
       provider_id:
         type: string
       provider_prompts:
@@ -1596,6 +1620,8 @@ definitions:
     properties:
       agent_id:
         type: string
+      asset_url:
+        type: string
       bytes:
         type: integer
       content_type:
@@ -1611,8 +1637,6 @@ definitions:
       key:
         type: string
       path:
-        type: string
-      asset_url:
         type: string
       updated_at:
         type: string
@@ -1912,6 +1936,8 @@ definitions:
         type: string
       harness:
         type: string
+      identity_prompt:
+        type: string
       instructions:
         type: string
       integrations:
@@ -1926,6 +1952,8 @@ definitions:
         type: string
       permissions:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      prompt_operating_principles:
+        type: string
       provider_prompts:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap'
       resources:
@@ -2204,6 +2232,8 @@ definitions:
         type: string
       name:
         type: string
+      prompt_team:
+        type: string
     type: object
   internal_handler.createTriggerRequest:
     properties:
@@ -2305,14 +2335,22 @@ definitions:
         type: string
       id:
         type: string
+      identity_prompt:
+        type: string
       instructions:
         type: string
       integrations:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       is_employee:
         type: boolean
+      last_memory_refreshed_at:
+        type: string
       mcp_servers:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      memory_refresh_error:
+        type: string
+      memory_refresh_status:
+        type: string
       model:
         type: string
       name:
@@ -2323,6 +2361,8 @@ definitions:
         items:
           $ref: '#/definitions/internal_handler.agentProfileResponse'
         type: array
+      prompt_operating_principles:
+        type: string
       provider_id:
         type: string
       provider_prompts:
@@ -2902,6 +2942,8 @@ definitions:
         type: string
       plan:
         $ref: '#/definitions/internal_handler.planDTO'
+      prompt_company:
+        type: string
       rate_limit:
         type: integer
     type: object
@@ -3804,14 +3846,14 @@ definitions:
     type: object
   internal_handler.signUploadResponse:
     properties:
+      asset_url:
+        type: string
       expires_at:
         type: string
       key:
         type: string
       max_size_bytes:
         type: integer
-      asset_url:
-        type: string
       required_headers:
         additionalProperties:
           type: string
@@ -4041,6 +4083,8 @@ definitions:
         type: string
       name:
         type: string
+      prompt_team:
+        type: string
       updated_at:
         type: string
     type: object
@@ -4171,6 +4215,8 @@ definitions:
         type: string
       harness:
         type: string
+      identity_prompt:
+        type: string
       instructions:
         type: string
       integrations:
@@ -4183,6 +4229,8 @@ definitions:
         type: string
       permissions:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      prompt_operating_principles:
+        type: string
       provider_prompts:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap'
       resources:
@@ -4246,6 +4294,8 @@ definitions:
       logo_url:
         type: string
       name:
+        type: string
+      prompt_company:
         type: string
     type: object
   internal_handler.updateRAGSourceRequest:
@@ -4319,6 +4369,8 @@ definitions:
       description:
         type: string
       name:
+        type: string
+      prompt_team:
         type: string
     type: object
   internal_handler.usageResponse:
@@ -8518,7 +8570,7 @@ paths:
         name: convID
         required: true
         type: string
-      - description: Filter by event type (e.g. MessageReceived, ResponseCompleted)
+      - description: Filter by event type (e.g. message_received, response_completed)
         in: query
         name: type
         type: string
@@ -9035,6 +9087,46 @@ paths:
       security:
       - BearerAuth: []
       summary: Create an AI employee
+      tags:
+      - employees
+  /v1/employees/{id}:
+    get:
+      description: |-
+        Returns one employee agent in the org with sub-agents,
+        skills (metadata only — no bundle content), profiles,
+        triggers, and the latest sandbox row.
+      parameters:
+      - description: Employee agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.employeeListItem'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an AI employee
       tags:
       - employees
   /v1/employees/{id}/chats:

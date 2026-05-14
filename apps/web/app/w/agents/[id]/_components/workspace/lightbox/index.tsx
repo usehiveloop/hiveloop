@@ -166,7 +166,7 @@ function toPreviewAsset(a: ApiAsset): Asset {
     id: a.id ?? "",
     filename: a.filename ?? "",
     path: a.path ?? "",
-    publicUrl: a.public_url ?? "",
+    publicUrl: a.asset_url ?? "",
     contentType: a.content_type ?? "application/octet-stream",
     bytes: a.bytes ?? 0,
     createdAt: a.created_at ?? "",
@@ -190,7 +190,7 @@ function Header({
 }) {
   const filename = asset.filename ?? ""
   const path = asset.path ?? ""
-  const publicUrl = asset.public_url ?? ""
+  const publicUrl = asset.asset_url ?? ""
 
   const [copied, setCopied] = React.useState(false)
   const handleCopy = async () => {

@@ -34,6 +34,8 @@ import { useOnboarding } from "./context"
 const GITHUB_PROVIDER = "github"
 
 type GitHubRepository = components["schemas"]["gitHubRepository"]
+type Employee = components["schemas"]["employeeListItem"]
+type AgentProfile = components["schemas"]["agentProfileResponse"]
 
 export function GithubStep() {
   const { createEmployee, goBack, goNext } = useOnboarding()
@@ -43,7 +45,6 @@ export function GithubStep() {
   const [repositoryDialogOpen, setRepositoryDialogOpen] = useState(false)
   const [repositories, setRepositories] = useState<GitHubRepository[]>([])
   const [selectedIDs, setSelectedIDs] = useState<Set<string>>(new Set())
-  const [hasSavedRepositories, setHasSavedRepositories] = useState(false)
 
   const { data: integrations, isLoading: integrationsLoading } = $api.useQuery(
     "get",
@@ -53,12 +54,20 @@ export function GithubStep() {
   const githubIntegration = integrations?.find(
     (integration) => integration.provider === GITHUB_PROVIDER
   )
-  const { data: connectionsData, isLoading: connectionsLoading } =
-    $api.useQuery("get", "/v1/in/connections")
-  const githubConnection = connectionsData?.data?.find(
-    (connection) => connection.provider === GITHUB_PROVIDER
-  )
   const agentId = createEmployee.agentId
+  const employeeQuery = $api.useQuery(
+    "get",
+    "/v1/employees/{id}",
+    { params: { path: { id: agentId ?? "" } } },
+    { enabled: Boolean(agentId), retry: false }
+  )
+  const employee = employeeQuery.data as Employee | undefined
+  const githubProfile = employee?.profiles?.find(
+    (profile) => profile.provider === GITHUB_PROVIDER && profile.status === "active"
+  )
+  const savedRepositories = selectedRepositoriesFromProfile(githubProfile)
+  const hasSavedRepositories = savedRepositories.length > 0
+
   const createGitHubProfile = $api.useMutation(
     "post",
     "/v1/agents/{agentID}/profiles/github"
@@ -74,14 +83,10 @@ export function GithubStep() {
     { enabled: false, retry: false }
   )
 
-  async function attachProfileAndLoadRepositories(connectionId: string) {
+  async function loadRepositories() {
     if (!agentId) {
       throw new Error("Create the employee profile before connecting GitHub.")
     }
-    await createGitHubProfile.mutateAsync({
-      params: { path: { agentID: agentId } },
-      body: { connection_id: connectionId },
-    })
     const { data, error } = await repositoriesQuery.refetch()
     if (error) throw error
     if (!data) throw new Error("GitHub repositories response was empty")
@@ -91,8 +96,20 @@ export function GithubStep() {
     setSelectedIDs(
       new Set(selected.map((repo) => repo.id).filter((id): id is string => Boolean(id)))
     )
-    setHasSavedRepositories(selected.length > 0)
     setRepositoryDialogOpen(true)
+  }
+
+  async function attachProfileAndLoadRepositories(connectionId: string) {
+    if (!agentId) {
+      throw new Error("Create the employee profile before connecting GitHub.")
+    }
+    await createGitHubProfile.mutateAsync({
+      params: { path: { agentID: agentId } },
+      body: { connection_id: connectionId },
+    })
+    await queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
+    await employeeQuery.refetch()
+    await loadRepositories()
   }
 
   async function handleConnect() {
@@ -131,10 +148,6 @@ export function GithubStep() {
       )
       if (connection.error) throw new Error("Failed to save GitHub connection")
 
-      await queryClient.invalidateQueries({
-        queryKey: ["get", "/v1/in/connections"],
-      })
-
       const connectionID = connection.data?.id
       if (!connectionID) throw new Error("GitHub connection was saved without an id")
       await attachProfileAndLoadRepositories(connectionID)
@@ -151,10 +164,10 @@ export function GithubStep() {
   }
 
   async function handleSelectRepositories() {
-    if (!githubConnection?.id || loadingRepositories) return
+    if (!githubProfile || loadingRepositories) return
     setErrorMessage(null)
     try {
-      await attachProfileAndLoadRepositories(githubConnection.id)
+      await loadRepositories()
     } catch (error) {
       setErrorMessage(
         extractErrorMessage(error, "Could not load GitHub repositories. Try again.")
@@ -184,7 +197,8 @@ export function GithubStep() {
         params: { path: { agentID: agentId } },
         body: { repositories: selected },
       })
-      setHasSavedRepositories(true)
+      await queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
+      await employeeQuery.refetch()
       setRepositoryDialogOpen(false)
       goNext()
     } catch (error) {
@@ -194,12 +208,12 @@ export function GithubStep() {
     }
   }
 
-  const loading = integrationsLoading || connectionsLoading
+  const loading = integrationsLoading || employeeQuery.isLoading
   const loadingRepositories =
     createGitHubProfile.isPending || repositoriesQuery.isFetching
   const savingRepositories = updateGitHubRepositories.isPending
   const busy = connecting || loadingRepositories || savingRepositories
-  const choiceDisabled = busy || loading || !githubIntegration
+  const choiceDisabled = busy || loading || !githubIntegration || !agentId
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center gap-8 text-center">
@@ -215,19 +229,19 @@ export function GithubStep() {
           title={
             hasSavedRepositories
               ? "GitHub repositories selected"
-              : githubConnection
+              : githubProfile
                 ? "Select GitHub repositories"
                 : "Connect GitHub Profile"
           }
           description={
             hasSavedRepositories
               ? "Repository access is configured for this employee."
-              : githubConnection
+              : githubProfile
                 ? "Choose the repositories this employee can inspect and work in."
               : "Sign in with GitHub so Hiveloop can request repository access for this employee."
           }
           onClick={
-            githubConnection
+            githubProfile
               ? choiceDisabled
                 ? () => {}
                 : handleSelectRepositories
@@ -242,7 +256,7 @@ export function GithubStep() {
                 className="size-4 shrink-0 animate-spin text-muted-foreground"
                 strokeWidth={2}
               />
-            ) : githubConnection ? (
+            ) : githubProfile ? (
               <HugeiconsIcon
                 icon={CheckmarkCircle02Icon}
                 className="size-5 shrink-0 text-emerald-600"
@@ -298,6 +312,18 @@ export function GithubStep() {
       />
     </div>
   )
+}
+
+function selectedRepositoriesFromProfile(
+  profile: AgentProfile | undefined
+): GitHubRepository[] {
+  const raw = profile?.config?.selected_repositories
+  if (!Array.isArray(raw)) return []
+  return raw.filter(isGitHubRepository)
+}
+
+function isGitHubRepository(value: unknown): value is GitHubRepository {
+  return Boolean(value && typeof value === "object" && "id" in value)
 }
 
 function RepositoryPickerDialog({

@@ -6407,7 +6407,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Filter by event type (e.g. MessageReceived, ResponseCompleted)",
+                        "description": "Filter by event type (e.g. message_received, response_completed)",
                         "name": "type",
                         "in": "query"
                     },
@@ -7172,6 +7172,64 @@ const docTemplate = `{
                     },
                     "503": {
                         "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/employees/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns one employee agent in the org with sub-agents,\nskills (metadata only — no bundle content), profiles,\ntriggers, and the latest sandbox row.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Get an AI employee",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Employee agent ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.employeeListItem"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.errorResponse"
                         }
@@ -11664,9 +11722,6 @@ const docTemplate = `{
                     "description": "nil for system agents",
                     "type": "string"
                 },
-                "deletedAt": {
-                    "type": "string"
-                },
                 "description": {
                     "type": "string"
                 },
@@ -11682,6 +11737,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "identityPrompt": {
                     "type": "string"
                 },
                 "instructions": {
@@ -11703,8 +11761,18 @@ const docTemplate = `{
                 "isSystem": {
                     "type": "boolean"
                 },
+                "lastMemoryRefreshedAt": {
+                    "type": "string"
+                },
                 "mcpServers": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "memoryRefreshError": {
+                    "type": "string"
+                },
+                "memoryRefreshStatus": {
+                    "description": "queued, running, succeeded, failed",
+                    "type": "string"
                 },
                 "model": {
                     "description": "must match credential's provider",
@@ -11727,6 +11795,9 @@ const docTemplate = `{
                             "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                         }
                     ]
+                },
+                "promptOperatingPrinciples": {
+                    "type": "string"
                 },
                 "providerGroup": {
                     "description": "e.g. \"anthropic\", \"openai\", \"gemini\" — set for system agents",
@@ -12079,6 +12150,9 @@ const docTemplate = `{
                     "description": "Denormalised slug of the org's active plan (\"free\" when no active sub).\nSource of truth lives in the subscriptions table; this is cached on\nthe org row so request-path checks don't need a join.",
                     "type": "string"
                 },
+                "promptCompany": {
+                    "type": "string"
+                },
                 "rateLimit": {
                     "type": "integer"
                 },
@@ -12403,13 +12477,15 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "description": "Uniqueness is enforced by a partial index created in AutoMigrate\n(idx_team_org_name) so soft-deleted rows don't block name reuse.",
                     "type": "string"
                 },
                 "org": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.Org"
                 },
                 "orgID": {
+                    "type": "string"
+                },
+                "promptTeam": {
                     "type": "string"
                 },
                 "updatedAt": {
@@ -12624,6 +12700,12 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "files": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "id": {
                     "type": "string"
@@ -13634,6 +13716,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "identity_prompt": {
+                    "type": "string"
+                },
                 "instructions": {
                     "type": "string"
                 },
@@ -13643,8 +13728,17 @@ const docTemplate = `{
                 "is_employee": {
                     "type": "boolean"
                 },
+                "last_memory_refreshed_at": {
+                    "type": "string"
+                },
                 "mcp_servers": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "memory_refresh_error": {
+                    "type": "string"
+                },
+                "memory_refresh_status": {
+                    "type": "string"
                 },
                 "model": {
                     "type": "string"
@@ -13660,6 +13754,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/internal_handler.agentProfileResponse"
                     }
+                },
+                "prompt_operating_principles": {
+                    "type": "string"
                 },
                 "provider_id": {
                     "type": "string"
@@ -13890,6 +13987,9 @@ const docTemplate = `{
                 "agent_id": {
                     "type": "string"
                 },
+                "asset_url": {
+                    "type": "string"
+                },
                 "bytes": {
                     "type": "integer"
                 },
@@ -13912,9 +14012,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "path": {
-                    "type": "string"
-                },
-                "asset_url": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -14371,6 +14468,9 @@ const docTemplate = `{
                 "harness": {
                     "type": "string"
                 },
+                "identity_prompt": {
+                    "type": "string"
+                },
                 "instructions": {
                     "type": "string"
                 },
@@ -14391,6 +14491,9 @@ const docTemplate = `{
                 },
                 "permissions": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "prompt_operating_principles": {
+                    "type": "string"
                 },
                 "provider_prompts": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap"
@@ -14818,6 +14921,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "prompt_team": {
+                    "type": "string"
                 }
             }
         },
@@ -14971,6 +15077,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "identity_prompt": {
+                    "type": "string"
+                },
                 "instructions": {
                     "type": "string"
                 },
@@ -14980,8 +15089,17 @@ const docTemplate = `{
                 "is_employee": {
                     "type": "boolean"
                 },
+                "last_memory_refreshed_at": {
+                    "type": "string"
+                },
                 "mcp_servers": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "memory_refresh_error": {
+                    "type": "string"
+                },
+                "memory_refresh_status": {
+                    "type": "string"
                 },
                 "model": {
                     "type": "string"
@@ -14997,6 +15115,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/internal_handler.agentProfileResponse"
                     }
+                },
+                "prompt_operating_principles": {
+                    "type": "string"
                 },
                 "provider_id": {
                     "type": "string"
@@ -15882,6 +16003,9 @@ const docTemplate = `{
                 },
                 "plan": {
                     "$ref": "#/definitions/internal_handler.planDTO"
+                },
+                "prompt_company": {
+                    "type": "string"
                 },
                 "rate_limit": {
                     "type": "integer"
@@ -17268,6 +17392,9 @@ const docTemplate = `{
         "internal_handler.signUploadResponse": {
             "type": "object",
             "properties": {
+                "asset_url": {
+                    "type": "string"
+                },
                 "expires_at": {
                     "type": "string"
                 },
@@ -17276,9 +17403,6 @@ const docTemplate = `{
                 },
                 "max_size_bytes": {
                     "type": "integer"
-                },
-                "asset_url": {
-                    "type": "string"
                 },
                 "required_headers": {
                     "type": "object",
@@ -17627,6 +17751,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "prompt_team": {
+                    "type": "string"
+                },
                 "updated_at": {
                     "type": "string"
                 }
@@ -17827,6 +17954,9 @@ const docTemplate = `{
                 "harness": {
                     "type": "string"
                 },
+                "identity_prompt": {
+                    "type": "string"
+                },
                 "instructions": {
                     "type": "string"
                 },
@@ -17844,6 +17974,9 @@ const docTemplate = `{
                 },
                 "permissions": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
+                },
+                "prompt_operating_principles": {
+                    "type": "string"
                 },
                 "provider_prompts": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap"
@@ -17941,6 +18074,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "prompt_company": {
                     "type": "string"
                 }
             }
@@ -18054,6 +18190,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "prompt_team": {
                     "type": "string"
                 }
             }

@@ -7381,7 +7381,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    /** @description Filter by event type (e.g. MessageReceived, ResponseCompleted) */
+                    /** @description Filter by event type (e.g. message_received, response_completed) */
                     type?: string;
                     /** @description Page size (default 50, max 100) */
                     limit?: number;
@@ -8265,6 +8265,86 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/employees/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get an AI employee
+         * @description Returns one employee agent in the org with sub-agents,
+         *     skills (metadata only — no bundle content), profiles,
+         *     triggers, and the latest sandbox row.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["employeeListItem"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -13396,13 +13476,13 @@ export interface components {
             credential?: components["schemas"]["Credential"];
             /** @description nil for system agents */
             credentialID?: string;
-            deletedAt?: string;
             description?: string;
             /** @description AES-256-GCM encrypted JSON map of env vars */
             encryptedEnvVars?: number[];
             /** @description TODO(post-migration): drop agent.Tools column once data archived. */
             harness?: string;
             id?: string;
+            identityPrompt?: string;
             /** @description optional markdown instructions for auto-starting runs */
             instructions?: string;
             /** @description selected integration IDs/configs */
@@ -13410,7 +13490,11 @@ export interface components {
             /** @description employee agents own subagents and use a different onboarding flow */
             isEmployee?: boolean;
             isSystem?: boolean;
+            lastMemoryRefreshedAt?: string;
             mcpServers?: components["schemas"]["JSON"];
+            memoryRefreshError?: string;
+            /** @description queued, running, succeeded, failed */
+            memoryRefreshStatus?: string;
             /** @description must match credential's provider */
             model?: string;
             name?: string;
@@ -13419,6 +13503,7 @@ export interface components {
             orgID?: string;
             /** @description tool permission overrides */
             permissions?: components["schemas"]["JSON"];
+            promptOperatingPrinciples?: string;
             /** @description e.g. "anthropic", "openai", "gemini" — set for system agents */
             providerGroup?: string;
             /** @description map[provider_group] -> {system_prompt, model} */
@@ -13554,7 +13639,7 @@ export interface components {
             id?: string;
             /**
              * @description LogoURL is a CDN-served URL to the org's square logo. Stored as the
-             *     public_url returned from POST /v1/uploads/sign with asset_type=org_logo.
+             *     asset_url returned from POST /v1/uploads/sign with asset_type=org_logo.
              *     Empty string when no logo is set.
              */
             logoURL?: string;
@@ -13566,6 +13651,7 @@ export interface components {
              *     the org row so request-path checks don't need a join.
              */
             planSlug?: string;
+            promptCompany?: string;
             rateLimit?: number;
             updatedAt?: string;
             website?: string;
@@ -13702,13 +13788,10 @@ export interface components {
             deletedAt?: string;
             description?: string;
             id?: string;
-            /**
-             * @description Uniqueness is enforced by a partial index created in AutoMigrate
-             *     (idx_team_org_name) so soft-deleted rows don't block name reuse.
-             */
             name?: string;
             org?: components["schemas"]["Org"];
             orgID?: string;
+            promptTeam?: string;
             updatedAt?: string;
         };
         TriggerCondition: {
@@ -13784,6 +13867,9 @@ export interface components {
         "github_com_usehiveloop_hiveloop_internal_skills.Bundle": {
             content?: string;
             description?: string;
+            files?: {
+                [key: string]: string;
+            };
             id?: string;
             manifest?: {
                 [key: string]: unknown;
@@ -14119,14 +14205,19 @@ export interface components {
             description?: string;
             harness?: string;
             id?: string;
+            identity_prompt?: string;
             instructions?: string;
             integrations?: components["schemas"]["JSON"];
             is_employee?: boolean;
+            last_memory_refreshed_at?: string;
             mcp_servers?: components["schemas"]["JSON"];
+            memory_refresh_error?: string;
+            memory_refresh_status?: string;
             model?: string;
             name?: string;
             permissions?: components["schemas"]["JSON"];
             profiles?: components["schemas"]["agentProfileResponse"][];
+            prompt_operating_principles?: string;
             provider_id?: string;
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             resources?: components["schemas"]["JSON"];
@@ -14211,6 +14302,7 @@ export interface components {
         };
         assetListItem: {
             agent_id?: string;
+            asset_url?: string;
             bytes?: number;
             content_type?: string;
             conversation_id?: string;
@@ -14219,7 +14311,6 @@ export interface components {
             id?: string;
             key?: string;
             path?: string;
-            public_url?: string;
             updated_at?: string;
         };
         attachSkillRequest: {
@@ -14374,6 +14465,7 @@ export interface components {
             credential_id?: string;
             description?: string;
             harness?: string;
+            identity_prompt?: string;
             instructions?: string;
             integrations?: components["schemas"]["JSON"];
             is_employee?: boolean;
@@ -14381,6 +14473,7 @@ export interface components {
             model?: string;
             name?: string;
             permissions?: components["schemas"]["JSON"];
+            prompt_operating_principles?: string;
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             resources?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
@@ -14524,6 +14617,7 @@ export interface components {
         createTeamRequest: {
             description?: string;
             name?: string;
+            prompt_team?: string;
         };
         createTriggerRequest: {
             /** @description required for webhook */
@@ -14578,14 +14672,19 @@ export interface components {
             description?: string;
             harness?: string;
             id?: string;
+            identity_prompt?: string;
             instructions?: string;
             integrations?: components["schemas"]["JSON"];
             is_employee?: boolean;
+            last_memory_refreshed_at?: string;
             mcp_servers?: components["schemas"]["JSON"];
+            memory_refresh_error?: string;
+            memory_refresh_status?: string;
             model?: string;
             name?: string;
             permissions?: components["schemas"]["JSON"];
             profiles?: components["schemas"]["agentProfileResponse"][];
+            prompt_operating_principles?: string;
             provider_id?: string;
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             resources?: components["schemas"]["JSON"];
@@ -14878,6 +14977,7 @@ export interface components {
             logo_url?: string;
             name?: string;
             plan?: components["schemas"]["planDTO"];
+            prompt_company?: string;
             rate_limit?: number;
         };
         otpRequestPayload: {
@@ -15324,10 +15424,10 @@ export interface components {
             size_bytes?: number;
         };
         signUploadResponse: {
+            asset_url?: string;
             expires_at?: string;
             key?: string;
             max_size_bytes?: number;
-            public_url?: string;
             required_headers?: {
                 [key: string]: string;
             };
@@ -15450,6 +15550,7 @@ export interface components {
             description?: string;
             id?: string;
             name?: string;
+            prompt_team?: string;
             updated_at?: string;
         };
         tokenListItem: {
@@ -15520,12 +15621,14 @@ export interface components {
             credential_id?: string;
             description?: string;
             harness?: string;
+            identity_prompt?: string;
             instructions?: string;
             integrations?: components["schemas"]["JSON"];
             mcp_servers?: components["schemas"]["JSON"];
             model?: string;
             name?: string;
             permissions?: components["schemas"]["JSON"];
+            prompt_operating_principles?: string;
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             resources?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
@@ -15555,6 +15658,7 @@ export interface components {
         updateOrgRequest: {
             logo_url?: string;
             name?: string;
+            prompt_company?: string;
         };
         updateRAGSourceRequest: {
             config?: components["schemas"]["JSON"];
@@ -15593,6 +15697,7 @@ export interface components {
         updateTeamRequest: {
             description?: string;
             name?: string;
+            prompt_team?: string;
         };
         usageResponse: {
             api_keys?: components["schemas"]["apiKeyStats"];
