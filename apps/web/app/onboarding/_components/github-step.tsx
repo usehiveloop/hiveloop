@@ -42,6 +42,7 @@ export function GithubStep() {
   const queryClient = useQueryClient()
   const [connecting, setConnecting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [repositoryErrorMessage, setRepositoryErrorMessage] = useState<string | null>(null)
   const [repositoryDialogOpen, setRepositoryDialogOpen] = useState(false)
   const [repositories, setRepositories] = useState<GitHubRepository[]>([])
   const [selectedIDs, setSelectedIDs] = useState<Set<string>>(new Set())
@@ -92,6 +93,7 @@ export function GithubStep() {
     if (!data) throw new Error("GitHub repositories response was empty")
 
     setRepositories(data.repositories ?? [])
+    setRepositoryErrorMessage(null)
     const selected = data.selected_repositories ?? []
     setSelectedIDs(
       new Set(selected.map((repo) => repo.id).filter((id): id is string => Boolean(id)))
@@ -188,9 +190,10 @@ export function GithubStep() {
     if (!agentId) return
     const selected = repositories.filter((repo) => repo.id && selectedIDs.has(repo.id))
     if (selected.length === 0) {
-      setErrorMessage("Select at least one repository for this employee.")
+      setRepositoryErrorMessage("Select at least one repository for this employee.")
       return
     }
+    setRepositoryErrorMessage(null)
     setErrorMessage(null)
     try {
       await updateGitHubRepositories.mutateAsync({
@@ -202,8 +205,10 @@ export function GithubStep() {
       setRepositoryDialogOpen(false)
       goNext()
     } catch (error) {
-      setErrorMessage(
-        extractErrorMessage(error, "Could not save repository access. Try again.")
+      setRepositoryErrorMessage(
+        formatGitHubRepositorySaveError(
+          extractErrorMessage(error, "Could not save repository access. Try again.")
+        )
       )
     }
   }
@@ -309,6 +314,7 @@ export function GithubStep() {
         onToggle={toggleRepository}
         onSave={handleSaveRepositories}
         saving={savingRepositories}
+        errorMessage={repositoryErrorMessage}
       />
     </div>
   )
@@ -334,6 +340,7 @@ function RepositoryPickerDialog({
   onToggle,
   onSave,
   saving,
+  errorMessage,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -342,6 +349,7 @@ function RepositoryPickerDialog({
   onToggle: (repoID: string, checked: boolean) => void
   onSave: () => void
   saving: boolean
+  errorMessage: string | null
 }) {
   return (
     <Dialog
@@ -397,6 +405,17 @@ function RepositoryPickerDialog({
           )}
         </div>
 
+        {errorMessage ? (
+          <div className="mt-4 flex items-start gap-2.5 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-left text-[13px] text-destructive">
+            <HugeiconsIcon
+              icon={Alert02Icon}
+              className="mt-0.5 size-4 shrink-0"
+              strokeWidth={2}
+            />
+            <span className="leading-relaxed">{errorMessage}</span>
+          </div>
+        ) : null}
+
         <DialogFooter className="mt-4 sm:items-center sm:justify-between">
           <p className="text-[13px] text-muted-foreground">
             {selectedIDs.size} selected
@@ -412,6 +431,19 @@ function RepositoryPickerDialog({
       </DialogContent>
     </Dialog>
   )
+}
+
+function formatGitHubRepositorySaveError(message: string): string {
+  if (message.includes("failed to create GitHub webhook")) {
+    return `${message}. The connected GitHub profile can see this repository, but GitHub did not allow Hiveloop to create a repository webhook. Reconnect GitHub with an account that has admin access to the repository, or ask a repository admin to grant webhook management access, then try again.`
+  }
+  if (message.includes("github webhook setup is not configured")) {
+    return "GitHub webhook setup is not configured on Hiveloop. This is a platform configuration issue; please contact support."
+  }
+  if (message.includes("failed to prepare GitHub webhook secret")) {
+    return "Hiveloop could not prepare the GitHub webhook secret. This is a platform issue; please try again or contact support."
+  }
+  return message
 }
 
 function RepositoryChoiceCard({

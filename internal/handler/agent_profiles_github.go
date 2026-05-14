@@ -276,14 +276,14 @@ func (h *AgentProfileHandler) UpdateGitHubRepositories(w http.ResponseWriter, r 
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "github webhook url setup failed",
 			"error", err, "agent_id", agent.ID, "profile_id", profile.ID)
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "github webhook setup is not configured"})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "github webhook setup is not configured"})
 		return
 	}
 	webhookSecret, err := h.ensureGitHubWebhookSecret(r.Context(), &profile)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "github webhook secret setup failed",
 			"error", err, "profile_id", profile.ID, "agent_id", agent.ID)
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to prepare GitHub webhook secret"})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to prepare GitHub webhook secret"})
 		return
 	}
 
@@ -296,7 +296,7 @@ func (h *AgentProfileHandler) UpdateGitHubRepositories(w http.ResponseWriter, r 
 		if err != nil {
 			logging.FromContext(r.Context()).ErrorContext(r.Context(), "github repository webhook setup failed",
 				"error", err, "profile_id", profile.ID, "agent_id", agent.ID, "repository", repo.FullName)
-			writeJSON(w, http.StatusBadRequest, map[string]string{
+			writeJSON(w, http.StatusInternalServerError, map[string]string{
 				"error": fmt.Sprintf("failed to create GitHub webhook for %s", repo.FullName),
 			})
 			return

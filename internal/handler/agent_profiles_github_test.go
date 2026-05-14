@@ -371,7 +371,7 @@ func TestAgentProfileHandler_GitHubRepositorySelectionBlocksSaveWhenHookCreateFa
 		"id":        "101",
 		"name":      "alpha",
 		"full_name": "octocat/alpha",
-	}}, http.StatusBadRequest)
+	}}, http.StatusInternalServerError)
 
 	var profile model.AgentProfile
 	if err := db.Where("agent_id = ? AND provider = ?", agent.ID, "github").First(&profile).Error; err != nil {
