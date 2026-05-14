@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, type MouseEvent } from "react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import Nango, { AuthError } from "@nangohq/frontend"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -43,7 +43,6 @@ export function GithubStep() {
   const { createEmployee, goBack, goNext } = useOnboarding()
   const queryClient = useQueryClient()
   const [connecting, setConnecting] = useState(false)
-  const [reconnecting, setReconnecting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [repositoryErrorMessage, setRepositoryErrorMessage] = useState<string | null>(null)
   const [repositoryDialogOpen, setRepositoryDialogOpen] = useState(false)
@@ -87,6 +86,37 @@ export function GithubStep() {
     { params: { path: { agentID: agentId ?? "" } } },
     { enabled: false, retry: false }
   )
+  const reconnectGitHubProfile = useMutation({
+    mutationFn: async ({ connectionId }: { connectionId: string }) => {
+      const session = await api.POST("/v1/in/connections/{id}/reconnect-session", {
+        params: { path: { id: connectionId } },
+      })
+      if (session.error) throw session.error
+
+      const { token, provider_config_key: providerConfigKey } =
+        session.data as { token: string; provider_config_key: string }
+
+      const nango = new Nango({
+        connectSessionToken: token,
+        host: process.env.NEXT_PUBLIC_CONNECTIONS_HOST,
+      })
+
+      await nango.reconnect(providerConfigKey)
+      await refreshProfile(connectionId)
+      await queryClient.invalidateQueries({ queryKey: ["get", "/v1/in/connections"] })
+    },
+    onMutate: () => {
+      setErrorMessage(null)
+      setRepositoryErrorMessage(null)
+    },
+    onSuccess: () => {
+      toast.success("GitHub profile reconnected")
+    },
+    onError: (error) => {
+      if (error instanceof AuthError && error.type === "window_closed") return
+      setErrorMessage(extractErrorMessage(error, "Could not reconnect GitHub. Try again."))
+    },
+  })
 
   async function loadRepositories() {
     if (!agentId) {
@@ -181,40 +211,10 @@ export function GithubStep() {
     }
   }
 
-  async function handleReconnect(event: MouseEvent<HTMLButtonElement>) {
+  function handleReconnect(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation()
-    if (!githubProfile || !githubConnectionID || reconnecting) return
-
-    setReconnecting(true)
-    setErrorMessage(null)
-    setRepositoryErrorMessage(null)
-
-    try {
-      const session = await api.POST("/v1/in/connections/{id}/reconnect-session", {
-        params: { path: { id: githubConnectionID } },
-      })
-      if (session.error) throw session.error
-
-      const { token, provider_config_key: providerConfigKey } =
-        session.data as { token: string; provider_config_key: string }
-
-      const nango = new Nango({
-        connectSessionToken: token,
-        host: process.env.NEXT_PUBLIC_CONNECTIONS_HOST,
-      })
-
-      await nango.reconnect(providerConfigKey)
-      await refreshProfile(githubConnectionID)
-      await queryClient.invalidateQueries({ queryKey: ["get", "/v1/in/connections"] })
-      toast.success("GitHub profile reconnected")
-    } catch (error) {
-      if (error instanceof AuthError && error.type === "window_closed") {
-        return
-      }
-      setErrorMessage(extractErrorMessage(error, "Could not reconnect GitHub. Try again."))
-    } finally {
-      setReconnecting(false)
-    }
+    if (!githubProfile || !githubConnectionID || reconnectGitHubProfile.isPending) return
+    reconnectGitHubProfile.mutate({ connectionId: githubConnectionID })
   }
 
   async function handleSelectRepositories() {
@@ -265,6 +265,7 @@ export function GithubStep() {
   const loadingRepositories =
     createGitHubProfile.isPending || repositoriesQuery.isFetching
   const savingRepositories = updateGitHubRepositories.isPending
+  const reconnecting = reconnectGitHubProfile.isPending
   const busy = connecting || reconnecting || loadingRepositories || savingRepositories
   const choiceDisabled = busy || loading || !githubIntegration || !agentId
 
