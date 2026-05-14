@@ -189,7 +189,7 @@ curl -X PUT http://localhost:8080/push/agents/my-agent \
     "provider": {
       "provider_type": "anthropic",
       "model": "claude-sonnet-4-20250514",
-      "api_key": "<anthropic-api-key>"
+      "api_key": "<provider-api-key>"
     },
     "version": "2"
   }'
@@ -333,7 +333,7 @@ PATCH /push/agents/{agent_id}/api-key
 
 ```json
 {
-  "api_key": "<anthropic-api-key>"
+  "api_key": "<new-provider-api-key>"
 }
 ```
 
@@ -365,7 +365,7 @@ PATCH /push/agents/{agent_id}/api-key
 curl -X PATCH http://localhost:8080/push/agents/my-agent/api-key \
   -H "Authorization: Bearer <bridge-control-plane-api-key>" \
   -H "Content-Type: application/json" \
-  -d '{"api_key": "<anthropic-api-key>"}'
+  -d '{"api_key": "<new-provider-api-key>"}'
 ```
 
 ---
@@ -399,7 +399,7 @@ POST /push/diff
       "provider": {
         "provider_type": "anthropic",
         "model": "claude-sonnet-4-20250514",
-        "api_key": "<anthropic-api-key>"
+        "api_key": "<provider-api-key>"
       }
     }
   ],

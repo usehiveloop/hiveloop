@@ -200,7 +200,7 @@ No drain, no conversation interruption. Existing conversations pick up the new k
 curl -X PATCH https://bridge.yourapp.com/push/agents/support_agent/api-key \
   -H "Authorization: Bearer <bridge-control-plane-api-key>" \
   -H "Content-Type: application/json" \
-  -d '{"api_key": "<anthropic-api-key>"}'
+  -d '{"api_key": "<rotated-provider-api-key>"}'
 ```
 
 ---

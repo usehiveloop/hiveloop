@@ -29,7 +29,7 @@ Add to your agent definition:
       "description": "Customer relationship management",
       "base_url": "https://api.your-crm.com",
       "headers": {
-        "Authorization": "Bearer <bridge-control-plane-api-key>"
+        "Authorization": "Bearer <bearer-token>"
       },
       "actions": [
         {
@@ -81,7 +81,7 @@ Bridge sends:
 ```
 GET /customers/123 HTTP/1.1
 Host: api.your-crm.com
-Authorization: Bearer <bridge-control-plane-api-key>
+Authorization: Bearer <bearer-token>
 ```
 
 ### Response Format

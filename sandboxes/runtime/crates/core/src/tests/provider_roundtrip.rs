@@ -140,7 +140,7 @@ fn provider_config_roundtrip_without_base_url() {
     let config = ProviderConfig {
         provider_type: ProviderType::Anthropic,
         model: "claude-sonnet-4-20250514".to_string(),
-        api_key: "<anthropic-api-key>".to_string(),
+        api_key: "<provider-api-key>".to_string(),
         base_url: None,
     };
 

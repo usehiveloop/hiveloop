@@ -56,7 +56,7 @@ Complete agent definition:
   "provider": {
     "provider_type": "anthropic",
     "model": "claude-sonnet-4-20250514",
-    "api_key": "<anthropic-api-key>",
+    "api_key": "<provider-api-key>",
     "base_url": "https://api.anthropic.com"
   },
   "tools": ["read", "web_search"],

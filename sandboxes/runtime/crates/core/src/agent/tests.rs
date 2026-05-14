@@ -9,7 +9,7 @@ const SIMPLE_AGENT: &str = r#"{
     "provider": {
         "provider_type": "anthropic",
         "model": "claude-sonnet-4-5",
-        "api_key": "<anthropic-api-key>"
+        "api_key": "<provider-api-key>"
     }
 }"#;
 

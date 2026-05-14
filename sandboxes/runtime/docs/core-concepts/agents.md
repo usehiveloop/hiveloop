@@ -14,7 +14,7 @@ An agent is a complete AI configuration. Think of it as a job description for an
   "provider": {
     "provider_type": "anthropic",
     "model": "claude-sonnet-4-20250514",
-    "api_key": "<anthropic-api-key>"
+    "api_key": "<provider-api-key>"
   },
   "tools": [{"name": "read", "description": "...", "parameters_schema": {}}],
   "mcp_servers": [...],

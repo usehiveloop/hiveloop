@@ -89,7 +89,7 @@ async fn upsert_agent_path_body_mismatch_returns_400() {
         "provider": {
             "provider_type": "anthropic",
             "model": "claude-sonnet-4-20250514",
-            "api_key": "<provider-api-key>"
+            "api_key": "provider-api-key"
         }
     });
 

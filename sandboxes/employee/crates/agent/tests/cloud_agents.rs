@@ -219,7 +219,7 @@ impl FakeControlPlane {
         CloudAgentConfig {
             employee_id: "emp-1".to_string(),
             control_plane_url: format!("http://{}", self.addr),
-            bridge_api_key: "test-token".to_string(),
+            bridge_api_key: "cloud-agent-test-token".to_string(),
         }
     }
 }
@@ -384,7 +384,7 @@ fn validate_auth(headers: &HeaderMap) -> Result<(), StatusCode> {
         .get("authorization")
         .and_then(|value| value.to_str().ok())
     {
-        Some("Bearer test-token") => Ok(()),
+        Some("Bearer cloud-agent-test-token") => Ok(()),
         _ => Err(StatusCode::UNAUTHORIZED),
     }
 }

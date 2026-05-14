@@ -593,7 +593,7 @@ Test with a temporary endpoint:
 ```json
 {
   "webhook_url": "https://webhook.site/your-unique-id",
-  "webhook_secret": "runtime-test-token"
+  "webhook_secret": "<webhook-secret>"
 }
 ```
 

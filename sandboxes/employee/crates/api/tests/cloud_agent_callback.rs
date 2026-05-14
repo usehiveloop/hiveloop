@@ -32,7 +32,7 @@ async fn put_config_reloads_outbound_channels() {
         config_repo,
         sessions,
         events,
-        "secret".to_string(),
+        "callback-test-token".to_string(),
         Arc::new(SkillWriter::new(test_workspace())),
         Some(api::HttpGatewayState {
             inbound_sink: tx,
@@ -59,7 +59,7 @@ async fn put_config_reloads_outbound_channels() {
             Request::builder()
                 .method(Method::PUT)
                 .uri("/config")
-                .header(header::AUTHORIZATION, "Bearer secret")
+                .header(header::AUTHORIZATION, "Bearer callback-test-token")
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(serde_json::to_vec(&definition).unwrap()))
                 .unwrap(),

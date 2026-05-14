@@ -103,7 +103,7 @@ Connects to a remote server over HTTP using the MCP streamable HTTP transport:
   "type": "streamable_http",
   "url": "https://mcp.example.com/tools",
   "headers": {
-    "Authorization": "Bearer <bridge-control-plane-api-key>"
+    "Authorization": "Bearer <bearer-token>"
   }
 }
 ```
@@ -201,7 +201,7 @@ curl -X POST http://localhost:8080/agents/my-agent/conversations \
           "type": "streamable_http",
           "url": "https://mcp.example.com/v1",
           "headers": {
-            "Authorization": "Bearer <bridge-control-plane-api-key>",
+            "Authorization": "Bearer <tenant-token>",
             "X-Tenant-Id": "42"
           }
         }

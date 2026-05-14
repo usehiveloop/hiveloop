@@ -22,10 +22,10 @@ All fields are optional. Send an empty body `{}` or omit the body entirely to us
 {
   "tool_names": ["read", "write", "bash"],
   "mcp_server_names": ["github", "jira"],
-  "api_key": "<anthropic-api-key>",
+  "api_key": "<provider-api-key>",
   "subagent_api_keys": {
-    "explorer": "<anthropic-api-key>",
-    "coder": "<anthropic-api-key>"
+    "explorer": "<explorer-api-key>",
+    "coder": "<coder-api-key>"
   },
   "mcp_servers": [
     {
@@ -113,7 +113,7 @@ Use this when the tool surface varies per call — for example, passing a user-s
         "type": "streamable_http",
         "url": "https://mcp.example.com/v1",
         "headers": {
-          "Authorization": "Bearer <bridge-control-plane-api-key>",
+          "Authorization": "Bearer <conversation-token>",
           "X-Project-Id": "proj-42"
         }
       }
@@ -204,7 +204,7 @@ curl -X POST http://localhost:8080/agents/support-agent/conversations \
         "type": "streamable_http",
         "url": "https://mcp.internal.example.com/billing",
         "headers": {
-          "Authorization": "Bearer <bridge-control-plane-api-key>",
+          "Authorization": "Bearer <tenant-token>",
           "X-Tenant-Id": "tenant-42"
         }
       }

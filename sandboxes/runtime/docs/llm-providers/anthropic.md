@@ -44,7 +44,7 @@ Check [Anthropic's docs](https://docs.anthropic.com) for the latest models.
 1. Sign up at [console.anthropic.com](https://console.anthropic.com)
 2. Go to API Keys
 3. Create a new key
-4. Copy the key (starts with `sk-ant-`)
+4. Copy the key from the Anthropic console
 
 ---
 

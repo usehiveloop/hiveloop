@@ -46,7 +46,10 @@ fn mcp_transport_streamable_http_roundtrip() {
     let transport = McpTransport::StreamableHttp {
         url: "https://mcp.example.com/sse".to_string(),
         headers: HashMap::from([
-            ("Authorization".to_string(), "Bearer <bridge-control-plane-api-key>".to_string()),
+            (
+                "Authorization".to_string(),
+                "Bearer <bearer-token>".to_string(),
+            ),
             ("X-Custom".to_string(), "value".to_string()),
         ]),
     };
