@@ -220,10 +220,10 @@ jobs:
           cache: true
       - name: Generate Hindsight env file
         env:
-          HINDSIGHT_API_LLM_API_KEY: ${{ secrets.HINDSIGHT_API_LLM_API_KEY || secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           missing=0
-          for name in HINDSIGHT_API_LLM_API_KEY; do
+          for name in OPENROUTER_API_KEY; do
             if [ -z "${!name}" ]; then
               echo "::error::$name is required for real Hindsight integration tests"
               missing=1
@@ -236,14 +236,14 @@ jobs:
           cat > .env.hindsight <<EOF
           HINDSIGHT_API_EMBEDDINGS_PROVIDER=openrouter
           HINDSIGHT_API_HOST=0.0.0.0
-          HINDSIGHT_API_LLM_API_KEY=${HINDSIGHT_API_LLM_API_KEY}
+          HINDSIGHT_API_LLM_API_KEY=${OPENROUTER_API_KEY}
           HINDSIGHT_API_LLM_BASE_URL=https://openrouter.ai/api/v1
           HINDSIGHT_API_LLM_MODEL=openai/gpt-oss-20b
           HINDSIGHT_API_LLM_PROVIDER=openai
           HINDSIGHT_API_LOG_FORMAT=json
           HINDSIGHT_API_LOG_LEVEL=info
           HINDSIGHT_API_PORT=8888
-          HINDSIGHT_API_OPENROUTER_API_KEY=${HINDSIGHT_API_LLM_API_KEY}
+          HINDSIGHT_API_OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
           HINDSIGHT_API_RERANKER_PROVIDER=openrouter
           HINDSIGHT_API_RUN_MIGRATIONS_ON_STARTUP=true
           HINDSIGHT_API_WORKERS=2
