@@ -66,8 +66,11 @@ func (d *Deps) HandleIngest(ctx context.Context, t *asynq.Task) error {
 			src.ID, src.KindValue)
 	}
 
-	attempt, err := openAttempt(ctx, deps.DB, src, payload.FromBeginning)
+	attempt, err := openAttempt(ctx, deps.DB, src, payload.FromBeginning, payload.AttemptID)
 	if err != nil {
+		if errors.Is(err, errIngestAttemptAlreadyClaimed) {
+			return nil
+		}
 		return err
 	}
 

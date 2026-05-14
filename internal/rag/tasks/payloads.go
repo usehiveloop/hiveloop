@@ -9,8 +9,9 @@ import (
 )
 
 type IngestPayload struct {
-	RAGSourceID   uuid.UUID `json:"rag_source_id"`
-	FromBeginning bool      `json:"from_beginning,omitempty"`
+	RAGSourceID   uuid.UUID  `json:"rag_source_id"`
+	FromBeginning bool       `json:"from_beginning,omitempty"`
+	AttemptID     *uuid.UUID `json:"attempt_id,omitempty"`
 }
 
 type PermSyncPayload struct {
