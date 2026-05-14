@@ -61,7 +61,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	var hindsightClient *hindsight.Client
 	if cfg.HindsightAPIURL != "" {
 		hindsightClient = hindsight.NewClient(cfg.HindsightAPIURL)
-		mcpHandler.SetMemoryTools(hindsight.NewMemoryToolsFunc(hindsightClient))
+		mcpHandler.SetMemoryTools(hindsight.NewMemoryToolsFunc(hindsightClient, hindsightMemoryRefresh(enqueuer)))
 	}
 	mcpHandler.SetSubscriptionTools(subscriptions.RegisterTools(subscriptions.NewService(database, actionsCatalog)))
 	if deps.SpiderClient != nil {

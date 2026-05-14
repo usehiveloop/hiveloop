@@ -207,6 +207,75 @@ jobs:
         if: always()
         run: docker compose down -v --remove-orphans 2>/dev/null || true
 
+  test-hindsight:
+    runs-on: ubuntu-latest
+    env:
+      HINDSIGHT_API_URL: http://localhost:8888
+      HINDSIGHT_INTEGRATION: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.10"
+          cache: true
+      - name: Generate Hindsight env file
+        env:
+          HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY: ${{ secrets.HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY || secrets.OPENAI_API_KEY }}
+          HINDSIGHT_API_LLM_API_KEY: ${{ secrets.HINDSIGHT_API_LLM_API_KEY || secrets.OPENROUTER_API_KEY }}
+          HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY: ${{ secrets.HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY || secrets.ZEROENTROPY_API_KEY }}
+        run: |
+          missing=0
+          for name in HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY HINDSIGHT_API_LLM_API_KEY HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is required for real Hindsight integration tests"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          cat > .env.hindsight <<EOF
+          HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY=${HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY}
+          HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL=text-embedding-3-small
+          HINDSIGHT_API_EMBEDDINGS_PROVIDER=openai
+          HINDSIGHT_API_HOST=0.0.0.0
+          HINDSIGHT_API_LLM_API_KEY=${HINDSIGHT_API_LLM_API_KEY}
+          HINDSIGHT_API_LLM_BASE_URL=https://openrouter.ai/api/v1
+          HINDSIGHT_API_LLM_MODEL=openai/gpt-oss-20b
+          HINDSIGHT_API_LLM_PROVIDER=openai
+          HINDSIGHT_API_LOG_FORMAT=json
+          HINDSIGHT_API_LOG_LEVEL=info
+          HINDSIGHT_API_PORT=8888
+          HINDSIGHT_API_RERANKER_PROVIDER=zeroentropy
+          HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY=${HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY}
+          HINDSIGHT_API_RERANKER_ZEROENTROPY_MODEL=zerank-2
+          HINDSIGHT_API_RUN_MIGRATIONS_ON_STARTUP=true
+          HINDSIGHT_API_WORKERS=2
+          HINDSIGHT_API_WORKER_ENABLED=true
+          EOF
+      - name: start Hindsight
+        run: docker compose --profile hindsight up -d hindsight
+        timeout-minutes: 5
+      - name: wait for Hindsight
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS "$HINDSIGHT_API_URL/health" >/dev/null 2>&1 || curl -fsS "$HINDSIGHT_API_URL" >/dev/null 2>&1; then
+              echo "Hindsight is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose --profile hindsight logs --tail=200 hindsight
+          exit 1
+        timeout-minutes: 3
+      - name: run real Hindsight tests
+        run: go test ./internal/hindsight -run 'TestRealHindsight' -count=1 -v -timeout=5m
+        timeout-minutes: 6
+      - name: cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans 2>/dev/null || true
+
   # Remaining e2e tests not already covered by the dedicated e2e jobs
   # (test-auth, test-nango, test-proxy, test-connect).
   test-e2e-core:
@@ -243,6 +312,7 @@ jobs:
         test-connect,
         test-core,
         test-handler,
+        test-hindsight,
         test-e2e-core,
       ]
     runs-on: ubuntu-latest
@@ -255,6 +325,7 @@ jobs:
              [ "${{ needs.test-connect.result }}" != "success" ] || \
              [ "${{ needs.test-core.result }}" != "success" ] || \
              [ "${{ needs.test-handler.result }}" != "success" ] || \
+             [ "${{ needs.test-hindsight.result }}" != "success" ] || \
              [ "${{ needs.test-e2e-core.result }}" != "success" ]; then
             echo "One or more test jobs failed"
             exit 1

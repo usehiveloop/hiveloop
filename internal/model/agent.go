@@ -151,6 +151,7 @@ var ValidBuiltInTools = []BuiltInToolDefinition{
 	{ID: "memory_recall", Name: "Recall memory", Description: "Search long-term memory for relevant context from past conversations.", Category: "memory", Locked: true},
 	{ID: "memory_retain", Name: "Retain memory", Description: "Store important information to long-term memory.", Category: "memory", Locked: true},
 	{ID: "memory_reflect", Name: "Reflect on memory", Description: "Get a synthesized answer by analyzing full memory.", Category: "memory", Locked: true},
+	{ID: "memory_forget", Name: "Forget memory", Description: "Delete one long-term memory document by exact document ID.", Category: "memory", Locked: true},
 }
 
 // validBuiltInToolIDs is a set for fast validation lookups.
