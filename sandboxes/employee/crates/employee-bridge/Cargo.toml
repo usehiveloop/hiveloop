@@ -1,0 +1,43 @@
+[package]
+name = "employee-bridge"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "employee-bridge"
+path = "src/main.rs"
+
+[dependencies]
+domain.workspace = true
+gateway.workspace = true
+agent.workspace = true
+storage.workspace = true
+tools.workspace = true
+mcp.workspace = true
+skills.workspace = true
+outbound.workspace = true
+api.workspace = true
+
+tokio.workspace = true
+async-trait.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+sentry.workspace = true
+dotenvy.workspace = true
+futures.workspace = true
+chrono.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+dashmap = "6"
+rustls = "0.23"
+url = "2"
+flate2 = "1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+tempfile = "3"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }

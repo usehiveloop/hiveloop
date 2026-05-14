@@ -1,0 +1,185 @@
+Production database schema findings from hiveloop.com comparison
+=================================================================
+
+Context
+-------
+- Compared production Railway Postgres schema against current local main AutoMigrate output in /Users/bahdcoder/code/hiveloop.com.
+- Production had 63 tables.
+- Local current-main AutoMigrate had 52 tables.
+- No local-only tables, columns, or indexes were found.
+- Production has 11 extra tables, 5 extra columns, and 3 extra non-RAG indexes.
+
+
+Production-only tables
+----------------------
+
+Active / should not drop:
+
+- rag_sources
+  - Still used in local code.
+  - Used by /v1/rag/sources, Knowledge UI, scheduler, ingest/prune/permission-sync tasks.
+  - Action: add proper local migration/AutoMigrate path instead of relying on historical prod schema.
+
+- rag_index_attempts
+  - Still used in local code.
+  - Used by RAG ingest lifecycle, watchdog, APIs, and Knowledge status surfaces.
+  - Action: add proper local migration/AutoMigrate path.
+
+- rag_index_attempt_errors
+  - Still used in local code.
+  - Written during ingest failures and read by attempt-detail APIs.
+  - Prod has many rows, so preserve.
+  - Action: add proper local migration/AutoMigrate path.
+
+Possibly active / needs decision:
+
+- rag_embedding_models
+  - Model and SeedRegistry exist.
+  - Not clearly called from non-test boot path.
+  - RAGIndexAttempt comments reference embedding model FK.
+  - Action: either wire embedder.SeedRegistry(db) into boot/migrations or remove/replace the table deliberately.
+
+Model-only or currently unused/planned:
+
+- rag_search_settings
+  - Model/docs only.
+  - No non-test reads/writes found.
+  - Prod row count: 0.
+  - Action: decide whether to migrate as planned feature or drop from prod.
+
+- rag_sync_states
+  - Model only.
+  - Scheduler appears to use rag_sources directly.
+  - Prod row count: 0.
+  - Action: likely cleanup candidate unless upcoming sync-state implementation depends on it.
+
+- rag_sync_records
+  - Model only.
+  - Prod row count: 0.
+  - Action: likely cleanup candidate unless upcoming sync-record implementation depends on it.
+
+- rag_external_identities
+  - Model only.
+  - Prod row count: 0.
+  - Action: likely cleanup candidate unless external ACL identity sync is still planned.
+
+- rag_external_user_groups
+  - Model plus connector-interface comments only.
+  - No persistence usage found.
+  - Prod row count: 0.
+  - Action: likely cleanup candidate unless external ACL group sync is still planned.
+
+- rag_user_external_user_groups
+  - Model/comments/tests intended stale-sweep behavior.
+  - No prod reads/writes found.
+  - Prod row count: 0.
+  - Action: likely cleanup candidate unless ACL group membership sync is still planned.
+
+- rag_public_external_user_groups
+  - Model only.
+  - Prod row count: 0.
+  - Action: likely cleanup candidate unless public ACL groups are still planned.
+
+
+Production-only columns
+-----------------------
+
+- conversation_events.payload
+  - Not used by current local code.
+  - Current ConversationEvent model uses data JSON column, not payload.
+  - Prod non-empty count: 0.
+  - Action: safe cleanup candidate after backup.
+
+- marketplace_agents.sandbox_type
+  - Backend model no longer has this field.
+  - Admin UI and SDK still reference sandbox_type, which means frontend/API types are stale or backend support was removed without cleanup.
+  - Prod non-empty count: 0.
+  - Action: either remove stale admin UI/SDK references or intentionally re-add backend support. Do not keep this ambiguous.
+
+- marketplace_agents.subagents
+  - No DB-column usage found.
+  - Current subagent relationship is relation-based through agent_subagents.
+  - subagents appears in runtime/config/API response contexts, but not as marketplace_agents.subagents persistence.
+  - Prod non-empty count: 0.
+  - Action: safe cleanup candidate after confirming agent_subagents fully replaces it.
+
+- orgs.billing_plan
+  - No local code references found.
+  - Current org model uses plan_slug.
+  - Prod has 1 non-free row.
+  - Action: migrate/archive the non-free value before dropping.
+
+- orgs.polar_customer_id
+  - No local code references found.
+  - Prod has 1 non-null row.
+  - Action: migrate/archive the value before dropping. Coordinate with billing history expectations.
+
+
+Production-only non-RAG indexes
+-------------------------------
+
+- idx_orgs_polar_customer_id
+  - Tied to stale orgs.polar_customer_id column.
+  - Action: drop together with column after backup/migration.
+
+- idx_sub_change_quote_open
+  - Not produced by current AutoMigrate.
+  - Likely useful operational index for active SubscriptionChangeQuote flow.
+  - Action: inspect exact definition in prod and add as manual migration/index if still beneficial.
+
+- idx_sub_org_plan_active
+  - Not produced by current AutoMigrate.
+  - Likely useful uniqueness/lookup index for active subscriptions.
+  - Action: inspect exact definition in prod and add as manual migration/index if still beneficial.
+
+
+Recommended implementation tasks
+--------------------------------
+
+1. Add a real RAG migration path in hiveloop.com.
+   - Create an internal RAG migration function, for example internal/rag/migrate.go.
+   - AutoMigrate at minimum:
+     - RAGSource
+     - RAGIndexAttempt
+     - RAGIndexAttemptError
+   - Decide whether to also migrate all currently model-only RAG tables or prune those models/tables.
+   - Call the RAG migration from server and worker boot paths after core model.AutoMigrate.
+
+2. Wire or remove rag_embedding_models.
+   - If the table is intended, call embedder.SeedRegistry(db) during boot/migration.
+   - If not intended, remove the model/table expectation and adjust references.
+
+3. Add missing manual subscription indexes to local migrations if they are still needed.
+   - idx_sub_change_quote_open
+   - idx_sub_org_plan_active
+
+4. Clean stale prod-only columns after backup and data review.
+   - conversation_events.payload
+   - marketplace_agents.sandbox_type
+   - marketplace_agents.subagents
+   - orgs.billing_plan
+   - orgs.polar_customer_id
+
+5. Clean stale admin UI/API references.
+   - marketplace_agents.sandbox_type is still referenced outside backend model support.
+   - Either remove those references or reintroduce backend support intentionally.
+
+6. Before destructive DB cleanup:
+   - Take a production backup.
+   - Export the one non-free orgs.billing_plan row.
+   - Export the one non-null orgs.polar_customer_id row.
+   - Confirm no external reporting, billing, or admin scripts still read the stale columns.
+
+
+Useful local code areas inspected
+---------------------------------
+
+- /Users/bahdcoder/code/hiveloop.com/internal/model/org.go
+- /Users/bahdcoder/code/hiveloop.com/cmd/server/serve.go
+- /Users/bahdcoder/code/hiveloop.com/cmd/server/serve_routes_v1.go
+- /Users/bahdcoder/code/hiveloop.com/cmd/server/worker.go
+- /Users/bahdcoder/code/hiveloop.com/cmd/server/worker_rag.go
+- /Users/bahdcoder/code/hiveloop.com/apps/web/app/w/knowledge/page.tsx
+- /Users/bahdcoder/code/hiveloop.com/apps/web/app/w/knowledge/_components/add-connection-dialog.tsx
+- /Users/bahdcoder/code/hiveloop.com/apps/web/app/w/knowledge/_components/add-website-dialog.tsx
+- /Users/bahdcoder/code/hiveloop.com/apps/web/app/w/knowledge/_components/search-panel.tsx

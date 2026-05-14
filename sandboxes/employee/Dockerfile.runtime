@@ -1,0 +1,83 @@
+FROM debian:13.4
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV NVM_DIR=/usr/local/nvm
+ARG JUST_VERSION=1.38.0
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    bash \
+    build-essential \
+    ca-certificates \
+    cmake \
+    coreutils \
+    curl \
+    direnv \
+    dnsutils \
+    fd-find \
+    findutils \
+    gh \
+    git \
+    git-lfs \
+    gzip \
+    iputils-ping \
+    jq \
+    less \
+    lsof \
+    make \
+    netcat-openbsd \
+    nodejs \
+    npm \
+    openssh-client \
+    pkg-config \
+    procps \
+    psmisc \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python3-dev \
+    ripgrep \
+    rsync \
+    shellcheck \
+    sqlite3 \
+    tar \
+    tini \
+    tree \
+    unzip \
+    vim-tiny \
+    wget \
+    xz-utils \
+    yq \
+    zip \
+    zsh \
+  && ln -s /usr/bin/fdfind /usr/local/bin/fd \
+  && curl -fsSL "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+    | tar -xz -C /usr/local/bin just \
+  && git lfs install --system \
+  && npm install -g pnpm@10 \
+  && mkdir -p "$NVM_DIR" \
+  && curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | PROFILE=/dev/null bash \
+  && printf '%s\n' 'export NVM_DIR="/usr/local/nvm"' '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >/etc/profile.d/nvm.sh \
+  && python3 -m pip install --break-system-packages --no-cache-dir uv \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY employee-bridge /usr/local/bin/employee-bridge
+COPY docker/runtime/git-credential-hiveloop /usr/local/bin/git-credential-hiveloop
+COPY docker/runtime/gh-wrapper /usr/local/bin/gh-wrapper
+
+RUN chmod +x /usr/local/bin/employee-bridge \
+  && mkdir -p /app/data /workspace \
+  && chmod +x /usr/local/bin/git-credential-hiveloop \
+  && chmod +x /usr/local/bin/gh-wrapper \
+  && git config --system credential.helper /usr/local/bin/git-credential-hiveloop \
+  && ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh
+
+ENV DB_PATH=/app/data/employee-bridge.db
+ENV WORKSPACE_ROOT=/workspace
+ENV RUNTIME_BIND_ADDR=0.0.0.0:7080
+
+EXPOSE 7080
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/bin/sh", "-c", "git config --system user.name \"$HIVELOOP_GIT_USERNAME\"; git config --system user.email \"$HIVELOOP_GIT_EMAIL\"; exec /usr/local/bin/employee-bridge"]
