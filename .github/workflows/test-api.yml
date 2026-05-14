@@ -220,12 +220,10 @@ jobs:
           cache: true
       - name: Generate Hindsight env file
         env:
-          HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY: ${{ secrets.HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY || secrets.OPENAI_API_KEY }}
           HINDSIGHT_API_LLM_API_KEY: ${{ secrets.HINDSIGHT_API_LLM_API_KEY || secrets.OPENROUTER_API_KEY }}
-          HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY: ${{ secrets.HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY || secrets.ZEROENTROPY_API_KEY }}
         run: |
           missing=0
-          for name in HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY HINDSIGHT_API_LLM_API_KEY HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY; do
+          for name in HINDSIGHT_API_LLM_API_KEY; do
             if [ -z "${!name}" ]; then
               echo "::error::$name is required for real Hindsight integration tests"
               missing=1
@@ -236,9 +234,8 @@ jobs:
           fi
 
           cat > .env.hindsight <<EOF
-          HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY=${HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY}
-          HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL=text-embedding-3-small
-          HINDSIGHT_API_EMBEDDINGS_PROVIDER=openai
+          HINDSIGHT_API_EMBEDDINGS_PROVIDER=local
+          HINDSIGHT_API_EMBEDDINGS_LOCAL_FORCE_CPU=true
           HINDSIGHT_API_HOST=0.0.0.0
           HINDSIGHT_API_LLM_API_KEY=${HINDSIGHT_API_LLM_API_KEY}
           HINDSIGHT_API_LLM_BASE_URL=https://openrouter.ai/api/v1
@@ -247,9 +244,8 @@ jobs:
           HINDSIGHT_API_LOG_FORMAT=json
           HINDSIGHT_API_LOG_LEVEL=info
           HINDSIGHT_API_PORT=8888
-          HINDSIGHT_API_RERANKER_PROVIDER=zeroentropy
-          HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY=${HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY}
-          HINDSIGHT_API_RERANKER_ZEROENTROPY_MODEL=zerank-2
+          HINDSIGHT_API_RERANKER_PROVIDER=local
+          HINDSIGHT_API_RERANKER_LOCAL_FORCE_CPU=true
           HINDSIGHT_API_RUN_MIGRATIONS_ON_STARTUP=true
           HINDSIGHT_API_WORKERS=2
           HINDSIGHT_API_WORKER_ENABLED=true
