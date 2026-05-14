@@ -20,6 +20,8 @@ type nangoConnMockConfig struct {
 	proxyStatus      int
 	emailsStatus     int
 	githubEmails     []map[string]any
+	repoStatus       int
+	repoPermissions  map[string]map[string]bool
 	hookListStatus   int
 	hookCreateStatus int
 	hookUpdateStatus int
@@ -40,6 +42,9 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 	}
 	if cfg.emailsStatus == 0 {
 		cfg.emailsStatus = http.StatusOK
+	}
+	if cfg.repoStatus == 0 {
+		cfg.repoStatus = http.StatusOK
 	}
 	if cfg.hookListStatus == 0 {
 		cfg.hookListStatus = http.StatusOK
@@ -198,6 +203,33 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 				})
 				return
 			}
+		}
+
+		if strings.HasPrefix(r.URL.Path, "/proxy/repos/") && r.Method == http.MethodGet {
+			w.WriteHeader(cfg.repoStatus)
+			if cfg.repoStatus >= 400 {
+				_ = json.NewEncoder(w).Encode(map[string]any{"message": "github repo error"})
+				return
+			}
+			fullName := strings.TrimPrefix(r.URL.Path, "/proxy/repos/")
+			permissions := map[string]bool{"admin": true, "maintain": true, "push": true, "triage": true, "pull": true}
+			if cfg.repoPermissions != nil {
+				if override, ok := cfg.repoPermissions[fullName]; ok {
+					permissions = override
+				}
+			}
+			parts := strings.Split(fullName, "/")
+			name := fullName
+			if len(parts) == 2 {
+				name = parts[1]
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id":          101,
+				"name":        name,
+				"full_name":   fullName,
+				"permissions": permissions,
+			})
+			return
 		}
 
 		if strings.Contains(r.URL.Path, "/hooks/") && r.Method == http.MethodPatch {

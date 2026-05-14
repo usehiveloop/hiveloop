@@ -26,14 +26,15 @@ type createGitHubProfileRequest struct {
 }
 
 type gitHubRepository struct {
-	ID          string `json:"id"`
-	NodeID      string `json:"node_id,omitempty"`
-	Name        string `json:"name"`
-	FullName    string `json:"full_name"`
-	Private     bool   `json:"private"`
-	HTMLURL     string `json:"html_url,omitempty"`
-	Description string `json:"description,omitempty"`
-	Owner       string `json:"owner,omitempty"`
+	ID          string     `json:"id"`
+	NodeID      string     `json:"node_id,omitempty"`
+	Name        string     `json:"name"`
+	FullName    string     `json:"full_name"`
+	Private     bool       `json:"private"`
+	HTMLURL     string     `json:"html_url,omitempty"`
+	Description string     `json:"description,omitempty"`
+	Owner       string     `json:"owner,omitempty"`
+	Permissions model.JSON `json:"permissions,omitempty"`
 }
 
 type gitHubProfileRepositoriesResponse struct {
@@ -48,6 +49,21 @@ type createGitHubProfileResponse struct {
 
 type updateGitHubRepositoriesRequest struct {
 	Repositories []gitHubRepository `json:"repositories"`
+}
+
+type gitHubRepositoryPermissionCheck struct {
+	Repository        string `json:"repository"`
+	CanRead           bool   `json:"can_read"`
+	CanWrite          bool   `json:"can_write"`
+	CanManageWebhooks bool   `json:"can_manage_webhooks"`
+	Message           string `json:"message,omitempty"`
+}
+
+type gitHubRepositoryPermissionErrorResponse struct {
+	Error    string                            `json:"error"`
+	Code     string                            `json:"code"`
+	Checks   []gitHubRepositoryPermissionCheck `json:"checks"`
+	Required []string                          `json:"required_permissions"`
 }
 
 // @Summary Attach a GitHub profile to an AI employee
@@ -267,6 +283,22 @@ func (h *AgentProfileHandler) UpdateGitHubRepositories(w http.ResponseWriter, r 
 			return
 		}
 	}
+	permissionChecks, err := h.checkGitHubRepositoryPermissions(r.Context(), conn, providerConfigKey, req.Repositories)
+	if err != nil {
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "github repository permission check failed",
+			"error", err, "profile_id", profile.ID, "agent_id", agent.ID)
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "could not verify GitHub repository permissions"})
+		return
+	}
+	if failed := failedGitHubRepositoryPermissionChecks(permissionChecks); len(failed) > 0 {
+		writeJSON(w, http.StatusBadRequest, gitHubRepositoryPermissionErrorResponse{
+			Error:    "connected GitHub account does not have the required repository permissions",
+			Code:     "github_repository_permissions_missing",
+			Checks:   failed,
+			Required: []string{"repository read access", "repository write access", "repository webhook/admin access"},
+		})
+		return
+	}
 
 	cfg := model.JSON{}
 	for k, v := range profile.Config {
@@ -297,7 +329,7 @@ func (h *AgentProfileHandler) UpdateGitHubRepositories(w http.ResponseWriter, r 
 			logging.FromContext(r.Context()).ErrorContext(r.Context(), "github repository webhook setup failed",
 				"error", err, "profile_id", profile.ID, "agent_id", agent.ID, "repository", repo.FullName)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{
-				"error": fmt.Sprintf("failed to create GitHub webhook for %s", repo.FullName),
+				"error": fmt.Sprintf("failed to create GitHub webhook for %s after permission checks passed", repo.FullName),
 			})
 			return
 		}
@@ -460,11 +492,103 @@ func (h *AgentProfileHandler) fetchGitHubRepositories(r *http.Request, conn mode
 		if owner, ok := item["owner"].(map[string]any); ok {
 			repo.Owner = stringFromAny(owner["login"])
 		}
+		if permissions, ok := jsonObjectFromAny(item["permissions"]); ok {
+			repo.Permissions = permissions
+		}
 		if repo.ID != "" && repo.FullName != "" {
 			repos = append(repos, repo)
 		}
 	}
 	return repos, nil
+}
+
+func (h *AgentProfileHandler) checkGitHubRepositoryPermissions(ctx context.Context, conn model.InConnection, providerConfigKey string, repos []gitHubRepository) ([]gitHubRepositoryPermissionCheck, error) {
+	checks := make([]gitHubRepositoryPermissionCheck, 0, len(repos))
+	for _, repo := range repos {
+		check, err := h.checkGitHubRepositoryPermission(ctx, conn, providerConfigKey, repo)
+		if err != nil {
+			return nil, err
+		}
+		checks = append(checks, check)
+	}
+	return checks, nil
+}
+
+func (h *AgentProfileHandler) checkGitHubRepositoryPermission(ctx context.Context, conn model.InConnection, providerConfigKey string, repo gitHubRepository) (gitHubRepositoryPermissionCheck, error) {
+	check := gitHubRepositoryPermissionCheck{Repository: repo.FullName}
+	owner, name, err := splitGitHubRepoFullName(repo.FullName)
+	if err != nil {
+		check.Message = err.Error()
+		return check, nil
+	}
+	raw, err := h.nango.RawProxyRequest(ctx, http.MethodGet, providerConfigKey, conn.NangoConnectionID, githubRepoPath(owner, name), "", nil, "")
+	if err != nil {
+		return check, err
+	}
+	if raw.StatusCode == http.StatusNotFound || raw.StatusCode == http.StatusForbidden || raw.StatusCode == http.StatusUnauthorized {
+		check.Message = "The connected GitHub account cannot access this repository."
+		return check, nil
+	}
+	if raw.StatusCode >= 400 {
+		return check, fmt.Errorf("github repository permission request failed: %d: %s", raw.StatusCode, string(raw.Body))
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(raw.Body, &payload); err != nil {
+		return check, fmt.Errorf("decode github repository permission response: %w", err)
+	}
+	check.CanRead = true
+	permissions, ok := jsonObjectFromAny(payload["permissions"])
+	if !ok {
+		check.Message = "GitHub did not return repository permissions for the connected account."
+		return check, nil
+	}
+	admin := boolFromAny(permissions["admin"])
+	maintain := boolFromAny(permissions["maintain"])
+	push := boolFromAny(permissions["push"])
+	check.CanWrite = admin || maintain || push
+	if admin {
+		canManageWebhooks, message, err := h.checkGitHubRepositoryWebhookPermission(ctx, conn, providerConfigKey, owner, name)
+		if err != nil {
+			return check, err
+		}
+		check.CanManageWebhooks = canManageWebhooks
+		check.Message = message
+	}
+	if !check.CanWrite && !check.CanManageWebhooks {
+		check.Message = "The connected GitHub account needs write access and admin access to manage webhooks."
+	} else if !check.CanWrite {
+		check.Message = "The connected GitHub account needs write access to this repository."
+	} else if !check.CanManageWebhooks {
+		if check.Message == "" {
+			check.Message = "The connected GitHub account needs admin access to create and update repository webhooks."
+		}
+	}
+	return check, nil
+}
+
+func (h *AgentProfileHandler) checkGitHubRepositoryWebhookPermission(ctx context.Context, conn model.InConnection, providerConfigKey string, owner string, repo string) (bool, string, error) {
+	raw, err := h.nango.RawProxyRequest(ctx, http.MethodGet, providerConfigKey, conn.NangoConnectionID, githubRepoHooksPath(owner, repo), "", nil, "")
+	if err != nil {
+		return false, "", err
+	}
+	if raw.StatusCode == http.StatusUnauthorized || raw.StatusCode == http.StatusForbidden || raw.StatusCode == http.StatusNotFound {
+		return false, "The connected GitHub account or OAuth grant cannot manage repository webhooks. Reconnect GitHub with an admin account and make sure webhook permissions are granted.", nil
+	}
+	if raw.StatusCode >= 400 {
+		return false, "", fmt.Errorf("github repository webhook permission request failed: %d: %s", raw.StatusCode, string(raw.Body))
+	}
+	return true, "", nil
+}
+
+func failedGitHubRepositoryPermissionChecks(checks []gitHubRepositoryPermissionCheck) []gitHubRepositoryPermissionCheck {
+	failed := make([]gitHubRepositoryPermissionCheck, 0)
+	for _, check := range checks {
+		if !check.CanRead || !check.CanWrite || !check.CanManageWebhooks {
+			failed = append(failed, check)
+		}
+	}
+	return failed
 }
 
 func writeAgentProfileResolveError(w http.ResponseWriter, err error) {
@@ -518,7 +642,7 @@ func selectedGitHubRepositories(cfg model.JSON) []gitHubRepository {
 func reposToJSONList(repos []gitHubRepository) []any {
 	out := make([]any, 0, len(repos))
 	for _, repo := range repos {
-		out = append(out, map[string]any{
+		item := map[string]any{
 			"id":          repo.ID,
 			"node_id":     repo.NodeID,
 			"name":        repo.Name,
@@ -527,9 +651,26 @@ func reposToJSONList(repos []gitHubRepository) []any {
 			"html_url":    repo.HTMLURL,
 			"description": repo.Description,
 			"owner":       repo.Owner,
-		})
+		}
+		if len(repo.Permissions) > 0 {
+			item["permissions"] = repo.Permissions
+		}
+		out = append(out, item)
 	}
 	return out
+}
+
+func jsonObjectFromAny(v any) (model.JSON, bool) {
+	if v == nil {
+		return nil, false
+	}
+	if obj, ok := v.(map[string]any); ok {
+		return model.JSON(obj), true
+	}
+	if obj, ok := v.(model.JSON); ok {
+		return obj, true
+	}
+	return nil, false
 }
 
 func stringFromJSON(v model.JSON, key string) string {

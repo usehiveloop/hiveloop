@@ -205,11 +205,7 @@ export function GithubStep() {
       setRepositoryDialogOpen(false)
       goNext()
     } catch (error) {
-      setRepositoryErrorMessage(
-        formatGitHubRepositorySaveError(
-          extractErrorMessage(error, "Could not save repository access. Try again.")
-        )
-      )
+      setRepositoryErrorMessage(formatGitHubRepositorySaveError(error))
     }
   }
 
@@ -433,7 +429,24 @@ function RepositoryPickerDialog({
   )
 }
 
-function formatGitHubRepositorySaveError(message: string): string {
+function formatGitHubRepositorySaveError(error: unknown): string {
+  const permissionError = parseGitHubRepositoryPermissionError(error)
+  if (permissionError) {
+    const repositories = permissionError.checks
+      .map((check) => {
+        const missing = [
+          !check.can_write ? "write access" : null,
+          !check.can_manage_webhooks ? "webhook/admin access" : null,
+          !check.can_read ? "read access" : null,
+        ].filter(Boolean)
+        const missingText = missing.length > 0 ? ` Missing: ${missing.join(", ")}.` : ""
+        return `${check.repository}.${missingText} ${check.message ?? ""}`.trim()
+      })
+      .join(" ")
+    return `The connected GitHub account does not have enough access for the selected repositories. Hiveloop needs read access, write access, and repository webhook/admin access. ${repositories} Reconnect GitHub with a repository admin account, or ask a repository admin to grant the missing access, then try again.`
+  }
+
+  const message = extractErrorMessage(error, "Could not save repository access. Try again.")
   if (message.includes("failed to create GitHub webhook")) {
     return `${message}. The connected GitHub profile can see this repository, but GitHub did not allow Hiveloop to create a repository webhook. Reconnect GitHub with an account that has admin access to the repository, or ask a repository admin to grant webhook management access, then try again.`
   }
@@ -444,6 +457,44 @@ function formatGitHubRepositorySaveError(message: string): string {
     return "Hiveloop could not prepare the GitHub webhook secret. This is a platform issue; please try again or contact support."
   }
   return message
+}
+
+function parseGitHubRepositoryPermissionError(error: unknown):
+  | {
+      checks: Array<{
+        repository: string
+        can_read: boolean
+        can_write: boolean
+        can_manage_webhooks: boolean
+        message?: string
+      }>
+    }
+  | null {
+  if (!error || typeof error !== "object") return null
+  const candidate = error as {
+    code?: unknown
+    checks?: unknown
+    error?: {
+      code?: unknown
+      checks?: unknown
+    }
+  }
+  const code = candidate.code ?? candidate.error?.code
+  const checks = candidate.checks ?? candidate.error?.checks
+  if (code !== "github_repository_permissions_missing" || !Array.isArray(checks)) {
+    return null
+  }
+  return {
+    checks: checks
+      .filter((check): check is Record<string, unknown> => Boolean(check && typeof check === "object"))
+      .map((check) => ({
+        repository: typeof check.repository === "string" ? check.repository : "Selected repository",
+        can_read: check.can_read === true,
+        can_write: check.can_write === true,
+        can_manage_webhooks: check.can_manage_webhooks === true,
+        message: typeof check.message === "string" ? check.message : undefined,
+      })),
+  }
 }
 
 function RepositoryChoiceCard({

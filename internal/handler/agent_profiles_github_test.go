@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -382,6 +383,169 @@ func TestAgentProfileHandler_GitHubRepositorySelectionBlocksSaveWhenHookCreateFa
 	}
 	if got := webhookMetadataCount(t, profile.Config); got != 0 {
 		t.Fatalf("webhook metadata entries after hook failure = %d, want 0", got)
+	}
+}
+
+func TestAgentProfileHandler_GitHubRepositorySelectionExplainsMissingPermissions(t *testing.T) {
+	db := connectTestDB(t)
+	t.Cleanup(func() {
+		db.Where("provider = ?", "github").Delete(&model.AgentProfile{})
+		db.Where("1=1").Delete(&model.InConnection{})
+		db.Where("1=1").Delete(&model.InIntegration{})
+	})
+
+	mockCfg := &nangoConnMockConfig{
+		repoPermissions: map[string]map[string]bool{
+			"octocat/alpha": {
+				"admin":    false,
+				"maintain": false,
+				"push":     true,
+				"triage":   true,
+				"pull":     true,
+			},
+		},
+	}
+	nangoSrv := httptest.NewServer(newNangoConnMock(mockCfg))
+	t.Cleanup(nangoSrv.Close)
+	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
+	_ = nangoClient.FetchProviders(context.Background())
+
+	h := newGitHubProfileTestHandler(t, db, nangoClient)
+	r := chi.NewRouter()
+	r.Post("/v1/agents/{agentID}/profiles/github", h.CreateGitHub)
+	r.Patch("/v1/agents/{agentID}/profiles/github/repositories", h.UpdateGitHubRepositories)
+
+	user := createTestUser(t, db, fmt.Sprintf("github-permissions-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
+	agent := createGitHubProfileTestEmployee(t, db, org.ID)
+	integ := createTestInIntegration(t, db, "github")
+	conn := model.InConnection{
+		ID:                uuid.New(),
+		OrgID:             org.ID,
+		UserID:            user.ID,
+		InIntegrationID:   integ.ID,
+		NangoConnectionID: "github-permissions-conn",
+	}
+	if err := db.Create(&conn).Error; err != nil {
+		t.Fatalf("create in-connection: %v", err)
+	}
+	createGitHubProfileForTest(t, r, user, org, agent.ID, conn.ID)
+
+	body, _ := json.Marshal(map[string]any{"repositories": []map[string]any{{
+		"id":        "101",
+		"name":      "alpha",
+		"full_name": "octocat/alpha",
+	}}})
+	req := httptest.NewRequest(http.MethodPatch, "/v1/agents/"+agent.ID.String()+"/profiles/github/repositories", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for missing permissions, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var resp struct {
+		Error  string `json:"error"`
+		Code   string `json:"code"`
+		Checks []struct {
+			Repository        string `json:"repository"`
+			CanWrite          bool   `json:"can_write"`
+			CanManageWebhooks bool   `json:"can_manage_webhooks"`
+			Message           string `json:"message"`
+		} `json:"checks"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode permission response: %v", err)
+	}
+	if resp.Code != "github_repository_permissions_missing" {
+		t.Fatalf("code = %q", resp.Code)
+	}
+	if len(resp.Checks) != 1 || resp.Checks[0].Repository != "octocat/alpha" || !resp.Checks[0].CanWrite || resp.Checks[0].CanManageWebhooks {
+		t.Fatalf("unexpected checks: %#v", resp.Checks)
+	}
+	if resp.Checks[0].Message == "" {
+		t.Fatal("expected actionable permission message")
+	}
+	if got := countCapturedNangoRequests(mockCfg, http.MethodGet, "/proxy/repos/octocat/alpha/hooks"); got != 0 {
+		t.Fatalf("hook list requests after failed preflight = %d, want 0", got)
+	}
+	if got := countCapturedNangoRequests(mockCfg, http.MethodPost, "/proxy/repos/octocat/alpha/hooks"); got != 0 {
+		t.Fatalf("hook create requests after failed preflight = %d, want 0", got)
+	}
+}
+
+func TestAgentProfileHandler_GitHubRepositorySelectionExplainsMissingWebhookGrant(t *testing.T) {
+	db := connectTestDB(t)
+	t.Cleanup(func() {
+		db.Where("provider = ?", "github").Delete(&model.AgentProfile{})
+		db.Where("1=1").Delete(&model.InConnection{})
+		db.Where("1=1").Delete(&model.InIntegration{})
+	})
+
+	mockCfg := &nangoConnMockConfig{hookListStatus: http.StatusNotFound}
+	nangoSrv := httptest.NewServer(newNangoConnMock(mockCfg))
+	t.Cleanup(nangoSrv.Close)
+	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
+	_ = nangoClient.FetchProviders(context.Background())
+
+	h := newGitHubProfileTestHandler(t, db, nangoClient)
+	r := chi.NewRouter()
+	r.Post("/v1/agents/{agentID}/profiles/github", h.CreateGitHub)
+	r.Patch("/v1/agents/{agentID}/profiles/github/repositories", h.UpdateGitHubRepositories)
+
+	user := createTestUser(t, db, fmt.Sprintf("github-webhook-grant-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
+	agent := createGitHubProfileTestEmployee(t, db, org.ID)
+	integ := createTestInIntegration(t, db, "github")
+	conn := model.InConnection{
+		ID:                uuid.New(),
+		OrgID:             org.ID,
+		UserID:            user.ID,
+		InIntegrationID:   integ.ID,
+		NangoConnectionID: "github-webhook-grant-conn",
+	}
+	if err := db.Create(&conn).Error; err != nil {
+		t.Fatalf("create in-connection: %v", err)
+	}
+	createGitHubProfileForTest(t, r, user, org, agent.ID, conn.ID)
+
+	body, _ := json.Marshal(map[string]any{"repositories": []map[string]any{{
+		"id":        "101",
+		"name":      "alpha",
+		"full_name": "octocat/alpha",
+	}}})
+	req := httptest.NewRequest(http.MethodPatch, "/v1/agents/"+agent.ID.String()+"/profiles/github/repositories", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for missing webhook grant, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var resp struct {
+		Code   string `json:"code"`
+		Checks []struct {
+			CanWrite          bool   `json:"can_write"`
+			CanManageWebhooks bool   `json:"can_manage_webhooks"`
+			Message           string `json:"message"`
+		} `json:"checks"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode permission response: %v", err)
+	}
+	if resp.Code != "github_repository_permissions_missing" {
+		t.Fatalf("code = %q", resp.Code)
+	}
+	if len(resp.Checks) != 1 || !resp.Checks[0].CanWrite || resp.Checks[0].CanManageWebhooks {
+		t.Fatalf("unexpected checks: %#v", resp.Checks)
+	}
+	if !strings.Contains(resp.Checks[0].Message, "OAuth grant") {
+		t.Fatalf("message = %q", resp.Checks[0].Message)
+	}
+	if got := countCapturedNangoRequests(mockCfg, http.MethodPost, "/proxy/repos/octocat/alpha/hooks"); got != 0 {
+		t.Fatalf("hook create requests after failed preflight = %d, want 0", got)
 	}
 }
 

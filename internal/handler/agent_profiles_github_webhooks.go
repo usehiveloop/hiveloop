@@ -171,7 +171,11 @@ func githubWebhookConfig(webhookURL string, secret string) map[string]string {
 }
 
 func githubRepoHooksPath(owner string, repo string) string {
-	return "/repos/" + url.PathEscape(owner) + "/" + url.PathEscape(repo) + "/hooks"
+	return githubRepoPath(owner, repo) + "/hooks"
+}
+
+func githubRepoPath(owner string, repo string) string {
+	return "/repos/" + url.PathEscape(owner) + "/" + url.PathEscape(repo)
 }
 
 func splitGitHubRepoFullName(fullName string) (string, string, error) {
