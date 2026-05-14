@@ -10,6 +10,7 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
 	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
 )
@@ -54,6 +55,9 @@ func (d *Deps) HandleIngest(ctx context.Context, t *asynq.Task) error {
 
 	conn, err := buildConnector(src, deps)
 	if err != nil {
+		if handled, handleErr := handleConnectorBuildError(ctx, deps.DB, src, err); handled {
+			return handleErr
+		}
 		return err
 	}
 	runnable, ok := conn.(RunnableCheckpointed)
@@ -107,6 +111,59 @@ func buildConnector(src *ragmodel.RAGSource, deps *Deps) (interfaces.Connector, 
 		return nil, fmt.Errorf("ingest: build connector %q: %w", src.SourceKind(), err)
 	}
 	return c, nil
+}
+
+func handleConnectorBuildError(ctx context.Context, db *gorm.DB, src *ragmodel.RAGSource, buildErr error) (bool, error) {
+	if db == nil || src == nil {
+		return false, nil
+	}
+	if !isPermanentConnectorBuildError(src, buildErr) {
+		return false, nil
+	}
+
+	now := time.Now()
+	msg := buildErr.Error()
+	err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		attempt := ragmodel.RAGIndexAttempt{
+			OrgID:            src.OrgIDValue,
+			RAGSourceID:      src.ID,
+			Status:           ragmodel.IndexingStatusFailed,
+			ErrorMsg:         &msg,
+			LastProgressTime: &now,
+			TimeStarted:      &now,
+			TimeUpdated:      now,
+		}
+		if err := tx.Create(&attempt).Error; err != nil {
+			return fmt.Errorf("record connector-build failure attempt: %w", err)
+		}
+		if err := tx.Model(&ragmodel.RAGSource{}).
+			Where("id = ?", src.ID).
+			Updates(map[string]any{
+				"status":                  ragmodel.RAGSourceStatusError,
+				"enabled":                 false,
+				"in_repeated_error_state": true,
+				"updated_at":              now,
+			}).Error; err != nil {
+			return fmt.Errorf("quarantine source after connector-build failure: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return true, err
+	}
+	logging.FromContext(ctx).WarnContext(ctx, "rag source disabled after permanent connector build failure",
+		"source_id", src.ID,
+		"source_kind", src.SourceKind(),
+		"error", buildErr,
+	)
+	return true, nil
+}
+
+func isPermanentConnectorBuildError(src *ragmodel.RAGSource, err error) bool {
+	if src.KindValue == ragmodel.RAGSourceKindSlackBotProfile && errors.Is(err, gorm.ErrRecordNotFound) {
+		return true
+	}
+	return false
 }
 
 type ingestStats struct {
