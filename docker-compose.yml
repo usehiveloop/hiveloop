@@ -39,7 +39,7 @@ services:
   # --- Hindsight (optional real-memory integration test runtime) ---
   # Start explicitly with: docker compose --profile hindsight up -d hindsight
   hindsight:
-    image: ghcr.io/vectorize-io/hindsight:latest-slim
+    image: ${HINDSIGHT_IMAGE:-ghcr.io/vectorize-io/hindsight:latest-slim}
     profiles: ["hindsight"]
     env_file:
       - .env.hindsight
