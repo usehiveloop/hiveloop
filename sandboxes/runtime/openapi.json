@@ -1,0 +1,2217 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Portal Bridge API",
+    "description": "",
+    "license": {
+      "name": ""
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/agents": {
+      "get": {
+        "tags": [
+          "crate::handlers::agents"
+        ],
+        "summary": "GET /agents — list all loaded agents with full details (truncated system prompts).",
+        "operationId": "list_agents",
+        "responses": {
+          "200": {
+            "description": "List of agents with full details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AgentResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}": {
+      "get": {
+        "tags": [
+          "crate::handlers::agents"
+        ],
+        "summary": "GET /agents/:agent_id — get full agent details.",
+        "operationId": "get_agent",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "description": "Agent identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Full agent details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent not found"
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}/conversations": {
+      "post": {
+        "tags": [
+          "crate::handlers::conversations"
+        ],
+        "summary": "POST /agents/:agent_id/conversations — create a new conversation.",
+        "operationId": "create_conversation",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "description": "Agent identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Optional tool/MCP scoping filters",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CreateConversationRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conversation created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateConversationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid tool or MCP server name"
+          },
+          "404": {
+            "description": "Agent not found"
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}/conversations/{conv_id}/approvals": {
+      "get": {
+        "tags": [
+          "crate::handlers::permissions"
+        ],
+        "summary": "List all pending approval requests for a conversation.",
+        "operationId": "list_approvals",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "description": "Agent identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conv_id",
+            "in": "path",
+            "description": "Conversation identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of pending approvals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApprovalRequest"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "crate::handlers::permissions"
+        ],
+        "summary": "Bulk resolve multiple pending approval requests.",
+        "operationId": "bulk_resolve_approvals",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "description": "Agent identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conv_id",
+            "in": "path",
+            "description": "Conversation identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkApprovalReply"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Bulk approval result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkResolveApprovalsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}/conversations/{conv_id}/approvals/{request_id}": {
+      "post": {
+        "tags": [
+          "crate::handlers::permissions"
+        ],
+        "summary": "Resolve a single pending approval request.",
+        "operationId": "resolve_approval",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "description": "Agent identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conv_id",
+            "in": "path",
+            "description": "Conversation identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "path",
+            "description": "Approval request identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalReply"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Approval resolved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolveApprovalResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Approval request not found"
+          }
+        }
+      }
+    },
+    "/conversations/{conv_id}": {
+      "delete": {
+        "tags": [
+          "crate::handlers::conversations"
+        ],
+        "summary": "DELETE /conversations/:conv_id — end a conversation.",
+        "operationId": "end_conversation",
+        "parameters": [
+          {
+            "name": "conv_id",
+            "in": "path",
+            "description": "Conversation identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversation ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EndConversationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conversation not found"
+          }
+        }
+      }
+    },
+    "/conversations/{conv_id}/abort": {
+      "post": {
+        "tags": [
+          "crate::handlers::conversations"
+        ],
+        "summary": "POST /conversations/:conv_id/abort — abort the current in-flight turn.",
+        "operationId": "abort_conversation",
+        "parameters": [
+          {
+            "name": "conv_id",
+            "in": "path",
+            "description": "Conversation identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Turn aborted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbortConversationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conversation not found"
+          }
+        }
+      }
+    },
+    "/conversations/{conv_id}/messages": {
+      "post": {
+        "tags": [
+          "crate::handlers::conversations"
+        ],
+        "summary": "POST /conversations/:conv_id/messages — send a message to a conversation.",
+        "operationId": "send_message",
+        "parameters": [
+          {
+            "name": "conv_id",
+            "in": "path",
+            "description": "Conversation identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Message accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendMessageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conversation not found"
+          }
+        }
+      }
+    },
+    "/conversations/{conv_id}/stream": {
+      "get": {
+        "tags": [
+          "crate::handlers::stream"
+        ],
+        "summary": "GET /conversations/:conv_id/stream — SSE stream for a conversation.",
+        "operationId": "stream_conversation",
+        "parameters": [
+          {
+            "name": "conv_id",
+            "in": "path",
+            "description": "Conversation identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE event stream",
+            "content": {
+              "text/event-stream": {}
+            }
+          },
+          "404": {
+            "description": "Conversation not found"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "crate::handlers::health"
+        ],
+        "summary": "GET /health — health check endpoint.",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Health check",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": [
+          "crate::handlers::metrics"
+        ],
+        "summary": "GET /metrics — collect and return metrics from all agents.",
+        "operationId": "get_metrics",
+        "responses": {
+          "200": {
+            "description": "Metrics snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/push/agents": {
+      "post": {
+        "tags": [
+          "crate::handlers::push"
+        ],
+        "summary": "POST /push/agents — bulk seed agents.",
+        "operationId": "push_agents",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushAgentsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Agents loaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushAgentsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/push/agents/{agent_id}": {
+      "put": {
+        "tags": [
+          "crate::handlers::push"
+        ],
+        "summary": "PUT /push/agents/{agent_id} — add if new, update if version differs, no-op if same version.",
+        "operationId": "upsert_agent",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "description": "Agent identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentDefinition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Agent unchanged or updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpsertAgentResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Agent created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpsertAgentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "crate::handlers::push"
+        ],
+        "summary": "DELETE /push/agents/{agent_id} — remove an agent.",
+        "operationId": "remove_agent",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "description": "Agent identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveAgentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Agent not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/push/agents/{agent_id}/conversations": {
+      "post": {
+        "tags": [
+          "crate::handlers::push"
+        ],
+        "summary": "POST /push/agents/{agent_id}/conversations — hydrate conversations for an agent.",
+        "operationId": "hydrate_conversations",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "description": "Agent identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HydrateConversationsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Conversations hydrated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HydrateConversationsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Agent not found"
+          },
+          "409": {
+            "description": "Agent has active conversations"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/push/diff": {
+      "post": {
+        "tags": [
+          "crate::handlers::push"
+        ],
+        "summary": "POST /push/diff — apply a diff of agent changes.",
+        "operationId": "push_diff",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushDiffRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Diff applied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushDiffResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AbortConversationResponse": {
+        "type": "object",
+        "description": "Response for aborting a conversation turn.",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Status of the abort operation."
+          }
+        }
+      },
+      "AgentConfig": {
+        "type": "object",
+        "description": "Per-agent configuration written into the harness's settings file at\nsession start. Every field is harness-agnostic in shape — the adapter\nis responsible for translating it into the harness-native config\n(`~/.claude/settings.json`, `~/.config/opencode/opencode.json`, etc.).",
+        "properties": {
+          "allowed_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tool allowlist. Empty = every tool the harness exposes is allowed.\nNames are harness-native (e.g. `\"Read\"`, `\"Bash\"`, `\"mcp__github__*\"`)."
+          },
+          "disabled_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tool denylist. Always wins over [`Self::allowed_tools`]."
+          },
+          "env": {
+            "type": "object",
+            "description": "Extra environment variables merged into the harness process at\nsession start. Useful for custom proxy endpoints, telemetry\nflags, or harness-specific feature flags.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "fallback_model": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional fallback model the harness routes to when the primary\nmodel errors or is rate-limited."
+          },
+          "max_tokens": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Maximum tokens per assistant response.",
+            "minimum": 0
+          },
+          "max_turns": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Maximum conversation turns before bridge stops the loop.",
+            "minimum": 0
+          },
+          "permission_mode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Permission mode written to the harness config. Harness-specific\nstring. Claude Code: `\"default\"` / `\"acceptEdits\"` /\n`\"bypassPermissions\"` / `\"plan\"`. OpenCode has its own set."
+          },
+          "reasoning_effort": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Reasoning effort hint. Forwarded to harnesses that support it\n(Claude Code thinking budget, OpenCode reasoning effort).\nConventional values: `\"low\"`, `\"medium\"`, `\"high\"`."
+          },
+          "small_fast_model": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional faster/cheaper model used by the harness for utility\ncalls (summarization, title generation, etc.)."
+          },
+          "temperature": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Sampling temperature for the underlying model."
+          }
+        }
+      },
+      "AgentDefinition": {
+        "type": "object",
+        "description": "Complete definition of an AI agent fetched from the control plane.\n\nBridge persists the definition; the harness adapter (one of the\n[`Harness`] variants) reads it and drives the underlying CLI process.\nMCP servers and skills are passed through to the harness — bridge does\nnot execute tools itself.",
+        "required": [
+          "id",
+          "name",
+          "harness",
+          "system_prompt",
+          "provider"
+        ],
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/AgentConfig",
+            "description": "Slim runtime configuration forwarded to the harness."
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable description of the agent's purpose and capabilities."
+          },
+          "harness": {
+            "$ref": "#/components/schemas/Harness",
+            "description": "Which coding-agent harness to drive for this agent."
+          },
+          "id": {
+            "$ref": "#/components/schemas/String",
+            "description": "Unique agent identifier"
+          },
+          "mcp_servers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpServerDefinition"
+            },
+            "description": "MCP server connections passed through to the harness as `--mcp-config`."
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable agent name"
+          },
+          "permissions": {
+            "type": "object",
+            "description": "Per-tool permission overrides. Drives the bridge approvals API\n(`/agents/{id}/conversations/{cid}/approvals`). Tools not listed\ndefault to `Allow`.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ToolPermission"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderConfig",
+            "description": "LLM provider configuration — credentials and model choice are\nmaterialized into the harness's expected env vars at session start."
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillDefinition"
+            },
+            "description": "Skills written to the harness's skill discovery directory at session start\n(e.g. `~/.claude/skills/<id>/SKILL.md` for Claude Code)."
+          },
+          "system_prompt": {
+            "type": "string",
+            "description": "System prompt for the agent (mapped to the harness's system-prompt input)"
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Last updated timestamp for change detection"
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Version field for change detection during sync"
+          },
+          "webhook_secret": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Webhook secret for HMAC signing"
+          },
+          "webhook_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Webhook URL for event delivery"
+          }
+        }
+      },
+      "AgentResponse": {
+        "type": "object",
+        "description": "Full agent response — returned by both list and detail endpoints.\nSystem prompts may be truncated on the list endpoint.",
+        "required": [
+          "id",
+          "name",
+          "harness",
+          "system_prompt",
+          "provider",
+          "mcp_servers",
+          "skills",
+          "config",
+          "permissions",
+          "active_conversations",
+          "metrics"
+        ],
+        "properties": {
+          "active_conversations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "config": {
+            "$ref": "#/components/schemas/AgentConfig"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "harness": {
+            "$ref": "#/components/schemas/Harness"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mcp_servers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpServerDefinition"
+            }
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/MetricsSnapshot"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ToolPermission"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderSummary"
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillDefinition"
+            }
+          },
+          "system_prompt": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "webhook_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "AgentSummary": {
+        "type": "object",
+        "description": "Lightweight agent summary for listing endpoints.",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/String",
+            "description": "Agent identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Agent name"
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Agent version"
+          }
+        }
+      },
+      "ApprovalDecision": {
+        "type": "string",
+        "description": "The user's decision on an approval request.",
+        "enum": [
+          "approve",
+          "deny"
+        ]
+      },
+      "ApprovalReply": {
+        "type": "object",
+        "description": "HTTP request body for resolving a single approval.",
+        "required": [
+          "decision"
+        ],
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/ApprovalDecision"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional message explaining why the tool call was denied.\nIncluded in the error returned to the LLM so the agent can adjust."
+          }
+        }
+      },
+      "ApprovalRequest": {
+        "type": "object",
+        "description": "A pending approval request for a tool call.",
+        "required": [
+          "id",
+          "agent_id",
+          "conversation_id",
+          "tool_name",
+          "tool_call_id",
+          "arguments",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "description": "Agent that initiated the tool call."
+          },
+          "arguments": {
+            "description": "Arguments passed to the tool."
+          },
+          "conversation_id": {
+            "type": "string",
+            "description": "Conversation in which the tool call occurred."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the approval request was created."
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique ID for this approval request."
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApprovalStatus",
+            "description": "Current status of the approval request."
+          },
+          "tool_call_id": {
+            "type": "string",
+            "description": "The LLM's tool call ID."
+          },
+          "tool_name": {
+            "type": "string",
+            "description": "Name of the tool being called."
+          }
+        }
+      },
+      "ApprovalStatus": {
+        "type": "string",
+        "description": "Status of an approval request.",
+        "enum": [
+          "pending",
+          "approved",
+          "denied"
+        ]
+      },
+      "BulkApprovalReply": {
+        "type": "object",
+        "description": "HTTP request body for resolving multiple approvals at once.",
+        "required": [
+          "request_ids",
+          "decision"
+        ],
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/ApprovalDecision"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional message explaining why the tool calls were denied."
+          },
+          "request_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "BulkResolveApprovalsResponse": {
+        "type": "object",
+        "description": "Response for bulk resolving approvals.",
+        "required": [
+          "resolved",
+          "not_found"
+        ],
+        "properties": {
+          "not_found": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of request IDs that were not found."
+          },
+          "resolved": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of request IDs that were successfully resolved."
+          }
+        }
+      },
+      "ContentBlock": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Plain text content",
+            "required": [
+              "text",
+              "type"
+            ],
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "The text content"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "text"
+                ]
+              }
+            }
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ToolCall",
+                "description": "A tool call request"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "tool_call"
+                    ]
+                  }
+                }
+              }
+            ],
+            "description": "A tool call request"
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ToolResult",
+                "description": "A tool execution result"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "tool_result"
+                    ]
+                  }
+                }
+              }
+            ],
+            "description": "A tool execution result"
+          },
+          {
+            "type": "object",
+            "description": "An image attachment",
+            "required": [
+              "media_type",
+              "data",
+              "type"
+            ],
+            "properties": {
+              "data": {
+                "type": "string",
+                "description": "Base64-encoded image data"
+              },
+              "media_type": {
+                "type": "string",
+                "description": "MIME type of the image"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "image"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "A content block within a message."
+      },
+      "ConversationRecord": {
+        "type": "object",
+        "description": "A conversation with its full message history, as returned by the control plane.",
+        "required": [
+          "id",
+          "agent_id",
+          "created_at",
+          "updated_at",
+          "messages"
+        ],
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "description": "Agent that owns this conversation."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the conversation was created."
+          },
+          "id": {
+            "$ref": "#/components/schemas/String",
+            "description": "Unique conversation identifier."
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "description": "Full message history."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional human-readable title."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the conversation was last updated."
+          }
+        }
+      },
+      "CreateConversationRequest": {
+        "type": "object",
+        "description": "Optional request body for creating a conversation with per-call overrides.",
+        "properties": {
+          "api_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When provided, overrides the agent's LLM API key for this conversation only.\nFor full provider/model override, use the `provider` field instead."
+          },
+          "mcp_servers": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/McpServerDefinition"
+            },
+            "description": "Additional MCP servers to load for this conversation only.\nMerged into the harness's MCP configuration at session start and torn\ndown when the conversation ends."
+          },
+          "provider": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProviderConfig",
+                "description": "When provided, fully overrides the agent's LLM provider for this conversation.\nAllows switching model, provider type, API key, and base URL per conversation\nwhile keeping the same agent definition (system prompt, skills, MCP, etc.)."
+              }
+            ]
+          }
+        }
+      },
+      "CreateConversationResponse": {
+        "type": "object",
+        "description": "Response for creating a conversation.",
+        "required": [
+          "conversation_id",
+          "stream_url"
+        ],
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "description": "The ID of the newly created conversation."
+          },
+          "stream_url": {
+            "type": "string",
+            "description": "The URL to stream events from this conversation."
+          }
+        }
+      },
+      "EndConversationResponse": {
+        "type": "object",
+        "description": "Response for ending a conversation.",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Status of the end operation."
+          }
+        }
+      },
+      "GlobalMetrics": {
+        "type": "object",
+        "description": "Global metrics across all agents.",
+        "required": [
+          "total_agents",
+          "total_active_conversations",
+          "uptime_secs"
+        ],
+        "properties": {
+          "total_active_conversations": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total active conversations across all agents",
+            "minimum": 0
+          },
+          "total_agents": {
+            "type": "integer",
+            "description": "Total number of loaded agents",
+            "minimum": 0
+          },
+          "uptime_secs": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Seconds since the runtime started",
+            "minimum": 0
+          }
+        }
+      },
+      "Harness": {
+        "type": "string",
+        "description": "Which underlying coding-agent harness this agent runs against.",
+        "enum": [
+          "claude",
+          "open_code"
+        ]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "description": "Health check response.",
+        "required": [
+          "status",
+          "uptime_secs"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Health status - always \"ok\" if the server is running."
+          },
+          "uptime_secs": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Server uptime in seconds.",
+            "minimum": 0
+          }
+        }
+      },
+      "HydrateConversationsRequest": {
+        "type": "object",
+        "required": [
+          "conversations"
+        ],
+        "properties": {
+          "conversations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConversationRecord"
+            }
+          }
+        }
+      },
+      "HydrateConversationsResponse": {
+        "type": "object",
+        "description": "Response for hydrating conversations.",
+        "required": [
+          "hydrated"
+        ],
+        "properties": {
+          "hydrated": {
+            "type": "integer",
+            "description": "Number of conversations hydrated.",
+            "minimum": 0
+          }
+        }
+      },
+      "McpServerDefinition": {
+        "type": "object",
+        "description": "Definition of an MCP server that an agent connects to.",
+        "required": [
+          "name",
+          "transport"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the MCP server"
+          },
+          "transport": {
+            "$ref": "#/components/schemas/McpTransport",
+            "description": "Transport configuration for connecting to the server"
+          }
+        }
+      },
+      "McpTransport": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Stdio transport — spawns a child process",
+            "required": [
+              "command",
+              "type"
+            ],
+            "properties": {
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Command arguments"
+              },
+              "command": {
+                "type": "string",
+                "description": "Command to execute"
+              },
+              "env": {
+                "type": "object",
+                "description": "Environment variables for the process",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "propertyNames": {
+                  "type": "string"
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "stdio"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Streamable HTTP transport — connects to an HTTP endpoint",
+            "required": [
+              "url",
+              "type"
+            ],
+            "properties": {
+              "headers": {
+                "type": "object",
+                "description": "Additional HTTP headers",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "propertyNames": {
+                  "type": "string"
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "streamable_http"
+                ]
+              },
+              "url": {
+                "type": "string",
+                "description": "Server URL"
+              }
+            }
+          }
+        ],
+        "description": "Transport configuration for MCP server connections."
+      },
+      "Message": {
+        "type": "object",
+        "description": "A message in a conversation.",
+        "required": [
+          "role",
+          "content",
+          "timestamp"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentBlock"
+            },
+            "description": "Content blocks of the message"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "Role of the message sender"
+          },
+          "system_reminder": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional per-message system reminder injected by the control plane.\nWrapped in `<system-reminder>` tags and prepended to the user message."
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the message was created"
+          }
+        }
+      },
+      "MetricsResponse": {
+        "type": "object",
+        "description": "Complete metrics response for GET /metrics.",
+        "required": [
+          "timestamp",
+          "agents",
+          "global"
+        ],
+        "properties": {
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetricsSnapshot"
+            },
+            "description": "Per-agent metrics"
+          },
+          "global": {
+            "$ref": "#/components/schemas/GlobalMetrics",
+            "description": "Global metrics"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of the snapshot"
+          }
+        }
+      },
+      "MetricsSnapshot": {
+        "type": "object",
+        "description": "Serializable snapshot of agent metrics for the /metrics endpoint.",
+        "required": [
+          "agent_id",
+          "agent_name",
+          "input_tokens",
+          "output_tokens",
+          "total_tokens",
+          "total_requests",
+          "failed_requests",
+          "active_conversations",
+          "total_conversations",
+          "tool_calls",
+          "avg_latency_ms",
+          "tool_call_details"
+        ],
+        "properties": {
+          "active_conversations": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Currently active conversations",
+            "minimum": 0
+          },
+          "agent_id": {
+            "$ref": "#/components/schemas/String",
+            "description": "Agent identifier"
+          },
+          "agent_name": {
+            "type": "string",
+            "description": "Agent name"
+          },
+          "avg_latency_ms": {
+            "type": "number",
+            "format": "double",
+            "description": "Average latency in milliseconds"
+          },
+          "cache_hit_ratio": {
+            "type": "number",
+            "format": "double",
+            "description": "cached_input_tokens / (input_tokens + cached_input_tokens)."
+          },
+          "cached_input_tokens": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total input tokens served from the provider prompt cache (discounted).",
+            "minimum": 0
+          },
+          "failed_requests": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Failed requests",
+            "minimum": 0
+          },
+          "input_tokens": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total non-cached input tokens consumed (full price).",
+            "minimum": 0
+          },
+          "output_tokens": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total output tokens generated",
+            "minimum": 0
+          },
+          "tool_call_details": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToolCallStatsSnapshot"
+            },
+            "description": "Per-tool call metrics"
+          },
+          "tool_calls": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total tool calls executed",
+            "minimum": 0
+          },
+          "total_conversations": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total conversations ever created",
+            "minimum": 0
+          },
+          "total_requests": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total LLM requests",
+            "minimum": 0
+          },
+          "total_tokens": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total tokens (fresh input + cached input + output)",
+            "minimum": 0
+          }
+        }
+      },
+      "ProviderConfig": {
+        "type": "object",
+        "description": "Configuration for an LLM provider.\n\nMaterialized into the harness's expected env vars / config file at\nsession start. Caching is delegated entirely to the harness.",
+        "required": [
+          "provider_type",
+          "model",
+          "api_key"
+        ],
+        "properties": {
+          "api_key": {
+            "type": "string",
+            "description": "API key for authentication"
+          },
+          "base_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional custom endpoint URL"
+          },
+          "model": {
+            "type": "string",
+            "description": "Model identifier (e.g., \"gpt-4o\", \"claude-sonnet-4-20250514\")"
+          },
+          "provider_type": {
+            "$ref": "#/components/schemas/ProviderType",
+            "description": "The provider type (openai, anthropic, etc.)"
+          }
+        }
+      },
+      "ProviderSummary": {
+        "type": "object",
+        "description": "Provider info with secrets redacted.",
+        "required": [
+          "provider_type",
+          "model"
+        ],
+        "properties": {
+          "base_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model": {
+            "type": "string"
+          },
+          "provider_type": {
+            "$ref": "#/components/schemas/ProviderType"
+          }
+        }
+      },
+      "ProviderType": {
+        "type": "string",
+        "description": "Supported LLM provider types.",
+        "enum": [
+          "open_ai",
+          "anthropic",
+          "google",
+          "groq",
+          "deep_seek",
+          "mistral",
+          "cohere",
+          "x_ai",
+          "together",
+          "fireworks",
+          "ollama",
+          "custom"
+        ]
+      },
+      "PushAgentsRequest": {
+        "type": "object",
+        "required": [
+          "agents"
+        ],
+        "properties": {
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentDefinition"
+            }
+          }
+        }
+      },
+      "PushAgentsResponse": {
+        "type": "object",
+        "description": "Response for pushing agents.",
+        "required": [
+          "loaded"
+        ],
+        "properties": {
+          "loaded": {
+            "type": "integer",
+            "description": "Number of agents loaded.",
+            "minimum": 0
+          }
+        }
+      },
+      "PushDiffRequest": {
+        "type": "object",
+        "required": [
+          "added",
+          "updated",
+          "removed"
+        ],
+        "properties": {
+          "added": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentDefinition"
+            }
+          },
+          "removed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "updated": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentDefinition"
+            }
+          }
+        }
+      },
+      "PushDiffResponse": {
+        "type": "object",
+        "description": "Response for pushing a diff.",
+        "required": [
+          "added",
+          "updated",
+          "removed"
+        ],
+        "properties": {
+          "added": {
+            "type": "integer",
+            "description": "Number of agents added.",
+            "minimum": 0
+          },
+          "removed": {
+            "type": "integer",
+            "description": "Number of agents removed.",
+            "minimum": 0
+          },
+          "updated": {
+            "type": "integer",
+            "description": "Number of agents updated.",
+            "minimum": 0
+          }
+        }
+      },
+      "RemoveAgentResponse": {
+        "type": "object",
+        "description": "Response for removing an agent.",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Status of the operation."
+          }
+        }
+      },
+      "ResolveApprovalResponse": {
+        "type": "object",
+        "description": "Response for resolving an approval.",
+        "required": [
+          "status",
+          "request_id"
+        ],
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "description": "The ID of the resolved request."
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the resolution."
+          }
+        }
+      },
+      "Role": {
+        "type": "string",
+        "description": "Role of a message sender in a conversation.",
+        "enum": [
+          "user",
+          "assistant",
+          "system",
+          "tool"
+        ]
+      },
+      "SendMessageRequest": {
+        "type": "object",
+        "description": "Request body for creating a message.",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "The text content to send. When [`full_message`](Self::full_message) is\nalso supplied, `content` is the LLM-visible summary; omit it to let\nbridge auto-generate one from the first bytes of `full_message`."
+          },
+          "full_message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional full payload written to a per-conversation attachment file.\nWhen present, bridge writes it to disk, appends a `<system-reminder>`\nwith the file path and tool-usage hint to `content`, and sends the\ncomposed text to the LLM. Callers use this to offload large inputs\n(stack traces, log dumps, file contents) without bloating the\nagent's context on every turn.\n\nFailures (disk full, permission denied) do NOT reject the message —\nbridge logs a warning and delivers `content` alone."
+          },
+          "system_reminder": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional system reminder to inject with this message.\nWill be wrapped in `<system-reminder>` tags and prepended to the user message."
+          }
+        }
+      },
+      "SendMessageResponse": {
+        "type": "object",
+        "description": "Response for sending a message.",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Status of the message acceptance."
+          }
+        }
+      },
+      "SkillDefinition": {
+        "type": "object",
+        "description": "Definition of a skill that can be activated by an agent.",
+        "required": [
+          "id",
+          "title",
+          "description",
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Full skill prompt/instructions content (the SKILL.md body or single-content string).\nCan contain template variables like {{args}}, $ARGUMENTS, $1, $2, etc."
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of what the skill does"
+          },
+          "files": {
+            "type": "object",
+            "description": "Supporting files: relative_path -> file_content.\nContains files referenced by the skill (e.g., \"api-reference.md\", \"examples/ex1.md\").",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "frontmatter": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SkillFrontmatter",
+                "description": "Parsed frontmatter configuration from SKILL.md YAML header."
+              }
+            ]
+          },
+          "id": {
+            "$ref": "#/components/schemas/String",
+            "description": "Unique identifier for the skill"
+          },
+          "parameters_schema": {
+            "description": "Optional JSON Schema for structured parameters (for future use)"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SkillSource",
+            "description": "Where this skill originated from."
+          },
+          "title": {
+            "type": "string",
+            "description": "Human-readable title"
+          }
+        }
+      },
+      "SkillFrontmatter": {
+        "type": "object",
+        "description": "Frontmatter configuration parsed from a SKILL.md YAML header.\n\nOnly applicable to sources that support frontmatter (ClaudeCode, AgentSkills).",
+        "properties": {
+          "agent": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Sub-agent type to delegate to when context is \"fork\"."
+          },
+          "allowed_tools": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "List of tools the skill is allowed to use."
+          },
+          "argument_hint": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Hint text shown for the argument placeholder in autocomplete."
+          },
+          "context": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Execution context. \"fork\" runs in an isolated subagent."
+          },
+          "disable_model_invocation": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "When true, only users can invoke this skill (hidden from the model)."
+          },
+          "effort": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Reasoning effort level (e.g., \"low\", \"medium\", \"high\")."
+          },
+          "paths": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Glob patterns for auto-activation on matching files."
+          },
+          "shell": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Shell to use for shell-related operations (e.g., \"bash\", \"powershell\")."
+          },
+          "user_invocable": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "When false, only the model can invoke this skill (hidden from slash commands)."
+          }
+        }
+      },
+      "SkillSource": {
+        "type": "string",
+        "description": "Where a skill originated from.",
+        "enum": [
+          "control_plane",
+          "claude_code",
+          "agent_skills",
+          "cursor_rules",
+          "git_hub_copilot",
+          "windsurf_rules"
+        ]
+      },
+      "String": {
+        "type": "string"
+      },
+      "ToolCall": {
+        "type": "object",
+        "description": "A request to call a tool.",
+        "required": [
+          "id",
+          "name",
+          "arguments"
+        ],
+        "properties": {
+          "arguments": {
+            "description": "Arguments to pass to the tool"
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for this tool call"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the tool to call"
+          }
+        }
+      },
+      "ToolCallStatsSnapshot": {
+        "type": "object",
+        "description": "Serializable snapshot of per-tool call statistics.",
+        "required": [
+          "tool_name",
+          "total_calls",
+          "successes",
+          "failures",
+          "success_rate",
+          "avg_latency_ms"
+        ],
+        "properties": {
+          "avg_latency_ms": {
+            "type": "number",
+            "format": "double",
+            "description": "Average latency in milliseconds"
+          },
+          "failure_results": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of completions where the executor returned `Ok(...)` but the\nresult string described a failure (e.g. `Read` returned\n`\"Toolset error: File not found\"`, `bash` returned a non-zero\n`exit_code`, `edit` returned `{\"error\":\"...\"}`). The model received\nthe result as a normal tool message; only the content signals the\nfailure. Tracked separately so operators can distinguish bridge-side\ndispatch errors (`failures`) from in-tool failures (`failure_results`).",
+            "minimum": 0
+          },
+          "failures": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of completions where the executor itself returned `Err` —\nprocess-level dispatch failure (tool not found, schema validation\nrejected, permission denied, executor panic).",
+            "minimum": 0
+          },
+          "success_rate": {
+            "type": "number",
+            "format": "double",
+            "description": "Success rate (successes / total_calls)"
+          },
+          "successes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of completions that succeeded cleanly (executor returned `Ok`\nAND the result content does not look like a failure shape).",
+            "minimum": 0
+          },
+          "tool_name": {
+            "type": "string",
+            "description": "Tool name"
+          },
+          "total_calls": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of calls to this tool",
+            "minimum": 0
+          }
+        }
+      },
+      "ToolPermission": {
+        "type": "string",
+        "description": "Permission level for a tool within an agent.",
+        "enum": [
+          "allow",
+          "deny",
+          "require_approval"
+        ]
+      },
+      "ToolResult": {
+        "type": "object",
+        "description": "The result of a tool execution.",
+        "required": [
+          "tool_call_id",
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "The result content"
+          },
+          "is_error": {
+            "type": "boolean",
+            "description": "Whether the tool execution resulted in an error"
+          },
+          "tool_call_id": {
+            "type": "string",
+            "description": "ID of the tool call this result corresponds to"
+          }
+        }
+      },
+      "UpdateApiKeyRequest": {
+        "type": "object",
+        "required": [
+          "api_key"
+        ],
+        "properties": {
+          "api_key": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateApiKeyResponse": {
+        "type": "object",
+        "description": "Response for updating an API key.",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Status of the operation."
+          }
+        }
+      },
+      "UpsertAgentResponse": {
+        "type": "object",
+        "description": "Response for upserting an agent.",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Status of the operation: \"unchanged\", \"updated\", or \"created\"."
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearer": []
+    }
+  ]
+}

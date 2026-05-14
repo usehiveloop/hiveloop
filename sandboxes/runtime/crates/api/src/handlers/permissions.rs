@@ -1,0 +1,124 @@
+use axum::extract::{Path, State};
+use axum::http::StatusCode;
+use axum::Json;
+use bridge_core::permission::{ApprovalReply, ApprovalRequest, BulkApprovalReply};
+use serde::Serialize;
+
+use crate::state::AppState;
+
+/// Response for resolving an approval.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ResolveApprovalResponse {
+    /// Status of the resolution.
+    pub status: String,
+    /// The ID of the resolved request.
+    pub request_id: String,
+}
+
+/// Response for bulk resolving approvals.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct BulkResolveApprovalsResponse {
+    /// List of request IDs that were successfully resolved.
+    pub resolved: Vec<String>,
+    /// List of request IDs that were not found.
+    pub not_found: Vec<String>,
+}
+
+/// List all pending approval requests for a conversation.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/agents/{agent_id}/conversations/{conv_id}/approvals",
+    params(
+        ("agent_id" = String, Path, description = "Agent identifier"),
+        ("conv_id" = String, Path, description = "Conversation identifier"),
+    ),
+    responses(
+        (status = 200, description = "List of pending approvals", body = Vec<ApprovalRequest>),
+    )
+))]
+pub async fn list_approvals(
+    State(state): State<AppState>,
+    Path((_agent_id, conv_id)): Path<(String, String)>,
+) -> Json<Vec<ApprovalRequest>> {
+    let pending = state.permission_manager.list_pending(&conv_id);
+    Json(pending)
+}
+
+/// Resolve a single pending approval request.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/agents/{agent_id}/conversations/{conv_id}/approvals/{request_id}",
+    params(
+        ("agent_id" = String, Path, description = "Agent identifier"),
+        ("conv_id" = String, Path, description = "Conversation identifier"),
+        ("request_id" = String, Path, description = "Approval request identifier"),
+    ),
+    request_body = ApprovalReply,
+    responses(
+        (status = 200, description = "Approval resolved", body = ResolveApprovalResponse),
+        (status = 404, description = "Approval request not found")
+    )
+))]
+pub async fn resolve_approval(
+    State(state): State<AppState>,
+    Path((_agent_id, _conv_id, request_id)): Path<(String, String, String)>,
+    Json(body): Json<ApprovalReply>,
+) -> Result<Json<ResolveApprovalResponse>, StatusCode> {
+    let resolved = state.permission_manager.resolve(
+        &request_id,
+        body.decision,
+        body.reason,
+        Some(&state.event_bus),
+    );
+
+    if resolved {
+        Ok(Json(ResolveApprovalResponse {
+            status: "resolved".to_string(),
+            request_id,
+        }))
+    } else {
+        Err(StatusCode::NOT_FOUND)
+    }
+}
+
+/// Bulk resolve multiple pending approval requests.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/agents/{agent_id}/conversations/{conv_id}/approvals",
+    params(
+        ("agent_id" = String, Path, description = "Agent identifier"),
+        ("conv_id" = String, Path, description = "Conversation identifier"),
+    ),
+    request_body = BulkApprovalReply,
+    responses(
+        (status = 200, description = "Bulk approval result", body = BulkResolveApprovalsResponse),
+    )
+))]
+pub async fn bulk_resolve_approvals(
+    State(state): State<AppState>,
+    Path((_agent_id, _conv_id)): Path<(String, String)>,
+    Json(body): Json<BulkApprovalReply>,
+) -> Json<BulkResolveApprovalsResponse> {
+    let mut resolved = Vec::new();
+    let mut not_found = Vec::new();
+
+    for request_id in &body.request_ids {
+        if state.permission_manager.resolve(
+            request_id,
+            body.decision.clone(),
+            body.reason.clone(),
+            Some(&state.event_bus),
+        ) {
+            resolved.push(request_id.clone());
+        } else {
+            not_found.push(request_id.clone());
+        }
+    }
+
+    Json(BulkResolveApprovalsResponse {
+        resolved,
+        not_found,
+    })
+}

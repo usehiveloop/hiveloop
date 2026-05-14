@@ -1,0 +1,26 @@
+[package]
+name = "core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "bridge_core"
+
+[features]
+openapi = ["dep:utoipa"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+axum = { workspace = true }
+uuid = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+dashmap = { workspace = true }
+utoipa = { workspace = true, optional = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+tokio = { workspace = true }

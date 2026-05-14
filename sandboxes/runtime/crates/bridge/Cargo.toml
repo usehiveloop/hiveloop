@@ -1,0 +1,42 @@
+[package]
+name = "bridge"
+version = "1.0.1"
+edition = "2021"
+
+[features]
+openapi = ["api/openapi", "dep:utoipa"]
+
+[[bin]]
+name = "bridge"
+path = "src/main.rs"
+
+[[bin]]
+name = "gen-openapi"
+path = "src/bin/gen_openapi.rs"
+required-features = ["openapi"]
+
+[dependencies]
+bridge_core = { workspace = true }
+runtime = { workspace = true }
+api = { workspace = true }
+webhooks = { workspace = true }
+storage = { workspace = true }
+axum = { workspace = true }
+reqwest = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+figment = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+sentry = { workspace = true }
+sentry-tower = { workspace = true }
+tower = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+opentelemetry-otlp = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+utoipa = { workspace = true, optional = true }
+clap = { version = "4.5", features = ["derive"] }

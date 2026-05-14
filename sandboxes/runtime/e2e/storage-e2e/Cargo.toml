@@ -1,0 +1,17 @@
+[package]
+name = "storage-e2e"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+storage = { path = "../../crates/storage" }
+bridge_core = { workspace = true }
+tokio = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[lints]
+workspace = true
