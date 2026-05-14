@@ -22,16 +22,15 @@ import (
 
 // MCPHandler handles MCP protocol requests for scoped proxy tokens.
 type MCPHandler struct {
-	db                *gorm.DB
-	signingKey        []byte
-	catalog           *catalog.Catalog
-	nango             *nango.Client
-	counter           *counter.Counter
-	memoryTools       mcpserver.MemoryToolsFunc
-	subscriptionTools mcpserver.SubscriptionToolsFunc
-	webTools          mcpserver.WebToolsFunc
-	knowledgeTools    mcpserver.KnowledgeToolsFunc
-	ServerCache       *mcpserver.ServerCache
+	db             *gorm.DB
+	signingKey     []byte
+	catalog        *catalog.Catalog
+	nango          *nango.Client
+	counter        *counter.Counter
+	memoryTools    mcpserver.MemoryToolsFunc
+	webTools       mcpserver.WebToolsFunc
+	knowledgeTools mcpserver.KnowledgeToolsFunc
+	ServerCache    *mcpserver.ServerCache
 }
 
 // NewMCPHandler creates a new MCP handler.
@@ -49,12 +48,6 @@ func NewMCPHandler(db *gorm.DB, signingKey []byte, cat *catalog.Catalog, nangoCl
 // SetMemoryTools sets the callback for registering memory tools on MCP servers.
 func (h *MCPHandler) SetMemoryTools(fn mcpserver.MemoryToolsFunc) {
 	h.memoryTools = fn
-}
-
-// SetSubscriptionTools sets the callback for registering subscribe_to_events
-// and list_my_subscriptions on MCP servers.
-func (h *MCPHandler) SetSubscriptionTools(fn mcpserver.SubscriptionToolsFunc) {
-	h.subscriptionTools = fn
 }
 
 // SetWebTools sets the callback for registering web_fetch and web_search
@@ -103,7 +96,7 @@ func (h *MCPHandler) serverFactory(r *http.Request) *mcp.Server {
 			return nil, time.Time{}, err
 		}
 
-		srv, err := mcpserver.BuildServer(ctx, &token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools, h.subscriptionTools, h.webTools, h.knowledgeTools)
+		srv, err := mcpserver.BuildServer(ctx, &token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools, h.webTools, h.knowledgeTools)
 		if err != nil {
 			return nil, time.Time{}, err
 		}

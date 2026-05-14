@@ -25,7 +25,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/proxy"
 	"github.com/usehiveloop/hiveloop/internal/spider"
 	"github.com/usehiveloop/hiveloop/internal/storage"
-	"github.com/usehiveloop/hiveloop/internal/subscriptions"
 )
 
 func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEnqueuer) error {
@@ -63,7 +62,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		hindsightClient = hindsight.NewClient(cfg.HindsightAPIURL)
 		mcpHandler.SetMemoryTools(hindsight.NewMemoryToolsFunc(hindsightClient, hindsightMemoryRefresh(enqueuer)))
 	}
-	mcpHandler.SetSubscriptionTools(subscriptions.RegisterTools(subscriptions.NewService(database, actionsCatalog)))
 	if deps.SpiderClient != nil {
 		mcpHandler.SetWebTools(spider.NewWebToolsFunc(deps.SpiderClient))
 	}

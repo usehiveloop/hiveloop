@@ -20,11 +20,6 @@ import (
 // Used to avoid an import cycle between mcpserver and hindsight.
 type MemoryToolsFunc func(server *mcp.Server, agentID string, db *gorm.DB)
 
-// SubscriptionToolsFunc is a callback that registers subscribe_to_events and
-// list_my_subscriptions on a server. Used to avoid an import cycle between
-// mcpserver and the subscriptions package.
-type SubscriptionToolsFunc func(server *mcp.Server, token *model.Token, db *gorm.DB)
-
 // WebToolsFunc is a callback that registers web_fetch and web_search on a
 // server. Used to avoid an import cycle between mcpserver and spider.
 type WebToolsFunc func(server *mcp.Server, token *model.Token)
@@ -36,10 +31,8 @@ type KnowledgeToolsFunc func(server *mcp.Server, token *model.Token)
 // Each scope's connection+actions are turned into MCP tools via the catalog.
 // If addMemoryTools is non-nil, it is called to register memory tools on the
 // same server after integration tools are registered.
-// If addSubscriptionTools is non-nil, it is called to register subscribe_to_events
-// on the same server after memory tools are registered.
 // If addWebTools is non-nil, it is called to register web_fetch and web_search
-// on the same server after subscription tools are registered.
+// on the same server after memory tools are registered.
 func BuildServer(
 	ctx context.Context,
 	token *model.Token,
@@ -49,7 +42,6 @@ func BuildServer(
 	db *gorm.DB,
 	ctr *counter.Counter,
 	addMemoryTools MemoryToolsFunc,
-	addSubscriptionTools SubscriptionToolsFunc,
 	addWebTools WebToolsFunc,
 	addKnowledgeTools KnowledgeToolsFunc,
 ) (*mcp.Server, error) {
@@ -176,10 +168,6 @@ func BuildServer(
 		if agentID != "" {
 			addMemoryTools(server, agentID, db)
 		}
-	}
-
-	if addSubscriptionTools != nil {
-		addSubscriptionTools(server, token, db)
 	}
 
 	if addWebTools != nil {
