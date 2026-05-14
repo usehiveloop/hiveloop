@@ -7073,7 +7073,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter by status (active, archived)",
+                        "description": "Filter by status (draft, active, archived)",
                         "name": "status",
                         "in": "query"
                     },
@@ -11847,7 +11847,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "status": {
-                    "description": "active, archived",
+                    "description": "draft, active, archived",
                     "type": "string"
                 },
                 "systemPrompt": {

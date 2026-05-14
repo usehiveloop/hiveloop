@@ -8372,7 +8372,7 @@
         "summary": "List AI employees",
         "parameters": [
           {
-            "description": "Filter by status (active, archived)",
+            "description": "Filter by status (draft, active, archived)",
             "name": "status",
             "in": "query",
             "schema": {
@@ -14137,7 +14137,7 @@
             "$ref": "#/components/schemas/JSON"
           },
           "status": {
-            "description": "active, archived",
+            "description": "draft, active, archived",
             "type": "string"
           },
           "systemPrompt": {

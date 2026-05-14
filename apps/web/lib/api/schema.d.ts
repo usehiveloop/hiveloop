@@ -8146,7 +8146,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    /** @description Filter by status (active, archived) */
+                    /** @description Filter by status (draft, active, archived) */
                     status?: string;
                     /** @description Page size (default 50, max 100) */
                     limit?: number;
@@ -13519,7 +13519,7 @@ export interface components {
             /** @description can store shared memories visible to all agents in identity */
             sharedMemory?: boolean;
             skills?: components["schemas"]["JSON"];
-            /** @description active, archived */
+            /** @description draft, active, archived */
             status?: string;
             /** @description Bridge AgentDefinition fields */
             systemPrompt?: string;

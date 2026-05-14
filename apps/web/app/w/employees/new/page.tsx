@@ -1,6 +1,7 @@
 "use client"
 
 import { AnimatePresence, motion } from "motion/react"
+import { useSearchParams } from "next/navigation"
 import { Skeleton } from "@/components/ui/skeleton"
 import { StepIndicator } from "@/app/onboarding/_components/step-indicator"
 import { EmployeeStep } from "@/app/onboarding/_components/employee-step"
@@ -21,8 +22,11 @@ const stepVariants = {
 }
 
 export default function NewEmployeePage() {
+  const searchParams = useSearchParams()
+  const employeeId = searchParams.get("employee_id") ?? undefined
+
   return (
-    <OnboardingProvider mode="employee">
+    <OnboardingProvider mode="employee" employeeId={employeeId}>
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center gap-10 px-6 py-12">
         <Wizard />
       </main>

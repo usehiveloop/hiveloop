@@ -157,7 +157,16 @@ export default function WorkspaceHome() {
   )
 }
 
-function EmployeeActions({ onDelete }: { onDelete: () => void }) {
+function EmployeeActions({
+  employee,
+  onDelete,
+}: {
+  employee: Employee
+  onDelete: () => void
+}) {
+  const router = useRouter()
+  const isDraft = normalizeStatus(employee.status) === "draft"
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-lg outline-none transition-colors hover:bg-muted">
@@ -170,6 +179,20 @@ function EmployeeActions({ onDelete }: { onDelete: () => void }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={4} className="w-44">
         <DropdownMenuGroup>
+          {isDraft && employee.id ? (
+            <DropdownMenuItem
+              onClick={() =>
+                router.push(`/w/employees/new?employee_id=${employee.id}`)
+              }
+            >
+              <HugeiconsIcon
+                icon={ArrowRight01Icon}
+                className="size-4"
+                strokeWidth={2}
+              />
+              Continue onboarding
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuItem variant="destructive" onClick={onDelete}>
             <HugeiconsIcon icon={Delete02Icon} className="size-4" strokeWidth={2} />
             Delete employee
@@ -291,7 +314,7 @@ function EmployeeRow({
       </span>
       <span className="text-muted-foreground lg:text-right">{lastActive}</span>
       <div className="flex justify-start lg:justify-end">
-        <EmployeeActions onDelete={onDelete} />
+        <EmployeeActions employee={employee} onDelete={onDelete} />
       </div>
     </li>
   )

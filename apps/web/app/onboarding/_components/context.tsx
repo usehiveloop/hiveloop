@@ -5,12 +5,16 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react"
 import { useForm, type UseFormReturn } from "react-hook-form"
 import { $api } from "@/lib/api/hooks"
 import { useAuth } from "@/lib/auth/auth-context"
+import type { components } from "@/lib/api/schema"
+
+type Employee = components["schemas"]["employeeListItem"]
 
 export type Channel = "slack" | "whatsapp"
 export type StepKey =
@@ -101,9 +105,11 @@ export function useOnboarding() {
 export function OnboardingProvider({
   children,
   mode = "workspace",
+  employeeId,
 }: {
   children: React.ReactNode
   mode?: OnboardingMode
+  employeeId?: string
 }) {
   const form = useForm<OnboardingFormValues>({
     defaultValues: DEFAULT_VALUES,
@@ -115,15 +121,32 @@ export function OnboardingProvider({
   const stepIndex = stepOrder.indexOf(step)
 
   const createEmployeeMutation = $api.useMutation("post", "/v1/employees")
-  const employeesQuery = $api.useQuery("get", "/v1/employees")
+  const updateEmployeeMutation = $api.useMutation("put", "/v1/agents/{id}")
+  const employeesQuery = $api.useQuery(
+    "get",
+    "/v1/employees",
+    {},
+    { enabled: mode === "workspace" && !employeeId }
+  )
+  const employeeQuery = $api.useQuery(
+    "get",
+    "/v1/employees/{id}",
+    { params: { path: { id: employeeId ?? "" } } },
+    { enabled: Boolean(employeeId), retry: false }
+  )
   const bootstrappedRef = useRef(false)
   const activeOrgRef = useRef<string | null | undefined>(undefined)
   const firstEmployee = employeesQuery.data?.data?.[0]
-  const bootstrapped = firstEmployee?.id
-    ? {
-        agentId: firstEmployee.id,
-      }
-    : null
+  const resumeEmployee = employeeQuery.data
+  const bootstrapEmployee = useMemo(() => {
+    if (employeeId) return resumeEmployee
+    if (mode === "workspace") return firstEmployee
+    return undefined
+  }, [employeeId, firstEmployee, mode, resumeEmployee])
+  const bootstrapped = useMemo(
+    () => (bootstrapEmployee?.id ? { agentId: bootstrapEmployee.id } : null),
+    [bootstrapEmployee]
+  )
   const shouldBootstrapExistingEmployee = mode === "workspace"
 
   useEffect(() => {
@@ -144,33 +167,32 @@ export function OnboardingProvider({
   }, [activeOrg?.id, createEmployeeMutation, form])
 
   useEffect(() => {
-    if (!shouldBootstrapExistingEmployee) return
+    bootstrappedRef.current = false
+    createEmployeeMutation.reset()
+    updateEmployeeMutation.reset()
+    form.reset(DEFAULT_VALUES)
+    queueMicrotask(() => setStep("employee"))
+  }, [employeeId, createEmployeeMutation, form, updateEmployeeMutation])
+
+  useEffect(() => {
+    if (!shouldBootstrapExistingEmployee && !employeeId) return
     if (bootstrappedRef.current) return
-    if (!employeesQuery.data) return
-    const first = firstEmployee
+    if (employeeId && employeeQuery.isLoading) return
+    if (!employeeId && !employeesQuery.data) return
+    const first = bootstrapEmployee
     if (!first || !first.id) return
     bootstrappedRef.current = true
 
-    form.setValue("agentName", first.name ?? "")
-    form.setValue("agentDescription", first.description ?? "")
-    form.setValue("agentAvatarUrl", first.avatar_url ?? "")
-    form.setValue("agentCategory", first.category ?? "")
-
-    const slackProfile = first.profiles?.find(
-      (p) => p.provider === "slack" && p.status === "active"
-    )
-    if (slackProfile) {
-      form.setValue("channel", "slack")
-      const identity = (slackProfile.identity ?? {}) as Record<string, unknown>
-      const teamName =
-        typeof identity.team_name === "string" ? identity.team_name : ""
-      if (teamName && !form.getValues("businessName").trim()) {
-        form.setValue("businessName", teamName)
-      }
-    }
-
-    queueMicrotask(() => setStep(slackProfile ? "github" : "channel"))
-  }, [employeesQuery.data, firstEmployee, form, shouldBootstrapExistingEmployee])
+    hydrateEmployeeForm(form, first)
+    queueMicrotask(() => setStep(nextOnboardingStep(first)))
+  }, [
+    bootstrapEmployee,
+    employeeId,
+    employeeQuery.isLoading,
+    employeesQuery.data,
+    form,
+    shouldBootstrapExistingEmployee,
+  ])
 
   const createEmployee: CreateEmployeeState = (() => {
     if (shouldBootstrapExistingEmployee && bootstrapped) {
@@ -179,11 +201,30 @@ export function OnboardingProvider({
         agentId: bootstrapped.agentId,
       }
     }
-    if (createEmployeeMutation.isPending) return { status: "pending" }
+    if (createEmployeeMutation.isPending || updateEmployeeMutation.isPending) {
+      return { status: "pending" }
+    }
+    if (bootstrapped) {
+      return {
+        status: "success",
+        agentId: bootstrapped.agentId,
+      }
+    }
     if (createEmployeeMutation.isSuccess && createEmployeeMutation.data) {
       return {
         status: "success",
         agentId: createEmployeeMutation.data.agent_id,
+      }
+    }
+    if (updateEmployeeMutation.isError) {
+      const err = updateEmployeeMutation.error as unknown as
+        | { error?: string }
+        | undefined
+      return {
+        status: "error",
+        errorMessage:
+          (err && typeof err === "object" && "error" in err && err.error) ||
+          "Could not update your AI employee profile. Try again.",
       }
     }
     if (createEmployeeMutation.isError) {
@@ -202,6 +243,30 @@ export function OnboardingProvider({
 
   const submitEmployee = useCallback(() => {
     const v = form.getValues()
+    if (bootstrapped?.agentId) {
+      updateEmployeeMutation.mutate(
+        {
+          params: { path: { id: bootstrapped.agentId } },
+          body: {
+            category: v.agentCategory,
+            name: v.agentName.trim(),
+            description: v.agentDescription.trim(),
+            avatar_url: v.agentAvatarUrl?.trim() || "",
+          },
+        },
+        {
+          onSuccess: async () => {
+            if (employeeId) {
+              await employeeQuery.refetch()
+            }
+            setStep((current) =>
+              current === "employee" ? nextOnboardingStep(bootstrapEmployee) : current
+            )
+          },
+        }
+      )
+      return
+    }
     createEmployeeMutation.mutate(
       {
         body: {
@@ -215,7 +280,15 @@ export function OnboardingProvider({
         onSuccess: () => setStep("channel"),
       }
     )
-  }, [form, createEmployeeMutation])
+  }, [
+    bootstrapped,
+    bootstrapEmployee,
+    createEmployeeMutation,
+    employeeId,
+    employeeQuery,
+    form,
+    updateEmployeeMutation,
+  ])
 
   const retryEmployee = useCallback(() => {
     createEmployeeMutation.reset()
@@ -260,12 +333,53 @@ export function OnboardingProvider({
         createEmployee,
         submitEmployee,
         retryEmployee,
-        bootstrapping: employeesQuery.isLoading,
-        bootstrapped: shouldBootstrapExistingEmployee && Boolean(bootstrapped),
+        bootstrapping: employeeId ? employeeQuery.isLoading : employeesQuery.isLoading,
+        bootstrapped: (shouldBootstrapExistingEmployee || Boolean(employeeId)) && Boolean(bootstrapped),
         mode,
       }}
     >
       {children}
     </OnboardingContext.Provider>
   )
+}
+
+function hydrateEmployeeForm(
+  form: UseFormReturn<OnboardingFormValues>,
+  employee: Employee
+) {
+  form.setValue("agentName", employee.name ?? "")
+  form.setValue("agentDescription", employee.description ?? "")
+  form.setValue("agentAvatarUrl", employee.avatar_url ?? "")
+  form.setValue("agentCategory", employee.category ?? "")
+
+  const slackProfile = employee.profiles?.find(
+    (p) => p.provider === "slack" && p.status === "active"
+  )
+  if (slackProfile) {
+    form.setValue("channel", "slack")
+    const identity = (slackProfile.identity ?? {}) as Record<string, unknown>
+    const teamName = typeof identity.team_name === "string" ? identity.team_name : ""
+    if (teamName && !form.getValues("businessName").trim()) {
+      form.setValue("businessName", teamName)
+    }
+  }
+}
+
+function nextOnboardingStep(employee: Employee | undefined): StepKey {
+  if (!employee?.id) return "employee"
+  const slackProfile = employee.profiles?.find(
+    (profile) => profile.provider === "slack" && profile.status === "active"
+  )
+  if (!slackProfile) return "channel"
+
+  const githubProfile = employee.profiles?.find(
+    (profile) => profile.provider === "github" && profile.status === "active"
+  )
+  const selectedRepositories = githubProfile?.config?.selected_repositories
+  if (!githubProfile || !Array.isArray(selectedRepositories) || selectedRepositories.length === 0) {
+    return "github"
+  }
+
+  if (employee.status === "active") return "provisioning"
+  return "provisioning"
 }

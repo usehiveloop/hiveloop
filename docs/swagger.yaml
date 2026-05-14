@@ -168,7 +168,7 @@ definitions:
       skills:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       status:
-        description: active, archived
+        description: draft, active, archived
         type: string
       systemPrompt:
         description: Bridge AgentDefinition fields
@@ -9011,7 +9011,7 @@ paths:
         skills (metadata only — no bundle content), profiles,
         triggers, and the latest sandbox row.
       parameters:
-      - description: Filter by status (active, archived)
+      - description: Filter by status (draft, active, archived)
         in: query
         name: status
         type: string

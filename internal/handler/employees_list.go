@@ -42,7 +42,7 @@ type employeeListItem struct {
 // @Description triggers, and the latest sandbox row.
 // @Tags employees
 // @Produce json
-// @Param status query string false "Filter by status (active, archived)"
+// @Param status query string false "Filter by status (draft, active, archived)"
 // @Param limit query int false "Page size (default 50, max 100)"
 // @Param cursor query string false "Pagination cursor"
 // @Success 200 {object} paginatedResponse[employeeListItem]

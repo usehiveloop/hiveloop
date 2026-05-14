@@ -57,6 +57,17 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 	if err := client.Readyz(ctx); err != nil {
 		return nil, fmt.Errorf("employee runtime readyz: %w", err)
 	}
+	if agent.Status != "active" {
+		if agent.OrgID == nil {
+			return nil, fmt.Errorf("mark employee active: missing org_id")
+		}
+		if err := h.db.WithContext(ctx).Model(&model.Agent{}).
+			Where("id = ? AND org_id = ?", agent.ID, *agent.OrgID).
+			Update("status", "active").Error; err != nil {
+			return nil, fmt.Errorf("mark employee active: %w", err)
+		}
+		agent.Status = "active"
+	}
 	return resp, nil
 }
 

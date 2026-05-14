@@ -65,6 +65,30 @@ func TestIntegration_EmployeesSync_Slack_HappyPath(t *testing.T) {
 	assertEmployeeRuntimeConfig(t, h.sidecar.configBody())
 }
 
+func TestIntegration_EmployeesSync_MarksDraftEmployeeActiveAfterRuntimeReady(t *testing.T) {
+	h := newEmployeeHarness(t)
+	h.platformCredCleanup(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	if err := h.db.Model(&model.Agent{}).Where("id = ?", agent.ID).Update("status", "draft").Error; err != nil {
+		t.Fatalf("mark draft: %v", err)
+	}
+	h.seedSandbox(t, m, agent.ID)
+	h.seedSlackProfile(t, m, agent.ID)
+
+	rr := h.postSync(t, m, agent.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	var stored model.Agent
+	if err := h.db.Where("id = ?", agent.ID).First(&stored).Error; err != nil {
+		t.Fatalf("load employee: %v", err)
+	}
+	if stored.Status != "active" {
+		t.Fatalf("employee status = %q, want active", stored.Status)
+	}
+}
+
 func TestIntegration_EmployeesSync_EnsuresBusinessResearchSpecialist(t *testing.T) {
 	h := newEmployeeHarness(t)
 	h.platformCredCleanup(t)

@@ -53,8 +53,8 @@ func TestIntegration_EmployeesCreate_Engineering_OpenRouter_HappyPath(t *testing
 	if !strings.Contains(agent.IdentityPrompt, "engineering coordinator employee embedded") {
 		t.Errorf("agent.identity_prompt should be set to engineering identity prompt")
 	}
-	if agent.Status != "active" {
-		t.Errorf("agent.status = %q, want active", agent.Status)
+	if agent.Status != "draft" {
+		t.Errorf("agent.status = %q, want draft", agent.Status)
 	}
 	if agent.Category == nil || *agent.Category != "engineering" {
 		t.Errorf("agent.category = %v, want engineering", agent.Category)

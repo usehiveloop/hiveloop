@@ -44,7 +44,7 @@ type Agent struct {
 	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"` // shell commands run on dedicated sandbox creation
 	EncryptedEnvVars []byte         `gorm:"type:bytea"`               // AES-256-GCM encrypted JSON map of env vars
 
-	Status        string `gorm:"not null;default:'active'"` // active, archived
+	Status        string `gorm:"not null;default:'active'"` // draft, active, archived
 	IsSystem      bool   `gorm:"not null;default:false;index"`
 	IsEmployee    bool   `gorm:"not null;default:false;index"` // employee agents own subagents and use a different onboarding flow
 	ProviderGroup string `gorm:"not null;default:''"`          // e.g. "anthropic", "openai", "gemini" — set for system agents
