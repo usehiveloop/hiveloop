@@ -29,9 +29,16 @@ export default withSentryConfig(withMDX(nextConfig), {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
-  org: "kibamail",
+  url: process.env.SENTRY_URL ?? "https://sentry.usehiveloop.com/",
 
-  project: "hiveloop-web",
+  // Bugsink accepts Sentry-compatible source map uploads, but it does not use
+  // Sentry org/project values for matching. Debug IDs injected into source maps
+  // are the important part.
+  org: process.env.SENTRY_ORG ?? "bugsinkhasnoorgs",
+
+  project: process.env.SENTRY_PROJECT ?? "ignoredfornow",
+
+  telemetry: false,
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
