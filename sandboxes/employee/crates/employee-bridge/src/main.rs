@@ -166,17 +166,11 @@ async fn main() -> Result<()> {
         }
     };
 
-    let mcp_registry = Arc::new(McpRegistry::from_specs(&initial_definition.mcp_servers).await);
-    {
-        config_repo.upsert(&initial_definition).await?;
-    }
+    let mcp_registry = Arc::new(McpRegistry::from_specs(&[]).await);
 
-    let registry = build_registry_with_write_notifier(
-        sqlite_pool.clone(),
-        &initial_definition.outbound_channels,
-        write_notifier.clone(),
-    )
-    .map_err(|e| anyhow::anyhow!("build outbound registry: {e}"))?;
+    let registry =
+        build_registry_with_write_notifier(sqlite_pool.clone(), &[], write_notifier.clone())
+            .map_err(|e| anyhow::anyhow!("build outbound registry: {e}"))?;
     let registry = Arc::new(RwLock::new(registry));
     let outbound_reloader: Arc<dyn OutboundConfigReloader> = Arc::new(RegistryReloader {
         sqlite_pool: sqlite_pool.clone(),
@@ -190,38 +184,16 @@ async fn main() -> Result<()> {
     let emitter = Arc::new(OutboundEmitter::new(outbox_repo.clone(), registry.clone()));
 
     let skill_writer = Arc::new(SkillWriter::new(workspace_root.clone()));
-    skill_writer.sync(&initial_definition.skills);
 
     info!(
         agent = %initial_definition.agent.name,
-        outbound_channels = initial_definition.outbound_channels.len(),
-        "starting employee-bridge"
+        persisted_mcp_servers = initial_definition.mcp_servers.len(),
+        persisted_outbound_channels = initial_definition.outbound_channels.len(),
+        "waiting for first control-plane config push before starting employee services"
     );
 
     let config = ConfigStore::new(initial_definition.clone());
-
-    let slack_gateway: Arc<dyn ChannelGateway> = Arc::new(SlackGateway::new(
-        slack_bot_token,
-        slack_app_token,
-        config.clone(),
-    )?);
     let http_stream_broker = Arc::new(api::HttpStreamBroker::new());
-    let bridge_gateway: Arc<dyn ChannelGateway> = Arc::new(BridgeGateway::new(
-        slack_gateway.clone(),
-        http_stream_broker.clone(),
-    ));
-
-    let mut rig_runner = RigAgentRunner::new(config.clone(), workspace_root.clone())
-        .with_outbound_emitter(emitter.clone())
-        .with_gateway(bridge_gateway.clone())
-        .with_cron_repo(cron_repo.clone())
-        .with_event_repo(event_repo.clone())
-        .with_mcp_registry(mcp_registry.clone());
-    if let Some(service) = cloud_agent_service.as_ref() {
-        rig_runner = rig_runner.with_cloud_agents(service.clone());
-    }
-    let agent_runner: Arc<dyn AgentRunner> = Arc::new(rig_runner);
-
     let (inbound_sink, mut inbound_events) = mpsc::channel::<InboundEvent>(256);
 
     let api_state = ApiState::new(
@@ -239,8 +211,37 @@ async fn main() -> Result<()> {
         Some(outbound_reloader),
         cloud_agent_service.as_ref().map(|service| service.index()),
     );
-    api_state.mark_config_loaded();
     let (api_handle, api_cancel) = api::serve(bind_addr, api_state.clone()).await;
+
+    api_state.wait_for_config_loaded().await;
+    let active_definition = config.snapshot();
+    info!(
+        agent = %active_definition.agent.name,
+        mcp_servers = active_definition.mcp_servers.len(),
+        outbound_channels = active_definition.outbound_channels.len(),
+        "first control-plane config loaded; starting employee services"
+    );
+
+    let slack_gateway: Arc<dyn ChannelGateway> = Arc::new(SlackGateway::new(
+        slack_bot_token,
+        slack_app_token,
+        config.clone(),
+    )?);
+    let bridge_gateway: Arc<dyn ChannelGateway> = Arc::new(BridgeGateway::new(
+        slack_gateway.clone(),
+        http_stream_broker.clone(),
+    ));
+
+    let mut rig_runner = RigAgentRunner::new(config.clone(), workspace_root.clone())
+        .with_outbound_emitter(emitter.clone())
+        .with_gateway(bridge_gateway.clone())
+        .with_cron_repo(cron_repo.clone())
+        .with_event_repo(event_repo.clone())
+        .with_mcp_registry(mcp_registry.clone());
+    if let Some(service) = cloud_agent_service.as_ref() {
+        rig_runner = rig_runner.with_cloud_agents(service.clone());
+    }
+    let agent_runner: Arc<dyn AgentRunner> = Arc::new(rig_runner);
 
     let coordinator = Arc::new(SessionCoordinator::new());
 

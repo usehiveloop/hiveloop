@@ -8,6 +8,7 @@ use mcp::McpRegistry;
 use observability::ObservabilityRecorder;
 use skills::SkillWriter;
 use storage::{ConfigRepo, EventRepo, SessionRepo};
+use tokio::sync::Notify;
 
 use crate::http_gateway::HttpGatewayState;
 
@@ -20,6 +21,7 @@ pub struct ApiState {
     pub bearer_token: Arc<String>,
     pub gateway_ready: Arc<AtomicBool>,
     pub config_loaded: Arc<AtomicBool>,
+    pub config_notify: Arc<Notify>,
     pub skill_writer: Arc<SkillWriter>,
     pub http_gateway: Option<HttpGatewayState>,
     pub mcp_registry: Option<Arc<McpRegistry>>,
@@ -58,6 +60,7 @@ impl ApiState {
             bearer_token: Arc::new(bearer_token),
             gateway_ready: Arc::new(AtomicBool::new(false)),
             config_loaded: Arc::new(AtomicBool::new(false)),
+            config_notify: Arc::new(Notify::new()),
             skill_writer,
             http_gateway,
             mcp_registry,
@@ -72,7 +75,22 @@ impl ApiState {
     }
 
     pub fn mark_config_loaded(&self) {
-        self.config_loaded.store(true, Ordering::Release);
+        if !self.config_loaded.swap(true, Ordering::AcqRel) {
+            self.config_notify.notify_waiters();
+        }
+    }
+
+    pub async fn wait_for_config_loaded(&self) {
+        loop {
+            if self.config_loaded.load(Ordering::Acquire) {
+                return;
+            }
+            let notified = self.config_notify.notified();
+            if self.config_loaded.load(Ordering::Acquire) {
+                return;
+            }
+            notified.await;
+        }
     }
 
     pub fn is_ready(&self) -> bool {
