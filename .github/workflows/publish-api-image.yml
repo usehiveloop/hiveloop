@@ -3,8 +3,6 @@ name: publish-api-image
 on:
   push:
     branches: [main]
-  release:
-    types: [published]
 
 permissions:
   contents: read
@@ -33,14 +31,8 @@ jobs:
           IMAGE=ghcr.io/usehiveloop/hiveloop
           COMMIT=${GITHUB_SHA::7}
 
-          if [[ "${{ github.event_name }}" == "release" ]]; then
-            VERSION=${{ github.event.release.tag_name }}
-            echo "tags=${IMAGE}:${VERSION},${IMAGE}:latest" >> "$GITHUB_OUTPUT"
-            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tags=${IMAGE}:dev,${IMAGE}:sha-${COMMIT}" >> "$GITHUB_OUTPUT"
-            echo "version=dev" >> "$GITHUB_OUTPUT"
-          fi
+          echo "tags=${IMAGE}:dev,${IMAGE}:sha-${COMMIT}" >> "$GITHUB_OUTPUT"
+          echo "version=dev" >> "$GITHUB_OUTPUT"
 
       - name: build and push
         uses: docker/build-push-action@v6

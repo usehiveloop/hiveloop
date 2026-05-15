@@ -3,6 +3,12 @@ FROM debian:13.4
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVM_DIR=/usr/local/nvm
 ARG JUST_VERSION=1.38.0
+ARG VERSION=dev
+ARG COMMIT=unknown
+
+LABEL org.opencontainers.image.source="https://github.com/usehiveloop/hiveloop"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.revision="${COMMIT}"
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -77,6 +83,8 @@ RUN chmod +x /usr/local/bin/employee-bridge \
 ENV DB_PATH=/app/data/employee-bridge.db
 ENV WORKSPACE_ROOT=/workspace
 ENV RUNTIME_BIND_ADDR=0.0.0.0:7080
+ENV EMPLOYEE_SANDBOX_VERSION=${VERSION}
+ENV EMPLOYEE_SANDBOX_COMMIT=${COMMIT}
 
 EXPOSE 7080
 

@@ -25,6 +25,7 @@ func runBridge(ctx context.Context, args []string) {
 	bridgeVersion := fs.String("bridge-version", "", "usehiveloop/hiveloop release tag for the bridge binary (required, e.g. v1.0.0)")
 	bridgeBinary := fs.String("bridge-binary", "", "Optional local Linux x86_64 bridge binary to copy into the image instead of downloading a release asset")
 	size := fs.String("size", "all", "Snapshot sizes to register (small, medium, large, xlarge, all)")
+	buildImage := fs.Bool("build-image", true, "Build and push ghcr.io/usehiveloop/sandbox-bridge before registering snapshots")
 	registerSnapshots := fs.Bool("register-snapshots", true, "Register Daytona snapshots after pushing the image")
 	tagLatest := fs.Bool("latest", true, "Also tag and push ghcr.io/usehiveloop/sandbox-bridge:latest")
 	if err := fs.Parse(args); err != nil {
@@ -39,7 +40,7 @@ func runBridge(ctx context.Context, args []string) {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
-	if err := buildAndPush(ctx, *version, *bridgeVersion, *bridgeBinary, targetSizes, *registerSnapshots, *tagLatest); err != nil {
+	if err := buildAndPush(ctx, *version, *bridgeVersion, *bridgeBinary, targetSizes, *buildImage, *registerSnapshots, *tagLatest); err != nil {
 		log.Fatalf("error: %v", err)
 	}
 	log.Println("Done.")
@@ -60,16 +61,27 @@ func resolveSizes(s string) ([]string, error) {
 	return out, nil
 }
 
-func buildAndPush(ctx context.Context, version, bridgeVersion, bridgeBinary string, targetSizes []string, registerSnapshots, tagLatest bool) error {
+func buildAndPush(ctx context.Context, version, bridgeVersion, bridgeBinary string, targetSizes []string, buildImage, registerSnapshots, tagLatest bool) error {
 	// Strip a leading "v" so downstream formatters that prepend "v" don't double it.
 	version = strings.TrimPrefix(version, "v")
+	versionedTag := fmt.Sprintf("%s/%s/%s:v%s", ghcrRegistry, ghcrNamespace, "sandbox-bridge", version)
+
+	if !buildImage {
+		if bridgeBinary != "" {
+			return fmt.Errorf("-bridge-binary cannot be used when -build-image=false")
+		}
+		if !registerSnapshots {
+			return fmt.Errorf("nothing to do: -build-image=false and -register-snapshots=false")
+		}
+		log.Printf("Skipping image build. Registering snapshots from %s.", versionedTag)
+		return createDaytonaSnapshots(ctx, version, versionedTag, targetSizes)
+	}
 
 	user := os.Getenv("GHCR_USERNAME")
 	pat := os.Getenv("GHCR_PAT")
 	if user == "" || pat == "" {
 		return fmt.Errorf("GHCR_USERNAME and GHCR_PAT environment variables are required")
 	}
-
 	if err := dockerLogin(ctx, user, pat); err != nil {
 		return fmt.Errorf("docker login: %w", err)
 	}
@@ -99,9 +111,9 @@ func buildAndPush(ctx context.Context, version, bridgeVersion, bridgeBinary stri
 	log.Printf("Generated Dockerfile:\n%s\n", dockerfile)
 
 	pkg := "sandbox-bridge"
-	versionedTag := fmt.Sprintf("%s/%s/%s:v%s", ghcrRegistry, ghcrNamespace, pkg, version)
+	semverTag := fmt.Sprintf("%s/%s/%s:%s", ghcrRegistry, ghcrNamespace, pkg, version)
 	latestTag := fmt.Sprintf("%s/%s/%s:latest", ghcrRegistry, ghcrNamespace, pkg)
-	tags := []string{versionedTag}
+	tags := []string{versionedTag, semverTag}
 	if tagLatest {
 		tags = append(tags, latestTag)
 	}

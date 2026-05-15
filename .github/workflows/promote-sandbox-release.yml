@@ -1,0 +1,74 @@
+name: promote-sandbox-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to promote, for example v1.2.3
+        required: true
+        type: string
+      size:
+        description: Snapshot sizes to register
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - small
+          - medium
+          - large
+          - xlarge
+      runtime:
+        description: Register runtime bridge snapshots
+        required: true
+        default: true
+        type: boolean
+      employee:
+        description: Register employee sandbox snapshots
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  promote:
+    name: promote sandbox release
+    runs-on: ubuntu-latest
+    env:
+      SANDBOX_PROVIDER_KEY: ${{ secrets.SANDBOX_PROVIDER_KEY }}
+      SANDBOX_PROVIDER_URL: ${{ secrets.SANDBOX_PROVIDER_URL || vars.SANDBOX_PROVIDER_URL }}
+      SANDBOX_TARGET: ${{ secrets.SANDBOX_TARGET || vars.SANDBOX_TARGET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.10"
+          cache: true
+
+      - name: derive version
+        id: version
+        run: ./scripts/release/derive-version.sh "${{ inputs.tag }}" "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: register runtime bridge snapshots
+        if: inputs.runtime
+        run: |
+          go run ./cmd/buildtemplates bridge \
+            -version="${{ steps.version.outputs.RELEASE_TAG }}" \
+            -bridge-version="${{ steps.version.outputs.RELEASE_TAG }}" \
+            -size="${{ inputs.size }}" \
+            -build-image=false \
+            -register-snapshots=true \
+            -latest=false
+
+      - name: register employee sandbox snapshots
+        if: inputs.employee
+        run: |
+          go run ./cmd/buildtemplates employee-sandbox \
+            -version="${{ steps.version.outputs.RELEASE_TAG }}" \
+            -size="${{ inputs.size }}"
