@@ -22,6 +22,13 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 # ---- Runtime stage ----
 FROM alpine:3.21
 
+ARG VERSION=dev
+ARG COMMIT=unknown
+
+LABEL org.opencontainers.image.source="https://github.com/usehiveloop/hiveloop"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.revision="${COMMIT}"
+
 RUN apk add --no-cache ca-certificates tzdata nginx
 
 COPY --from=build /hiveloop /hiveloop
