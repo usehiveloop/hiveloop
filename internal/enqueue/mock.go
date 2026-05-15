@@ -16,18 +16,20 @@ type MockClient struct {
 type EnqueuedTask struct {
 	TypeName string
 	Payload  []byte
+	Options  []asynq.Option
 }
 
 func (m *MockClient) Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
 	return m.EnqueueContext(context.Background(), task, opts...)
 }
 
-func (m *MockClient) EnqueueContext(_ context.Context, task *asynq.Task, _ ...asynq.Option) (*asynq.TaskInfo, error) {
+func (m *MockClient) EnqueueContext(_ context.Context, task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.enqueued = append(m.enqueued, EnqueuedTask{
 		TypeName: task.Type(),
 		Payload:  task.Payload(),
+		Options:  append([]asynq.Option(nil), opts...),
 	})
 	return &asynq.TaskInfo{}, nil
 }

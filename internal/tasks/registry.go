@@ -76,6 +76,7 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		mux.HandleFunc(TypeSandboxHealthCheck, NewSandboxHealthCheckHandler(deps.Orchestrator).Handle)
 		mux.HandleFunc(TypeSandboxResourceCheck, NewSandboxResourceCheckHandler(deps.Orchestrator).Handle)
 		mux.HandleFunc(TypeSandboxLifecycle, NewSandboxLifecycleHandler(deps.Orchestrator).Handle)
+		mux.HandleFunc(TypeEmployeeSandboxRetire, NewEmployeeSandboxRetireHandler(deps.DB, deps.Orchestrator).Handle)
 	}
 
 	// Agent cleanup (works with or without orchestrator/pusher — handles nil gracefully)
@@ -123,7 +124,7 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 	}
 	if deps.Orchestrator != nil && deps.S3Client != nil && deps.EmployeeCompile.EncKey != nil && deps.EmployeeCompile.KMS != nil {
 		mux.HandleFunc(TypeEmployeeSandboxUpgrade,
-			NewEmployeeSandboxUpgradeHandler(deps.DB, deps.Orchestrator, deps.S3Client, deps.EmployeeCompile).Handle)
+			NewEmployeeSandboxUpgradeHandler(deps.DB, deps.Orchestrator, deps.S3Client, deps.EmployeeCompile, deps.Enqueuer).Handle)
 	}
 
 	// Router dispatch (Zira routing system).

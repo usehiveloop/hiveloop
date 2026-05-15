@@ -15,6 +15,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	slackprov "github.com/usehiveloop/hiveloop/internal/profiles/slack"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
@@ -24,6 +25,7 @@ type employeeUpgradeFixture struct {
 	db       *gorm.DB
 	server   *httptest.Server
 	provider *employeeUpgradeProvider
+	enqueuer *enqueue.MockClient
 	handler  *EmployeeSandboxUpgradeHandler
 	org      model.Org
 	agent    model.Agent
@@ -66,6 +68,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	t.Cleanup(server.Close)
 
 	provider := &employeeUpgradeProvider{endpoint: server.URL}
+	enqueuer := &enqueue.MockClient{}
 	orch := sandbox.NewOrchestrator(db, provider, nil, encKey, cfg)
 	org := model.Org{Name: "upgrade-org-" + uuid.NewString()[:8], Active: true}
 	if err := db.Create(&org).Error; err != nil {
@@ -137,7 +140,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 		EncKey:     encKey,
 		SigningKey: []byte("test-signing-key-32-bytes-long!!"),
 		Cfg:        cfg,
-	})
+	}, enqueuer)
 	t.Cleanup(func() {
 		db.Where("org_id = ?", org.ID).Delete(&model.EmployeeSandboxUpgrade{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Sandbox{})
@@ -147,7 +150,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 		db.Where("id = ?", org.ID).Delete(&model.Org{})
 	})
 	return &employeeUpgradeFixture{
-		db: db, server: server, provider: provider, handler: handler,
+		db: db, server: server, provider: provider, enqueuer: enqueuer, handler: handler,
 		org: org, agent: agent, old: old, upgrade: upgrade,
 	}
 }

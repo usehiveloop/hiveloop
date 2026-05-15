@@ -24,6 +24,7 @@ const (
 	TypeEmployeeMemoryRetain      = "employee:memory_retain"
 	TypeEmployeeMemoryRefresh     = "employee:memory_refresh"
 	TypeEmployeeSandboxUpgrade    = "employee:sandbox_upgrade"
+	TypeEmployeeSandboxRetire     = "employee:sandbox_retire"
 
 	// Periodic tasks (scheduled by the worker)
 	TypeTokenCleanup         = "periodic:token_cleanup"

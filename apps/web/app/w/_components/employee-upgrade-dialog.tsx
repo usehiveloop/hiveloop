@@ -73,8 +73,8 @@ const UPGRADE_STEPS: UpgradeStep[] = [
   },
   {
     phase: "cleanup_old",
-    label: "Remove old sandbox",
-    description: "Delete the previous sandbox after cutover succeeds.",
+    label: "Schedule old sandbox removal",
+    description: "Keep the previous sandbox stopped for 24 hours before deletion.",
   },
   {
     phase: "completed",

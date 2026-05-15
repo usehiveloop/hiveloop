@@ -184,19 +184,26 @@ func (h *EmployeeSandboxUpgradeHandler) markPhase(ctx context.Context, upgrade *
 	}
 	upgrade.Status = model.EmployeeSandboxUpgradeStatusRunning
 	upgrade.Phase = phase
+	recordEmployeeSandboxUpgradePhase(ctx, upgrade, phase)
 	return nil
 }
 
 func (h *EmployeeSandboxUpgradeHandler) markFailed(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, phase, message string) {
 	now := time.Now().UTC()
+	truncated := truncateUpgradeError(message)
 	if err := h.db.WithContext(ctx).Model(upgrade).Updates(map[string]any{
 		"status":        model.EmployeeSandboxUpgradeStatusFailed,
 		"phase":         phase,
-		"error_message": truncateUpgradeError(message),
+		"error_message": truncated,
 		"completed_at":  now,
 	}).Error; err != nil {
 		logging.Capture(ctx, fmt.Errorf("employee sandbox upgrade: mark failed: %w", err))
 	}
+	upgrade.Status = model.EmployeeSandboxUpgradeStatusFailed
+	upgrade.Phase = phase
+	upgrade.ErrorMessage = &truncated
+	upgrade.CompletedAt = &now
+	recordEmployeeSandboxUpgradeFailure(ctx, upgrade, phase, truncated)
 }
 
 func truncateUpgradeError(msg string) string {

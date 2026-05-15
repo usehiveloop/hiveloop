@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
@@ -29,6 +30,7 @@ type EmployeeSandboxUpgradeHandler struct {
 	orchestrator *sandbox.Orchestrator
 	store        employeeSandboxUpgradeBackupStore
 	compileDeps  employeeruntime.CompileDeps
+	enqueuer     enqueue.TaskEnqueuer
 }
 
 func NewEmployeeSandboxUpgradeHandler(
@@ -36,17 +38,19 @@ func NewEmployeeSandboxUpgradeHandler(
 	orchestrator *sandbox.Orchestrator,
 	store employeeSandboxUpgradeBackupStore,
 	compileDeps employeeruntime.CompileDeps,
+	enqueuer enqueue.TaskEnqueuer,
 ) *EmployeeSandboxUpgradeHandler {
 	return &EmployeeSandboxUpgradeHandler{
 		db:           db,
 		orchestrator: orchestrator,
 		store:        store,
 		compileDeps:  compileDeps,
+		enqueuer:     enqueuer,
 	}
 }
 
 func (h *EmployeeSandboxUpgradeHandler) Handle(ctx context.Context, task *asynq.Task) error {
-	if h == nil || h.db == nil || h.orchestrator == nil || h.store == nil || h.compileDeps.EncKey == nil {
+	if h == nil || h.db == nil || h.orchestrator == nil || h.store == nil || h.compileDeps.EncKey == nil || h.enqueuer == nil {
 		return fmt.Errorf("employee sandbox upgrade handler not configured")
 	}
 	var payload EmployeeSandboxUpgradePayload
@@ -69,11 +73,13 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 	if upgrade == nil {
 		return nil
 	}
+	annotateEmployeeSandboxUpgradeSentry(ctx, upgrade, agent, oldSandbox)
 
 	var oldStopped bool
 	var newSandbox *model.Sandbox
 	fail := func(phase string, cause error) error {
 		msg := cause.Error()
+		recordEmployeeSandboxUpgradeFailure(ctx, upgrade, phase, msg)
 		log.ErrorContext(ctx, "employee sandbox upgrade failed",
 			"upgrade_id", upgrade.ID,
 			"agent_id", upgrade.AgentID,
@@ -124,6 +130,7 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 	if err := h.verifyAndRecordBackup(ctx, upgrade, backupMeta); err != nil {
 		return fail(model.EmployeeSandboxUpgradePhaseBackup, err)
 	}
+	recordEmployeeSandboxUpgradeBackup(ctx, upgrade, backupMeta)
 
 	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseStoppingOld); err != nil {
 		return fail(model.EmployeeSandboxUpgradePhaseStoppingOld, err)
@@ -148,6 +155,7 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 		return fail(model.EmployeeSandboxUpgradePhaseCreatingNew, err)
 	}
 	upgrade.NewSandboxID = &newSandbox.ID
+	recordEmployeeSandboxUpgradeNewSandbox(ctx, upgrade, newSandbox)
 
 	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseRestore); err != nil {
 		return fail(model.EmployeeSandboxUpgradePhaseRestore, err)
@@ -178,8 +186,8 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseCleanupOld); err != nil {
 		return fail(model.EmployeeSandboxUpgradePhaseCleanupOld, err)
 	}
-	if err := h.orchestrator.DeleteSandbox(ctx, oldSandbox); err != nil {
-		logging.Capture(ctx, fmt.Errorf("employee sandbox upgrade %s: old sandbox delete failed: %w", upgrade.ID, err))
+	if err := h.scheduleOldSandboxRetirement(ctx, upgrade, oldSandbox); err != nil {
+		logging.Capture(ctx, fmt.Errorf("employee sandbox upgrade %s: schedule old sandbox retirement failed: %w", upgrade.ID, err))
 	}
 
 	now := time.Now().UTC()
@@ -188,8 +196,12 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 		"phase":        model.EmployeeSandboxUpgradePhaseCompleted,
 		"completed_at": now,
 	}).Error; err != nil {
-		return fmt.Errorf("mark employee sandbox upgrade succeeded: %w", err)
+		return fail(model.EmployeeSandboxUpgradePhaseCleanupOld, fmt.Errorf("mark employee sandbox upgrade succeeded: %w", err))
 	}
+	upgrade.Status = model.EmployeeSandboxUpgradeStatusSucceeded
+	upgrade.Phase = model.EmployeeSandboxUpgradePhaseCompleted
+	upgrade.CompletedAt = &now
+	recordEmployeeSandboxUpgradeSuccess(ctx, upgrade)
 	log.InfoContext(ctx, "employee sandbox upgrade succeeded",
 		"upgrade_id", upgrade.ID,
 		"agent_id", upgrade.AgentID,

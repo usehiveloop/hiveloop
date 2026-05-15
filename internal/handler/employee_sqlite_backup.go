@@ -77,12 +77,16 @@ func (h *EmployeeSQLiteBackupHandler) Upload(w http.ResponseWriter, r *http.Requ
 			writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "backup exceeds maximum size"})
 			return
 		}
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "employee sqlite backup upload failed",
+		attrs := []any{
 			"employee_id", agent.ID,
 			"sandbox_id", sandbox.ID,
 			"key", key,
 			"error", err,
-		)
+		}
+		if upgradeID != nil {
+			attrs = append(attrs, "upgrade_id", *upgradeID)
+		}
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "employee sqlite backup upload failed", attrs...)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "upload failed"})
 		return
 	}
