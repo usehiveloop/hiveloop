@@ -7301,6 +7301,152 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/employees/{id}/sandbox/upgrade": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Queues a control-plane upgrade that snapshots the employee runtime SQLite database,\nrecreates the sandbox on the current employee image, restores the database,\nsyncs config, and verifies readiness. If an upgrade is already queued or\nrunning for the employee, the active operation is returned.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Start an employee sandbox upgrade",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Employee agent ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Upgrade options",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.startEmployeeSandboxUpgradeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.employeeSandboxUpgradeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/employees/{id}/sandbox/upgrades/{upgradeID}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the current status and phase for a sandbox upgrade operation.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Get an employee sandbox upgrade",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Employee agent ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Upgrade operation ID",
+                        "name": "upgradeID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.employeeSandboxUpgradeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/employees/{id}/sync": {
             "post": {
                 "security": [
@@ -15213,6 +15359,47 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.employeeSandboxUpgradeResponse": {
+            "type": "object",
+            "properties": {
+                "backup_bytes": {
+                    "type": "integer"
+                },
+                "backup_key": {
+                    "type": "string"
+                },
+                "backup_sha256": {
+                    "type": "string"
+                },
+                "completed_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "error_message": {
+                    "type": "string"
+                },
+                "new_sandbox_id": {
+                    "type": "string"
+                },
+                "old_sandbox_id": {
+                    "type": "string"
+                },
+                "phase": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "upgrade_id": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.employeeSubagentSummary": {
             "type": "object",
             "properties": {
@@ -17596,6 +17783,14 @@ const docTemplate = `{
                 },
                 "total_cost": {
                     "type": "number"
+                }
+            }
+        },
+        "internal_handler.startEmployeeSandboxUpgradeRequest": {
+            "type": "object",
+            "properties": {
+                "smoke_test": {
+                    "type": "boolean"
                 }
             }
         },

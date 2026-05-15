@@ -10,6 +10,7 @@ import {
   Add01Icon,
   ArrowRight01Icon,
   Delete02Icon,
+  Loading03Icon,
   MoreHorizontalIcon,
   Search01Icon,
 } from "@hugeicons/core-free-icons"
@@ -30,6 +31,7 @@ import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { useAuth } from "@/lib/auth/auth-context"
 import { cn } from "@/lib/utils"
+import { EmployeeUpgradeDialog } from "./_components/employee-upgrade-dialog"
 import type { components } from "@/lib/api/schema"
 
 type Employee = components["schemas"]["employeeListItem"]
@@ -40,7 +42,7 @@ interface EmployeeGroup {
   employees: Employee[]
 }
 
-const COLUMN_GRID = "grid-cols-[1.6fr_1.9fr_0.9fr_0.9fr_2.5rem]"
+const COLUMN_GRID = "grid-cols-[1.45fr_1.65fr_0.9fr_1fr_0.9fr_2.5rem]"
 
 export default function WorkspaceHome() {
   const router = useRouter()
@@ -49,6 +51,7 @@ export default function WorkspaceHome() {
   const { activeOrg } = useAuth()
   const [filter, setFilter] = useState("")
   const [deleting, setDeleting] = useState<Employee | null>(null)
+  const [upgrading, setUpgrading] = useState<Employee | null>(null)
   const { data, isLoading } = $api.useQuery("get", "/v1/employees")
   const deleteEmployee = $api.useMutation("delete", "/v1/agents/{id}")
   const employees = useMemo(() => data?.data ?? [], [data])
@@ -72,6 +75,7 @@ export default function WorkspaceHome() {
         employee.team,
         employee.status,
         employee.sandbox?.status,
+        employee.upgrade_available ? "upgrade available" : "",
       ]
         .filter(Boolean)
         .join(" ")
@@ -86,6 +90,9 @@ export default function WorkspaceHome() {
   ).length
   const attentionCount = employees.filter((employee) =>
     ["error", "paused"].includes(normalizeStatus(employee.status))
+  ).length
+  const upgradeCount = employees.filter(
+    (employee) => employee.upgrade_available
   ).length
 
   function handleDeleteEmployee() {
@@ -109,12 +116,13 @@ export default function WorkspaceHome() {
 
   return (
     <>
-      <main className="mx-auto w-full max-w-6xl px-6 pb-32 pt-14 sm:px-10">
+      <main className="mx-auto w-full max-w-6xl px-6 pt-14 pb-32 sm:px-10">
         <EmployeesHeader
           orgName={activeOrg?.name ?? "Workspace"}
           total={employees.length}
           active={activeCount}
           attention={attentionCount}
+          upgrades={upgradeCount}
           filter={filter}
           onFilterChange={setFilter}
         />
@@ -134,6 +142,7 @@ export default function WorkspaceHome() {
                 key={group.name}
                 group={group}
                 onDeleteEmployee={setDeleting}
+                onUpgradeEmployee={setUpgrading}
               />
             ))
           )}
@@ -153,6 +162,16 @@ export default function WorkspaceHome() {
         loading={deleteEmployee.isPending}
         onConfirm={handleDeleteEmployee}
       />
+
+      {upgrading ? (
+        <EmployeeUpgradeDialog
+          employee={upgrading}
+          open
+          onOpenChange={(open) => {
+            if (!open) setUpgrading(null)
+          }}
+        />
+      ) : null}
     </>
   )
 }
@@ -160,16 +179,21 @@ export default function WorkspaceHome() {
 function EmployeeActions({
   employee,
   onDelete,
+  onUpgrade,
 }: {
   employee: Employee
   onDelete: () => void
+  onUpgrade: () => void
 }) {
   const router = useRouter()
   const isDraft = normalizeStatus(employee.status) === "draft"
+  const canUpgrade = Boolean(
+    employee.upgrade_available && employee.id && !isDraft
+  )
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-lg outline-none transition-colors hover:bg-muted">
+      <DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-lg transition-colors outline-none hover:bg-muted">
         <HugeiconsIcon
           icon={MoreHorizontalIcon}
           className="size-4 text-muted-foreground"
@@ -193,8 +217,22 @@ function EmployeeActions({
               Continue onboarding
             </DropdownMenuItem>
           ) : null}
+          {canUpgrade ? (
+            <DropdownMenuItem onClick={onUpgrade}>
+              <HugeiconsIcon
+                icon={ArrowRight01Icon}
+                className="size-4"
+                strokeWidth={2}
+              />
+              Upgrade sandbox
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuItem variant="destructive" onClick={onDelete}>
-            <HugeiconsIcon icon={Delete02Icon} className="size-4" strokeWidth={2} />
+            <HugeiconsIcon
+              icon={Delete02Icon}
+              className="size-4"
+              strokeWidth={2}
+            />
             Delete employee
           </DropdownMenuItem>
         </DropdownMenuGroup>
@@ -206,9 +244,11 @@ function EmployeeActions({
 function TeamSection({
   group,
   onDeleteEmployee,
+  onUpgradeEmployee,
 }: {
   group: EmployeeGroup
   onDeleteEmployee: (employee: Employee) => void
+  onUpgradeEmployee: (employee: Employee) => void
 }) {
   return (
     <section className="flex flex-col gap-4">
@@ -238,6 +278,7 @@ function TeamSection({
       <EmployeeTable
         employees={group.employees}
         onDeleteEmployee={onDeleteEmployee}
+        onUpgradeEmployee={onUpgradeEmployee}
       />
     </section>
   )
@@ -246,21 +287,24 @@ function TeamSection({
 function EmployeeTable({
   employees,
   onDeleteEmployee,
+  onUpgradeEmployee,
 }: {
   employees: Employee[]
   onDeleteEmployee: (employee: Employee) => void
+  onUpgradeEmployee: (employee: Employee) => void
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
       <div
         className={cn(
-          "hidden items-center border-b border-border px-5 py-3 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground lg:grid",
+          "hidden items-center border-b border-border px-5 py-3 text-[10.5px] font-semibold tracking-[0.12em] text-muted-foreground uppercase lg:grid",
           COLUMN_GRID
         )}
       >
         <span>Employee</span>
         <span>Role</span>
         <span>Status</span>
+        <span>Runtime</span>
         <span className="text-right">Last active</span>
         <span className="sr-only">Actions</span>
       </div>
@@ -270,6 +314,7 @@ function EmployeeTable({
             key={employee.id ?? employee.name}
             employee={employee}
             onDelete={() => onDeleteEmployee(employee)}
+            onUpgrade={() => onUpgradeEmployee(employee)}
           />
         ))}
       </ul>
@@ -280,9 +325,11 @@ function EmployeeTable({
 function EmployeeRow({
   employee,
   onDelete,
+  onUpgrade,
 }: {
   employee: Employee
   onDelete: () => void
+  onUpgrade: () => void
 }) {
   const name = employee.name ?? "Unnamed employee"
   const role = employee.category || employee.description || "Coordinator"
@@ -312,9 +359,16 @@ function EmployeeRow({
       <span>
         <StatusBadge status={status} />
       </span>
+      <span>
+        <RuntimeStatus employee={employee} onUpgrade={onUpgrade} />
+      </span>
       <span className="text-muted-foreground lg:text-right">{lastActive}</span>
       <div className="flex justify-start lg:justify-end">
-        <EmployeeActions employee={employee} onDelete={onDelete} />
+        <EmployeeActions
+          employee={employee}
+          onDelete={onDelete}
+          onUpgrade={onUpgrade}
+        />
       </div>
     </li>
   )
@@ -325,6 +379,7 @@ function EmployeesHeader({
   total,
   active,
   attention,
+  upgrades,
   filter,
   onFilterChange,
 }: {
@@ -332,13 +387,14 @@ function EmployeesHeader({
   total: number
   active: number
   attention: number
+  upgrades: number
   filter: string
   onFilterChange: (value: string) => void
 }) {
   return (
     <section className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
       <div className="flex flex-col gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
           {orgName} Workforce
         </p>
         <h1 className="font-display text-4xl font-medium tracking-tight">
@@ -347,13 +403,19 @@ function EmployeesHeader({
         <p className="text-sm text-muted-foreground">
           <span className="font-semibold text-foreground">{total}</span>{" "}
           {total === 1 ? "employee" : "employees"},{" "}
-          <span className="font-semibold text-foreground">{active}</span>{" "}
-          active
+          <span className="font-semibold text-foreground">{active}</span> active
           {attention > 0 ? (
             <>
               .{" "}
               <span className="text-destructive underline decoration-destructive/40 underline-offset-4">
                 {attention} need attention.
+              </span>
+            </>
+          ) : upgrades > 0 ? (
+            <>
+              .{" "}
+              <span className="text-primary underline decoration-primary/30 underline-offset-4">
+                {upgrades} {upgrades === 1 ? "upgrade" : "upgrades"} available.
               </span>
             </>
           ) : (
@@ -376,6 +438,50 @@ function EmployeesHeader({
   )
 }
 
+function RuntimeStatus({
+  employee,
+  onUpgrade,
+}: {
+  employee: Employee
+  onUpgrade: () => void
+}) {
+  const sandboxStatus = employee.sandbox?.status?.toLowerCase()
+  const isUpgrading = sandboxStatus === "upgrading"
+
+  if (isUpgrading) {
+    return (
+      <Badge variant="ghost" className="gap-1.5 bg-primary/10 text-primary">
+        <HugeiconsIcon
+          icon={Loading03Icon}
+          className="size-3 animate-spin"
+          strokeWidth={2}
+        />
+        Upgrading
+      </Badge>
+    )
+  }
+
+  if (employee.upgrade_available && employee.id) {
+    return (
+      <Button
+        type="button"
+        variant="secondary"
+        size="xs"
+        onClick={onUpgrade}
+        className="text-primary"
+      >
+        Upgrade
+      </Button>
+    )
+  }
+
+  return (
+    <Badge variant="ghost" className="bg-muted/60 text-muted-foreground">
+      Current
+    </Badge>
+  )
+}
+
 function FilterField({
   value,
   onChange,
@@ -387,7 +493,7 @@ function FilterField({
     <div className="relative w-full sm:w-60">
       <HugeiconsIcon
         icon={Search01Icon}
-        className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
         strokeWidth={2}
       />
       <Input
@@ -399,7 +505,6 @@ function FilterField({
     </div>
   )
 }
-
 
 const STATUS_PRESETS: Record<
   Status,
@@ -453,11 +558,8 @@ function EmployeesTableSkeleton() {
                 COLUMN_GRID
               )}
             >
-              {Array.from({ length: 5 }).map((__, headerIndex) => (
-                <Skeleton
-                  key={headerIndex}
-                  className="h-3 w-20 rounded-md"
-                />
+              {Array.from({ length: 6 }).map((__, headerIndex) => (
+                <Skeleton key={headerIndex} className="h-3 w-20 rounded-md" />
               ))}
             </div>
             {Array.from({ length: 3 }).map((__, rowIndex) => (
@@ -468,11 +570,8 @@ function EmployeesTableSkeleton() {
                   COLUMN_GRID
                 )}
               >
-                {Array.from({ length: 5 }).map((___, cellIndex) => (
-                  <Skeleton
-                    key={cellIndex}
-                    className="h-5 w-24 rounded-md"
-                  />
+                {Array.from({ length: 6 }).map((___, cellIndex) => (
+                  <Skeleton key={cellIndex} className="h-5 w-24 rounded-md" />
                 ))}
               </div>
             ))}

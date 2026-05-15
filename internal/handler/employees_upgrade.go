@@ -38,6 +38,25 @@ type employeeSandboxUpgradeResponse struct {
 	CompletedAt  *time.Time `json:"completed_at,omitempty"`
 }
 
+// @Summary Start an employee sandbox upgrade
+// @Description Queues a control-plane upgrade that snapshots the employee runtime SQLite database,
+// @Description recreates the sandbox on the current employee image, restores the database,
+// @Description syncs config, and verifies readiness. If an upgrade is already queued or
+// @Description running for the employee, the active operation is returned.
+// @Tags employees
+// @Accept json
+// @Produce json
+// @Param id path string true "Employee agent ID"
+// @Param body body startEmployeeSandboxUpgradeRequest false "Upgrade options"
+// @Success 202 {object} employeeSandboxUpgradeResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Failure 503 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/employees/{id}/sandbox/upgrade [post]
 func (h *EmployeeHandler) StartSandboxUpgrade(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logging.FromContext(ctx)
@@ -142,6 +161,19 @@ func (h *EmployeeHandler) StartSandboxUpgrade(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusAccepted, toEmployeeSandboxUpgradeResponse(&upgrade))
 }
 
+// @Summary Get an employee sandbox upgrade
+// @Description Returns the current status and phase for a sandbox upgrade operation.
+// @Tags employees
+// @Produce json
+// @Param id path string true "Employee agent ID"
+// @Param upgradeID path string true "Upgrade operation ID"
+// @Success 200 {object} employeeSandboxUpgradeResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/employees/{id}/sandbox/upgrades/{upgradeID} [get]
 func (h *EmployeeHandler) GetSandboxUpgrade(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	org, ok := middleware.OrgFromContext(ctx)

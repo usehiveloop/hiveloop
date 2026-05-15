@@ -8427,6 +8427,190 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/employees/{id}/sandbox/upgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start an employee sandbox upgrade
+         * @description Queues a control-plane upgrade that snapshots the employee runtime SQLite database,
+         *     recreates the sandbox on the current employee image, restores the database,
+         *     syncs config, and verifies readiness. If an upgrade is already queued or
+         *     running for the employee, the active operation is returned.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Upgrade options */
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["startEmployeeSandboxUpgradeRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["employeeSandboxUpgradeResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/employees/{id}/sandbox/upgrades/{upgradeID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get an employee sandbox upgrade
+         * @description Returns the current status and phase for a sandbox upgrade operation.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee agent ID */
+                    id: string;
+                    /** @description Upgrade operation ID */
+                    upgradeID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["employeeSandboxUpgradeResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/employees/{id}/sync": {
         parameters: {
             query?: never;
@@ -14712,6 +14896,20 @@ export interface components {
             last_active_at?: string;
             status?: string;
         };
+        employeeSandboxUpgradeResponse: {
+            backup_bytes?: number;
+            backup_key?: string;
+            backup_sha256?: string;
+            completed_at?: string;
+            created_at?: string;
+            error_message?: string;
+            new_sandbox_id?: string;
+            old_sandbox_id?: string;
+            phase?: string;
+            status?: string;
+            updated_at?: string;
+            upgrade_id?: string;
+        };
         employeeSubagentSummary: {
             avatar_url?: string;
             description?: string;
@@ -15493,6 +15691,9 @@ export interface components {
         spendOverTime: {
             date?: string;
             total_cost?: number;
+        };
+        startEmployeeSandboxUpgradeRequest: {
+            smoke_test?: boolean;
         };
         statusResponse: {
             message?: string;

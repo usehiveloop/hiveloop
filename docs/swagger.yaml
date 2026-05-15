@@ -2425,6 +2425,33 @@ definitions:
       status:
         type: string
     type: object
+  internal_handler.employeeSandboxUpgradeResponse:
+    properties:
+      backup_bytes:
+        type: integer
+      backup_key:
+        type: string
+      backup_sha256:
+        type: string
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      error_message:
+        type: string
+      new_sandbox_id:
+        type: string
+      old_sandbox_id:
+        type: string
+      phase:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+      upgrade_id:
+        type: string
+    type: object
   internal_handler.employeeSubagentSummary:
     properties:
       avatar_url:
@@ -3982,6 +4009,11 @@ definitions:
         type: string
       total_cost:
         type: number
+    type: object
+  internal_handler.startEmployeeSandboxUpgradeRequest:
+    properties:
+      smoke_test:
+        type: boolean
     type: object
   internal_handler.statusResponse:
     properties:
@@ -9181,6 +9213,104 @@ paths:
       summary: Start a chat with an AI employee
       tags:
       - chats
+  /v1/employees/{id}/sandbox/upgrade:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Queues a control-plane upgrade that snapshots the employee runtime SQLite database,
+        recreates the sandbox on the current employee image, restores the database,
+        syncs config, and verifies readiness. If an upgrade is already queued or
+        running for the employee, the active operation is returned.
+      parameters:
+      - description: Employee agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Upgrade options
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_handler.startEmployeeSandboxUpgradeRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/internal_handler.employeeSandboxUpgradeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Start an employee sandbox upgrade
+      tags:
+      - employees
+  /v1/employees/{id}/sandbox/upgrades/{upgradeID}:
+    get:
+      description: Returns the current status and phase for a sandbox upgrade operation.
+      parameters:
+      - description: Employee agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Upgrade operation ID
+        in: path
+        name: upgradeID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.employeeSandboxUpgradeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an employee sandbox upgrade
+      tags:
+      - employees
   /v1/employees/{id}/sync:
     post:
       description: |-
