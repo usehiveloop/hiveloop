@@ -90,14 +90,9 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.ensureBusinessResearchSpecialist(ctx, &agent); err != nil {
-		log.ErrorContext(ctx, "ensure business research specialist", "error", err, "agent_id", agentID, "org_id", org.ID)
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "failed to ensure business research specialist"})
-		return
-	}
-	if _, err := h.ensureSoftwareEngineeringSpecialist(ctx, &agent); err != nil {
-		log.ErrorContext(ctx, "ensure software engineering specialist", "error", err, "agent_id", agentID, "org_id", org.ID)
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "failed to ensure software engineering specialist"})
+	if _, err := h.ensureEmployeeAgentTemplates(ctx, &agent); err != nil {
+		log.ErrorContext(ctx, "ensure employee agent templates", "error", err, "agent_id", agentID, "org_id", org.ID)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "failed to ensure employee agent templates"})
 		return
 	}
 

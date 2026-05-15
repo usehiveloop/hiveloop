@@ -31,6 +31,7 @@ import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { useAuth } from "@/lib/auth/auth-context"
 import { cn } from "@/lib/utils"
+import { EmployeeAgentTemplatesDialog } from "./_components/employee-agent-templates-dialog"
 import { EmployeeUpgradeDialog } from "./_components/employee-upgrade-dialog"
 import type { components } from "@/lib/api/schema"
 
@@ -52,6 +53,9 @@ export default function WorkspaceHome() {
   const [filter, setFilter] = useState("")
   const [deleting, setDeleting] = useState<Employee | null>(null)
   const [upgrading, setUpgrading] = useState<Employee | null>(null)
+  const [templatesEmployee, setTemplatesEmployee] = useState<Employee | null>(
+    null
+  )
   const { data, isLoading } = $api.useQuery("get", "/v1/employees")
   const deleteEmployee = $api.useMutation("delete", "/v1/agents/{id}")
   const employees = useMemo(() => data?.data ?? [], [data])
@@ -143,6 +147,7 @@ export default function WorkspaceHome() {
                 group={group}
                 onDeleteEmployee={setDeleting}
                 onUpgradeEmployee={setUpgrading}
+                onManageTemplates={setTemplatesEmployee}
               />
             ))
           )}
@@ -172,6 +177,16 @@ export default function WorkspaceHome() {
           }}
         />
       ) : null}
+
+      {templatesEmployee ? (
+        <EmployeeAgentTemplatesDialog
+          employee={templatesEmployee}
+          open
+          onOpenChange={(open) => {
+            if (!open) setTemplatesEmployee(null)
+          }}
+        />
+      ) : null}
     </>
   )
 }
@@ -180,10 +195,12 @@ function EmployeeActions({
   employee,
   onDelete,
   onUpgrade,
+  onManageTemplates,
 }: {
   employee: Employee
   onDelete: () => void
   onUpgrade: () => void
+  onManageTemplates: () => void
 }) {
   const router = useRouter()
   const isDraft = normalizeStatus(employee.status) === "draft"
@@ -227,6 +244,14 @@ function EmployeeActions({
               Upgrade sandbox
             </DropdownMenuItem>
           ) : null}
+          <DropdownMenuItem onClick={onManageTemplates}>
+            <HugeiconsIcon
+              icon={Add01Icon}
+              className="size-4"
+              strokeWidth={2}
+            />
+            Agent templates
+          </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onClick={onDelete}>
             <HugeiconsIcon
               icon={Delete02Icon}
@@ -245,10 +270,12 @@ function TeamSection({
   group,
   onDeleteEmployee,
   onUpgradeEmployee,
+  onManageTemplates,
 }: {
   group: EmployeeGroup
   onDeleteEmployee: (employee: Employee) => void
   onUpgradeEmployee: (employee: Employee) => void
+  onManageTemplates: (employee: Employee) => void
 }) {
   return (
     <section className="flex flex-col gap-4">
@@ -279,6 +306,7 @@ function TeamSection({
         employees={group.employees}
         onDeleteEmployee={onDeleteEmployee}
         onUpgradeEmployee={onUpgradeEmployee}
+        onManageTemplates={onManageTemplates}
       />
     </section>
   )
@@ -288,10 +316,12 @@ function EmployeeTable({
   employees,
   onDeleteEmployee,
   onUpgradeEmployee,
+  onManageTemplates,
 }: {
   employees: Employee[]
   onDeleteEmployee: (employee: Employee) => void
   onUpgradeEmployee: (employee: Employee) => void
+  onManageTemplates: (employee: Employee) => void
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -315,6 +345,7 @@ function EmployeeTable({
             employee={employee}
             onDelete={() => onDeleteEmployee(employee)}
             onUpgrade={() => onUpgradeEmployee(employee)}
+            onManageTemplates={() => onManageTemplates(employee)}
           />
         ))}
       </ul>
@@ -326,10 +357,12 @@ function EmployeeRow({
   employee,
   onDelete,
   onUpgrade,
+  onManageTemplates,
 }: {
   employee: Employee
   onDelete: () => void
   onUpgrade: () => void
+  onManageTemplates: () => void
 }) {
   const name = employee.name ?? "Unnamed employee"
   const role = employee.category || employee.description || "Coordinator"
@@ -368,6 +401,7 @@ function EmployeeRow({
           employee={employee}
           onDelete={onDelete}
           onUpgrade={onUpgrade}
+          onManageTemplates={onManageTemplates}
         />
       </div>
     </li>

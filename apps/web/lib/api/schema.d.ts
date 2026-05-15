@@ -8351,6 +8351,200 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/employees/{id}/agent-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List employee agent templates
+         * @description Returns category-scoped employee subagent templates and whether each one is already installed on the employee.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["employeeAgentTemplateResponse"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/employees/{id}/agent-templates/{slug}/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Install an employee agent template
+         * @description Idempotently adds or updates a template subagent on the employee, attaches default subagent skills, and syncs runtime config.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee agent ID */
+                    id: string;
+                    /** @description Template slug */
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["installEmployeeAgentTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/employees/{id}/chats": {
         parameters: {
             query?: never;
@@ -14847,6 +15041,16 @@ export interface components {
             type?: string;
             value?: string;
         };
+        employeeAgentTemplateResponse: {
+            agent_type?: string;
+            category?: string;
+            description?: string;
+            installed?: boolean;
+            name?: string;
+            slug?: string;
+            subagent_id?: string;
+            version?: number;
+        };
         employeeListItem: {
             agent_config?: components["schemas"]["JSON"];
             attached_skills?: components["schemas"]["agentSkillSummary"][];
@@ -14916,6 +15120,8 @@ export interface components {
             id?: string;
             name?: string;
             status?: string;
+            template_agent_type?: string;
+            template_slug?: string;
         };
         errorRate: {
             date?: string;
@@ -15014,6 +15220,11 @@ export interface components {
             amount_minor?: number;
             currency?: string;
             reference?: string;
+        };
+        installEmployeeAgentTemplateResponse: {
+            subagent?: components["schemas"]["employeeSubagentSummary"];
+            sync?: components["schemas"]["syncEmployeeResponse"];
+            template?: components["schemas"]["employeeAgentTemplateResponse"];
         };
         integrationDetail: {
             actions?: components["schemas"]["actionSummary"][];

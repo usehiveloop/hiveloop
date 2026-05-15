@@ -8592,6 +8592,212 @@
         }
       }
     },
+    "/v1/employees/{id}/agent-templates": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns category-scoped employee subagent templates and whether each one is already installed on the employee.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "List employee agent templates",
+        "parameters": [
+          {
+            "description": "Employee agent ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/employeeAgentTemplateResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/employees/{id}/agent-templates/{slug}/install": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Idempotently adds or updates a template subagent on the employee, attaches default subagent skills, and syncs runtime config.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "Install an employee agent template",
+        "parameters": [
+          {
+            "description": "Employee agent ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Template slug",
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/installEmployeeAgentTemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/employees/{id}/chats": {
       "post": {
         "security": [
@@ -17533,6 +17739,35 @@
           }
         }
       },
+      "employeeAgentTemplateResponse": {
+        "type": "object",
+        "properties": {
+          "agent_type": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "subagent_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        }
+      },
       "employeeListItem": {
         "type": "object",
         "properties": {
@@ -17753,6 +17988,12 @@
             "type": "string"
           },
           "status": {
+            "type": "string"
+          },
+          "template_agent_type": {
+            "type": "string"
+          },
+          "template_slug": {
             "type": "string"
           }
         }
@@ -18052,6 +18293,20 @@
           },
           "reference": {
             "type": "string"
+          }
+        }
+      },
+      "installEmployeeAgentTemplateResponse": {
+        "type": "object",
+        "properties": {
+          "subagent": {
+            "$ref": "#/components/schemas/employeeSubagentSummary"
+          },
+          "sync": {
+            "$ref": "#/components/schemas/syncEmployeeResponse"
+          },
+          "template": {
+            "$ref": "#/components/schemas/employeeAgentTemplateResponse"
           }
         }
       },

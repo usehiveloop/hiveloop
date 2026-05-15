@@ -14,11 +14,13 @@ import (
 )
 
 type employeeSubagentSummary struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	AvatarURL   *string `json:"avatar_url,omitempty"`
-	Description *string `json:"description,omitempty"`
-	Status      string  `json:"status"`
+	ID                string  `json:"id"`
+	Name              string  `json:"name"`
+	AvatarURL         *string `json:"avatar_url,omitempty"`
+	Description       *string `json:"description,omitempty"`
+	Status            string  `json:"status"`
+	TemplateSlug      *string `json:"template_slug,omitempty"`
+	TemplateAgentType *string `json:"template_agent_type,omitempty"`
 }
 
 type employeeSandboxSummary struct {
@@ -222,7 +224,7 @@ func loadEmployeeSubagents(db *gorm.DB, agentIDs []uuid.UUID) map[uuid.UUID][]em
 		subIDs = append(subIDs, l.SubagentID)
 	}
 	var subs []model.Agent
-	if err := db.Select("id, name, avatar_url, description, status").
+	if err := db.Select("id, name, avatar_url, description, status, agent_config, system_prompt, identity_prompt").
 		Where("id IN ?", subIDs).
 		Find(&subs).Error; err != nil {
 		return nil
@@ -237,13 +239,7 @@ func loadEmployeeSubagents(db *gorm.DB, agentIDs []uuid.UUID) map[uuid.UUID][]em
 		if !ok {
 			continue
 		}
-		out[l.AgentID] = append(out[l.AgentID], employeeSubagentSummary{
-			ID:          s.ID.String(),
-			Name:        s.Name,
-			AvatarURL:   s.AvatarURL,
-			Description: s.Description,
-			Status:      s.Status,
-		})
+		out[l.AgentID] = append(out[l.AgentID], employeeSubagentSummaryFromAgent(s))
 	}
 	return out
 }

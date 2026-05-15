@@ -7237,6 +7237,156 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/employees/{id}/agent-templates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns category-scoped employee subagent templates and whether each one is already installed on the employee.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "List employee agent templates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Employee agent ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/internal_handler.employeeAgentTemplateResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/employees/{id}/agent-templates/{slug}/install": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Idempotently adds or updates a template subagent on the employee, attaches default subagent skills, and syncs runtime config.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Install an employee agent template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Employee agent ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.installEmployeeAgentTemplateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/employees/{id}/chats": {
             "post": {
                 "security": [
@@ -15196,6 +15346,35 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.employeeAgentTemplateResponse": {
+            "type": "object",
+            "properties": {
+                "agent_type": {
+                    "type": "string"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "installed": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "subagent_id": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
         "internal_handler.employeeListItem": {
             "type": "object",
             "properties": {
@@ -15416,6 +15595,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
+                    "type": "string"
+                },
+                "template_agent_type": {
+                    "type": "string"
+                },
+                "template_slug": {
                     "type": "string"
                 }
             }
@@ -15715,6 +15900,20 @@ const docTemplate = `{
                 },
                 "reference": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handler.installEmployeeAgentTemplateResponse": {
+            "type": "object",
+            "properties": {
+                "subagent": {
+                    "$ref": "#/definitions/internal_handler.employeeSubagentSummary"
+                },
+                "sync": {
+                    "$ref": "#/definitions/internal_handler.syncEmployeeResponse"
+                },
+                "template": {
+                    "$ref": "#/definitions/internal_handler.employeeAgentTemplateResponse"
                 }
             }
         },

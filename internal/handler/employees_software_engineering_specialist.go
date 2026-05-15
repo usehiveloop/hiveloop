@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -11,30 +10,6 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
-
-func (h *EmployeeHandler) ensureSoftwareEngineeringSpecialist(ctx context.Context, employee *model.Agent) (*model.Agent, error) {
-	if employee == nil || employee.OrgID == nil {
-		return nil, errors.New("employee must have org_id")
-	}
-	team, err := h.ensureEmployeeTeam(ctx, employee)
-	if err != nil {
-		return nil, err
-	}
-	var out *model.Agent
-	err = h.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		subagent, err := h.ensureSoftwareEngineeringSpecialistTx(ctx, tx, employee, team)
-		if err != nil {
-			return err
-		}
-		out = subagent
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	h.attachGlobalSkills(ctx, out.ID, defaultEmployeeSubagentSkills[employeeCategory(employee)])
-	return out, nil
-}
 
 func (h *EmployeeHandler) ensureSoftwareEngineeringSpecialistTx(ctx context.Context, tx *gorm.DB, employee *model.Agent, team *model.Team) (*model.Agent, error) {
 	if existing, err := findSoftwareEngineeringSpecialist(ctx, tx, employee.ID); err != nil {

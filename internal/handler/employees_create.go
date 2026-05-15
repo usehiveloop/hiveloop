@@ -128,16 +128,11 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		if err := tx.Create(&agent).Error; err != nil {
 			return err
 		}
-		created, err := h.ensureBusinessResearchSpecialistTx(r.Context(), tx, &agent, team)
+		created, err := h.ensureEmployeeAgentTemplatesTx(r.Context(), tx, &agent, team)
 		if err != nil {
 			return err
 		}
-		subagents = append(subagents, created)
-		created, err = h.ensureSoftwareEngineeringSpecialistTx(r.Context(), tx, &agent, team)
-		if err != nil {
-			return err
-		}
-		subagents = append(subagents, created)
+		subagents = append(subagents, created...)
 		return nil
 	})
 	if err != nil {
@@ -151,12 +146,7 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.attachGlobalSkills(r.Context(), agent.ID, defaultEmployeeSkills[req.Category])
-	for _, subagent := range subagents {
-		if subagent == nil {
-			continue
-		}
-		h.attachGlobalSkills(r.Context(), subagent.ID, defaultEmployeeSubagentSkills[req.Category])
-	}
+	h.attachEmployeeAgentTemplateSkills(r.Context(), subagents...)
 
 	writeJSON(w, http.StatusCreated, createEmployeeResponse{
 		AgentID:   agent.ID.String(),

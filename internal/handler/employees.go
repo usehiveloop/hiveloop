@@ -22,10 +22,6 @@ var defaultEmployeeSkills = map[string][]string{
 	employeeCategoryEngineering: {"git-github", "asset-uploads"},
 }
 
-var defaultEmployeeSubagentSkills = map[string][]string{
-	employeeCategoryEngineering: {"agent-browser", "git-github", "asset-uploads"},
-}
-
 type EmployeeHandler struct {
 	db           *gorm.DB
 	orchestrator *sandbox.Orchestrator

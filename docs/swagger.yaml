@@ -2317,6 +2317,25 @@ definitions:
       value:
         type: string
     type: object
+  internal_handler.employeeAgentTemplateResponse:
+    properties:
+      agent_type:
+        type: string
+      category:
+        type: string
+      description:
+        type: string
+      installed:
+        type: boolean
+      name:
+        type: string
+      slug:
+        type: string
+      subagent_id:
+        type: string
+      version:
+        type: integer
+    type: object
   internal_handler.employeeListItem:
     properties:
       agent_config:
@@ -2463,6 +2482,10 @@ definitions:
       name:
         type: string
       status:
+        type: string
+      template_agent_type:
+        type: string
+      template_slug:
         type: string
     type: object
   internal_handler.errorRate:
@@ -2658,6 +2681,15 @@ definitions:
         type: string
       reference:
         type: string
+    type: object
+  internal_handler.installEmployeeAgentTemplateResponse:
+    properties:
+      subagent:
+        $ref: '#/definitions/internal_handler.employeeSubagentSummary'
+      sync:
+        $ref: '#/definitions/internal_handler.syncEmployeeResponse'
+      template:
+        $ref: '#/definitions/internal_handler.employeeAgentTemplateResponse'
     type: object
   internal_handler.integrationDetail:
     properties:
@@ -9167,6 +9199,105 @@ paths:
       security:
       - BearerAuth: []
       summary: Get an AI employee
+      tags:
+      - employees
+  /v1/employees/{id}/agent-templates:
+    get:
+      description: Returns category-scoped employee subagent templates and whether
+        each one is already installed on the employee.
+      parameters:
+      - description: Employee agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.employeeAgentTemplateResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List employee agent templates
+      tags:
+      - employees
+  /v1/employees/{id}/agent-templates/{slug}/install:
+    post:
+      description: Idempotently adds or updates a template subagent on the employee,
+        attaches default subagent skills, and syncs runtime config.
+      parameters:
+      - description: Employee agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Template slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.installEmployeeAgentTemplateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Install an employee agent template
       tags:
       - employees
   /v1/employees/{id}/chats:

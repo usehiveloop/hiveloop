@@ -181,10 +181,12 @@ func setupV1Routes(
 				if employeeHandler != nil {
 					r.Get("/employees", employeeHandler.List)
 					r.Get("/employees/{id}", employeeHandler.Get)
+					r.Get("/employees/{id}/agent-templates", employeeHandler.ListAgentTemplates)
 					r.Group(func(r chi.Router) {
 						r.Use(middleware.RequireOrgAdmin(database))
 						r.Post("/employees", employeeHandler.Create)
 						r.Post("/employees/{id}/sync", employeeHandler.Sync)
+						r.Post("/employees/{id}/agent-templates/{slug}/install", employeeHandler.InstallAgentTemplate)
 						r.Post("/employees/{id}/sandbox/upgrade", employeeHandler.StartSandboxUpgrade)
 						r.Get("/employees/{id}/sandbox/upgrades/{upgradeID}", employeeHandler.GetSandboxUpgrade)
 						r.Post("/orgs/current/onboarding/complete", employeeHandler.CompleteOnboarding)
