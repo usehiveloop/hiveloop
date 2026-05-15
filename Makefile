@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-proxy test-connect test-integrations test-connections test-setup openapi generate-auth-keys upload-skills build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-proxy test-connect test-integrations test-connections test-setup openapi generate-auth-keys upload-skills generate-bridge-client generate-employee-bridge-client build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
 .PHONY: sandbox-runtime-build sandbox-runtime-test sandbox-runtime-fmt-check sandbox-runtime-clippy sandbox-runtime-openapi sandbox-employee-build sandbox-employee-test sandbox-employee-fmt-check sandbox-employee-openapi employee-openapi sandbox-employee-image sandbox-employee-image-test
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -6,6 +6,7 @@ COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 IMAGE   ?= usehiveloop/hiveloop
 SANDBOX_RUNTIME_DIR ?= sandboxes/runtime
 SANDBOX_EMPLOYEE_DIR ?= sandboxes/employee
+GO_BIN ?= $(shell if command -v go >/dev/null 2>&1; then command -v go; elif [ -x /opt/homebrew/bin/go ]; then echo /opt/homebrew/bin/go; elif [ -x /usr/local/go/bin/go ]; then echo /usr/local/go/bin/go; else echo go; fi)
 
 # Generate base64-encoded RSA private key for AUTH_RSA_PRIVATE_KEY env var
 generate-auth-keys:
@@ -122,9 +123,22 @@ generate-bridge-client:
 			.type |= (map(select(. != "null")) | if length == 1 then .[0] else . end) \
 		else . end)' \
 		openapi/bridge.json > openapi/bridge.generated.json
-	go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest \
+	$(GO_BIN) run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest \
 		--config=internal/bridge/oapi-codegen.yaml openapi/bridge.generated.json
 	rm openapi/bridge.generated.json
+
+# Generate Employee Bridge Go client from OpenAPI spec.
+generate-employee-bridge-client:
+	jq 'walk( \
+		if type == "object" and has("oneOf") and (.oneOf | type == "array") and (.oneOf | length == 2) and (.oneOf | any(. == {"type":"null"})) then \
+			(.oneOf | map(select(. != {"type":"null"}))[0]) \
+		elif type == "object" and has("type") and (.type | type == "array") then \
+			.type |= (map(select(. != "null")) | if length == 1 then .[0] else . end) \
+		else . end)' \
+		$(SANDBOX_EMPLOYEE_DIR)/openapi.json > $(SANDBOX_EMPLOYEE_DIR)/openapi.generated.json
+	$(GO_BIN) run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest \
+		--config=internal/employeebridge/oapi-codegen.yaml $(SANDBOX_EMPLOYEE_DIR)/openapi.generated.json
+	rm $(SANDBOX_EMPLOYEE_DIR)/openapi.generated.json
 
 sandbox-runtime-build:
 	cd $(SANDBOX_RUNTIME_DIR) && cargo build --release -p bridge
