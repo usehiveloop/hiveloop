@@ -55,3 +55,15 @@ fn restore_placeholders(text: &str, blocks: &[String], placeholder_prefix: &str)
     }
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn preserves_slack_user_mentions_during_markdown_translation() {
+        let rendered = markdown_to_mrkdwn("Please ask **<@U123ABC>** to confirm.");
+        assert!(rendered.contains("<@U123ABC>"));
+        assert!(!rendered.contains("&lt;@U123ABC&gt;"));
+    }
+}

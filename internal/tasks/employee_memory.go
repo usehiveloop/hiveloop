@@ -193,7 +193,7 @@ func buildEmployeeRetainItem(agent *model.Agent, payload EmployeeMemoryRetainPay
 	}
 	return hindsight.RetainItem{
 		Content:           digest,
-		Context:           fmt.Sprintf("Filtered employee memory digest from %s source. It intentionally omits routine tool use and transient task chatter; retain only durable company/team facts, decisions, preferences, ownership, policies, and reusable technical context.", source),
+		Context:           fmt.Sprintf("Filtered employee memory digest from %s source. It intentionally omits routine tool use and transient task chatter. Retain durable people facts, including teammate names and stable channel user IDs or mention handles when present, plus company/team facts, decisions, preferences, ownership, policies, recurring workflows, and reusable technical context. Do not retain active conversation framing or temporary task status as durable facts.", source),
 		DocumentID:        "employee-session:" + payload.SandboxID.String() + ":" + payload.SessionID,
 		Tags:              tags,
 		Timestamp:         events[0].EventAt.UTC().Format(time.RFC3339),
@@ -208,7 +208,7 @@ func employeeMemoryRetentionDigest(agentName string, events []model.EmployeeMemo
 		payload := employeeMemoryPayload(event)
 		switch event.EventType {
 		case "user.message.received":
-			speaker := firstPayloadString(payload, "user_display_name", "user")
+			speaker := employeeMemorySpeaker(payload)
 			if speaker == "" {
 				speaker = "teammate"
 			}
@@ -227,14 +227,40 @@ func employeeMemoryRetentionDigest(agentName string, events []model.EmployeeMemo
 		return ""
 	}
 	var buf strings.Builder
-	buf.WriteString("Conversation for memory extraction. This omits raw tool calls, internal commands, and execution trace.\n")
-	buf.WriteString("Retain durable preferences, decisions, ownership, policies, recurring workflows, and stable technical/company context. Do not retain ordinary task execution or status chatter.\n\n")
+	buf.WriteString("Durable memory extraction input. This omits raw tool calls, internal commands, and execution trace.\n")
+	buf.WriteString("Retain durable people facts, including teammate names, stable channel user IDs or mention handles, roles, ownership, preferences, decisions, policies, recurring workflows, business/customer/team/project facts, and stable technical/company context.\n")
+	buf.WriteString("Do not retain active-conversation framing as facts: who is currently talking to the employee, who asked in this thread, temporary task progress, status chatter, one-off execution state, or ordinary completion messages.\n")
+	buf.WriteString("Use speaker names and channel IDs as attribution context and as durable people identity only when they identify real teammates, roles, ownership, or preferences.\n\n")
 	for _, line := range lines {
 		buf.WriteString("- ")
 		buf.WriteString(line)
 		buf.WriteString("\n")
 	}
 	return strings.TrimSpace(buf.String())
+}
+
+func employeeMemorySpeaker(payload map[string]any) string {
+	name := firstPayloadString(payload, "user_display_name")
+	userID := firstPayloadString(payload, "user")
+	mention := employeeMemorySlackMention(userID)
+	switch {
+	case name != "" && mention != "":
+		return fmt.Sprintf("%s (%s)", name, mention)
+	case name != "":
+		return name
+	case mention != "":
+		return mention
+	default:
+		return userID
+	}
+}
+
+func employeeMemorySlackMention(userID string) string {
+	userID = strings.TrimSpace(userID)
+	if strings.HasPrefix(userID, "U") || strings.HasPrefix(userID, "W") {
+		return "<@" + userID + ">"
+	}
+	return ""
 }
 
 func employeeMemoryEventsContainSecret(events []model.EmployeeMemoryEvent) bool {
@@ -360,7 +386,7 @@ func employeeMemoryRetainMetadata(agent *model.Agent, payload EmployeeMemoryReta
 		"event_count":  fmt.Sprintf("%d", len(events)),
 		"source_event": payload.SourceEvent,
 	}
-	for _, key := range []string{"source", "channel", "thread_ts", "user", "tool"} {
+	for _, key := range []string{"source", "channel", "thread_ts", "user", "user_display_name", "tool"} {
 		if value := firstEmployeePayloadString(events, key); value != "" {
 			meta[key] = value
 		}

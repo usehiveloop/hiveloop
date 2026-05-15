@@ -1,7 +1,9 @@
 use domain::InboundEvent;
 use slack_morphism::prelude::*;
 
-use super::helpers::{replace_bot_mention, serialize_blocks, slack_files_to_attachments};
+use super::helpers::{
+    replace_bot_mention, serialize_blocks, slack_files_to_attachments, slack_raw_metadata,
+};
 use crate::slack::content::{extract_link_previews_from_attachments, extract_message_text};
 use crate::slack::context::SlackContext;
 use crate::slack::filters::{channel_is_allowed, ignore_users_blocks};
@@ -66,15 +68,23 @@ pub async fn handle_app_mention(
     } else {
         None
     };
+    let clean_text = replace_bot_mention(&text, bot_id, &snapshot.agent.name);
+    let raw_metadata = slack_raw_metadata(
+        &channel,
+        &thread_ts,
+        &payload.user.0,
+        user_display_name.as_deref(),
+        &clean_text,
+    );
 
     let inbound = InboundEvent {
         envelope_id,
         session_id,
         user: payload.user.0.clone(),
         user_display_name,
-        text: replace_bot_mention(&text, bot_id, &snapshot.agent.name),
+        text: clean_text,
         attachments,
-        raw: serde_json::json!({"source": "slack"}),
+        raw: raw_metadata,
         inbound_handle: message_handle(&channel, &message_ts),
         is_direct_message: matches!(
             payload.origin.channel_type,

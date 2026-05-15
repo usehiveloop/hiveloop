@@ -4,6 +4,7 @@ use tracing::{info, warn};
 
 const MAX_IMAGE_BYTES: usize = 10 * 1024 * 1024;
 
+#[derive(Default)]
 pub struct DownloadResults {
     pub images: Vec<(String, Vec<u8>)>,
     pub text_files: Vec<InlinedTextFile>,

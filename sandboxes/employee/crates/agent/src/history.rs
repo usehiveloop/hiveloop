@@ -56,6 +56,7 @@ pub async fn seed_model_history_from_gateway(
     for entry in history {
         let message = match entry.role {
             HistoryRole::User => AgentMessage::user(format_history_user(
+                entry.speaker_id.clone(),
                 entry.speaker_display_name.clone(),
                 entry.text.clone(),
             )),
@@ -71,9 +72,11 @@ pub fn visible_messages_from_gateway(history: Vec<HistoryEntry>) -> Vec<AgentMes
     history
         .into_iter()
         .map(|entry| match entry.role {
-            HistoryRole::User => {
-                AgentMessage::user(format_history_user(entry.speaker_display_name, entry.text))
-            }
+            HistoryRole::User => AgentMessage::user(format_history_user(
+                entry.speaker_id,
+                entry.speaker_display_name,
+                entry.text,
+            )),
             HistoryRole::Assistant => AgentMessage::assistant(entry.text),
         })
         .collect()
@@ -97,11 +100,25 @@ fn event_kind_for_message(message: &AgentMessage) -> EventKind {
     }
 }
 
-fn format_history_user(name: Option<String>, text: String) -> String {
-    match name {
-        Some(name) if !name.is_empty() => format!("{name}: {text}"),
+fn format_history_user(user_id: String, name: Option<String>, text: String) -> String {
+    let user_id = user_id.trim();
+    let mention = slack_user_mention(user_id);
+    match (name.map(|name| name.trim().to_string()), mention) {
+        (Some(name), Some(mention)) if !name.is_empty() => format!("{name} ({mention}): {text}"),
+        (Some(name), None) if !name.is_empty() => format!("{name}: {text}"),
+        (_, Some(mention)) => format!("{mention}: {text}"),
         _ => text,
     }
+}
+
+fn slack_user_mention(user_id: &str) -> Option<String> {
+    if user_id.is_empty() || user_id == "cron" || user_id == "bot" {
+        return None;
+    }
+    if user_id.starts_with('U') || user_id.starts_with('W') {
+        return Some(format!("<@{user_id}>"));
+    }
+    None
 }
 
 #[cfg(test)]
@@ -216,7 +233,7 @@ mod tests {
             &[
                 HistoryEntry {
                     role: HistoryRole::User,
-                    speaker_id: "u".into(),
+                    speaker_id: "U123".into(),
                     speaker_display_name: Some("Kim".into()),
                     text: "hi".into(),
                 },
@@ -232,6 +249,11 @@ mod tests {
         .unwrap();
 
         assert_eq!(seeded.len(), 2);
+        let seeded_text = match &seeded[0].parts[0] {
+            crate::primitives::MessagePart::Text { text } => text,
+            _ => panic!("expected text"),
+        };
+        assert_eq!(seeded_text, "Kim (<@U123>): hi");
         assert_eq!(
             load_model_history(Some(repo.as_ref()), &session_id, 100)
                 .await
@@ -270,5 +292,23 @@ mod tests {
         assert_eq!(second_turn[1].tool_calls[0].name, "linear_list_issues");
         assert_eq!(second_turn[2].role, AgentMessageRole::Tool);
         assert_eq!(second_turn[4].role, AgentMessageRole::User);
+    }
+
+    #[test]
+    fn visible_gateway_history_keeps_slack_user_id_with_name() {
+        let messages = visible_messages_from_gateway(vec![HistoryEntry {
+            role: HistoryRole::User,
+            speaker_id: "U08P1G9EDNG".into(),
+            speaker_display_name: Some("Nora".into()),
+            text: "Loop me in on invoice failures.".into(),
+        }]);
+        let text = match &messages[0].parts[0] {
+            crate::primitives::MessagePart::Text { text } => text,
+            _ => panic!("expected text"),
+        };
+        assert_eq!(
+            text,
+            "Nora (<@U08P1G9EDNG>): Loop me in on invoice failures."
+        );
     }
 }

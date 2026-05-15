@@ -2,7 +2,8 @@ use domain::InboundEvent;
 use slack_morphism::prelude::*;
 
 use super::helpers::{
-    replace_bot_mention, serialize_blocks, slack_files_to_attachments, subtype_should_be_dropped,
+    replace_bot_mention, serialize_blocks, slack_files_to_attachments, slack_raw_metadata,
+    subtype_should_be_dropped,
 };
 use crate::slack::content::{extract_link_previews_from_attachments, extract_message_text};
 use crate::slack::context::SlackContext;
@@ -131,6 +132,14 @@ pub async fn handle_message(
     } else {
         None
     };
+    let clean_text = replace_bot_mention(&text, bot_id, &snapshot.agent.name);
+    let raw_metadata = slack_raw_metadata(
+        &channel_id,
+        &thread_ts,
+        &user,
+        user_display_name.as_deref(),
+        &clean_text,
+    );
 
     let is_directly_addressed =
         is_direct || mention_present || already_engaged || bot_has_replied_in_thread;
@@ -139,9 +148,9 @@ pub async fn handle_message(
         session_id,
         user,
         user_display_name,
-        text: replace_bot_mention(&text, bot_id, &snapshot.agent.name),
+        text: clean_text,
         attachments,
-        raw: serde_json::json!({"source": "slack"}),
+        raw: raw_metadata,
         inbound_handle: message_handle(&channel_id, &message_ts),
         is_direct_message: is_direct,
         is_directly_addressed,

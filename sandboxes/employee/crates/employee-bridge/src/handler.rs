@@ -20,7 +20,10 @@ use storage::SessionRepo;
 use tokio::sync::oneshot;
 use tracing::{info, warn};
 
-use composition::{compose_annotated_text, lookup_channel_prompt};
+use composition::{
+    compose_annotated_text, lookup_channel_prompt, should_include_slack_communication_context,
+    slack_communication_context,
+};
 use media::{collect_media_for_turn, DownloadResults};
 use session::{
     derive_channel_from_session, ensure_session_persisted, is_cron_message, is_wake_cron,
@@ -255,6 +258,9 @@ async fn process_single_turn(
 
     let DownloadResults { images, .. } = media;
     let mut turn_input = TurnInput::text(annotated_text).with_history(prior_history);
+    if should_include_slack_communication_context(inbound) {
+        turn_input = turn_input.with_dynamic_context(slack_communication_context());
+    }
     if let Some(channel_prompt) = lookup_channel_prompt(&slack, &session_id) {
         turn_input = turn_input
             .with_dynamic_context(format!("## Channel-specific instruction\n{channel_prompt}"));
