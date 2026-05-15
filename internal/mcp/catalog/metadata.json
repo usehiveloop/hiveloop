@@ -149,6 +149,10 @@
     "display_name": "Sentry",
     "resources": {}
   },
+  "bugsink": {
+    "display_name": "Bugsink",
+    "resources": {}
+  },
   "intercom": {
     "display_name": "Intercom",
     "resources": {}

@@ -82,8 +82,23 @@ func buildNangoConfig(integResp map[string]any, template map[string]any, callbac
 		}
 	}
 	if template != nil {
-		if authMode, ok := template["auth_mode"].(string); ok {
-			config["auth_mode"] = authMode
+		for _, key := range []string{
+			"auth_mode",
+			"authorization_url",
+			"categories",
+			"connection_config",
+			"credentials_schema",
+			"docs",
+			"docs_connect",
+			"installation",
+			"logo",
+			"setup_guide_url",
+			"webhook_routing_script",
+			"webhook_user_defined_secret",
+		} {
+			if v, exists := template[key]; exists {
+				config[key] = v
+			}
 		}
 	}
 	if callbackURL != "" {

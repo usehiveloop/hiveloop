@@ -1,0 +1,818 @@
+{
+  "display_name": "Bugsink",
+  "resources": {},
+  "actions": {
+    "events_list": {
+      "display_name": "Events List",
+      "description": "LIST requires: ?issue=\u003cuuid\u003e Optional: ?order=asc|desc (default: desc) LIST omits `data`, ordered by digest_order RETRIEVE includes `data` (pure PK lookup; no filters/order applied)",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "The pagination cursor value."
+          },
+          "issue": {
+            "type": "string",
+            "description": "Filter events by issue UUID (required)."
+          },
+          "order": {
+            "type": "string",
+            "description": "Sort order of digest_order (default: desc)."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/api/canonical/0/events/",
+        "query_mapping": {
+          "cursor": "cursor",
+          "issue": "issue",
+          "order": "order"
+        },
+        "response_path": "results"
+      },
+      "response_schema": "PaginatedEventListList"
+    },
+    "events_retrieve": {
+      "display_name": "Events Retrieve",
+      "description": "LIST requires: ?issue=\u003cuuid\u003e Optional: ?order=asc|desc (default: desc) LIST omits `data`, ordered by digest_order RETRIEVE includes `data` (pure PK lookup; no filters/order applied)",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/api/canonical/0/events/{id}/"
+      },
+      "response_schema": "EventDetail"
+    },
+    "events_stacktrace_retrieve": {
+      "display_name": "Events Stacktrace Retrieve",
+      "description": "Render the event's stacktrace (frames, source, locals) as Markdown-like text.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/api/canonical/0/events/{id}/stacktrace/"
+      }
+    },
+    "issues_list": {
+      "display_name": "Issues List",
+      "description": "LIST requires: ?project=\u003cuuid\u003e Optional: ?order=asc|desc (default: desc) LIST ordered by last_seen RETRIEVE is a pure PK lookup (soft-deletes implied)",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "The pagination cursor value."
+          },
+          "order": {
+            "type": "string",
+            "description": "Sort order (default: asc)."
+          },
+          "project": {
+            "type": "integer",
+            "description": "Filter issues by project id (required)."
+          },
+          "sort": {
+            "type": "string",
+            "description": "Sort mode (default: digest_order)."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/api/canonical/0/issues/",
+        "query_mapping": {
+          "cursor": "cursor",
+          "order": "order",
+          "project": "project",
+          "sort": "sort"
+        },
+        "response_path": "results"
+      },
+      "response_schema": "PaginatedIssueList"
+    },
+    "issues_retrieve": {
+      "display_name": "Issues Retrieve",
+      "description": "LIST requires: ?project=\u003cuuid\u003e Optional: ?order=asc|desc (default: desc) LIST ordered by last_seen RETRIEVE is a pure PK lookup (soft-deletes implied)",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A UUID string identifying this issue."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/api/canonical/0/issues/{id}/"
+      },
+      "response_schema": "Issue"
+    },
+    "projects_create": {
+      "display_name": "Projects Create",
+      "description": "/api/canonical/0/projects/ GET /projects/ → list ordered by name ASC, hides soft-deleted, optional ?team=\u003cuuid\u003e filter GET /projects/{pk}/ → detail (pure PK) POST /projects/ → create {team, n...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "alert_on_new_issue": {
+            "type": "boolean"
+          },
+          "alert_on_regression": {
+            "type": "boolean"
+          },
+          "alert_on_unmute": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "retention_max_event_count": {
+            "type": "integer"
+          },
+          "team": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "description": "* `joinable` - joinable\n* `discoverable` - discoverable\n* `team_members` - team_members"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "team"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/api/canonical/0/projects/",
+        "body_mapping": {
+          "alert_on_new_issue": "alert_on_new_issue",
+          "alert_on_regression": "alert_on_regression",
+          "alert_on_unmute": "alert_on_unmute",
+          "id": "id",
+          "name": "name",
+          "retention_max_event_count": "retention_max_event_count",
+          "team": "team",
+          "visibility": "visibility"
+        }
+      },
+      "response_schema": "ProjectCreateUpdate"
+    },
+    "projects_list": {
+      "display_name": "Projects List",
+      "description": "/api/canonical/0/projects/ GET /projects/ → list ordered by name ASC, hides soft-deleted, optional ?team=\u003cuuid\u003e filter GET /projects/{pk}/ → detail (pure PK) POST /projects/ → create {team, n...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "The pagination cursor value."
+          },
+          "team": {
+            "type": "string",
+            "description": "Optional filter by team UUID."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/api/canonical/0/projects/",
+        "query_mapping": {
+          "cursor": "cursor",
+          "team": "team"
+        },
+        "response_path": "results"
+      },
+      "response_schema": "PaginatedProjectListList"
+    },
+    "projects_partial_update": {
+      "display_name": "Projects Partial Update",
+      "description": "/api/canonical/0/projects/ GET /projects/ → list ordered by name ASC, hides soft-deleted, optional ?team=\u003cuuid\u003e filter GET /projects/{pk}/ → detail (pure PK) POST /projects/ → create {team, n...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "alert_on_new_issue": {
+            "type": "boolean"
+          },
+          "alert_on_regression": {
+            "type": "boolean"
+          },
+          "alert_on_unmute": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer",
+            "description": "A unique integer value identifying this project."
+          },
+          "name": {
+            "type": "string"
+          },
+          "retention_max_event_count": {
+            "type": "integer"
+          },
+          "team": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "description": "* `joinable` - joinable\n* `discoverable` - discoverable\n* `team_members` - team_members"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/api/canonical/0/projects/{id}/",
+        "body_mapping": {
+          "alert_on_new_issue": "alert_on_new_issue",
+          "alert_on_regression": "alert_on_regression",
+          "alert_on_unmute": "alert_on_unmute",
+          "name": "name",
+          "retention_max_event_count": "retention_max_event_count",
+          "team": "team",
+          "visibility": "visibility"
+        }
+      },
+      "response_schema": "ProjectCreateUpdate"
+    },
+    "projects_retrieve": {
+      "display_name": "Projects Retrieve",
+      "description": "/api/canonical/0/projects/ GET /projects/ → list ordered by name ASC, hides soft-deleted, optional ?team=\u003cuuid\u003e filter GET /projects/{pk}/ → detail (pure PK) POST /projects/ → create {team, n...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "A unique integer value identifying this project."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/api/canonical/0/projects/{id}/"
+      },
+      "response_schema": "ProjectDetail"
+    },
+    "releases_create": {
+      "display_name": "Releases Create",
+      "description": "LIST requires: ?project=\u003cid\u003e Ordered by sort_epoch. CREATE allowed. DELETE potential TODO.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "project": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project",
+          "version"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/api/canonical/0/releases/",
+        "body_mapping": {
+          "project": "project",
+          "timestamp": "timestamp",
+          "version": "version"
+        }
+      },
+      "response_schema": "ReleaseCreate"
+    },
+    "releases_list": {
+      "display_name": "Releases List",
+      "description": "LIST requires: ?project=\u003cid\u003e Ordered by sort_epoch. CREATE allowed. DELETE potential TODO.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "The pagination cursor value."
+          },
+          "project": {
+            "type": "integer",
+            "description": "Filter releases by project id (required)."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/api/canonical/0/releases/",
+        "query_mapping": {
+          "cursor": "cursor",
+          "project": "project"
+        },
+        "response_path": "results"
+      },
+      "response_schema": "PaginatedReleaseListList"
+    },
+    "releases_retrieve": {
+      "display_name": "Releases Retrieve",
+      "description": "LIST requires: ?project=\u003cid\u003e Ordered by sort_epoch. CREATE allowed. DELETE potential TODO.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A UUID string identifying this release."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/api/canonical/0/releases/{id}/"
+      },
+      "response_schema": "ReleaseDetail"
+    },
+    "teams_create": {
+      "display_name": "Teams Create",
+      "description": "/api/canonical/0/teams/ GET /teams/ → list ordered by name ASC GET /teams/{pk}/ → detail (pure PK) POST /teams/ → create {name, visibility?} PATCH /teams/{pk}/ → minimal updates DELETE → 405",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "description": "* `joinable` - joinable\n* `discoverable` - discoverable\n* `hidden` - hidden"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/api/canonical/0/teams/",
+        "body_mapping": {
+          "id": "id",
+          "name": "name",
+          "visibility": "visibility"
+        }
+      },
+      "response_schema": "TeamCreateUpdate"
+    },
+    "teams_list": {
+      "display_name": "Teams List",
+      "description": "/api/canonical/0/teams/ GET /teams/ → list ordered by name ASC GET /teams/{pk}/ → detail (pure PK) POST /teams/ → create {name, visibility?} PATCH /teams/{pk}/ → minimal updates DELETE → 405",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "The pagination cursor value."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/api/canonical/0/teams/",
+        "query_mapping": {
+          "cursor": "cursor"
+        },
+        "response_path": "results"
+      },
+      "response_schema": "PaginatedTeamListList"
+    },
+    "teams_partial_update": {
+      "display_name": "Teams Partial Update",
+      "description": "/api/canonical/0/teams/ GET /teams/ → list ordered by name ASC GET /teams/{pk}/ → detail (pure PK) POST /teams/ → create {name, visibility?} PATCH /teams/{pk}/ → minimal updates DELETE → 405",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A UUID string identifying this team."
+          },
+          "name": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "description": "* `joinable` - joinable\n* `discoverable` - discoverable\n* `hidden` - hidden"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/api/canonical/0/teams/{id}/",
+        "body_mapping": {
+          "name": "name",
+          "visibility": "visibility"
+        }
+      },
+      "response_schema": "TeamCreateUpdate"
+    },
+    "teams_retrieve": {
+      "display_name": "Teams Retrieve",
+      "description": "/api/canonical/0/teams/ GET /teams/ → list ordered by name ASC GET /teams/{pk}/ → detail (pure PK) POST /teams/ → create {name, visibility?} PATCH /teams/{pk}/ → minimal updates DELETE → 405",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A UUID string identifying this team."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/api/canonical/0/teams/{id}/"
+      },
+      "response_schema": "TeamDetail"
+    }
+  },
+  "schemas": {
+    "EventDetail": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "digest_order": {
+          "type": "integer"
+        },
+        "digested_at": {
+          "type": "string"
+        },
+        "event_id": {
+          "type": "string",
+          "description": "As per the sent data"
+        },
+        "grouping": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string",
+          "description": "Bugsink-internal"
+        },
+        "ingested_at": {
+          "type": "string"
+        },
+        "issue": {
+          "type": "string"
+        },
+        "project": {
+          "type": "integer"
+        },
+        "stacktrace_md": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        }
+      }
+    },
+    "Issue": {
+      "type": "object",
+      "properties": {
+        "calculated_type": {
+          "type": "string"
+        },
+        "calculated_value": {
+          "type": "string"
+        },
+        "digest_order": {
+          "type": "integer"
+        },
+        "digested_event_count": {
+          "type": "integer"
+        },
+        "first_seen": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "is_muted": {
+          "type": "boolean"
+        },
+        "is_resolved": {
+          "type": "boolean"
+        },
+        "is_resolved_by_next_release": {
+          "type": "boolean"
+        },
+        "last_seen": {
+          "type": "string"
+        },
+        "project": {
+          "type": "integer"
+        },
+        "stored_event_count": {
+          "type": "integer"
+        },
+        "transaction": {
+          "type": "string"
+        }
+      }
+    },
+    "PaginatedEventListList": {
+      "type": "object",
+      "properties": {
+        "next": {
+          "type": "string",
+          "nullable": true
+        },
+        "previous": {
+          "type": "string",
+          "nullable": true
+        },
+        "results": {
+          "type": "array"
+        }
+      }
+    },
+    "PaginatedIssueList": {
+      "type": "object",
+      "properties": {
+        "next": {
+          "type": "string",
+          "nullable": true
+        },
+        "previous": {
+          "type": "string",
+          "nullable": true
+        },
+        "results": {
+          "type": "array"
+        }
+      }
+    },
+    "PaginatedProjectListList": {
+      "type": "object",
+      "properties": {
+        "next": {
+          "type": "string",
+          "nullable": true
+        },
+        "previous": {
+          "type": "string",
+          "nullable": true
+        },
+        "results": {
+          "type": "array"
+        }
+      }
+    },
+    "PaginatedReleaseListList": {
+      "type": "object",
+      "properties": {
+        "next": {
+          "type": "string",
+          "nullable": true
+        },
+        "previous": {
+          "type": "string",
+          "nullable": true
+        },
+        "results": {
+          "type": "array"
+        }
+      }
+    },
+    "PaginatedTeamListList": {
+      "type": "object",
+      "properties": {
+        "next": {
+          "type": "string",
+          "nullable": true
+        },
+        "previous": {
+          "type": "string",
+          "nullable": true
+        },
+        "results": {
+          "type": "array"
+        }
+      }
+    },
+    "ProjectCreateUpdate": {
+      "type": "object",
+      "properties": {
+        "alert_on_new_issue": {
+          "type": "boolean"
+        },
+        "alert_on_regression": {
+          "type": "boolean"
+        },
+        "alert_on_unmute": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "retention_max_event_count": {
+          "type": "integer"
+        },
+        "team": {
+          "type": "string"
+        },
+        "visibility": {
+          "type": "string",
+          "description": "* `joinable` - joinable\n* `discoverable` - discoverable\n* `team_members` - team_members"
+        }
+      }
+    },
+    "ProjectDetail": {
+      "type": "object",
+      "properties": {
+        "alert_on_new_issue": {
+          "type": "boolean"
+        },
+        "alert_on_regression": {
+          "type": "boolean"
+        },
+        "alert_on_unmute": {
+          "type": "boolean"
+        },
+        "digested_event_count": {
+          "type": "integer"
+        },
+        "dsn": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "retention_max_event_count": {
+          "type": "integer"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "stored_event_count": {
+          "type": "integer"
+        },
+        "team": {
+          "type": "string",
+          "nullable": true
+        },
+        "visibility": {
+          "type": "string",
+          "description": "* `joinable` - joinable\n* `discoverable` - discoverable\n* `team_members` - team_members"
+        }
+      }
+    },
+    "ReleaseCreate": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "integer"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "ReleaseDetail": {
+      "type": "object",
+      "properties": {
+        "date_released": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "is_semver": {
+          "type": "boolean"
+        },
+        "project": {
+          "type": "integer"
+        },
+        "semver": {
+          "type": "string"
+        },
+        "sort_epoch": {
+          "type": "integer"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "TeamCreateUpdate": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "visibility": {
+          "type": "string",
+          "description": "* `joinable` - joinable\n* `discoverable` - discoverable\n* `hidden` - hidden"
+        }
+      }
+    },
+    "TeamDetail": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "visibility": {
+          "type": "string",
+          "description": "* `joinable` - joinable\n* `discoverable` - discoverable\n* `hidden` - hidden"
+        }
+      }
+    }
+  }
+}

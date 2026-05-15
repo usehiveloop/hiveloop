@@ -100,6 +100,19 @@ func newNangoMock(cfg *nangoMockConfig) http.Handler {
 				"data": []map[string]any{
 					{"name": "github", "display_name": "GitHub", "auth_mode": "OAUTH2"},
 					{"name": "slack", "display_name": "Slack", "auth_mode": "OAUTH2"},
+					{
+						"name":         "bugsink",
+						"display_name": "Bugsink",
+						"auth_mode":    "API_KEY",
+						"connection_config": map[string]any{
+							"base_url": map[string]any{
+								"title":       "Bugsink URL",
+								"description": "Base URL for the Bugsink instance.",
+								"type":        "string",
+								"example":     "https://bugsink.example.com",
+							},
+						},
+					},
 				},
 			})
 			return

@@ -90,6 +90,11 @@ func AllServices() []ServiceConfig {
 			NangoProviders: []string{"sentry", "sentry-oauth"},
 		},
 		{
+			Name:           "bugsink",
+			SpecSource:     "https://sentry.usehiveloop.com/api/canonical/0/schema/",
+			NangoProviders: []string{"bugsink"},
+		},
+		{
 			Name:           "zendesk",
 			SpecSource:     "https://developer.zendesk.com/zendesk/oas.yaml",
 			NangoProviders: []string{"zendesk"},

@@ -1,10 +1,18 @@
 "use client"
 
+import { useEffect, useState } from "react"
+
 export function TimeAgo({ date }: { date: string | undefined | null }) {
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 60_000)
+    return () => window.clearInterval(interval)
+  }, [])
+
   if (!date) return <span className="text-muted-foreground">--</span>
 
   const d = new Date(date)
-  const now = Date.now()
   const diff = now - d.getTime()
 
   const seconds = Math.floor(diff / 1000)
