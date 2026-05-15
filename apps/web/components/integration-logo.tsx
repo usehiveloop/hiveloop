@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils"
 const LOGO_BASE = "https://connections.usehiveloop.com/images/template-logos"
 
 const LOGO_PROVIDER_ALIASES: Record<string, string> = {
-  bugsink: "sentry",
   "github-app-code-reviews": "github-app",
 }
 
