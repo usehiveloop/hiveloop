@@ -43,12 +43,19 @@ func (d *Driver) SetAutoArchive(ctx context.Context, externalID string, interval
 }
 
 func (d *Driver) ExecuteCommand(ctx context.Context, externalID string, command string) (string, error) {
+	return d.ExecuteCommandWithTimeout(ctx, externalID, command, executeCommandTimeout)
+}
+
+func (d *Driver) ExecuteCommandWithTimeout(ctx context.Context, externalID string, command string, timeout time.Duration) (string, error) {
 	client, err := d.toolboxClient(externalID)
 	if err != nil {
 		return "", fmt.Errorf("building toolbox client for sandbox %s: %w", externalID, err)
 	}
+	if timeout <= 0 {
+		timeout = executeCommandTimeout
+	}
 
-	execCtx, cancel := context.WithTimeout(ctx, executeCommandTimeout)
+	execCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	req := toolbox.NewExecuteRequest(command)

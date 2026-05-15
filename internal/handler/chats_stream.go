@@ -67,6 +67,14 @@ func (h *ChatHandler) Stream(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load session"})
 		return
 	}
+	if upgrade, ok, err := activeEmployeeSandboxUpgrade(ctx, h.db, session.OrgID, session.AgentID); err != nil {
+		log.ErrorContext(ctx, "load active employee sandbox upgrade", "error", err, "agent_id", session.AgentID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load active upgrade"})
+		return
+	} else if ok {
+		writeEmployeeUpgradeConflict(w, upgrade)
+		return
+	}
 
 	var messages []model.ChatMessage
 	if err := h.db.WithContext(ctx).

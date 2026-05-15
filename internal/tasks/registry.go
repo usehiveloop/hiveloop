@@ -17,6 +17,7 @@ import (
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 	"github.com/usehiveloop/hiveloop/internal/skills"
+	"github.com/usehiveloop/hiveloop/internal/storage"
 	"github.com/usehiveloop/hiveloop/internal/streaming"
 	"github.com/usehiveloop/hiveloop/internal/trigger/dispatch"
 	"github.com/usehiveloop/hiveloop/internal/trigger/enrichment"
@@ -40,6 +41,7 @@ type WorkerDeps struct {
 	Enqueuer          enqueue.TaskEnqueuer    // required for enqueuing sub-tasks
 	Hindsight         *hindsight.Client       // nil if Hindsight not configured
 	EmployeeCompile   employeeruntime.CompileDeps
+	S3Client          *storage.S3Client
 
 	Rag          *ragtasks.Deps
 	RagScheduler *scheduler.Deps
@@ -118,6 +120,10 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 	if deps.Hindsight != nil {
 		mux.HandleFunc(TypeEmployeeMemoryRetain, NewEmployeeMemoryRetainHandler(deps.DB, deps.Hindsight, deps.Enqueuer).Handle)
 		mux.HandleFunc(TypeEmployeeMemoryRefresh, NewEmployeeMemoryRefreshHandler(deps.DB, deps.EmployeeCompile).Handle)
+	}
+	if deps.Orchestrator != nil && deps.S3Client != nil && deps.EmployeeCompile.EncKey != nil && deps.EmployeeCompile.KMS != nil {
+		mux.HandleFunc(TypeEmployeeSandboxUpgrade,
+			NewEmployeeSandboxUpgradeHandler(deps.DB, deps.Orchestrator, deps.S3Client, deps.EmployeeCompile).Handle)
 	}
 
 	// Router dispatch (Zira routing system).

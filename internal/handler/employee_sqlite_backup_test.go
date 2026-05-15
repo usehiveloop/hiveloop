@@ -120,7 +120,12 @@ func newRealS3Client(t *testing.T) *storage.S3Client {
 
 func (h *sqliteBackupHarness) uploadBackup(t *testing.T, body []byte, bridgeKey string) *httptest.ResponseRecorder {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodPut, "/internal/employees/"+h.agentID.String()+"/sqlite-backup", bytes.NewReader(body))
+	return h.uploadBackupPath(t, "/internal/employees/"+h.agentID.String()+"/sqlite-backup", body, bridgeKey)
+}
+
+func (h *sqliteBackupHarness) uploadBackupPath(t *testing.T, path string, body []byte, bridgeKey string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPut, path, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/gzip")
 	if bridgeKey != "" {
 		req.Header.Set("Authorization", "Bearer "+bridgeKey)
@@ -135,9 +140,18 @@ func (h *sqliteBackupHarness) backupKey() string {
 	return fmt.Sprintf("employee-sqlite-backups/%s/%s/latest.db.gz", h.orgID, h.agentID)
 }
 
+func (h *sqliteBackupHarness) upgradeBackupKey(upgradeID uuid.UUID) string {
+	return fmt.Sprintf("employee-sqlite-backups/%s/%s/upgrades/%s.db.gz", h.orgID, h.agentID, upgradeID)
+}
+
 func (h *sqliteBackupHarness) readBackupObject(t *testing.T) []byte {
 	t.Helper()
-	url, err := h.s3.PresignedURL(t.Context(), h.backupKey(), time.Minute)
+	return h.readBackupKey(t, h.backupKey())
+}
+
+func (h *sqliteBackupHarness) readBackupKey(t *testing.T, key string) []byte {
+	t.Helper()
+	url, err := h.s3.PresignedURL(t.Context(), key, time.Minute)
 	if err != nil {
 		t.Fatalf("presign backup object: %v", err)
 	}
@@ -189,6 +203,40 @@ func TestEmployeeSQLiteBackup_SecondUploadOverwritesSameKey(t *testing.T) {
 	}
 	if got := h.readBackupObject(t); !bytes.Equal(got, second) {
 		t.Fatalf("backup was not overwritten: %q", got)
+	}
+}
+
+func TestEmployeeSQLiteBackup_UpgradeIDWritesImmutableUpgradeKey(t *testing.T) {
+	h := newSQLiteBackupHarness(t, 1024*1024, true)
+	upgradeID := uuid.New()
+	upgrade := model.EmployeeSandboxUpgrade{
+		ID:           upgradeID,
+		OrgID:        h.orgID,
+		AgentID:      h.agentID,
+		OldSandboxID: &h.sandboxID,
+		Status:       model.EmployeeSandboxUpgradeStatusRunning,
+		Phase:        model.EmployeeSandboxUpgradePhaseBackup,
+	}
+	if err := h.db.Create(&upgrade).Error; err != nil {
+		t.Fatalf("create upgrade: %v", err)
+	}
+
+	body := []byte("upgrade-backup")
+	path := "/internal/employees/" + h.agentID.String() + "/sqlite-backup?upgrade_id=" + upgradeID.String()
+	rr := h.uploadBackupPath(t, path, body, h.bridgeKey)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var resp map[string]string
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	key := h.upgradeBackupKey(upgradeID)
+	if resp["key"] != key {
+		t.Fatalf("key = %q, want %q", resp["key"], key)
+	}
+	if got := h.readBackupKey(t, key); !bytes.Equal(got, body) {
+		t.Fatalf("uploaded object mismatch: %q", got)
 	}
 }
 

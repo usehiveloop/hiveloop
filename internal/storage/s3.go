@@ -18,6 +18,11 @@ type S3Client struct {
 	bucket string
 }
 
+type S3ObjectInfo struct {
+	Key  string
+	Size int64
+}
+
 // NewS3Client creates a new S3 client configured for the given bucket.
 // Pass a non-empty endpoint for S3-compatible stores (MinIO, R2, etc.).
 func NewS3Client(bucket, region, endpoint, accessKey, secretKey string) (*S3Client, error) {
@@ -95,6 +100,22 @@ func (sc *S3Client) Delete(ctx context.Context, key string) error {
 		return fmt.Errorf("s3 delete %q: %w", key, err)
 	}
 	return nil
+}
+
+// Head returns metadata for an object without downloading it.
+func (sc *S3Client) Head(ctx context.Context, key string) (*S3ObjectInfo, error) {
+	input := &s3.HeadObjectInput{
+		Bucket: aws.String(sc.bucket),
+		Key:    aws.String(key),
+	}
+	output, err := sc.client.HeadObject(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("s3 head %q: %w", key, err)
+	}
+	return &S3ObjectInfo{
+		Key:  key,
+		Size: aws.ToInt64(output.ContentLength),
+	}, nil
 }
 
 // PresignedURL generates a time-limited GET URL for downloading an object.

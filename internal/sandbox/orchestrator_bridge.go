@@ -87,3 +87,7 @@ func (o *Orchestrator) waitForBridgeHealthy(ctx context.Context, sb *model.Sandb
 func (o *Orchestrator) ExecuteCommand(ctx context.Context, sb *model.Sandbox, command string) (string, error) {
 	return o.provider.ExecuteCommand(ctx, sb.ExternalID, command)
 }
+
+func (o *Orchestrator) ExecuteCommandWithTimeout(ctx context.Context, sb *model.Sandbox, command string, timeout time.Duration) (string, error) {
+	return o.provider.ExecuteCommandWithTimeout(ctx, sb.ExternalID, command, timeout)
+}

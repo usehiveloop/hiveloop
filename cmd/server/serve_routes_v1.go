@@ -185,6 +185,8 @@ func setupV1Routes(
 						r.Use(middleware.RequireOrgAdmin(database))
 						r.Post("/employees", employeeHandler.Create)
 						r.Post("/employees/{id}/sync", employeeHandler.Sync)
+						r.Post("/employees/{id}/sandbox/upgrade", employeeHandler.StartSandboxUpgrade)
+						r.Get("/employees/{id}/sandbox/upgrades/{upgradeID}", employeeHandler.GetSandboxUpgrade)
 						r.Post("/orgs/current/onboarding/complete", employeeHandler.CompleteOnboarding)
 					})
 				}

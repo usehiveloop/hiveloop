@@ -111,6 +111,7 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&EmployeeMemoryEvent{},
 		&EmployeeSchedule{},
 		&EmployeeScheduleRun{},
+		&EmployeeSandboxUpgrade{},
 	); err != nil {
 		return err
 	}

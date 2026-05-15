@@ -76,6 +76,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		Subscriptions: deps.Subscriptions,
 		Enqueuer:      enqueuer,
 		Hindsight:     deps.HindsightClient,
+		S3Client:      deps.S3Client,
 		EmployeeCompile: employeeruntime.CompileDeps{
 			DB:         deps.DB,
 			Picker:     credentials.NewPickerWithRegistry(deps.DB, deps.Registry),

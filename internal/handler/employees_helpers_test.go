@@ -91,11 +91,15 @@ func (s *stubEmployeeProvider) SetAutoArchive(context.Context, string, int) erro
 func (s *stubEmployeeProvider) ExecuteCommand(context.Context, string, string) (string, error) {
 	return "", nil
 }
+func (s *stubEmployeeProvider) ExecuteCommandWithTimeout(ctx context.Context, externalID string, command string, _ time.Duration) (string, error) {
+	return s.ExecuteCommand(ctx, externalID, command)
+}
 
 type employeeHarness struct {
 	db         *gorm.DB
 	router     *chi.Mux
 	provider   *stubEmployeeProvider
+	enqueuer   *enqueue.MockClient
 	encKey     *crypto.SymmetricKey
 	kms        *crypto.KeyWrapper
 	cfg        *config.Config
@@ -176,8 +180,10 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 		SigningKey: []byte("test-signing-key-32-bytes-long!!"),
 		Cfg:        cfg,
 	}
-	agentH := handler.NewAgentHandler(db, registry.Global(), encKey, &enqueue.MockClient{})
+	enq := &enqueue.MockClient{}
+	agentH := handler.NewAgentHandler(db, registry.Global(), encKey, enq)
 	h := handler.NewEmployeeHandler(db, orch, compileDeps, agentH)
+	h.SetEnqueuer(enq)
 
 	r := chi.NewRouter()
 	r.Route("/v1/employees", func(r chi.Router) {
@@ -188,6 +194,8 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 			r.Use(middleware.RequireOrgAdmin(db))
 			r.Post("/", h.Create)
 			r.Post("/{id}/sync", h.Sync)
+			r.Post("/{id}/sandbox/upgrade", h.StartSandboxUpgrade)
+			r.Get("/{id}/sandbox/upgrades/{upgradeID}", h.GetSandboxUpgrade)
 		})
 	})
 	r.Route("/v1/orgs/current/onboarding", func(r chi.Router) {
@@ -197,7 +205,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 	})
 
 	return &employeeHarness{
-		db: db, router: r, provider: provider,
+		db: db, router: r, provider: provider, enqueuer: enq,
 		encKey: encKey, kms: kms, cfg: cfg,
 		sidecar: stub, sidecarSrv: sidecarSrv,
 	}

@@ -139,7 +139,7 @@ type Config struct {
 	S3Endpoint                   string `env:"AWS_ENDPOINT_URL"` // for MinIO / R2 / local dev
 	S3AccessKey                  string `env:"AWS_ACCESS_KEY_ID"`
 	S3SecretKey                  string `env:"AWS_SECRET_ACCESS_KEY"`
-	EmployeeSQLiteBackupMaxBytes int64  `env:"EMPLOYEE_SQLITE_BACKUP_MAX_BYTES" envDefault:"536870912"`
+	EmployeeSQLiteBackupMaxBytes int64  `env:"EMPLOYEE_SQLITE_BACKUP_MAX_BYTES" envDefault:"5368709120"`
 
 	// Public assets (avatars, org logos, generic public uploads). Empty
 	// PUBLIC_ASSETS_S3_BUCKET disables the /v1/uploads/sign endpoint.

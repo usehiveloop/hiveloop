@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
+	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
@@ -30,10 +31,15 @@ type EmployeeHandler struct {
 	orchestrator *sandbox.Orchestrator
 	compileDeps  employeeruntime.CompileDeps
 	agents       *AgentHandler
+	enqueuer     enqueue.TaskEnqueuer
 }
 
 func NewEmployeeHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, compileDeps employeeruntime.CompileDeps, agents *AgentHandler) *EmployeeHandler {
 	return &EmployeeHandler{db: db, orchestrator: orchestrator, compileDeps: compileDeps, agents: agents}
+}
+
+func (h *EmployeeHandler) SetEnqueuer(enq enqueue.TaskEnqueuer) {
+	h.enqueuer = enq
 }
 
 type createEmployeeRequest struct {

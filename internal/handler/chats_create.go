@@ -75,6 +75,14 @@ func (h *ChatHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee"})
 		return
 	}
+	if upgrade, ok, err := activeEmployeeSandboxUpgrade(ctx, h.db, org.ID, agentID); err != nil {
+		log.ErrorContext(ctx, "load active employee sandbox upgrade", "error", err, "agent_id", agentID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load active upgrade"})
+		return
+	} else if ok {
+		writeEmployeeUpgradeConflict(w, upgrade)
+		return
+	}
 
 	session := model.ChatSession{
 		OrgID:   org.ID,
@@ -169,6 +177,14 @@ func (h *ChatHandler) Send(w http.ResponseWriter, r *http.Request) {
 		}
 		log.ErrorContext(ctx, "load chat session", "error", err, "session_id", sessionID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load session"})
+		return
+	}
+	if upgrade, ok, err := activeEmployeeSandboxUpgrade(ctx, h.db, org.ID, session.AgentID); err != nil {
+		log.ErrorContext(ctx, "load active employee sandbox upgrade", "error", err, "agent_id", session.AgentID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load active upgrade"})
+		return
+	} else if ok {
+		writeEmployeeUpgradeConflict(w, upgrade)
 		return
 	}
 

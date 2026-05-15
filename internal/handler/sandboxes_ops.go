@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/logging"
@@ -44,6 +45,9 @@ func (h *SandboxHandler) Stop(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get sandbox"})
+		return
+	}
+	if h.blockEmployeeUpgradeConflict(w, r, org.ID, &sb) {
 		return
 	}
 
@@ -86,6 +90,9 @@ func (h *SandboxHandler) Delete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get sandbox"})
+		return
+	}
+	if h.blockEmployeeUpgradeConflict(w, r, org.ID, &sb) {
 		return
 	}
 
@@ -144,6 +151,9 @@ func (h *SandboxHandler) Exec(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get sandbox"})
 		return
 	}
+	if h.blockEmployeeUpgradeConflict(w, r, org.ID, &sb) {
+		return
+	}
 
 	if sb.Status != "running" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "sandbox is not running"})
@@ -191,4 +201,20 @@ func (h *SandboxHandler) Exec(w http.ResponseWriter, r *http.Request) {
 		Results: results,
 		Success: allSuccess,
 	})
+}
+
+func (h *SandboxHandler) blockEmployeeUpgradeConflict(w http.ResponseWriter, r *http.Request, orgID uuid.UUID, sb *model.Sandbox) bool {
+	if sb.AgentID == nil {
+		return false
+	}
+	upgrade, ok, err := activeEmployeeSandboxUpgrade(r.Context(), h.db, orgID, *sb.AgentID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load active upgrade"})
+		return true
+	}
+	if !ok {
+		return false
+	}
+	writeEmployeeUpgradeConflict(w, upgrade)
+	return true
 }

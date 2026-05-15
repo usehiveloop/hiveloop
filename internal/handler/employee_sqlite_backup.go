@@ -17,7 +17,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/storage"
 )
 
-const defaultEmployeeSQLiteBackupMaxBytes int64 = 512 * 1024 * 1024
+const defaultEmployeeSQLiteBackupMaxBytes int64 = 5 * 1024 * 1024 * 1024
 
 type EmployeeSQLiteBackupHandler struct {
 	db       *gorm.DB
@@ -64,7 +64,12 @@ func (h *EmployeeSQLiteBackupHandler) Upload(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	key := fmt.Sprintf("employee-sqlite-backups/%s/%s/latest.db.gz", *agent.OrgID, agent.ID)
+	upgradeID, ok := h.parseAndVerifyUpgradeID(w, r, agent)
+	if !ok {
+		return
+	}
+
+	key := employeeSQLiteBackupKey(*agent.OrgID, agent.ID, upgradeID)
 	body := http.MaxBytesReader(w, r.Body, h.maxBytes)
 	if err := h.storage.Stream(r.Context(), key, body, "application/gzip"); err != nil {
 		var maxBytesErr *http.MaxBytesError
@@ -83,6 +88,38 @@ func (h *EmployeeSQLiteBackupHandler) Upload(w http.ResponseWriter, r *http.Requ
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "key": key})
+}
+
+func employeeSQLiteBackupKey(orgID, agentID uuid.UUID, upgradeID *uuid.UUID) string {
+	if upgradeID != nil {
+		return fmt.Sprintf("employee-sqlite-backups/%s/%s/upgrades/%s.db.gz", orgID, agentID, *upgradeID)
+	}
+	return fmt.Sprintf("employee-sqlite-backups/%s/%s/latest.db.gz", orgID, agentID)
+}
+
+func (h *EmployeeSQLiteBackupHandler) parseAndVerifyUpgradeID(w http.ResponseWriter, r *http.Request, agent *model.Agent) (*uuid.UUID, bool) {
+	raw := r.URL.Query().Get("upgrade_id")
+	if raw == "" {
+		return nil, true
+	}
+	upgradeID, err := uuid.Parse(raw)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid upgrade_id"})
+		return nil, false
+	}
+	var count int64
+	err = h.db.WithContext(r.Context()).Model(&model.EmployeeSandboxUpgrade{}).
+		Where("id = ? AND org_id = ? AND agent_id = ?", upgradeID, *agent.OrgID, agent.ID).
+		Count(&count).Error
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to verify upgrade"})
+		return nil, false
+	}
+	if count == 0 {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "upgrade not found"})
+		return nil, false
+	}
+	return &upgradeID, true
 }
 
 func (h *EmployeeSQLiteBackupHandler) authenticateEmployeeBridge(w http.ResponseWriter, r *http.Request, employeeID uuid.UUID, bearer string) (*model.Agent, *model.Sandbox, bool) {

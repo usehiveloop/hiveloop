@@ -150,6 +150,9 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			Cfg:        cfg,
 			Hindsight:  hindsightClient,
 		}, agentHandler)
+		if deps.S3Client != nil {
+			employeeHandler.SetEnqueuer(enqueuer)
+		}
 	}
 	agentProfileHandler := handler.NewAgentProfileHandler(database, deps.KMS, sandboxEncKey, nangoClient)
 	agentProfileHandler.SetWebhookBaseURL(cfg.APIWebhookBaseURL)

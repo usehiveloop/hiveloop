@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 )
 
 // mockProvider is an in-memory sandbox.Provider for testing.
@@ -176,6 +177,10 @@ func (m *mockProvider) ExecuteCommand(ctx context.Context, externalID string, co
 		return m.executeCommandFn(ctx, externalID, command)
 	}
 	return "", nil
+}
+
+func (m *mockProvider) ExecuteCommandWithTimeout(ctx context.Context, externalID string, command string, _ time.Duration) (string, error) {
+	return m.ExecuteCommand(ctx, externalID, command)
 }
 
 func (m *mockProvider) count() int {

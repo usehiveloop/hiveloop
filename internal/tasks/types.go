@@ -23,6 +23,7 @@ const (
 	TypeCronTriggerDispatch       = "cron_trigger:dispatch"
 	TypeEmployeeMemoryRetain      = "employee:memory_retain"
 	TypeEmployeeMemoryRefresh     = "employee:memory_refresh"
+	TypeEmployeeSandboxUpgrade    = "employee:sandbox_upgrade"
 
 	// Periodic tasks (scheduled by the worker)
 	TypeTokenCleanup         = "periodic:token_cleanup"

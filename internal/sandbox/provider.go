@@ -3,6 +3,7 @@ package sandbox
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 var ErrSandboxNotFound = errors.New("sandbox not found upstream")
@@ -88,4 +89,5 @@ type Provider interface {
 
 	// Execution — run a command inside the sandbox.
 	ExecuteCommand(ctx context.Context, externalID string, command string) (string, error)
+	ExecuteCommandWithTimeout(ctx context.Context, externalID string, command string, timeout time.Duration) (string, error)
 }

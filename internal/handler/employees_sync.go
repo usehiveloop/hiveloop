@@ -11,7 +11,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
-	slackprov "github.com/usehiveloop/hiveloop/internal/profiles/slack"
 )
 
 type syncEmployeeResponse struct {
@@ -71,17 +70,22 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var profileCount int64
-	err = h.db.WithContext(ctx).Model(&model.AgentProfile{}).
-		Where("agent_id = ? AND status = ? AND deleted_at IS NULL AND provider = ?",
-			agentID, "active", slackprov.Provider).
-		Count(&profileCount).Error
+	if upgrade, ok, err := activeEmployeeSandboxUpgrade(ctx, h.db, org.ID, agentID); err != nil {
+		log.ErrorContext(ctx, "load active employee sandbox upgrade", "error", err, "agent_id", agentID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load active upgrade"})
+		return
+	} else if ok {
+		writeEmployeeUpgradeConflict(w, upgrade)
+		return
+	}
+
+	hasProfile, err := h.employeeHasActiveSlackProfile(ctx, org.ID, agentID)
 	if err != nil {
 		log.ErrorContext(ctx, "count employee profiles", "error", err, "agent_id", agentID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee profiles"})
 		return
 	}
-	if profileCount == 0 {
+	if !hasProfile {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "employee must have an active slack profile"})
 		return
 	}
