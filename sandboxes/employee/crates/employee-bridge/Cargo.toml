@@ -10,6 +10,14 @@ rust-version.workspace = true
 name = "employee-bridge"
 path = "src/main.rs"
 
+[[bin]]
+name = "gen-openapi"
+path = "src/bin/gen_openapi.rs"
+required-features = ["openapi"]
+
+[features]
+openapi = ["api/openapi", "dep:utoipa"]
+
 [dependencies]
 domain.workspace = true
 gateway.workspace = true
@@ -32,6 +40,7 @@ futures.workspace = true
 chrono.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
+utoipa = { workspace = true, optional = true }
 dashmap = "6"
 rustls = "0.23"
 url = "2"

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SlackConfig {
     #[serde(default)]
     pub ignore_users: Vec<String>,
@@ -106,6 +107,7 @@ impl Default for SlackConfig {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum AllowBotsMode {
     #[default]
@@ -115,12 +117,14 @@ pub enum AllowBotsMode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ProgressiveMessages {
     pub enabled: bool,
     pub edit_interval_ms: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ThreadContextConfig {
     pub enabled: bool,
     pub max_messages: u32,

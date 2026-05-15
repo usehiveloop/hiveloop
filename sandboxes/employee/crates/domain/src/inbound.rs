@@ -17,6 +17,7 @@ pub struct InboundEvent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct Attachment {
     pub url: String,
     pub mime_type: String,
@@ -26,6 +27,7 @@ pub struct Attachment {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct LinkPreview {
     pub url: String,
     pub title: Option<String>,
@@ -33,6 +35,7 @@ pub struct LinkPreview {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct HistoryMessage {
     pub user: String,
     pub user_display_name: Option<String>,

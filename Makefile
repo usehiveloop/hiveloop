@@ -1,5 +1,5 @@
 .PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-proxy test-connect test-integrations test-connections test-setup openapi generate-auth-keys upload-skills build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
-.PHONY: sandbox-runtime-build sandbox-runtime-test sandbox-runtime-fmt-check sandbox-runtime-clippy sandbox-runtime-openapi sandbox-employee-build sandbox-employee-test sandbox-employee-fmt-check sandbox-employee-image sandbox-employee-image-test
+.PHONY: sandbox-runtime-build sandbox-runtime-test sandbox-runtime-fmt-check sandbox-runtime-clippy sandbox-runtime-openapi sandbox-employee-build sandbox-employee-test sandbox-employee-fmt-check sandbox-employee-openapi employee-openapi sandbox-employee-image sandbox-employee-image-test
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -151,6 +151,9 @@ sandbox-employee-test:
 
 sandbox-employee-fmt-check:
 	cd $(SANDBOX_EMPLOYEE_DIR) && cargo fmt --all --check
+
+sandbox-employee-openapi employee-openapi:
+	$(MAKE) -C $(SANDBOX_EMPLOYEE_DIR) openapi
 
 sandbox-employee-image:
 	cd $(SANDBOX_EMPLOYEE_DIR) && cargo build --release --locked -p employee-bridge && scripts/build_runtime_image.sh

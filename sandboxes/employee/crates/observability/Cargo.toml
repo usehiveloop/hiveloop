@@ -6,7 +6,11 @@ license.workspace = true
 authors.workspace = true
 rust-version.workspace = true
 
+[features]
+openapi = ["dep:utoipa"]
+
 [dependencies]
 chrono.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+utoipa = { workspace = true, optional = true }

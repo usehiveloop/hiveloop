@@ -7,6 +7,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AgentDefinition {
     pub agent: AgentMeta,
     #[serde(default)]
@@ -33,6 +34,7 @@ pub struct AgentDefinition {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AgentMeta {
     pub name: String,
     #[serde(default)]
@@ -42,6 +44,7 @@ pub struct AgentMeta {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct PromptFragments {
     #[serde(default)]
     pub identity: PromptFragment,
@@ -54,6 +57,7 @@ pub struct PromptFragments {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct PromptFragment {
     #[serde(default)]
     pub title: String,
@@ -62,6 +66,7 @@ pub struct PromptFragment {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct Limits {
     pub max_turns_per_session: u32,
     pub input_token_budget: u32,
@@ -83,6 +88,7 @@ impl Default for Limits {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ContextConfig {
     #[serde(default)]
     pub max_history_events: Option<u32>,
@@ -93,6 +99,7 @@ pub struct ContextConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MemoryContextConfig {
     #[serde(default)]
     pub entries: Vec<MemoryContextEntry>,
@@ -110,6 +117,7 @@ impl Default for MemoryContextConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MemoryContextEntry {
     pub content: String,
     #[serde(default)]
@@ -121,6 +129,7 @@ pub struct MemoryContextEntry {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CompactionConfig {
     pub enabled: bool,
     pub token_threshold: u32,

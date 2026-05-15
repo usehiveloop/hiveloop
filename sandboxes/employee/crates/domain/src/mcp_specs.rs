@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(tag = "transport", rename_all = "snake_case")]
 pub enum McpSpec {
     Stdio {
@@ -91,6 +92,7 @@ impl McpSpec {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ToolFilter {
     #[serde(default)]
     pub allow: Option<Vec<String>>,

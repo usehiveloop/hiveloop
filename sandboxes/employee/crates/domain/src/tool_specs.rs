@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(tag = "type", content = "config")]
 pub enum ToolSpec {
     #[serde(rename = "builtin.bash")]
@@ -44,6 +45,7 @@ pub enum ToolSpec {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct BashConfig {
     pub workdir: String,
     pub timeout_seconds: u32,
@@ -61,6 +63,7 @@ fn default_sandbox() -> String {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ReadFileConfig {
     pub allowed_roots: Vec<String>,
     pub max_file_size_bytes: u64,
@@ -69,6 +72,7 @@ pub struct ReadFileConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct WriteFileConfig {
     pub allowed_roots: Vec<String>,
     pub max_file_size_bytes: u64,

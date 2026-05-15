@@ -1,4 +1,4 @@
-.PHONY: build run run-direct dev test clean push-config start-openrouter-proxy stop-openrouter-proxy proxy-config
+.PHONY: build run run-direct dev test clean push-config start-openrouter-proxy stop-openrouter-proxy proxy-config openapi
 
 RUNTIME_SECRET ?= local-dev-runtime-token
 CONFIG_API := http://localhost:7080
@@ -81,6 +81,9 @@ test:
 	          --test bash_operations_integration --test file_operations_integration \
 	          --test process_registry_integration --test skills_integration \
 	          --test handler_routing_integration
+
+openapi:
+	cargo run -p employee-bridge --features openapi --bin gen-openapi -- openapi.json
 
 clean:
 	cargo clean

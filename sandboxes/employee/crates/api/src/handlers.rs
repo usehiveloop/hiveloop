@@ -10,15 +10,26 @@ use domain::{AgentDefinition, EventKind, SessionId, SessionStatus};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
-use crate::http_gateway::{stream_response, HttpMessageRequest};
+use crate::http_gateway::{stream_response, HttpMessageRequest, HttpMessageResponse};
 use crate::state::ApiState;
 
 #[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ConfigResponse {
     applied_at: DateTime<Utc>,
     definition: AgentDefinition,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    put,
+    path = "/config",
+    request_body = AgentDefinition,
+    responses(
+        (status = 200, description = "Configuration applied", body = ConfigResponse),
+        (status = 500, description = "Failed to persist or apply configuration")
+    ),
+    security(("bearer" = []))
+))]
 pub async fn put_config(
     State(state): State<ApiState>,
     Json(definition): Json<AgentDefinition>,
@@ -56,12 +67,21 @@ pub async fn put_config(
     }))
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/config",
+    responses(
+        (status = 200, description = "Current agent configuration", body = AgentDefinition)
+    ),
+    security(("bearer" = []))
+))]
 pub async fn get_config(State(state): State<ApiState>) -> Json<AgentDefinition> {
     let snapshot = state.config_store.snapshot();
     Json((*snapshot).clone())
 }
 
 #[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ListSessionsParams {
     pub cursor: Option<String>,
     pub status: Option<String>,
@@ -69,11 +89,27 @@ pub struct ListSessionsParams {
 }
 
 #[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ListSessionsResponse {
     pub items: Vec<domain::Session>,
     pub next_cursor: Option<String>,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/sessions",
+    params(
+        ("cursor" = Option<String>, Query, description = "RFC 3339 cursor from the previous page"),
+        ("status" = Option<String>, Query, description = "Session status filter: active, completed, or errored"),
+        ("limit" = Option<u32>, Query, description = "Maximum sessions to return, clamped from 1 to 200")
+    ),
+    responses(
+        (status = 200, description = "Sessions page", body = ListSessionsResponse),
+        (status = 400, description = "Invalid cursor or status"),
+        (status = 500, description = "Failed to list sessions")
+    ),
+    security(("bearer" = []))
+))]
 pub async fn list_sessions(
     State(state): State<ApiState>,
     Query(params): Query<ListSessionsParams>,
@@ -109,11 +145,26 @@ pub async fn list_sessions(
 }
 
 #[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SessionDetailResponse {
     pub session: domain::Session,
     pub events: Vec<domain::SessionEvent>,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/sessions/{channel}/{thread_ts}",
+    params(
+        ("channel" = String, Path, description = "Slack channel identifier"),
+        ("thread_ts" = String, Path, description = "Slack thread timestamp")
+    ),
+    responses(
+        (status = 200, description = "Session details", body = SessionDetailResponse),
+        (status = 404, description = "Session not found"),
+        (status = 500, description = "Failed to load session details")
+    ),
+    security(("bearer" = []))
+))]
 pub async fn get_session_detail(
     State(state): State<ApiState>,
     Path((channel, thread_ts)): Path<(String, String)>,
@@ -133,10 +184,27 @@ pub async fn get_session_detail(
     Ok(Json(SessionDetailResponse { session, events }))
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/healthz",
+    responses(
+        (status = 200, description = "Bridge process is alive")
+    ),
+    security(())
+))]
 pub async fn healthz() -> impl IntoResponse {
     StatusCode::OK
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/readyz",
+    responses(
+        (status = 200, description = "Bridge is ready"),
+        (status = 503, description = "Bridge is not ready")
+    ),
+    security(("bearer" = []))
+))]
 pub async fn readyz(State(state): State<ApiState>) -> impl IntoResponse {
     if state.is_ready() {
         StatusCode::OK
@@ -145,10 +213,21 @@ pub async fn readyz(State(state): State<ApiState>) -> impl IntoResponse {
     }
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/gateway/http/messages",
+    request_body = HttpMessageRequest,
+    responses(
+        (status = 200, description = "Message accepted and stream created", body = HttpMessageResponse),
+        (status = 500, description = "Failed to inject message"),
+        (status = 503, description = "HTTP gateway is not enabled")
+    ),
+    security(("bearer" = []))
+))]
 pub async fn post_http_message(
     State(state): State<ApiState>,
     Json(request): Json<HttpMessageRequest>,
-) -> Result<Json<crate::http_gateway::HttpMessageResponse>, (StatusCode, String)> {
+) -> Result<Json<HttpMessageResponse>, (StatusCode, String)> {
     let Some(http_gateway) = state.http_gateway.as_ref() else {
         return Err((
             StatusCode::SERVICE_UNAVAILABLE,
@@ -168,23 +247,40 @@ pub async fn post_http_message(
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CloudAgentCallbackRequest {
     pub task_id: String,
     pub agent_id: String,
     pub event_type: String,
     pub event_id: String,
     pub timestamp: DateTime<Utc>,
+    #[cfg_attr(feature = "openapi", schema(value_type = Object))]
     pub metadata: Map<String, Value>,
+    #[cfg_attr(feature = "openapi", schema(value_type = Object))]
     pub data: Value,
 }
 
 #[derive(Debug, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CloudAgentCallbackResponse {
     pub accepted: bool,
     pub duplicate: bool,
     pub session_id: Option<String>,
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/gateway/cloud-agents/callback",
+    request_body = CloudAgentCallbackRequest,
+    responses(
+        (status = 202, description = "Callback accepted", body = CloudAgentCallbackResponse),
+        (status = 200, description = "Duplicate callback ignored", body = CloudAgentCallbackResponse),
+        (status = 400, description = "Invalid callback payload"),
+        (status = 404, description = "No matching session route"),
+        (status = 500, description = "Failed to persist callback")
+    ),
+    security(("bearer" = []))
+))]
 pub async fn post_cloud_agent_callback(
     State(state): State<ApiState>,
     Json(request): Json<CloudAgentCallbackRequest>,
@@ -233,6 +329,17 @@ pub async fn post_cloud_agent_callback(
     ))
 }
 
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/gateway/http/streams/{stream_id}",
+    params(("stream_id" = String, Path, description = "HTTP stream identifier")),
+    responses(
+        (status = 200, description = "Server-sent event stream", content_type = "text/event-stream"),
+        (status = 404, description = "Stream not found"),
+        (status = 503, description = "HTTP gateway is not enabled")
+    ),
+    security(("bearer" = []))
+))]
 pub async fn get_http_stream(
     State(state): State<ApiState>,
     Path(stream_id): Path<String>,

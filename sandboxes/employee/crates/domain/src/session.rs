@@ -8,6 +8,8 @@ use std::fmt;
 /// no `thread_ts` use the message's own `ts` (so each top-level @mention
 /// becomes its own session).
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "openapi", schema(value_type = String))]
 pub struct SessionId(String);
 
 impl SessionId {
@@ -43,6 +45,7 @@ impl From<&str> for SessionId {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum SessionStatus {
     Active,
@@ -51,6 +54,7 @@ pub enum SessionStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct Session {
     pub id: SessionId,
     pub channel: String,
@@ -62,6 +66,7 @@ pub struct Session {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum EventKind {
     UserMessage,
@@ -74,6 +79,7 @@ pub enum EventKind {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SessionEvent {
     pub id: i64,
     pub session_id: SessionId,

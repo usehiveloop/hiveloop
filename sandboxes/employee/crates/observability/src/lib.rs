@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 pub const OBSERVABILITY_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ObservabilityEventType {
     RunStarted,
@@ -22,6 +23,7 @@ pub enum ObservabilityEventType {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct EventTimings {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub queued_ms: Option<u64>,
@@ -38,6 +40,7 @@ pub struct EventTimings {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ModelUsage {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider: Option<String>,
@@ -58,6 +61,7 @@ pub struct ModelUsage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ToolUsage {
     pub call_id: String,
     pub tool_name: String,
@@ -65,6 +69,7 @@ pub struct ToolUsage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ObservabilityEvent {
     pub schema_version: u32,
     pub event_id: String,
@@ -110,6 +115,7 @@ impl ObservabilityEvent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct TraceSummary {
     pub trace_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]

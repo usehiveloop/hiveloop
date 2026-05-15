@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct OutboundEvent {
     pub event_type: String,
     pub payload: serde_json::Value,
@@ -20,6 +21,7 @@ impl OutboundEvent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct OutboundChannelSpec {
     pub name: String,
     #[serde(flatten)]
@@ -29,6 +31,7 @@ pub struct OutboundChannelSpec {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum OutboundChannelKind {
     Webhook {

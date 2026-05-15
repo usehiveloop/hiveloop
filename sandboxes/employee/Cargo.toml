@@ -44,6 +44,9 @@ sentry = { version = "0.43", default-features = false, features = ["anyhow", "ba
 # time
 chrono = { version = "0.4", features = ["serde"] }
 
+# OpenAPI generation
+utoipa = { version = "5", features = ["chrono"] }
+
 # config-store hot swap
 arc-swap = "1"
 

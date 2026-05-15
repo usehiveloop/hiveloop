@@ -6,6 +6,9 @@ license.workspace = true
 authors.workspace = true
 rust-version.workspace = true
 
+[features]
+openapi = ["dep:utoipa", "domain/openapi", "observability/openapi"]
+
 [dependencies]
 domain.workspace = true
 observability.workspace = true
@@ -28,3 +31,4 @@ tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["trace"] }
 http = "1"
 async-stream = "0.3.6"
+utoipa = { workspace = true, optional = true }

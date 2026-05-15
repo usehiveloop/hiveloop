@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{agent_definition::Limits, model_config::ModelConfig, tool_specs::ToolSpec};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SkillSpec {
     pub name: String,
     pub description: String,
@@ -25,6 +26,7 @@ pub struct SkillSpec {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SkillTrigger {
     Always,
@@ -32,6 +34,7 @@ pub enum SkillTrigger {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SubagentSpec {
     pub name: String,
     pub description: String,
@@ -47,6 +50,7 @@ fn default_expose_as_tool() -> bool {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SubagentDefinition {
     pub system_prompt: String,
     pub model: ModelConfig,

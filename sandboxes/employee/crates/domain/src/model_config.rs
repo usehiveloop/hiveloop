@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum ReasoningEffort {
     Low,
@@ -10,6 +11,7 @@ pub enum ReasoningEffort {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(tag = "provider", rename_all = "snake_case")]
 pub enum ModelConfig {
     OpenaiCompatible {
@@ -25,6 +27,7 @@ pub enum ModelConfig {
         #[serde(default)]
         extra_headers: HashMap<String, String>,
         #[serde(default)]
+        #[cfg_attr(feature = "openapi", schema(no_recursion))]
         fallback: Option<Box<ModelConfig>>,
     },
 }

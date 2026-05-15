@@ -24,8 +24,10 @@ pub struct HttpGatewayState {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct HttpStreamEvent {
     pub event: String,
+    #[cfg_attr(feature = "openapi", schema(value_type = Object))]
     pub payload: Value,
 }
 
@@ -289,6 +291,7 @@ impl HttpStreamBroker {
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct HttpMessageRequest {
     pub text: String,
     #[serde(default)]
@@ -300,10 +303,12 @@ pub struct HttpMessageRequest {
     #[serde(default)]
     pub attachments: Vec<Attachment>,
     #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Object))]
     pub raw: Value,
 }
 
 #[derive(Debug, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct HttpMessageResponse {
     pub session_id: String,
     pub stream_id: String,
