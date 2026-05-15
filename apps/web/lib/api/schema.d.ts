@@ -8343,7 +8343,102 @@ export interface paths {
                 };
             };
         };
-        put?: never;
+        /**
+         * Update an AI employee
+         * @description Updates employee creation fields, assigned org connections, and optional skills.
+         *     Category is read-only. Required backend-managed employee skills are preserved.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateEmployeeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["updateEmployeeResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -14614,14 +14709,18 @@ export interface components {
         };
         agentSkillResponse: {
             created_at?: string;
+            locked?: boolean;
             pinned_version_id?: string;
+            required?: boolean;
             skill?: components["schemas"]["skillResponse"];
             skill_id?: string;
         };
         agentSkillSummary: {
             description?: string;
             id?: string;
+            locked?: boolean;
             name?: string;
+            required?: boolean;
             source_type?: string;
         };
         agentTriggerInput: {
@@ -16058,6 +16157,19 @@ export interface components {
         };
         updateContentRequest: {
             bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
+        };
+        updateEmployeeRequest: {
+            avatar_url?: string;
+            connection_ids?: string[];
+            description?: string;
+            name?: string;
+            skill_ids?: string[];
+        };
+        updateEmployeeResponse: {
+            employee?: components["schemas"]["employeeListItem"];
+            sync?: components["schemas"]["syncEmployeeResponse"];
+            sync_status?: string;
+            warnings?: string[];
         };
         updateGitHubRepositoriesRequest: {
             repositories?: components["schemas"]["gitHubRepository"][];

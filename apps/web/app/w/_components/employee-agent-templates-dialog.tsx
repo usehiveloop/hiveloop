@@ -18,6 +18,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
+import { formatCategoryLabel } from "@/lib/format-label"
 import { cn } from "@/lib/utils"
 import type { components } from "@/lib/api/schema"
 
@@ -128,7 +129,7 @@ export function EmployeeAgentTemplatesDialog({
                 <section key={group.category} className="flex flex-col gap-3">
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="text-sm font-semibold">
-                      {formatCategory(group.category)}
+                      {formatCategoryLabel(group.category)}
                     </h3>
                     <Badge variant="outline">
                       {group.templates.length}{" "}
@@ -245,13 +246,4 @@ function groupTemplates(templates: AgentTemplate[]) {
     category,
     templates: groupedTemplates,
   }))
-}
-
-function formatCategory(category: string) {
-  if (category === "engineering") return "Software engineering"
-  return category
-    .split("-")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ")
 }

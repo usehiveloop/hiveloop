@@ -194,6 +194,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireOrgAdmin(db))
 			r.Post("/", h.Create)
+			r.Put("/{id}", h.Update)
 			r.Post("/{id}/sync", h.Sync)
 			r.Post("/{id}/agent-templates/{slug}/install", h.InstallAgentTemplate)
 			r.Post("/{id}/sandbox/upgrade", h.StartSandboxUpgrade)

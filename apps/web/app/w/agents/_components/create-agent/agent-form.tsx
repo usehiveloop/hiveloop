@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Controller } from "react-hook-form"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
+import { FormEmptyWell, FormSection } from "@/app/w/_components/form-section"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -195,7 +196,7 @@ export function AgentForm() {
 
       <div className="mx-auto w-full max-w-2xl px-6 pt-10 pb-20">
         <div className="divide-y divide-border/60 [&>section]:py-7 [&>section:first-child]:pt-0 [&>section:last-child]:pb-0">
-          <Section
+          <FormSection
             title="Persona"
             description="Give your agent a specific name and description. Golden rule: One agent that does one thing, and does it really well"
             aside={
@@ -238,9 +239,9 @@ export function AgentForm() {
                 placeholder="What this agent does."
               />
             </div>
-          </Section>
+          </FormSection>
 
-          <Section
+          <FormSection
             title="Category"
             description="Group this agent by the function it serves in your workspace."
           >
@@ -256,9 +257,9 @@ export function AgentForm() {
                 />
               )}
             />
-          </Section>
+          </FormSection>
 
-          <Section
+          <FormSection
             title="Model"
             description="The model your agent runs on. Pick one that matches the agent's task."
           >
@@ -266,10 +267,10 @@ export function AgentForm() {
               value={model || null}
               onSelect={(value) => form.setValue("model", value)}
             />
-          </Section>
+          </FormSection>
 
           {showLlmKey ? (
-            <Section
+            <FormSection
               title="LLM key"
               description="Pick a credential to bill this agent's usage to. The platform picks one automatically when no credential is selected."
             >
@@ -279,7 +280,7 @@ export function AgentForm() {
                     <Skeleton key={i} className="h-[60px] w-full rounded-xl" />
                   ))
                 ) : credentials.length === 0 ? (
-                  <EmptyWell
+                  <FormEmptyWell
                     icon={Key01Icon}
                     message="No LLM keys connected yet."
                     action={
@@ -329,16 +330,16 @@ export function AgentForm() {
                   </>
                 )}
               </div>
-            </Section>
+            </FormSection>
           ) : null}
 
-          <Section
+          <FormSection
             title="Integrations"
             description="External services your agent can access."
           >
             <div className="flex flex-col gap-2">
               {selectedIntegrations.size === 0 ? (
-                <EmptyWell
+                <FormEmptyWell
                   icon={Plug01Icon}
                   message="No integrations configured."
                   action={
@@ -398,16 +399,16 @@ export function AgentForm() {
                 </>
               )}
             </div>
-          </Section>
+          </FormSection>
 
-          <Section
+          <FormSection
             title="Triggers"
             description="Webhook events that automatically invoke this agent."
           >
             <div className="flex flex-col gap-2">
               <GitHubTriggerShortcuts />
               {triggers.length === 0 ? (
-                <EmptyWell
+                <FormEmptyWell
                   icon={FlashIcon}
                   message="No triggers configured. This agent is invoked manually."
                   action={
@@ -485,9 +486,9 @@ export function AgentForm() {
                 </>
               )}
             </div>
-          </Section>
+          </FormSection>
 
-          <Section
+          <FormSection
             title="Skills"
             description="Attach skills that give your agent specialized capabilities."
           >
@@ -497,7 +498,7 @@ export function AgentForm() {
                   <Skeleton key={i} className="h-[52px] w-full rounded-xl" />
                 ))
               ) : skills.length === 0 ? (
-                <EmptyWell
+                <FormEmptyWell
                   icon={MagicWandIcon}
                   message="No skills available yet."
                   action={
@@ -569,9 +570,9 @@ export function AgentForm() {
                 </>
               )}
             </div>
-          </Section>
+          </FormSection>
 
-          <Section
+          <FormSection
             title="Instructions"
             description="The base instructions that shape your agent's behavior. Markdown supported."
           >
@@ -586,9 +587,9 @@ export function AgentForm() {
                 />
               )}
             />
-          </Section>
+          </FormSection>
 
-          <Section
+          <FormSection
             title="Sandbox template"
             description="Optional. Pick a template to launch this agent's sandbox from a pre-built image. Leave empty to use the platform default."
           >
@@ -598,7 +599,7 @@ export function AgentForm() {
                   <Skeleton key={i} className="h-[52px] w-full rounded-xl" />
                 ))
               ) : sandboxTemplates.length === 0 ? (
-                <EmptyWell
+                <FormEmptyWell
                   icon={CubeIcon}
                   message="No sandbox templates yet. Create one in Settings → Sandboxes."
                 />
@@ -679,9 +680,9 @@ export function AgentForm() {
                 </>
               )}
             </div>
-          </Section>
+          </FormSection>
 
-          <Section title="Advanced">
+          <FormSection title="Advanced">
             <div className="flex items-start justify-between gap-6">
               <div className="flex-1">
                 <Label className="text-[13px] font-medium">
@@ -701,7 +702,7 @@ export function AgentForm() {
                 className="mt-0.5"
               />
             </div>
-          </Section>
+          </FormSection>
         </div>
       </div>
 
@@ -745,54 +746,5 @@ export function AgentForm() {
         }}
       />
     </>
-  )
-}
-
-function Section({
-  title,
-  description,
-  aside,
-  children,
-}: {
-  title: string
-  description?: string
-  aside?: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <section className="flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-[15px] font-medium text-foreground">{title}</h2>
-          {description ? (
-            <p className="mt-0.5 text-[12px] text-muted-foreground">
-              {description}
-            </p>
-          ) : null}
-        </div>
-        {aside ? <div className="shrink-0">{aside}</div> : null}
-      </div>
-      {children}
-    </section>
-  )
-}
-
-function EmptyWell({
-  icon,
-  message,
-  action,
-}: {
-  icon: typeof Plug01Icon
-  message: string
-  action?: React.ReactNode
-}) {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-xl bg-muted/30 px-6 py-9 text-center">
-      <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-        <HugeiconsIcon icon={icon} strokeWidth={2} className="size-4" />
-      </div>
-      <p className="text-[13px] text-muted-foreground">{message}</p>
-      {action ? <div className="mt-1">{action}</div> : null}
-    </div>
   )
 }

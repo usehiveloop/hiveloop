@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"time"
@@ -105,7 +106,7 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 	for i, a := range agents {
 		base := toAgentResponse(a)
 		base.Triggers = triggers[a.ID]
-		base.AttachedSkills = skills[a.ID]
+		base.AttachedSkills = h.markEmployeeSkillLocks(r.Context(), org.ID, &a, skills[a.ID])
 		base.Profiles = profiles[a.ID]
 		subs := subagents[a.ID]
 		base.SubagentIDs = make([]string, len(subs))
@@ -173,7 +174,7 @@ func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	base := toAgentResponse(agent)
 	base.Triggers = h.agents.loadAgentTriggers(agent.ID)[agent.ID]
-	base.AttachedSkills = h.agents.loadAgentSkills(agent.ID)[agent.ID]
+	base.AttachedSkills = h.markEmployeeSkillLocks(r.Context(), org.ID, &agent, h.agents.loadAgentSkills(agent.ID)[agent.ID])
 	base.Profiles = h.agents.loadAgentProfiles(agent.ID)[agent.ID]
 	subagents := loadEmployeeSubagents(h.db, []uuid.UUID{agent.ID})[agent.ID]
 	base.SubagentIDs = make([]string, len(subagents))
@@ -196,6 +197,25 @@ func (h *EmployeeHandler) currentEmployeeSandboxSnapshotID() string {
 		return ""
 	}
 	return h.compileDeps.Cfg.EmployeeSandboxBaseImagePrefix
+}
+
+func (h *EmployeeHandler) employeeListItem(ctx context.Context, orgID uuid.UUID, agent model.Agent) employeeListItem {
+	base := toAgentResponse(agent)
+	base.Triggers = h.agents.loadAgentTriggers(agent.ID)[agent.ID]
+	base.AttachedSkills = h.markEmployeeSkillLocks(ctx, orgID, &agent, h.agents.loadAgentSkills(agent.ID)[agent.ID])
+	base.Profiles = h.agents.loadAgentProfiles(agent.ID)[agent.ID]
+	subagents := loadEmployeeSubagents(h.db, []uuid.UUID{agent.ID})[agent.ID]
+	base.SubagentIDs = make([]string, len(subagents))
+	for i, subagent := range subagents {
+		base.SubagentIDs[i] = subagent.ID
+	}
+	sandbox := loadLatestSandboxPerAgent(h.db, orgID, []uuid.UUID{agent.ID})[agent.ID]
+	return employeeListItem{
+		agentResponse:    base,
+		UpgradeAvailable: employeeSandboxUpgradeAvailable(sandbox, h.currentEmployeeSandboxSnapshotID()),
+		Subagents:        subagents,
+		Sandbox:          sandbox,
+	}
 }
 
 func employeeSandboxUpgradeAvailable(summary *employeeSandboxSummary, currentSnapshotID string) bool {

@@ -224,11 +224,24 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 			if err := tx.Where("agent_id = ?", agent.ID).Delete(&model.AgentSkill{}).Error; err != nil {
 				return err
 			}
+			skillIDs := make(map[uuid.UUID]bool, len(*req.SkillIDs))
 			for _, rawID := range *req.SkillIDs {
 				skillUUID, parseErr := uuid.Parse(rawID)
 				if parseErr != nil {
 					continue
 				}
+				skillIDs[skillUUID] = true
+			}
+			if agent.IsEmployee {
+				lockedSkillIDs, lockErr := employeeLockedSkillIDs(r.Context(), tx, org.ID, &agent)
+				if lockErr != nil {
+					return lockErr
+				}
+				for skillID := range lockedSkillIDs {
+					skillIDs[skillID] = true
+				}
+			}
+			for skillUUID := range skillIDs {
 				if err := tx.Create(&model.AgentSkill{
 					AgentID: agent.ID,
 					SkillID: skillUUID,
@@ -245,5 +258,8 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	resp := toAgentResponse(agent)
 	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]
 	resp.AttachedSkills = h.loadAgentSkills(agent.ID)[agent.ID]
+	if agent.IsEmployee {
+		resp.AttachedSkills = markEmployeeSkillSummaries(r.Context(), h.db, org.ID, &agent, resp.AttachedSkills)
+	}
 	writeJSON(w, http.StatusOK, resp)
 }

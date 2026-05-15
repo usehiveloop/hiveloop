@@ -142,6 +142,8 @@ type agentSkillSummary struct {
 	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
 	SourceType  string  `json:"source_type"`
+	Locked      bool    `json:"locked,omitempty"`
+	Required    bool    `json:"required,omitempty"`
 }
 
 type agentResponse struct {

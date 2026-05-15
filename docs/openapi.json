@@ -8590,6 +8590,122 @@
             }
           }
         }
+      },
+      "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Updates employee creation fields, assigned org connections, and optional skills.\nCategory is read-only. Required backend-managed employee skills are preserved.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "Update an AI employee",
+        "parameters": [
+          {
+            "description": "Employee agent ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateEmployeeRequest"
+              }
+            }
+          },
+          "description": "Fields to update",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/updateEmployeeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/employees/{id}/agent-templates": {
@@ -16512,8 +16628,14 @@
           "created_at": {
             "type": "string"
           },
+          "locked": {
+            "type": "boolean"
+          },
           "pinned_version_id": {
             "type": "string"
+          },
+          "required": {
+            "type": "boolean"
           },
           "skill": {
             "$ref": "#/components/schemas/skillResponse"
@@ -16532,8 +16654,14 @@
           "id": {
             "type": "string"
           },
+          "locked": {
+            "type": "boolean"
+          },
           "name": {
             "type": "string"
+          },
+          "required": {
+            "type": "boolean"
           },
           "source_type": {
             "type": "string"
@@ -20826,6 +20954,52 @@
         "properties": {
           "bundle": {
             "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_skills.Bundle"
+          }
+        }
+      },
+      "updateEmployeeRequest": {
+        "type": "object",
+        "properties": {
+          "avatar_url": {
+            "type": "string"
+          },
+          "connection_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "skill_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "updateEmployeeResponse": {
+        "type": "object",
+        "properties": {
+          "employee": {
+            "$ref": "#/components/schemas/employeeListItem"
+          },
+          "sync": {
+            "$ref": "#/components/schemas/syncEmployeeResponse"
+          },
+          "sync_status": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

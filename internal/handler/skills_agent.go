@@ -113,6 +113,17 @@ func (h *SkillHandler) DetachFromAgent(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid skill_id"})
 		return
 	}
+	if agent.IsEmployee {
+		lockedSkillIDs, err := employeeLockedSkillIDs(r.Context(), h.db, org.ID, agent)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to check required employee skills"})
+			return
+		}
+		if lockedSkillIDs[skillID] {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "required employee skill cannot be removed"})
+			return
+		}
+	}
 	result := h.db.Where("agent_id = ? AND skill_id = ?", agent.ID, skillID).Delete(&model.AgentSkill{})
 	if result.Error != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to detach skill"})
@@ -171,12 +182,21 @@ func (h *SkillHandler) ListAgentSkills(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := make([]agentSkillResponse, 0, len(links))
+	lockedSkillIDs := map[uuid.UUID]bool{}
+	if agent.IsEmployee {
+		lockedSkillIDs, _ = employeeLockedSkillIDs(r.Context(), h.db, org.ID, agent)
+	}
 	for _, l := range links {
 		s, ok := skillByID[l.SkillID]
 		if !ok {
 			continue
 		}
-		resp = append(resp, toAgentSkillResponse(l, s))
+		item := toAgentSkillResponse(l, s)
+		if lockedSkillIDs[l.SkillID] {
+			item.Locked = true
+			item.Required = true
+		}
+		resp = append(resp, item)
 	}
 	writeJSON(w, http.StatusOK, resp)
 }

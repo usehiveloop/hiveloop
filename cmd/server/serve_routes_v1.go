@@ -185,6 +185,7 @@ func setupV1Routes(
 					r.Group(func(r chi.Router) {
 						r.Use(middleware.RequireOrgAdmin(database))
 						r.Post("/employees", employeeHandler.Create)
+						r.Put("/employees/{id}", employeeHandler.Update)
 						r.Post("/employees/{id}/sync", employeeHandler.Sync)
 						r.Post("/employees/{id}/agent-templates/{slug}/install", employeeHandler.InstallAgentTemplate)
 						r.Post("/employees/{id}/sandbox/upgrade", employeeHandler.StartSandboxUpgrade)

@@ -67,7 +67,7 @@ type skillResponse struct {
 	Featured        bool      `json:"featured"`
 	Status          string    `json:"status"`
 	PublicSkillID   *string   `json:"public_skill_id,omitempty"`
-	HydrationStatus string    `json:"hydration_status"`          // pending, ready, error
+	HydrationStatus string    `json:"hydration_status"` // pending, ready, error
 	HydrationError  *string   `json:"hydration_error,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
@@ -98,6 +98,8 @@ type agentSkillResponse struct {
 	PinnedVersionID *string       `json:"pinned_version_id,omitempty"`
 	CreatedAt       time.Time     `json:"created_at"`
 	Skill           skillResponse `json:"skill"`
+	Locked          bool          `json:"locked,omitempty"`
+	Required        bool          `json:"required,omitempty"`
 }
 
 // Create handles POST /v1/skills.

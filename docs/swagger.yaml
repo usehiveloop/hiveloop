@@ -1506,8 +1506,12 @@ definitions:
     properties:
       created_at:
         type: string
+      locked:
+        type: boolean
       pinned_version_id:
         type: string
+      required:
+        type: boolean
       skill:
         $ref: '#/definitions/internal_handler.skillResponse'
       skill_id:
@@ -1519,8 +1523,12 @@ definitions:
         type: string
       id:
         type: string
+      locked:
+        type: boolean
       name:
         type: string
+      required:
+        type: boolean
       source_type:
         type: string
     type: object
@@ -4336,6 +4344,36 @@ definitions:
     properties:
       bundle:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Bundle'
+    type: object
+  internal_handler.updateEmployeeRequest:
+    properties:
+      avatar_url:
+        type: string
+      connection_ids:
+        items:
+          type: string
+        type: array
+      description:
+        type: string
+      name:
+        type: string
+      skill_ids:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.updateEmployeeResponse:
+    properties:
+      employee:
+        $ref: '#/definitions/internal_handler.employeeListItem'
+      sync:
+        $ref: '#/definitions/internal_handler.syncEmployeeResponse'
+      sync_status:
+        type: string
+      warnings:
+        items:
+          type: string
+        type: array
     type: object
   internal_handler.updateGitHubRepositoriesRequest:
     properties:
@@ -9199,6 +9237,64 @@ paths:
       security:
       - BearerAuth: []
       summary: Get an AI employee
+      tags:
+      - employees
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Updates employee creation fields, assigned org connections, and optional skills.
+        Category is read-only. Required backend-managed employee skills are preserved.
+      parameters:
+      - description: Employee agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.updateEmployeeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.updateEmployeeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an AI employee
       tags:
       - employees
   /v1/employees/{id}/agent-templates:

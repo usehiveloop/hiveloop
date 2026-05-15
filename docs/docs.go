@@ -7235,6 +7235,92 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates employee creation fields, assigned org connections, and optional skills.\nCategory is read-only. Required backend-managed employee skills are preserved.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Update an AI employee",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Employee agent ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.updateEmployeeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.updateEmployeeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
             }
         },
         "/v1/employees/{id}/agent-templates": {
@@ -14119,8 +14205,14 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "locked": {
+                    "type": "boolean"
+                },
                 "pinned_version_id": {
                     "type": "string"
+                },
+                "required": {
+                    "type": "boolean"
                 },
                 "skill": {
                     "$ref": "#/definitions/internal_handler.skillResponse"
@@ -14139,8 +14231,14 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "locked": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
+                },
+                "required": {
+                    "type": "boolean"
                 },
                 "source_type": {
                     "type": "string"
@@ -18433,6 +18531,52 @@ const docTemplate = `{
             "properties": {
                 "bundle": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Bundle"
+                }
+            }
+        },
+        "internal_handler.updateEmployeeRequest": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "connection_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "skill_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "internal_handler.updateEmployeeResponse": {
+            "type": "object",
+            "properties": {
+                "employee": {
+                    "$ref": "#/definitions/internal_handler.employeeListItem"
+                },
+                "sync": {
+                    "$ref": "#/definitions/internal_handler.syncEmployeeResponse"
+                },
+                "sync_status": {
+                    "type": "string"
+                },
+                "warnings": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

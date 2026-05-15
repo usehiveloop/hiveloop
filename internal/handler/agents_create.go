@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
@@ -195,25 +194,13 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var skillUUIDs []uuid.UUID
-	if len(req.SkillIDs) > 0 {
-		skillUUIDs = make([]uuid.UUID, 0, len(req.SkillIDs))
-		seen := make(map[uuid.UUID]struct{}, len(req.SkillIDs))
-		for _, raw := range req.SkillIDs {
-			parsed, parseErr := uuid.Parse(raw)
-			if parseErr != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid skill_id %q", raw)})
-				return
-			}
-			if _, dup := seen[parsed]; dup {
-				continue
-			}
-			seen[parsed] = struct{}{}
-			skillUUIDs = append(skillUUIDs, parsed)
-		}
+	skillUUIDs, err := parseUniqueUUIDStrings(req.SkillIDs, "skill_id")
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
 	}
 
-	err := h.db.Transaction(func(tx *gorm.DB) error {
+	err = h.db.Transaction(func(tx *gorm.DB) error {
 		exists, err := agentNameExists(tx, agent.OrgID, agent.Name)
 		if err != nil {
 			return err
@@ -226,16 +213,9 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if len(skillUUIDs) > 0 {
-			var visibleSkills []model.Skill
-			if err := tx.
-				Select("id").
-				Where("id IN ? AND (org_id = ? OR (org_id IS NULL AND status = ?))",
-					skillUUIDs, org.ID, model.SkillStatusPublished).
-				Find(&visibleSkills).Error; err != nil {
-				return fmt.Errorf("validate skill_ids: %w", err)
-			}
-			if len(visibleSkills) != len(skillUUIDs) {
-				return fmt.Errorf("one or more skill_ids are not visible to this org")
+			visibleSkills, err := loadVisibleSkillsForOrg(r.Context(), tx, org.ID, skillUUIDs)
+			if err != nil {
+				return err
 			}
 			links := make([]model.AgentSkill, len(visibleSkills))
 			for i, skill := range visibleSkills {

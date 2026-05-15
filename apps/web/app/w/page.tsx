@@ -234,6 +234,18 @@ function EmployeeActions({
               Continue onboarding
             </DropdownMenuItem>
           ) : null}
+          {employee.id ? (
+            <DropdownMenuItem
+              onClick={() => router.push(`/w/employees/${employee.id}`)}
+            >
+              <HugeiconsIcon
+                icon={ArrowRight01Icon}
+                className="size-4"
+                strokeWidth={2}
+              />
+              Details
+            </DropdownMenuItem>
+          ) : null}
           {canUpgrade ? (
             <DropdownMenuItem onClick={onUpgrade}>
               <HugeiconsIcon
@@ -386,7 +398,16 @@ function EmployeeRow({
           ) : null}
           <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
-        <span className="truncate font-medium">{name}</span>
+        {employee.id ? (
+          <Link
+            href={`/w/employees/${employee.id}`}
+            className="truncate font-medium transition-colors hover:text-primary"
+          >
+            {name}
+          </Link>
+        ) : (
+          <span className="truncate font-medium">{name}</span>
+        )}
       </div>
       <span className="truncate text-foreground/90">{role}</span>
       <span>
