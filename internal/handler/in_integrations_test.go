@@ -15,7 +15,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
@@ -43,17 +42,20 @@ func createTestUser(t *testing.T, db *gorm.DB, email string) model.User {
 
 func createTestInIntegration(t *testing.T, db *gorm.DB, provider string) model.InIntegration {
 	t.Helper()
+	var found model.InIntegration
+	if err := db.Where("provider = ? AND custom_app = false AND deleted_at IS NULL", provider).First(&found).Error; err == nil {
+		return found
+	}
 	integ := model.InIntegration{
 		ID:          uuid.New(),
 		UniqueKey:   fmt.Sprintf("%s-%s", provider, uuid.New().String()[:8]),
 		Provider:    provider,
 		DisplayName: provider + " built-in",
 	}
-	if err := db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "provider"}}, DoNothing: true}).Create(&integ).Error; err != nil {
+	if err := db.Create(&integ).Error; err != nil {
 		t.Fatalf("create in-integration: %v", err)
 	}
-	var found model.InIntegration
-	if err := db.Where("provider = ?", provider).First(&found).Error; err != nil {
+	if err := db.Where("id = ?", integ.ID).First(&found).Error; err != nil {
 		t.Fatalf("load in-integration: %v", err)
 	}
 	return found

@@ -77,6 +77,11 @@ func AutoMigrate(db *gorm.DB) (err error) {
 			return err
 		}
 	}
+	if db.Migrator().HasIndex(&InIntegration{}, "idx_in_integ_provider") {
+		if err := db.Migrator().DropIndex(&InIntegration{}, "idx_in_integ_provider"); err != nil {
+			return err
+		}
+	}
 
 	if err := db.AutoMigrate(
 		&Org{},

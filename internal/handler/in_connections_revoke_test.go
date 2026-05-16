@@ -37,7 +37,7 @@ func TestInConnectionHandler_Revoke_Success(t *testing.T) {
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
 	org := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "github")
+	integ := createTestInIntegration(t, db, "notion")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
 		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "revoke-conn",
@@ -117,7 +117,7 @@ func TestInConnectionHandler_Revoke_WrongUser(t *testing.T) {
 	user2 := createTestUser(t, db, fmt.Sprintf("user2-%s@test.com", uuid.New().String()[:8]))
 	org1 := createTestOrg(t, db)
 	org2 := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "github")
+	integ := createTestInIntegration(t, db, "notion")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
 		ID: connID, OrgID: org1.ID, UserID: user1.ID, InIntegrationID: integ.ID, NangoConnectionID: "user1-conn",
@@ -152,7 +152,7 @@ func TestInConnectionHandler_Revoke_AlreadyRevoked(t *testing.T) {
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
 	org := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "github")
+	integ := createTestInIntegration(t, db, "notion")
 	now := time.Now()
 	connID := uuid.New()
 	db.Create(&model.InConnection{
@@ -190,7 +190,7 @@ func TestInConnectionHandler_Revoke_NangoFailure(t *testing.T) {
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
 	org := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "github")
+	integ := createTestInIntegration(t, db, "notion")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
 		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "nango-fail-conn",
@@ -210,5 +210,46 @@ func TestInConnectionHandler_Revoke_NangoFailure(t *testing.T) {
 	db.Where("id = ?", connID).First(&conn)
 	if conn.RevokedAt == nil {
 		t.Fatal("expected revoked_at to be set despite Nango failure")
+	}
+}
+
+func TestInConnectionHandler_Revoke_RejectsProfileProvider(t *testing.T) {
+	db := connectTestDB(t)
+	t.Cleanup(func() {
+		db.Where("1=1").Delete(&model.InConnection{})
+		db.Where("1=1").Delete(&model.InIntegration{})
+	})
+
+	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
+	t.Cleanup(nangoSrv.Close)
+	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
+	_ = nangoClient.FetchProviders(context.Background())
+
+	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
+	r := chi.NewRouter()
+	r.Delete("/v1/in/connections/{id}", h.Revoke)
+
+	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
+	integ := createTestInIntegration(t, db, "linear-profile")
+	connID := uuid.New()
+	db.Create(&model.InConnection{
+		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "profile-conn",
+	})
+
+	req := httptest.NewRequest(http.MethodDelete, "/v1/in/connections/"+connID.String(), nil)
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var conn model.InConnection
+	db.Where("id = ?", connID).First(&conn)
+	if conn.RevokedAt != nil {
+		t.Fatal("profile connection should not be revoked through global connection endpoint")
 	}
 }

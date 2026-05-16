@@ -44,6 +44,17 @@ func (h *InIntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("provider %q is not supported — no action definitions available", req.Provider)})
 		return
 	}
+	var existing int64
+	if err := h.db.Model(&model.InIntegration{}).
+		Where("provider = ? AND custom_app = false AND deleted_at IS NULL", req.Provider).
+		Count(&existing).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to check integration"})
+		return
+	}
+	if existing > 0 {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "integration already exists for this provider"})
+		return
+	}
 
 	if err := validateCredentials(provider, req.Credentials); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})

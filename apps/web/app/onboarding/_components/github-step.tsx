@@ -49,14 +49,6 @@ export function GithubStep() {
   const [repositories, setRepositories] = useState<GitHubRepository[]>([])
   const [selectedIDs, setSelectedIDs] = useState<Set<string>>(new Set())
 
-  const { data: integrations, isLoading: integrationsLoading } = $api.useQuery(
-    "get",
-    "/v1/in/integrations/available"
-  )
-
-  const githubIntegration = integrations?.find(
-    (integration) => integration.provider === GITHUB_PROVIDER
-  )
   const agentId = createEmployee.agentId
   const employeeQuery = $api.useQuery(
     "get",
@@ -68,14 +60,9 @@ export function GithubStep() {
   const githubProfile = employee?.profiles?.find(
     (profile) => profile.provider === GITHUB_PROVIDER && profile.status === "active"
   )
-  const githubConnectionID = stringFromProfileConfig(githubProfile, "in_connection_id")
   const savedRepositories = selectedRepositoriesFromProfile(githubProfile)
   const hasSavedRepositories = savedRepositories.length > 0
 
-  const createGitHubProfile = $api.useMutation(
-    "post",
-    "/v1/agents/{agentID}/profiles/github"
-  )
   const updateGitHubRepositories = $api.useMutation(
     "patch",
     "/v1/agents/{agentID}/profiles/github/repositories"
@@ -87,9 +74,12 @@ export function GithubStep() {
     { enabled: false, retry: false }
   )
   const reconnectGitHubProfile = useMutation({
-    mutationFn: async ({ connectionId }: { connectionId: string }) => {
-      const session = await api.POST("/v1/in/connections/{id}/reconnect-session", {
-        params: { path: { id: connectionId } },
+    mutationFn: async () => {
+      if (!agentId) {
+        throw new Error("Create the employee profile before reconnecting GitHub.")
+      }
+      const session = await api.POST("/v1/agents/{agentID}/profiles/{provider}/reconnect-session", {
+        params: { path: { agentID: agentId, provider: GITHUB_PROVIDER } },
       })
       if (session.error) throw session.error
 
@@ -102,7 +92,7 @@ export function GithubStep() {
       })
 
       await nango.reconnect(providerConfigKey)
-      await refreshProfile(connectionId)
+      await refreshProfile()
       await queryClient.invalidateQueries({ queryKey: ["get", "/v1/in/connections"] })
     },
     onMutate: () => {
@@ -135,42 +125,34 @@ export function GithubStep() {
     setRepositoryDialogOpen(true)
   }
 
-  async function attachProfileAndLoadRepositories(connectionId: string) {
-    if (!agentId) {
-      throw new Error("Create the employee profile before connecting GitHub.")
-    }
-    await createGitHubProfile.mutateAsync({
-      params: { path: { agentID: agentId } },
-      body: { connection_id: connectionId },
-    })
-    await queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
-    await employeeQuery.refetch()
-    await loadRepositories()
-  }
-
-  async function refreshProfile(connectionId: string) {
+  async function refreshProfile() {
     if (!agentId) {
       throw new Error("Create the employee profile before reconnecting GitHub.")
     }
-    await createGitHubProfile.mutateAsync({
-      params: { path: { agentID: agentId } },
-      body: { connection_id: connectionId },
+    const nangoConnectionID = stringFromProfileConfig(githubProfile, "nango_connection_id")
+    if (!nangoConnectionID) {
+      throw new Error("GitHub profile is missing its Nango connection ID.")
+    }
+    const refreshed = await api.POST("/v1/agents/{agentID}/profiles/{provider}/complete", {
+      params: { path: { agentID: agentId, provider: GITHUB_PROVIDER } },
+      body: { nango_connection_id: nangoConnectionID } as never,
     })
+    if (refreshed.error) throw refreshed.error
     await queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
     await employeeQuery.refetch()
   }
 
   async function handleConnect() {
-    if (!githubIntegration?.id || connecting) return
+    if (!agentId || connecting) return
 
     setConnecting(true)
     setErrorMessage(null)
 
     try {
       const session = await api.POST(
-        "/v1/in/integrations/{id}/connect-session",
+        "/v1/agents/{agentID}/profiles/{provider}/connect-session",
         {
-          params: { path: { id: githubIntegration.id } },
+          params: { path: { agentID: agentId, provider: GITHUB_PROVIDER } },
         }
       )
       if (session.error) throw new Error("Failed to create session")
@@ -187,18 +169,18 @@ export function GithubStep() {
       })
 
       const authResult = await nango.auth(providerConfigKey)
-      const connection = await api.POST(
-        "/v1/in/integrations/{id}/connections",
+      const profile = await api.POST(
+        "/v1/agents/{agentID}/profiles/{provider}/complete",
         {
-          params: { path: { id: githubIntegration.id } },
+          params: { path: { agentID: agentId, provider: GITHUB_PROVIDER } },
           body: { nango_connection_id: authResult.connectionId } as never,
         }
       )
-      if (connection.error) throw new Error("Failed to save GitHub connection")
+      if (profile.error) throw new Error("Failed to save GitHub profile")
 
-      const connectionID = connection.data?.id
-      if (!connectionID) throw new Error("GitHub connection was saved without an id")
-      await attachProfileAndLoadRepositories(connectionID)
+      await queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
+      await employeeQuery.refetch()
+      await loadRepositories()
     } catch (error) {
       if (error instanceof AuthError && error.type === "window_closed") {
         return
@@ -213,8 +195,8 @@ export function GithubStep() {
 
   function handleReconnect(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation()
-    if (!githubProfile || !githubConnectionID || reconnectGitHubProfile.isPending) return
-    reconnectGitHubProfile.mutate({ connectionId: githubConnectionID })
+    if (!githubProfile || reconnectGitHubProfile.isPending) return
+    reconnectGitHubProfile.mutate()
   }
 
   async function handleSelectRepositories() {
@@ -261,13 +243,13 @@ export function GithubStep() {
     }
   }
 
-  const loading = integrationsLoading || employeeQuery.isLoading
+  const loading = employeeQuery.isLoading
   const loadingRepositories =
-    createGitHubProfile.isPending || repositoriesQuery.isFetching
+    repositoriesQuery.isFetching
   const savingRepositories = updateGitHubRepositories.isPending
   const reconnecting = reconnectGitHubProfile.isPending
   const busy = connecting || reconnecting || loadingRepositories || savingRepositories
-  const choiceDisabled = busy || loading || !githubIntegration || !agentId
+  const choiceDisabled = busy || loading || !agentId
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center gap-8 text-center">
@@ -320,7 +302,7 @@ export function GithubStep() {
                 <button
                   type="button"
                   onClick={handleReconnect}
-                  disabled={reconnecting || !githubConnectionID}
+                  disabled={reconnecting}
                   aria-label="Reconnect GitHub profile"
                   className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
                 >
@@ -334,12 +316,6 @@ export function GithubStep() {
             ) : undefined
           }
         />
-        {!githubIntegration && !loading ? (
-          <p className="text-left text-[13px] leading-relaxed text-muted-foreground">
-            GitHub Profile is not available in this workspace yet. The backend
-            integration must be enabled before this step can complete.
-          </p>
-        ) : null}
       </div>
 
       {errorMessage ? (

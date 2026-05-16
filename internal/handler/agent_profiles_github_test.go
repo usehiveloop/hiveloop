@@ -253,6 +253,350 @@ func TestAgentProfileHandler_GitHubProfileAndRepositorySelection(t *testing.T) {
 	}
 }
 
+func TestAgentProfileHandler_ProfileConnectSessionAndCompleteGitHub(t *testing.T) {
+	db := connectTestDB(t)
+	t.Cleanup(func() {
+		db.Where("provider = ?", "github").Delete(&model.AgentProfile{})
+		db.Where("1=1").Delete(&model.InConnection{})
+		db.Where("1=1").Delete(&model.InIntegration{})
+	})
+
+	mockCfg := &nangoConnMockConfig{}
+	nangoSrv := httptest.NewServer(newNangoConnMock(mockCfg))
+	t.Cleanup(nangoSrv.Close)
+	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
+	_ = nangoClient.FetchProviders(context.Background())
+
+	h := newGitHubProfileTestHandler(t, db, nangoClient)
+	r := chi.NewRouter()
+	r.Post("/v1/agents/{agentID}/profiles/{provider}/connect-session", h.CreateProfileConnectSession)
+	r.Post("/v1/agents/{agentID}/profiles/{provider}/complete", h.CompleteProfileConnection)
+
+	user := createTestUser(t, db, fmt.Sprintf("github-profile-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
+	agent := createGitHubProfileTestEmployee(t, db, org.ID)
+	integ := createTestInIntegration(t, db, "github")
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/agents/"+agent.ID.String()+"/profiles/github/connect-session", nil)
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201 creating profile session, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var sessionResp struct {
+		Token             string `json:"token"`
+		ProviderConfigKey string `json:"provider_config_key"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&sessionResp); err != nil {
+		t.Fatalf("decode session response: %v", err)
+	}
+	if sessionResp.Token == "" {
+		t.Fatal("expected profile connect session token")
+	}
+	if sessionResp.ProviderConfigKey != inNangoKeyForTest(integ.UniqueKey) {
+		t.Fatalf("provider_config_key = %q, want %q", sessionResp.ProviderConfigKey, inNangoKeyForTest(integ.UniqueKey))
+	}
+
+	body, _ := json.Marshal(map[string]any{"nango_connection_id": "profile-github-conn"})
+	req = httptest.NewRequest(http.MethodPost, "/v1/agents/"+agent.ID.String()+"/profiles/github/complete", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201 completing profile, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var completeResp struct {
+		Profile struct {
+			Provider string         `json:"provider"`
+			Config   map[string]any `json:"config"`
+		} `json:"profile"`
+		Connection struct {
+			ID                string `json:"id"`
+			Provider          string `json:"provider"`
+			NangoConnectionID string `json:"nango_connection_id"`
+		} `json:"connection"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&completeResp); err != nil {
+		t.Fatalf("decode complete response: %v", err)
+	}
+	if completeResp.Profile.Provider != "github" {
+		t.Fatalf("profile provider = %q, want github", completeResp.Profile.Provider)
+	}
+	if completeResp.Connection.Provider != "github" || completeResp.Connection.NangoConnectionID != "profile-github-conn" {
+		t.Fatalf("unexpected backing connection: %#v", completeResp.Connection)
+	}
+	if completeResp.Profile.Config["in_connection_id"] != completeResp.Connection.ID {
+		t.Fatalf("profile in_connection_id = %v, want %s", completeResp.Profile.Config["in_connection_id"], completeResp.Connection.ID)
+	}
+
+	var count int64
+	db.Model(&model.InConnection{}).Where("org_id = ? AND in_integration_id = ?", org.ID, integ.ID).Count(&count)
+	if count != 1 {
+		t.Fatalf("backing profile connections = %d, want 1", count)
+	}
+}
+
+func TestAgentProfileHandler_ListAvailableProfilesIncludesCustomAppSchema(t *testing.T) {
+	db := connectTestDB(t)
+	t.Cleanup(func() {
+		db.Where("1=1").Delete(&model.AgentProfile{})
+		db.Where("1=1").Delete(&model.InConnection{})
+		db.Where("1=1").Delete(&model.InIntegration{})
+	})
+
+	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
+	t.Cleanup(nangoSrv.Close)
+	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
+	if err := nangoClient.FetchProviders(context.Background()); err != nil {
+		t.Fatalf("fetch nango providers: %v", err)
+	}
+
+	h := newGitHubProfileTestHandler(t, db, nangoClient)
+	r := chi.NewRouter()
+	r.Get("/v1/agents/{agentID}/profiles/available", h.ListAvailableProfiles)
+
+	user := createTestUser(t, db, fmt.Sprintf("profile-available-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
+	agent := createGitHubProfileTestEmployee(t, db, org.ID)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/agents/"+agent.ID.String()+"/profiles/available", nil)
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var resp []struct {
+		Provider        string `json:"provider"`
+		DisplayName     string `json:"display_name"`
+		EmployeeProfile struct {
+			Supported bool     `json:"supported"`
+			CustomApp bool     `json:"custom_app"`
+			Scopes    []string `json:"scopes"`
+		} `json:"employee_profile"`
+		NangoConfig struct {
+			AuthMode                 string `json:"auth_mode"`
+			WebhookUserDefinedSecret bool   `json:"webhook_user_defined_secret"`
+		} `json:"nango_config"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	var linearProfile *struct {
+		Provider        string `json:"provider"`
+		DisplayName     string `json:"display_name"`
+		EmployeeProfile struct {
+			Supported bool     `json:"supported"`
+			CustomApp bool     `json:"custom_app"`
+			Scopes    []string `json:"scopes"`
+		} `json:"employee_profile"`
+		NangoConfig struct {
+			AuthMode                 string `json:"auth_mode"`
+			WebhookUserDefinedSecret bool   `json:"webhook_user_defined_secret"`
+		} `json:"nango_config"`
+	}
+	for i := range resp {
+		if resp[i].Provider == "linear-profile" {
+			linearProfile = &resp[i]
+			break
+		}
+	}
+	if linearProfile == nil {
+		t.Fatalf("expected linear-profile in available profiles, got %#v", resp)
+	}
+	if !linearProfile.EmployeeProfile.Supported || !linearProfile.EmployeeProfile.CustomApp {
+		t.Fatalf("unexpected employee_profile capability: %#v", linearProfile.EmployeeProfile)
+	}
+	if !containsString(linearProfile.EmployeeProfile.Scopes, "webhooks:create") || !containsString(linearProfile.EmployeeProfile.Scopes, "issues:write") {
+		t.Fatalf("expected linear-profile scopes, got %#v", linearProfile.EmployeeProfile.Scopes)
+	}
+	if linearProfile.DisplayName != "Linear Profile" {
+		t.Fatalf("display_name = %q, want Linear Profile", linearProfile.DisplayName)
+	}
+	if linearProfile.NangoConfig.AuthMode != "OAUTH2" {
+		t.Fatalf("auth_mode = %q, want OAUTH2", linearProfile.NangoConfig.AuthMode)
+	}
+	if !linearProfile.NangoConfig.WebhookUserDefinedSecret {
+		t.Fatal("expected webhook_user_defined_secret to come from Nango provider metadata")
+	}
+}
+
+func TestAgentProfileHandler_CustomAppProfileFlow(t *testing.T) {
+	db := connectTestDB(t)
+	t.Cleanup(func() {
+		db.Where("1=1").Delete(&model.AgentProfile{})
+		db.Where("1=1").Delete(&model.InConnection{})
+		db.Where("1=1").Delete(&model.InIntegration{})
+	})
+
+	mockCfg := &nangoConnMockConfig{}
+	nangoSrv := httptest.NewServer(newNangoConnMock(mockCfg))
+	t.Cleanup(nangoSrv.Close)
+	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
+	if err := nangoClient.FetchProviders(context.Background()); err != nil {
+		t.Fatalf("fetch nango providers: %v", err)
+	}
+
+	h := newGitHubProfileTestHandler(t, db, nangoClient)
+	r := chi.NewRouter()
+	r.Post("/v1/agents/{agentID}/profiles/{provider}/custom-app", h.CreateProfileCustomApp)
+	r.Put("/v1/agents/{agentID}/profiles/{provider}/custom-app", h.UpdateProfileCustomApp)
+	r.Post("/v1/agents/{agentID}/profiles/{provider}/connect-session", h.CreateProfileConnectSession)
+	r.Post("/v1/agents/{agentID}/profiles/{provider}/complete", h.CompleteProfileConnection)
+	r.Get("/v1/agents/{agentID}/profiles/available", h.ListAvailableProfiles)
+
+	user := createTestUser(t, db, fmt.Sprintf("custom-profile-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
+	agent := createGitHubProfileTestEmployee(t, db, org.ID)
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/agents/"+agent.ID.String()+"/profiles/linear-profile/connect-session", nil)
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 before custom app setup, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	createBody, _ := json.Marshal(map[string]any{"display_name": "Linear Workspace App"})
+	req = httptest.NewRequest(http.MethodPost, "/v1/agents/"+agent.ID.String()+"/profiles/linear-profile/custom-app", bytes.NewReader(createBody))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201 creating custom app, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var customResp struct {
+		Integration struct {
+			ID          string         `json:"id"`
+			Provider    string         `json:"provider"`
+			CustomApp   bool           `json:"custom_app"`
+			NangoConfig map[string]any `json:"nango_config"`
+		} `json:"integration"`
+		ProviderConfigKey string `json:"provider_config_key"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&customResp); err != nil {
+		t.Fatalf("decode custom app response: %v", err)
+	}
+	if customResp.Integration.Provider != "linear-profile" || !customResp.Integration.CustomApp {
+		t.Fatalf("unexpected custom app integration: %#v", customResp.Integration)
+	}
+	if !strings.HasPrefix(customResp.ProviderConfigKey, "in_linear-profile-") {
+		t.Fatalf("provider_config_key = %q, want custom linear-profile key", customResp.ProviderConfigKey)
+	}
+	if customResp.Integration.NangoConfig["webhook_url"] != "https://webhook.nango.test/linear-profile" {
+		t.Fatalf("webhook_url = %v", customResp.Integration.NangoConfig["webhook_url"])
+	}
+	if customResp.Integration.NangoConfig["webhook_secret"] != "nango-generated-secret" {
+		t.Fatalf("webhook_secret = %v", customResp.Integration.NangoConfig["webhook_secret"])
+	}
+	var createPayload map[string]any
+	if err := json.Unmarshal(lastCapturedNangoBody(mockCfg, http.MethodPost, "/integrations"), &createPayload); err != nil {
+		t.Fatalf("decode create integration payload: %v", err)
+	}
+	if creds, ok := createPayload["credentials"].(map[string]any); !ok || !strings.Contains(fmt.Sprint(creds["scopes"]), "webhooks:create") {
+		t.Fatalf("expected placeholder create to include scopes, got %#v", createPayload["credentials"])
+	}
+
+	updateBody, _ := json.Marshal(map[string]any{
+		"display_name": "Linear Workspace App",
+		"credentials": map[string]any{
+			"type":          "OAUTH2",
+			"client_id":     "lin_client",
+			"client_secret": "lin_secret",
+		},
+	})
+	req = httptest.NewRequest(http.MethodPut, "/v1/agents/"+agent.ID.String()+"/profiles/linear-profile/custom-app", bytes.NewReader(updateBody))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200 updating custom app credentials, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var updatePayload map[string]any
+	if err := json.Unmarshal(lastCapturedNangoBody(mockCfg, http.MethodPatch, "/integrations/"+customResp.ProviderConfigKey), &updatePayload); err != nil {
+		t.Fatalf("decode update integration payload: %v", err)
+	}
+	if creds, ok := updatePayload["credentials"].(map[string]any); !ok || !strings.Contains(fmt.Sprint(creds["scopes"]), "comments:create") {
+		t.Fatalf("expected update to include scopes, got %#v", updatePayload["credentials"])
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/v1/agents/"+agent.ID.String()+"/profiles/linear-profile/connect-session", nil)
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201 creating custom app profile session, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var sessionResp struct {
+		Token             string `json:"token"`
+		ProviderConfigKey string `json:"provider_config_key"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&sessionResp); err != nil {
+		t.Fatalf("decode session response: %v", err)
+	}
+	if sessionResp.Token == "" || sessionResp.ProviderConfigKey != customResp.ProviderConfigKey {
+		t.Fatalf("unexpected session response: %#v", sessionResp)
+	}
+
+	completeBody, _ := json.Marshal(map[string]any{"nango_connection_id": "linear-custom-conn"})
+	req = httptest.NewRequest(http.MethodPost, "/v1/agents/"+agent.ID.String()+"/profiles/linear-profile/complete", bytes.NewReader(completeBody))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201 completing custom app profile, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var completeResp struct {
+		Profile struct {
+			Provider string         `json:"provider"`
+			Config   map[string]any `json:"config"`
+		} `json:"profile"`
+		Connection struct {
+			Provider          string `json:"provider"`
+			NangoConnectionID string `json:"nango_connection_id"`
+		} `json:"connection"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&completeResp); err != nil {
+		t.Fatalf("decode complete response: %v", err)
+	}
+	if completeResp.Profile.Provider != "linear-profile" || completeResp.Connection.Provider != "linear-profile" {
+		t.Fatalf("unexpected custom app profile response: %#v", completeResp)
+	}
+	if completeResp.Profile.Config["custom_app_integration_id"] != customResp.Integration.ID {
+		t.Fatalf("custom_app_integration_id = %v, want %s", completeResp.Profile.Config["custom_app_integration_id"], customResp.Integration.ID)
+	}
+	if completeResp.Profile.Config["provider_config_key"] != customResp.ProviderConfigKey {
+		t.Fatalf("provider_config_key = %v, want %s", completeResp.Profile.Config["provider_config_key"], customResp.ProviderConfigKey)
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/v1/agents/"+agent.ID.String()+"/profiles/linear-profile/custom-app", bytes.NewReader(createBody))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200 on duplicate placeholder create, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestAgentProfileHandler_GitHubRepositorySelectionCreatesHooksForNewRepos(t *testing.T) {
 	db := connectTestDB(t)
 	t.Cleanup(func() {
@@ -829,6 +1173,21 @@ func countCapturedNangoRequests(cfg *nangoConnMockConfig, method string, path st
 		}
 	}
 	return count
+}
+
+func lastCapturedNangoBody(cfg *nangoConnMockConfig, method string, path string) []byte {
+	cfg.mu.Lock()
+	defer cfg.mu.Unlock()
+	for i := len(cfg.capturedPaths) - 1; i >= 0; i-- {
+		if cfg.capturedMethods[i] == method && cfg.capturedPaths[i] == path {
+			return cfg.capturedBodies[i]
+		}
+	}
+	return nil
+}
+
+func inNangoKeyForTest(uniqueKey string) string {
+	return "in_" + uniqueKey
 }
 
 func assertGitHubHookCreatePayload(t *testing.T, cfg *nangoConnMockConfig, path string, agentID uuid.UUID) {

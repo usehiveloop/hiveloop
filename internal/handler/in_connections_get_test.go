@@ -37,7 +37,7 @@ func TestInConnectionHandler_Get_Success(t *testing.T) {
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
 	org := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "github")
+	integ := createTestInIntegration(t, db, "notion")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
 		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "get-conn",
@@ -58,8 +58,8 @@ func TestInConnectionHandler_Get_Success(t *testing.T) {
 	if resp["id"] != connID.String() {
 		t.Fatalf("expected id=%s, got %v", connID.String(), resp["id"])
 	}
-	if resp["provider"] != "github" {
-		t.Fatalf("expected provider=github, got %v", resp["provider"])
+	if resp["provider"] != "notion" {
+		t.Fatalf("expected provider=notion, got %v", resp["provider"])
 	}
 }
 
@@ -108,7 +108,7 @@ func TestInConnectionHandler_Get_WrongUser(t *testing.T) {
 	user2 := createTestUser(t, db, fmt.Sprintf("user2-%s@test.com", uuid.New().String()[:8]))
 	org1 := createTestOrg(t, db)
 	org2 := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "github")
+	integ := createTestInIntegration(t, db, "notion")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
 		ID: connID, OrgID: org1.ID, UserID: user1.ID, InIntegrationID: integ.ID, NangoConnectionID: "user1-conn",
@@ -143,7 +143,7 @@ func TestInConnectionHandler_Get_RevokedNotFound(t *testing.T) {
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
 	org := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "github")
+	integ := createTestInIntegration(t, db, "notion")
 	now := time.Now()
 	connID := uuid.New()
 	db.Create(&model.InConnection{
@@ -180,7 +180,7 @@ func TestInConnectionHandler_Get_WithNangoProviderConfig(t *testing.T) {
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
 	org := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "github")
+	integ := createTestInIntegration(t, db, "notion")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
 		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "pc-conn",
@@ -226,7 +226,7 @@ func TestInConnectionHandler_Get_NangoFailure(t *testing.T) {
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
 	org := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "github")
+	integ := createTestInIntegration(t, db, "notion")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
 		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "fail-conn",
@@ -246,5 +246,40 @@ func TestInConnectionHandler_Get_NangoFailure(t *testing.T) {
 	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	if resp["id"] != connID.String() {
 		t.Fatalf("expected connection id, got %v", resp["id"])
+	}
+}
+
+func TestInConnectionHandler_Get_RejectsProfileProvider(t *testing.T) {
+	db := connectTestDB(t)
+	t.Cleanup(func() {
+		db.Where("1=1").Delete(&model.InConnection{})
+		db.Where("1=1").Delete(&model.InIntegration{})
+	})
+
+	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
+	t.Cleanup(nangoSrv.Close)
+	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
+	_ = nangoClient.FetchProviders(context.Background())
+
+	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
+	r := chi.NewRouter()
+	r.Get("/v1/in/connections/{id}", h.Get)
+
+	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
+	integ := createTestInIntegration(t, db, "linear-profile")
+	connID := uuid.New()
+	db.Create(&model.InConnection{
+		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "profile-conn",
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections/"+connID.String(), nil)
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
 	}
 }

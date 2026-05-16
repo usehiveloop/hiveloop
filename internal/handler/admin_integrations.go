@@ -16,7 +16,7 @@ import (
 // @Router /admin/v1/in-integrations [get]
 func (h *AdminHandler) ListInIntegrations(w http.ResponseWriter, r *http.Request) {
 	var integrations []model.InIntegration
-	if err := h.db.Order("created_at DESC").Find(&integrations).Error; err != nil {
+	if err := h.db.Where("custom_app = false").Order("created_at DESC").Find(&integrations).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list in-integrations"})
 		return
 	}

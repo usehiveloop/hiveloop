@@ -4854,6 +4854,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/agents/{agentID}/profiles/available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List available employee profile providers
+         * @description Returns profile-capable providers for an employee, including dynamic custom app setup metadata.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID (must be an AI employee) */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["profileProviderAvailableResponse"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/agents/{agentID}/profiles/github": {
         parameters: {
             query?: never;
@@ -5369,6 +5438,423 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/v1/agents/{agentID}/profiles/{provider}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete a profile connection
+         * @description Stores the Nango connection and attaches it as an employee profile.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID (must be an AI employee) */
+                    agentID: string;
+                    /** @description Profile provider */
+                    provider: string;
+                };
+                cookie?: never;
+            };
+            /** @description Nango connection */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["completeAgentProfileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["completeAgentProfileResponse"];
+                    };
+                };
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["completeAgentProfileResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{agentID}/profiles/{provider}/connect-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a profile connect session
+         * @description Creates a Nango connect session for an employee profile provider.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID (must be an AI employee) */
+                    agentID: string;
+                    /** @description Profile provider */
+                    provider: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["inConnectSessionResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{agentID}/profiles/{provider}/custom-app": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update a custom app integration for an employee profile
+         * @description Updates the employee-scoped Nango integration credentials after the user has created the provider app with the placeholder webhook values.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID (must be an AI employee) */
+                    agentID: string;
+                    /** @description Profile provider */
+                    provider: string;
+                };
+                cookie?: never;
+            };
+            /** @description Custom app credentials */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateProfileCustomAppRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["profileCustomAppResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Create a custom app integration for an employee profile
+         * @description Creates one employee-scoped placeholder Nango integration for a custom-app profile provider.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID (must be an AI employee) */
+                    agentID: string;
+                    /** @description Profile provider */
+                    provider: string;
+                };
+                cookie?: never;
+            };
+            /** @description Optional custom app metadata */
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["profileCustomAppRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["profileCustomAppResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{agentID}/profiles/{provider}/reconnect-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a profile reconnect session
+         * @description Creates a Nango reconnect session for the existing employee profile provider.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID (must be an AI employee) */
+                    agentID: string;
+                    /** @description Profile provider */
+                    provider: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["inConnectSessionResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/agents/{agentID}/skills": {
@@ -13468,6 +13954,8 @@ export interface components {
             key?: string;
         };
         EmployeeProfileCapability: {
+            custom_app?: boolean;
+            scopes?: string[];
             supported?: boolean;
         };
         SchemaDefinition: {
@@ -13732,12 +14220,15 @@ export interface components {
             total_output_tokens?: number;
         };
         adminInIntegrationResponse: {
+            agent_id?: string;
             created_at?: string;
+            custom_app?: boolean;
             display_name?: string;
             employee_profile?: components["schemas"]["EmployeeProfileCapability"];
             id?: string;
             meta?: components["schemas"]["JSON"];
             nango_config?: components["schemas"]["JSON"];
+            org_id?: string;
             provider?: string;
             unique_key?: string;
             updated_at?: string;
@@ -14114,6 +14605,15 @@ export interface components {
             error?: string;
             exit_code?: number;
             output?: string;
+        };
+        completeAgentProfileRequest: {
+            label?: string;
+            meta?: components["schemas"]["JSON"];
+            nango_connection_id?: string;
+        };
+        completeAgentProfileResponse: {
+            connection?: components["schemas"]["inConnectionResponse"];
+            profile?: components["schemas"]["agentProfileResponse"];
         };
         completeOnboardingRequest: {
             description?: string;
@@ -14570,6 +15070,20 @@ export interface components {
             nango_config?: components["schemas"]["NangoConfig"];
             provider?: string;
         };
+        inIntegrationResponse: {
+            agent_id?: string;
+            created_at?: string;
+            custom_app?: boolean;
+            display_name?: string;
+            employee_profile?: components["schemas"]["EmployeeProfileCapability"];
+            id?: string;
+            meta?: components["schemas"]["JSON"];
+            nango_config?: components["schemas"]["NangoConfig"];
+            org_id?: string;
+            provider?: string;
+            unique_key?: string;
+            updated_at?: string;
+        };
         initUpgradeRequest: {
             quote_id?: string;
         };
@@ -14921,6 +15435,24 @@ export interface components {
             quote_id?: string;
             requires_payment_now?: boolean;
             to_plan_slug?: string;
+        };
+        profileCustomAppRequest: {
+            credentials?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_nango.Credentials"];
+            display_name?: string;
+            meta?: components["schemas"]["JSON"];
+        };
+        profileCustomAppResponse: {
+            integration?: components["schemas"]["inIntegrationResponse"];
+            provider_config_key?: string;
+        };
+        profileProviderAvailableResponse: {
+            custom_app_integration_id?: string;
+            display_name?: string;
+            employee_profile?: components["schemas"]["EmployeeProfileCapability"];
+            nango_config?: components["schemas"]["NangoConfig"];
+            profile?: components["schemas"]["agentProfileResponse"];
+            provider?: string;
+            provider_config_key?: string;
         };
         providerDetail: {
             api?: string;
@@ -15451,6 +15983,11 @@ export interface components {
             logo_url?: string;
             name?: string;
             prompt_company?: string;
+        };
+        updateProfileCustomAppRequest: {
+            credentials?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_nango.Credentials"];
+            display_name?: string;
+            meta?: components["schemas"]["JSON"];
         };
         updateRAGSourceRequest: {
             config?: components["schemas"]["JSON"];

@@ -174,9 +174,15 @@ func setupV1Routes(
 						r.Get("/{agentID}/conversations", conversationHandler.List)
 					}
 					if agentProfileHandler != nil {
+						r.Get("/{agentID}/profiles/available", agentProfileHandler.ListAvailableProfiles)
 						r.Post("/{agentID}/profiles/slack", agentProfileHandler.CreateSlack)
 						r.Get("/{agentID}/profiles/slack/channels", agentProfileHandler.ListSlackChannels)
 						r.Patch("/{agentID}/profiles/slack/config", agentProfileHandler.UpdateSlackConfig)
+						r.Post("/{agentID}/profiles/{provider}/custom-app", agentProfileHandler.CreateProfileCustomApp)
+						r.Put("/{agentID}/profiles/{provider}/custom-app", agentProfileHandler.UpdateProfileCustomApp)
+						r.Post("/{agentID}/profiles/{provider}/connect-session", agentProfileHandler.CreateProfileConnectSession)
+						r.Post("/{agentID}/profiles/{provider}/complete", agentProfileHandler.CompleteProfileConnection)
+						r.Post("/{agentID}/profiles/{provider}/reconnect-session", agentProfileHandler.CreateProfileReconnectSession)
 						r.Post("/{agentID}/profiles/github", agentProfileHandler.CreateGitHub)
 						r.Get("/{agentID}/profiles/github/repositories", agentProfileHandler.ListGitHubRepositories)
 						r.Patch("/{agentID}/profiles/github/repositories", agentProfileHandler.UpdateGitHubRepositories)

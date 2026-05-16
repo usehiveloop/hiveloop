@@ -37,10 +37,10 @@ func TestInConnectionHandler_List_Success(t *testing.T) {
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
 	org := createTestOrg(t, db)
-	integ1 := createTestInIntegration(t, db, "github")
+	integ1 := createTestInIntegration(t, db, "notion")
 	integ2 := model.InIntegration{
-		ID: uuid.New(), UniqueKey: fmt.Sprintf("slack-%s", uuid.New().String()[:8]),
-		Provider: "slack", DisplayName: "Slack built-in",
+		ID: uuid.New(), UniqueKey: fmt.Sprintf("linear-%s", uuid.New().String()[:8]),
+		Provider: "linear", DisplayName: "Linear built-in",
 	}
 	db.Create(&integ2)
 
@@ -90,15 +90,15 @@ func TestInConnectionHandler_List_UserIsolation(t *testing.T) {
 	user2 := createTestUser(t, db, fmt.Sprintf("user2-%s@test.com", uuid.New().String()[:8]))
 	org1 := createTestOrg(t, db)
 	org2 := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "github")
+	integ := createTestInIntegration(t, db, "notion")
 
 	db.Create(&model.InConnection{
 		ID: uuid.New(), OrgID: org1.ID, UserID: user1.ID, InIntegrationID: integ.ID, NangoConnectionID: "user1-conn",
 	})
 
 	integ2 := model.InIntegration{
-		ID: uuid.New(), UniqueKey: fmt.Sprintf("slack-%s", uuid.New().String()[:8]),
-		Provider: "slack", DisplayName: "Slack built-in",
+		ID: uuid.New(), UniqueKey: fmt.Sprintf("linear-%s", uuid.New().String()[:8]),
+		Provider: "linear", DisplayName: "Linear built-in",
 	}
 	db.Create(&integ2)
 	db.Create(&model.InConnection{
@@ -140,7 +140,7 @@ func TestInConnectionHandler_List_ExcludesRevoked(t *testing.T) {
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
 	org := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "github")
+	integ := createTestInIntegration(t, db, "notion")
 
 	now := time.Now()
 	connID := uuid.New()
@@ -237,21 +237,21 @@ func TestInConnectionHandler_List_FilterByProvider(t *testing.T) {
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
 	org := createTestOrg(t, db)
-	ghInteg := createTestInIntegration(t, db, "github")
+	ghInteg := createTestInIntegration(t, db, "notion")
 	slackInteg := model.InIntegration{
-		ID: uuid.New(), UniqueKey: fmt.Sprintf("slack-%s", uuid.New().String()[:8]),
-		Provider: "slack", DisplayName: "Slack built-in",
+		ID: uuid.New(), UniqueKey: fmt.Sprintf("linear-%s", uuid.New().String()[:8]),
+		Provider: "linear", DisplayName: "Linear built-in",
 	}
 	db.Create(&slackInteg)
 
 	db.Create(&model.InConnection{
-		ID: uuid.New(), OrgID: org.ID, UserID: user.ID, InIntegrationID: ghInteg.ID, NangoConnectionID: "gh-conn",
+		ID: uuid.New(), OrgID: org.ID, UserID: user.ID, InIntegrationID: ghInteg.ID, NangoConnectionID: "notion-conn",
 	})
 	db.Create(&model.InConnection{
-		ID: uuid.New(), OrgID: org.ID, UserID: user.ID, InIntegrationID: slackInteg.ID, NangoConnectionID: "slack-conn",
+		ID: uuid.New(), OrgID: org.ID, UserID: user.ID, InIntegrationID: slackInteg.ID, NangoConnectionID: "linear-conn",
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections?provider=github", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections?provider=notion", nil)
 	req = middleware.WithUser(req, &user)
 	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
@@ -262,9 +262,70 @@ func TestInConnectionHandler_List_FilterByProvider(t *testing.T) {
 	}
 	_ = json.NewDecoder(rr.Body).Decode(&page)
 	if len(page.Data) != 1 {
-		t.Fatalf("expected 1 github connection, got %d", len(page.Data))
+		t.Fatalf("expected 1 notion connection, got %d", len(page.Data))
 	}
-	if page.Data[0]["provider"] != "github" {
-		t.Fatalf("expected provider=github, got %v", page.Data[0]["provider"])
+	if page.Data[0]["provider"] != "notion" {
+		t.Fatalf("expected provider=notion, got %v", page.Data[0]["provider"])
+	}
+}
+
+func TestInConnectionHandler_List_ExcludesProfileProviders(t *testing.T) {
+	db := connectTestDB(t)
+	t.Cleanup(func() {
+		db.Where("1=1").Delete(&model.InConnection{})
+		db.Where("1=1").Delete(&model.InIntegration{})
+	})
+
+	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
+	t.Cleanup(nangoSrv.Close)
+	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
+	_ = nangoClient.FetchProviders(context.Background())
+
+	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
+	r := chi.NewRouter()
+	r.Get("/v1/in/connections", h.List)
+
+	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
+	profileInteg := createTestInIntegration(t, db, "linear-profile")
+	regularInteg := createTestInIntegration(t, db, "notion")
+	profileConnID := uuid.New()
+	regularConnID := uuid.New()
+	db.Create(&model.InConnection{
+		ID: profileConnID, OrgID: org.ID, UserID: user.ID, InIntegrationID: profileInteg.ID, NangoConnectionID: "profile-conn",
+	})
+	db.Create(&model.InConnection{
+		ID: regularConnID, OrgID: org.ID, UserID: user.ID, InIntegrationID: regularInteg.ID, NangoConnectionID: "regular-conn",
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections", nil)
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var page struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(rr.Body).Decode(&page)
+	for _, item := range page.Data {
+		if item["id"] == profileConnID.String() {
+			t.Fatal("profile connection should not appear in global connection list")
+		}
+	}
+	if len(page.Data) != 1 || page.Data[0]["id"] != regularConnID.String() {
+		t.Fatalf("expected only regular connection %s, got %#v", regularConnID, page.Data)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/v1/in/connections?provider=linear-profile", nil)
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 filtering by profile provider, got %d: %s", rr.Code, rr.Body.String())
 	}
 }

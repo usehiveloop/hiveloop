@@ -26,6 +26,12 @@ definitions:
     type: object
   github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability:
     properties:
+      custom_app:
+        type: boolean
+      scopes:
+        items:
+          type: string
+        type: array
       supported:
         type: boolean
     type: object
@@ -516,8 +522,12 @@ definitions:
     type: object
   internal_handler.adminInIntegrationResponse:
     properties:
+      agent_id:
+        type: string
       created_at:
         type: string
+      custom_app:
+        type: boolean
       display_name:
         type: string
       employee_profile:
@@ -528,6 +538,8 @@ definitions:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       nango_config:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      org_id:
+        type: string
       provider:
         type: string
       unique_key:
@@ -1258,6 +1270,22 @@ definitions:
         type: integer
       output:
         type: string
+    type: object
+  internal_handler.completeAgentProfileRequest:
+    properties:
+      label:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      nango_connection_id:
+        type: string
+    type: object
+  internal_handler.completeAgentProfileResponse:
+    properties:
+      connection:
+        $ref: '#/definitions/internal_handler.inConnectionResponse'
+      profile:
+        $ref: '#/definitions/internal_handler.agentProfileResponse'
     type: object
   internal_handler.completeOnboardingRequest:
     properties:
@@ -2158,6 +2186,33 @@ definitions:
       provider:
         type: string
     type: object
+  internal_handler.inIntegrationResponse:
+    properties:
+      agent_id:
+        type: string
+      created_at:
+        type: string
+      custom_app:
+        type: boolean
+      display_name:
+        type: string
+      employee_profile:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability'
+      id:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      nango_config:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.NangoConfig'
+      org_id:
+        type: string
+      provider:
+        type: string
+      unique_key:
+        type: string
+      updated_at:
+        type: string
+    type: object
   internal_handler.initUpgradeRequest:
     properties:
       quote_id:
@@ -2873,6 +2928,39 @@ definitions:
       requires_payment_now:
         type: boolean
       to_plan_slug:
+        type: string
+    type: object
+  internal_handler.profileCustomAppRequest:
+    properties:
+      credentials:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_nango.Credentials'
+      display_name:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+    type: object
+  internal_handler.profileCustomAppResponse:
+    properties:
+      integration:
+        $ref: '#/definitions/internal_handler.inIntegrationResponse'
+      provider_config_key:
+        type: string
+    type: object
+  internal_handler.profileProviderAvailableResponse:
+    properties:
+      custom_app_integration_id:
+        type: string
+      display_name:
+        type: string
+      employee_profile:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability'
+      nango_config:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.NangoConfig'
+      profile:
+        $ref: '#/definitions/internal_handler.agentProfileResponse'
+      provider:
+        type: string
+      provider_config_key:
         type: string
     type: object
   internal_handler.providerDetail:
@@ -3906,6 +3994,15 @@ definitions:
         type: string
       prompt_company:
         type: string
+    type: object
+  internal_handler.updateProfileCustomAppRequest:
+    properties:
+      credentials:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_nango.Credentials'
+      display_name:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
   internal_handler.updateRAGSourceRequest:
     properties:
@@ -6738,6 +6835,285 @@ paths:
       summary: Create a conversation
       tags:
       - conversations
+  /v1/agents/{agentID}/profiles/{provider}/complete:
+    post:
+      consumes:
+      - application/json
+      description: Stores the Nango connection and attaches it as an employee profile.
+      parameters:
+      - description: Agent ID (must be an AI employee)
+        in: path
+        name: agentID
+        required: true
+        type: string
+      - description: Profile provider
+        in: path
+        name: provider
+        required: true
+        type: string
+      - description: Nango connection
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.completeAgentProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.completeAgentProfileResponse'
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.completeAgentProfileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Complete a profile connection
+      tags:
+      - agent-profiles
+  /v1/agents/{agentID}/profiles/{provider}/connect-session:
+    post:
+      description: Creates a Nango connect session for an employee profile provider.
+      parameters:
+      - description: Agent ID (must be an AI employee)
+        in: path
+        name: agentID
+        required: true
+        type: string
+      - description: Profile provider
+        in: path
+        name: provider
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.inConnectSessionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a profile connect session
+      tags:
+      - agent-profiles
+  /v1/agents/{agentID}/profiles/{provider}/custom-app:
+    post:
+      consumes:
+      - application/json
+      description: Creates one employee-scoped placeholder Nango integration for a
+        custom-app profile provider.
+      parameters:
+      - description: Agent ID (must be an AI employee)
+        in: path
+        name: agentID
+        required: true
+        type: string
+      - description: Profile provider
+        in: path
+        name: provider
+        required: true
+        type: string
+      - description: Optional custom app metadata
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/internal_handler.profileCustomAppRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.profileCustomAppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a custom app integration for an employee profile
+      tags:
+      - agent-profiles
+    put:
+      consumes:
+      - application/json
+      description: Updates the employee-scoped Nango integration credentials after
+        the user has created the provider app with the placeholder webhook values.
+      parameters:
+      - description: Agent ID (must be an AI employee)
+        in: path
+        name: agentID
+        required: true
+        type: string
+      - description: Profile provider
+        in: path
+        name: provider
+        required: true
+        type: string
+      - description: Custom app credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.updateProfileCustomAppRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.profileCustomAppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a custom app integration for an employee profile
+      tags:
+      - agent-profiles
+  /v1/agents/{agentID}/profiles/{provider}/reconnect-session:
+    post:
+      description: Creates a Nango reconnect session for the existing employee profile
+        provider.
+      parameters:
+      - description: Agent ID (must be an AI employee)
+        in: path
+        name: agentID
+        required: true
+        type: string
+      - description: Profile provider
+        in: path
+        name: provider
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.inConnectSessionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a profile reconnect session
+      tags:
+      - agent-profiles
+  /v1/agents/{agentID}/profiles/available:
+    get:
+      description: Returns profile-capable providers for an employee, including dynamic
+        custom app setup metadata.
+      parameters:
+      - description: Agent ID (must be an AI employee)
+        in: path
+        name: agentID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.profileProviderAvailableResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List available employee profile providers
+      tags:
+      - agent-profiles
   /v1/agents/{agentID}/profiles/github:
     post:
       consumes:

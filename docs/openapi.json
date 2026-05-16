@@ -4957,6 +4957,76 @@
         }
       }
     },
+    "/v1/agents/{agentID}/profiles/available": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns profile-capable providers for an employee, including dynamic custom app setup metadata.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "List available employee profile providers",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/profileProviderAvailableResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/agents/{agentID}/profiles/github": {
       "post": {
         "security": [
@@ -5490,6 +5560,486 @@
           },
           "500": {
             "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/{agentID}/profiles/{provider}/complete": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Stores the Nango connection and attaches it as an employee profile.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "Complete a profile connection",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Profile provider",
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/completeAgentProfileRequest"
+              }
+            }
+          },
+          "description": "Nango connection",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/completeAgentProfileResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/completeAgentProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/{agentID}/profiles/{provider}/connect-session": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a Nango connect session for an employee profile provider.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "Create a profile connect session",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Profile provider",
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inConnectSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/{agentID}/profiles/{provider}/custom-app": {
+      "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Updates the employee-scoped Nango integration credentials after the user has created the provider app with the placeholder webhook values.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "Update a custom app integration for an employee profile",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Profile provider",
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateProfileCustomAppRequest"
+              }
+            }
+          },
+          "description": "Custom app credentials",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/profileCustomAppResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates one employee-scoped placeholder Nango integration for a custom-app profile provider.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "Create a custom app integration for an employee profile",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Profile provider",
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/profileCustomAppRequest"
+              }
+            }
+          },
+          "description": "Optional custom app metadata"
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/profileCustomAppResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/{agentID}/profiles/{provider}/reconnect-session": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a Nango reconnect session for the existing employee profile provider.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "Create a profile reconnect session",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Profile provider",
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inConnectSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -13986,6 +14536,15 @@
       "EmployeeProfileCapability": {
         "type": "object",
         "properties": {
+          "custom_app": {
+            "type": "boolean"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "supported": {
             "type": "boolean"
           }
@@ -14726,8 +15285,14 @@
       "adminInIntegrationResponse": {
         "type": "object",
         "properties": {
+          "agent_id": {
+            "type": "string"
+          },
           "created_at": {
             "type": "string"
+          },
+          "custom_app": {
+            "type": "boolean"
           },
           "display_name": {
             "type": "string"
@@ -14743,6 +15308,9 @@
           },
           "nango_config": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "org_id": {
+            "type": "string"
           },
           "provider": {
             "type": "string"
@@ -15847,6 +16415,31 @@
           },
           "output": {
             "type": "string"
+          }
+        }
+      },
+      "completeAgentProfileRequest": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "nango_connection_id": {
+            "type": "string"
+          }
+        }
+      },
+      "completeAgentProfileResponse": {
+        "type": "object",
+        "properties": {
+          "connection": {
+            "$ref": "#/components/schemas/inConnectionResponse"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/agentProfileResponse"
           }
         }
       },
@@ -17221,6 +17814,47 @@
           }
         }
       },
+      "inIntegrationResponse": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "custom_app": {
+            "type": "boolean"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "employee_profile": {
+            "$ref": "#/components/schemas/EmployeeProfileCapability"
+          },
+          "id": {
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "nango_config": {
+            "$ref": "#/components/schemas/NangoConfig"
+          },
+          "org_id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "unique_key": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
       "initUpgradeRequest": {
         "type": "object",
         "properties": {
@@ -18319,6 +18953,57 @@
             "type": "boolean"
           },
           "to_plan_slug": {
+            "type": "string"
+          }
+        }
+      },
+      "profileCustomAppRequest": {
+        "type": "object",
+        "properties": {
+          "credentials": {
+            "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_nango.Credentials"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JSON"
+          }
+        }
+      },
+      "profileCustomAppResponse": {
+        "type": "object",
+        "properties": {
+          "integration": {
+            "$ref": "#/components/schemas/inIntegrationResponse"
+          },
+          "provider_config_key": {
+            "type": "string"
+          }
+        }
+      },
+      "profileProviderAvailableResponse": {
+        "type": "object",
+        "properties": {
+          "custom_app_integration_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "employee_profile": {
+            "$ref": "#/components/schemas/EmployeeProfileCapability"
+          },
+          "nango_config": {
+            "$ref": "#/components/schemas/NangoConfig"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/agentProfileResponse"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "provider_config_key": {
             "type": "string"
           }
         }
@@ -19896,6 +20581,20 @@
           },
           "prompt_company": {
             "type": "string"
+          }
+        }
+      },
+      "updateProfileCustomAppRequest": {
+        "type": "object",
+        "properties": {
+          "credentials": {
+            "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_nango.Credentials"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JSON"
           }
         }
       },

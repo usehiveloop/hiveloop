@@ -32,7 +32,9 @@ func (h *AgentProfileNangoCleanupHandler) Handle(ctx context.Context, t *asynq.T
 		return fmt.Errorf("unmarshal agent profile nango cleanup payload: %w", err)
 	}
 	if len(payload.Connections) == 0 {
-		return nil
+		if len(payload.Integrations) == 0 {
+			return nil
+		}
 	}
 
 	var errs []error
@@ -53,6 +55,24 @@ func (h *AgentProfileNangoCleanupHandler) Handle(ctx context.Context, t *asynq.T
 			"profile_id", target.ProfileID,
 			"provider", target.Provider,
 			"nango_connection_id", target.ConnectionID,
+			"provider_config_key", target.ProviderConfigKey,
+		)
+	}
+	for _, target := range payload.Integrations {
+		target.ProviderConfigKey = strings.TrimSpace(target.ProviderConfigKey)
+		if target.ProviderConfigKey == "" {
+			continue
+		}
+		if err := h.nango.DeleteIntegration(ctx, target.ProviderConfigKey); err != nil {
+			wrapped := fmt.Errorf("delete nango integration %s integration_id=%s provider=%s: %w", target.ProviderConfigKey, target.IntegrationID, target.Provider, err)
+			logging.Capture(ctx, wrapped)
+			errs = append(errs, wrapped)
+			continue
+		}
+		logging.FromContext(ctx).InfoContext(ctx, "agent profile custom nango integration deleted",
+			"agent_id", payload.AgentID,
+			"integration_id", target.IntegrationID,
+			"provider", target.Provider,
 			"provider_config_key", target.ProviderConfigKey,
 		)
 	}

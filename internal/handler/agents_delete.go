@@ -53,6 +53,11 @@ func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to prepare agent profile cleanup"})
 		return
 	}
+	nangoIntegrations, err := loadAgentProfileNangoIntegrations(h.db, agent.ID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to prepare agent profile integration cleanup"})
+		return
+	}
 
 	if err := h.db.Transaction(func(tx *gorm.DB) error {
 		if err := deleteAgentNonCascadingReferences(tx, agent.ID); err != nil {
@@ -72,8 +77,8 @@ func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 			logging.Capture(r.Context(), fmt.Errorf("enqueue agent cleanup agent_id=%s: %w", agent.ID, err))
 		}
 	}
-	if h.enqueuer != nil && len(nangoConnections) > 0 {
-		task, err := tasks.NewAgentProfileNangoCleanupTask(agent.ID, nangoConnections)
+	if h.enqueuer != nil && (len(nangoConnections) > 0 || len(nangoIntegrations) > 0) {
+		task, err := tasks.NewAgentProfileNangoCleanupTask(agent.ID, nangoConnections, nangoIntegrations...)
 		if err != nil {
 			logging.Capture(r.Context(), fmt.Errorf("create agent profile nango cleanup task agent_id=%s: %w", agent.ID, err))
 		} else if _, err := h.enqueuer.Enqueue(task); err != nil {
@@ -83,6 +88,27 @@ func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	logging.FromContext(r.Context()).InfoContext(r.Context(), "agent hard-deleted", "agent_id", agent.ID, "org_id", org.ID)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+func loadAgentProfileNangoIntegrations(db *gorm.DB, agentID uuid.UUID) ([]tasks.NangoIntegrationDeleteTarget, error) {
+	var integrations []model.InIntegration
+	if err := db.
+		Where("agent_id = ? AND custom_app = true AND deleted_at IS NULL", agentID).
+		Find(&integrations).Error; err != nil {
+		return nil, err
+	}
+	targets := make([]tasks.NangoIntegrationDeleteTarget, 0, len(integrations))
+	for _, integ := range integrations {
+		if integ.UniqueKey == "" {
+			continue
+		}
+		targets = append(targets, tasks.NangoIntegrationDeleteTarget{
+			ProviderConfigKey: inNangoKey(integ.UniqueKey),
+			IntegrationID:     integ.ID,
+			Provider:          integ.Provider,
+		})
+	}
+	return targets, nil
 }
 
 func loadAgentSandboxExternalIDs(db *gorm.DB, agentID uuid.UUID) ([]string, error) {

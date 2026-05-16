@@ -125,7 +125,7 @@ func TestInIntegrationHandler_List_Pagination(t *testing.T) {
 
 func TestInIntegrationHandler_ListAvailable_Success(t *testing.T) {
 	h := newInIntegHarness(t, nil)
-	createTestInIntegration(t, h.db, "github")
+	createTestInIntegration(t, h.db, "notion")
 
 	rr := h.doRequest(t, http.MethodGet, "/v1/in/integrations/available", nil, nil)
 
@@ -151,7 +151,7 @@ func TestInIntegrationHandler_ListAvailable_Success(t *testing.T) {
 
 func TestInIntegrationHandler_ListAvailable_ExcludesDeleted(t *testing.T) {
 	h := newInIntegHarness(t, nil)
-	integ := createTestInIntegration(t, h.db, "github")
+	integ := createTestInIntegration(t, h.db, "notion")
 
 	now := time.Now()
 	h.db.Model(&integ).Update("deleted_at", now)
@@ -168,5 +168,32 @@ func TestInIntegrationHandler_ListAvailable_ExcludesDeleted(t *testing.T) {
 		if item["id"] == integ.ID.String() {
 			t.Fatal("deleted integration should not appear in available list")
 		}
+	}
+}
+
+func TestInIntegrationHandler_ListAvailable_ExcludesProfileProviders(t *testing.T) {
+	h := newInIntegHarness(t, nil)
+	profileInteg := createTestInIntegration(t, h.db, "linear-profile")
+	regularInteg := createTestInIntegration(t, h.db, "notion")
+
+	rr := h.doRequest(t, http.MethodGet, "/v1/in/integrations/available", nil, nil)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var resp []map[string]any
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
+	seenRegular := false
+	for _, item := range resp {
+		switch item["id"] {
+		case profileInteg.ID.String():
+			t.Fatal("profile provider should not appear in available org connection list")
+		case regularInteg.ID.String():
+			seenRegular = true
+		}
+	}
+	if !seenRegular {
+		t.Fatal("regular provider should appear in available org connection list")
 	}
 }

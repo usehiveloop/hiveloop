@@ -41,18 +41,27 @@ type NangoConnectionDeleteTarget struct {
 	Provider          string    `json:"provider,omitempty"`
 }
 
+// NangoIntegrationDeleteTarget identifies one Nango integration to remove.
+type NangoIntegrationDeleteTarget struct {
+	ProviderConfigKey string    `json:"provider_config_key"`
+	IntegrationID     uuid.UUID `json:"integration_id,omitempty"`
+	Provider          string    `json:"provider,omitempty"`
+}
+
 // AgentProfileNangoCleanupPayload is the payload for TypeAgentProfileNangoCleanup tasks.
 type AgentProfileNangoCleanupPayload struct {
-	AgentID     uuid.UUID                     `json:"agent_id"`
-	Connections []NangoConnectionDeleteTarget `json:"connections"`
+	AgentID      uuid.UUID                      `json:"agent_id"`
+	Connections  []NangoConnectionDeleteTarget  `json:"connections"`
+	Integrations []NangoIntegrationDeleteTarget `json:"integrations,omitempty"`
 }
 
 // NewAgentProfileNangoCleanupTask creates a task that permanently deletes Nango
 // connections captured from agent profiles before the agent row is hard-deleted.
-func NewAgentProfileNangoCleanupTask(agentID uuid.UUID, connections []NangoConnectionDeleteTarget) (*asynq.Task, error) {
+func NewAgentProfileNangoCleanupTask(agentID uuid.UUID, connections []NangoConnectionDeleteTarget, integrations ...NangoIntegrationDeleteTarget) (*asynq.Task, error) {
 	payload, err := json.Marshal(AgentProfileNangoCleanupPayload{
-		AgentID:     agentID,
-		Connections: connections,
+		AgentID:      agentID,
+		Connections:  connections,
+		Integrations: integrations,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("marshal agent profile nango cleanup payload: %w", err)

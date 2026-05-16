@@ -38,6 +38,9 @@ type inIntegrationResponse struct {
 	UniqueKey       string                             `json:"unique_key"`
 	Provider        string                             `json:"provider"`
 	DisplayName     string                             `json:"display_name"`
+	OrgID           *string                            `json:"org_id,omitempty"`
+	AgentID         *string                            `json:"agent_id,omitempty"`
+	CustomApp       bool                               `json:"custom_app"`
 	Meta            model.JSON                         `json:"meta,omitempty"`
 	NangoConfig     *model.NangoConfig                 `json:"nango_config,omitempty"`
 	EmployeeProfile *catalog.EmployeeProfileCapability `json:"employee_profile,omitempty"`
@@ -71,11 +74,24 @@ func parseNangoConfig(raw model.JSON) *model.NangoConfig {
 }
 
 func toInIntegrationResponse(integ model.InIntegration) inIntegrationResponse {
+	var orgID *string
+	if integ.OrgID != nil {
+		s := integ.OrgID.String()
+		orgID = &s
+	}
+	var agentID *string
+	if integ.AgentID != nil {
+		s := integ.AgentID.String()
+		agentID = &s
+	}
 	return inIntegrationResponse{
 		ID:              integ.ID.String(),
 		UniqueKey:       integ.UniqueKey,
 		Provider:        integ.Provider,
 		DisplayName:     integ.DisplayName,
+		OrgID:           orgID,
+		AgentID:         agentID,
+		CustomApp:       integ.CustomApp,
 		Meta:            integ.Meta,
 		NangoConfig:     parseNangoConfig(integ.NangoConfig),
 		EmployeeProfile: integrationEmployeeProfileCapability(integ.Provider),

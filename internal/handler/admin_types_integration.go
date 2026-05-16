@@ -13,6 +13,9 @@ type adminInIntegrationResponse struct {
 	UniqueKey       string                             `json:"unique_key"`
 	Provider        string                             `json:"provider"`
 	DisplayName     string                             `json:"display_name"`
+	OrgID           *string                            `json:"org_id,omitempty"`
+	AgentID         *string                            `json:"agent_id,omitempty"`
+	CustomApp       bool                               `json:"custom_app"`
 	Meta            model.JSON                         `json:"meta,omitempty"`
 	NangoConfig     model.JSON                         `json:"nango_config,omitempty"`
 	EmployeeProfile *catalog.EmployeeProfileCapability `json:"employee_profile,omitempty"`
@@ -21,11 +24,24 @@ type adminInIntegrationResponse struct {
 }
 
 func toAdminInIntegrationResponse(i model.InIntegration) adminInIntegrationResponse {
+	var orgID *string
+	if i.OrgID != nil {
+		s := i.OrgID.String()
+		orgID = &s
+	}
+	var agentID *string
+	if i.AgentID != nil {
+		s := i.AgentID.String()
+		agentID = &s
+	}
 	return adminInIntegrationResponse{
 		ID:              i.ID.String(),
 		UniqueKey:       i.UniqueKey,
 		Provider:        i.Provider,
 		DisplayName:     i.DisplayName,
+		OrgID:           orgID,
+		AgentID:         agentID,
+		CustomApp:       i.CustomApp,
 		Meta:            i.Meta,
 		NangoConfig:     i.NangoConfig,
 		EmployeeProfile: integrationEmployeeProfileCapability(i.Provider),

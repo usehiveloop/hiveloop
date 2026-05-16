@@ -35,7 +35,14 @@ func (h *InConnectionHandler) List(w http.ResponseWriter, r *http.Request) {
 		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL")
 
 	if provider := r.URL.Query().Get("provider"); provider != "" {
+		if integrationEmployeeProfileCapability(provider) != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "profile integrations must be managed directly from the employee profile"})
+			return
+		}
 		q = q.Where("in_integrations.provider = ?", provider)
+	}
+	if profileProviders := h.employeeProfileProviderNames(); len(profileProviders) > 0 {
+		q = q.Where("in_integrations.provider NOT IN ?", profileProviders)
 	}
 
 	q = applyPagination(q, cursor, limit)
@@ -67,4 +74,15 @@ func (h *InConnectionHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, result)
+}
+
+func (h *InConnectionHandler) employeeProfileProviderNames() []string {
+	providers := h.catalog.ListProviders()
+	out := make([]string, 0)
+	for _, provider := range providers {
+		if h.catalog.EmployeeProfileCapability(provider) != nil {
+			out = append(out, provider)
+		}
+	}
+	return out
 }

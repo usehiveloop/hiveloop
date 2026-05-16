@@ -69,10 +69,34 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 				"data": []map[string]any{
 					{"name": "github", "display_name": "GitHub", "auth_mode": "OAUTH2"},
 					{"name": "slack", "display_name": "Slack", "auth_mode": "OAUTH2"},
-					{"name": "linear", "display_name": "Linear", "auth_mode": "OAUTH2"},
+					{"name": "linear", "display_name": "Linear", "auth_mode": "OAUTH2", "webhook_user_defined_secret": true},
 					{"name": "notion", "display_name": "Notion", "auth_mode": "OAUTH2"},
 				},
 			})
+			return
+		}
+
+		if strings.HasPrefix(r.URL.Path, "/integrations") {
+			switch r.Method {
+			case http.MethodPost:
+				_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"unique_key": "test"}})
+			case http.MethodGet:
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"data": map[string]any{
+						"unique_key":       "test",
+						"logo":             "https://example.com/linear.png",
+						"webhook_url":      "https://webhook.nango.test/linear-profile",
+						"credentials":      map[string]any{"webhook_secret": "nango-generated-secret"},
+						"forward_webhooks": true,
+					},
+				})
+			case http.MethodPatch:
+				_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"unique_key": "test"}})
+			case http.MethodDelete:
+				_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+			default:
+				w.WriteHeader(http.StatusMethodNotAllowed)
+			}
 			return
 		}
 
@@ -85,6 +109,21 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": map[string]any{
 					"token":      "test-connect-token",
+					"expires_at": time.Now().Add(15 * time.Minute).Format(time.RFC3339),
+				},
+			})
+			return
+		}
+
+		if r.URL.Path == "/connect/sessions/reconnect" && r.Method == http.MethodPost {
+			w.WriteHeader(cfg.connectStatus)
+			if cfg.connectStatus >= 400 {
+				_ = json.NewEncoder(w).Encode(map[string]any{"error": "nango error"})
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": map[string]any{
+					"token":      "test-reconnect-token",
 					"expires_at": time.Now().Add(15 * time.Minute).Format(time.RFC3339),
 				},
 			})

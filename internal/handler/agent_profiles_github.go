@@ -112,20 +112,28 @@ func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	resp, status, ok := h.createGitHubProfileFromConnection(w, r, agent, orgID, conn, req.Label)
+	if !ok {
+		return
+	}
+	writeJSON(w, status, createGitHubProfileResponse{Profile: resp})
+}
+
+func (h *AgentProfileHandler) createGitHubProfileFromConnection(w http.ResponseWriter, r *http.Request, agent model.Agent, orgID uuid.UUID, conn model.InConnection, requestedLabel string) (agentProfileResponse, int, bool) {
 	providerConfigKey := inNangoKey(conn.InIntegration.UniqueKey)
 	identity, err := h.fetchGitHubIdentity(r.Context(), conn, providerConfigKey)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "github profile identity fetch failed",
 			"error", err, "org_id", orgID, "agent_id", agent.ID, "connection_id", conn.ID)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "could not verify GitHub profile"})
-		return
+		return agentProfileResponse{}, 0, false
 	}
 	encryptedIdentity, err := githubprofile.EncryptIdentity(h.encKey, identity)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "github profile identity encryption failed",
 			"error", err, "org_id", orgID, "agent_id", agent.ID, "connection_id", conn.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not encrypt GitHub profile identity"})
-		return
+		return agentProfileResponse{}, 0, false
 	}
 
 	now := time.Now().UTC()
@@ -134,7 +142,7 @@ func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Reques
 	if externalID == "" {
 		externalID = conn.NangoConnectionID
 	}
-	label := req.Label
+	label := requestedLabel
 	if label == "" {
 		label = login
 	}
@@ -147,6 +155,9 @@ func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Reques
 		"provider_config_key":   providerConfigKey,
 		"selected_repositories": []any{},
 	}
+	if conn.InIntegration.CustomApp {
+		config["custom_app_integration_id"] = conn.InIntegration.ID.String()
+	}
 
 	var profile model.AgentProfile
 	err = h.db.Where(
@@ -155,7 +166,7 @@ func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Reques
 	).First(&profile).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load github profile"})
-		return
+		return agentProfileResponse{}, 0, false
 	}
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		profile = model.AgentProfile{
@@ -173,15 +184,14 @@ func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Reques
 		}
 		if err := h.db.Create(&profile).Error; err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create github profile"})
-			return
+			return agentProfileResponse{}, 0, false
 		}
 		resp, err := h.toAgentProfileResponse(profile)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to read github profile identity"})
-			return
+			return agentProfileResponse{}, 0, false
 		}
-		writeJSON(w, http.StatusCreated, createGitHubProfileResponse{Profile: resp})
-		return
+		return resp, http.StatusCreated, true
 	}
 
 	profile.ExternalID = externalID
@@ -194,14 +204,14 @@ func (h *AgentProfileHandler) CreateGitHub(w http.ResponseWriter, r *http.Reques
 	profile.LastVerifiedAt = &now
 	if err := h.db.Save(&profile).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update github profile"})
-		return
+		return agentProfileResponse{}, 0, false
 	}
 	resp, err := h.toAgentProfileResponse(profile)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to read github profile identity"})
-		return
+		return agentProfileResponse{}, 0, false
 	}
-	writeJSON(w, http.StatusOK, createGitHubProfileResponse{Profile: resp})
+	return resp, http.StatusOK, true
 }
 
 // @Summary List repositories for an employee GitHub profile

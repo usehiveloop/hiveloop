@@ -35,6 +35,10 @@ func (h *InConnectionHandler) Get(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get connection"})
 		return
 	}
+	if integrationEmployeeProfileCapability(conn.InIntegration.Provider) != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "profile integrations must be managed directly from the employee profile"})
+		return
+	}
 
 	resp := h.toInConnectionResponse(conn)
 

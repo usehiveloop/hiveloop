@@ -45,6 +45,10 @@ func (h *InConnectionHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to revoke connection"})
 		return
 	}
+	if integrationEmployeeProfileCapability(conn.InIntegration.Provider) != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "profile integrations must be disconnected directly from the employee profile"})
+		return
+	}
 
 	nk := inNangoKey(conn.InIntegration.UniqueKey)
 	if err := h.nango.DeleteConnection(r.Context(), conn.NangoConnectionID, nk); err != nil {

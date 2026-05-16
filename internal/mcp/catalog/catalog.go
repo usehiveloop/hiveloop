@@ -79,7 +79,9 @@ func (pa *ProviderActions) ShouldPushToMCP() bool {
 // EmployeeProfileCapability describes whether an integration connection can be
 // attached to an employee as an identity/profile instead of a tool capability.
 type EmployeeProfileCapability struct {
-	Supported bool `json:"supported"`
+	Supported bool     `json:"supported"`
+	CustomApp bool     `json:"custom_app,omitempty"`
+	Scopes    []string `json:"scopes,omitempty"`
 }
 
 // ExecutionConfig defines how to execute an action against a provider's API via Nango proxy.

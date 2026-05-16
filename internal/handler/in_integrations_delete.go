@@ -19,7 +19,7 @@ func (h *InIntegrationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var integ model.InIntegration
-	if err := h.db.Where("id = ? AND deleted_at IS NULL", integID).First(&integ).Error; err != nil {
+	if err := h.db.Where("id = ? AND custom_app = false AND deleted_at IS NULL", integID).First(&integ).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "integration not found"})
 			return

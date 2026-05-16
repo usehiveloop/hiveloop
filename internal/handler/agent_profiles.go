@@ -13,6 +13,7 @@ import (
 
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/nango"
@@ -38,12 +39,13 @@ type AgentProfileHandler struct {
 	kms        *crypto.KeyWrapper
 	encKey     *crypto.SymmetricKey
 	nango      *nango.Client
+	catalog    *catalog.Catalog
 	enq        enqueue.TaskEnqueuer
 	webhookURL string
 }
 
 func NewAgentProfileHandler(db *gorm.DB, kms *crypto.KeyWrapper, encKey *crypto.SymmetricKey, nangoClient *nango.Client) *AgentProfileHandler {
-	return &AgentProfileHandler{db: db, kms: kms, encKey: encKey, nango: nangoClient}
+	return &AgentProfileHandler{db: db, kms: kms, encKey: encKey, nango: nangoClient, catalog: catalog.Global()}
 }
 
 func (h *AgentProfileHandler) SetRAGEnqueuer(enq enqueue.TaskEnqueuer) {

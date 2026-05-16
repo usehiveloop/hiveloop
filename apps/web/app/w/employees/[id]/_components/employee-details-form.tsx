@@ -18,6 +18,7 @@ import { extractErrorMessage } from "@/lib/api/error"
 import { formatCategoryLabel } from "@/lib/format-label"
 import { EmployeeAgentTemplatesSection } from "./employee-agent-templates-section"
 import { EmployeeConnectionsSection } from "./employee-connections-section"
+import { EmployeeProfilesSection } from "./employee-profiles-section"
 import { EmployeeRuntimeSection } from "./employee-runtime-section"
 import { EmployeeSkillsSection } from "./employee-skills-section"
 import { EmployeeTriggersSection } from "./employee-triggers-section"
@@ -297,6 +298,8 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
             employeeID={id}
             employeeName={employee.name ?? "this employee"}
           />
+
+          <EmployeeProfilesSection employeeID={id} />
 
           <EmployeeTriggersSection
             triggers={triggers}

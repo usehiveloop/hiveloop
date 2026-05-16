@@ -17,7 +17,7 @@ func (h *InIntegrationHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := h.db.Where("deleted_at IS NULL")
+	q := h.db.Where("custom_app = false AND deleted_at IS NULL")
 
 	if provider := r.URL.Query().Get("provider"); provider != "" {
 		q = q.Where("provider = ?", provider)
@@ -62,7 +62,7 @@ func (h *InIntegrationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var integ model.InIntegration
-	if err := h.db.Where("id = ? AND deleted_at IS NULL", integID).First(&integ).Error; err != nil {
+	if err := h.db.Where("id = ? AND custom_app = false AND deleted_at IS NULL", integID).First(&integ).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "integration not found"})
 			return
@@ -92,14 +92,17 @@ func (h *InIntegrationHandler) Get(w http.ResponseWriter, r *http.Request) {
 // @Router /v1/in/integrations/available [get]
 func (h *InIntegrationHandler) ListAvailable(w http.ResponseWriter, r *http.Request) {
 	var integrations []model.InIntegration
-	if err := h.db.Where("deleted_at IS NULL").Order("created_at ASC").Find(&integrations).Error; err != nil {
+	if err := h.db.Where("custom_app = false AND deleted_at IS NULL").Order("created_at ASC").Find(&integrations).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list integrations"})
 		return
 	}
 
-	resp := make([]inIntegrationAvailableResponse, len(integrations))
-	for i, integ := range integrations {
-		resp[i] = toInIntegrationAvailableResponse(integ)
+	resp := make([]inIntegrationAvailableResponse, 0, len(integrations))
+	for _, integ := range integrations {
+		if integrationEmployeeProfileCapability(integ.Provider) != nil {
+			continue
+		}
+		resp = append(resp, toInIntegrationAvailableResponse(integ))
 	}
 
 	writeJSON(w, http.StatusOK, resp)

@@ -1,0 +1,747 @@
+"use client"
+
+import { useMemo, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import Nango, { AuthError } from "@nangohq/frontend"
+import { toast } from "sonner"
+import { HugeiconsIcon } from "@hugeicons/react"
+import {
+  Alert02Icon,
+  Loading03Icon,
+  Plug01Icon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons"
+import { ChoiceCard } from "@/app/w/agents/_components/create-agent/choice-card"
+import { FormEmptyWell, FormSection } from "@/app/w/_components/form-section"
+import {
+  IntegrationLogo,
+  integrationLogoURL,
+} from "@/components/integration-logo"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
+import { api } from "@/lib/api/client"
+import { $api } from "@/lib/api/hooks"
+import { extractErrorMessage } from "@/lib/api/error"
+import type { components } from "@/lib/api/schema"
+
+type AvailableProfile =
+  components["schemas"]["profileProviderAvailableResponse"]
+
+const OAUTH_MODES = ["OAUTH2", "OAUTH1", "TBA"]
+const NO_CRED_MODES = [
+  "BASIC",
+  "API_KEY",
+  "NONE",
+  "JWT",
+  "SIGNATURE",
+  "TWO_STEP",
+]
+
+export function EmployeeProfilesSection({
+  employeeID,
+}: {
+  employeeID: string
+}) {
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const profilesQuery = $api.useQuery(
+    "get",
+    "/v1/agents/{agentID}/profiles/available",
+    {
+      params: { path: { agentID: employeeID } },
+    },
+    {
+      enabled: Boolean(employeeID),
+    }
+  )
+
+  const profiles = useMemo(() => profilesQuery.data ?? [], [profilesQuery.data])
+  const connectedProfiles = useMemo(
+    () => profiles.filter((profile) => profile.profile),
+    [profiles]
+  )
+
+  return (
+    <>
+      <FormSection
+        title="Profiles"
+        description="Connect employee-specific accounts that should not be reused across the workspace."
+      >
+        <div className="flex flex-col gap-2">
+          {profilesQuery.isLoading ? (
+            <ProfilesSkeleton />
+          ) : connectedProfiles.length === 0 ? (
+            <FormEmptyWell
+              icon={Plug01Icon}
+              message="No profiles connected."
+              action={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDialogOpen(true)}
+                >
+                  Manage profiles
+                </Button>
+              }
+            />
+          ) : (
+            <>
+              {connectedProfiles.map((profile) => (
+                <ConnectedProfileRow key={profile.provider} profile={profile} />
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-1 w-fit"
+                onClick={() => setDialogOpen(true)}
+              >
+                Manage profiles
+              </Button>
+            </>
+          )}
+        </div>
+      </FormSection>
+
+      <EmployeeProfilesDialog
+        employeeID={employeeID}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        profiles={profiles}
+        loading={profilesQuery.isLoading}
+        error={
+          profilesQuery.isError
+            ? extractErrorMessage(
+                profilesQuery.error,
+                "Failed to load profiles"
+              )
+            : null
+        }
+      />
+    </>
+  )
+}
+
+function EmployeeProfilesDialog({
+  employeeID,
+  open,
+  onOpenChange,
+  profiles,
+  loading,
+  error,
+}: {
+  employeeID: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  profiles: AvailableProfile[]
+  loading: boolean
+  error: string | null
+}) {
+  const queryClient = useQueryClient()
+  const [customAppProfile, setCustomAppProfile] =
+    useState<AvailableProfile | null>(null)
+  const [connectingProvider, setConnectingProvider] = useState<string | null>(
+    null
+  )
+
+  async function connectProfile(profile: AvailableProfile) {
+    if (!profile.provider || profile.profile || connectingProvider) return
+    if (
+      profile.employee_profile?.custom_app &&
+      !profile.custom_app_integration_id
+    ) {
+      setConnectingProvider(profile.provider)
+      try {
+        const placeholder = await api.POST(
+          "/v1/agents/{agentID}/profiles/{provider}/custom-app",
+          {
+            params: {
+              path: { agentID: employeeID, provider: profile.provider },
+            },
+            body: { display_name: profile.display_name } as never,
+          }
+        )
+        if (placeholder.error) throw placeholder.error
+        const integration = placeholder.data?.integration
+        setCustomAppProfile({
+          ...profile,
+          custom_app_integration_id: integration?.id,
+          provider_config_key: placeholder.data?.provider_config_key,
+          nango_config: integration?.nango_config ?? profile.nango_config,
+        })
+        invalidateProfileQueries(queryClient, employeeID)
+      } catch (err) {
+        toast.error(extractErrorMessage(err, "Failed to create custom app"))
+      } finally {
+        setConnectingProvider(null)
+      }
+      return
+    }
+
+    setConnectingProvider(profile.provider)
+    try {
+      const session = await api.POST(
+        "/v1/agents/{agentID}/profiles/{provider}/connect-session",
+        {
+          params: {
+            path: { agentID: employeeID, provider: profile.provider },
+          },
+        }
+      )
+      if (session.error) throw session.error
+
+      const { token, provider_config_key: providerConfigKey } =
+        session.data as { token: string; provider_config_key: string }
+      const nango = new Nango({
+        connectSessionToken: token,
+        host: process.env.NEXT_PUBLIC_CONNECTIONS_HOST,
+      })
+      const authResult = await nango.auth(providerConfigKey)
+      const complete = await api.POST(
+        "/v1/agents/{agentID}/profiles/{provider}/complete",
+        {
+          params: {
+            path: { agentID: employeeID, provider: profile.provider },
+          },
+          body: { nango_connection_id: authResult.connectionId } as never,
+        }
+      )
+      if (complete.error) throw complete.error
+
+      toast.success(`${profile.display_name ?? "Profile"} connected`)
+      invalidateProfileQueries(queryClient, employeeID)
+    } catch (err) {
+      if (err instanceof AuthError && err.type === "window_closed") return
+      toast.error(extractErrorMessage(err, "Failed to connect profile"))
+    } finally {
+      setConnectingProvider(null)
+    }
+  }
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="flex h-[min(680px,85vh)] flex-col overflow-hidden p-6 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Manage profiles</DialogTitle>
+            <DialogDescription>
+              Choose the employee-specific accounts this employee can use.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto">
+            {loading ? (
+              <ProfilesSkeleton />
+            ) : error ? (
+              <div className="flex gap-3 rounded-xl bg-destructive/10 p-4 text-sm text-destructive">
+                <HugeiconsIcon
+                  icon={Alert02Icon}
+                  className="mt-0.5 size-4 shrink-0"
+                  strokeWidth={2}
+                />
+                <span>{error}</span>
+              </div>
+            ) : profiles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-12">
+                <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+                  <HugeiconsIcon
+                    icon={Plug01Icon}
+                    size={20}
+                    className="text-muted-foreground"
+                  />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-foreground">
+                    No profiles available
+                  </p>
+                  <p className="mt-1 max-w-[260px] text-xs text-muted-foreground">
+                    Profile-capable integrations will appear here.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              profiles.map((profile) => (
+                <ProfileChoiceCard
+                  key={profile.provider}
+                  profile={profile}
+                  busy={connectingProvider === profile.provider}
+                  disabled={Boolean(connectingProvider)}
+                  onConnect={() => connectProfile(profile)}
+                />
+              ))
+            )}
+          </div>
+
+          <div className="shrink-0 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => onOpenChange(false)}
+            >
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <CustomAppDialog
+        employeeID={employeeID}
+        profile={customAppProfile}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setCustomAppProfile(null)
+        }}
+        onUpdated={(profile) => {
+          setCustomAppProfile(null)
+          invalidateProfileQueries(queryClient, employeeID)
+          void connectProfile(profile)
+        }}
+      />
+    </>
+  )
+}
+
+function ProfileChoiceCard({
+  profile,
+  busy,
+  disabled,
+  onConnect,
+}: {
+  profile: AvailableProfile
+  busy: boolean
+  disabled: boolean
+  onConnect: () => void
+}) {
+  const connected = Boolean(profile.profile)
+  const customAppRequired = Boolean(
+    profile.employee_profile?.custom_app && !profile.custom_app_integration_id
+  )
+
+  return (
+    <ChoiceCard
+      logoUrl={integrationLogoURL(profile.provider ?? "")}
+      logoSize={32}
+      title={profile.display_name ?? profile.provider ?? "Profile"}
+      description={
+        connected
+          ? "Connected"
+          : customAppRequired
+            ? "Set up this employee's custom app before connecting."
+            : "Connect this profile to the employee."
+      }
+      selected={connected}
+      onClick={connected || disabled ? () => {} : onConnect}
+      trailing={
+        connected ? (
+          <HugeiconsIcon
+            icon={Tick02Icon}
+            size={16}
+            className="mt-0.5 shrink-0 text-primary"
+          />
+        ) : busy ? (
+          <HugeiconsIcon
+            icon={Loading03Icon}
+            size={16}
+            className="mt-0.5 shrink-0 animate-spin text-primary"
+          />
+        ) : (
+          <span className="inline-flex h-8 shrink-0 items-center justify-center rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground">
+            {customAppRequired ? "Set up" : "Connect"}
+          </span>
+        )
+      }
+    />
+  )
+}
+
+function CustomAppDialog({
+  employeeID,
+  profile,
+  onOpenChange,
+  onUpdated,
+}: {
+  employeeID: string
+  profile: AvailableProfile | null
+  onOpenChange: (open: boolean) => void
+  onUpdated: (profile: AvailableProfile) => void
+}) {
+  const [credentials, setCredentials] = useState<Record<string, string>>({})
+  const [submitting, setSubmitting] = useState(false)
+
+  const nangoConfig = profile?.nango_config
+  const authMode = nangoConfig?.auth_mode ?? "OAUTH2"
+  const scopes = profile?.employee_profile?.scopes ?? []
+  const generatedWebhookSecret = stringFromConfig(nangoConfig?.webhook_secret)
+  const requiresWebhookSecret = Boolean(
+    nangoConfig?.webhook_user_defined_secret && !generatedWebhookSecret
+  )
+  const canSubmit =
+    Boolean(profile?.provider) &&
+    customAppCredentialsValid(authMode, credentials, requiresWebhookSecret) &&
+    !submitting
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
+    if (!profile?.provider || !canSubmit) return
+    setSubmitting(true)
+    try {
+      const resp = await api.PUT(
+        "/v1/agents/{agentID}/profiles/{provider}/custom-app",
+        {
+          params: {
+            path: { agentID: employeeID, provider: profile.provider },
+          },
+          body: {
+            display_name: profile.display_name,
+            credentials: customAppCredentials(authMode, credentials, scopes),
+          } as never,
+        }
+      )
+      if (resp.error) throw resp.error
+      toast.success(`${profile.display_name ?? "Profile"} custom app saved`)
+      setCredentials({})
+      const integration = resp.data?.integration
+      onUpdated({
+        ...profile,
+        custom_app_integration_id:
+          integration?.id ?? profile.custom_app_integration_id,
+        provider_config_key:
+          resp.data?.provider_config_key ?? profile.provider_config_key,
+        nango_config: integration?.nango_config ?? profile.nango_config,
+      })
+    } catch (err) {
+      toast.error(extractErrorMessage(err, "Failed to save custom app"))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog open={Boolean(profile)} onOpenChange={onOpenChange}>
+      <DialogContent className="p-6 sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Set up custom app</DialogTitle>
+          <DialogDescription>
+            Add the OAuth app credentials for{" "}
+            {profile?.display_name ?? "this profile"}.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={submit} className="mt-4 flex flex-col gap-4">
+          <div className="flex items-center gap-3 rounded-xl bg-muted/50 p-3">
+            {profile?.provider ? (
+              <IntegrationLogo provider={profile.provider} size={32} />
+            ) : null}
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">
+                {profile?.display_name ?? "Profile"}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {authMode}
+              </p>
+            </div>
+          </div>
+
+          <CustomAppWebhookDetails nangoConfig={nangoConfig} />
+
+          <CustomAppScopes scopes={scopes} />
+
+          <CustomAppCredentialsFields
+            authMode={authMode}
+            requiresWebhookSecret={requiresWebhookSecret}
+            credentials={credentials}
+            onChange={setCredentials}
+          />
+
+          <Button type="submit" disabled={!canSubmit} loading={submitting}>
+            Save custom app
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function CustomAppScopes({ scopes }: { scopes: string[] }) {
+  if (scopes.length === 0) return null
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-3">
+      <Label>OAuth scopes</Label>
+      <Textarea
+        value={scopes.join(",")}
+        readOnly
+        className="min-h-20 resize-none font-mono text-xs"
+      />
+    </div>
+  )
+}
+
+function CustomAppCredentialsFields({
+  authMode,
+  requiresWebhookSecret,
+  credentials,
+  onChange,
+}: {
+  authMode: string
+  requiresWebhookSecret: boolean
+  credentials: Record<string, string>
+  onChange: (value: Record<string, string>) => void
+}) {
+  const fields = customAppCredentialFields(authMode)
+  const set = (key: string, value: string) =>
+    onChange({ ...credentials, [key]: value })
+
+  if (fields.length === 0 && !requiresWebhookSecret) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No credentials are needed for this auth mode.
+      </p>
+    )
+  }
+
+  return (
+    <>
+      {fields.map((field, index) => (
+        <div key={field.key} className="flex flex-col gap-2">
+          <Label htmlFor={`custom-app-${field.key}`}>{field.label}</Label>
+          {field.multiline ? (
+            <Textarea
+              id={`custom-app-${field.key}`}
+              value={credentials[field.key] ?? ""}
+              onChange={(event) => set(field.key, event.target.value)}
+              className="min-h-24"
+              autoFocus={index === 0}
+              required
+            />
+          ) : (
+            <Input
+              id={`custom-app-${field.key}`}
+              type={field.secret ? "password" : "text"}
+              value={credentials[field.key] ?? ""}
+              onChange={(event) => set(field.key, event.target.value)}
+              autoFocus={index === 0}
+              required
+            />
+          )}
+        </div>
+      ))}
+      {requiresWebhookSecret ? (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="custom-app-webhook-secret">Webhook secret</Label>
+          <Input
+            id="custom-app-webhook-secret"
+            type="password"
+            value={credentials.webhook_secret ?? ""}
+            onChange={(event) => set("webhook_secret", event.target.value)}
+            required
+          />
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+function CustomAppWebhookDetails({
+  nangoConfig,
+}: {
+  nangoConfig?: AvailableProfile["nango_config"]
+}) {
+  const webhookURL = stringFromConfig(nangoConfig?.webhook_url)
+  const webhookSecret = stringFromConfig(nangoConfig?.webhook_secret)
+  if (!webhookURL && !webhookSecret) return null
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/30 p-3">
+      {webhookURL ? (
+        <ReadonlyValue label="Webhook URL" value={webhookURL} />
+      ) : null}
+      {webhookSecret ? (
+        <ReadonlyValue label="Webhook secret" value={webhookSecret} secret />
+      ) : null}
+    </div>
+  )
+}
+
+function ReadonlyValue({
+  label,
+  value,
+  secret,
+}: {
+  label: string
+  value: string
+  secret?: boolean
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>{label}</Label>
+      <Input value={value} readOnly type={secret ? "password" : "text"} />
+    </div>
+  )
+}
+
+function ConnectedProfileRow({ profile }: { profile: AvailableProfile }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/50 p-3">
+      <div className="flex min-w-0 items-center gap-3">
+        {profile.provider ? (
+          <IntegrationLogo provider={profile.provider} size={32} />
+        ) : (
+          <div className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <HugeiconsIcon
+              icon={Plug01Icon}
+              className="size-4"
+              strokeWidth={2}
+            />
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-foreground">
+            {profile.display_name ?? profile.provider ?? "Profile"}
+          </p>
+          <p className="truncate text-xs text-muted-foreground">
+            {profile.provider}
+          </p>
+        </div>
+      </div>
+      <Badge
+        variant="ghost"
+        className="shrink-0 gap-1.5 bg-success/15 text-success"
+      >
+        <HugeiconsIcon
+          icon={Tick02Icon}
+          className="size-3"
+          strokeWidth={2.75}
+        />
+        Connected
+      </Badge>
+    </div>
+  )
+}
+
+function ProfilesSkeleton() {
+  return (
+    <div className="flex flex-col gap-2" aria-busy="true">
+      {Array.from({ length: 2 }).map((_, index) => (
+        <Skeleton key={index} className="h-[66px] rounded-xl" />
+      ))}
+    </div>
+  )
+}
+
+function invalidateProfileQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  _employeeID: string
+) {
+  queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
+  queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees/{id}"] })
+  queryClient.invalidateQueries({
+    queryKey: ["get", "/v1/agents/{agentID}/profiles/available"],
+  })
+  queryClient.invalidateQueries({
+    queryKey: ["get", "/v1/employees/{id}/connections/available"],
+  })
+  queryClient.invalidateQueries({
+    queryKey: ["get", "/v1/employees/{id}/agent-templates"],
+  })
+}
+
+function needsOAuthFields(authMode: string) {
+  return OAUTH_MODES.includes(authMode.toUpperCase())
+}
+
+function needsAppFields(authMode: string) {
+  return authMode.toUpperCase() === "APP"
+}
+
+function needsCustomFields(authMode: string) {
+  return authMode.toUpperCase() === "CUSTOM"
+}
+
+function needsInstallPluginFields(authMode: string) {
+  return authMode.toUpperCase() === "INSTALL_PLUGIN"
+}
+
+function needsNoCredentials(authMode: string) {
+  return NO_CRED_MODES.includes(authMode.toUpperCase())
+}
+
+function customAppCredentialFields(authMode: string) {
+  if (needsNoCredentials(authMode)) return []
+  if (needsOAuthFields(authMode)) {
+    return [
+      { key: "client_id", label: "Client ID" },
+      { key: "client_secret", label: "Client secret", secret: true },
+    ]
+  }
+  if (needsAppFields(authMode)) {
+    return [
+      { key: "app_id", label: "App ID" },
+      { key: "app_link", label: "App link" },
+      {
+        key: "private_key",
+        label: "Private key",
+        secret: true,
+        multiline: true,
+      },
+    ]
+  }
+  if (needsInstallPluginFields(authMode)) {
+    return [{ key: "app_link", label: "App link" }]
+  }
+  if (needsCustomFields(authMode)) {
+    return [
+      { key: "client_id", label: "Client ID" },
+      { key: "client_secret", label: "Client secret", secret: true },
+      { key: "app_id", label: "App ID" },
+      { key: "app_link", label: "App link" },
+      {
+        key: "private_key",
+        label: "Private key",
+        secret: true,
+        multiline: true,
+      },
+    ]
+  }
+  return []
+}
+
+function customAppCredentialsValid(
+  authMode: string,
+  credentials: Record<string, string>,
+  requiresWebhookSecret: boolean
+) {
+  for (const field of customAppCredentialFields(authMode)) {
+    if (!credentials[field.key]?.trim()) return false
+  }
+  if (requiresWebhookSecret && !credentials.webhook_secret?.trim()) return false
+  return true
+}
+
+function customAppCredentials(
+  authMode: string,
+  credentials: Record<string, string>,
+  scopes: string[]
+) {
+  const out: Record<string, string> = { type: authMode }
+  if (scopes.length > 0) out.scopes = scopes.join(",")
+  for (const [key, value] of Object.entries(credentials)) {
+    const trimmed = value.trim()
+    if (trimmed) out[key] = trimmed
+  }
+  return out
+}
+
+function stringFromConfig(value: unknown) {
+  return typeof value === "string" ? value : ""
+}

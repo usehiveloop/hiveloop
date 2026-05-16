@@ -58,6 +58,10 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to find integration"})
 		return
 	}
+	if integrationEmployeeProfileCapability(integ.Provider) != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "profile integrations must be connected directly to an employee"})
+		return
+	}
 
 	var req createInConnectionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

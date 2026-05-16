@@ -51,10 +51,48 @@ func TestAgentProfileNangoCleanupHandlerDeletesConnections(t *testing.T) {
 	}
 }
 
+func TestAgentProfileNangoCleanupHandlerDeletesIntegrations(t *testing.T) {
+	var paths []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer test-secret" {
+			t.Fatalf("authorization = %q", r.Header.Get("Authorization"))
+		}
+		if r.Method != http.MethodDelete {
+			t.Fatalf("method = %s", r.Method)
+		}
+		paths = append(paths, r.URL.RequestURI())
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	t.Cleanup(server.Close)
+
+	target := NangoIntegrationDeleteTarget{
+		ProviderConfigKey: "in_linear-profile-agent123-custom456",
+		IntegrationID:     uuid.New(),
+		Provider:          "linear-profile",
+	}
+	task, err := NewAgentProfileNangoCleanupTask(uuid.New(), nil, target)
+	if err != nil {
+		t.Fatalf("new task: %v", err)
+	}
+
+	handler := NewAgentProfileNangoCleanupHandler(nango.NewClient(server.URL, "test-secret"))
+	if err := handler.Handle(context.Background(), task); err != nil {
+		t.Fatalf("handle: %v", err)
+	}
+	if len(paths) != 1 {
+		t.Fatalf("paths = %#v", paths)
+	}
+	if paths[0] != "/integrations/in_linear-profile-agent123-custom456" {
+		t.Fatalf("path[0] = %q", paths[0])
+	}
+}
+
 func TestNewAgentProfileNangoCleanupTaskPayload(t *testing.T) {
 	agentID := uuid.New()
 	target := NangoConnectionDeleteTarget{ConnectionID: "conn", ProviderConfigKey: "in_github", ProfileID: uuid.New(), Provider: "github"}
-	task, err := NewAgentProfileNangoCleanupTask(agentID, []NangoConnectionDeleteTarget{target})
+	integTarget := NangoIntegrationDeleteTarget{ProviderConfigKey: "in_linear-profile", IntegrationID: uuid.New(), Provider: "linear-profile"}
+	task, err := NewAgentProfileNangoCleanupTask(agentID, []NangoConnectionDeleteTarget{target}, integTarget)
 	if err != nil {
 		t.Fatalf("new task: %v", err)
 	}
@@ -70,5 +108,8 @@ func TestNewAgentProfileNangoCleanupTaskPayload(t *testing.T) {
 	}
 	if len(payload.Connections) != 1 || payload.Connections[0] != target {
 		t.Fatalf("connections = %#v", payload.Connections)
+	}
+	if len(payload.Integrations) != 1 || payload.Integrations[0] != integTarget {
+		t.Fatalf("integrations = %#v", payload.Integrations)
 	}
 }
