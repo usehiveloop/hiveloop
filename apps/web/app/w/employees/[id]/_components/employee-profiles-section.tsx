@@ -427,6 +427,7 @@ function CustomAppDialog({
       const integration = resp.data?.integration
       onUpdated({
         ...profile,
+        custom_app_configured: true,
         custom_app_integration_id:
           integration?.id ?? profile.custom_app_integration_id,
         provider_config_key:
@@ -488,7 +489,7 @@ function CustomAppDialog({
               loading={submitting}
               className="w-full"
             >
-              Save {profileName}
+              Next
             </Button>
           </div>
         </form>
