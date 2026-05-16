@@ -31,7 +31,6 @@ import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { useAuth } from "@/lib/auth/auth-context"
 import { cn } from "@/lib/utils"
-import { EmployeeAgentTemplatesDialog } from "./_components/employee-agent-templates-dialog"
 import { EmployeeUpgradeDialog } from "./_components/employee-upgrade-dialog"
 import type { components } from "@/lib/api/schema"
 
@@ -43,7 +42,7 @@ interface EmployeeGroup {
   employees: Employee[]
 }
 
-const COLUMN_GRID = "grid-cols-[1.45fr_1.65fr_0.9fr_1fr_0.9fr_2.5rem]"
+const COLUMN_GRID = "grid-cols-[1.45fr_0.9fr_1fr_0.9fr_2.5rem]"
 
 export default function WorkspaceHome() {
   const router = useRouter()
@@ -53,9 +52,6 @@ export default function WorkspaceHome() {
   const [filter, setFilter] = useState("")
   const [deleting, setDeleting] = useState<Employee | null>(null)
   const [upgrading, setUpgrading] = useState<Employee | null>(null)
-  const [templatesEmployee, setTemplatesEmployee] = useState<Employee | null>(
-    null
-  )
   const { data, isLoading } = $api.useQuery("get", "/v1/employees")
   const deleteEmployee = $api.useMutation("delete", "/v1/agents/{id}")
   const employees = useMemo(() => data?.data ?? [], [data])
@@ -147,7 +143,6 @@ export default function WorkspaceHome() {
                 group={group}
                 onDeleteEmployee={setDeleting}
                 onUpgradeEmployee={setUpgrading}
-                onManageTemplates={setTemplatesEmployee}
               />
             ))
           )}
@@ -177,16 +172,6 @@ export default function WorkspaceHome() {
           }}
         />
       ) : null}
-
-      {templatesEmployee ? (
-        <EmployeeAgentTemplatesDialog
-          employee={templatesEmployee}
-          open
-          onOpenChange={(open) => {
-            if (!open) setTemplatesEmployee(null)
-          }}
-        />
-      ) : null}
     </>
   )
 }
@@ -195,12 +180,10 @@ function EmployeeActions({
   employee,
   onDelete,
   onUpgrade,
-  onManageTemplates,
 }: {
   employee: Employee
   onDelete: () => void
   onUpgrade: () => void
-  onManageTemplates: () => void
 }) {
   const router = useRouter()
   const isDraft = normalizeStatus(employee.status) === "draft"
@@ -234,18 +217,6 @@ function EmployeeActions({
               Continue onboarding
             </DropdownMenuItem>
           ) : null}
-          {employee.id ? (
-            <DropdownMenuItem
-              onClick={() => router.push(`/w/employees/${employee.id}`)}
-            >
-              <HugeiconsIcon
-                icon={ArrowRight01Icon}
-                className="size-4"
-                strokeWidth={2}
-              />
-              Details
-            </DropdownMenuItem>
-          ) : null}
           {canUpgrade ? (
             <DropdownMenuItem onClick={onUpgrade}>
               <HugeiconsIcon
@@ -256,14 +227,6 @@ function EmployeeActions({
               Upgrade sandbox
             </DropdownMenuItem>
           ) : null}
-          <DropdownMenuItem onClick={onManageTemplates}>
-            <HugeiconsIcon
-              icon={Add01Icon}
-              className="size-4"
-              strokeWidth={2}
-            />
-            Agent templates
-          </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onClick={onDelete}>
             <HugeiconsIcon
               icon={Delete02Icon}
@@ -282,12 +245,10 @@ function TeamSection({
   group,
   onDeleteEmployee,
   onUpgradeEmployee,
-  onManageTemplates,
 }: {
   group: EmployeeGroup
   onDeleteEmployee: (employee: Employee) => void
   onUpgradeEmployee: (employee: Employee) => void
-  onManageTemplates: (employee: Employee) => void
 }) {
   return (
     <section className="flex flex-col gap-4">
@@ -318,7 +279,6 @@ function TeamSection({
         employees={group.employees}
         onDeleteEmployee={onDeleteEmployee}
         onUpgradeEmployee={onUpgradeEmployee}
-        onManageTemplates={onManageTemplates}
       />
     </section>
   )
@@ -328,12 +288,10 @@ function EmployeeTable({
   employees,
   onDeleteEmployee,
   onUpgradeEmployee,
-  onManageTemplates,
 }: {
   employees: Employee[]
   onDeleteEmployee: (employee: Employee) => void
   onUpgradeEmployee: (employee: Employee) => void
-  onManageTemplates: (employee: Employee) => void
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -344,9 +302,8 @@ function EmployeeTable({
         )}
       >
         <span>Employee</span>
-        <span>Role</span>
         <span>Status</span>
-        <span>Runtime</span>
+        <span>Version</span>
         <span className="text-right">Last active</span>
         <span className="sr-only">Actions</span>
       </div>
@@ -357,7 +314,6 @@ function EmployeeTable({
             employee={employee}
             onDelete={() => onDeleteEmployee(employee)}
             onUpgrade={() => onUpgradeEmployee(employee)}
-            onManageTemplates={() => onManageTemplates(employee)}
           />
         ))}
       </ul>
@@ -369,28 +325,34 @@ function EmployeeRow({
   employee,
   onDelete,
   onUpgrade,
-  onManageTemplates,
 }: {
   employee: Employee
   onDelete: () => void
   onUpgrade: () => void
-  onManageTemplates: () => void
 }) {
   const name = employee.name ?? "Unnamed employee"
-  const role = employee.category || employee.description || "Coordinator"
   const status = normalizeStatus(employee.status)
   const lastActive = formatLastActive(
     employee.sandbox?.last_active_at ?? employee.updated_at
   )
+  const detailsHref = employee.id ? `/w/employees/${employee.id}` : null
 
   return (
     <li
       className={cn(
-        "grid gap-3 px-5 py-4 text-sm transition-colors hover:bg-muted/40 lg:items-center lg:gap-0 lg:py-3.5",
+        "relative grid gap-3 px-5 py-4 text-sm transition-colors hover:bg-muted/40 lg:items-center lg:gap-0 lg:py-3.5",
         "grid-cols-1 lg:grid",
+        detailsHref && "cursor-pointer",
         COLUMN_GRID
       )}
     >
+      {detailsHref ? (
+        <Link
+          href={detailsHref}
+          className="absolute inset-0 z-0"
+          aria-label={`Open ${name} details`}
+        />
+      ) : null}
       <div className="flex min-w-0 items-center gap-3">
         <Avatar size="sm">
           {employee.avatar_url ? (
@@ -401,28 +363,28 @@ function EmployeeRow({
         {employee.id ? (
           <Link
             href={`/w/employees/${employee.id}`}
-            className="truncate font-medium transition-colors hover:text-primary"
+            className="relative z-10 truncate font-medium transition-colors hover:text-primary"
           >
             {name}
           </Link>
         ) : (
-          <span className="truncate font-medium">{name}</span>
+          <span className="relative z-10 truncate font-medium">{name}</span>
         )}
       </div>
-      <span className="truncate text-foreground/90">{role}</span>
-      <span>
+      <span className="relative z-10 pointer-events-none">
         <StatusBadge status={status} />
       </span>
-      <span>
+      <span className="relative z-10">
         <RuntimeStatus employee={employee} onUpgrade={onUpgrade} />
       </span>
-      <span className="text-muted-foreground lg:text-right">{lastActive}</span>
-      <div className="flex justify-start lg:justify-end">
+      <span className="relative z-10 pointer-events-none text-muted-foreground lg:text-right">
+        {lastActive}
+      </span>
+      <div className="relative z-10 flex justify-start lg:justify-end">
         <EmployeeActions
           employee={employee}
           onDelete={onDelete}
           onUpgrade={onUpgrade}
-          onManageTemplates={onManageTemplates}
         />
       </div>
     </li>
@@ -523,16 +485,16 @@ function RuntimeStatus({
         variant="secondary"
         size="xs"
         onClick={onUpgrade}
-        className="text-primary"
+        className="relative z-10 text-primary"
       >
-        Upgrade
+        Needs upgrade
       </Button>
     )
   }
 
   return (
     <Badge variant="ghost" className="bg-muted/60 text-muted-foreground">
-      Current
+      Latest
     </Badge>
   )
 }

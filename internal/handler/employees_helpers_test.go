@@ -191,6 +191,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 		r.Get("/", h.List)
 		r.Get("/{id}", h.Get)
 		r.Get("/{id}/agent-templates", h.ListAgentTemplates)
+		r.Get("/{id}/connections/available", h.ListAvailableConnections)
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireOrgAdmin(db))
 			r.Post("/", h.Create)

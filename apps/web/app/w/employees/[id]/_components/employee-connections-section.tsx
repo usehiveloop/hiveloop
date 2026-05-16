@@ -1,21 +1,26 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Add01Icon, Plug01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
+import { Plug01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
+import { ChoiceCard } from "@/app/w/agents/_components/create-agent/choice-card"
 import { FormEmptyWell, FormSection } from "@/app/w/_components/form-section"
-import { IntegrationLogo } from "@/components/integration-logo"
+import {
+  IntegrationLogo,
+  integrationLogoURL,
+} from "@/components/integration-logo"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
 import { ListRowsSkeleton } from "./list-rows-skeleton"
 import type { components } from "@/lib/api/schema"
 
-type Connection = components["schemas"]["inConnectionResponse"]
+type Connection = components["schemas"]["employeeConnectionResponse"]
 
 export function EmployeeConnectionsSection({
   connections,
@@ -23,14 +28,16 @@ export function EmployeeConnectionsSection({
   selectedIDs,
   dialogOpen,
   onDialogOpenChange,
-  onToggle,
+  onSelectionChange,
+  onRemove,
 }: {
   connections: Connection[]
   loading: boolean
   selectedIDs: Set<string>
   dialogOpen: boolean
   onDialogOpenChange: (open: boolean) => void
-  onToggle: (id: string) => void
+  onSelectionChange: (ids: Set<string>) => void
+  onRemove: (id: string) => void
 }) {
   const selectedConnections = connections.filter(
     (connection) => connection.id && selectedIDs.has(connection.id)
@@ -41,29 +48,47 @@ export function EmployeeConnectionsSection({
       <FormSection
         title="Connections"
         description="Attach existing workspace connections. Matching global skills are added automatically."
-        aside={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onDialogOpenChange(true)}
-          >
-            <HugeiconsIcon icon={Add01Icon} data-icon="inline-start" />
-            Manage
-          </Button>
-        }
       >
-        {loading ? (
-          <ListRowsSkeleton />
-        ) : selectedConnections.length === 0 ? (
-          <FormEmptyWell message="No connections attached." />
-        ) : (
-          <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
-            {selectedConnections.map((connection) => (
-              <ConnectionRow key={connection.id} connection={connection} />
-            ))}
-          </div>
-        )}
+        <div className="flex flex-col gap-2">
+          {loading ? (
+            <ListRowsSkeleton />
+          ) : selectedConnections.length === 0 ? (
+            <FormEmptyWell
+              icon={Plug01Icon}
+              message="No connections attached."
+              action={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onDialogOpenChange(true)}
+                >
+                  Manage connections
+                </Button>
+              }
+            />
+          ) : (
+            <>
+              {selectedConnections.map((connection) => {
+                if (!connection.id) return null
+                return (
+                  <SelectedConnectionRow
+                    key={connection.id}
+                    connection={connection}
+                    onRemove={() => onRemove(connection.id!)}
+                  />
+                )
+              })}
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-1 w-fit"
+                onClick={() => onDialogOpenChange(true)}
+              >
+                Manage connections
+              </Button>
+            </>
+          )}
+        </div>
       </FormSection>
 
       <EmployeeConnectionsDialog
@@ -72,7 +97,7 @@ export function EmployeeConnectionsSection({
         connections={connections}
         loading={loading}
         selectedIDs={selectedIDs}
-        onToggle={onToggle}
+        onSave={onSelectionChange}
       />
     </>
   )
@@ -84,99 +109,161 @@ function EmployeeConnectionsDialog({
   connections,
   loading,
   selectedIDs,
-  onToggle,
+  onSave,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   connections: Connection[]
   loading: boolean
   selectedIDs: Set<string>
-  onToggle: (id: string) => void
+  onSave: (ids: Set<string>) => void
 }) {
+  const [draftSelectedIDs, setDraftSelectedIDs] = useState<Set<string>>(
+    new Set()
+  )
+
+  useEffect(() => {
+    if (open) {
+      queueMicrotask(() => {
+        setDraftSelectedIDs(new Set(selectedIDs))
+      })
+    }
+  }, [open, selectedIDs])
+
+  function toggle(connectionID: string) {
+    setDraftSelectedIDs((prev) => {
+      const next = new Set(prev)
+      if (next.has(connectionID)) {
+        next.delete(connectionID)
+      } else {
+        next.add(connectionID)
+      }
+      return next
+    })
+  }
+
+  function saveSelection() {
+    onSave(new Set(draftSelectedIDs))
+    onOpenChange(false)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="flex h-[min(680px,85vh)] flex-col overflow-hidden p-6 sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Employee connections</DialogTitle>
+          <DialogTitle>Manage connections</DialogTitle>
           <DialogDescription>
-            Select existing workspace connections for this employee.
+            Choose the workspace connections this employee can use.
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
-          <ListRowsSkeleton />
-        ) : connections.length === 0 ? (
-          <FormEmptyWell message="No workspace connections are available." />
-        ) : (
-          <div className="max-h-[min(520px,65vh)] overflow-y-auto pr-1">
-            <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
-              {connections.map((connection) => {
-                if (!connection.id) return null
-                const selected = selectedIDs.has(connection.id)
-                return (
-                  <button
-                    key={connection.id}
-                    type="button"
-                    onClick={() => onToggle(connection.id!)}
-                    className="grid w-full grid-cols-[1rem_1fr] gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/50"
-                  >
-                    <SelectionDot selected={selected} />
-                    <ConnectionRow connection={connection} />
-                  </button>
-                )
-              })}
+        <div className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto">
+          {loading ? (
+            <ListRowsSkeleton />
+          ) : connections.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-12">
+              <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+                <HugeiconsIcon
+                  icon={Plug01Icon}
+                  size={20}
+                  className="text-muted-foreground"
+                />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-foreground">
+                  No connections available
+                </p>
+                <p className="mt-1 max-w-[260px] text-xs text-muted-foreground">
+                  Connect an app from Settings, then return here to attach it.
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          ) : (
+            connections.map((connection) => {
+              if (!connection.id) return null
+              const selected = draftSelectedIDs.has(connection.id)
+              return (
+                <ChoiceCard
+                  key={connection.id}
+                  logoUrl={integrationLogoURL(connection.provider ?? "")}
+                  logoSize={32}
+                  title={connection.display_name ?? connection.provider ?? ""}
+                  description={connectionDescription(connection)}
+                  selected={selected}
+                  onClick={() => toggle(connection.id!)}
+                  trailing={
+                    selected ? (
+                      <HugeiconsIcon
+                        icon={Tick02Icon}
+                        size={16}
+                        className="mt-0.5 shrink-0 text-primary"
+                      />
+                    ) : (
+                      <span className="size-4 shrink-0" />
+                    )
+                  }
+                />
+              )
+            })
+          )}
+        </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Done
+        <div className="shrink-0 pt-4">
+          <Button className="w-full" onClick={saveSelection}>
+            {draftSelectedIDs.size > 0
+              ? `Save with ${draftSelectedIDs.size} connection${draftSelectedIDs.size > 1 ? "s" : ""}`
+              : "Save with no connections"}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   )
 }
 
-function SelectionDot({ selected }: { selected: boolean }) {
+function SelectedConnectionRow({
+  connection,
+  onRemove,
+}: {
+  connection: Connection
+  onRemove: () => void
+}) {
   return (
-    <span
-      className={cn(
-        "mt-2 flex size-4 items-center justify-center rounded-[5px] border",
-        selected
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border bg-input/70"
-      )}
-    >
-      {selected ? (
-        <HugeiconsIcon icon={Tick02Icon} className="size-3" strokeWidth={2.5} />
-      ) : null}
-    </span>
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/50 p-3">
+      <div className="flex min-w-0 items-center gap-3">
+        {connection.provider ? (
+          <IntegrationLogo provider={connection.provider} size={32} />
+        ) : (
+          <div className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <HugeiconsIcon
+              icon={Plug01Icon}
+              className="size-4"
+              strokeWidth={2}
+            />
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-foreground">
+            {connection.display_name ?? connection.provider ?? "Connection"}
+          </p>
+          <p className="truncate text-xs text-muted-foreground">
+            {connectionDescription(connection)}
+          </p>
+        </div>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="shrink-0 text-destructive hover:text-destructive"
+        onClick={onRemove}
+      >
+        Remove
+      </Button>
+    </div>
   )
 }
 
-function ConnectionRow({ connection }: { connection: Connection }) {
-  return (
-    <div className="flex min-w-0 items-center gap-3 py-1">
-      {connection.provider ? (
-        <IntegrationLogo provider={connection.provider} size={32} />
-      ) : (
-        <div className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
-          <HugeiconsIcon icon={Plug01Icon} className="size-4" strokeWidth={2} />
-        </div>
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">
-          {connection.display_name ?? connection.provider ?? "Connection"}
-        </p>
-        <p className="truncate text-xs text-muted-foreground">
-          {connection.provider}
-          {connection.nango_connection_id
-            ? ` · ${connection.nango_connection_id}`
-            : ""}
-        </p>
-      </div>
-    </div>
-  )
+function connectionDescription(connection: Connection) {
+  return [connection.provider, connection.nango_connection_id]
+    .filter(Boolean)
+    .join(" · ")
 }

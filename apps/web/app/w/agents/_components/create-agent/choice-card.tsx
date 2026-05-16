@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
+import { cn } from "@/lib/utils"
 
 const logoSizeClasses: Record<number, string> = {
   16: "h-4 w-4",
@@ -22,6 +23,7 @@ interface ChoiceCardBaseProps {
   title: string
   description: string
   trailing?: React.ReactNode
+  selected?: boolean
 }
 
 type ChoiceCardProps =
@@ -36,6 +38,7 @@ export function ChoiceCard({
   title,
   description,
   trailing,
+  selected = false,
   onClick,
   href,
 }: ChoiceCardProps) {
@@ -43,25 +46,41 @@ export function ChoiceCard({
   const leadingTopOffset = logoSize <= 24 ? "mt-0.5" : ""
   const logoSizeClass = logoSizeClasses[logoSize] ?? "h-5 w-5"
 
-  const className = `group flex ${alignment} gap-4 w-full rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted cursor-pointer`
+  const className = cn(
+    "group flex w-full cursor-pointer gap-4 rounded-xl border p-4 text-left transition-colors",
+    alignment,
+    selected
+      ? "border-primary/20 bg-primary/5 hover:bg-primary/10"
+      : "border-transparent bg-muted/50 hover:bg-muted"
+  )
 
   const content = (
     <>
       {logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl} alt={title} className={`${logoSizeClass} shrink-0 ${leadingTopOffset}`.trim()} />
+        <img
+          src={logoUrl}
+          alt={title}
+          className={`${logoSizeClass} shrink-0 ${leadingTopOffset}`.trim()}
+        />
       ) : icon ? (
-        <HugeiconsIcon icon={icon} size={logoSize} className={`shrink-0 ${leadingTopOffset} ${iconClassName ?? "text-muted-foreground"}`.trim()} />
+        <HugeiconsIcon
+          icon={icon}
+          size={logoSize}
+          className={`shrink-0 ${leadingTopOffset} ${iconClassName ?? "text-muted-foreground"}`.trim()}
+        />
       ) : null}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-foreground">{title}</p>
-        <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
+        <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
+          {description}
+        </p>
       </div>
       {trailing ?? (
         <HugeiconsIcon
           icon={ArrowRight01Icon}
           size={16}
-          className={`text-muted-foreground/30 shrink-0 ${leadingTopOffset}`.trim()}
+          className={`shrink-0 text-muted-foreground/30 ${leadingTopOffset}`.trim()}
         />
       )}
     </>

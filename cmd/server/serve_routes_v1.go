@@ -182,6 +182,7 @@ func setupV1Routes(
 					r.Get("/employees", employeeHandler.List)
 					r.Get("/employees/{id}", employeeHandler.Get)
 					r.Get("/employees/{id}/agent-templates", employeeHandler.ListAgentTemplates)
+					r.Get("/employees/{id}/connections/available", employeeHandler.ListAvailableConnections)
 					r.Group(func(r chi.Router) {
 						r.Use(middleware.RequireOrgAdmin(database))
 						r.Post("/employees", employeeHandler.Create)

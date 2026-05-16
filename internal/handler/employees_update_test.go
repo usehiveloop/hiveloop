@@ -34,6 +34,20 @@ func (h *employeeHarness) putEmployee(t *testing.T, m orgWithMember, agentID uui
 	return rr
 }
 
+func (h *employeeHarness) getEmployeeAvailableConnections(t *testing.T, m orgWithMember, agentID uuid.UUID, role string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/v1/employees/"+agentID.String()+"/connections/available", nil)
+	req.Header.Set("X-Org-ID", m.org.ID.String())
+	req = middleware.WithAuthClaims(req, &auth.AuthClaims{
+		UserID: m.user.ID.String(),
+		OrgID:  m.org.ID.String(),
+		Role:   role,
+	})
+	rr := httptest.NewRecorder()
+	h.router.ServeHTTP(rr, req)
+	return rr
+}
+
 func (h *employeeHarness) seedEmployeeConnection(t *testing.T, m orgWithMember, provider string) model.InConnection {
 	t.Helper()
 	integ := createTestInIntegration(t, h.db, provider)
@@ -95,7 +109,7 @@ func TestIntegration_EmployeeUpdate_AttachesOrgConnectionAndMappedSkill(t *testi
 	}
 	gitGithub := h.seedGlobalSkill(t, "git-github", model.SkillStatusPublished)
 	assetUploads := h.seedGlobalSkill(t, "asset-uploads", model.SkillStatusPublished)
-	conn := h.seedEmployeeConnection(t, m, "github")
+	conn := h.seedEmployeeConnection(t, m, "github-app")
 
 	rr := h.putEmployee(t, m, agent.ID, map[string]any{
 		"connection_ids": []string{conn.ID.String()},
@@ -146,6 +160,59 @@ func TestIntegration_EmployeeUpdate_AttachesOrgConnectionAndMappedSkill(t *testi
 		if (skill.Name == "git-github" || skill.Name == "asset-uploads") && (!skill.Locked || !skill.Required) {
 			t.Fatalf("skill %s lock flags = locked:%v required:%v, want true", skill.Name, skill.Locked, skill.Required)
 		}
+	}
+}
+
+func TestIntegration_EmployeeAvailableConnections_ExcludesProfileConnections(t *testing.T) {
+	h := newEmployeeHarness(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	_ = h.seedEmployeeConnection(t, m, "github")
+	_ = h.seedEmployeeConnection(t, m, "slack")
+	bugsink := h.seedEmployeeConnection(t, m, "bugsink")
+	githubApp := h.seedEmployeeConnection(t, m, "github-app")
+
+	rr := h.getEmployeeAvailableConnections(t, m, agent.ID, "member")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("available connections status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+
+	var resp struct {
+		Data []struct {
+			ID       string `json:"id"`
+			Provider string `json:"provider"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	seen := map[string]string{}
+	for _, conn := range resp.Data {
+		seen[conn.Provider] = conn.ID
+	}
+	if seen["github"] != "" || seen["slack"] != "" {
+		t.Fatalf("profile providers were returned: %#v", seen)
+	}
+	if seen["bugsink"] != bugsink.ID.String() {
+		t.Fatalf("bugsink missing from available connections: %#v", seen)
+	}
+	if seen["github-app"] != githubApp.ID.String() {
+		t.Fatalf("github-app missing from available connections: %#v", seen)
+	}
+}
+
+func TestIntegration_EmployeeUpdate_RejectsProfileConnection(t *testing.T) {
+	h := newEmployeeHarness(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	conn := h.seedEmployeeConnection(t, m, "github")
+
+	rr := h.putEmployee(t, m, agent.ID, map[string]any{
+		"connection_ids": []string{conn.ID.String()},
+	}, "admin")
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("update status = %d, want 400: %s", rr.Code, rr.Body.String())
 	}
 }
 

@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { formatCategoryLabel } from "@/lib/format-label"
+import { EmployeeAgentTemplatesSection } from "./employee-agent-templates-section"
 import { EmployeeConnectionsSection } from "./employee-connections-section"
 import { EmployeeRuntimeSection } from "./employee-runtime-section"
 import { EmployeeSkillsSection } from "./employee-skills-section"
@@ -34,7 +35,13 @@ interface EmployeeDetailsFormValues {
 export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
   const queryClient = useQueryClient()
   const { id } = useParams<{ id: string }>()
-  const connectionsQuery = $api.useQuery("get", "/v1/in/connections")
+  const connectionsQuery = $api.useQuery(
+    "get",
+    "/v1/employees/{id}/connections/available",
+    {
+      params: { path: { id } },
+    }
+  )
   const skillsQuery = $api.useQuery("get", "/v1/skills", {
     params: { query: { limit: 100 } },
   })
@@ -48,6 +55,22 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
   React.useEffect(() => {
     form.reset(employeeFormValues(employee))
   }, [employee, form])
+
+  React.useEffect(() => {
+    const allowedIDs = new Set(
+      (connectionsQuery.data?.data ?? [])
+        .map((connection) => connection.id)
+        .filter((connectionID): connectionID is string => Boolean(connectionID))
+    )
+    if (allowedIDs.size === 0) return
+    const currentIDs = form.getValues("connectionIds")
+    const filteredIDs = currentIDs.filter((connectionID) =>
+      allowedIDs.has(connectionID)
+    )
+    if (filteredIDs.length !== currentIDs.length) {
+      form.setValue("connectionIds", filteredIDs)
+    }
+  }, [connectionsQuery.data?.data, form])
 
   const name = useWatch({ control: form.control, name: "name" }) ?? ""
   const description =
@@ -151,6 +174,7 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
       <PageHeader
         title={employee.name ?? "Employee"}
         breadcrumb="Details"
+        sticky
         actions={
           <>
             <Button variant="ghost" render={<Link href="/w" />}>
@@ -171,7 +195,7 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
         <div className="divide-y divide-border/60 [&>section]:py-7 [&>section:first-child]:pt-0 [&>section:last-child]:pb-0">
           <FormSection
             title="Persona"
-            description="These are the fields used when the employee was created."
+            description="Your employee's identity. When you change this, we recommend changing the agent's persona across your other services for consistency. This also affects your agent's behaviour."
             aside={
               <Controller
                 control={form.control}
@@ -232,7 +256,13 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
             selectedIDs={selectedConnectionIDs}
             dialogOpen={connectionsOpen}
             onDialogOpenChange={setConnectionsOpen}
-            onToggle={toggleConnection}
+            onSelectionChange={setConnectionIds}
+            onRemove={toggleConnection}
+          />
+
+          <EmployeeAgentTemplatesSection
+            employeeID={id}
+            employeeName={employee.name ?? "this employee"}
           />
 
           <EmployeeSkillsSection

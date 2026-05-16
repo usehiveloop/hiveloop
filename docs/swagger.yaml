@@ -2344,6 +2344,27 @@ definitions:
       version:
         type: integer
     type: object
+  internal_handler.employeeConnectionResponse:
+    properties:
+      created_at:
+        type: string
+      display_name:
+        type: string
+      id:
+        type: string
+      in_integration_id:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
+      nango_connection_id:
+        type: string
+      org_id:
+        type: string
+      provider:
+        type: string
+      updated_at:
+        type: string
+    type: object
   internal_handler.employeeListItem:
     properties:
       agent_config:
@@ -3226,6 +3247,17 @@ definitions:
       data:
         items:
           $ref: '#/definitions/internal_handler.credentialResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_employeeConnectionResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.employeeConnectionResponse'
         type: array
       has_more:
         type: boolean
@@ -9440,6 +9472,45 @@ paths:
       summary: Start a chat with an AI employee
       tags:
       - chats
+  /v1/employees/{id}/connections/available:
+    get:
+      description: Returns non-revoked org connections that may be attached to an
+        employee as tool capabilities. Connections used as employee profiles, such
+        as Slack and GitHub identity profiles, are excluded.
+      parameters:
+      - description: Employee agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_employeeConnectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List assignable employee connections
+      tags:
+      - employees
   /v1/employees/{id}/sandbox/upgrade:
     post:
       consumes:
