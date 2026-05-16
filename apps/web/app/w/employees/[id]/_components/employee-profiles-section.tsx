@@ -28,6 +28,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
@@ -386,6 +392,7 @@ function CustomAppDialog({
   const [submitting, setSubmitting] = useState(false)
 
   const nangoConfig = profile?.nango_config
+  const profileName = (profile?.display_name ?? "profile").toLowerCase()
   const authMode = nangoConfig?.auth_mode ?? "OAUTH2"
   const scopes = profile?.employee_profile?.scopes ?? []
   const generatedWebhookSecret = stringFromConfig(nangoConfig?.webhook_secret)
@@ -435,12 +442,11 @@ function CustomAppDialog({
 
   return (
     <Dialog open={Boolean(profile)} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(760px,90vh)] w-full max-w-[calc(100vw-2rem)] flex-col overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent className="flex max-h-[calc(100vh-2rem)] w-full max-w-[calc(100vw-2rem)] flex-col overflow-hidden p-0 sm:max-w-lg">
         <DialogHeader className="px-6 pt-6 pb-0">
-          <DialogTitle>Set up custom app</DialogTitle>
+          <DialogTitle>Set up {profileName}</DialogTitle>
           <DialogDescription>
-            Add the OAuth app credentials for{" "}
-            {profile?.display_name ?? "this profile"}.
+            Add the OAuth app credentials for {profileName}.
           </DialogDescription>
         </DialogHeader>
 
@@ -468,6 +474,7 @@ function CustomAppDialog({
               <CustomAppCredentialsFields
                 authMode={authMode}
                 requiresWebhookSecret={requiresWebhookSecret}
+                generatedWebhookSecret={generatedWebhookSecret}
                 credentials={credentials}
                 onChange={setCredentials}
               />
@@ -481,7 +488,7 @@ function CustomAppDialog({
               loading={submitting}
               className="w-full"
             >
-              Save custom app
+              Save {profileName}
             </Button>
           </div>
         </form>
@@ -538,11 +545,13 @@ function CustomAppScopes({ scopes }: { scopes: string[] }) {
 function CustomAppCredentialsFields({
   authMode,
   requiresWebhookSecret,
+  generatedWebhookSecret,
   credentials,
   onChange,
 }: {
   authMode: string
   requiresWebhookSecret: boolean
+  generatedWebhookSecret: string
   credentials: Record<string, string>
   onChange: (value: Record<string, string>) => void
 }) {
@@ -569,6 +578,7 @@ function CustomAppCredentialsFields({
               value={credentials[field.key] ?? ""}
               onChange={(event) => set(field.key, event.target.value)}
               className="min-h-24"
+              placeholder={field.placeholder}
               autoFocus={index === 0}
               required
             />
@@ -578,6 +588,7 @@ function CustomAppCredentialsFields({
               type={field.secret ? "password" : "text"}
               value={credentials[field.key] ?? ""}
               onChange={(event) => set(field.key, event.target.value)}
+              placeholder={field.placeholder}
               autoFocus={index === 0}
               required
             />
@@ -592,6 +603,10 @@ function CustomAppCredentialsFields({
             type="password"
             value={credentials.webhook_secret ?? ""}
             onChange={(event) => set("webhook_secret", event.target.value)}
+            placeholder={
+              generatedWebhookSecret ||
+              "Paste the webhook signing secret from your app settings"
+            }
             required
           />
         </div>
@@ -645,34 +660,29 @@ function ReadonlyValue({
   return (
     <div className="min-w-0 space-y-1.5">
       <Label>{label}</Label>
-      <div className="flex min-w-0 items-start gap-2">
-        {secret ? (
-          <Input
-            value={value}
-            readOnly
-            type="password"
-            className="min-w-0 flex-1 font-mono text-xs"
-          />
-        ) : (
-          <code className="min-w-0 flex-1 select-all break-all rounded-lg border border-border bg-background px-3 py-2 font-mono text-[12px] leading-relaxed text-foreground">
-            {value}
-          </code>
-        )}
-        <Button
+      <InputGroup>
+        <InputGroupInput
+          value={value}
+          readOnly
+          type={secret ? "password" : "text"}
+          className="font-mono text-xs"
+          onFocus={(event) => event.currentTarget.select()}
+        />
+        <InputGroupAddon align="inline-end">
+          <InputGroupButton
           type="button"
-          variant="outline"
           size="icon-sm"
           onClick={copyValue}
           aria-label={`Copy ${label}`}
-          className="shrink-0"
         >
           <HugeiconsIcon
             icon={copied ? Tick02Icon : Copy01Icon}
             className="size-3.5"
             strokeWidth={2.5}
           />
-        </Button>
-      </div>
+          </InputGroupButton>
+        </InputGroupAddon>
+      </InputGroup>
     </div>
   )
 }
@@ -767,36 +777,78 @@ function customAppCredentialFields(authMode: string) {
   if (needsNoCredentials(authMode)) return []
   if (needsOAuthFields(authMode)) {
     return [
-      { key: "client_id", label: "Client ID" },
-      { key: "client_secret", label: "Client secret", secret: true },
+      {
+        key: "client_id",
+        label: "Client ID",
+        placeholder: "Paste the OAuth client ID from your app",
+      },
+      {
+        key: "client_secret",
+        label: "Client secret",
+        secret: true,
+        placeholder: "Paste the OAuth client secret from your app",
+      },
     ]
   }
   if (needsAppFields(authMode)) {
     return [
-      { key: "app_id", label: "App ID" },
-      { key: "app_link", label: "App link" },
+      {
+        key: "app_id",
+        label: "App ID",
+        placeholder: "Paste the app ID from your app settings",
+      },
+      {
+        key: "app_link",
+        label: "App link",
+        placeholder: "Paste the app installation or app settings URL",
+      },
       {
         key: "private_key",
         label: "Private key",
         secret: true,
         multiline: true,
+        placeholder: "Paste the private key generated for this app",
       },
     ]
   }
   if (needsInstallPluginFields(authMode)) {
-    return [{ key: "app_link", label: "App link" }]
+    return [
+      {
+        key: "app_link",
+        label: "App link",
+        placeholder: "Paste the plugin installation or app settings URL",
+      },
+    ]
   }
   if (needsCustomFields(authMode)) {
     return [
-      { key: "client_id", label: "Client ID" },
-      { key: "client_secret", label: "Client secret", secret: true },
-      { key: "app_id", label: "App ID" },
-      { key: "app_link", label: "App link" },
+      {
+        key: "client_id",
+        label: "Client ID",
+        placeholder: "Paste the OAuth client ID from your app",
+      },
+      {
+        key: "client_secret",
+        label: "Client secret",
+        secret: true,
+        placeholder: "Paste the OAuth client secret from your app",
+      },
+      {
+        key: "app_id",
+        label: "App ID",
+        placeholder: "Paste the app ID from your app settings",
+      },
+      {
+        key: "app_link",
+        label: "App link",
+        placeholder: "Paste the app installation or app settings URL",
+      },
       {
         key: "private_key",
         label: "Private key",
         secret: true,
         multiline: true,
+        placeholder: "Paste the private key generated for this app",
       },
     ]
   }
