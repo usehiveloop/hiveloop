@@ -19799,6 +19799,12 @@
             "items": {
               "type": "string"
             }
+          },
+          "triggers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentTriggerInput"
+            }
           }
         }
       },

@@ -20,6 +20,8 @@ import { EmployeeAgentTemplatesSection } from "./employee-agent-templates-sectio
 import { EmployeeConnectionsSection } from "./employee-connections-section"
 import { EmployeeRuntimeSection } from "./employee-runtime-section"
 import { EmployeeSkillsSection } from "./employee-skills-section"
+import { EmployeeTriggersSection } from "./employee-triggers-section"
+import type { TriggerConfig } from "@/app/w/agents/_components/create-agent/types"
 import type { components } from "@/lib/api/schema"
 
 type Employee = components["schemas"]["employeeListItem"]
@@ -30,6 +32,7 @@ interface EmployeeDetailsFormValues {
   avatarUrl: string
   connectionIds: string[]
   skillIds: string[]
+  triggers: TriggerConfig[]
 }
 
 export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
@@ -51,6 +54,7 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
     defaultValues: employeeFormValues(employee),
   })
   const [connectionsOpen, setConnectionsOpen] = React.useState(false)
+  const [triggersOpen, setTriggersOpen] = React.useState(false)
 
   React.useEffect(() => {
     form.reset(employeeFormValues(employee))
@@ -81,6 +85,7 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
     name: "connectionIds",
   })
   const skillIds = useWatch({ control: form.control, name: "skillIds" })
+  const triggers = useWatch({ control: form.control, name: "triggers" }) ?? []
 
   const lockedSkillIDs = React.useMemo(() => {
     const out = new Set<string>()
@@ -106,6 +111,15 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
 
   function setConnectionIds(next: Set<string>) {
     form.setValue("connectionIds", Array.from(next), { shouldDirty: true })
+    const allowedConnectionIDs = next
+    const nextTriggers = triggers.filter(
+      (trigger) =>
+        trigger.triggerType !== "webhook" ||
+        allowedConnectionIDs.has(trigger.connectionId)
+    )
+    if (nextTriggers.length !== triggers.length) {
+      form.setValue("triggers", nextTriggers, { shouldDirty: true })
+    }
   }
 
   function setSkillIds(next: Set<string>) {
@@ -133,6 +147,24 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
     setSkillIds(next)
   }
 
+  function addTrigger(trigger: TriggerConfig) {
+    form.setValue("triggers", [...triggers, trigger], { shouldDirty: true })
+  }
+
+  function removeTrigger(index: number) {
+    form.setValue(
+      "triggers",
+      triggers.filter((_, triggerIndex) => triggerIndex !== index),
+      { shouldDirty: true }
+    )
+  }
+
+  function updateTrigger(index: number, newTriggers: TriggerConfig[]) {
+    const next = [...triggers]
+    next.splice(index, 1, ...newTriggers)
+    form.setValue("triggers", next, { shouldDirty: true })
+  }
+
   function handleSave() {
     if (!canSubmit) return
     const values = form.getValues()
@@ -145,6 +177,7 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
           avatar_url: values.avatarUrl.trim(),
           connection_ids: values.connectionIds,
           skill_ids: values.skillIds,
+          triggers: serializeTriggers(values.triggers),
         },
       },
       {
@@ -265,6 +298,16 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
             employeeName={employee.name ?? "this employee"}
           />
 
+          <EmployeeTriggersSection
+            triggers={triggers}
+            connectionIDs={selectedConnectionIDs}
+            dialogOpen={triggersOpen}
+            onDialogOpenChange={setTriggersOpen}
+            onAdd={addTrigger}
+            onRemove={removeTrigger}
+            onUpdate={updateTrigger}
+          />
+
           <EmployeeSkillsSection
             skills={skillsQuery.data?.data ?? []}
             loading={skillsQuery.isLoading}
@@ -289,6 +332,7 @@ function employeeFormValues(employee: Employee): EmployeeDetailsFormValues {
     skillIds: (employee.attached_skills ?? [])
       .map((skill) => skill.id)
       .filter((skillID): skillID is string => Boolean(skillID)),
+    triggers: deriveTriggers(employee),
   }
 }
 
@@ -296,4 +340,33 @@ function connectionIDsFromEmployee(employee: Employee) {
   const integrations = employee.integrations
   if (!integrations || typeof integrations !== "object") return []
   return Object.keys(integrations)
+}
+
+function deriveTriggers(employee: Employee): TriggerConfig[] {
+  return (employee.triggers ?? []).map((trigger) => ({
+    triggerType:
+      (trigger.trigger_type as TriggerConfig["triggerType"]) || "webhook",
+    connectionId: trigger.connection_id ?? "",
+    connectionName: trigger.provider ?? "",
+    provider: trigger.provider ?? "",
+    triggerKeys: trigger.trigger_keys ?? [],
+    triggerDisplayNames: trigger.trigger_keys ?? [],
+    conditions: (trigger.conditions as TriggerConfig["conditions"]) ?? null,
+    instructions: trigger.instructions || undefined,
+  }))
+}
+
+function serializeTriggers(triggers: TriggerConfig[]) {
+  return triggers.map((trigger) => {
+    const base: Record<string, unknown> = { trigger_type: trigger.triggerType }
+    if (trigger.instructions) base.instructions = trigger.instructions
+    if (trigger.triggerType === "webhook") {
+      base.connection_id = trigger.connectionId
+      base.trigger_keys = trigger.triggerKeys
+      base.conditions = trigger.conditions
+    } else if (trigger.triggerType === "http") {
+      if (trigger.secretKey) base.secret_key = trigger.secretKey
+    }
+    return base
+  })
 }

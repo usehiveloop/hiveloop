@@ -18,11 +18,12 @@ import (
 )
 
 type updateEmployeeRequest struct {
-	Name          *string   `json:"name,omitempty"`
-	AvatarURL     *string   `json:"avatar_url,omitempty"`
-	Description   *string   `json:"description,omitempty"`
-	ConnectionIDs *[]string `json:"connection_ids,omitempty"`
-	SkillIDs      *[]string `json:"skill_ids,omitempty"`
+	Name          *string              `json:"name,omitempty"`
+	AvatarURL     *string              `json:"avatar_url,omitempty"`
+	Description   *string              `json:"description,omitempty"`
+	ConnectionIDs *[]string            `json:"connection_ids,omitempty"`
+	SkillIDs      *[]string            `json:"skill_ids,omitempty"`
+	Triggers      *[]agentTriggerInput `json:"triggers,omitempty"`
 }
 
 type updateEmployeeResponse struct {
@@ -152,6 +153,12 @@ func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 			requestedSkillIDs[skillID] = true
 		}
 	}
+	if req.Triggers != nil {
+		if errMsg := validateAgentTriggers(h.db, org.ID, *req.Triggers); errMsg != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
+			return
+		}
+	}
 
 	warnings := make([]string, 0)
 	err = h.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -188,6 +195,15 @@ func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		warnings = append(warnings, skillWarnings...)
+
+		if req.Triggers != nil {
+			if err := deleteAgentTriggers(tx, agent.ID); err != nil {
+				return err
+			}
+			if err := createAgentTriggers(tx, org.ID, agent.ID, *req.Triggers); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 	if err != nil {

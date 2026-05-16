@@ -17453,6 +17453,12 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                },
+                "triggers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.agentTriggerInput"
+                    }
                 }
             }
         },

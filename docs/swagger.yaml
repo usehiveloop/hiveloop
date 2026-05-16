@@ -3843,6 +3843,10 @@ definitions:
         items:
           type: string
         type: array
+      triggers:
+        items:
+          $ref: '#/definitions/internal_handler.agentTriggerInput'
+        type: array
     type: object
   internal_handler.updateEmployeeResponse:
     properties:

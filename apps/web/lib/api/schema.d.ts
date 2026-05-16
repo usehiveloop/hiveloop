@@ -15421,6 +15421,7 @@ export interface components {
             description?: string;
             name?: string;
             skill_ids?: string[];
+            triggers?: components["schemas"]["agentTriggerInput"][];
         };
         updateEmployeeResponse: {
             employee?: components["schemas"]["employeeListItem"];
