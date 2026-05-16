@@ -15,7 +15,11 @@ docker compose down -v --remove-orphans 2>/dev/null || true
 
 echo ""
 echo "==> Starting infrastructure..."
-docker compose up -d postgres redis
+if [[ "$TARGET" == "nango" || "$TARGET" == "integrations" || "$TARGET" == "all" ]]; then
+    docker compose up -d postgres redis nango
+else
+    docker compose up -d postgres redis
+fi
 
 echo ""
 echo "==> Waiting for services to be healthy..."
@@ -25,6 +29,11 @@ echo "  ✓ Postgres"
 
 until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
 echo "  ✓ Redis"
+
+if [[ "$TARGET" == "nango" || "$TARGET" == "integrations" || "$TARGET" == "all" ]]; then
+    until curl -fsS "http://localhost:${NANGO_PORT:-13003}/health" >/dev/null 2>&1; do sleep 1; done
+    echo "  ✓ Nango"
+fi
 
 echo ""
 echo "==> Verifying env vars..."
@@ -52,6 +61,8 @@ case "$TARGET" in
             go test ./e2e/... -v -count=1 -timeout=5m -run "TestOrg"
         ;;
     nango)
+        run_tests "Running real Nango API smoke tests..." \
+            make test-real-nango
         run_tests "Running Nango integration CRUD tests..." \
             go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Integration"
         ;;
@@ -64,6 +75,8 @@ case "$TARGET" in
             go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Connect|TestE2E_Widget"
         ;;
     integrations)
+        run_tests "Running real Nango API smoke tests..." \
+            make test-real-nango
         run_tests "Running Nango integration CRUD tests..." \
             go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Integration"
         run_tests "Running Connect widget tests..." \
@@ -72,6 +85,8 @@ case "$TARGET" in
             go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Proxy|TestE2E_Fireworks"
         ;;
     all)
+        run_tests "Running real Nango API smoke tests..." \
+            make test-real-nango
         run_tests "Running internal tests..." \
             go test ./internal/... -v -race -count=1
         run_tests "Running e2e tests..." \

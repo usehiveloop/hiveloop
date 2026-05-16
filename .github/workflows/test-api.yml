@@ -38,8 +38,8 @@ env:
   # AUTH_RSA_PRIVATE_KEY is generated per-job (see "Generate auth RSA key" steps)
   AUTH_ISSUER: hiveloop
   AUTH_AUDIENCE: https://api.usehiveloop.com
-  NANGO_ENDPOINT: https://integrations.dev.hiveloop.com
-  NANGO_SECRET_KEY: ${{ secrets.NANGO_SECRET_KEY }}
+  NANGO_ENDPOINT: http://localhost:13003
+  NANGO_SECRET_KEY: 00000000-0000-4000-8000-000000000001
   OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
   FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
 
@@ -79,8 +79,8 @@ jobs:
           openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
           echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
-        run: make test-setup
-        timeout-minutes: 5
+        run: make test-setup-nango
+        timeout-minutes: 8
       - name: run nango tests
         run: make test-nango
         timeout-minutes: 5

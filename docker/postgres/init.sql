@@ -16,3 +16,7 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hiveloop_test')\gexec
 -- Vault-specific test database (for Vault KMS e2e tests)
 SELECT 'CREATE DATABASE hiveloop_vault_test OWNER ' || current_user
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hiveloop_vault_test')\gexec
+
+-- Local Nango database (used by the real Nango docker-compose service)
+SELECT 'CREATE DATABASE nango OWNER ' || current_user
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'nango')\gexec

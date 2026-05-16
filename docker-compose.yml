@@ -27,6 +27,56 @@ services:
       timeout: 5s
       retries: 5
 
+  # --- Real Nango runtime (custom HiveLoop integrations image) ---
+  # Used for tests that must exercise Nango's real request validation instead
+  # of the in-process fake/mock.
+  nango:
+    image: ghcr.io/usehiveloop/integrations:latest
+    environment:
+      PORT: "3003"
+      SERVER_PORT: "3003"
+      NANGO_DB_HOST: postgres
+      NANGO_DB_PORT: "5432"
+      NANGO_DB_USER: ${POSTGRES_USER:-hiveloop}
+      NANGO_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      NANGO_DB_NAME: nango
+      NANGO_DB_SSL: "false"
+      NANGO_ENCRYPTION_KEY: ${NANGO_ENCRYPTION_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+      NANGO_SERVER_URL: ${NANGO_PUBLIC_URL:-http://localhost:13003}
+      NANGO_PUBLIC_SERVER_URL: ${NANGO_PUBLIC_URL:-http://localhost:13003}
+      NANGO_SECRET_KEY: ${NANGO_SECRET_KEY:-00000000-0000-4000-8000-000000000001}
+      NANGO_DASHBOARD_USERNAME: ${NANGO_DASHBOARD_USERNAME:-local}
+      NANGO_DASHBOARD_PASSWORD: ${NANGO_DASHBOARD_PASSWORD:-local}
+      FLAG_AUTH_ENABLED: "true"
+      FLAG_SERVE_CONNECT_UI: "false"
+      NANGO_LOGS_ENABLED: "false"
+      TELEMETRY: "false"
+    ports:
+      - "${NANGO_PORT:-13003}:3003"
+    depends_on:
+      nango-db-setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3003/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  nango-db-setup:
+    image: postgres:17-alpine
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      psql -h postgres -U ${POSTGRES_USER:-hiveloop} -d ${POSTGRES_DB:-hiveloop} -tc \"SELECT 1 FROM pg_database WHERE datname = 'nango'\" | grep -q 1 ||
+      psql -h postgres -U ${POSTGRES_USER:-hiveloop} -d ${POSTGRES_DB:-hiveloop} -c \"CREATE DATABASE nango OWNER ${POSTGRES_USER:-hiveloop}\"
+      "
+    restart: "no"
+
   # --- Qdrant (vector database for RAG dev/test) ---
   qdrant:
     image: qdrant/qdrant:v1.17.1
