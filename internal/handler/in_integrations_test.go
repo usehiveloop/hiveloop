@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
@@ -48,13 +49,14 @@ func createTestInIntegration(t *testing.T, db *gorm.DB, provider string) model.I
 		Provider:    provider,
 		DisplayName: provider + " built-in",
 	}
-	if err := db.Create(&integ).Error; err != nil {
+	if err := db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "provider"}}, DoNothing: true}).Create(&integ).Error; err != nil {
 		t.Fatalf("create in-integration: %v", err)
 	}
-	t.Cleanup(func() {
-		db.Where("id = ?", integ.ID).Delete(&model.InIntegration{})
-	})
-	return integ
+	var found model.InIntegration
+	if err := db.Where("provider = ?", provider).First(&found).Error; err != nil {
+		t.Fatalf("load in-integration: %v", err)
+	}
+	return found
 }
 
 func cleanupInIntegrations(t *testing.T, db *gorm.DB) {

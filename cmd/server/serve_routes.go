@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/rsa"
+	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/redis/go-redis/v9"
@@ -81,6 +82,9 @@ func setupPublicRoutes(
 
 		railwayProxyHandler := handler.NewRailwayProxyHandler(database, sandboxEncKey, nangoClient)
 		r.Post("/internal/railway-proxy/{agentID}", railwayProxyHandler.Handle)
+
+		bugsinkProxyHandler := handler.NewBugsinkProxyHandler(database, sandboxEncKey, nangoClient)
+		r.Handle("/internal/bugsink-proxy/{agentID}/*", http.HandlerFunc(bugsinkProxyHandler.Handle))
 	}
 
 	// Direct incoming webhooks for providers requiring manual webhook configuration

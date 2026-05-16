@@ -31,6 +31,8 @@ const (
 	EmployeeEnvGitCredentialsURL          = "HIVELOOP_GIT_CREDENTIALS_URL"
 	EmployeeEnvGitHubNoKeyring            = "GH_NO_KEYRING"
 	EmployeeEnvDriveUploadURL             = "HIVELOOP_DRIVE_UPLOAD_URL"
+	EmployeeEnvBugsinkURL                 = "BUGSINK_URL"
+	EmployeeEnvBugsinkToken               = "BUGSINK_TOKEN"
 	EmployeeEnvSentryDSN                  = "SENTRY_DSN"
 	EmployeeEnvSentryEnvironment          = "SENTRY_ENVIRONMENT"
 	EmployeeEnvSentrySampleRate           = "SENTRY_SAMPLE_RATE"
@@ -105,6 +107,8 @@ var employeeEnvCatalog = []EmployeeEnvSpec{
 	{Key: EmployeeEnvGitCredentialsURL, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvGitHubNoKeyring, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvDriveUploadURL, Source: EmployeeEnvSourceControlPlaneInjected},
+	{Key: EmployeeEnvBugsinkURL, Source: EmployeeEnvSourceControlPlaneInjected},
+	{Key: EmployeeEnvBugsinkToken, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},
 	{Key: EmployeeEnvSentryDSN, Source: EmployeeEnvSourceConditionalSentry, Optional: true},
 	{Key: EmployeeEnvSentryEnvironment, Source: EmployeeEnvSourceConditionalSentry, Optional: true},
 	{Key: EmployeeEnvSentrySampleRate, Source: EmployeeEnvSourceConditionalSentry, Optional: true},

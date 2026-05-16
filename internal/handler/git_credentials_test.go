@@ -122,23 +122,14 @@ func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarnes
 		t.Fatalf("create test user: %v", err)
 	}
 
-	inIntegrationID := uuid.New()
-	inIntegration := model.InIntegration{
-		ID:          inIntegrationID,
-		UniqueKey:   fmt.Sprintf("github-app-test-%s", uuid.New().String()[:8]),
-		Provider:    "github-app",
-		DisplayName: "Test GitHub App",
-	}
-	if err := database.Create(&inIntegration).Error; err != nil {
-		t.Fatalf("create test in_integration: %v", err)
-	}
+	inIntegration := createTestInIntegration(t, database, "github-app")
 
 	inConnectionID := uuid.New()
 	inConnection := model.InConnection{
 		ID:                inConnectionID,
 		OrgID:             orgID,
 		UserID:            userID,
-		InIntegrationID:   inIntegrationID,
+		InIntegrationID:   inIntegration.ID,
 		NangoConnectionID: "nango-conn-123",
 	}
 	if err := database.Create(&inConnection).Error; err != nil {
@@ -147,7 +138,6 @@ func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarnes
 
 	t.Cleanup(func() {
 		database.Where("org_id = ?", orgID).Delete(&model.InConnection{})
-		database.Where("id = ?", inIntegrationID).Delete(&model.InIntegration{})
 		database.Where("id = ?", sandboxID).Delete(&model.Sandbox{})
 		database.Where("org_id = ?", orgID).Delete(&model.Agent{})
 		database.Where("id = ?", userID).Delete(&model.User{})

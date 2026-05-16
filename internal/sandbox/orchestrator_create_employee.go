@@ -164,6 +164,8 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		employeeruntime.EmployeeEnvGitEmail:                 employeeGitEmail(agent, gitIdentity),
 		employeeruntime.EmployeeEnvGitCredentialsURL:        fmt.Sprintf("https://%s/internal/git-credentials/%s", bridgeHost, agent.ID),
 		employeeruntime.EmployeeEnvGitHubNoKeyring:          "1",
+		employeeruntime.EmployeeEnvBugsinkURL:               fmt.Sprintf("https://%s/internal/bugsink-proxy/%s", bridgeHost, agent.ID),
+		employeeruntime.EmployeeEnvBugsinkToken:             runtimeSecret,
 	}
 	setEmployeeDriveUploadURL(envVars, cfg, agent.ID, "employee")
 	employeeSentryDSN := ""

@@ -37,6 +37,12 @@ func TestEmployeeSandboxEnvVars_ProvidesDriveUploadURLAndBearer(t *testing.T) {
 	if env["HIVELOOP_GIT_EMAIL"] != "aria@users.noreply.github.com" {
 		t.Fatalf("HIVELOOP_GIT_EMAIL = %q, want aria@users.noreply.github.com", env["HIVELOOP_GIT_EMAIL"])
 	}
+	if env["BUGSINK_URL"] != "https://api.example.test/internal/bugsink-proxy/"+agentID.String() {
+		t.Fatalf("BUGSINK_URL = %q", env["BUGSINK_URL"])
+	}
+	if env["BUGSINK_TOKEN"] != "runtime-secret" {
+		t.Fatalf("BUGSINK_TOKEN = %q, want runtime-secret", env["BUGSINK_TOKEN"])
+	}
 }
 
 func TestEmployeeSandboxEnvVars_UsesEncryptedGitHubProfileIdentity(t *testing.T) {

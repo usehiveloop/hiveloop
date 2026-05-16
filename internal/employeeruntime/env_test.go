@@ -37,6 +37,8 @@ func TestEmployeeEnvCatalogGolden(t *testing.T) {
 		EmployeeEnvGitCredentialsURL,
 		EmployeeEnvGitHubNoKeyring,
 		EmployeeEnvDriveUploadURL,
+		EmployeeEnvBugsinkURL,
+		EmployeeEnvBugsinkToken,
 		EmployeeEnvSentryDSN,
 		EmployeeEnvSentryEnvironment,
 		EmployeeEnvSentrySampleRate,

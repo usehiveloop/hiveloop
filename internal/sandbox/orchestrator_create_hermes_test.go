@@ -151,6 +151,8 @@ func TestCreateHermesSandbox_InjectsRequiredEnvVarsAndUsesPort7777(t *testing.T)
 		"HIVELOOP_GIT_EMAIL":    sanitizeName(agent.Name) + "@usehiveloop.com",
 		"HIVELOOP_GIT_CREDENTIALS_URL": "https://cp.hiveloop.test/internal/git-credentials/" +
 			agent.ID.String(),
+		"BUGSINK_URL":         "https://cp.hiveloop.test/internal/bugsink-proxy/" + agent.ID.String(),
+		"BUGSINK_TOKEN":       apiKey,
 		"HIVELOOP_SANDBOX_ID": sb.ID.String(),
 		"HIVELOOP_ORG_ID":     org.ID.String(),
 	}

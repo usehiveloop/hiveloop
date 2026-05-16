@@ -206,17 +206,7 @@ func createGitConnectionForGitCreds(t *testing.T, db *gorm.DB, orgID uuid.UUID, 
 	}
 	t.Cleanup(func() { db.Where("id = ?", user.ID).Delete(&model.User{}) })
 
-	uniqueKey := fmt.Sprintf("github-profile-%s-%s", suffix, uuid.New().String()[:8])
-	integration := model.InIntegration{
-		ID:          uuid.New(),
-		UniqueKey:   uniqueKey,
-		Provider:    "github",
-		DisplayName: "GitHub Profile",
-	}
-	if err := db.Create(&integration).Error; err != nil {
-		t.Fatalf("create profile integration: %v", err)
-	}
-	t.Cleanup(func() { db.Where("id = ?", integration.ID).Delete(&model.InIntegration{}) })
+	integration := createTestInIntegration(t, db, "github")
 
 	conn := model.InConnection{
 		ID:                uuid.New(),
@@ -228,7 +218,7 @@ func createGitConnectionForGitCreds(t *testing.T, db *gorm.DB, orgID uuid.UUID, 
 	if err := db.Create(&conn).Error; err != nil {
 		t.Fatalf("create profile connection: %v", err)
 	}
-	return conn.ID, conn.NangoConnectionID, "in_" + uniqueKey
+	return conn.ID, conn.NangoConnectionID, "in_" + integration.UniqueKey
 }
 
 func createGitConnectionForExistingIntegration(t *testing.T, db *gorm.DB, orgID uuid.UUID, existingConnID uuid.UUID, suffix string) (uuid.UUID, string) {
