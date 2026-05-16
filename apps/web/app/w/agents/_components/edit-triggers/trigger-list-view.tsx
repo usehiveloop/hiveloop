@@ -6,6 +6,7 @@ import {
   Cancel01Icon,
   Edit02Icon,
   FlashIcon,
+  Settings02Icon,
 } from "@hugeicons/core-free-icons"
 import {
   DialogHeader,
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { TriggerConfig } from "../create-agent/types"
 import {
+  HttpEndpointField,
   HttpEndpointPill,
   TriggerTypeAvatar,
   triggerDisplayName,
@@ -63,10 +65,10 @@ export function TriggerListView({
           triggers.map((trigger, index) => (
             <div
               key={`${trigger.triggerType}-${trigger.connectionId}-${index}`}
-              className="flex items-start gap-3 rounded-xl border border-border bg-muted/50 p-3"
+              className="relative flex items-start gap-3 rounded-xl border border-border bg-muted/50 p-3"
             >
               <TriggerTypeAvatar trigger={trigger} size={28} />
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1 pr-14">
                 <p className="text-sm font-medium text-foreground">
                   {triggerDisplayName(trigger)}
                 </p>
@@ -93,8 +95,12 @@ export function TriggerListView({
                 ) : null}
                 {trigger.triggerType === "http" ? (
                   <div className="mt-2">
-                    <HttpEndpointPill />
-                    {trigger.secretKey ? (
+                    {trigger.endpointUrl ? (
+                      <HttpEndpointField url={trigger.endpointUrl} />
+                    ) : (
+                      <HttpEndpointPill />
+                    )}
+                    {trigger.secretKey || trigger.secretSet ? (
                       <p className="mt-1.5 text-[11px] text-muted-foreground">
                         HMAC verification enabled
                       </p>
@@ -102,24 +108,28 @@ export function TriggerListView({
                   </div>
                 ) : null}
               </div>
-              <div className="flex shrink-0 items-center gap-1">
-                {trigger.triggerType === "webhook" ? (
+              <div className="absolute right-3 top-3 flex shrink-0 items-center gap-2">
+                {trigger.triggerType === "webhook" || trigger.triggerType === "http" ? (
                   <button
                     type="button"
                     onClick={() => onEdit(index)}
-                    className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-muted"
+                    className="inline-flex items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
                     title="Edit"
                   >
-                    <HugeiconsIcon icon={Edit02Icon} size={14} className="text-muted-foreground" />
+                    <HugeiconsIcon
+                      icon={trigger.triggerType === "http" ? Settings02Icon : Edit02Icon}
+                      size={14}
+                      strokeWidth={2.25}
+                    />
                   </button>
                 ) : null}
                 <button
                   type="button"
                   onClick={() => onRemove(index)}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-destructive/10"
+                  className="inline-flex items-center justify-center text-destructive transition-colors hover:text-destructive/80"
                   title="Remove"
                 >
-                  <HugeiconsIcon icon={Cancel01Icon} size={14} className="text-destructive" />
+                  <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={2.25} />
                 </button>
               </div>
             </div>

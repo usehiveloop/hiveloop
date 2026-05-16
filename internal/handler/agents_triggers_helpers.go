@@ -45,14 +45,44 @@ func validateAgentTriggers(db *gorm.DB, orgID uuid.UUID, triggers []agentTrigger
 	return ""
 }
 
+func replaceAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agentTriggerInput) error {
+	existingSecrets := map[uuid.UUID]string{}
+	var existing []model.AgentTrigger
+	if err := tx.Where("agent_id = ?", agentID).Find(&existing).Error; err != nil {
+		return err
+	}
+	for _, trigger := range existing {
+		if trigger.SecretKey != "" {
+			existingSecrets[trigger.ID] = trigger.SecretKey
+		}
+	}
+	if err := deleteAgentTriggers(tx, agentID); err != nil {
+		return err
+	}
+	return createAgentTriggersWithExistingSecrets(tx, orgID, agentID, triggers, existingSecrets)
+}
+
 // createAgentTriggers creates employee-owned AgentTrigger records inside an
 // existing transaction. Connection IDs are in_connections IDs from the frontend.
 func createAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agentTriggerInput) error {
+	return createAgentTriggersWithExistingSecrets(tx, orgID, agentID, triggers, nil)
+}
+
+func createAgentTriggersWithExistingSecrets(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agentTriggerInput, existingSecrets map[uuid.UUID]string) error {
 	if len(triggers) == 0 {
 		return nil
 	}
 
 	for _, input := range triggers {
+		var existingID uuid.UUID
+		if input.ID != "" {
+			parsedID, parseErr := uuid.Parse(input.ID)
+			if parseErr != nil {
+				return fmt.Errorf("invalid trigger id %q: %w", input.ID, parseErr)
+			}
+			existingID = parsedID
+		}
+
 		triggerType := input.TriggerType
 		if triggerType == "" {
 			triggerType = "webhook"
@@ -64,6 +94,9 @@ func createAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agent
 			Enabled:      true,
 			TriggerType:  triggerType,
 			Instructions: input.Instructions,
+		}
+		if existingID != uuid.Nil {
+			trigger.ID = existingID
 		}
 
 		switch triggerType {
@@ -83,6 +116,8 @@ func createAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agent
 					return fmt.Errorf("hash trigger secret: %w", hashErr)
 				}
 				trigger.SecretKey = string(hash)
+			} else if existingID != uuid.Nil && existingSecrets != nil {
+				trigger.SecretKey = existingSecrets[existingID]
 			}
 
 		default:

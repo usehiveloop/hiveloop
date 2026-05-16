@@ -1046,6 +1046,8 @@ definitions:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.TriggerMatch'
       connection_id:
         type: string
+      id:
+        type: string
       instructions:
         type: string
       secret_key:

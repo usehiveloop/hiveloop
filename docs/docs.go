@@ -13612,6 +13612,9 @@ const docTemplate = `{
                 "connection_id": {
                     "type": "string"
                 },
+                "id": {
+                    "type": "string"
+                },
                 "instructions": {
                     "type": "string"
                 },

@@ -16,6 +16,7 @@ import { TriggerTypePickerView } from "./edit-triggers/trigger-type-picker-view"
 import { HttpConfigView } from "./edit-triggers/http-config-view"
 
 export {
+  HttpEndpointField,
   TriggerTypeAvatar,
   triggerDisplayName,
   HttpEndpointPill,
@@ -144,6 +145,20 @@ export function EditTriggersDialog({
   }
 
   function handleSaveHttp(input: { instructions: string; secretKey: string }) {
+    if (editingIndex !== null) {
+      const existing = triggers[editingIndex]
+      if (!existing) return
+      onUpdate(editingIndex, [
+        {
+          ...existing,
+          instructions: input.instructions || undefined,
+          secretKey: input.secretKey || undefined,
+        },
+      ])
+      resetFlowState()
+      navigateTo("list")
+      return
+    }
     onAdd({
       triggerType: "http",
       connectionId: "",
@@ -162,6 +177,11 @@ export function EditTriggersDialog({
   function handleEditClick(index: number) {
     const trigger = triggers[index]
     if (!trigger) return
+    if (trigger.triggerType === "http") {
+      setEditingIndex(index)
+      navigateTo("http-config")
+      return
+    }
     setEditingIndex(index)
     setSelectedConnection({
       id: trigger.connectionId,
@@ -402,7 +422,20 @@ export function EditTriggersDialog({
               {view === "http-config" && (
                 <HttpConfigView
                   onSave={handleSaveHttp}
-                  onBack={() => navigateTo("type")}
+                  onBack={() =>
+                    editingIndex !== null ? navigateTo("list") : navigateTo("type")
+                  }
+                  initialInstructions={
+                    editingIndex !== null
+                      ? triggers[editingIndex]?.instructions ?? ""
+                      : ""
+                  }
+                  editing={editingIndex !== null}
+                  secretSet={
+                    editingIndex !== null
+                      ? Boolean(triggers[editingIndex]?.secretSet)
+                      : false
+                  }
                 />
               )}
             </motion.div>

@@ -16,10 +16,19 @@ import { Textarea } from "@/components/ui/textarea"
 interface HttpConfigViewProps {
   onSave: (input: { instructions: string; secretKey: string }) => void
   onBack: () => void
+  initialInstructions?: string
+  editing?: boolean
+  secretSet?: boolean
 }
 
-export function HttpConfigView({ onSave, onBack }: HttpConfigViewProps) {
-  const [instructions, setInstructions] = useState("")
+export function HttpConfigView({
+  onSave,
+  onBack,
+  initialInstructions = "",
+  editing = false,
+  secretSet = false,
+}: HttpConfigViewProps) {
+  const [instructions, setInstructions] = useState(initialInstructions)
   const [secretKey, setSecretKey] = useState("")
 
   return (
@@ -41,7 +50,7 @@ export function HttpConfigView({ onSave, onBack }: HttpConfigViewProps) {
           </div>
         </div>
         <DialogDescription className="mt-2">
-          A unique URL is generated for this trigger after the agent is created. Anyone POSTing to it fires the agent.
+          A unique URL is generated for this trigger after the employee is saved. Anyone POSTing to it fires the employee.
         </DialogDescription>
       </DialogHeader>
 
@@ -66,7 +75,7 @@ export function HttpConfigView({ onSave, onBack }: HttpConfigViewProps) {
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="http-secret">
-            Secret{" "}
+            {editing ? "New secret" : "Secret"}{" "}
             <span className="font-normal text-muted-foreground">(optional)</span>
           </Label>
           <Input
@@ -75,9 +84,16 @@ export function HttpConfigView({ onSave, onBack }: HttpConfigViewProps) {
             autoComplete="off"
             value={secretKey}
             onChange={(event) => setSecretKey(event.target.value)}
-            placeholder="Leave blank to rely on the unguessable URL"
+            placeholder={
+              editing
+                ? "Leave blank to keep the current secret"
+                : "Leave blank to rely on the unguessable URL"
+            }
           />
           <p className="text-[11px] text-muted-foreground">
+            {editing && secretSet
+              ? "A secret is currently set. Enter a new value to rotate it. "
+              : null}
             If set, every request must include this value in any one of:{" "}
             <code className="font-mono text-[11px]">Authorization: Bearer …</code>,{" "}
             <code className="font-mono text-[11px]">X-Api-Key</code>,{" "}

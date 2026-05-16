@@ -197,10 +197,7 @@ func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		warnings = append(warnings, skillWarnings...)
 
 		if req.Triggers != nil {
-			if err := deleteAgentTriggers(tx, agent.ID); err != nil {
-				return err
-			}
-			if err := createAgentTriggers(tx, org.ID, agent.ID, *req.Triggers); err != nil {
+			if err := replaceAgentTriggers(tx, org.ID, agent.ID, *req.Triggers); err != nil {
 				return err
 			}
 		}

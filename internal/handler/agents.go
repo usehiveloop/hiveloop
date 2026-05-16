@@ -35,6 +35,7 @@ func (h *AgentHandler) SetCatalog(c *catalog.Catalog) {
 // agentTriggerInput defines an employee trigger.
 // TriggerType may be "webhook" (default) or "http".
 type agentTriggerInput struct {
+	ID           string              `json:"id,omitempty"`
 	TriggerType  string              `json:"trigger_type,omitempty"` // "webhook" (default), "http"
 	ConnectionID string              `json:"connection_id,omitempty"`
 	TriggerKeys  []string            `json:"trigger_keys,omitempty"`

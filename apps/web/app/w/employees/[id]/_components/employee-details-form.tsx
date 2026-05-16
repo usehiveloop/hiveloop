@@ -167,6 +167,49 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
     form.setValue("triggers", next, { shouldDirty: true })
   }
 
+  function persistTriggers(nextTriggers: TriggerConfig[], successMessage: string) {
+    updateEmployee.mutate(
+      {
+        params: { path: { id } },
+        body: {
+          triggers: serializeTriggers(nextTriggers),
+        },
+      },
+      {
+        onSuccess: (data) => {
+          if (data.employee) {
+            const nextEmployeeValues = employeeFormValues(data.employee)
+            form.setValue("triggers", nextEmployeeValues.triggers, {
+              shouldDirty: false,
+            })
+          }
+          toast.success(successMessage)
+          for (const warning of data.warnings ?? []) {
+            toast.warning(warning)
+          }
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/employees"] })
+          queryClient.invalidateQueries({
+            queryKey: ["get", "/v1/employees/{id}"],
+          })
+        },
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, "Failed to update trigger"))
+        },
+      }
+    )
+  }
+
+  function persistTriggerUpdate(index: number, newTriggers: TriggerConfig[]) {
+    const next = [...triggers]
+    next.splice(index, 1, ...newTriggers)
+    persistTriggers(next, "HTTP trigger updated")
+  }
+
+  function persistTriggerRemoval(index: number) {
+    const next = triggers.filter((_, triggerIndex) => triggerIndex !== index)
+    persistTriggers(next, "HTTP trigger deleted")
+  }
+
   function handleSave() {
     if (!canSubmit) return
     const values = form.getValues()
@@ -310,6 +353,9 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
             onAdd={addTrigger}
             onRemove={removeTrigger}
             onUpdate={updateTrigger}
+            onPersistUpdate={persistTriggerUpdate}
+            onPersistRemove={persistTriggerRemoval}
+            persisting={updateEmployee.isPending}
           />
 
           <EmployeeSkillsSection
@@ -369,6 +415,7 @@ function deriveTriggers(employee: Employee): TriggerConfig[] {
 function serializeTriggers(triggers: TriggerConfig[]) {
   return triggers.map((trigger) => {
     const base: Record<string, unknown> = { trigger_type: trigger.triggerType }
+    if (trigger.id) base.id = trigger.id
     if (trigger.instructions) base.instructions = trigger.instructions
     if (trigger.triggerType === "webhook") {
       base.connection_id = trigger.connectionId

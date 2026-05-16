@@ -14483,6 +14483,7 @@ export interface components {
         agentTriggerInput: {
             conditions?: components["schemas"]["TriggerMatch"];
             connection_id?: string;
+            id?: string;
             instructions?: string;
             /**
              * @description SecretKey is the optional plaintext shared secret for HTTP triggers.

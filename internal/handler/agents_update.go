@@ -215,11 +215,8 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	h.db.Preload("Credential").Where("id = ?", agent.ID).First(&agent)
 
 	if req.Triggers != nil {
-		if err := deleteAgentTriggers(h.db, agent.ID); err != nil {
-			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to delete old triggers during update", "agent_id", agent.ID, "error", err)
-		}
-		if err := createAgentTriggers(h.db, org.ID, agent.ID, *req.Triggers); err != nil {
-			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create new triggers during update", "agent_id", agent.ID, "error", err)
+		if err := replaceAgentTriggers(h.db, org.ID, agent.ID, *req.Triggers); err != nil {
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to replace triggers during update", "agent_id", agent.ID, "error", err)
 		}
 	}
 
