@@ -204,7 +204,7 @@ func (h *AgentProfileHandler) CreateProfileCustomApp(w http.ResponseWriter, r *h
 		UniqueKey:   nangoKey,
 		Provider:    nangoProvider,
 		DisplayName: strings.TrimSpace(req.DisplayName),
-		Credentials: profileCustomAppCredentialsWithScopes(providerMeta.AuthMode, capability.Scopes, req.Credentials),
+		Credentials: profileCustomAppPlaceholderCredentials(providerMeta.AuthMode, capability.Scopes, req.Credentials),
 	}
 	if nangoReq.DisplayName == "" {
 		nangoReq.DisplayName = profileProviderDisplayName(provider, providerMeta.DisplayName)
@@ -348,12 +348,21 @@ func (h *AgentProfileHandler) UpdateProfileCustomApp(w http.ResponseWriter, r *h
 	})
 }
 
-func profileCustomAppCredentialsWithScopes(authMode string, scopes []string, creds *nango.Credentials) *nango.Credentials {
-	if len(scopes) == 0 {
-		return creds
-	}
+func profileCustomAppPlaceholderCredentials(authMode string, scopes []string, creds *nango.Credentials) *nango.Credentials {
 	if creds == nil {
 		creds = &nango.Credentials{Type: authMode}
+	}
+	if creds.Type == "" {
+		creds.Type = authMode
+	}
+	switch authMode {
+	case "OAUTH1", "OAUTH2", "TBA":
+		if creds.ClientID == "" {
+			creds.ClientID = "hiveloop-placeholder-client-id-8f47c2d91b6a"
+		}
+		if creds.ClientSecret == "" {
+			creds.ClientSecret = "hiveloop-placeholder-client-secret-3a91e58c0d74"
+		}
 	}
 	applyProfileCustomAppScopes(creds, scopes)
 	return creds

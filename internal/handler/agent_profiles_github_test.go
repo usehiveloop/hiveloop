@@ -505,8 +505,15 @@ func TestAgentProfileHandler_CustomAppProfileFlow(t *testing.T) {
 	if err := json.Unmarshal(lastCapturedNangoBody(mockCfg, http.MethodPost, "/integrations"), &createPayload); err != nil {
 		t.Fatalf("decode create integration payload: %v", err)
 	}
-	if creds, ok := createPayload["credentials"].(map[string]any); !ok || !strings.Contains(fmt.Sprint(creds["scopes"]), "webhooks:create") {
-		t.Fatalf("expected placeholder create to include scopes, got %#v", createPayload["credentials"])
+	creds, ok := createPayload["credentials"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected placeholder create credentials, got %#v", createPayload["credentials"])
+	}
+	if creds["client_id"] == "" || creds["client_secret"] == "" {
+		t.Fatalf("expected placeholder create to include static OAuth credentials, got %#v", creds)
+	}
+	if !strings.Contains(fmt.Sprint(creds["scopes"]), "webhooks:create") {
+		t.Fatalf("expected placeholder create to include scopes, got %#v", creds)
 	}
 
 	updateBody, _ := json.Marshal(map[string]any{
