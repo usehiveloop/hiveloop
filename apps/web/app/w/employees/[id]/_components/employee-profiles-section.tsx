@@ -164,39 +164,49 @@ function EmployeeProfilesDialog({
 
   async function connectProfile(profile: AvailableProfile) {
     if (!profile.provider || profile.profile || connectingProvider) return
-    if (profileNeedsCustomAppSetup(profile)) {
-      if (profile.custom_app_integration_id) {
-        setCustomAppProfile(profile)
-        return
-      }
+    if (profile.employee_profile?.custom_app) {
       setConnectingProvider(profile.provider)
       try {
-        const placeholder = await api.POST(
-          "/v1/agents/{agentID}/profiles/{provider}/custom-app",
-          {
-            params: {
-              path: { agentID: employeeID, provider: profile.provider },
-            },
-            body: { display_name: profile.display_name } as never,
-          }
-        )
-        if (placeholder.error) throw placeholder.error
-        const integration = placeholder.data?.integration
-        setCustomAppProfile({
-          ...profile,
-          custom_app_integration_id: integration?.id,
-          provider_config_key: placeholder.data?.provider_config_key,
-          nango_config: integration?.nango_config ?? profile.nango_config,
-        })
-        invalidateProfileQueries(queryClient, employeeID)
+        await openCustomAppSetup(profile)
       } catch (err) {
-        toast.error(extractErrorMessage(err, "Failed to create custom app"))
+        toast.error(extractErrorMessage(err, "Failed to load custom app setup"))
       } finally {
         setConnectingProvider(null)
       }
       return
     }
 
+    await startOAuthProfileConnect(profile)
+  }
+
+  async function openCustomAppSetup(profile: AvailableProfile) {
+    if (!profile.provider) return
+    if (profile.custom_app_integration_id) {
+      setCustomAppProfile(profile)
+      return
+    }
+    const placeholder = await api.POST(
+      "/v1/agents/{agentID}/profiles/{provider}/custom-app",
+      {
+        params: {
+          path: { agentID: employeeID, provider: profile.provider },
+        },
+        body: { display_name: profile.display_name } as never,
+      }
+    )
+    if (placeholder.error) throw placeholder.error
+    const integration = placeholder.data?.integration
+    setCustomAppProfile({
+      ...profile,
+      custom_app_integration_id: integration?.id,
+      provider_config_key: placeholder.data?.provider_config_key,
+      nango_config: integration?.nango_config ?? profile.nango_config,
+    })
+    invalidateProfileQueries(queryClient, employeeID)
+  }
+
+  async function startOAuthProfileConnect(profile: AvailableProfile) {
+    if (!profile.provider || profile.profile || connectingProvider) return
     setConnectingProvider(profile.provider)
     try {
       const session = await api.POST(
@@ -312,8 +322,10 @@ function EmployeeProfilesDialog({
         }}
         onUpdated={(profile) => {
           setCustomAppProfile(null)
-          invalidateProfileQueries(queryClient, employeeID)
-          void connectProfile(profile)
+          void (async () => {
+            await refreshProfileQueries(queryClient, employeeID)
+            await startOAuthProfileConnect(profile)
+          })()
         }}
       />
     </>
@@ -375,6 +387,16 @@ function profileNeedsCustomAppSetup(profile: AvailableProfile) {
   return Boolean(
     profile.employee_profile?.custom_app && !profile.custom_app_configured
   )
+}
+
+async function refreshProfileQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  employeeID: string
+) {
+  invalidateProfileQueries(queryClient, employeeID)
+  await queryClient.refetchQueries({
+    queryKey: ["get", "/v1/agents/{agentID}/profiles/available"],
+  })
 }
 
 function CustomAppDialog({
