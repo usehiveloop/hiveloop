@@ -107,7 +107,11 @@ func (h *AgentProfileHandler) CreateProfileCustomApp(w http.ResponseWriter, r *h
 		Credentials: profileCustomAppPlaceholderCredentials(providerMeta.AuthMode, capability.Scopes, req.Credentials, webhookSecret),
 	}
 	if nangoReq.DisplayName == "" {
-		nangoReq.DisplayName = profileProviderDisplayName(provider, providerMeta.DisplayName)
+		var catalogDisplayName string
+		if providerDef, ok := h.catalog.GetProvider(provider); ok && providerDef != nil {
+			catalogDisplayName = providerDef.DisplayName
+		}
+		nangoReq.DisplayName = profileProviderDisplayName(provider, catalogDisplayName, providerMeta.DisplayName)
 	}
 	if err := h.nango.CreateIntegration(r.Context(), nangoReq); err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "profile custom app nango integration creation failed",

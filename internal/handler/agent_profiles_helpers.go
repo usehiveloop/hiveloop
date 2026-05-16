@@ -63,10 +63,13 @@ func (h *AgentProfileHandler) loadProfileCustomAppIntegration(ctx context.Contex
 	return integ, true
 }
 
-func profileProviderDisplayName(provider string, fallback string) string {
+func profileProviderDisplayName(provider string, catalogDisplayName string, fallback string) string {
 	switch provider {
 	case "linear-profile":
 		return "Linear Profile"
+	}
+	if catalogDisplayName != "" {
+		return catalogDisplayName
 	}
 	if fallback != "" {
 		return fallback

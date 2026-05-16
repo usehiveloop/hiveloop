@@ -403,11 +403,32 @@ func TestAgentProfileHandler_ListAvailableProfilesIncludesCustomAppSchema(t *tes
 			WebhookUserDefinedSecret bool   `json:"webhook_user_defined_secret"`
 		} `json:"nango_config"`
 	}
+	var githubProfile *struct {
+		Provider        string `json:"provider"`
+		DisplayName     string `json:"display_name"`
+		EmployeeProfile struct {
+			Supported bool     `json:"supported"`
+			CustomApp bool     `json:"custom_app"`
+			Scopes    []string `json:"scopes"`
+		} `json:"employee_profile"`
+		NangoConfig struct {
+			AuthMode                 string `json:"auth_mode"`
+			WebhookUserDefinedSecret bool   `json:"webhook_user_defined_secret"`
+		} `json:"nango_config"`
+	}
 	for i := range resp {
 		if resp[i].Provider == "linear-profile" {
 			linearProfile = &resp[i]
-			break
 		}
+		if resp[i].Provider == "github" {
+			githubProfile = &resp[i]
+		}
+	}
+	if githubProfile == nil {
+		t.Fatalf("expected github in available profiles, got %#v", resp)
+	}
+	if githubProfile.DisplayName != "GitHub Profile" {
+		t.Fatalf("github display_name = %q, want GitHub Profile", githubProfile.DisplayName)
 	}
 	if linearProfile == nil {
 		t.Fatalf("expected linear-profile in available profiles, got %#v", resp)

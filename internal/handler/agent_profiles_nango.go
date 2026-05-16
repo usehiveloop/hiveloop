@@ -91,6 +91,10 @@ func (h *AgentProfileHandler) ListAvailableProfiles(w http.ResponseWriter, r *ht
 		if !ok {
 			continue
 		}
+		var catalogDisplayName string
+		if providerDef, ok := h.catalog.GetProvider(provider); ok && providerDef != nil {
+			catalogDisplayName = providerDef.DisplayName
+		}
 		template, _ := h.nango.GetProviderTemplate(nangoProvider)
 		cfg := parseNangoConfig(buildNangoConfig(nil, template, h.nango.CallbackURL()))
 		if cfg == nil {
@@ -103,7 +107,7 @@ func (h *AgentProfileHandler) ListAvailableProfiles(w http.ResponseWriter, r *ht
 
 		item := profileProviderAvailableResponse{
 			Provider:        provider,
-			DisplayName:     profileProviderDisplayName(provider, nangoMeta.DisplayName),
+			DisplayName:     profileProviderDisplayName(provider, catalogDisplayName, nangoMeta.DisplayName),
 			EmployeeProfile: capability,
 			NangoConfig:     cfg,
 		}
