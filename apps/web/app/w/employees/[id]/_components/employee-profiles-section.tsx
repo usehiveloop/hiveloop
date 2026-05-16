@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import Nango, { AuthError } from "@nangohq/frontend"
 import { toast } from "sonner"
@@ -418,13 +418,29 @@ function CustomAppDialog({
   const authMode = nangoConfig?.auth_mode ?? "OAUTH2"
   const scopes = profile?.employee_profile?.scopes ?? []
   const generatedWebhookSecret = stringFromConfig(nangoConfig?.webhook_secret)
-  const requiresWebhookSecret = Boolean(
-    nangoConfig?.webhook_user_defined_secret && !generatedWebhookSecret
+  const hasUserDefinedWebhookSecret = Boolean(
+    nangoConfig?.webhook_user_defined_secret
   )
   const canSubmit =
     Boolean(profile?.provider) &&
-    customAppCredentialsValid(authMode, credentials, requiresWebhookSecret) &&
+    customAppCredentialsValid(
+      authMode,
+      credentials,
+      hasUserDefinedWebhookSecret
+    ) &&
     !submitting
+
+  useEffect(() => {
+    if (!profile) {
+      setCredentials({})
+      return
+    }
+    setCredentials(
+      generatedWebhookSecret
+        ? { webhook_secret: generatedWebhookSecret }
+        : {}
+    )
+  }, [generatedWebhookSecret, profile])
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
@@ -496,7 +512,7 @@ function CustomAppDialog({
 
               <CustomAppCredentialsFields
                 authMode={authMode}
-                requiresWebhookSecret={requiresWebhookSecret}
+                hasUserDefinedWebhookSecret={hasUserDefinedWebhookSecret}
                 generatedWebhookSecret={generatedWebhookSecret}
                 credentials={credentials}
                 onChange={setCredentials}
@@ -567,13 +583,13 @@ function CustomAppScopes({ scopes }: { scopes: string[] }) {
 
 function CustomAppCredentialsFields({
   authMode,
-  requiresWebhookSecret,
+  hasUserDefinedWebhookSecret,
   generatedWebhookSecret,
   credentials,
   onChange,
 }: {
   authMode: string
-  requiresWebhookSecret: boolean
+  hasUserDefinedWebhookSecret: boolean
   generatedWebhookSecret: string
   credentials: Record<string, string>
   onChange: (value: Record<string, string>) => void
@@ -582,7 +598,7 @@ function CustomAppCredentialsFields({
   const set = (key: string, value: string) =>
     onChange({ ...credentials, [key]: value })
 
-  if (fields.length === 0 && !requiresWebhookSecret) {
+  if (fields.length === 0 && !hasUserDefinedWebhookSecret) {
     return (
       <p className="text-sm text-muted-foreground">
         No credentials are needed for this auth mode.
@@ -618,12 +634,12 @@ function CustomAppCredentialsFields({
           )}
         </div>
       ))}
-      {requiresWebhookSecret ? (
+      {hasUserDefinedWebhookSecret ? (
         <div className="flex flex-col gap-2">
           <Label htmlFor="custom-app-webhook-secret">Webhook secret</Label>
           <Input
             id="custom-app-webhook-secret"
-            type="password"
+            type="text"
             value={credentials.webhook_secret ?? ""}
             onChange={(event) => set("webhook_secret", event.target.value)}
             placeholder={
@@ -646,7 +662,16 @@ function CustomAppWebhookDetails({
   const callbackURL = stringFromConfig(nangoConfig?.callback_url)
   const webhookURL = stringFromConfig(nangoConfig?.webhook_url)
   const webhookSecret = stringFromConfig(nangoConfig?.webhook_secret)
-  if (!callbackURL && !webhookURL && !webhookSecret) return null
+  const hasUserDefinedWebhookSecret = Boolean(
+    nangoConfig?.webhook_user_defined_secret
+  )
+  if (
+    !callbackURL &&
+    !webhookURL &&
+    (!webhookSecret || hasUserDefinedWebhookSecret)
+  ) {
+    return null
+  }
 
   return (
     <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-muted/30 p-3">
@@ -656,7 +681,7 @@ function CustomAppWebhookDetails({
       {webhookURL ? (
         <ReadonlyValue label="Webhook URL" value={webhookURL} />
       ) : null}
-      {webhookSecret ? (
+      {webhookSecret && !hasUserDefinedWebhookSecret ? (
         <ReadonlyValue label="Webhook secret" value={webhookSecret} secret />
       ) : null}
     </div>
