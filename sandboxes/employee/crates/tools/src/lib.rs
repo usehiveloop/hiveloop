@@ -11,7 +11,6 @@ mod write;
 
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::collections::HashMap;
 
 use async_trait::async_trait;
 use domain::ToolSpec;
@@ -50,7 +49,6 @@ pub struct ToolBuildContext {
     pub workspace_root: PathBuf,
     pub fs: Arc<LocalFsOperations>,
     pub bash: Arc<LocalBashOperations>,
-    pub runtime_env: Arc<HashMap<String, String>>,
     pub process_registry: Arc<ProcessRegistry>,
 }
 
@@ -60,7 +58,6 @@ impl ToolBuildContext {
             workspace_root,
             fs: Arc::new(LocalFsOperations::default()),
             bash: Arc::new(LocalBashOperations::default()),
-            runtime_env: Arc::new(HashMap::new()),
             process_registry: Arc::new(ProcessRegistry::new()),
         }
     }
@@ -79,7 +76,6 @@ pub fn build_builtin_tools(
                         config.clone(),
                         context.workspace_root.clone(),
                         context.bash.clone(),
-                        context.runtime_env.clone(),
                     )
                     .with_process_registry(context.process_registry.clone())
                     .into_tool(),

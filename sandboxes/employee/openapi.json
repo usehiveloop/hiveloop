@@ -74,50 +74,6 @@
         ]
       }
     },
-    "/config/env": {
-      "put": {
-        "tags": [
-          "crate::handlers"
-        ],
-        "operationId": "put_runtime_env",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RuntimeEnvUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Environment override applied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RuntimeEnvResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid environment payload"
-          },
-          "413": {
-            "description": "Payload too large"
-          },
-          "500": {
-            "description": "Failed to apply environment overrides"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
     "/gateway/cloud-agents/callback": {
       "post": {
         "tags": [
@@ -1746,29 +1702,6 @@
           "medium",
           "high"
         ]
-      },
-      "RuntimeEnvResponse": {
-        "type": "object",
-        "required": [
-          "applied_at",
-          "key_count"
-        ],
-        "properties": {
-          "applied_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "key_count": {
-            "type": "integer",
-            "minimum": 0
-          }
-        }
-      },
-      "RuntimeEnvUpdate": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "string"
-        }
       },
       "Session": {
         "type": "object",

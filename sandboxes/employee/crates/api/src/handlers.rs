@@ -7,10 +7,8 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use domain::{AgentDefinition, EventKind, SessionId, SessionStatus};
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
-use tracing::warn;
 
 use crate::http_gateway::{stream_response, HttpMessageRequest, HttpMessageResponse};
 use crate::state::ApiState;
@@ -20,86 +18,6 @@ use crate::state::ApiState;
 pub struct ConfigResponse {
     applied_at: DateTime<Utc>,
     definition: AgentDefinition,
-}
-
-const FORBIDDEN_RUNTIME_ENV_KEYS: &[&str] = &[
-    "GROQ_API_KEY",
-    "OPENROUTER_API_KEY",
-    "OPENAI_API_KEY",
-    "TOGETHER_API_KEY",
-];
-const MAX_RUNTIME_ENV_KEYS: usize = 128;
-const MAX_RUNTIME_ENV_KEY_LENGTH: usize = 128;
-const MAX_RUNTIME_ENV_VALUE_LENGTH: usize = 8192;
-const MAX_RUNTIME_ENV_PAYLOAD_BYTES: usize = 64 * 1024;
-
-#[derive(Deserialize)]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct RuntimeEnvUpdate {
-    #[serde(flatten)]
-    pub entries: HashMap<String, String>,
-}
-
-#[derive(Serialize)]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct RuntimeEnvResponse {
-    applied_at: DateTime<Utc>,
-    key_count: usize,
-}
-
-impl RuntimeEnvUpdate {
-    fn validate(&self) -> Result<(), String> {
-        if self.entries.len() > MAX_RUNTIME_ENV_KEYS {
-            return Err(format!("too many environment variables; max {}", MAX_RUNTIME_ENV_KEYS));
-        }
-
-        for (key, value) in &self.entries {
-            if !is_valid_env_key(key) {
-                return Err(format!("invalid environment key: {key}"));
-            }
-            if FORBIDDEN_RUNTIME_ENV_KEYS.binary_search(&key.as_str()).is_ok() {
-                return Err(format!("forbidden environment key: {key}"));
-            }
-            if value.len() > MAX_RUNTIME_ENV_VALUE_LENGTH {
-                return Err(format!(
-                    "environment value too long for {key}; max {} chars",
-                    MAX_RUNTIME_ENV_VALUE_LENGTH
-                ));
-            }
-        }
-
-        let payload_size = self.estimated_payload_bytes();
-        if payload_size > MAX_RUNTIME_ENV_PAYLOAD_BYTES {
-            return Err("runtime env payload too large".to_string());
-        }
-
-        Ok(())
-    }
-
-    fn estimated_payload_bytes(&self) -> usize {
-        std::mem::size_of::<usize>() + self
-            .entries
-            .iter()
-            .map(|(key, value)| key.len() + value.len())
-            .sum::<usize>()
-    }
-}
-
-fn is_valid_env_key(key: &str) -> bool {
-    if key.is_empty() || key.len() > MAX_RUNTIME_ENV_KEY_LENGTH {
-        return false;
-    }
-    let mut chars = key.chars();
-    if let Some(first) = chars.next() {
-        if !(first == '_' || first.is_ascii_alphabetic()) {
-            return false;
-        }
-    }
-    chars.all(|ch| ch == '_' || ch.is_ascii_alphanumeric())
-}
-
-fn redacted_env_keys(entries: &HashMap<String, String>) -> Vec<&str> {
-    entries.keys().map(|key| key.as_str()).collect()
 }
 
 #[cfg_attr(feature = "openapi", utoipa::path(
@@ -146,46 +64,6 @@ pub async fn put_config(
     Ok(Json(ConfigResponse {
         applied_at: Utc::now(),
         definition,
-    }))
-}
-
-#[cfg_attr(feature = "openapi", utoipa::path(
-    put,
-    path = "/config/env",
-    request_body = RuntimeEnvUpdate,
-    responses(
-        (status = 200, description = "Environment override applied", body = RuntimeEnvResponse),
-        (status = 400, description = "Invalid environment payload"),
-        (status = 413, description = "Payload too large"),
-        (status = 500, description = "Failed to apply environment overrides")
-    ),
-    security(("bearer" = []))
-))]
-pub async fn put_runtime_env(
-    State(state): State<ApiState>,
-    Json(overrides): Json<RuntimeEnvUpdate>,
-) -> Result<Json<RuntimeEnvResponse>, (StatusCode, String)> {
-    if let Err(error) = overrides.validate() {
-        warn!(
-            error = %error,
-            keys = ?redacted_env_keys(&overrides.entries),
-            key_count = overrides.entries.len(),
-            payload_size = overrides.estimated_payload_bytes(),
-            "runtime env update rejected"
-        );
-        let status = if error.contains("payload too large") {
-            StatusCode::PAYLOAD_TOO_LARGE
-        } else {
-            StatusCode::BAD_REQUEST
-        };
-        return Err((status, error));
-    }
-
-    state.config_store.set_runtime_env(overrides.entries.clone());
-
-    Ok(Json(RuntimeEnvResponse {
-        applied_at: Utc::now(),
-        key_count: overrides.entries.len(),
     }))
 }
 
@@ -688,92 +566,5 @@ fn parse_status(raw: &str) -> Result<SessionStatus, String> {
         "completed" => Ok(SessionStatus::Completed),
         "errored" => Ok(SessionStatus::Errored),
         other => Err(format!("invalid status `{other}`")),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use std::collections::HashMap;
-
-    #[test]
-    fn runtime_env_update_accepts_valid_payload() {
-        let update = RuntimeEnvUpdate {
-            entries: HashMap::from([
-                ("GOOD_KEY".to_string(), "value".to_string()),
-                ("ANOTHER_KEY_1".to_string(), "another".to_string()),
-            ]),
-        };
-
-        assert!(update.validate().is_ok(), "expected valid env payload to pass");
-    }
-
-    #[test]
-    fn runtime_env_update_rejects_invalid_key() {
-        let update = RuntimeEnvUpdate {
-            entries: HashMap::from([("1BAD_KEY".to_string(), "value".to_string())]),
-        };
-        assert_eq!(update.validate().unwrap_err(), "invalid environment key: 1BAD_KEY");
-    }
-
-    #[test]
-    fn runtime_env_update_rejects_forbidden_key() {
-        let update = RuntimeEnvUpdate {
-            entries: HashMap::from([("OPENAI_API_KEY".to_string(), "value".to_string())]),
-        };
-        assert_eq!(
-            update.validate().unwrap_err(),
-            "forbidden environment key: OPENAI_API_KEY"
-        );
-    }
-
-    #[test]
-    fn runtime_env_update_rejects_too_many_keys() {
-        let mut entries = HashMap::new();
-        for i in 0..=MAX_RUNTIME_ENV_KEYS {
-            entries.insert(format!("KEY_{i}"), "value".to_string());
-        }
-
-        let update = RuntimeEnvUpdate { entries };
-        assert_eq!(
-            update.validate().unwrap_err(),
-            format!("too many environment variables; max {}", MAX_RUNTIME_ENV_KEYS)
-        );
-    }
-
-    #[test]
-    fn runtime_env_update_rejects_long_environment_value() {
-        let update = RuntimeEnvUpdate {
-            entries: HashMap::from([("VALUE_TOO_LONG".to_string(), "x".repeat(8193))]),
-        };
-
-        assert_eq!(
-            update.validate().unwrap_err(),
-            format!(
-                "environment value too long for VALUE_TOO_LONG; max {} chars",
-                MAX_RUNTIME_ENV_VALUE_LENGTH
-            )
-        );
-    }
-
-    #[test]
-    fn runtime_env_update_rejects_oversize_payload() {
-        let update = RuntimeEnvUpdate {
-            entries: HashMap::from([(
-                "OVERSIZE_PAYLOAD".to_string(),
-                "x".repeat(MAX_RUNTIME_ENV_PAYLOAD_BYTES),
-            )]),
-        };
-
-        assert_eq!(update.validate().unwrap_err(), "runtime env payload too large");
-    }
-
-    #[test]
-    fn runtime_env_update_accepts_empty_payload() {
-        let update = RuntimeEnvUpdate {
-            entries: HashMap::new(),
-        };
-        assert!(update.validate().is_ok(), "empty payload should be accepted as clear overlay");
     }
 }

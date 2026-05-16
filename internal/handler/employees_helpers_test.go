@@ -135,68 +135,26 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 			}
 			w.WriteHeader(http.StatusOK)
 		case "/config":
-			if r.Method == http.MethodGet {
-				stub.mu.Lock()
-				body := append([]byte(nil), stub.lastConfigBody...)
-				stub.mu.Unlock()
-				if len(body) == 0 {
-					body = []byte(`{}`)
-				}
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write(body)
-				return
-			}
-			if r.Method == http.MethodPut {
-				body, _ := io.ReadAll(r.Body)
-				stub.mu.Lock()
-				stub.syncConfigCalls++
-				stub.lastSyncBearer = r.Header.Get("Authorization")
-				stub.lastConfigBody = body
-				status := stub.syncConfigStatus
-				errs := append([]string(nil), stub.syncConfigErrors...)
-				stub.mu.Unlock()
-				if status == 0 {
-					status = http.StatusOK
-				}
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(status)
-				respBody := map[string]any{
-					"applied": 3, "deleted": 0, "repos_cloned": 1, "restart_triggered": true,
-				}
-				if len(errs) > 0 {
-					respBody["errors"] = errs
-				}
-				_ = json.NewEncoder(w).Encode(respBody)
-				return
-			}
-			w.WriteHeader(http.StatusMethodNotAllowed)
-		case "/config/env":
-			if r.Method != http.MethodPut {
-				w.WriteHeader(http.StatusMethodNotAllowed)
-				return
-			}
 			body, _ := io.ReadAll(r.Body)
 			stub.mu.Lock()
-			stub.syncEnvCalls++
-			stub.lastEnvBearer = r.Header.Get("Authorization")
-			stub.lastEnvBody = body
+			stub.syncConfigCalls++
+			stub.lastSyncBearer = r.Header.Get("Authorization")
+			stub.lastConfigBody = body
 			status := stub.syncConfigStatus
+			errs := stub.syncConfigErrors
 			stub.mu.Unlock()
 			if status == 0 {
 				status = http.StatusOK
 			}
-			var env map[string]string
-			if err := json.Unmarshal(body, &env); err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(status)
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"applied_at": "2026-01-01T00:00:00Z",
-				"key_count":  len(env),
-			})
+			respBody := map[string]any{
+				"applied": 3, "deleted": 0, "repos_cloned": 1, "restart_triggered": true,
+			}
+			if len(errs) > 0 {
+				respBody["errors"] = errs
+			}
+			_ = json.NewEncoder(w).Encode(respBody)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}

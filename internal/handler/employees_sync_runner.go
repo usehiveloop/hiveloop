@@ -2,11 +2,8 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
-	"strings"
 
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -44,10 +41,6 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 	if err != nil {
 		return nil, fmt.Errorf("decrypt runtime secret: %w", err)
 	}
-	runtimeEnv, err := h.loadRuntimeEnv(agent)
-	if err != nil {
-		return nil, fmt.Errorf("load runtime env: %w", err)
-	}
 	def, err := employeeruntime.Compile(ctx, h.compileDeps, agent)
 	if err != nil {
 		return nil, fmt.Errorf("compile: %w", err)
@@ -57,20 +50,10 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 	if err := client.Healthz(ctx); err != nil {
 		return nil, fmt.Errorf("employee runtime healthz: %w", err)
 	}
-
-	currentDef, err := client.GetConfig(ctx)
-	needsRestart := err != nil || !agentDefinitionsMatch(currentDef, def)
-
-	var resp *employeeruntime.SyncResponse
-	if needsRestart {
-		resp, err = client.PutConfig(ctx, def)
-	} else {
-		resp, err = client.UpdateRuntimeEnv(ctx, runtimeEnv)
-	}
+	resp, err := client.PutConfig(ctx, def)
 	if err != nil {
 		return nil, err
 	}
-
 	if err := client.Readyz(ctx); err != nil {
 		return nil, fmt.Errorf("employee runtime readyz: %w", err)
 	}
@@ -85,57 +68,7 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 		}
 		agent.Status = "active"
 	}
-
 	return resp, nil
-}
-
-func (h *EmployeeHandler) loadRuntimeEnv(agent *model.Agent) (map[string]string, error) {
-	env := make(map[string]string)
-	if agent == nil || len(agent.EncryptedEnvVars) == 0 {
-		return env, nil
-	}
-
-	decrypted, err := h.compileDeps.EncKey.DecryptString(agent.EncryptedEnvVars)
-	if err != nil {
-		return nil, err
-	}
-	decrypted = strings.TrimSpace(decrypted)
-	if decrypted == "" {
-		return env, nil
-	}
-
-	rawEnv := map[string]string{}
-	if err := json.Unmarshal([]byte(decrypted), &rawEnv); err != nil {
-		return nil, fmt.Errorf("decode env vars: %w", err)
-	}
-	for key, value := range rawEnv {
-		if strings.HasPrefix(strings.ToUpper(key), "BRIDGE_") {
-			continue
-		}
-		env[key] = value
-	}
-	return env, nil
-}
-
-func agentDefinitionsMatch(left, right *employeeruntime.AgentDefinition) bool {
-	leftJSON, err := json.Marshal(left)
-	if err != nil {
-		return false
-	}
-	rightJSON, err := json.Marshal(right)
-	if err != nil {
-		return false
-	}
-
-	var leftDoc any
-	var rightDoc any
-	if err := json.Unmarshal(leftJSON, &leftDoc); err != nil {
-		return false
-	}
-	if err := json.Unmarshal(rightJSON, &rightDoc); err != nil {
-		return false
-	}
-	return reflect.DeepEqual(leftDoc, rightDoc)
 }
 
 func toSyncResponseDTO(resp *employeeruntime.SyncResponse) syncEmployeeResponse {
