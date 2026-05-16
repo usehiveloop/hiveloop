@@ -26,6 +26,7 @@ type profileProviderAvailableResponse struct {
 	NangoConfig            *model.NangoConfig                 `json:"nango_config,omitempty"`
 	Profile                *agentProfileResponse              `json:"profile,omitempty"`
 	CustomAppIntegrationID *string                            `json:"custom_app_integration_id,omitempty"`
+	CustomAppConfigured    bool                               `json:"custom_app_configured,omitempty"`
 	ProviderConfigKey      *string                            `json:"provider_config_key,omitempty"`
 }
 
@@ -115,7 +116,11 @@ func (h *AgentProfileHandler) ListAvailableProfiles(w http.ResponseWriter, r *ht
 				id := integ.ID.String()
 				key := inNangoKey(integ.UniqueKey)
 				item.CustomAppIntegrationID = &id
+				item.CustomAppConfigured = profileCustomAppConfigured(integ.Meta)
 				item.ProviderConfigKey = &key
+				if integCfg := parseNangoConfig(integ.NangoConfig); integCfg != nil {
+					item.NangoConfig = integCfg
+				}
 			}
 		}
 		resp = append(resp, item)

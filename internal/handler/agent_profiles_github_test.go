@@ -516,6 +516,15 @@ func TestAgentProfileHandler_CustomAppProfileFlow(t *testing.T) {
 		t.Fatalf("expected placeholder create to include scopes, got %#v", creds)
 	}
 
+	req = httptest.NewRequest(http.MethodPost, "/v1/agents/"+agent.ID.String()+"/profiles/linear-profile/connect-session", nil)
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusConflict {
+		t.Fatalf("expected 409 before custom app credentials are saved, got %d: %s", rr.Code, rr.Body.String())
+	}
+
 	updateBody, _ := json.Marshal(map[string]any{
 		"display_name": "Linear Workspace App",
 		"credentials": map[string]any{

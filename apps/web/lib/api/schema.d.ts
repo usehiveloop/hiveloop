@@ -15446,6 +15446,7 @@ export interface components {
             provider_config_key?: string;
         };
         profileProviderAvailableResponse: {
+            custom_app_configured?: boolean;
             custom_app_integration_id?: string;
             display_name?: string;
             employee_profile?: components["schemas"]["EmployeeProfileCapability"];

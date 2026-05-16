@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Alert02Icon,
+  Copy01Icon,
   Loading03Icon,
   Plug01Icon,
   Tick02Icon,
@@ -157,10 +158,11 @@ function EmployeeProfilesDialog({
 
   async function connectProfile(profile: AvailableProfile) {
     if (!profile.provider || profile.profile || connectingProvider) return
-    if (
-      profile.employee_profile?.custom_app &&
-      !profile.custom_app_integration_id
-    ) {
+    if (profileNeedsCustomAppSetup(profile)) {
+      if (profile.custom_app_integration_id) {
+        setCustomAppProfile(profile)
+        return
+      }
       setConnectingProvider(profile.provider)
       try {
         const placeholder = await api.POST(
@@ -324,9 +326,7 @@ function ProfileChoiceCard({
   onConnect: () => void
 }) {
   const connected = Boolean(profile.profile)
-  const customAppRequired = Boolean(
-    profile.employee_profile?.custom_app && !profile.custom_app_integration_id
-  )
+  const customAppRequired = profileNeedsCustomAppSetup(profile)
 
   return (
     <ChoiceCard
@@ -362,6 +362,12 @@ function ProfileChoiceCard({
         )
       }
     />
+  )
+}
+
+function profileNeedsCustomAppSetup(profile: AvailableProfile) {
+  return Boolean(
+    profile.employee_profile?.custom_app && !profile.custom_app_configured
   )
 }
 
@@ -429,8 +435,8 @@ function CustomAppDialog({
 
   return (
     <Dialog open={Boolean(profile)} onOpenChange={onOpenChange}>
-      <DialogContent className="p-6 sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[min(760px,90vh)] w-full max-w-[calc(100vw-2rem)] flex-col overflow-hidden p-0 sm:max-w-lg">
+        <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle>Set up custom app</DialogTitle>
           <DialogDescription>
             Add the OAuth app credentials for{" "}
@@ -438,35 +444,46 @@ function CustomAppDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={submit} className="mt-4 flex flex-col gap-4">
-          <div className="flex items-center gap-3 rounded-xl bg-muted/50 p-3">
-            {profile?.provider ? (
-              <IntegrationLogo provider={profile.provider} size={32} />
-            ) : null}
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">
-                {profile?.display_name ?? "Profile"}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {authMode}
-              </p>
+        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-w-0 flex-1 overflow-y-auto px-6 py-5">
+            <div className="flex min-w-0 flex-col gap-4">
+              <div className="flex min-w-0 items-center gap-3 rounded-xl bg-muted/50 p-3">
+                {profile?.provider ? (
+                  <IntegrationLogo provider={profile.provider} size={32} />
+                ) : null}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {profile?.display_name ?? "Profile"}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {authMode}
+                  </p>
+                </div>
+              </div>
+
+              <CustomAppWebhookDetails nangoConfig={nangoConfig} />
+
+              <CustomAppScopes scopes={scopes} />
+
+              <CustomAppCredentialsFields
+                authMode={authMode}
+                requiresWebhookSecret={requiresWebhookSecret}
+                credentials={credentials}
+                onChange={setCredentials}
+              />
             </div>
           </div>
 
-          <CustomAppWebhookDetails nangoConfig={nangoConfig} />
-
-          <CustomAppScopes scopes={scopes} />
-
-          <CustomAppCredentialsFields
-            authMode={authMode}
-            requiresWebhookSecret={requiresWebhookSecret}
-            credentials={credentials}
-            onChange={setCredentials}
-          />
-
-          <Button type="submit" disabled={!canSubmit} loading={submitting}>
-            Save custom app
-          </Button>
+          <div className="border-t border-border/60 px-6 pt-4 pb-6">
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+              loading={submitting}
+              className="w-full"
+            >
+              Save custom app
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
@@ -474,15 +491,46 @@ function CustomAppDialog({
 }
 
 function CustomAppScopes({ scopes }: { scopes: string[] }) {
+  const [copied, setCopied] = useState(false)
   if (scopes.length === 0) return null
+  const value = scopes.join(",")
+
+  async function copyValue() {
+    await navigator.clipboard.writeText(value)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1600)
+  }
+
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-3">
-      <Label>OAuth scopes</Label>
-      <Textarea
-        value={scopes.join(",")}
-        readOnly
-        className="min-h-20 resize-none font-mono text-xs"
-      />
+    <div className="min-w-0 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <Label>OAuth scopes</Label>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={copyValue}
+          className="h-7 shrink-0 px-2 text-xs"
+        >
+          <HugeiconsIcon
+            icon={copied ? Tick02Icon : Copy01Icon}
+            className="size-3.5"
+            strokeWidth={2.5}
+          />
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {scopes.map((scope) => (
+          <Badge
+            key={scope}
+            variant="ghost"
+            className="rounded-md bg-muted px-2 py-1 font-mono text-[11px] font-normal text-muted-foreground"
+          >
+            {scope}
+          </Badge>
+        ))}
+      </div>
     </div>
   )
 }
@@ -557,12 +605,16 @@ function CustomAppWebhookDetails({
 }: {
   nangoConfig?: AvailableProfile["nango_config"]
 }) {
+  const callbackURL = stringFromConfig(nangoConfig?.callback_url)
   const webhookURL = stringFromConfig(nangoConfig?.webhook_url)
   const webhookSecret = stringFromConfig(nangoConfig?.webhook_secret)
-  if (!webhookURL && !webhookSecret) return null
+  if (!callbackURL && !webhookURL && !webhookSecret) return null
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/30 p-3">
+    <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-muted/30 p-3">
+      {callbackURL ? (
+        <ReadonlyValue label="OAuth callback URL" value={callbackURL} />
+      ) : null}
       {webhookURL ? (
         <ReadonlyValue label="Webhook URL" value={webhookURL} />
       ) : null}
@@ -582,10 +634,45 @@ function ReadonlyValue({
   value: string
   secret?: boolean
 }) {
+  const [copied, setCopied] = useState(false)
+
+  async function copyValue() {
+    await navigator.clipboard.writeText(value)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1600)
+  }
+
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="min-w-0 space-y-1.5">
       <Label>{label}</Label>
-      <Input value={value} readOnly type={secret ? "password" : "text"} />
+      <div className="flex min-w-0 items-start gap-2">
+        {secret ? (
+          <Input
+            value={value}
+            readOnly
+            type="password"
+            className="min-w-0 flex-1 font-mono text-xs"
+          />
+        ) : (
+          <code className="min-w-0 flex-1 select-all break-all rounded-lg border border-border bg-background px-3 py-2 font-mono text-[12px] leading-relaxed text-foreground">
+            {value}
+          </code>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          onClick={copyValue}
+          aria-label={`Copy ${label}`}
+          className="shrink-0"
+        >
+          <HugeiconsIcon
+            icon={copied ? Tick02Icon : Copy01Icon}
+            className="size-3.5"
+            strokeWidth={2.5}
+          />
+        </Button>
+      </div>
     </div>
   )
 }

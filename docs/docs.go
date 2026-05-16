@@ -16514,6 +16514,9 @@ const docTemplate = `{
         "internal_handler.profileProviderAvailableResponse": {
             "type": "object",
             "properties": {
+                "custom_app_configured": {
+                    "type": "boolean"
+                },
                 "custom_app_integration_id": {
                     "type": "string"
                 },

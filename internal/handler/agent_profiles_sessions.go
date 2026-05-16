@@ -34,6 +34,10 @@ func (h *AgentProfileHandler) CreateProfileConnectSession(w http.ResponseWriter,
 	if !ok {
 		return
 	}
+	if integ.CustomApp && !profileCustomAppConfigured(integ.Meta) {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "custom app credentials must be saved before connecting this profile"})
+		return
+	}
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing user context"})

@@ -69,6 +69,18 @@ func (h *AgentProfileHandler) CreateProfileCustomApp(w http.ResponseWriter, r *h
 	}
 
 	if integ, ok := h.loadProfileCustomAppIntegration(r.Context(), orgID, agent.ID, provider); ok {
+		nangoConfig, err := h.refreshedProfileCustomAppConfig(r.Context(), nangoProvider, inNangoKey(integ.UniqueKey), providerMeta.WebhookUserDefinedSecret)
+		if err != nil {
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "profile custom app config refresh failed",
+				"error", err, "org_id", orgID, "agent_id", agent.ID, "provider", provider, "integration_id", integ.ID)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to refresh custom app integration"})
+			return
+		}
+		if err := h.db.Model(&integ).Update("nango_config", nangoConfig).Error; err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to store custom app integration"})
+			return
+		}
+		integ.NangoConfig = nangoConfig
 		writeJSON(w, http.StatusOK, profileCustomAppResponse{
 			Integration:       toInIntegrationResponse(integ),
 			ProviderConfigKey: inNangoKey(integ.UniqueKey),
@@ -79,11 +91,20 @@ func (h *AgentProfileHandler) CreateProfileCustomApp(w http.ResponseWriter, r *h
 	integID := uuid.New()
 	uniqueKey := fmt.Sprintf("%s-%s-%s", provider, agent.ID.String()[:8], integID.String()[:8])
 	nangoKey := inNangoKey(uniqueKey)
+	webhookSecret := ""
+	if providerMeta.WebhookUserDefinedSecret {
+		var err error
+		webhookSecret, err = randomHex(24)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to generate webhook secret"})
+			return
+		}
+	}
 	nangoReq := nango.CreateIntegrationRequest{
 		UniqueKey:   nangoKey,
 		Provider:    nangoProvider,
 		DisplayName: strings.TrimSpace(req.DisplayName),
-		Credentials: profileCustomAppPlaceholderCredentials(providerMeta.AuthMode, capability.Scopes, req.Credentials),
+		Credentials: profileCustomAppPlaceholderCredentials(providerMeta.AuthMode, capability.Scopes, req.Credentials, webhookSecret),
 	}
 	if nangoReq.DisplayName == "" {
 		nangoReq.DisplayName = profileProviderDisplayName(provider, providerMeta.DisplayName)
@@ -96,6 +117,9 @@ func (h *AgentProfileHandler) CreateProfileCustomApp(w http.ResponseWriter, r *h
 	}
 
 	nangoConfig := h.profileCustomAppNangoConfig(r.Context(), nangoProvider, nangoKey)
+	if webhookSecret != "" && stringFromJSON(nangoConfig, "webhook_secret") == "" {
+		nangoConfig["webhook_secret"] = webhookSecret
+	}
 	integ := model.InIntegration{
 		ID:          integID,
 		UniqueKey:   uniqueKey,
@@ -208,9 +232,7 @@ func (h *AgentProfileHandler) UpdateProfileCustomApp(w http.ResponseWriter, r *h
 	updates := map[string]any{
 		"display_name": displayName,
 		"nango_config": h.profileCustomAppNangoConfig(r.Context(), nangoProvider, nangoKey),
-	}
-	if req.Meta != nil {
-		updates["meta"] = req.Meta
+		"meta":         profileCustomAppConfiguredMeta(integ.Meta, req.Meta),
 	}
 	if err := h.db.Model(&integ).Updates(updates).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to store custom app integration"})
@@ -227,7 +249,7 @@ func (h *AgentProfileHandler) UpdateProfileCustomApp(w http.ResponseWriter, r *h
 	})
 }
 
-func profileCustomAppPlaceholderCredentials(authMode string, scopes []string, creds *nango.Credentials) *nango.Credentials {
+func profileCustomAppPlaceholderCredentials(authMode string, scopes []string, creds *nango.Credentials, webhookSecret string) *nango.Credentials {
 	if creds == nil {
 		creds = &nango.Credentials{Type: authMode}
 	}
@@ -243,8 +265,31 @@ func profileCustomAppPlaceholderCredentials(authMode string, scopes []string, cr
 			creds.ClientSecret = "hiveloop-placeholder-client-secret-3a91e58c0d74"
 		}
 	}
+	if webhookSecret != "" && creds.WebhookSecret == "" {
+		creds.WebhookSecret = webhookSecret
+	}
 	applyProfileCustomAppScopes(creds, scopes)
 	return creds
+}
+
+func profileCustomAppConfigured(meta model.JSON) bool {
+	if meta == nil {
+		return false
+	}
+	v, _ := meta["custom_app_configured"].(bool)
+	return v
+}
+
+func profileCustomAppConfiguredMeta(existing model.JSON, incoming model.JSON) model.JSON {
+	next := model.JSON{}
+	for key, value := range existing {
+		next[key] = value
+	}
+	for key, value := range incoming {
+		next[key] = value
+	}
+	next["custom_app_configured"] = true
+	return next
 }
 
 func applyProfileCustomAppScopes(creds *nango.Credentials, scopes []string) {
@@ -252,6 +297,19 @@ func applyProfileCustomAppScopes(creds *nango.Credentials, scopes []string) {
 		return
 	}
 	creds.Scopes = strings.Join(scopes, ",")
+}
+
+func (h *AgentProfileHandler) refreshedProfileCustomAppConfig(ctx context.Context, nangoProvider string, nangoKey string, needsWebhookSecret bool) (model.JSON, error) {
+	config := h.profileCustomAppNangoConfig(ctx, nangoProvider, nangoKey)
+	if !needsWebhookSecret || stringFromJSON(config, "webhook_secret") != "" {
+		return config, nil
+	}
+	secret, err := randomHex(24)
+	if err != nil {
+		return nil, err
+	}
+	config["webhook_secret"] = secret
+	return config, nil
 }
 
 func (h *AgentProfileHandler) profileCustomAppNangoConfig(ctx context.Context, nangoProvider string, nangoKey string) model.JSON {
