@@ -10301,28 +10301,12 @@
     "supported": true,
     "custom_app": true,
     "scopes": [
-      "comments:create",
-      "comments:read",
-      "comments:write",
-      "cycles:create",
-      "cycles:read",
-      "cycles:write",
-      "documents:create",
-      "documents:read",
-      "documents:write",
-      "issues:create",
-      "issues:read",
-      "issues:write",
-      "projects:create",
-      "projects:read",
-      "projects:write",
       "read",
-      "teams:create",
-      "teams:read",
-      "webhooks:create",
-      "webhooks:read",
-      "webhooks:write",
-      "write"
+      "write",
+      "issues:create",
+      "comments:create",
+      "app:assignable",
+      "app:mentionable"
     ]
   }
 }

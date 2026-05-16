@@ -415,7 +415,7 @@ func TestAgentProfileHandler_ListAvailableProfilesIncludesCustomAppSchema(t *tes
 	if !linearProfile.EmployeeProfile.Supported || !linearProfile.EmployeeProfile.CustomApp {
 		t.Fatalf("unexpected employee_profile capability: %#v", linearProfile.EmployeeProfile)
 	}
-	if !containsString(linearProfile.EmployeeProfile.Scopes, "webhooks:create") || !containsString(linearProfile.EmployeeProfile.Scopes, "issues:write") {
+	if !containsString(linearProfile.EmployeeProfile.Scopes, "app:assignable") || !containsString(linearProfile.EmployeeProfile.Scopes, "issues:create") {
 		t.Fatalf("expected linear-profile scopes, got %#v", linearProfile.EmployeeProfile.Scopes)
 	}
 	if linearProfile.DisplayName != "Linear Profile" {
@@ -512,7 +512,7 @@ func TestAgentProfileHandler_CustomAppProfileFlow(t *testing.T) {
 	if creds["client_id"] == "" || creds["client_secret"] == "" {
 		t.Fatalf("expected placeholder create to include static OAuth credentials, got %#v", creds)
 	}
-	if !strings.Contains(fmt.Sprint(creds["scopes"]), "webhooks:create") {
+	if !strings.Contains(fmt.Sprint(creds["scopes"]), "app:assignable") {
 		t.Fatalf("expected placeholder create to include scopes, got %#v", creds)
 	}
 
