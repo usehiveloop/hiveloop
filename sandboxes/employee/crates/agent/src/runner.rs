@@ -47,6 +47,7 @@ impl RigAgentRunner {
                 fs: Arc::new(LocalFsOperations::default()),
                 bash: Arc::new(LocalBashOperations::default()),
                 process_registry: Arc::new(ProcessRegistry::new()),
+                runtime_env: Arc::new(HashMap::new()),
             },
             outbound_emitter: None,
             gateway: None,
@@ -97,6 +98,7 @@ impl AgentRunner for RigAgentRunner {
     ) -> Result<BoxStream<'static, AgentEvent>> {
         let snapshot = self.config.snapshot();
         let model_config = pick_model_for_turn(&snapshot, &user_input);
+        let runtime_env = self.config.runtime_env();
         let ModelClientConfig {
             client,
             model_id,
@@ -104,7 +106,7 @@ impl AgentRunner for RigAgentRunner {
             reasoning_effort,
             temperature,
             max_output_tokens,
-        } = build_model_client(model_config)?;
+        } = build_model_client(model_config, &runtime_env)?;
 
         let dynamic_context = user_input.dynamic_context.clone();
         let mut messages = build_initial_messages(
@@ -118,9 +120,10 @@ impl AgentRunner for RigAgentRunner {
         )
         .await?;
         if let Some(compaction) = snapshot.context.compaction.as_ref().filter(|c| c.enabled) {
-            messages = compact_messages_if_needed(messages, compaction).await?;
+            messages = compact_messages_if_needed(messages, compaction, &runtime_env).await?;
         }
-        let tool_context = self.tool_context.clone();
+        let mut tool_context = self.tool_context.clone();
+        tool_context.runtime_env = runtime_env;
         let gateway = self.gateway.clone();
         let cron_repo = self.cron_repo.clone();
         let process_registry = self.tool_context.process_registry.clone();
@@ -625,6 +628,7 @@ fn format_memory_entry(entry: &MemoryContextEntry) -> Option<String> {
 async fn compact_messages_if_needed(
     messages: Vec<AgentMessage>,
     config: &domain::CompactionConfig,
+    runtime_env: &std::collections::HashMap<String, String>,
 ) -> Result<Vec<AgentMessage>> {
     let threshold = config.token_threshold;
     let estimated_tokens = estimate_tokens(&messages, config.chars_per_token.max(1));
@@ -640,7 +644,7 @@ async fn compact_messages_if_needed(
         .map(message_to_transcript_line)
         .collect::<Vec<_>>()
         .join("\n");
-    let summary = summarize_history(&config.summarizer_model, transcript).await?;
+    let summary = summarize_history(&config.summarizer_model, runtime_env, transcript).await?;
 
     let mut compacted = Vec::new();
     compacted.extend(messages.iter().take(2).cloned());
@@ -651,7 +655,11 @@ async fn compact_messages_if_needed(
     Ok(compacted)
 }
 
-async fn summarize_history(model: &ModelConfig, transcript: String) -> Result<String> {
+async fn summarize_history(
+    model: &ModelConfig,
+    runtime_env: &std::collections::HashMap<String, String>,
+    transcript: String,
+) -> Result<String> {
     let ModelClientConfig {
         client,
         model_id,
@@ -659,7 +667,7 @@ async fn summarize_history(model: &ModelConfig, transcript: String) -> Result<St
         reasoning_effort,
         temperature,
         max_output_tokens,
-    } = build_model_client(model)?;
+    } = build_model_client(model, runtime_env)?;
     let request = ModelRequest {
         model: model_id,
         messages: vec![
@@ -895,8 +903,11 @@ fn pick_model_for_turn<'a>(
     &snapshot.model
 }
 
-fn build_model_client(model: &ModelConfig) -> Result<ModelClientConfig> {
-    ChatModelClient::from_model_config(model)
+fn build_model_client(
+    model: &ModelConfig,
+    runtime_env: &HashMap<String, String>,
+) -> Result<ModelClientConfig> {
+    ChatModelClient::from_model_config(model, runtime_env)
 }
 
 fn build_all_tools(

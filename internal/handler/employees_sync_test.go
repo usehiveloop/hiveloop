@@ -66,6 +66,175 @@ func TestIntegration_EmployeesSync_Slack_HappyPath(t *testing.T) {
 	assertEmployeeRuntimeConfig(t, h.sidecar.configBody())
 }
 
+func TestIntegration_EmployeesSync_EnvOnlyUpdateCallsRuntimeEnvEndpoint(t *testing.T) {
+	h := newEmployeeHarness(t)
+	h.platformCredCleanup(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	h.seedSandbox(t, m, agent.ID)
+	h.seedSlackProfile(t, m, agent.ID)
+
+	rr := h.postSync(t, m, agent.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("initial sync status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	baseCalls, _ := h.sidecar.snapshot()
+
+	h.setRuntimeEnvVars(t, agent.ID, map[string]string{
+		"RUNTIME_TEST_TOKEN": "overlay-value",
+	})
+
+	rr = h.postSync(t, m, agent.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("runtime env sync status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	var resp struct {
+		Applied          int  `json:"applied"`
+		RestartTriggered bool `json:"restart_triggered"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode sync response: %v", err)
+	}
+	if resp.Applied != 1 {
+		t.Errorf("applied = %d, want 1", resp.Applied)
+	}
+	if resp.RestartTriggered {
+		t.Errorf("restart_triggered = %v, want false for env-only sync", resp.RestartTriggered)
+	}
+
+	calls, _ := h.sidecar.snapshot()
+	if calls != baseCalls {
+		t.Errorf("/config calls = %d, want %d", calls, baseCalls)
+	}
+	envCalls, envBearer := h.sidecar.snapshotRuntime()
+	if envCalls != 1 {
+		t.Errorf("runtime env calls = %d, want 1", envCalls)
+	}
+	if envBearer == "" || envBearer == "Bearer " {
+		t.Errorf("runtime env bearer header missing: %q", envBearer)
+	}
+
+	var payload map[string]string
+	if err := json.Unmarshal(h.sidecar.envBody(), &payload); err != nil {
+		t.Fatalf("decode runtime env payload: %v", err)
+	}
+	if got := payload["RUNTIME_TEST_TOKEN"]; got != "overlay-value" {
+		t.Errorf("runtime env payload = %q, want overlay-value", got)
+	}
+}
+
+func TestIntegration_EmployeesSync_EnvOnlyUpdateRejectsBridgeReservedKeys(t *testing.T) {
+	h := newEmployeeHarness(t)
+	h.platformCredCleanup(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	h.seedSandbox(t, m, agent.ID)
+	h.seedSlackProfile(t, m, agent.ID)
+
+	rr := h.postSync(t, m, agent.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("initial sync status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	h.setRuntimeEnvVars(t, agent.ID, map[string]string{
+		"RUNTIME_API_TOKEN": "overlay-value",
+		"BRIDGE_INTERNAL":   "forbidden",
+	})
+
+	rr = h.postSync(t, m, agent.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("runtime env sync status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+
+	var payload map[string]string
+	if err := json.Unmarshal(h.sidecar.envBody(), &payload); err != nil {
+		t.Fatalf("decode runtime env payload: %v", err)
+	}
+	if got := payload["RUNTIME_API_TOKEN"]; got != "overlay-value" {
+		t.Errorf("RUNTIME_API_TOKEN = %q, want overlay-value", got)
+	}
+	if _, ok := payload["BRIDGE_INTERNAL"]; ok {
+		t.Errorf("BRIDGE_INTERNAL leaked into runtime env payload")
+	}
+}
+
+func TestIntegration_EmployeesSync_EnvOnlyUpdateCanClearRuntimeEnvOverlay(t *testing.T) {
+	h := newEmployeeHarness(t)
+	h.platformCredCleanup(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	h.seedSandbox(t, m, agent.ID)
+	h.seedSlackProfile(t, m, agent.ID)
+
+	rr := h.postSync(t, m, agent.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("initial sync status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	h.setRuntimeEnvVars(t, agent.ID, map[string]string{
+		"CLEARABLE_ENV": "value",
+	})
+	rr = h.postSync(t, m, agent.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("runtime env sync status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+
+	h.setRuntimeEnvVars(t, agent.ID, map[string]string{})
+	rr = h.postSync(t, m, agent.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("runtime env clear status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	if rr.Body == nil {
+		t.Fatalf("empty sync response body")
+	}
+	var resp struct {
+		Applied int `json:"applied"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode sync response: %v", err)
+	}
+	if resp.Applied != 0 {
+		t.Errorf("applied = %d, want 0", resp.Applied)
+	}
+	var payload map[string]string
+	if err := json.Unmarshal(h.sidecar.envBody(), &payload); err != nil {
+		t.Fatalf("decode runtime env payload: %v", err)
+	}
+	if len(payload) != 0 {
+		t.Errorf("runtime env payload = %#v, want empty", payload)
+	}
+}
+
+func TestIntegration_EmployeesSync_DefinitionChangeStillCallsConfigPath(t *testing.T) {
+	h := newEmployeeHarness(t)
+	h.platformCredCleanup(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	h.seedSandbox(t, m, agent.ID)
+	h.seedSlackProfile(t, m, agent.ID)
+
+	rr := h.postSync(t, m, agent.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("initial sync status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	baseConfigCalls, _ := h.sidecar.snapshot()
+	if err := h.db.Model(&model.Agent{}).
+		Where("id = ?", agent.ID).
+		Update("system_prompt", "updated system prompt").Error; err != nil {
+		t.Fatalf("update system prompt: %v", err)
+	}
+
+	rr = h.postSync(t, m, agent.ID.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("sync-with-definition-change status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	calls, _ := h.sidecar.snapshot()
+	if calls != baseConfigCalls+1 {
+		t.Fatalf("runtime /config calls = %d, want %d", calls, baseConfigCalls+1)
+	}
+	if envCalls, _ := h.sidecar.snapshotRuntime(); envCalls != 0 {
+		t.Fatalf("runtime env calls = %d, want 0 for definition change", envCalls)
+	}
+}
+
 func TestIntegration_EmployeesSync_MarksDraftEmployeeActiveAfterRuntimeReady(t *testing.T) {
 	h := newEmployeeHarness(t)
 	h.platformCredCleanup(t)

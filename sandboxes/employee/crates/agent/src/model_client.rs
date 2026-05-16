@@ -38,9 +38,12 @@ impl ChatModelClient {
         }
     }
 
-    pub fn from_model_config(model: &ModelConfig) -> Result<ModelClientConfig> {
+    pub fn from_model_config(
+        model: &ModelConfig,
+        runtime_env: &HashMap<String, String>,
+    ) -> Result<ModelClientConfig> {
         let mut endpoints = Vec::new();
-        collect_model_endpoints(model, &mut endpoints)?;
+        collect_model_endpoints(model, &mut endpoints, runtime_env)?;
         let Some(primary) = endpoints.first() else {
             return Err(AgentError::Model(
                 "model config has no endpoints".to_string(),
@@ -364,7 +367,11 @@ fn stream_response(response: Response) -> ModelEventStream {
     })
 }
 
-fn collect_model_endpoints(model: &ModelConfig, endpoints: &mut Vec<ModelEndpoint>) -> Result<()> {
+fn collect_model_endpoints(
+    model: &ModelConfig,
+    endpoints: &mut Vec<ModelEndpoint>,
+    runtime_env: &HashMap<String, String>,
+) -> Result<()> {
     match model {
         ModelConfig::OpenaiCompatible {
             base_url,
@@ -374,8 +381,11 @@ fn collect_model_endpoints(model: &ModelConfig, endpoints: &mut Vec<ModelEndpoin
             fallback,
             ..
         } => {
-            let api_key = std::env::var(api_key_env)
-                .map_err(|_| AgentError::Model(format!("env var `{api_key_env}` not set")))?;
+            let api_key = runtime_env
+                .get(api_key_env)
+                .cloned()
+                .or_else(|| std::env::var(api_key_env).ok())
+                .ok_or_else(|| AgentError::Model(format!("env var `{api_key_env}` not set")))?;
             endpoints.push(ModelEndpoint {
                 base_url: base_url.trim_end_matches('/').to_string(),
                 api_key,
@@ -384,7 +394,7 @@ fn collect_model_endpoints(model: &ModelConfig, endpoints: &mut Vec<ModelEndpoin
                 cache_policy: cache_policy_for_values(base_url, api_key_env),
             });
             if let Some(fallback) = fallback {
-                collect_model_endpoints(fallback, endpoints)?;
+                collect_model_endpoints(fallback, endpoints, runtime_env)?;
             }
             Ok(())
         }
@@ -600,6 +610,7 @@ mod tests {
     use std::collections::{HashMap, VecDeque};
     use std::net::SocketAddr;
     use std::sync::Arc;
+    use std::time::UNIX_EPOCH;
 
     use axum::extract::State;
     use axum::http::{header, StatusCode};
@@ -752,7 +763,7 @@ mod tests {
                 fallback: None,
             })),
         };
-        let config = ChatModelClient::from_model_config(&model).unwrap();
+        let config = ChatModelClient::from_model_config(&model, &HashMap::new()).unwrap();
         let client = config
             .client
             .with_retry_policy(ModelRetryPolicy::no_delay(2));
@@ -777,6 +788,60 @@ mod tests {
             event,
             ModelStreamEvent::TextDelta(text) if text == "fallback ok"
         )));
+    }
+
+    #[test]
+    fn runtime_env_overlay_wins_for_model_api_key() {
+        let key_name = format!(
+            "TEST_RUNTIME_MODEL_KEY_{}",
+            UNIX_EPOCH
+                .elapsed()
+                .expect("system clock")
+                .as_nanos()
+        );
+        std::env::set_var(&key_name, "process-key");
+        let model = ModelConfig::OpenaiCompatible {
+            base_url: "https://example.com".to_string(),
+            model_id: "test-model".to_string(),
+            api_key_env: key_name.clone(),
+            temperature: None,
+            max_output_tokens: None,
+            reasoning_effort: None,
+            extra_headers: HashMap::new(),
+            fallback: None,
+        };
+        let mut runtime_env = HashMap::new();
+        runtime_env.insert(key_name.clone(), "overlay-key".to_string());
+
+        let config =
+            ChatModelClient::from_model_config(&model, &runtime_env).expect("runtime env override");
+        assert_eq!(config.client.endpoints[0].api_key, "overlay-key");
+    }
+
+    #[test]
+    fn runtime_env_falls_back_to_process_for_model_api_key() {
+        let key_name = format!(
+            "TEST_RUNTIME_MODEL_KEY_FALLBACK_{}",
+            UNIX_EPOCH
+                .elapsed()
+                .expect("system clock")
+                .as_nanos()
+        );
+        std::env::set_var(&key_name, "process-only-key");
+        let model = ModelConfig::OpenaiCompatible {
+            base_url: "https://example.com".to_string(),
+            model_id: "test-model".to_string(),
+            api_key_env: key_name.clone(),
+            temperature: None,
+            max_output_tokens: None,
+            reasoning_effort: None,
+            extra_headers: HashMap::new(),
+            fallback: None,
+        };
+
+        let config =
+            ChatModelClient::from_model_config(&model, &HashMap::new()).expect("process fallback");
+        assert_eq!(config.client.endpoints[0].api_key, "process-only-key");
     }
 
     fn test_request(model: &str) -> ModelRequest {

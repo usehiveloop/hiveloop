@@ -21,10 +21,11 @@ mod openapi {
     use utoipa::OpenApi;
 
     #[derive(OpenApi)]
-    #[openapi(
+        #[openapi(
         info(title = "Employee Bridge API", version = "0.0.1"),
         paths(
             crate::handlers::put_config,
+            crate::handlers::put_runtime_env,
             crate::handlers::get_config,
             crate::handlers::list_sessions,
             crate::handlers::get_session_detail,
@@ -128,6 +129,7 @@ pub fn build_router(state: ApiState) -> Router {
             "/config",
             put(handlers::put_config).get(handlers::get_config),
         )
+        .route("/config/env", put(handlers::put_runtime_env))
         .route("/sessions", get(handlers::list_sessions))
         .route(
             "/sessions/:channel/:thread_ts",
@@ -198,6 +200,7 @@ mod openapi_tests {
         let actual: BTreeSet<String> = spec.paths.paths.keys().cloned().collect();
         let expected = BTreeSet::from([
             "/config".to_string(),
+            "/config/env".to_string(),
             "/gateway/cloud-agents/callback".to_string(),
             "/gateway/http/messages".to_string(),
             "/gateway/http/streams/{stream_id}".to_string(),
