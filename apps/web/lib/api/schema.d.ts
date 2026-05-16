@@ -13467,6 +13467,9 @@ export interface components {
             display_name?: string;
             key?: string;
         };
+        EmployeeProfileCapability: {
+            supported?: boolean;
+        };
         SchemaDefinition: {
             /** @description for array types */
             items?: components["schemas"]["SchemaRef"];
@@ -14394,6 +14397,7 @@ export interface components {
         employeeConnectionResponse: {
             created_at?: string;
             display_name?: string;
+            employee_profile?: components["schemas"]["EmployeeProfileCapability"];
             id?: string;
             in_integration_id?: string;
             meta?: components["schemas"]["JSON"];
@@ -14544,6 +14548,7 @@ export interface components {
             configurable_resources?: components["schemas"]["ConfigurableResourceSummary"][];
             created_at?: string;
             display_name?: string;
+            employee_profile?: components["schemas"]["EmployeeProfileCapability"];
             id?: string;
             in_integration_id?: string;
             meta?: components["schemas"]["JSON"];
@@ -14558,6 +14563,7 @@ export interface components {
         inIntegrationAvailableResponse: {
             created_at?: string;
             display_name?: string;
+            employee_profile?: components["schemas"]["EmployeeProfileCapability"];
             id?: string;
             meta?: components["schemas"]["JSON"];
             nango_config?: components["schemas"]["NangoConfig"];

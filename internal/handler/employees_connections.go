@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -22,21 +23,17 @@ var employeeConnectionSkillNames = map[string][]string{
 	"github-app-code-reviews": {"git-github"},
 }
 
-var employeeProfileConnectionProviders = map[string]bool{
-	"github": true,
-	"slack":  true,
-}
-
 type employeeConnectionResponse struct {
-	ID                string     `json:"id"`
-	OrgID             string     `json:"org_id"`
-	InIntegrationID   string     `json:"in_integration_id"`
-	Provider          string     `json:"provider"`
-	DisplayName       string     `json:"display_name"`
-	NangoConnectionID string     `json:"nango_connection_id"`
-	Meta              model.JSON `json:"meta,omitempty"`
-	CreatedAt         string     `json:"created_at"`
-	UpdatedAt         string     `json:"updated_at"`
+	ID                string                             `json:"id"`
+	OrgID             string                             `json:"org_id"`
+	InIntegrationID   string                             `json:"in_integration_id"`
+	Provider          string                             `json:"provider"`
+	DisplayName       string                             `json:"display_name"`
+	NangoConnectionID string                             `json:"nango_connection_id"`
+	Meta              model.JSON                         `json:"meta,omitempty"`
+	EmployeeProfile   *catalog.EmployeeProfileCapability `json:"employee_profile,omitempty"`
+	CreatedAt         string                             `json:"created_at"`
+	UpdatedAt         string                             `json:"updated_at"`
 }
 
 // ListAvailableConnections handles GET /v1/employees/{id}/connections/available.
@@ -178,7 +175,7 @@ func employeeConnectionProvider(conn model.InConnection) string {
 }
 
 func employeeProfileConnectionProvider(provider string) bool {
-	return employeeProfileConnectionProviders[provider]
+	return integrationEmployeeProfileCapability(provider) != nil
 }
 
 func toEmployeeConnectionResponse(conn model.InConnection) employeeConnectionResponse {
@@ -190,6 +187,7 @@ func toEmployeeConnectionResponse(conn model.InConnection) employeeConnectionRes
 		DisplayName:       conn.InIntegration.DisplayName,
 		NangoConnectionID: conn.NangoConnectionID,
 		Meta:              conn.Meta,
+		EmployeeProfile:   integrationEmployeeProfileCapability(employeeConnectionProvider(conn)),
 		CreatedAt:         conn.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:         conn.UpdatedAt.Format(time.RFC3339),
 	}

@@ -1,5 +1,8 @@
 {
   "display_name": "GitHub Profile",
+  "employee_profile": {
+    "supported": true
+  },
   "resources": {
     "branch": {
       "display_name": "Branches",

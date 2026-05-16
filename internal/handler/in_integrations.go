@@ -34,23 +34,25 @@ type updateInIntegrationRequest struct {
 }
 
 type inIntegrationResponse struct {
-	ID          string             `json:"id"`
-	UniqueKey   string             `json:"unique_key"`
-	Provider    string             `json:"provider"`
-	DisplayName string             `json:"display_name"`
-	Meta        model.JSON         `json:"meta,omitempty"`
-	NangoConfig *model.NangoConfig `json:"nango_config,omitempty"`
-	CreatedAt   string             `json:"created_at"`
-	UpdatedAt   string             `json:"updated_at"`
+	ID              string                             `json:"id"`
+	UniqueKey       string                             `json:"unique_key"`
+	Provider        string                             `json:"provider"`
+	DisplayName     string                             `json:"display_name"`
+	Meta            model.JSON                         `json:"meta,omitempty"`
+	NangoConfig     *model.NangoConfig                 `json:"nango_config,omitempty"`
+	EmployeeProfile *catalog.EmployeeProfileCapability `json:"employee_profile,omitempty"`
+	CreatedAt       string                             `json:"created_at"`
+	UpdatedAt       string                             `json:"updated_at"`
 }
 
 type inIntegrationAvailableResponse struct {
-	ID          string             `json:"id"`
-	Provider    string             `json:"provider"`
-	DisplayName string             `json:"display_name"`
-	Meta        model.JSON         `json:"meta,omitempty"`
-	NangoConfig *model.NangoConfig `json:"nango_config,omitempty"`
-	CreatedAt   string             `json:"created_at"`
+	ID              string                             `json:"id"`
+	Provider        string                             `json:"provider"`
+	DisplayName     string                             `json:"display_name"`
+	Meta            model.JSON                         `json:"meta,omitempty"`
+	NangoConfig     *model.NangoConfig                 `json:"nango_config,omitempty"`
+	EmployeeProfile *catalog.EmployeeProfileCapability `json:"employee_profile,omitempty"`
+	CreatedAt       string                             `json:"created_at"`
 }
 
 func parseNangoConfig(raw model.JSON) *model.NangoConfig {
@@ -70,14 +72,15 @@ func parseNangoConfig(raw model.JSON) *model.NangoConfig {
 
 func toInIntegrationResponse(integ model.InIntegration) inIntegrationResponse {
 	return inIntegrationResponse{
-		ID:          integ.ID.String(),
-		UniqueKey:   integ.UniqueKey,
-		Provider:    integ.Provider,
-		DisplayName: integ.DisplayName,
-		Meta:        integ.Meta,
-		NangoConfig: parseNangoConfig(integ.NangoConfig),
-		CreatedAt:   integ.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:   integ.UpdatedAt.Format(time.RFC3339),
+		ID:              integ.ID.String(),
+		UniqueKey:       integ.UniqueKey,
+		Provider:        integ.Provider,
+		DisplayName:     integ.DisplayName,
+		Meta:            integ.Meta,
+		NangoConfig:     parseNangoConfig(integ.NangoConfig),
+		EmployeeProfile: integrationEmployeeProfileCapability(integ.Provider),
+		CreatedAt:       integ.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:       integ.UpdatedAt.Format(time.RFC3339),
 	}
 }
 
@@ -91,12 +94,13 @@ func toInIntegrationAvailableResponse(integ model.InIntegration) inIntegrationAv
 		cfg.WebhookUserDefinedSecret = false
 	}
 	return inIntegrationAvailableResponse{
-		ID:          integ.ID.String(),
-		Provider:    integ.Provider,
-		DisplayName: integ.DisplayName,
-		Meta:        integ.Meta,
-		NangoConfig: cfg,
-		CreatedAt:   integ.CreatedAt.Format(time.RFC3339),
+		ID:              integ.ID.String(),
+		Provider:        integ.Provider,
+		DisplayName:     integ.DisplayName,
+		Meta:            integ.Meta,
+		NangoConfig:     cfg,
+		EmployeeProfile: integrationEmployeeProfileCapability(integ.Provider),
+		CreatedAt:       integ.CreatedAt.Format(time.RFC3339),
 	}
 }
 

@@ -11637,6 +11637,14 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability": {
+            "type": "object",
+            "properties": {
+                "supported": {
+                    "type": "boolean"
+                }
+            }
+        },
         "github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaDefinition": {
             "type": "object",
             "properties": {
@@ -14329,6 +14337,9 @@ const docTemplate = `{
                 "display_name": {
                     "type": "string"
                 },
+                "employee_profile": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -14800,6 +14811,9 @@ const docTemplate = `{
                 "display_name": {
                     "type": "string"
                 },
+                "employee_profile": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -14840,6 +14854,9 @@ const docTemplate = `{
                 },
                 "display_name": {
                     "type": "string"
+                },
+                "employee_profile": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability"
                 },
                 "id": {
                     "type": "string"

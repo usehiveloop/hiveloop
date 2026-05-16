@@ -1,5 +1,8 @@
 {
   "display_name": "Slack",
+  "employee_profile": {
+    "supported": true
+  },
   "resources": {
     "slack_thread": {
       "display_name": "Slack Threads",

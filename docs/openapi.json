@@ -13983,6 +13983,14 @@
           }
         }
       },
+      "EmployeeProfileCapability": {
+        "type": "object",
+        "properties": {
+          "supported": {
+            "type": "boolean"
+          }
+        }
+      },
       "SchemaDefinition": {
         "type": "object",
         "properties": {
@@ -16675,6 +16683,9 @@
           "display_name": {
             "type": "string"
           },
+          "employee_profile": {
+            "$ref": "#/components/schemas/EmployeeProfileCapability"
+          },
           "id": {
             "type": "string"
           },
@@ -17146,6 +17157,9 @@
           "display_name": {
             "type": "string"
           },
+          "employee_profile": {
+            "$ref": "#/components/schemas/EmployeeProfileCapability"
+          },
           "id": {
             "type": "string"
           },
@@ -17186,6 +17200,9 @@
           },
           "display_name": {
             "type": "string"
+          },
+          "employee_profile": {
+            "$ref": "#/components/schemas/EmployeeProfileCapability"
           },
           "id": {
             "type": "string"

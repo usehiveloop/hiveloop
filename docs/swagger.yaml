@@ -24,6 +24,11 @@ definitions:
       key:
         type: string
     type: object
+  github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability:
+    properties:
+      supported:
+        type: boolean
+    type: object
   github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaDefinition:
     properties:
       items:
@@ -1800,6 +1805,8 @@ definitions:
         type: string
       display_name:
         type: string
+      employee_profile:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability'
       id:
         type: string
       in_integration_id:
@@ -2109,6 +2116,8 @@ definitions:
         type: string
       display_name:
         type: string
+      employee_profile:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability'
       id:
         type: string
       in_integration_id:
@@ -2136,6 +2145,8 @@ definitions:
         type: string
       display_name:
         type: string
+      employee_profile:
+        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability'
       id:
         type: string
       meta:

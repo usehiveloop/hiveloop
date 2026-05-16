@@ -115,9 +115,9 @@ func TestListResourceTypes(t *testing.T) {
 	c := Global()
 
 	tests := []struct {
-		provider   string
-		wantCount  int
-		wantTypes  []string
+		provider  string
+		wantCount int
+		wantTypes []string
 	}{
 		{
 			provider:  "slack",
@@ -180,17 +180,42 @@ func TestHasConfigurableResources(t *testing.T) {
 	}
 }
 
+func TestEmployeeProfileCapability(t *testing.T) {
+	c := Global()
+
+	tests := []struct {
+		provider  string
+		supported bool
+	}{
+		{"github", true},
+		{"slack", true},
+		{"github-app", false},
+		{"github-app-code-reviews", false},
+		{"bugsink", false},
+		{"unknown", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.provider, func(t *testing.T) {
+			got := c.EmployeeProfileCapability(tt.provider) != nil
+			if got != tt.supported {
+				t.Errorf("EmployeeProfileCapability(%q) supported = %v, want %v", tt.provider, got, tt.supported)
+			}
+		})
+	}
+}
+
 func TestValidateResourcesWithConnectionResources(t *testing.T) {
 	c := Global()
 
 	tests := []struct {
-		name              string
-		provider          string
-		actions           []string
-		requested         map[string][]string
-		allowed           map[string][]string
-		wantErr           bool
-		wantErrContains   string
+		name            string
+		provider        string
+		actions         []string
+		requested       map[string][]string
+		allowed         map[string][]string
+		wantErr         bool
+		wantErrContains string
 	}{
 		{
 			// conversations_history + chat_post_message are slack_thread actions.

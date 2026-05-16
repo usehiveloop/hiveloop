@@ -40,6 +40,7 @@ type inConnectionResponse struct {
 	NangoConnectionID     string                                `json:"nango_connection_id"`
 	Meta                  model.JSON                            `json:"meta,omitempty"`
 	ProviderConfig        model.JSON                            `json:"provider_config,omitempty"`
+	EmployeeProfile       *catalog.EmployeeProfileCapability    `json:"employee_profile,omitempty"`
 	ActionsCount          int                                   `json:"actions_count"`
 	WebhookConfigured     bool                                  `json:"webhook_configured"`
 	ConfigurableResources []catalog.ConfigurableResourceSummary `json:"configurable_resources"`
@@ -62,6 +63,7 @@ func (h *InConnectionHandler) toInConnectionResponse(conn model.InConnection) in
 		DisplayName:           conn.InIntegration.DisplayName,
 		NangoConnectionID:     conn.NangoConnectionID,
 		Meta:                  conn.Meta,
+		EmployeeProfile:       h.catalog.EmployeeProfileCapability(provider),
 		ActionsCount:          len(h.catalog.ListActions(provider)),
 		WebhookConfigured:     derefBool(conn.WebhookConfigured, true),
 		ConfigurableResources: configurableRes,
