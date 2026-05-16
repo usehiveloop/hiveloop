@@ -14732,6 +14732,9 @@
           "display_name": {
             "type": "string"
           },
+          "employee_profile": {
+            "$ref": "#/components/schemas/EmployeeProfileCapability"
+          },
           "id": {
             "type": "string"
           },

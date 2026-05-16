@@ -109,12 +109,15 @@ func inNangoKey(uniqueKey string) string {
 }
 
 // nangoProviderName maps our internal provider key to the Nango catalog
-// provider name. Most providers map 1:1; github-app-code-reviews is a second
-// GitHub App identity differentiated only by integration unique_key, so it
-// uses Nango's canonical github-app provider.
+// provider name. Most providers map 1:1; profile/specialized variants are
+// differentiated by integration unique_key while using the canonical Nango
+// provider.
 func nangoProviderName(provider string) string {
-	if provider == "github-app-code-reviews" {
+	switch provider {
+	case "github-app-code-reviews":
 		return "github-app"
+	case "linear-profile":
+		return "linear"
 	}
 	return provider
 }

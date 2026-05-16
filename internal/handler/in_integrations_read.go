@@ -97,9 +97,12 @@ func (h *InIntegrationHandler) ListAvailable(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	resp := make([]inIntegrationAvailableResponse, len(integrations))
-	for i, integ := range integrations {
-		resp[i] = toInIntegrationAvailableResponse(integ)
+	resp := make([]inIntegrationAvailableResponse, 0, len(integrations))
+	for _, integ := range integrations {
+		if integrationEmployeeProfileCapability(integ.Provider) != nil {
+			continue
+		}
+		resp = append(resp, toInIntegrationAvailableResponse(integ))
 	}
 
 	writeJSON(w, http.StatusOK, resp)

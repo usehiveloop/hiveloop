@@ -13734,6 +13734,7 @@ export interface components {
         adminInIntegrationResponse: {
             created_at?: string;
             display_name?: string;
+            employee_profile?: components["schemas"]["EmployeeProfileCapability"];
             id?: string;
             meta?: components["schemas"]["JSON"];
             nango_config?: components["schemas"]["JSON"];

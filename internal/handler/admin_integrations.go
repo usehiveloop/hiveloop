@@ -3,7 +3,6 @@ package handler
 import (
 	"net/http"
 
-
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -74,6 +73,7 @@ func (h *AdminHandler) ListInConnections(w http.ResponseWriter, r *http.Request)
 
 	writeJSON(w, http.StatusOK, map[string]any{"data": connections, "has_more": hasMore})
 }
+
 // ListInIntegrationProviders handles GET /admin/v1/in-integration-providers.
 // @Summary List available integration providers
 // @Description Returns providers supported for platform integrations (filtered by action catalog).
@@ -92,6 +92,7 @@ func (h *AdminHandler) ListInIntegrationProviders(w http.ResponseWriter, r *http
 
 	displayNameOverride := map[string]string{
 		"github-app-code-reviews": "GitHub App (Code Reviews)",
+		"linear-profile":          "Linear Profile",
 	}
 
 	resp := make([]providerInfo, 0)
@@ -115,6 +116,3 @@ func (h *AdminHandler) ListInIntegrationProviders(w http.ResponseWriter, r *http
 
 	writeJSON(w, http.StatusOK, resp)
 }
-
-
-

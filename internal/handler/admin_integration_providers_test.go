@@ -36,7 +36,7 @@ func newAdminInIntegrationHarness(t *testing.T) (*chi.Mux, *nangoMockConfig) {
 	return r, mockCfg
 }
 
-func TestAdminListInIntegrationProvidersIncludesBugsink(t *testing.T) {
+func TestAdminListInIntegrationProvidersIncludesCatalogBackedVariants(t *testing.T) {
 	router, _ := newAdminInIntegrationHarness(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/admin/v1/in-integration-providers", nil)
@@ -52,18 +52,30 @@ func TestAdminListInIntegrationProvidersIncludesBugsink(t *testing.T) {
 		t.Fatalf("decode response: %v", err)
 	}
 
-	for _, provider := range providers {
-		if provider["name"] == "bugsink" {
-			if provider["display_name"] != "Bugsink" {
-				t.Fatalf("display_name = %v, want Bugsink", provider["display_name"])
-			}
-			if provider["auth_mode"] != "API_KEY" {
-				t.Fatalf("auth_mode = %v, want API_KEY", provider["auth_mode"])
-			}
-			return
-		}
+	want := map[string]struct {
+		displayName string
+		authMode    string
+	}{
+		"bugsink":        {"Bugsink", "API_KEY"},
+		"linear-profile": {"Linear Profile", "OAUTH2"},
 	}
-	t.Fatalf("expected bugsink provider in admin list, got %#v", providers)
+	for _, provider := range providers {
+		name, _ := provider["name"].(string)
+		expected, ok := want[name]
+		if !ok {
+			continue
+		}
+		if provider["display_name"] != expected.displayName {
+			t.Fatalf("%s display_name = %v, want %s", name, provider["display_name"], expected.displayName)
+		}
+		if provider["auth_mode"] != expected.authMode {
+			t.Fatalf("%s auth_mode = %v, want %s", name, provider["auth_mode"], expected.authMode)
+		}
+		delete(want, name)
+	}
+	if len(want) > 0 {
+		t.Fatalf("missing expected providers: %#v; got %#v", want, providers)
+	}
 }
 
 func TestAdminCreateInIntegrationBugsink(t *testing.T) {
@@ -112,5 +124,37 @@ func TestAdminCreateInIntegrationBugsink(t *testing.T) {
 	}
 	if !createdInNango {
 		t.Fatal("expected Bugsink integration to be created in Nango")
+	}
+}
+
+func TestAdminCreateInIntegrationLinearProfileUsesCatalogVariant(t *testing.T) {
+	router, _ := newAdminInIntegrationHarness(t)
+
+	body := strings.NewReader(`{"provider":"linear-profile","display_name":"Linear Profile","credentials":{"type":"OAUTH2","client_id":"linear-client","client_secret":"linear-secret"}}`)
+	req := httptest.NewRequest(http.MethodPost, "/admin/v1/in-integrations", body)
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var resp map[string]any
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if resp["provider"] != "linear-profile" {
+		t.Fatalf("provider = %v, want linear-profile", resp["provider"])
+	}
+	profile, ok := resp["employee_profile"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected employee_profile object, got %#v", resp["employee_profile"])
+	}
+	if profile["supported"] != true {
+		t.Fatalf("employee_profile.supported = %v, want true", profile["supported"])
+	}
+	if uniqueKey, _ := resp["unique_key"].(string); !strings.HasPrefix(uniqueKey, "linear-profile-") {
+		t.Fatalf("unique_key = %q, want linear-profile-*", uniqueKey)
 	}
 }

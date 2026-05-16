@@ -5,6 +5,7 @@ const LOGO_BASE = "https://connections.usehiveloop.com/images/template-logos"
 
 const LOGO_PROVIDER_ALIASES: Record<string, string> = {
   "github-app-code-reviews": "github-app",
+  "linear-profile": "linear",
 }
 
 export function integrationLogoURL(provider: string): string {

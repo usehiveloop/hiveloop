@@ -102,6 +102,7 @@ func newNangoMock(cfg *nangoMockConfig) http.Handler {
 				"data": []map[string]any{
 					{"name": "github", "display_name": "GitHub", "auth_mode": "OAUTH2"},
 					{"name": "slack", "display_name": "Slack", "auth_mode": "OAUTH2"},
+					{"name": "linear", "display_name": "Linear", "auth_mode": "OAUTH2"},
 					{
 						"name":         "bugsink",
 						"display_name": "Bugsink",

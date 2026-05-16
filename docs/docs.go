@@ -12386,6 +12386,9 @@ const docTemplate = `{
                 "display_name": {
                     "type": "string"
                 },
+                "employee_profile": {
+                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability"
+                },
                 "id": {
                     "type": "string"
                 },

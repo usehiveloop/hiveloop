@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"sort"
 	"testing"
 )
 
@@ -189,8 +190,10 @@ func TestEmployeeProfileCapability(t *testing.T) {
 	}{
 		{"github", true},
 		{"slack", true},
+		{"linear-profile", true},
 		{"github-app", false},
 		{"github-app-code-reviews", false},
+		{"linear", false},
 		{"bugsink", false},
 		{"unknown", false},
 	}
@@ -203,6 +206,57 @@ func TestEmployeeProfileCapability(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLinearProfileMirrorsLinearCatalog(t *testing.T) {
+	c := Global()
+
+	linear, ok := c.GetProvider("linear")
+	if !ok {
+		t.Fatal("linear provider not found")
+	}
+	profile, ok := c.GetProvider("linear-profile")
+	if !ok {
+		t.Fatal("linear-profile provider not found")
+	}
+
+	if !sameStringSet(mapKeys(profile.Actions), mapKeys(linear.Actions)) {
+		t.Fatal("linear-profile action keys differ from linear")
+	}
+	if !sameStringSet(mapKeys(profile.Resources), mapKeys(linear.Resources)) {
+		t.Fatal("linear-profile resource keys differ from linear")
+	}
+	if !sameStringSet(mapKeys(profile.Schemas), mapKeys(linear.Schemas)) {
+		t.Fatal("linear-profile schema keys differ from linear")
+	}
+	if !sameStringSet(c.ListTriggers("linear-profile"), c.ListTriggers("linear")) {
+		t.Fatal("linear-profile triggers differ from linear")
+	}
+}
+
+func mapKeys[V any](m map[string]V) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func sameStringSet(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	a = append([]string(nil), a...)
+	b = append([]string(nil), b...)
+	sort.Strings(a)
+	sort.Strings(b)
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func TestValidateResourcesWithConnectionResources(t *testing.T) {
