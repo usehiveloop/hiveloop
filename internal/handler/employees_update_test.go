@@ -163,6 +163,27 @@ func TestIntegration_EmployeeUpdate_AttachesOrgConnectionAndMappedSkill(t *testi
 	}
 }
 
+func TestIntegration_EmployeeUpdate_AttachesBugsinkConnectionSkill(t *testing.T) {
+	h := newEmployeeHarness(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	bugsink := h.seedGlobalSkill(t, "bugsink", model.SkillStatusPublished)
+	conn := h.seedEmployeeConnection(t, m, "bugsink")
+
+	rr := h.putEmployee(t, m, agent.ID, map[string]any{
+		"connection_ids": []string{conn.ID.String()},
+		"skill_ids":      []string{},
+	}, "admin")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("update status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+
+	links := skillIDsFor(t, h.db, agent.ID)
+	if !links[bugsink.ID] {
+		t.Fatalf("employee missing mapped bugsink skill: %v", links)
+	}
+}
+
 func TestIntegration_EmployeeAvailableConnections_ExcludesProfileConnections(t *testing.T) {
 	h := newEmployeeHarness(t)
 	m := h.createOrg(t)
@@ -315,6 +336,44 @@ func TestIntegration_EmployeeSkillDetach_RejectsRequiredSkill(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodDelete, "/v1/router/"+agent.ID.String()+"/skills/"+gitGithub.ID.String(), nil)
+	req.Header.Set("X-Org-ID", m.org.ID.String())
+	req = middleware.WithAuthClaims(req, &auth.AuthClaims{
+		UserID: m.user.ID.String(),
+		OrgID:  m.org.ID.String(),
+		Role:   "admin",
+	})
+
+	skillH := handler.NewSkillHandler(h.db, h.enqueuer)
+	r := chi.NewRouter()
+	r.Route("/v1/router/{agentID}/skills", func(r chi.Router) {
+		r.Use(middleware.ResolveOrgFromHeader(h.db))
+		r.Use(middleware.RequireOrgAdmin(h.db))
+		r.Delete("/{skillID}", skillH.DetachFromAgent)
+	})
+
+	detachRR := httptest.NewRecorder()
+	r.ServeHTTP(detachRR, req)
+	if detachRR.Code != http.StatusConflict {
+		t.Fatalf("detach status = %d, want 409: %s", detachRR.Code, detachRR.Body.String())
+	}
+}
+
+func TestIntegration_EmployeeSkillDetach_RejectsConnectionRequiredSkill(t *testing.T) {
+	h := newEmployeeHarness(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	bugsink := h.seedGlobalSkill(t, "bugsink", model.SkillStatusPublished)
+	conn := h.seedEmployeeConnection(t, m, "bugsink")
+
+	rr := h.putEmployee(t, m, agent.ID, map[string]any{
+		"connection_ids": []string{conn.ID.String()},
+		"skill_ids":      []string{},
+	}, "admin")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("update status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/v1/router/"+agent.ID.String()+"/skills/"+bugsink.ID.String(), nil)
 	req.Header.Set("X-Org-ID", m.org.ID.String())
 	req = middleware.WithAuthClaims(req, &auth.AuthClaims{
 		UserID: m.user.ID.String(),

@@ -1,0 +1,6 @@
+{
+  "name": "bugsink",
+  "description": "Query Bugsink projects, issues, events, stacktraces, and issue metadata through the canonical Bugsink API using BUGSINK_URL, BUGSINK_TOKEN, curl, and jq without dumping raw event payloads into context.",
+  "root": "./SKILL.md",
+  "files": []
+}
