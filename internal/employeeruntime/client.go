@@ -53,6 +53,23 @@ func (c *Client) Readyz(ctx context.Context) error {
 	return c.doVoid(ctx, http.MethodGet, "/readyz", nil)
 }
 
+func (c *Client) GetConfig(ctx context.Context) (*AgentDefinition, error) {
+	resp, err := c.do(ctx, http.MethodGet, "/config", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("get config: %s: %s", resp.Status, body)
+	}
+	var out AgentDefinition
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, fmt.Errorf("decode config: %w", err)
+	}
+	return &out, nil
+}
+
 func (c *Client) PutConfig(ctx context.Context, def *AgentDefinition) (*SyncResponse, error) {
 	resp, err := c.do(ctx, http.MethodPut, "/config", def)
 	if err != nil {
@@ -64,6 +81,29 @@ func (c *Client) PutConfig(ctx context.Context, def *AgentDefinition) (*SyncResp
 		return nil, fmt.Errorf("put config: %s: %s", resp.Status, body)
 	}
 	return &SyncResponse{Applied: 1, RestartTriggered: true}, nil
+}
+
+func (c *Client) UpdateRuntimeEnv(ctx context.Context, env map[string]string) (*SyncResponse, error) {
+	body := map[string]string{}
+	if env != nil {
+		body = env
+	}
+	resp, err := c.do(ctx, http.MethodPut, "/config/env", body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		raw, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("put runtime env: %s: %s", resp.Status, raw)
+	}
+	var out struct {
+		KeyCount int `json:"key_count"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, fmt.Errorf("decode runtime env response: %w", err)
+	}
+	return &SyncResponse{Applied: out.KeyCount}, nil
 }
 
 func (c *Client) doVoid(ctx context.Context, method, path string, body any) error {

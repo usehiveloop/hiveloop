@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::AgentDefinition;
 use arc_swap::ArcSwap;
 use std::sync::Arc;
@@ -13,17 +14,27 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct ConfigStore {
     inner: Arc<ArcSwap<AgentDefinition>>,
+    runtime_env: Arc<ArcSwap<HashMap<String, String>>>,
 }
 
 impl ConfigStore {
     pub fn new(initial: AgentDefinition) -> Self {
         Self {
             inner: Arc::new(ArcSwap::from_pointee(initial)),
+            runtime_env: Arc::new(ArcSwap::from_pointee(HashMap::new())),
         }
     }
 
     pub fn snapshot(&self) -> Arc<AgentDefinition> {
         self.inner.load_full()
+    }
+
+    pub fn runtime_env(&self) -> Arc<HashMap<String, String>> {
+        self.runtime_env.load_full()
+    }
+
+    pub fn set_runtime_env(&self, overrides: HashMap<String, String>) {
+        self.runtime_env.store(Arc::new(overrides));
     }
 
     pub fn replace(&self, def: AgentDefinition) {

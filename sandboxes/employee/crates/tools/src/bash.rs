@@ -36,6 +36,7 @@ pub struct BashTool {
     config: BashConfig,
     workspace_root: PathBuf,
     operations: Arc<dyn BashOperations>,
+    runtime_env: Arc<HashMap<String, String>>,
     process_registry: Option<Arc<ProcessRegistry>>,
 }
 
@@ -44,11 +45,13 @@ impl BashTool {
         config: BashConfig,
         workspace_root: PathBuf,
         operations: Arc<dyn BashOperations>,
+        runtime_env: Arc<HashMap<String, String>>,
     ) -> Self {
         Self {
             config,
             workspace_root,
             operations,
+            runtime_env,
             process_registry: None,
         }
     }
@@ -87,7 +90,8 @@ impl BashTool {
 
         let mut env: HashMap<String, String> = HashMap::new();
         for key in &self.config.env_passthrough {
-            if let Ok(value) = std::env::var(key) {
+            if let Some(value) = self.runtime_env.get(key).cloned().or_else(|| std::env::var(key).ok())
+            {
                 env.insert(key.clone(), value);
             }
         }
@@ -140,6 +144,90 @@ impl BashTool {
             "total_bytes": truncated.total_bytes,
             "output": truncated.content,
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use std::env;
+    use std::path::PathBuf;
+    use std::sync::Arc;
+
+    use crate::operations::LocalBashOperations;
+
+    use super::BashConfig;
+
+    #[tokio::test]
+    async fn runtime_env_overlays_process_for_bash_passthrough() {
+        let runtime_env = Arc::new(HashMap::from([
+            ("RUNTIME_ENV_OVERLAY".to_string(), "overlay-value".to_string()),
+        ]));
+        let tool = super::BashTool::new(
+            BashConfig {
+                workdir: ".".to_string(),
+                timeout_seconds: 1,
+                max_output_bytes: 1024,
+                deny_patterns: Vec::new(),
+                env_passthrough: vec!["RUNTIME_ENV_OVERLAY".to_string()],
+                sandbox: "process_isolated".to_string(),
+            },
+            PathBuf::from(env::temp_dir()),
+            Arc::new(LocalBashOperations::default()),
+            runtime_env,
+        );
+
+        let original = env::var("RUNTIME_ENV_OVERLAY").ok();
+        env::set_var("RUNTIME_ENV_OVERLAY", "process-value");
+        let result = tool
+            .execute(serde_json::json!({
+                "command": "printf \"$RUNTIME_ENV_OVERLAY\"",
+                "timeout_seconds": 1,
+                "run_in_background": false,
+            }))
+            .await
+            .expect("command should succeed");
+        match original {
+            Some(value) => env::set_var("RUNTIME_ENV_OVERLAY", value),
+            None => env::remove_var("RUNTIME_ENV_OVERLAY"),
+        }
+
+        assert_eq!(result["output"], "overlay-value");
+    }
+
+    #[tokio::test]
+    async fn process_env_falls_back_when_runtime_overlay_missing() {
+        let runtime_env = Arc::new(HashMap::new());
+        let tool = super::BashTool::new(
+            BashConfig {
+                workdir: ".".to_string(),
+                timeout_seconds: 1,
+                max_output_bytes: 1024,
+                deny_patterns: Vec::new(),
+                env_passthrough: vec!["RUNTIME_ENV_FALLBACK".to_string()],
+                sandbox: "process_isolated".to_string(),
+            },
+            PathBuf::from(env::temp_dir()),
+            Arc::new(LocalBashOperations::default()),
+            runtime_env,
+        );
+
+        let original = env::var("RUNTIME_ENV_FALLBACK").ok();
+        env::set_var("RUNTIME_ENV_FALLBACK", "process-fallback");
+        let result = tool
+            .execute(serde_json::json!({
+                "command": "printf \"$RUNTIME_ENV_FALLBACK\"",
+                "timeout_seconds": 1,
+                "run_in_background": false,
+            }))
+            .await
+            .expect("command should succeed");
+        match original {
+            Some(value) => env::set_var("RUNTIME_ENV_FALLBACK", value),
+            None => env::remove_var("RUNTIME_ENV_FALLBACK"),
+        }
+
+        assert_eq!(result["output"], "process-fallback");
     }
 }
 

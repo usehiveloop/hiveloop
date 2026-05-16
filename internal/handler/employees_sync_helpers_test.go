@@ -17,8 +17,11 @@ import (
 type sidecarStub struct {
 	mu               sync.Mutex
 	syncConfigCalls  int
+	syncEnvCalls     int
 	lastSyncBearer   string
+	lastEnvBearer    string
 	lastConfigBody   []byte
+	lastEnvBody      []byte
 	syncConfigStatus int // override; default 200
 	syncConfigErrors []string
 }
@@ -33,6 +36,18 @@ func (s *sidecarStub) configBody() []byte {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return append([]byte(nil), s.lastConfigBody...)
+}
+
+func (s *sidecarStub) envBody() []byte {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]byte(nil), s.lastEnvBody...)
+}
+
+func (s *sidecarStub) snapshotRuntime() (calls int, bearer string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.syncEnvCalls, s.lastEnvBearer
 }
 
 func (s *sidecarStub) setStatus(status int) {
@@ -147,6 +162,24 @@ func (h *employeeHarness) seedSlackProfile(t *testing.T, m orgWithMember, agentI
 		t.Fatalf("create slack profile: %v", err)
 	}
 	return p
+}
+
+func (h *employeeHarness) setRuntimeEnvVars(t *testing.T, agentID uuid.UUID, vars map[string]string) {
+	t.Helper()
+	payload, err := json.Marshal(vars)
+	if err != nil {
+		t.Fatalf("marshal env vars: %v", err)
+	}
+	encrypted, err := h.encKey.EncryptString(string(payload))
+	if err != nil {
+		t.Fatalf("encrypt env vars: %v", err)
+	}
+	if err := h.db.Model(&model.Agent{}).
+		Where("id = ?", agentID).
+		Update("encrypted_env_vars", []byte(encrypted)).
+		Error; err != nil {
+		t.Fatalf("store env vars: %v", err)
+	}
 }
 
 // Whatsapp encrypted secrets are intentionally empty; compile.go doesn't
