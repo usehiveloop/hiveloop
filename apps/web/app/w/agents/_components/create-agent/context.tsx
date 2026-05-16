@@ -114,7 +114,6 @@ function deriveTriggers(agent: Agent | null | undefined): TriggerConfig[] {
     triggerKeys: trigger.trigger_keys ?? [],
     triggerDisplayNames: trigger.trigger_keys ?? [],
     conditions: (trigger.conditions as TriggerConfig["conditions"]) ?? null,
-    cronSchedule: trigger.cron_schedule || undefined,
     instructions: trigger.instructions || undefined,
   }))
 }
@@ -203,8 +202,6 @@ export function CreateAgentProvider({ children, onClose, agent }: CreateAgentPro
         base.connection_id = trigger.connectionId
         base.trigger_keys = trigger.triggerKeys
         base.conditions = trigger.conditions
-      } else if (trigger.triggerType === "cron") {
-        base.cron_schedule = trigger.cronSchedule
       } else if (trigger.triggerType === "http") {
         if (trigger.secretKey) base.secret_key = trigger.secretKey
       }

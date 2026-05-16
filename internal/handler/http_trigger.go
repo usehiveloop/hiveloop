@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -16,8 +17,12 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
+const maxHTTPTriggerBodyBytes int64 = 256 * 1024
+
+var httpTriggerRedactedValue = "[redacted]"
+
 // HTTPTriggerHandler receives HTTP requests at /incoming/triggers/{triggerID}
-// and dispatches them through the router pipeline. Unlike provider webhooks,
+// and dispatches them to the owning employee runtime. Unlike provider webhooks,
 // these bypass connection/event-key matching — the trigger is already known.
 //
 // Security: the trigger's unguessable UUID acts as a bearer token. If a
@@ -37,7 +42,7 @@ func NewHTTPTriggerHandler(db *gorm.DB, enqueuer enqueue.TaskEnqueuer) *HTTPTrig
 
 // Handle processes POST /incoming/triggers/{triggerID}.
 // @Summary Receive HTTP trigger request
-// @Description Receives an HTTP request and dispatches it through the router pipeline for the specified trigger. The trigger UUID acts as a bearer token. If the trigger has a shared secret configured, the request must include the plaintext secret in any of: Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, or ?secret=<secret>.
+// @Description Receives an HTTP request and dispatches it to the owning employee runtime for the specified trigger. The trigger UUID acts as a bearer token. If the trigger has a shared secret configured, the request must include the plaintext secret in any of: Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, or ?secret=<secret>.
 // @Tags triggers
 // @Accept json
 // @Produce json
@@ -50,6 +55,7 @@ func NewHTTPTriggerHandler(db *gorm.DB, enqueuer enqueue.TaskEnqueuer) *HTTPTrig
 // @Failure 400 {object} errorResponse
 // @Failure 401 {object} errorResponse "Missing or invalid shared secret"
 // @Failure 404 {object} errorResponse
+// @Failure 413 {object} errorResponse
 // @Router /incoming/triggers/{triggerID} [post]
 func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *http.Request) {
 	triggerIDStr := chi.URLParam(request, "triggerID")
@@ -60,13 +66,11 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 		return
 	}
 
-	var trigger model.RouterTrigger
-	if err := handler.db.Where("id = ? AND enabled = TRUE", triggerID).First(&trigger).Error; err != nil {
-		writeJSON(writer, http.StatusNotFound, errorResponse{Error: "trigger not found"})
-		return
-	}
-
-	if trigger.TriggerType != "http" {
+	var trigger model.AgentTrigger
+	if err := handler.db.
+		Joins("JOIN agents ON agents.id = agent_triggers.agent_id").
+		Where("agent_triggers.id = ? AND agent_triggers.enabled = TRUE AND agent_triggers.trigger_type = ? AND agents.is_employee = true", triggerID, "http").
+		First(&trigger).Error; err != nil {
 		writeJSON(writer, http.StatusNotFound, errorResponse{Error: "trigger not found"})
 		return
 	}
@@ -83,12 +87,17 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 		}
 	}
 
-	body, err := io.ReadAll(request.Body)
+	bodyReader := http.MaxBytesReader(writer, request.Body, maxHTTPTriggerBodyBytes)
+	body, err := io.ReadAll(bodyReader)
 	if err != nil {
 		logging.FromContext(request.Context()).ErrorContext(request.Context(), "http trigger: failed to read body",
 			"trigger_id", triggerID,
 			"error", err,
 		)
+		if strings.Contains(err.Error(), "request body too large") {
+			writeJSON(writer, http.StatusRequestEntityTooLarge, errorResponse{Error: "request body too large"})
+			return
+		}
 		writeJSON(writer, http.StatusBadRequest, errorResponse{Error: "failed to read body"})
 		return
 	}
@@ -96,18 +105,18 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 	if len(body) == 0 {
 		body = []byte("{}")
 	}
+	body = sanitizeHTTPTriggerPayload(body, request.Header.Get("Content-Type"))
 
 	writeJSON(writer, http.StatusOK, map[string]string{"status": "ok"})
 
 	deliveryID := triggerID.String() + ":" + uuid.New().String()
-	task, err := tasks.NewRouterDispatchTask(tasks.TriggerDispatchPayload{
-		Provider:        "http",
-		EventType:       "http",
-		EventAction:     "",
-		DeliveryID:      deliveryID,
-		OrgID:           trigger.OrgID,
-		PayloadJSON:     body,
-		RouterTriggerID: &triggerID,
+	task, err := tasks.NewEmployeeTriggerDispatchTask(tasks.EmployeeTriggerDispatchPayload{
+		Provider:    "http",
+		EventType:   "http",
+		DeliveryID:  deliveryID,
+		OrgID:       trigger.OrgID,
+		PayloadJSON: body,
+		TriggerID:   &triggerID,
 	})
 	if err != nil {
 		logging.FromContext(request.Context()).ErrorContext(request.Context(), "http trigger: failed to build dispatch task",
@@ -147,4 +156,54 @@ func extractTriggerSecret(request *http.Request) string {
 		return value
 	}
 	return ""
+}
+
+func sanitizeHTTPTriggerPayload(body []byte, contentType string) []byte {
+	if !strings.Contains(strings.ToLower(contentType), "json") && !json.Valid(body) {
+		return body
+	}
+	var decoded any
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		return body
+	}
+	redacted := redactSensitiveJSON(decoded)
+	encoded, err := json.Marshal(redacted)
+	if err != nil {
+		return body
+	}
+	return encoded
+}
+
+func redactSensitiveJSON(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(typed))
+		for key, nested := range typed {
+			if isSensitivePayloadKey(key) {
+				out[key] = httpTriggerRedactedValue
+				continue
+			}
+			out[key] = redactSensitiveJSON(nested)
+		}
+		return out
+	case []any:
+		out := make([]any, len(typed))
+		for index, nested := range typed {
+			out[index] = redactSensitiveJSON(nested)
+		}
+		return out
+	default:
+		return typed
+	}
+}
+
+func isSensitivePayloadKey(key string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(key))
+	normalized = strings.ReplaceAll(normalized, "-", "_")
+	for _, marker := range []string{"authorization", "password", "secret", "token", "api_key", "apikey", "credential"} {
+		if strings.Contains(normalized, marker) {
+			return true
+		}
+	}
+	return false
 }

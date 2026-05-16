@@ -4040,7 +4040,7 @@ export interface paths {
         put?: never;
         /**
          * Receive HTTP trigger request
-         * @description Receives an HTTP request and dispatches it through the router pipeline for the specified trigger. The trigger UUID acts as a bearer token. If the trigger has a shared secret configured, the request must include the plaintext secret in any of: Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, or ?secret=<secret>.
+         * @description Receives an HTTP request and dispatches it to the owning employee runtime for the specified trigger. The trigger UUID acts as a bearer token. If the trigger has a shared secret configured, the request must include the plaintext secret in any of: Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, or ?secret=<secret>.
          */
         post: {
             parameters: {
@@ -4093,6 +4093,15 @@ export interface paths {
                 };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Request Entity Too Large */
+                413: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -11450,536 +11459,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/router": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get or create router
-         * @description Returns the organization's router, creating one automatically if it doesn't exist yet.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Router"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        /**
-         * Update router
-         * @description Updates the organization's router settings such as persona, default agent, and memory team.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Router update fields */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["updateRouterRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Router"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/router/decisions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List routing decisions
-         * @description Returns the most recent routing decisions for the organization, useful for auditing and debugging trigger routing.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["RoutingDecision"][];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/router/triggers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List router triggers
-         * @description Returns all triggers configured on the organization's router.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["RouterTrigger"][];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Create a router trigger
-         * @description Creates a new trigger on the organization's router. Webhook triggers require a connection_id and trigger_keys. HTTP triggers generate a unique URL. Cron triggers require a cron_schedule expression.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Trigger definition */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["createTriggerRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["RouterTrigger"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/router/triggers/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete a router trigger
-         * @description Removes a trigger from the organization's router.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Trigger ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["statusResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/router/triggers/{id}/rules": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List routing rules
-         * @description Returns all routing rules for a specific trigger, ordered by priority.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Trigger ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["RoutingRule"][];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Create a routing rule
-         * @description Adds a routing rule to a trigger. Rules determine which agent handles events that match the trigger.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Trigger ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            /** @description Rule definition */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["createRuleRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["RoutingRule"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/router/triggers/{id}/rules/{ruleID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete a routing rule
-         * @description Removes a routing rule from a trigger.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Trigger ID */
-                    id: string;
-                    /** @description Rule ID */
-                    ruleID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["statusResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/sandbox-templates": {
         parameters: {
             query?: never;
@@ -14018,69 +13497,6 @@ export interface components {
              */
             webhook_url_required?: boolean;
         };
-        Agent: {
-            /** @description max_tokens, max_turns, temperature, etc. */
-            agentConfig?: components["schemas"]["JSON"];
-            avatarURL?: string;
-            category?: string;
-            createdAt?: string;
-            credential?: components["schemas"]["Credential"];
-            /** @description nil for system agents */
-            credentialID?: string;
-            description?: string;
-            /** @description AES-256-GCM encrypted JSON map of env vars */
-            encryptedEnvVars?: number[];
-            /** @description TODO(post-migration): drop agent.Tools column once data archived. */
-            harness?: string;
-            id?: string;
-            identityPrompt?: string;
-            /** @description optional markdown instructions for auto-starting runs */
-            instructions?: string;
-            /** @description selected integration IDs/configs */
-            integrations?: components["schemas"]["JSON"];
-            /** @description employee agents own subagents and use a different onboarding flow */
-            isEmployee?: boolean;
-            isSystem?: boolean;
-            lastMemoryRefreshedAt?: string;
-            mcpServers?: components["schemas"]["JSON"];
-            memoryRefreshError?: string;
-            /** @description queued, running, succeeded, failed */
-            memoryRefreshStatus?: string;
-            /** @description must match credential's provider */
-            model?: string;
-            name?: string;
-            org?: components["schemas"]["Org"];
-            /** @description nil for system agents */
-            orgID?: string;
-            /** @description tool permission overrides */
-            permissions?: components["schemas"]["JSON"];
-            promptOperatingPrinciples?: string;
-            /** @description e.g. "anthropic", "openai", "gemini" — set for system agents */
-            providerGroup?: string;
-            /** @description map[provider_group] -> {system_prompt, model} */
-            providerPrompts?: components["schemas"]["ProviderPromptsMap"];
-            /** @description per-connection resource scoping: {connID: {resourceKey: [{id, name}]}} */
-            resources?: components["schemas"]["JSON"];
-            sandboxTemplate?: components["schemas"]["SandboxTemplate"];
-            sandboxTemplateID?: string;
-            /** @description Sandbox setup */
-            sandboxTools?: string[];
-            /** @description shell commands run on dedicated sandbox creation */
-            setupCommands?: string[];
-            /** @description can store shared memories visible to all agents in identity */
-            sharedMemory?: boolean;
-            skills?: components["schemas"]["JSON"];
-            /** @description draft, active, archived */
-            status?: string;
-            /** @description Bridge AgentDefinition fields */
-            systemPrompt?: string;
-            /** @description team tag for memory scoping (e.g. "engineering", "sales") */
-            team?: string;
-            teamID?: string;
-            teamRef?: components["schemas"]["Team"];
-            tools?: components["schemas"]["JSON"];
-            updatedAt?: string;
-        };
         ConnectionConfigField: {
             automated?: boolean;
             description?: string;
@@ -14091,66 +13507,6 @@ export interface components {
             pattern?: string;
             title?: string;
             type?: string;
-        };
-        Credential: {
-            authScheme?: string;
-            baseURL?: string;
-            createdAt?: string;
-            encryptedKey?: number[];
-            id?: string;
-            /**
-             * @description IsSystem marks credentials owned by the platform itself rather than by
-             *     a customer org. System credentials are used by agents that opted out of
-             *     BYOK (agent.credential_id IS NULL), managed via admin-only endpoints,
-             *     and hidden from org-scoped APIs. They FK to the platform org (see
-             *     internal/credentials.PlatformOrgID).
-             */
-            isSystem?: boolean;
-            label?: string;
-            lastRefillAt?: string;
-            meta?: components["schemas"]["JSON"];
-            org?: components["schemas"]["Org"];
-            orgID?: string;
-            providerID?: string;
-            refillAmount?: number;
-            refillInterval?: string;
-            remaining?: number;
-            revokedAt?: string;
-            wrappedDEK?: number[];
-        };
-        InConnection: {
-            createdAt?: string;
-            id?: string;
-            inIntegration?: components["schemas"]["InIntegration"];
-            inIntegrationID?: string;
-            meta?: components["schemas"]["JSON"];
-            nangoConnectionID?: string;
-            org?: components["schemas"]["Org"];
-            orgID?: string;
-            revokedAt?: string;
-            updatedAt?: string;
-            user?: components["schemas"]["User"];
-            userID?: string;
-            webhookConfigured?: boolean;
-        };
-        InIntegration: {
-            createdAt?: string;
-            deletedAt?: string;
-            displayName?: string;
-            id?: string;
-            meta?: components["schemas"]["JSON"];
-            nango_config?: components["schemas"]["JSON"];
-            provider?: string;
-            /**
-             * @description SupportsRAGSource is the admin-UI picker gate: only integrations
-             *     with this flag true appear in "Add RAG source". Seeded true for
-             *     the known-good providers (github, notion, slack, confluence,
-             *     jira, linear, google_drive) by the RAG model package's Migrate
-             *     entry point; anything else defaults false.
-             */
-            supports_rag_source?: boolean;
-            uniqueKey?: string;
-            updatedAt?: string;
         };
         JSON: {
             [key: string]: unknown;
@@ -14177,173 +13533,12 @@ export interface components {
             webhook_url?: string;
             webhook_user_defined_secret?: boolean;
         };
-        Org: {
-            active?: boolean;
-            allowedOrigins?: string[];
-            /**
-             * @description BYOK reports whether the org runs agents on its own LLM credentials.
-             *     When false, agents fall back to platform-owned system credentials.
-             */
-            byok?: boolean;
-            createdAt?: string;
-            description?: string;
-            id?: string;
-            /**
-             * @description LogoURL is a CDN-served URL to the org's square logo. Stored as the
-             *     asset_url returned from POST /v1/uploads/sign with asset_type=org_logo.
-             *     Empty string when no logo is set.
-             */
-            logoURL?: string;
-            name?: string;
-            onboarded?: boolean;
-            /**
-             * @description Denormalised slug of the org's active plan ("free" when no active sub).
-             *     Source of truth lives in the subscriptions table; this is cached on
-             *     the org row so request-path checks don't need a join.
-             */
-            planSlug?: string;
-            promptCompany?: string;
-            rateLimit?: number;
-            updatedAt?: string;
-            website?: string;
-        };
         ProviderPromptConfig: {
             model?: string;
             system_prompt?: string;
         };
         ProviderPromptsMap: {
             [key: string]: components["schemas"]["ProviderPromptConfig"];
-        };
-        Router: {
-            createdAt?: string;
-            defaultAgent?: components["schemas"]["Agent"];
-            defaultAgentID?: string;
-            id?: string;
-            /** @description Hindsight namespace all specialists share */
-            memoryTeam?: string;
-            name?: string;
-            org?: components["schemas"]["Org"];
-            orgID?: string;
-            /** @description shared voice injected into every specialist's instructions */
-            persona?: string;
-            updatedAt?: string;
-        };
-        RouterTrigger: {
-            /** @description nil for http/cron triggers */
-            connectionID?: string;
-            /** @description base context actions run before routing */
-            contextActions?: number[];
-            createdAt?: string;
-            /** @description Cron-specific fields (only used when TriggerType = "cron"). */
-            cronSchedule?: string;
-            enabled?: boolean;
-            /** @description enable LLM cross-connection enrichment */
-            enrichCrossReferences?: boolean;
-            id?: string;
-            inConnection?: components["schemas"]["InConnection"];
-            /**
-             * @description Instructions sent to the agent when the trigger fires (cron/http only).
-             *     For webhook triggers, instructions come from enrichment. For cron/http,
-             *     this field provides the base prompt template. Supports $refs.x substitution.
-             */
-            instructions?: string;
-            /** @description last successful fire */
-            lastRunAt?: string;
-            /** @description pre-computed next fire time; poller queries this */
-            nextRunAt?: string;
-            orgID?: string;
-            router?: components["schemas"]["Router"];
-            routerID?: string;
-            /** @description "rule" or "triage" */
-            routingMode?: string;
-            /**
-             * @description HTTP-specific fields (only used when TriggerType = "http").
-             *     If empty, the trigger relies on the unguessable UUID for security.
-             *     When set, stores a bcrypt hash of the user-supplied shared secret. The
-             *     HTTP handler accepts the plaintext secret in any of:
-             *       Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, ?secret=
-             *     and verifies via bcrypt.CompareHashAndPassword.
-             */
-            secretKey?: string;
-            triggerKeys?: string[];
-            /** @description "webhook", "http", "cron" */
-            triggerType?: string;
-            updatedAt?: string;
-        };
-        RoutingDecision: {
-            createdAt?: string;
-            enrichmentSteps?: number;
-            /** @description e.g. "app_mention", "pull_request.opened" */
-            eventType?: string;
-            id?: string;
-            /** @description LLM-generated summary of intent (triage only) */
-            intentSummary?: string;
-            latencyMs?: number;
-            orgID?: string;
-            resourceKey?: string;
-            routerTriggerID?: string;
-            /** @description "rule" or "triage" */
-            routingMode?: string;
-            /** @description agent IDs that were dispatched */
-            selectedAgents?: string[];
-            /** @description LLM turns used (triage only) */
-            turnCount?: number;
-        };
-        RoutingRule: {
-            agent?: components["schemas"]["Agent"];
-            agentID?: string;
-            /** @description nil = always matches (catch-all) */
-            conditions?: number[];
-            createdAt?: string;
-            id?: string;
-            /** @description 1 = highest priority */
-            priority?: number;
-            routerTrigger?: components["schemas"]["RouterTrigger"];
-            routerTriggerID?: string;
-        };
-        SandboxTemplate: {
-            /** @description OCI image ref used as FROM when a child template builds on top of this row */
-            baseImageRef?: string;
-            baseTemplate?: components["schemas"]["SandboxTemplate"];
-            /** @description optional FK to public template used as base */
-            baseTemplateID?: string;
-            /** @description user's commands to run on base image */
-            buildCommands?: string;
-            buildError?: string;
-            /** @description accumulated build logs (newline separated) */
-            buildLogs?: string;
-            /** @description pending, building, ready, failed */
-            buildStatus?: string;
-            /** @description resources, env vars, etc. */
-            config?: components["schemas"]["JSON"];
-            createdAt?: string;
-            description?: string;
-            /** @description provider's template/snapshot ID once built */
-            externalID?: string;
-            id?: string;
-            /** @description display name for users */
-            name?: string;
-            org?: components["schemas"]["Org"];
-            /** @description nil = public/platform-wide template */
-            orgID?: string;
-            /** @description small, medium, large, xlarge */
-            size?: string;
-            /** @description Daytona snapshot name */
-            slug?: string;
-            /** @description user-facing tags, e.g. ["python","ml"] */
-            tags?: components["schemas"]["JSON"];
-            updatedAt?: string;
-        };
-        Team: {
-            createdAt?: string;
-            deletedAt?: string;
-            description?: string;
-            id?: string;
-            name?: string;
-            org?: components["schemas"]["Org"];
-            orgID?: string;
-            promptTeam?: string;
-            updatedAt?: string;
         };
         TriggerCondition: {
             /** @description equals, not_equals, one_of, not_one_of, contains, not_contains, matches, exists, not_exists */
@@ -14357,17 +13552,6 @@ export interface components {
             conditions?: components["schemas"]["TriggerCondition"][];
             /** @description "all" (AND) or "any" (OR) */
             mode?: string;
-        };
-        User: {
-            banReason?: string;
-            bannedAt?: string;
-            createdAt?: string;
-            email?: string;
-            emailConfirmedAt?: string;
-            id?: string;
-            name?: string;
-            passwordHash?: string;
-            updatedAt?: string;
         };
         "github_com_usehiveloop_hiveloop_internal_nango.Credentials": {
             app_id?: string;
@@ -14804,7 +13988,6 @@ export interface components {
         agentTriggerInput: {
             conditions?: components["schemas"]["TriggerMatch"];
             connection_id?: string;
-            cron_schedule?: string;
             instructions?: string;
             /**
              * @description SecretKey is the optional plaintext shared secret for HTTP triggers.
@@ -14813,13 +13996,12 @@ export interface components {
              */
             secret_key?: string;
             trigger_keys?: string[];
-            /** @description "webhook" (default), "http", "cron" */
+            /** @description "webhook" (default), "http" */
             trigger_type?: string;
         };
         agentTriggerResponse: {
             conditions?: unknown;
             connection_id?: string;
-            cron_schedule?: string;
             enabled?: boolean;
             id?: string;
             instructions?: string;
@@ -14944,12 +14126,12 @@ export interface components {
         };
         conversationEventResponse: {
             agent_id?: string;
-            bridge_conversation_id?: string;
             created_at?: string;
             data?: number[];
             event_id?: string;
             event_type?: string;
             id?: string;
+            runtime_conversation_id?: string;
             sequence_number?: number;
             timestamp?: string;
         };
@@ -15128,11 +14310,6 @@ export interface components {
             prune_freq_seconds?: number;
             refresh_freq_seconds?: number;
         };
-        createRuleRequest: {
-            agent_id?: string;
-            conditions?: number[];
-            priority?: number;
-        };
         createSandboxTemplateRequest: {
             build_commands?: string[];
             config?: components["schemas"]["JSON"];
@@ -15174,20 +14351,6 @@ export interface components {
             description?: string;
             name?: string;
             prompt_team?: string;
-        };
-        createTriggerRequest: {
-            /** @description required for webhook */
-            connection_id?: string;
-            /** @description required for cron */
-            cron_schedule?: string;
-            enrich_cross_references?: boolean;
-            instructions?: string;
-            /** @description "rule" (default) or "triage" */
-            routing_mode?: string;
-            /** @description required for webhook */
-            trigger_keys?: string[];
-            /** @description "webhook" (default), "http", "cron" */
-            trigger_type?: string;
         };
         credentialResponse: {
             auth_scheme?: string;
@@ -16290,11 +15453,6 @@ export interface components {
             prune_freq_seconds?: number;
             refresh_freq_seconds?: number;
             status?: string;
-        };
-        updateRouterRequest: {
-            default_agent_id?: string;
-            memory_team?: string;
-            persona?: string;
         };
         updateSandboxTemplateRequest: {
             build_commands?: string[];

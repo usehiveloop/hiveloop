@@ -159,17 +159,11 @@ func deleteAgentNonCascadingReferences(db *gorm.DB, agentID uuid.UUID) error {
 	if err := deleteAgentTriggers(db, agentID); err != nil {
 		return err
 	}
-	if err := db.Where("agent_id = ?", agentID).Delete(&model.ConversationSubscription{}).Error; err != nil {
-		return fmt.Errorf("delete conversation subscriptions: %w", err)
-	}
 	if err := db.Exec(`DELETE FROM chat_messages WHERE session_id IN (SELECT id FROM chat_sessions WHERE agent_id = ?)`, agentID).Error; err != nil {
 		return fmt.Errorf("delete chat messages: %w", err)
 	}
 	if err := db.Where("agent_id = ?", agentID).Delete(&model.ChatSession{}).Error; err != nil {
 		return fmt.Errorf("delete chat sessions: %w", err)
-	}
-	if err := db.Where("agent_id = ?", agentID).Delete(&model.RouterConversation{}).Error; err != nil {
-		return fmt.Errorf("delete router conversations: %w", err)
 	}
 	if err := db.Where("agent_id = ?", agentID).Delete(&model.EmployeeAsset{}).Error; err != nil {
 		return fmt.Errorf("delete employee assets: %w", err)

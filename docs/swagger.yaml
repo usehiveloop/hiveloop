@@ -67,124 +67,6 @@ definitions:
           URL in the provider's dashboard for triggers to work.
         type: boolean
     type: object
-  github_com_usehiveloop_hiveloop_internal_model.Agent:
-    properties:
-      agentConfig:
-        allOf:
-        - $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-        description: max_tokens, max_turns, temperature, etc.
-      avatarURL:
-        type: string
-      category:
-        type: string
-      createdAt:
-        type: string
-      credential:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Credential'
-      credentialID:
-        description: nil for system agents
-        type: string
-      description:
-        type: string
-      encryptedEnvVars:
-        description: AES-256-GCM encrypted JSON map of env vars
-        items:
-          type: integer
-        type: array
-      harness:
-        description: 'TODO(post-migration): drop agent.Tools column once data archived.'
-        type: string
-      id:
-        type: string
-      identityPrompt:
-        type: string
-      instructions:
-        description: optional markdown instructions for auto-starting runs
-        type: string
-      integrations:
-        allOf:
-        - $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-        description: selected integration IDs/configs
-      isEmployee:
-        description: employee agents own subagents and use a different onboarding
-          flow
-        type: boolean
-      isSystem:
-        type: boolean
-      lastMemoryRefreshedAt:
-        type: string
-      mcpServers:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      memoryRefreshError:
-        type: string
-      memoryRefreshStatus:
-        description: queued, running, succeeded, failed
-        type: string
-      model:
-        description: must match credential's provider
-        type: string
-      name:
-        type: string
-      org:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Org'
-      orgID:
-        description: nil for system agents
-        type: string
-      permissions:
-        allOf:
-        - $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-        description: tool permission overrides
-      promptOperatingPrinciples:
-        type: string
-      providerGroup:
-        description: e.g. "anthropic", "openai", "gemini" — set for system agents
-        type: string
-      providerPrompts:
-        allOf:
-        - $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap'
-        description: map[provider_group] -> {system_prompt, model}
-      resources:
-        allOf:
-        - $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-        description: 'per-connection resource scoping: {connID: {resourceKey: [{id,
-          name}]}}'
-      sandboxTemplate:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.SandboxTemplate'
-      sandboxTemplateID:
-        type: string
-      sandboxTools:
-        description: Sandbox setup
-        items:
-          type: string
-        type: array
-      setupCommands:
-        description: shell commands run on dedicated sandbox creation
-        items:
-          type: string
-        type: array
-      sharedMemory:
-        description: can store shared memories visible to all agents in identity
-        type: boolean
-      skills:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      status:
-        description: draft, active, archived
-        type: string
-      systemPrompt:
-        description: Bridge AgentDefinition fields
-        type: string
-      team:
-        description: team tag for memory scoping (e.g. "engineering", "sales")
-        type: string
-      teamID:
-        type: string
-      teamRef:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Team'
-      tools:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      updatedAt:
-        type: string
-    type: object
   github_com_usehiveloop_hiveloop_internal_model.ConnectionConfigField:
     properties:
       automated:
@@ -204,111 +86,6 @@ definitions:
       title:
         type: string
       type:
-        type: string
-    type: object
-  github_com_usehiveloop_hiveloop_internal_model.Credential:
-    properties:
-      authScheme:
-        type: string
-      baseURL:
-        type: string
-      createdAt:
-        type: string
-      encryptedKey:
-        items:
-          type: integer
-        type: array
-      id:
-        type: string
-      isSystem:
-        description: |-
-          IsSystem marks credentials owned by the platform itself rather than by
-          a customer org. System credentials are used by agents that opted out of
-          BYOK (agent.credential_id IS NULL), managed via admin-only endpoints,
-          and hidden from org-scoped APIs. They FK to the platform org (see
-          internal/credentials.PlatformOrgID).
-        type: boolean
-      label:
-        type: string
-      lastRefillAt:
-        type: string
-      meta:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      org:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Org'
-      orgID:
-        type: string
-      providerID:
-        type: string
-      refillAmount:
-        type: integer
-      refillInterval:
-        type: string
-      remaining:
-        type: integer
-      revokedAt:
-        type: string
-      wrappedDEK:
-        items:
-          type: integer
-        type: array
-    type: object
-  github_com_usehiveloop_hiveloop_internal_model.InConnection:
-    properties:
-      createdAt:
-        type: string
-      id:
-        type: string
-      inIntegration:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.InIntegration'
-      inIntegrationID:
-        type: string
-      meta:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      nangoConnectionID:
-        type: string
-      org:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Org'
-      orgID:
-        type: string
-      revokedAt:
-        type: string
-      updatedAt:
-        type: string
-      user:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.User'
-      userID:
-        type: string
-      webhookConfigured:
-        type: boolean
-    type: object
-  github_com_usehiveloop_hiveloop_internal_model.InIntegration:
-    properties:
-      createdAt:
-        type: string
-      deletedAt:
-        type: string
-      displayName:
-        type: string
-      id:
-        type: string
-      meta:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      nango_config:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      provider:
-        type: string
-      supports_rag_source:
-        description: |-
-          SupportsRAGSource is the admin-UI picker gate: only integrations
-          with this flag true appear in "Add RAG source". Seeded true for
-          the known-good providers (github, notion, slack, confluence,
-          jira, linear, google_drive) by the RAG model package's Migrate
-          entry point; anything else defaults false.
-        type: boolean
-      uniqueKey:
-        type: string
-      updatedAt:
         type: string
     type: object
   github_com_usehiveloop_hiveloop_internal_model.JSON:
@@ -354,50 +131,6 @@ definitions:
       webhook_user_defined_secret:
         type: boolean
     type: object
-  github_com_usehiveloop_hiveloop_internal_model.Org:
-    properties:
-      active:
-        type: boolean
-      allowedOrigins:
-        items:
-          type: string
-        type: array
-      byok:
-        description: |-
-          BYOK reports whether the org runs agents on its own LLM credentials.
-          When false, agents fall back to platform-owned system credentials.
-        type: boolean
-      createdAt:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      logoURL:
-        description: |-
-          LogoURL is a CDN-served URL to the org's square logo. Stored as the
-          asset_url returned from POST /v1/uploads/sign with asset_type=org_logo.
-          Empty string when no logo is set.
-        type: string
-      name:
-        type: string
-      onboarded:
-        type: boolean
-      planSlug:
-        description: |-
-          Denormalised slug of the org's active plan ("free" when no active sub).
-          Source of truth lives in the subscriptions table; this is cached on
-          the org row so request-path checks don't need a join.
-        type: string
-      promptCompany:
-        type: string
-      rateLimit:
-        type: integer
-      updatedAt:
-        type: string
-      website:
-        type: string
-    type: object
   github_com_usehiveloop_hiveloop_internal_model.ProviderPromptConfig:
     properties:
       model:
@@ -408,229 +141,6 @@ definitions:
   github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap:
     additionalProperties:
       $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptConfig'
-    type: object
-  github_com_usehiveloop_hiveloop_internal_model.Router:
-    properties:
-      createdAt:
-        type: string
-      defaultAgent:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Agent'
-      defaultAgentID:
-        type: string
-      id:
-        type: string
-      memoryTeam:
-        description: Hindsight namespace all specialists share
-        type: string
-      name:
-        type: string
-      org:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Org'
-      orgID:
-        type: string
-      persona:
-        description: shared voice injected into every specialist's instructions
-        type: string
-      updatedAt:
-        type: string
-    type: object
-  github_com_usehiveloop_hiveloop_internal_model.RouterTrigger:
-    properties:
-      connectionID:
-        description: nil for http/cron triggers
-        type: string
-      contextActions:
-        description: base context actions run before routing
-        items:
-          type: integer
-        type: array
-      createdAt:
-        type: string
-      cronSchedule:
-        description: Cron-specific fields (only used when TriggerType = "cron").
-        type: string
-      enabled:
-        type: boolean
-      enrichCrossReferences:
-        description: enable LLM cross-connection enrichment
-        type: boolean
-      id:
-        type: string
-      inConnection:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.InConnection'
-      instructions:
-        description: |-
-          Instructions sent to the agent when the trigger fires (cron/http only).
-          For webhook triggers, instructions come from enrichment. For cron/http,
-          this field provides the base prompt template. Supports $refs.x substitution.
-        type: string
-      lastRunAt:
-        description: last successful fire
-        type: string
-      nextRunAt:
-        description: pre-computed next fire time; poller queries this
-        type: string
-      orgID:
-        type: string
-      router:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Router'
-      routerID:
-        type: string
-      routingMode:
-        description: '"rule" or "triage"'
-        type: string
-      secretKey:
-        description: |-
-          HTTP-specific fields (only used when TriggerType = "http").
-          If empty, the trigger relies on the unguessable UUID for security.
-          When set, stores a bcrypt hash of the user-supplied shared secret. The
-          HTTP handler accepts the plaintext secret in any of:
-            Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, ?secret=
-          and verifies via bcrypt.CompareHashAndPassword.
-        type: string
-      triggerKeys:
-        items:
-          type: string
-        type: array
-      triggerType:
-        description: '"webhook", "http", "cron"'
-        type: string
-      updatedAt:
-        type: string
-    type: object
-  github_com_usehiveloop_hiveloop_internal_model.RoutingDecision:
-    properties:
-      createdAt:
-        type: string
-      enrichmentSteps:
-        type: integer
-      eventType:
-        description: e.g. "app_mention", "pull_request.opened"
-        type: string
-      id:
-        type: string
-      intentSummary:
-        description: LLM-generated summary of intent (triage only)
-        type: string
-      latencyMs:
-        type: integer
-      orgID:
-        type: string
-      resourceKey:
-        type: string
-      routerTriggerID:
-        type: string
-      routingMode:
-        description: '"rule" or "triage"'
-        type: string
-      selectedAgents:
-        description: agent IDs that were dispatched
-        items:
-          type: string
-        type: array
-      turnCount:
-        description: LLM turns used (triage only)
-        type: integer
-    type: object
-  github_com_usehiveloop_hiveloop_internal_model.RoutingRule:
-    properties:
-      agent:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Agent'
-      agentID:
-        type: string
-      conditions:
-        description: nil = always matches (catch-all)
-        items:
-          type: integer
-        type: array
-      createdAt:
-        type: string
-      id:
-        type: string
-      priority:
-        description: 1 = highest priority
-        type: integer
-      routerTrigger:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.RouterTrigger'
-      routerTriggerID:
-        type: string
-    type: object
-  github_com_usehiveloop_hiveloop_internal_model.SandboxTemplate:
-    properties:
-      baseImageRef:
-        description: OCI image ref used as FROM when a child template builds on top
-          of this row
-        type: string
-      baseTemplate:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.SandboxTemplate'
-      baseTemplateID:
-        description: optional FK to public template used as base
-        type: string
-      buildCommands:
-        description: user's commands to run on base image
-        type: string
-      buildError:
-        type: string
-      buildLogs:
-        description: accumulated build logs (newline separated)
-        type: string
-      buildStatus:
-        description: pending, building, ready, failed
-        type: string
-      config:
-        allOf:
-        - $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-        description: resources, env vars, etc.
-      createdAt:
-        type: string
-      description:
-        type: string
-      externalID:
-        description: provider's template/snapshot ID once built
-        type: string
-      id:
-        type: string
-      name:
-        description: display name for users
-        type: string
-      org:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Org'
-      orgID:
-        description: nil = public/platform-wide template
-        type: string
-      size:
-        description: small, medium, large, xlarge
-        type: string
-      slug:
-        description: Daytona snapshot name
-        type: string
-      tags:
-        allOf:
-        - $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-        description: user-facing tags, e.g. ["python","ml"]
-      updatedAt:
-        type: string
-    type: object
-  github_com_usehiveloop_hiveloop_internal_model.Team:
-    properties:
-      createdAt:
-        type: string
-      deletedAt:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      org:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Org'
-      orgID:
-        type: string
-      promptTeam:
-        type: string
-      updatedAt:
-        type: string
     type: object
   github_com_usehiveloop_hiveloop_internal_model.TriggerCondition:
     properties:
@@ -652,27 +162,6 @@ definitions:
         type: array
       mode:
         description: '"all" (AND) or "any" (OR)'
-        type: string
-    type: object
-  github_com_usehiveloop_hiveloop_internal_model.User:
-    properties:
-      banReason:
-        type: string
-      bannedAt:
-        type: string
-      createdAt:
-        type: string
-      email:
-        type: string
-      emailConfirmedAt:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      passwordHash:
-        type: string
-      updatedAt:
         type: string
     type: object
   github_com_usehiveloop_hiveloop_internal_nango.Credentials:
@@ -1538,8 +1027,6 @@ definitions:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.TriggerMatch'
       connection_id:
         type: string
-      cron_schedule:
-        type: string
       instructions:
         type: string
       secret_key:
@@ -1553,15 +1040,13 @@ definitions:
           type: string
         type: array
       trigger_type:
-        description: '"webhook" (default), "http", "cron"'
+        description: '"webhook" (default), "http"'
         type: string
     type: object
   internal_handler.agentTriggerResponse:
     properties:
       conditions: {}
       connection_id:
-        type: string
-      cron_schedule:
         type: string
       enabled:
         type: boolean
@@ -1794,8 +1279,6 @@ definitions:
     properties:
       agent_id:
         type: string
-      bridge_conversation_id:
-        type: string
       created_at:
         type: string
       data:
@@ -1807,6 +1290,8 @@ definitions:
       event_type:
         type: string
       id:
+        type: string
+      runtime_conversation_id:
         type: string
       sequence_number:
         type: integer
@@ -2154,17 +1639,6 @@ definitions:
       refresh_freq_seconds:
         type: integer
     type: object
-  internal_handler.createRuleRequest:
-    properties:
-      agent_id:
-        type: string
-      conditions:
-        items:
-          type: integer
-        type: array
-      priority:
-        type: integer
-    type: object
   internal_handler.createSandboxTemplateRequest:
     properties:
       build_commands:
@@ -2245,30 +1719,6 @@ definitions:
       name:
         type: string
       prompt_team:
-        type: string
-    type: object
-  internal_handler.createTriggerRequest:
-    properties:
-      connection_id:
-        description: required for webhook
-        type: string
-      cron_schedule:
-        description: required for cron
-        type: string
-      enrich_cross_references:
-        type: boolean
-      instructions:
-        type: string
-      routing_mode:
-        description: '"rule" (default) or "triage"'
-        type: string
-      trigger_keys:
-        description: required for webhook
-        items:
-          type: string
-        type: array
-      trigger_type:
-        description: '"webhook" (default), "http", "cron"'
         type: string
     type: object
   internal_handler.credentialResponse:
@@ -4457,15 +3907,6 @@ definitions:
       refresh_freq_seconds:
         type: integer
       status:
-        type: string
-    type: object
-  internal_handler.updateRouterRequest:
-    properties:
-      default_agent_id:
-        type: string
-      memory_team:
-        type: string
-      persona:
         type: string
     type: object
   internal_handler.updateSandboxTemplateRequest:
@@ -6905,8 +6346,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: 'Receives an HTTP request and dispatches it through the router
-        pipeline for the specified trigger. The trigger UUID acts as a bearer token.
+      description: 'Receives an HTTP request and dispatches it to the owning employee
+        runtime for the specified trigger. The trigger UUID acts as a bearer token.
         If the trigger has a shared secret configured, the request must include the
         plaintext secret in any of: Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret,
         or ?secret=<secret>.'
@@ -6951,6 +6392,10 @@ paths:
             $ref: '#/definitions/internal_handler.errorResponse'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "413":
+          description: Request Entity Too Large
           schema:
             $ref: '#/definitions/internal_handler.errorResponse'
       summary: Receive HTTP trigger request
@@ -10985,293 +10430,6 @@ paths:
       summary: Get analytics report
       tags:
       - reporting
-  /v1/router:
-    get:
-      description: Returns the organization's router, creating one automatically if
-        it doesn't exist yet.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Router'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get or create router
-      tags:
-      - router
-    put:
-      consumes:
-      - application/json
-      description: Updates the organization's router settings such as persona, default
-        agent, and memory team.
-      parameters:
-      - description: Router update fields
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.updateRouterRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.Router'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update router
-      tags:
-      - router
-  /v1/router/decisions:
-    get:
-      description: Returns the most recent routing decisions for the organization,
-        useful for auditing and debugging trigger routing.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.RoutingDecision'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List routing decisions
-      tags:
-      - router
-  /v1/router/triggers:
-    get:
-      description: Returns all triggers configured on the organization's router.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.RouterTrigger'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List router triggers
-      tags:
-      - router
-    post:
-      consumes:
-      - application/json
-      description: Creates a new trigger on the organization's router. Webhook triggers
-        require a connection_id and trigger_keys. HTTP triggers generate a unique
-        URL. Cron triggers require a cron_schedule expression.
-      parameters:
-      - description: Trigger definition
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.createTriggerRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.RouterTrigger'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create a router trigger
-      tags:
-      - router
-  /v1/router/triggers/{id}:
-    delete:
-      description: Removes a trigger from the organization's router.
-      parameters:
-      - description: Trigger ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.statusResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete a router trigger
-      tags:
-      - router
-  /v1/router/triggers/{id}/rules:
-    get:
-      description: Returns all routing rules for a specific trigger, ordered by priority.
-      parameters:
-      - description: Trigger ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.RoutingRule'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List routing rules
-      tags:
-      - router
-    post:
-      consumes:
-      - application/json
-      description: Adds a routing rule to a trigger. Rules determine which agent handles
-        events that match the trigger.
-      parameters:
-      - description: Trigger ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Rule definition
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.createRuleRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.RoutingRule'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create a routing rule
-      tags:
-      - router
-  /v1/router/triggers/{id}/rules/{ruleID}:
-    delete:
-      description: Removes a routing rule from a trigger.
-      parameters:
-      - description: Trigger ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Rule ID
-        in: path
-        name: ruleID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.statusResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete a routing rule
-      tags:
-      - router
   /v1/sandbox-templates:
     get:
       description: Returns sandbox templates for the current organization.

@@ -14,7 +14,6 @@ import { ConditionBuilderView } from "./create-agent/step-trigger/condition-buil
 import { TriggerListView } from "./edit-triggers/trigger-list-view"
 import { TriggerTypePickerView } from "./edit-triggers/trigger-type-picker-view"
 import { HttpConfigView } from "./edit-triggers/http-config-view"
-import { CronConfigView } from "./edit-triggers/cron-config-view"
 
 export {
   TriggerTypeAvatar,
@@ -29,7 +28,6 @@ type DialogView =
   | "triggers"
   | "conditions"
   | "http-config"
-  | "cron-config"
 
 interface SelectedEvent {
   key: string
@@ -126,7 +124,6 @@ export function EditTriggersDialog({
       "triggers",
       "conditions",
       "http-config",
-      "cron-config",
     ]
     setNavDirection(order.indexOf(nextView) > order.indexOf(view) ? 1 : -1)
     setSearch("")
@@ -138,13 +135,11 @@ export function EditTriggersDialog({
     navigateTo("type")
   }
 
-  function handlePickType(triggerType: "webhook" | "http" | "cron") {
+  function handlePickType(triggerType: "webhook" | "http") {
     if (triggerType === "webhook") {
       navigateTo("connections")
-    } else if (triggerType === "http") {
-      navigateTo("http-config")
     } else {
-      navigateTo("cron-config")
+      navigateTo("http-config")
     }
   }
 
@@ -159,25 +154,6 @@ export function EditTriggersDialog({
       conditions: null,
       instructions: input.instructions || undefined,
       secretKey: input.secretKey || undefined,
-    })
-    resetFlowState()
-    navigateTo("list")
-  }
-
-  function handleSaveCron(input: {
-    cronSchedule: string
-    instructions: string
-  }) {
-    onAdd({
-      triggerType: "cron",
-      connectionId: "",
-      connectionName: "Cron trigger",
-      provider: "cron",
-      triggerKeys: [],
-      triggerDisplayNames: [],
-      conditions: null,
-      cronSchedule: input.cronSchedule,
-      instructions: input.instructions || undefined,
     })
     resetFlowState()
     navigateTo("list")
@@ -426,12 +402,6 @@ export function EditTriggersDialog({
               {view === "http-config" && (
                 <HttpConfigView
                   onSave={handleSaveHttp}
-                  onBack={() => navigateTo("type")}
-                />
-              )}
-              {view === "cron-config" && (
-                <CronConfigView
-                  onSave={handleSaveCron}
                   onBack={() => navigateTo("type")}
                 />
               )}

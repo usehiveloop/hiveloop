@@ -36,7 +36,7 @@ func TestWebhookSequence_NoGaps(t *testing.T) {
 			EventID:        fmt.Sprintf("ev-%d", i),
 			EventType:      etype,
 			AgentID:        wh.agent.ID.String(),
-			ConversationID: wh.conv.BridgeConversationID,
+			ConversationID: wh.conv.RuntimeConversationID,
 			Timestamp:      now.Add(time.Duration(i) * time.Millisecond),
 			SequenceNumber: int64(i),
 			Data:           json.RawMessage(fmt.Sprintf(`{"i":%d}`, i)),
@@ -85,7 +85,7 @@ func TestWebhookSequence_BadSignatureRejected(t *testing.T) {
 	events := []fakebridge.BridgeEvent{
 		{
 			EventID: "ev1", EventType: "message_received",
-			AgentID: wh.agent.ID.String(), ConversationID: wh.conv.BridgeConversationID,
+			AgentID: wh.agent.ID.String(), ConversationID: wh.conv.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 1, Data: json.RawMessage(`{}`),
 		},
 	}
@@ -154,7 +154,7 @@ func TestWebhookSequence_StatusTransitions(t *testing.T) {
 		t.Cleanup(func() { h.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
 		conv := model.AgentConversation{
 			OrgID: org.ID, AgentID: agent.ID, SandboxID: sb.ID,
-			BridgeConversationID: "wh3-conv-" + uuid.New().String()[:6], Status: "active",
+			RuntimeConversationID: "wh3-conv-" + uuid.New().String()[:6], Status: "active",
 		}
 		h.db.Create(&conv)
 		t.Cleanup(func() {
@@ -179,7 +179,7 @@ func TestWebhookSequence_StatusTransitions(t *testing.T) {
 	endEvents := []fakebridge.BridgeEvent{
 		{
 			EventID: "ev-end", EventType: "ConversationEnded",
-			AgentID: agent.ID.String(), ConversationID: conv1.BridgeConversationID,
+			AgentID: agent.ID.String(), ConversationID: conv1.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 1, Data: json.RawMessage(`{}`),
 		},
 	}
@@ -201,7 +201,7 @@ func TestWebhookSequence_StatusTransitions(t *testing.T) {
 	errEvents := []fakebridge.BridgeEvent{
 		{
 			EventID: "ev-err", EventType: "AgentError",
-			AgentID: agent.ID.String(), ConversationID: conv2.BridgeConversationID,
+			AgentID: agent.ID.String(), ConversationID: conv2.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 1, Data: json.RawMessage(`{"error":"boom"}`),
 		},
 	}

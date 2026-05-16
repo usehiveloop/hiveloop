@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use crate::AgentDefinition;
 use arc_swap::ArcSwap;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 /// Lock-free, atomic snapshot of the current `AgentDefinition`.

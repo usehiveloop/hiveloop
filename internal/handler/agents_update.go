@@ -191,6 +191,10 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Triggers != nil {
+		if len(*req.Triggers) > 0 && !agent.IsEmployee {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "triggers can only be configured on employees"})
+			return
+		}
 		if errMsg := validateAgentTriggers(h.db, org.ID, *req.Triggers); errMsg != "" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
 			return

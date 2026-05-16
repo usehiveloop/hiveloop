@@ -57,7 +57,7 @@ type conversationEventResponse struct {
 	EventID              string          `json:"event_id"`
 	EventType            string          `json:"event_type"`
 	AgentID              string          `json:"agent_id"`
-	BridgeConversationID string          `json:"bridge_conversation_id"`
+	RuntimeConversationID string          `json:"runtime_conversation_id"`
 	Timestamp            string          `json:"timestamp"`
 	SequenceNumber       int64           `json:"sequence_number"`
 	Data                 json.RawMessage `json:"data"`
@@ -192,7 +192,7 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		OrgID:                org.ID,
 		AgentID:              agent.ID,
 		SandboxID:            sb.ID,
-		BridgeConversationID: bridgeResp.ConversationId,
+		RuntimeConversationID: bridgeResp.ConversationId,
 		Status:               "active",
 	}
 	if err := h.db.Create(&conv).Error; err != nil {
@@ -206,7 +206,7 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		"conversation_id", conv.ID,
 		"agent_id", agent.ID,
 		"sandbox_id", sb.ID,
-		"bridge_conversation_id", bridgeResp.ConversationId,
+		"runtime_conversation_id", bridgeResp.ConversationId,
 	)
 
 	writeJSON(w, http.StatusCreated, conversationResponse{

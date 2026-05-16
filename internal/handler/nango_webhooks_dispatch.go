@@ -36,7 +36,6 @@ func dispatchWebhookEvent(
 	deliveryID := wh.ConnectionID + ":" + uuid.New().String()
 
 	enqueueTriggerDispatch(ctx, enqueuer, providerName, metadata, deliveryID, wctx)
-	enqueueSubscriptionDispatch(ctx, enqueuer, providerName, metadata, deliveryID, wctx)
 }
 
 type eventMetadata struct {
@@ -90,7 +89,7 @@ func enqueueTriggerDispatch(
 		}
 	}
 
-	task, err := tasks.NewRouterDispatchTask(tasks.TriggerDispatchPayload{
+	task, err := tasks.NewEmployeeTriggerDispatchTask(tasks.EmployeeTriggerDispatchPayload{
 		Provider:     providerName,
 		EventType:    metadata.EventType,
 		EventAction:  metadata.EventAction,
@@ -109,49 +108,6 @@ func enqueueTriggerDispatch(
 		logging.FromContext(ctx).ErrorContext(ctx, "trigger dispatch: failed to enqueue task",
 			"delivery_id", deliveryID, "error", err,
 		)
-		return
-	}
-}
-
-func enqueueSubscriptionDispatch(
-	ctx context.Context,
-	enqueuer enqueue.TaskEnqueuer,
-	providerName string,
-	metadata eventMetadata,
-	deliveryID string,
-	wctx *webhookContext,
-) {
-	cat := catalog.Global()
-	hasTriggers := cat.HasTriggers(providerName)
-	_, hasVariant := cat.GetProviderTriggersForVariant(providerName)
-	if !hasTriggers && !hasVariant {
-		return
-	}
-
-	logger := logging.FromContext(ctx).With(
-		"component", "subscription_dispatch_enqueue",
-		"delivery_id", deliveryID,
-		"provider", providerName,
-		"event_type", metadata.EventType,
-		"event_action", metadata.EventAction,
-		"org_id", wctx.orgID,
-	)
-
-	task, err := tasks.NewSubscriptionDispatchTask(tasks.SubscriptionDispatchPayload{
-		Provider:     providerName,
-		EventType:    metadata.EventType,
-		EventAction:  metadata.EventAction,
-		DeliveryID:   deliveryID,
-		OrgID:        wctx.orgID,
-		ConnectionID: wctx.inConnection.ID,
-		PayloadJSON:  metadata.RawBody,
-	})
-	if err != nil {
-		logger.ErrorContext(ctx, "subscription dispatch: failed to build task", "error", err)
-		return
-	}
-	if _, err := enqueuer.Enqueue(task); err != nil {
-		logger.ErrorContext(ctx, "subscription dispatch: failed to enqueue task", "error", err)
 		return
 	}
 }

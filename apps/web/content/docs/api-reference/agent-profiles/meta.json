@@ -1,0 +1,12 @@
+{
+  "title": "Agent profiles",
+  "description": "agent-profiles",
+  "pages": [
+    "v1/agents/agentid/profiles/github/post",
+    "v1/agents/agentid/profiles/github/repositories/get",
+    "v1/agents/agentid/profiles/github/repositories/patch",
+    "v1/agents/agentid/profiles/slack/post",
+    "v1/agents/agentid/profiles/slack/channels/get",
+    "v1/agents/agentid/profiles/slack/config/patch"
+  ]
+}

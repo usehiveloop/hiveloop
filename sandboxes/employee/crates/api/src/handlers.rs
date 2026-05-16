@@ -7,9 +7,9 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use domain::{AgentDefinition, EventKind, SessionId, SessionStatus};
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
+use std::collections::HashMap;
 use tracing::warn;
 
 use crate::http_gateway::{stream_response, HttpMessageRequest, HttpMessageResponse};
@@ -50,14 +50,20 @@ pub struct RuntimeEnvResponse {
 impl RuntimeEnvUpdate {
     fn validate(&self) -> Result<(), String> {
         if self.entries.len() > MAX_RUNTIME_ENV_KEYS {
-            return Err(format!("too many environment variables; max {}", MAX_RUNTIME_ENV_KEYS));
+            return Err(format!(
+                "too many environment variables; max {}",
+                MAX_RUNTIME_ENV_KEYS
+            ));
         }
 
         for (key, value) in &self.entries {
             if !is_valid_env_key(key) {
                 return Err(format!("invalid environment key: {key}"));
             }
-            if FORBIDDEN_RUNTIME_ENV_KEYS.binary_search(&key.as_str()).is_ok() {
+            if FORBIDDEN_RUNTIME_ENV_KEYS
+                .binary_search(&key.as_str())
+                .is_ok()
+            {
                 return Err(format!("forbidden environment key: {key}"));
             }
             if value.len() > MAX_RUNTIME_ENV_VALUE_LENGTH {
@@ -77,11 +83,12 @@ impl RuntimeEnvUpdate {
     }
 
     fn estimated_payload_bytes(&self) -> usize {
-        std::mem::size_of::<usize>() + self
-            .entries
-            .iter()
-            .map(|(key, value)| key.len() + value.len())
-            .sum::<usize>()
+        std::mem::size_of::<usize>()
+            + self
+                .entries
+                .iter()
+                .map(|(key, value)| key.len() + value.len())
+                .sum::<usize>()
     }
 }
 
@@ -181,7 +188,9 @@ pub async fn put_runtime_env(
         return Err((status, error));
     }
 
-    state.config_store.set_runtime_env(overrides.entries.clone());
+    state
+        .config_store
+        .set_runtime_env(overrides.entries.clone());
 
     Ok(Json(RuntimeEnvResponse {
         applied_at: Utc::now(),
@@ -706,7 +715,10 @@ mod tests {
             ]),
         };
 
-        assert!(update.validate().is_ok(), "expected valid env payload to pass");
+        assert!(
+            update.validate().is_ok(),
+            "expected valid env payload to pass"
+        );
     }
 
     #[test]
@@ -714,7 +726,10 @@ mod tests {
         let update = RuntimeEnvUpdate {
             entries: HashMap::from([("1BAD_KEY".to_string(), "value".to_string())]),
         };
-        assert_eq!(update.validate().unwrap_err(), "invalid environment key: 1BAD_KEY");
+        assert_eq!(
+            update.validate().unwrap_err(),
+            "invalid environment key: 1BAD_KEY"
+        );
     }
 
     #[test]
@@ -738,7 +753,10 @@ mod tests {
         let update = RuntimeEnvUpdate { entries };
         assert_eq!(
             update.validate().unwrap_err(),
-            format!("too many environment variables; max {}", MAX_RUNTIME_ENV_KEYS)
+            format!(
+                "too many environment variables; max {}",
+                MAX_RUNTIME_ENV_KEYS
+            )
         );
     }
 
@@ -759,14 +777,16 @@ mod tests {
 
     #[test]
     fn runtime_env_update_rejects_oversize_payload() {
-        let update = RuntimeEnvUpdate {
-            entries: HashMap::from([(
-                "OVERSIZE_PAYLOAD".to_string(),
-                "x".repeat(MAX_RUNTIME_ENV_PAYLOAD_BYTES),
-            )]),
-        };
+        let mut entries = HashMap::new();
+        for i in 0..9 {
+            entries.insert(format!("OVERSIZE_PAYLOAD_{i}"), "x".repeat(8192));
+        }
+        let update = RuntimeEnvUpdate { entries };
 
-        assert_eq!(update.validate().unwrap_err(), "runtime env payload too large");
+        assert_eq!(
+            update.validate().unwrap_err(),
+            "runtime env payload too large"
+        );
     }
 
     #[test]
@@ -774,6 +794,9 @@ mod tests {
         let update = RuntimeEnvUpdate {
             entries: HashMap::new(),
         };
-        assert!(update.validate().is_ok(), "empty payload should be accepted as clear overlay");
+        assert!(
+            update.validate().is_ok(),
+            "empty payload should be accepted as clear overlay"
+        );
     }
 }

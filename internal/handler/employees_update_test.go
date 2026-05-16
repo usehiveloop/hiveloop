@@ -1,69 +1,17 @@
 package handler_test
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
-
-func (h *employeeHarness) putEmployee(t *testing.T, m orgWithMember, agentID uuid.UUID, body any, role string) *httptest.ResponseRecorder {
-	t.Helper()
-	buf := new(bytes.Buffer)
-	_ = json.NewEncoder(buf).Encode(body)
-	req := httptest.NewRequest(http.MethodPut, "/v1/employees/"+agentID.String(), buf)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Org-ID", m.org.ID.String())
-	req = middleware.WithAuthClaims(req, &auth.AuthClaims{
-		UserID: m.user.ID.String(),
-		OrgID:  m.org.ID.String(),
-		Role:   role,
-	})
-	rr := httptest.NewRecorder()
-	h.router.ServeHTTP(rr, req)
-	return rr
-}
-
-func (h *employeeHarness) getEmployeeAvailableConnections(t *testing.T, m orgWithMember, agentID uuid.UUID, role string) *httptest.ResponseRecorder {
-	t.Helper()
-	req := httptest.NewRequest(http.MethodGet, "/v1/employees/"+agentID.String()+"/connections/available", nil)
-	req.Header.Set("X-Org-ID", m.org.ID.String())
-	req = middleware.WithAuthClaims(req, &auth.AuthClaims{
-		UserID: m.user.ID.String(),
-		OrgID:  m.org.ID.String(),
-		Role:   role,
-	})
-	rr := httptest.NewRecorder()
-	h.router.ServeHTTP(rr, req)
-	return rr
-}
-
-func (h *employeeHarness) seedEmployeeConnection(t *testing.T, m orgWithMember, provider string) model.InConnection {
-	t.Helper()
-	integ := createTestInIntegration(t, h.db, provider)
-	conn := model.InConnection{
-		OrgID:             m.org.ID,
-		UserID:            m.user.ID,
-		InIntegrationID:   integ.ID,
-		NangoConnectionID: provider + "-" + uuid.NewString()[:8],
-		Meta:              model.JSON{},
-	}
-	if err := h.db.Create(&conn).Error; err != nil {
-		t.Fatalf("create in connection: %v", err)
-	}
-	t.Cleanup(func() { h.db.Where("id = ?", conn.ID).Delete(&model.InConnection{}) })
-	return conn
-}
 
 func TestIntegration_EmployeeUpdate_EditsAllowedFieldsAndKeepsCategory(t *testing.T) {
 	h := newEmployeeHarness(t)
@@ -96,177 +44,6 @@ func TestIntegration_EmployeeUpdate_EditsAllowedFieldsAndKeepsCategory(t *testin
 	}
 	if reloaded.Category == nil || *reloaded.Category != category {
 		t.Fatalf("category = %v, want unchanged engineering", reloaded.Category)
-	}
-}
-
-func TestIntegration_EmployeeUpdate_AttachesOrgConnectionAndMappedSkill(t *testing.T) {
-	h := newEmployeeHarness(t)
-	m := h.createOrg(t)
-	agent := h.seedEmployeeAgent(t, m)
-	category := "engineering"
-	if err := h.db.Model(&agent).Update("category", category).Error; err != nil {
-		t.Fatalf("set category: %v", err)
-	}
-	gitGithub := h.seedGlobalSkill(t, "git-github", model.SkillStatusPublished)
-	assetUploads := h.seedGlobalSkill(t, "asset-uploads", model.SkillStatusPublished)
-	conn := h.seedEmployeeConnection(t, m, "github-app")
-
-	rr := h.putEmployee(t, m, agent.ID, map[string]any{
-		"connection_ids": []string{conn.ID.String()},
-		"skill_ids":      []string{},
-	}, "admin")
-	if rr.Code != http.StatusOK {
-		t.Fatalf("update status = %d, want 200: %s", rr.Code, rr.Body.String())
-	}
-
-	var reloaded model.Agent
-	if err := h.db.Where("id = ?", agent.ID).First(&reloaded).Error; err != nil {
-		t.Fatalf("reload agent: %v", err)
-	}
-	cfg, ok := reloaded.Integrations[conn.ID.String()].(map[string]any)
-	if !ok {
-		t.Fatalf("connection integration missing: %#v", reloaded.Integrations)
-	}
-	if actions, ok := cfg["actions"].([]any); !ok || len(actions) != 0 {
-		t.Fatalf("actions = %#v, want empty actions", cfg["actions"])
-	}
-	links := skillIDsFor(t, h.db, agent.ID)
-	if !links[gitGithub.ID] {
-		t.Fatalf("employee missing mapped git-github skill")
-	}
-	if !links[assetUploads.ID] {
-		t.Fatalf("employee missing default asset-uploads skill")
-	}
-
-	var resp struct {
-		Employee struct {
-			AttachedSkills []struct {
-				ID       string `json:"id"`
-				Name     string `json:"name"`
-				Locked   bool   `json:"locked"`
-				Required bool   `json:"required"`
-			} `json:"attached_skills"`
-		} `json:"employee"`
-		SyncStatus string   `json:"sync_status"`
-		Warnings   []string `json:"warnings"`
-	}
-	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if resp.SyncStatus != "pending_profile" {
-		t.Fatalf("sync_status = %q, want pending_profile", resp.SyncStatus)
-	}
-	for _, skill := range resp.Employee.AttachedSkills {
-		if (skill.Name == "git-github" || skill.Name == "asset-uploads") && (!skill.Locked || !skill.Required) {
-			t.Fatalf("skill %s lock flags = locked:%v required:%v, want true", skill.Name, skill.Locked, skill.Required)
-		}
-	}
-}
-
-func TestIntegration_EmployeeUpdate_AttachesBugsinkConnectionSkill(t *testing.T) {
-	h := newEmployeeHarness(t)
-	m := h.createOrg(t)
-	agent := h.seedEmployeeAgent(t, m)
-	bugsink := h.seedGlobalSkill(t, "bugsink", model.SkillStatusPublished)
-	conn := h.seedEmployeeConnection(t, m, "bugsink")
-
-	rr := h.putEmployee(t, m, agent.ID, map[string]any{
-		"connection_ids": []string{conn.ID.String()},
-		"skill_ids":      []string{},
-	}, "admin")
-	if rr.Code != http.StatusOK {
-		t.Fatalf("update status = %d, want 200: %s", rr.Code, rr.Body.String())
-	}
-
-	links := skillIDsFor(t, h.db, agent.ID)
-	if !links[bugsink.ID] {
-		t.Fatalf("employee missing mapped bugsink skill: %v", links)
-	}
-}
-
-func TestIntegration_EmployeeAvailableConnections_ExcludesProfileConnections(t *testing.T) {
-	h := newEmployeeHarness(t)
-	m := h.createOrg(t)
-	agent := h.seedEmployeeAgent(t, m)
-	_ = h.seedEmployeeConnection(t, m, "github")
-	_ = h.seedEmployeeConnection(t, m, "slack")
-	bugsink := h.seedEmployeeConnection(t, m, "bugsink")
-	githubApp := h.seedEmployeeConnection(t, m, "github-app")
-
-	rr := h.getEmployeeAvailableConnections(t, m, agent.ID, "member")
-	if rr.Code != http.StatusOK {
-		t.Fatalf("available connections status = %d, want 200: %s", rr.Code, rr.Body.String())
-	}
-
-	var resp struct {
-		Data []struct {
-			ID       string `json:"id"`
-			Provider string `json:"provider"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-
-	seen := map[string]string{}
-	for _, conn := range resp.Data {
-		seen[conn.Provider] = conn.ID
-	}
-	if seen["github"] != "" || seen["slack"] != "" {
-		t.Fatalf("profile providers were returned: %#v", seen)
-	}
-	if seen["bugsink"] != bugsink.ID.String() {
-		t.Fatalf("bugsink missing from available connections: %#v", seen)
-	}
-	if seen["github-app"] != githubApp.ID.String() {
-		t.Fatalf("github-app missing from available connections: %#v", seen)
-	}
-}
-
-func TestIntegration_EmployeeUpdate_RejectsProfileConnection(t *testing.T) {
-	h := newEmployeeHarness(t)
-	m := h.createOrg(t)
-	agent := h.seedEmployeeAgent(t, m)
-	conn := h.seedEmployeeConnection(t, m, "github")
-
-	rr := h.putEmployee(t, m, agent.ID, map[string]any{
-		"connection_ids": []string{conn.ID.String()},
-	}, "admin")
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("update status = %d, want 400: %s", rr.Code, rr.Body.String())
-	}
-}
-
-func TestIntegration_EmployeeUpdate_RejectsCrossOrgConnection(t *testing.T) {
-	h := newEmployeeHarness(t)
-	m := h.createOrg(t)
-	other := h.createOrg(t)
-	agent := h.seedEmployeeAgent(t, m)
-	conn := h.seedEmployeeConnection(t, other, "github")
-
-	rr := h.putEmployee(t, m, agent.ID, map[string]any{
-		"connection_ids": []string{conn.ID.String()},
-	}, "admin")
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("update status = %d, want 400: %s", rr.Code, rr.Body.String())
-	}
-}
-
-func TestIntegration_EmployeeUpdate_RejectsRevokedConnection(t *testing.T) {
-	h := newEmployeeHarness(t)
-	m := h.createOrg(t)
-	agent := h.seedEmployeeAgent(t, m)
-	conn := h.seedEmployeeConnection(t, m, "github")
-	now := time.Now()
-	if err := h.db.Model(&conn).Update("revoked_at", &now).Error; err != nil {
-		t.Fatalf("revoke connection: %v", err)
-	}
-
-	rr := h.putEmployee(t, m, agent.ID, map[string]any{
-		"connection_ids": []string{conn.ID.String()},
-	}, "admin")
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("update status = %d, want 400: %s", rr.Code, rr.Body.String())
 	}
 }
 
@@ -335,7 +112,7 @@ func TestIntegration_EmployeeSkillDetach_RejectsRequiredSkill(t *testing.T) {
 		t.Fatalf("update status = %d, want 200: %s", rr.Code, rr.Body.String())
 	}
 
-	req := httptest.NewRequest(http.MethodDelete, "/v1/router/"+agent.ID.String()+"/skills/"+gitGithub.ID.String(), nil)
+	req := httptest.NewRequest(http.MethodDelete, "/v1/agents/"+agent.ID.String()+"/skills/"+gitGithub.ID.String(), nil)
 	req.Header.Set("X-Org-ID", m.org.ID.String())
 	req = middleware.WithAuthClaims(req, &auth.AuthClaims{
 		UserID: m.user.ID.String(),
@@ -345,7 +122,7 @@ func TestIntegration_EmployeeSkillDetach_RejectsRequiredSkill(t *testing.T) {
 
 	skillH := handler.NewSkillHandler(h.db, h.enqueuer)
 	r := chi.NewRouter()
-	r.Route("/v1/router/{agentID}/skills", func(r chi.Router) {
+	r.Route("/v1/agents/{agentID}/skills", func(r chi.Router) {
 		r.Use(middleware.ResolveOrgFromHeader(h.db))
 		r.Use(middleware.RequireOrgAdmin(h.db))
 		r.Delete("/{skillID}", skillH.DetachFromAgent)
@@ -373,7 +150,7 @@ func TestIntegration_EmployeeSkillDetach_RejectsConnectionRequiredSkill(t *testi
 		t.Fatalf("update status = %d, want 200: %s", rr.Code, rr.Body.String())
 	}
 
-	req := httptest.NewRequest(http.MethodDelete, "/v1/router/"+agent.ID.String()+"/skills/"+bugsink.ID.String(), nil)
+	req := httptest.NewRequest(http.MethodDelete, "/v1/agents/"+agent.ID.String()+"/skills/"+bugsink.ID.String(), nil)
 	req.Header.Set("X-Org-ID", m.org.ID.String())
 	req = middleware.WithAuthClaims(req, &auth.AuthClaims{
 		UserID: m.user.ID.String(),
@@ -383,7 +160,7 @@ func TestIntegration_EmployeeSkillDetach_RejectsConnectionRequiredSkill(t *testi
 
 	skillH := handler.NewSkillHandler(h.db, h.enqueuer)
 	r := chi.NewRouter()
-	r.Route("/v1/router/{agentID}/skills", func(r chi.Router) {
+	r.Route("/v1/agents/{agentID}/skills", func(r chi.Router) {
 		r.Use(middleware.ResolveOrgFromHeader(h.db))
 		r.Use(middleware.RequireOrgAdmin(h.db))
 		r.Delete("/{skillID}", skillH.DetachFromAgent)

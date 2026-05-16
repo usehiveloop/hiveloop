@@ -25,6 +25,23 @@ type SyncResponse struct {
 	Errors           []string `json:"errors,omitempty"`
 }
 
+type HTTPMessageRequest struct {
+	Text            string         `json:"text"`
+	ConversationID  string         `json:"conversation_id,omitempty"`
+	User            string         `json:"user,omitempty"`
+	UserDisplayName string         `json:"user_display_name,omitempty"`
+	Attachments     []any          `json:"attachments,omitempty"`
+	Raw             map[string]any `json:"raw,omitempty"`
+}
+
+type HTTPMessageResponse struct {
+	SessionID string `json:"session_id"`
+	StreamID  string `json:"stream_id"`
+	StreamURL string `json:"stream_url"`
+	TraceID   string `json:"trace_id"`
+	TurnID    string `json:"turn_id"`
+}
+
 func NewClient(baseURL, apiKey string) *Client {
 	return &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),
@@ -104,6 +121,23 @@ func (c *Client) UpdateRuntimeEnv(ctx context.Context, env map[string]string) (*
 		return nil, fmt.Errorf("decode runtime env response: %w", err)
 	}
 	return &SyncResponse{Applied: out.KeyCount}, nil
+}
+
+func (c *Client) PostHTTPMessage(ctx context.Context, body HTTPMessageRequest) (*HTTPMessageResponse, error) {
+	resp, err := c.do(ctx, http.MethodPost, "/gateway/http/messages", body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		raw, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("post http message: %s: %s", resp.Status, raw)
+	}
+	var out HTTPMessageResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, fmt.Errorf("decode http message response: %w", err)
+	}
+	return &out, nil
 }
 
 func (c *Client) doVoid(ctx context.Context, method, path string, body any) error {

@@ -528,7 +528,7 @@
     },
     "/incoming/triggers/{triggerID}": {
       "post": {
-        "description": "Receives an HTTP request and dispatches it through the router pipeline for the specified trigger. The trigger UUID acts as a bearer token. If the trigger has a shared secret configured, the request must include the plaintext secret in any of: Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, or ?secret=<secret>.",
+        "description": "Receives an HTTP request and dispatches it to the owning employee runtime for the specified trigger. The trigger UUID acts as a bearer token. If the trigger has a shared secret configured, the request must include the plaintext secret in any of: Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, or ?secret=<secret>.",
         "tags": [
           "triggers"
         ],
@@ -609,6 +609,16 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
             "content": {
               "application/json": {
                 "schema": {
@@ -1259,6 +1269,560 @@
           },
           "503": {
             "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/{agentID}/profiles/github": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Verifies an org GitHub connection through Nango and stores it as the employee's single GitHub profile.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "Attach a GitHub profile to an AI employee",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createGitHubProfileRequest"
+              }
+            }
+          },
+          "description": "GitHub connection",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/createGitHubProfileResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/createGitHubProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/{agentID}/profiles/github/repositories": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Lists repositories visible to the employee's attached GitHub profile and returns any selected repositories.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "List repositories for an employee GitHub profile",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/gitHubProfileRepositoriesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Stores the repositories this employee may access from its attached GitHub profile.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "Update selected repositories for an employee GitHub profile",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateGitHubRepositoriesRequest"
+              }
+            }
+          },
+          "description": "Selected repositories",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/gitHubProfileRepositoriesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/{agentID}/profiles/slack": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Validates Slack bot+app tokens, stores them encrypted, and returns the profile plus public channels.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "Create a Slack profile for an AI employee",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createSlackProfileRequest"
+              }
+            }
+          },
+          "description": "Slack tokens",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/createSlackProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/{agentID}/profiles/slack/channels": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns public channels visible to the bot of the agent's Slack profile.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "List Slack public channels for an AI employee's profile",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/listSlackChannelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/{agentID}/profiles/slack/config": {
+      "patch": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Sets the home channel for the agent and auto-joins the bot to that channel.",
+        "tags": [
+          "agent-profiles"
+        ],
+        "summary": "Update an AI employee's Slack profile config",
+        "parameters": [
+          {
+            "description": "Agent ID (must be an AI employee)",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateSlackConfigRequest"
+              }
+            }
+          },
+          "description": "Slack profile config",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/updateSlackConfigResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
             "content": {
               "application/json": {
                 "schema": {
@@ -1936,6 +2500,94 @@
           },
           "500": {
             "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/assets": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Lists conversation assets owned by the caller's org. Optional filters: agent_id, conversation_id, path. Ordered by created_at desc, cursor-paginated.",
+        "tags": [
+          "assets"
+        ],
+        "summary": "List org assets",
+        "parameters": [
+          {
+            "description": "Filter to assets uploaded inside conversations of this agent",
+            "name": "agent_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter to assets uploaded inside this conversation",
+            "name": "conversation_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by exact folder label (empty = root)",
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size (default 50, max 200)",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination cursor — created_at unix-nanos from the previous page's tail",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedResponse-assetListItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
@@ -2700,6 +3352,226 @@
         }
       }
     },
+    "/v1/chats": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "chats"
+        ],
+        "summary": "List chat sessions for the caller",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/chatListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{id}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "chats"
+        ],
+        "summary": "Get a chat session with its messages",
+        "parameters": [
+          {
+            "description": "Chat session UUID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/chatDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{id}/messages": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Persists a new user message and returns a fresh stream URL\nthe frontend opens to receive the assistant reply.",
+        "tags": [
+          "chats"
+        ],
+        "summary": "Append a user message to an existing chat",
+        "parameters": [
+          {
+            "description": "Chat session UUID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/sendMessageRequest"
+              }
+            }
+          },
+          "description": "Next message",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/sendMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{id}/stream": {
+      "get": {
+        "description": "Opens an SSE stream to the sandbox, replays the conversation\nhistory through Hermes, and tees the response back to the\nbrowser while persisting the assistant message on completion.",
+        "tags": [
+          "chats"
+        ],
+        "summary": "Stream the assistant reply for the latest user message (SSE)",
+        "parameters": [
+          {
+            "description": "Chat session UUID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Stream token issued by POST /chats or /chats/{id}/messages",
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE event stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/conversations/{convID}": {
       "get": {
         "security": [
@@ -2998,7 +3870,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Returns webhook events persisted for the conversation. Filterable by event type.",
+        "description": "Returns webhook events persisted for the conversation, ordered by sequence_number DESC (newest first). Pagination cursor is the lowest sequence_number on the current page; pass it back to fetch the next older page. Filterable by event type.",
         "tags": [
           "conversations"
         ],
@@ -3014,7 +3886,7 @@
             }
           },
           {
-            "description": "Filter by event type (e.g. MessageReceived, ResponseCompleted)",
+            "description": "Filter by event type (e.g. message_received, response_completed)",
             "name": "type",
             "in": "query",
             "schema": {
@@ -3022,7 +3894,7 @@
             }
           },
           {
-            "description": "Page size",
+            "description": "Page size (default 50, max 100)",
             "name": "limit",
             "in": "query",
             "schema": {
@@ -3030,7 +3902,7 @@
             }
           },
           {
-            "description": "Pagination cursor",
+            "description": "Pagination cursor — sequence_number from previous page's tail. Returns events with sequence_number strictly less than this value.",
             "name": "cursor",
             "in": "query",
             "schema": {
@@ -3126,6 +3998,67 @@
       }
     },
     "/v1/conversations/{convID}/messages": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns chat-ready messages aggregated from raw events. Consecutive same-name tool calls are grouped (e.g. \"bash\" called 11 times in a row → one group with 11 calls). Pagination is by sequence_number; aggregation is per-page so a tool call split across pages will not pair.",
+        "tags": [
+          "conversations"
+        ],
+        "summary": "List conversation messages",
+        "parameters": [
+          {
+            "description": "Conversation ID",
+            "name": "convID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Max events scanned per page (default 200, max 1000). Aggregated message count may be smaller.",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Sequence number from the previous page's tail. Returns events with sequence_number strictly greater than this value.",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/conversationMessagesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "security": [
           {
@@ -3747,6 +4680,1017 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/employees": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns all employee agents in the org with sub-agents,\nskills (metadata only — no bundle content), profiles,\ntriggers, and the latest sandbox row.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "List AI employees",
+        "parameters": [
+          {
+            "description": "Filter by status (draft, active, archived)",
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size (default 50, max 100)",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination cursor",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedResponse-employeeListItem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Persists an Agent (is_employee=true). The employee sandbox is\nprovisioned after an active channel profile exists, during onboarding\ncompletion or explicit sync.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "Create an AI employee",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createEmployeeRequest"
+              }
+            }
+          },
+          "description": "Employee definition",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/createEmployeeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/employees/{id}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns one employee agent in the org with sub-agents,\nskills (metadata only — no bundle content), profiles,\ntriggers, and the latest sandbox row.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "Get an AI employee",
+        "parameters": [
+          {
+            "description": "Employee agent ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/employeeListItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Updates employee creation fields, assigned org connections, and optional skills.\nCategory is read-only. Required backend-managed employee skills are preserved.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "Update an AI employee",
+        "parameters": [
+          {
+            "description": "Employee agent ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateEmployeeRequest"
+              }
+            }
+          },
+          "description": "Fields to update",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/updateEmployeeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/employees/{id}/agent-templates": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns category-scoped employee subagent templates and whether each one is already installed on the employee.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "List employee agent templates",
+        "parameters": [
+          {
+            "description": "Employee agent ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/employeeAgentTemplateResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/employees/{id}/agent-templates/{slug}/install": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Idempotently adds or updates a template subagent on the employee, attaches default subagent skills, and syncs runtime config.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "Install an employee agent template",
+        "parameters": [
+          {
+            "description": "Employee agent ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Template slug",
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/installEmployeeAgentTemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/employees/{id}/chats": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a chat session, persists the first user message, and\nreturns a one-shot SSE stream URL the frontend opens to receive\nthe assistant reply.",
+        "tags": [
+          "chats"
+        ],
+        "summary": "Start a chat with an AI employee",
+        "parameters": [
+          {
+            "description": "Agent UUID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/sendMessageRequest"
+              }
+            }
+          },
+          "description": "First message",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/sendMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/employees/{id}/connections/available": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns non-revoked org connections that may be attached to an employee as tool capabilities. Connections used as employee profiles, such as Slack and GitHub identity profiles, are excluded.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "List assignable employee connections",
+        "parameters": [
+          {
+            "description": "Employee agent ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedResponse-employeeConnectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/employees/{id}/sandbox/upgrade": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Queues a control-plane upgrade that snapshots the employee runtime SQLite database,\nrecreates the sandbox on the current employee image, restores the database,\nsyncs config, and verifies readiness. If an upgrade is already queued or\nrunning for the employee, the active operation is returned.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "Start an employee sandbox upgrade",
+        "parameters": [
+          {
+            "description": "Employee agent ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/startEmployeeSandboxUpgradeRequest"
+              }
+            }
+          },
+          "description": "Upgrade options"
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/employeeSandboxUpgradeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/employees/{id}/sandbox/upgrades/{upgradeID}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns the current status and phase for a sandbox upgrade operation.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "Get an employee sandbox upgrade",
+        "parameters": [
+          {
+            "description": "Employee agent ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Upgrade operation ID",
+            "name": "upgradeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/employeeSandboxUpgradeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/employees/{id}/sync": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Compiles the employee config, provisions an employee sandbox if\nneeded, pushes it to the runtime, and verifies readiness.\nRequires the agent be an employee with an active Slack profile.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "Push compiled config to an employee sandbox",
+        "parameters": [
+          {
+            "description": "Agent UUID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/syncEmployeeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
             "content": {
               "application/json": {
                 "schema": {
@@ -5280,6 +7224,103 @@
         }
       }
     },
+    "/v1/orgs/current/onboarding/complete": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Saves the org's business info, validates the org has at least\none employee with an active Slack profile, then runs\nthe same compile + sandbox-sync as POST /v1/employees/{id}/sync\non the org's first employee. On success Org.onboarded is set.",
+        "tags": [
+          "onboarding"
+        ],
+        "summary": "Complete onboarding",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/completeOnboardingRequest"
+              }
+            }
+          },
+          "description": "Business info",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/completeOnboardingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/plans": {
       "get": {
         "description": "Returns the public catalog of billing plans, ordered by price\nascending (free first). Public — no authentication required.",
@@ -6026,549 +8067,6 @@
           },
           "403": {
             "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/router": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns the organization's router, creating one automatically if it doesn't exist yet.",
-        "tags": [
-          "router"
-        ],
-        "summary": "Get or create router",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Router"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Updates the organization's router settings such as persona, default agent, and memory team.",
-        "tags": [
-          "router"
-        ],
-        "summary": "Update router",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/updateRouterRequest"
-              }
-            }
-          },
-          "description": "Router update fields",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Router"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/router/decisions": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns the most recent routing decisions for the organization, useful for auditing and debugging trigger routing.",
-        "tags": [
-          "router"
-        ],
-        "summary": "List routing decisions",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/RoutingDecision"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/router/triggers": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns all triggers configured on the organization's router.",
-        "tags": [
-          "router"
-        ],
-        "summary": "List router triggers",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/RouterTrigger"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Creates a new trigger on the organization's router. Webhook triggers require a connection_id and trigger_keys. HTTP triggers generate a unique URL. Cron triggers require a cron_schedule expression.",
-        "tags": [
-          "router"
-        ],
-        "summary": "Create a router trigger",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/createTriggerRequest"
-              }
-            }
-          },
-          "description": "Trigger definition",
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RouterTrigger"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/router/triggers/{id}": {
-      "delete": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Removes a trigger from the organization's router.",
-        "tags": [
-          "router"
-        ],
-        "summary": "Delete a router trigger",
-        "parameters": [
-          {
-            "description": "Trigger ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/statusResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/router/triggers/{id}/rules": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns all routing rules for a specific trigger, ordered by priority.",
-        "tags": [
-          "router"
-        ],
-        "summary": "List routing rules",
-        "parameters": [
-          {
-            "description": "Trigger ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/RoutingRule"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Adds a routing rule to a trigger. Rules determine which agent handles events that match the trigger.",
-        "tags": [
-          "router"
-        ],
-        "summary": "Create a routing rule",
-        "parameters": [
-          {
-            "description": "Trigger ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/createRuleRequest"
-              }
-            }
-          },
-          "description": "Rule definition",
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RoutingRule"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/router/triggers/{id}/rules/{ruleID}": {
-      "delete": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Removes a routing rule from a trigger.",
-        "tags": [
-          "router"
-        ],
-        "summary": "Delete a routing rule",
-        "parameters": [
-          {
-            "description": "Trigger ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Rule ID",
-            "name": "ruleID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/statusResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -8088,6 +9586,323 @@
         }
       }
     },
+    "/v1/teams": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns teams in the current organization.",
+        "tags": [
+          "teams"
+        ],
+        "summary": "List teams",
+        "parameters": [
+          {
+            "description": "Page size (default 50, max 100)",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination cursor",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedResponse-teamResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a new team in the current organization. Admin/owner only.",
+        "tags": [
+          "teams"
+        ],
+        "summary": "Create a team",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createTeamRequest"
+              }
+            }
+          },
+          "description": "Team details",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/teamResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/teams/{id}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "teams"
+        ],
+        "summary": "Get a team",
+        "parameters": [
+          {
+            "description": "Team ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/teamResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "teams"
+        ],
+        "summary": "Delete a team",
+        "parameters": [
+          {
+            "description": "Team ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "teams"
+        ],
+        "summary": "Update a team",
+        "parameters": [
+          {
+            "description": "Team ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateTeamRequest"
+              }
+            }
+          },
+          "description": "Team updates",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/teamResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/tokens": {
       "get": {
         "security": [
@@ -8552,160 +10367,6 @@
           }
         }
       },
-      "Agent": {
-        "type": "object",
-        "properties": {
-          "agentConfig": {
-            "description": "max_tokens, max_turns, temperature, etc.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/JSON"
-              }
-            ]
-          },
-          "avatarURL": {
-            "type": "string"
-          },
-          "category": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "credential": {
-            "$ref": "#/components/schemas/Credential"
-          },
-          "credentialID": {
-            "description": "nil for system agents",
-            "type": "string"
-          },
-          "deletedAt": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "encryptedEnvVars": {
-            "description": "AES-256-GCM encrypted JSON map of env vars",
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "harness": {
-            "description": "TODO(post-migration): drop agent.Tools column once data archived.",
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "instructions": {
-            "description": "optional markdown instructions for auto-starting runs",
-            "type": "string"
-          },
-          "integrations": {
-            "description": "selected integration IDs/configs",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/JSON"
-              }
-            ]
-          },
-          "isSystem": {
-            "type": "boolean"
-          },
-          "mcpServers": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "model": {
-            "description": "must match credential's provider",
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "org": {
-            "$ref": "#/components/schemas/Org"
-          },
-          "orgID": {
-            "description": "nil for system agents",
-            "type": "string"
-          },
-          "permissions": {
-            "description": "tool permission overrides",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/JSON"
-              }
-            ]
-          },
-          "providerGroup": {
-            "description": "e.g. \"anthropic\", \"openai\", \"gemini\" — set for system agents",
-            "type": "string"
-          },
-          "providerPrompts": {
-            "description": "map[provider_group] -> {system_prompt, model}",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ProviderPromptsMap"
-              }
-            ]
-          },
-          "resources": {
-            "description": "per-connection resource scoping: {connID: {resourceKey: [{id, name}]}}",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/JSON"
-              }
-            ]
-          },
-          "sandboxTemplate": {
-            "$ref": "#/components/schemas/SandboxTemplate"
-          },
-          "sandboxTemplateID": {
-            "type": "string"
-          },
-          "sandboxTools": {
-            "description": "Sandbox setup",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "setupCommands": {
-            "description": "shell commands run on dedicated sandbox creation",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "sharedMemory": {
-            "description": "can store shared memories visible to all agents in identity",
-            "type": "boolean"
-          },
-          "skills": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "status": {
-            "description": "active, archived",
-            "type": "string"
-          },
-          "systemPrompt": {
-            "description": "Bridge AgentDefinition fields",
-            "type": "string"
-          },
-          "team": {
-            "description": "team tag for memory scoping (e.g. \"engineering\", \"sales\")",
-            "type": "string"
-          },
-          "tools": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "updatedAt": {
-            "type": "string"
-          }
-        }
-      },
       "ConnectionConfigField": {
         "type": "object",
         "properties": {
@@ -8734,149 +10395,6 @@
             "type": "string"
           },
           "type": {
-            "type": "string"
-          }
-        }
-      },
-      "Credential": {
-        "type": "object",
-        "properties": {
-          "authScheme": {
-            "type": "string"
-          },
-          "baseURL": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "encryptedKey": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "id": {
-            "type": "string"
-          },
-          "isSystem": {
-            "description": "IsSystem marks credentials owned by the platform itself rather than by\na customer org. System credentials are used by agents that opted out of\nBYOK (agent.credential_id IS NULL), managed via admin-only endpoints,\nand hidden from org-scoped APIs. They FK to the platform org (see\ninternal/credentials.PlatformOrgID).",
-            "type": "boolean"
-          },
-          "label": {
-            "type": "string"
-          },
-          "lastRefillAt": {
-            "type": "string"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "org": {
-            "$ref": "#/components/schemas/Org"
-          },
-          "orgID": {
-            "type": "string"
-          },
-          "providerID": {
-            "type": "string"
-          },
-          "refillAmount": {
-            "type": "integer"
-          },
-          "refillInterval": {
-            "type": "string"
-          },
-          "remaining": {
-            "type": "integer"
-          },
-          "revokedAt": {
-            "type": "string"
-          },
-          "wrappedDEK": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          }
-        }
-      },
-      "InConnection": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "inIntegration": {
-            "$ref": "#/components/schemas/InIntegration"
-          },
-          "inIntegrationID": {
-            "type": "string"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "nangoConnectionID": {
-            "type": "string"
-          },
-          "org": {
-            "$ref": "#/components/schemas/Org"
-          },
-          "orgID": {
-            "type": "string"
-          },
-          "revokedAt": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          },
-          "user": {
-            "$ref": "#/components/schemas/User"
-          },
-          "userID": {
-            "type": "string"
-          },
-          "webhookConfigured": {
-            "type": "boolean"
-          }
-        }
-      },
-      "InIntegration": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "type": "string"
-          },
-          "deletedAt": {
-            "type": "string"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "nango_config": {
-            "$ref": "#/components/schemas/JSON"
-          },
-          "provider": {
-            "type": "string"
-          },
-          "supports_rag_source": {
-            "description": "SupportsRAGSource is the admin-UI picker gate: only integrations\nwith this flag true appear in \"Add RAG source\". Seeded true for\nthe known-good providers (github, notion, slack, confluence,\njira, linear, google_drive) by the RAG model package's Migrate\nentry point; anything else defaults false.",
-            "type": "boolean"
-          },
-          "uniqueKey": {
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         }
@@ -8945,47 +10463,6 @@
           }
         }
       },
-      "Org": {
-        "type": "object",
-        "properties": {
-          "active": {
-            "type": "boolean"
-          },
-          "allowedOrigins": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "byok": {
-            "description": "BYOK reports whether the org runs agents on its own LLM credentials.\nWhen false, agents fall back to platform-owned system credentials.",
-            "type": "boolean"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "logoURL": {
-            "description": "LogoURL is a CDN-served URL to the org's square logo. Stored as the\npublic_url returned from POST /v1/uploads/sign with asset_type=org_logo.\nEmpty string when no logo is set.",
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "planSlug": {
-            "description": "Denormalised slug of the org's active plan (\"free\" when no active sub).\nSource of truth lives in the subscriptions table; this is cached on\nthe org row so request-path checks don't need a join.",
-            "type": "string"
-          },
-          "rateLimit": {
-            "type": "integer"
-          },
-          "updatedAt": {
-            "type": "string"
-          }
-        }
-      },
       "ProviderPromptConfig": {
         "type": "object",
         "properties": {
@@ -9001,286 +10478,6 @@
         "type": "object",
         "additionalProperties": {
           "$ref": "#/components/schemas/ProviderPromptConfig"
-        }
-      },
-      "Router": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "type": "string"
-          },
-          "defaultAgent": {
-            "$ref": "#/components/schemas/Agent"
-          },
-          "defaultAgentID": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "memoryTeam": {
-            "description": "Hindsight namespace all specialists share",
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "org": {
-            "$ref": "#/components/schemas/Org"
-          },
-          "orgID": {
-            "type": "string"
-          },
-          "persona": {
-            "description": "shared voice injected into every specialist's instructions",
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          }
-        }
-      },
-      "RouterTrigger": {
-        "type": "object",
-        "properties": {
-          "connectionID": {
-            "description": "nil for http/cron triggers",
-            "type": "string"
-          },
-          "contextActions": {
-            "description": "base context actions run before routing",
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "cronSchedule": {
-            "description": "Cron-specific fields (only used when TriggerType = \"cron\").",
-            "type": "string"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "enrichCrossReferences": {
-            "description": "enable LLM cross-connection enrichment",
-            "type": "boolean"
-          },
-          "id": {
-            "type": "string"
-          },
-          "inConnection": {
-            "$ref": "#/components/schemas/InConnection"
-          },
-          "instructions": {
-            "description": "Instructions sent to the agent when the trigger fires (cron/http only).\nFor webhook triggers, instructions come from enrichment. For cron/http,\nthis field provides the base prompt template. Supports $refs.x substitution.",
-            "type": "string"
-          },
-          "lastRunAt": {
-            "description": "last successful fire",
-            "type": "string"
-          },
-          "nextRunAt": {
-            "description": "pre-computed next fire time; poller queries this",
-            "type": "string"
-          },
-          "orgID": {
-            "type": "string"
-          },
-          "router": {
-            "$ref": "#/components/schemas/Router"
-          },
-          "routerID": {
-            "type": "string"
-          },
-          "routingMode": {
-            "description": "\"rule\" or \"triage\"",
-            "type": "string"
-          },
-          "secretKey": {
-            "description": "HTTP-specific fields (only used when TriggerType = \"http\").\nIf empty, the trigger relies on the unguessable UUID for security.\nWhen set, stores a bcrypt hash of the user-supplied shared secret. The\nHTTP handler accepts the plaintext secret in any of:\n  Authorization: Bearer <secret>, X-Api-Key, X-Webhook-Secret, ?secret=\nand verifies via bcrypt.CompareHashAndPassword.",
-            "type": "string"
-          },
-          "triggerKeys": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "triggerType": {
-            "description": "\"webhook\", \"http\", \"cron\"",
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          }
-        }
-      },
-      "RoutingDecision": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "type": "string"
-          },
-          "enrichmentSteps": {
-            "type": "integer"
-          },
-          "eventType": {
-            "description": "e.g. \"app_mention\", \"pull_request.opened\"",
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "intentSummary": {
-            "description": "LLM-generated summary of intent (triage only)",
-            "type": "string"
-          },
-          "latencyMs": {
-            "type": "integer"
-          },
-          "orgID": {
-            "type": "string"
-          },
-          "resourceKey": {
-            "type": "string"
-          },
-          "routerTriggerID": {
-            "type": "string"
-          },
-          "routingMode": {
-            "description": "\"rule\" or \"triage\"",
-            "type": "string"
-          },
-          "selectedAgents": {
-            "description": "agent IDs that were dispatched",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "turnCount": {
-            "description": "LLM turns used (triage only)",
-            "type": "integer"
-          }
-        }
-      },
-      "RoutingRule": {
-        "type": "object",
-        "properties": {
-          "agent": {
-            "$ref": "#/components/schemas/Agent"
-          },
-          "agentID": {
-            "type": "string"
-          },
-          "conditions": {
-            "description": "nil = always matches (catch-all)",
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "priority": {
-            "description": "1 = highest priority",
-            "type": "integer"
-          },
-          "routerTrigger": {
-            "$ref": "#/components/schemas/RouterTrigger"
-          },
-          "routerTriggerID": {
-            "type": "string"
-          }
-        }
-      },
-      "SandboxTemplate": {
-        "type": "object",
-        "properties": {
-          "baseImageRef": {
-            "description": "OCI image ref used as FROM when a child template builds on top of this row",
-            "type": "string"
-          },
-          "baseTemplate": {
-            "$ref": "#/components/schemas/SandboxTemplate"
-          },
-          "baseTemplateID": {
-            "description": "optional FK to public template used as base",
-            "type": "string"
-          },
-          "buildCommands": {
-            "description": "user's commands to run on base image",
-            "type": "string"
-          },
-          "buildError": {
-            "type": "string"
-          },
-          "buildLogs": {
-            "description": "accumulated build logs (newline separated)",
-            "type": "string"
-          },
-          "buildStatus": {
-            "description": "pending, building, ready, failed",
-            "type": "string"
-          },
-          "config": {
-            "description": "resources, env vars, etc.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/JSON"
-              }
-            ]
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "externalID": {
-            "description": "provider's template/snapshot ID once built",
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "description": "display name for users",
-            "type": "string"
-          },
-          "org": {
-            "$ref": "#/components/schemas/Org"
-          },
-          "orgID": {
-            "description": "nil = public/platform-wide template",
-            "type": "string"
-          },
-          "size": {
-            "description": "small, medium, large, xlarge",
-            "type": "string"
-          },
-          "slug": {
-            "description": "Daytona snapshot name",
-            "type": "string"
-          },
-          "tags": {
-            "description": "user-facing tags, e.g. [\"python\",\"ml\"]",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/JSON"
-              }
-            ]
-          },
-          "updatedAt": {
-            "type": "string"
-          }
         }
       },
       "TriggerCondition": {
@@ -9310,38 +10507,6 @@
           },
           "mode": {
             "description": "\"all\" (AND) or \"any\" (OR)",
-            "type": "string"
-          }
-        }
-      },
-      "User": {
-        "type": "object",
-        "properties": {
-          "banReason": {
-            "type": "string"
-          },
-          "bannedAt": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "emailConfirmedAt": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "passwordHash": {
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         }
@@ -9388,6 +10553,32 @@
             "type": "string"
           },
           "webhook_secret": {
+            "type": "string"
+          }
+        }
+      },
+      "github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "is_archived": {
+            "type": "boolean"
+          },
+          "is_member": {
+            "type": "boolean"
+          },
+          "is_private": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "num_members": {
+            "type": "integer"
+          },
+          "topic": {
             "type": "string"
           }
         }
@@ -9465,6 +10656,12 @@
           "description": {
             "type": "string"
           },
+          "files": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
           "id": {
             "type": "string"
           },
@@ -9482,6 +10679,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_skills.Reference"
+            }
+          },
+          "required_environment_variables": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           },
           "title": {
@@ -10397,6 +11600,50 @@
           }
         }
       },
+      "agentProfileResponse": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string"
+          },
+          "config": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "label": {
+            "type": "string"
+          },
+          "last_verified_at": {
+            "type": "string"
+          },
+          "org_id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "status_reason": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
       "agentResponse": {
         "type": "object",
         "properties": {
@@ -10430,14 +11677,29 @@
           "id": {
             "type": "string"
           },
+          "identity_prompt": {
+            "type": "string"
+          },
           "instructions": {
             "type": "string"
           },
           "integrations": {
             "$ref": "#/components/schemas/JSON"
           },
+          "is_employee": {
+            "type": "boolean"
+          },
+          "last_memory_refreshed_at": {
+            "type": "string"
+          },
           "mcp_servers": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "memory_refresh_error": {
+            "type": "string"
+          },
+          "memory_refresh_status": {
+            "type": "string"
           },
           "model": {
             "type": "string"
@@ -10447,6 +11709,15 @@
           },
           "permissions": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentProfileResponse"
+            }
+          },
+          "prompt_operating_principles": {
+            "type": "string"
           },
           "provider_id": {
             "type": "string"
@@ -10475,6 +11746,12 @@
           "status": {
             "type": "string"
           },
+          "subagent_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "system_prompt": {
             "type": "string"
           },
@@ -10501,8 +11778,14 @@
           "created_at": {
             "type": "string"
           },
+          "locked": {
+            "type": "boolean"
+          },
           "pinned_version_id": {
             "type": "string"
+          },
+          "required": {
+            "type": "boolean"
           },
           "skill": {
             "$ref": "#/components/schemas/skillResponse"
@@ -10521,8 +11804,14 @@
           "id": {
             "type": "string"
           },
+          "locked": {
+            "type": "boolean"
+          },
           "name": {
             "type": "string"
+          },
+          "required": {
+            "type": "boolean"
           },
           "source_type": {
             "type": "string"
@@ -10536,9 +11825,6 @@
             "$ref": "#/components/schemas/TriggerMatch"
           },
           "connection_id": {
-            "type": "string"
-          },
-          "cron_schedule": {
             "type": "string"
           },
           "instructions": {
@@ -10555,7 +11841,7 @@
             }
           },
           "trigger_type": {
-            "description": "\"webhook\" (default), \"http\", \"cron\"",
+            "description": "\"webhook\" (default), \"http\"",
             "type": "string"
           }
         }
@@ -10565,9 +11851,6 @@
         "properties": {
           "conditions": {},
           "connection_id": {
-            "type": "string"
-          },
-          "cron_schedule": {
             "type": "string"
           },
           "enabled": {
@@ -10661,6 +11944,44 @@
             "type": "string"
           },
           "status": {
+            "type": "string"
+          }
+        }
+      },
+      "assetListItem": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string"
+          },
+          "asset_url": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "updated_at": {
             "type": "string"
           }
         }
@@ -10765,6 +12086,65 @@
           }
         }
       },
+      "chatDetailResponse": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/chatMessageDTO"
+            }
+          },
+          "session": {
+            "$ref": "#/components/schemas/chatSessionDTO"
+          }
+        }
+      },
+      "chatListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/chatSessionDTO"
+            }
+          }
+        }
+      },
+      "chatMessageDTO": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "chatSessionDTO": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
       "commandResult": {
         "type": "object",
         "properties": {
@@ -10782,6 +12162,34 @@
           }
         }
       },
+      "completeOnboardingRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "logo_url": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          }
+        }
+      },
+      "completeOnboardingResponse": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string"
+          },
+          "sync": {
+            "$ref": "#/components/schemas/syncEmployeeResponse"
+          }
+        }
+      },
       "confirmEmailRequest": {
         "type": "object",
         "properties": {
@@ -10794,9 +12202,6 @@
         "type": "object",
         "properties": {
           "agent_id": {
-            "type": "string"
-          },
-          "bridge_conversation_id": {
             "type": "string"
           },
           "created_at": {
@@ -10815,6 +12220,9 @@
             "type": "string"
           },
           "id": {
+            "type": "string"
+          },
+          "runtime_conversation_id": {
             "type": "string"
           },
           "sequence_number": {
@@ -10846,6 +12254,52 @@
           }
         }
       },
+      "conversationMessageResponse": {
+        "type": "object",
+        "properties": {
+          "author": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "tool_groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/conversationToolGroupResponse"
+            }
+          }
+        }
+      },
+      "conversationMessagesResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/conversationMessageResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "latest_todos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/conversationTodoItem"
+            }
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
       "conversationResponse": {
         "type": "object",
         "properties": {
@@ -10865,6 +12319,51 @@
             "type": "string"
           },
           "stream_url": {
+            "type": "string"
+          }
+        }
+      },
+      "conversationTodoItem": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "conversationToolCallResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "conversationToolGroupResponse": {
+        "type": "object",
+        "properties": {
+          "calls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/conversationToolCallResponse"
+            }
+          },
+          "name": {
             "type": "string"
           }
         }
@@ -10936,11 +12435,17 @@
           "harness": {
             "type": "string"
           },
+          "identity_prompt": {
+            "type": "string"
+          },
           "instructions": {
             "type": "string"
           },
           "integrations": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "is_employee": {
+            "type": "boolean"
           },
           "mcp_servers": {
             "$ref": "#/components/schemas/JSON"
@@ -10953,6 +12458,9 @@
           },
           "permissions": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "prompt_operating_principles": {
+            "type": "string"
           },
           "provider_prompts": {
             "$ref": "#/components/schemas/ProviderPromptsMap"
@@ -10980,6 +12488,12 @@
           },
           "skills": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "subagent_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "system_prompt": {
             "type": "string"
@@ -11119,6 +12633,56 @@
           }
         }
       },
+      "createEmployeeRequest": {
+        "type": "object",
+        "properties": {
+          "avatar_url": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "createEmployeeResponse": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string"
+          },
+          "sandbox_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "createGitHubProfileRequest": {
+        "type": "object",
+        "properties": {
+          "connection_id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "createGitHubProfileResponse": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/agentProfileResponse"
+          }
+        }
+      },
       "createInConnectionRequest": {
         "type": "object",
         "properties": {
@@ -11186,29 +12750,9 @@
           }
         }
       },
-      "createRuleRequest": {
-        "type": "object",
-        "properties": {
-          "agent_id": {
-            "type": "string"
-          },
-          "conditions": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "priority": {
-            "type": "integer"
-          }
-        }
-      },
       "createSandboxTemplateRequest": {
         "type": "object",
         "properties": {
-          "base_template_id": {
-            "type": "string"
-          },
           "build_commands": {
             "type": "array",
             "items": {
@@ -11218,8 +12762,17 @@
           "config": {
             "$ref": "#/components/schemas/JSON"
           },
+          "disk_gb": {
+            "type": "integer"
+          },
+          "memory_gb": {
+            "type": "integer"
+          },
           "name": {
             "type": "string"
+          },
+          "vcpu": {
+            "type": "integer"
           }
         }
       },
@@ -11262,6 +12815,34 @@
           }
         }
       },
+      "createSlackProfileRequest": {
+        "type": "object",
+        "properties": {
+          "app_token": {
+            "type": "string"
+          },
+          "bot_token": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "createSlackProfileResponse": {
+        "type": "object",
+        "properties": {
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"
+            }
+          },
+          "profile": {
+            "$ref": "#/components/schemas/agentProfileResponse"
+          }
+        }
+      },
       "createSystemCredentialRequest": {
         "type": "object",
         "properties": {
@@ -11282,36 +12863,16 @@
           }
         }
       },
-      "createTriggerRequest": {
+      "createTeamRequest": {
         "type": "object",
         "properties": {
-          "connection_id": {
-            "description": "required for webhook",
+          "description": {
             "type": "string"
           },
-          "cron_schedule": {
-            "description": "required for cron",
+          "name": {
             "type": "string"
           },
-          "enrich_cross_references": {
-            "type": "boolean"
-          },
-          "instructions": {
-            "type": "string"
-          },
-          "routing_mode": {
-            "description": "\"rule\" (default) or \"triage\"",
-            "type": "string"
-          },
-          "trigger_keys": {
-            "description": "required for webhook",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "trigger_type": {
-            "description": "\"webhook\" (default), \"http\", \"cron\"",
+          "prompt_team": {
             "type": "string"
           }
         }
@@ -11395,6 +12956,297 @@
             "type": "string"
           },
           "value": {
+            "type": "string"
+          }
+        }
+      },
+      "employeeAgentTemplateResponse": {
+        "type": "object",
+        "properties": {
+          "agent_type": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "subagent_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        }
+      },
+      "employeeConnectionResponse": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "in_integration_id": {
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "nango_connection_id": {
+            "type": "string"
+          },
+          "org_id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
+      "employeeListItem": {
+        "type": "object",
+        "properties": {
+          "agent_config": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "attached_skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentSkillSummary"
+            }
+          },
+          "avatar_url": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "harness": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "identity_prompt": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "integrations": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "is_employee": {
+            "type": "boolean"
+          },
+          "last_memory_refreshed_at": {
+            "type": "string"
+          },
+          "mcp_servers": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "memory_refresh_error": {
+            "type": "string"
+          },
+          "memory_refresh_status": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentProfileResponse"
+            }
+          },
+          "prompt_operating_principles": {
+            "type": "string"
+          },
+          "provider_id": {
+            "type": "string"
+          },
+          "provider_prompts": {
+            "$ref": "#/components/schemas/ProviderPromptsMap"
+          },
+          "resources": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "sandbox": {
+            "$ref": "#/components/schemas/employeeSandboxSummary"
+          },
+          "sandbox_template_id": {
+            "type": "string"
+          },
+          "sandbox_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "shared_memory": {
+            "type": "boolean"
+          },
+          "skills": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "status": {
+            "type": "string"
+          },
+          "subagent_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subagents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/employeeSubagentSummary"
+            }
+          },
+          "system_prompt": {
+            "type": "string"
+          },
+          "team": {
+            "type": "string"
+          },
+          "tools": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "triggers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentTriggerResponse"
+            }
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "upgrade_available": {
+            "type": "boolean"
+          }
+        }
+      },
+      "employeeSandboxSummary": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "error_message": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "last_active_at": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "employeeSandboxUpgradeResponse": {
+        "type": "object",
+        "properties": {
+          "backup_bytes": {
+            "type": "integer"
+          },
+          "backup_key": {
+            "type": "string"
+          },
+          "backup_sha256": {
+            "type": "string"
+          },
+          "completed_at": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "error_message": {
+            "type": "string"
+          },
+          "new_sandbox_id": {
+            "type": "string"
+          },
+          "old_sandbox_id": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "upgrade_id": {
+            "type": "string"
+          }
+        }
+      },
+      "employeeSubagentSummary": {
+        "type": "object",
+        "properties": {
+          "avatar_url": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "template_agent_type": {
+            "type": "string"
+          },
+          "template_slug": {
             "type": "string"
           }
         }
@@ -11536,6 +13388,58 @@
           }
         }
       },
+      "gitHubProfileRepositoriesResponse": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/agentProfileResponse"
+          },
+          "repositories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/gitHubRepository"
+            }
+          },
+          "selected_repositories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/gitHubRepository"
+            }
+          }
+        }
+      },
+      "gitHubRepository": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "full_name": {
+            "type": "string"
+          },
+          "html_url": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "private": {
+            "type": "boolean"
+          }
+        }
+      },
       "inConnectSessionResponse": {
         "type": "object",
         "properties": {
@@ -11645,6 +13549,20 @@
           }
         }
       },
+      "installEmployeeAgentTemplateResponse": {
+        "type": "object",
+        "properties": {
+          "subagent": {
+            "$ref": "#/components/schemas/employeeSubagentSummary"
+          },
+          "sync": {
+            "$ref": "#/components/schemas/syncEmployeeResponse"
+          },
+          "template": {
+            "$ref": "#/components/schemas/employeeAgentTemplateResponse"
+          }
+        }
+      },
       "integrationDetail": {
         "type": "object",
         "properties": {
@@ -11729,6 +13647,17 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/orgMemberResponse"
+            }
+          }
+        }
+      },
+      "listSlackChannelsResponse": {
+        "type": "object",
+        "properties": {
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"
             }
           }
         }
@@ -12067,6 +13996,9 @@
           "name": {
             "type": "string"
           },
+          "onboarded": {
+            "type": "boolean"
+          },
           "plan": {
             "$ref": "#/components/schemas/planDTO"
           },
@@ -12115,6 +14047,9 @@
           },
           "plan": {
             "$ref": "#/components/schemas/planDTO"
+          },
+          "prompt_company": {
+            "type": "string"
           },
           "rate_limit": {
             "type": "integer"
@@ -12361,6 +14296,23 @@
           }
         }
       },
+      "paginatedResponse-assetListItem": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/assetListItem"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
       "paginatedResponse-auditEntryResponse": {
         "type": "object",
         "properties": {
@@ -12419,6 +14371,40 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/credentialResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-employeeConnectionResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/employeeConnectionResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-employeeListItem": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/employeeListItem"
             }
           },
           "has_more": {
@@ -12521,6 +14507,23 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/skillResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-teamResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/teamResponse"
             }
           },
           "has_more": {
@@ -13374,6 +15377,25 @@
           }
         }
       },
+      "sendMessageRequest": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "sendMessageResponse": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string"
+          },
+          "stream_url": {
+            "type": "string"
+          }
+        }
+      },
       "setupRequest": {
         "type": "object",
         "properties": {
@@ -13431,6 +15453,9 @@
       "signUploadResponse": {
         "type": "object",
         "properties": {
+          "asset_url": {
+            "type": "string"
+          },
           "expires_at": {
             "type": "string"
           },
@@ -13439,9 +15464,6 @@
           },
           "max_size_bytes": {
             "type": "integer"
-          },
-          "public_url": {
-            "type": "string"
           },
           "required_headers": {
             "type": "object",
@@ -13626,6 +15648,14 @@
           }
         }
       },
+      "startEmployeeSandboxUpgradeRequest": {
+        "type": "object",
+        "properties": {
+          "smoke_test": {
+            "type": "boolean"
+          }
+        }
+      },
       "statusResponse": {
         "type": "object",
         "properties": {
@@ -13689,6 +15719,29 @@
           }
         }
       },
+      "syncEmployeeResponse": {
+        "type": "object",
+        "properties": {
+          "applied": {
+            "type": "integer"
+          },
+          "deleted": {
+            "type": "integer"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "repos_cloned": {
+            "type": "integer"
+          },
+          "restart_triggered": {
+            "type": "boolean"
+          }
+        }
+      },
       "syncTriggerRequest": {
         "type": "object",
         "properties": {
@@ -13749,6 +15802,29 @@
           },
           "stream": {
             "type": "boolean"
+          }
+        }
+      },
+      "teamResponse": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prompt_team": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
           }
         }
       },
@@ -13947,6 +16023,9 @@
           "harness": {
             "type": "string"
           },
+          "identity_prompt": {
+            "type": "string"
+          },
           "instructions": {
             "type": "string"
           },
@@ -13964,6 +16043,9 @@
           },
           "permissions": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "prompt_operating_principles": {
+            "type": "string"
           },
           "provider_prompts": {
             "$ref": "#/components/schemas/ProviderPromptsMap"
@@ -14017,6 +16099,63 @@
           }
         }
       },
+      "updateEmployeeRequest": {
+        "type": "object",
+        "properties": {
+          "avatar_url": {
+            "type": "string"
+          },
+          "connection_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "skill_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "updateEmployeeResponse": {
+        "type": "object",
+        "properties": {
+          "employee": {
+            "$ref": "#/components/schemas/employeeListItem"
+          },
+          "sync": {
+            "$ref": "#/components/schemas/syncEmployeeResponse"
+          },
+          "sync_status": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "updateGitHubRepositoriesRequest": {
+        "type": "object",
+        "properties": {
+          "repositories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/gitHubRepository"
+            }
+          }
+        }
+      },
       "updateMarketplaceAgentRequest": {
         "type": "object",
         "properties": {
@@ -14051,6 +16190,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "prompt_company": {
+            "type": "string"
           }
         }
       },
@@ -14079,20 +16221,6 @@
             "type": "integer"
           },
           "status": {
-            "type": "string"
-          }
-        }
-      },
-      "updateRouterRequest": {
-        "type": "object",
-        "properties": {
-          "default_agent_id": {
-            "type": "string"
-          },
-          "memory_team": {
-            "type": "string"
-          },
-          "persona": {
             "type": "string"
           }
         }
@@ -14134,6 +16262,39 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "updateSlackConfigRequest": {
+        "type": "object",
+        "properties": {
+          "home_channel_id": {
+            "type": "string"
+          }
+        }
+      },
+      "updateSlackConfigResponse": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/agentProfileResponse"
+          }
+        }
+      },
+      "updateTeamRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prompt_team": {
+            "type": "string"
           }
         }
       },
@@ -14280,12 +16441,20 @@
       "description": "Conversations"
     },
     {
+      "name": "agent-profiles",
+      "description": "agent-profiles"
+    },
+    {
       "name": "skills",
       "description": "skills"
     },
     {
       "name": "api-keys",
       "description": "API Keys"
+    },
+    {
+      "name": "assets",
+      "description": "assets"
     },
     {
       "name": "audit",
@@ -14300,12 +16469,20 @@
       "description": "Integrations"
     },
     {
+      "name": "chats",
+      "description": "chats"
+    },
+    {
       "name": "credentials",
       "description": "Credentials"
     },
     {
       "name": "custom-domains",
       "description": "Custom Domains"
+    },
+    {
+      "name": "employees",
+      "description": "employees"
     },
     {
       "name": "generations",
@@ -14336,6 +16513,10 @@
       "description": "Organizations"
     },
     {
+      "name": "onboarding",
+      "description": "onboarding"
+    },
+    {
       "name": "plans",
       "description": "plans"
     },
@@ -14348,10 +16529,6 @@
       "description": "Reporting"
     },
     {
-      "name": "router",
-      "description": "router"
-    },
-    {
       "name": "sandbox-templates",
       "description": "Sandbox Templates"
     },
@@ -14362,6 +16539,10 @@
     {
       "name": "system",
       "description": "system"
+    },
+    {
+      "name": "teams",
+      "description": "teams"
     },
     {
       "name": "tokens",

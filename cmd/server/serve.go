@@ -73,7 +73,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	inConnectionHandler := handler.NewInConnectionHandler(database, nangoClient, actionsCatalog)
 	orgHandler := handler.NewOrgHandler(database)
 	plansHandler := handler.NewPlansHandler(database)
-	routerHandler := handler.NewRouterHandler(database, actionsCatalog)
 	var emailSender email.Sender = &email.LogSender{}
 	if enqueuer != nil && cfg.KibamailAPIKey != "" {
 		emailSender = email.NewAsynqSender(enqueuer)
@@ -225,7 +224,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		return err
 	}
 	systemTaskHandler := buildSystemTaskHandler(database, deps, redisClient)
-	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, teamHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, subscriptionHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, agentHandler, agentProfileHandler, marketplaceHandler, conversationHandler, routerHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, systemTaskHandler, employeeHandler, chatHandler, orchestrator, auditWriter)
+	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, teamHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, subscriptionHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, agentHandler, agentProfileHandler, marketplaceHandler, conversationHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, systemTaskHandler, employeeHandler, chatHandler, orchestrator, auditWriter)
 
 	var platformAdminEmails []string
 	if cfg.PlatformAdminEmails != "" {

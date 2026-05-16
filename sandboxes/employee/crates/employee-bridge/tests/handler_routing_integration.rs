@@ -83,7 +83,7 @@ fn channel_extraction_handles_delegate_session() {
 }
 
 #[test]
-fn routing_decision_matrix() {
+fn channel_response_policy_matrix() {
     let cases = vec![
         ("C123-1778247607.836569", "U08P1G9EDNG", "reply"), // normal user → thread
         ("C123-cron-cron-1", "cron", "post_to_channel"),    // worker cron → channel

@@ -11,7 +11,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/nango"
 	"github.com/usehiveloop/hiveloop/internal/rag/scheduler"
 	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
@@ -19,8 +18,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/skills"
 	"github.com/usehiveloop/hiveloop/internal/storage"
 	"github.com/usehiveloop/hiveloop/internal/streaming"
-	"github.com/usehiveloop/hiveloop/internal/trigger/dispatch"
-	"github.com/usehiveloop/hiveloop/internal/trigger/enrichment"
 )
 
 // WorkerDeps holds the dependencies needed by task handlers.
@@ -127,40 +124,10 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 			NewEmployeeSandboxUpgradeHandler(deps.DB, deps.Orchestrator, deps.S3Client, deps.EmployeeCompile, deps.Enqueuer).Handle)
 	}
 
-	// Router dispatch (Zira routing system).
-	// Only registered when orchestrator + pusher are available (sandbox configured).
-	if deps.Orchestrator != nil && deps.Pusher != nil {
-		routerDispatcher := dispatch.NewRouterDispatcher(
-			dispatch.NewGormRouterTriggerStore(deps.DB, catalog.Global()),
-			catalog.Global(),
-			nil, // RouterAgent wired separately when credential picker is ready
-			nil, // logger — defaults to slog.Default()
-		)
-		routerHandler := NewRouterDispatchHandler(routerDispatcher, deps.Enqueuer)
-		if deps.NangoClient != nil {
-			routerHandler.SetDeterministicEnrichment(
-				enrichment.NewDeterministicEnricher(deps.NangoClient, catalog.Global(), deps.DB),
-			)
-		}
-		mux.HandleFunc(TypeRouterDispatch, routerHandler.Handle)
-
-		// Cron trigger dispatch (scheduled agent conversations).
-		mux.HandleFunc(TypeCronTriggerDispatch,
-			NewCronTriggerDispatchHandler(routerDispatcher, deps.Enqueuer).Handle)
-
-		// Agent conversation creation (sandbox provisioning + Bridge push + first message).
-		mux.HandleFunc(TypeAgentConversationCreate,
-			NewAgentConversationCreateHandler(deps.DB, deps.Orchestrator, deps.Pusher).Handle)
-
-		// Subscription dispatch (fans webhook events into subscribed conversations).
-		mux.HandleFunc(TypeSubscriptionDispatch,
-			NewSubscriptionDispatchHandler(deps.DB, deps.Orchestrator, catalog.Global()).Handle)
+	if deps.Orchestrator != nil && deps.EmployeeCompile.EncKey != nil {
+		mux.HandleFunc(TypeEmployeeTriggerDispatch,
+			NewEmployeeTriggerDispatchHandler(deps.DB, deps.Orchestrator, deps.EmployeeCompile).Handle)
 	}
-
-	// Cron trigger poller (runs even without orchestrator — the dispatch tasks
-	// will fail gracefully if sandbox isn't configured).
-	mux.HandleFunc(TypeCronTriggerPoll,
-		NewCronTriggerPollHandler(deps.DB, deps.Enqueuer).Handle)
 
 	if deps.Rag != nil {
 		ragtasks.RegisterHandlers(mux, deps.Rag)

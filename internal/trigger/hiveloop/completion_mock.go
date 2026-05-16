@@ -16,7 +16,7 @@ import (
 //
 //	mock := NewMockCompletionClient()
 //	mock.OnMessage("review this PR", resp1, resp2)  // first call returns resp1, second returns resp2
-//	// inject mock into RouterAgent, run test
+//	// inject mock into the component under test
 //	mock.AssertCallCount(t, 2)
 type MockCompletionClient struct {
 	mu        sync.Mutex

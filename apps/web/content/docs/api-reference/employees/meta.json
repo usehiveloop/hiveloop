@@ -1,0 +1,16 @@
+{
+  "title": "Employees",
+  "description": "employees",
+  "pages": [
+    "v1/employees/get",
+    "v1/employees/post",
+    "v1/employees/id/get",
+    "v1/employees/id/put",
+    "v1/employees/id/agent-templates/get",
+    "v1/employees/id/agent-templates/slug/install/post",
+    "v1/employees/id/connections/available/get",
+    "v1/employees/id/sandbox/upgrade/post",
+    "v1/employees/id/sandbox/upgrades/upgradeid/get",
+    "v1/employees/id/sync/post"
+  ]
+}

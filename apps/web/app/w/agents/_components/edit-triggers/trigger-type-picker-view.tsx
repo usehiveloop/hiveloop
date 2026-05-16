@@ -3,7 +3,6 @@
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   ArrowLeft01Icon,
-  Clock01Icon,
   GlobeIcon,
   WebhookIcon,
 } from "@hugeicons/core-free-icons"
@@ -15,7 +14,7 @@ import {
 import { ChoiceCard } from "../create-agent/choice-card"
 
 interface TriggerTypePickerViewProps {
-  onPick: (triggerType: "webhook" | "http" | "cron") => void
+  onPick: (triggerType: "webhook" | "http") => void
   onBack: () => void
 }
 
@@ -52,13 +51,6 @@ export function TriggerTypePickerView({ onPick, onBack }: TriggerTypePickerViewP
           title="HTTP"
           description="Fire on an inbound HTTP POST to a unique URL, with optional HMAC verification."
           onClick={() => onPick("http")}
-        />
-        <ChoiceCard
-          icon={Clock01Icon}
-          iconClassName="text-foreground"
-          title="Cron"
-          description="Fire on a recurring schedule using a cron expression."
-          onClick={() => onPick("cron")}
         />
       </div>
     </>

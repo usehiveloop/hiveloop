@@ -132,7 +132,7 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 	event.EventType = bridgeevents.NormalizeEventType(event.EventType)
 
 	var conv model.AgentConversation
-	if err := h.db.WithContext(ctx).Where("bridge_conversation_id = ? AND sandbox_id = ?",
+	if err := h.db.WithContext(ctx).Where("runtime_conversation_id = ? AND sandbox_id = ?",
 		event.ConversationID, sb.ID).First(&conv).Error; err != nil {
 		return
 	}
@@ -226,7 +226,7 @@ func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *m
 		EventID:              event.EventID,
 		EventType:            eventType,
 		AgentID:              event.AgentID,
-		BridgeConversationID: event.ConversationID,
+		RuntimeConversationID: event.ConversationID,
 		Timestamp:            event.Timestamp,
 		SequenceNumber:       event.SequenceNumber,
 		Data:                 model.RawJSON(event.Data),
@@ -264,7 +264,7 @@ func (h *BridgeWebhookHandler) forwardCloudAgentEvent(ctx context.Context, task 
 		EventID:              event.EventID,
 		EventType:            event.EventType,
 		AgentID:              event.AgentID,
-		BridgeConversationID: event.ConversationID,
+		RuntimeConversationID: event.ConversationID,
 		Timestamp:            event.Timestamp,
 		SequenceNumber:       event.SequenceNumber,
 		Data:                 model.RawJSON(event.Data),

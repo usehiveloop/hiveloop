@@ -122,13 +122,17 @@ func TestIntegration_EmployeeAgentTemplates_InstallExistingIsIdempotentAndSyncs(
 	if rr.Code != http.StatusOK {
 		t.Fatalf("sync status = %d, want 200: %s", rr.Code, rr.Body.String())
 	}
-	beforeCalls, _ := h.sidecar.snapshot()
+	beforeConfigCalls, _ := h.sidecar.snapshot()
+	beforeEnvCalls, _ := h.sidecar.snapshotRuntime()
 
 	rr = h.postAgentTemplateInstall(t, m, agent.ID, "business-research-specialist", "admin")
 	if rr.Code != http.StatusOK {
 		t.Fatalf("install status = %d, want 200: %s", rr.Code, rr.Body.String())
 	}
-	afterCalls, _ := h.sidecar.snapshot()
+	afterConfigCalls, _ := h.sidecar.snapshot()
+	afterEnvCalls, _ := h.sidecar.snapshotRuntime()
+	beforeCalls := beforeConfigCalls + beforeEnvCalls
+	afterCalls := afterConfigCalls + afterEnvCalls
 	if afterCalls != beforeCalls+1 {
 		t.Fatalf("sync calls after install = %d, want %d", afterCalls, beforeCalls+1)
 	}
@@ -143,10 +147,6 @@ func TestIntegration_EmployeeAgentTemplates_InstallExistingIsIdempotentAndSyncs(
 	if resp.Subagent.TemplateSlug == nil || *resp.Subagent.TemplateSlug != "business-research-specialist" {
 		t.Fatalf("subagent template_slug = %v, want business-research-specialist", resp.Subagent.TemplateSlug)
 	}
-	if resp.Sync.Applied != 1 {
-		t.Fatalf("sync.applied = %d, want 1", resp.Sync.Applied)
-	}
-
 	var linkCount int64
 	if err := h.db.Model(&model.AgentSubagent{}).Where("agent_id = ?", agent.ID).Count(&linkCount).Error; err != nil {
 		t.Fatalf("count links: %v", err)

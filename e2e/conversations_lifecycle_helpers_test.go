@@ -88,7 +88,7 @@ func newFakeBridgeHarness(t *testing.T) *fbHarness {
 
 	conv := model.AgentConversation{
 		OrgID: org.ID, AgentID: agent.ID, SandboxID: sb.ID,
-		BridgeConversationID: "fb-conv-" + suffix, Status: "active",
+		RuntimeConversationID: "fb-conv-" + suffix, Status: "active",
 	}
 	h.db.Create(&conv)
 	t.Cleanup(func() {

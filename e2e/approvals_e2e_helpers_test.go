@@ -88,7 +88,7 @@ func newApprovalsHarness(t *testing.T) *approvalsHarness {
 
 	conv := model.AgentConversation{
 		OrgID: org.ID, AgentID: agent.ID, SandboxID: sb.ID,
-		BridgeConversationID: "ap-conv-" + suffix, Status: "active",
+		RuntimeConversationID: "ap-conv-" + suffix, Status: "active",
 	}
 	h.db.Create(&conv)
 	t.Cleanup(func() {

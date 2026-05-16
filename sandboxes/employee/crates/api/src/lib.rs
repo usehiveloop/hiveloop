@@ -21,7 +21,7 @@ mod openapi {
     use utoipa::OpenApi;
 
     #[derive(OpenApi)]
-        #[openapi(
+    #[openapi(
         info(title = "Employee Bridge API", version = "0.0.1"),
         paths(
             crate::handlers::put_config,

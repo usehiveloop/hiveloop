@@ -267,7 +267,7 @@ func (h *cloudAgentHarness) seedTask(t *testing.T, cloudAgentID uuid.UUID, brief
 		OrgID:                h.orgID,
 		AgentID:              cloudAgentID,
 		SandboxID:            sandboxID,
-		BridgeConversationID: fmt.Sprintf("bridge-%s", uuid.New().String()[:8]),
+		RuntimeConversationID: fmt.Sprintf("bridge-%s", uuid.New().String()[:8]),
 		Status:               "active",
 	})
 
@@ -306,7 +306,7 @@ func (h *cloudAgentHarness) seedEvent(t *testing.T, convID uuid.UUID, eventType 
 		EventID:              uuid.New().String(),
 		EventType:            eventType,
 		AgentID:              "test-agent",
-		BridgeConversationID: "bridge-conv",
+		RuntimeConversationID: "bridge-conv",
 		Timestamp:            now,
 		SequenceNumber:       count + 1,
 		Data:                 model.RawJSON(`{}`),
@@ -550,7 +550,7 @@ func TestCloudAgentSendTaskMessage_Success(t *testing.T) {
 	if len(h.fakeBridge.sentMessages) != 1 {
 		t.Fatalf("expected 1 sent message, got %#v", h.fakeBridge.sentMessages)
 	}
-	if got := h.fakeBridge.sentMessages[0]; got.ConversationID != conv.BridgeConversationID || got.Content != "Please narrow the scope." {
+	if got := h.fakeBridge.sentMessages[0]; got.ConversationID != conv.RuntimeConversationID || got.Content != "Please narrow the scope." {
 		t.Fatalf("unexpected sent message: %#v", got)
 	}
 }
@@ -588,8 +588,8 @@ func TestCloudAgentTerminateTask_Success(t *testing.T) {
 	if conv.Status != "ended" || conv.EndedAt == nil {
 		t.Fatalf("expected conversation ended with ended_at, got status=%q ended_at=%v", conv.Status, conv.EndedAt)
 	}
-	if len(h.fakeBridge.ended) != 1 || h.fakeBridge.ended[0] != conv.BridgeConversationID {
-		t.Fatalf("expected bridge conversation %s to be ended, got %#v", conv.BridgeConversationID, h.fakeBridge.ended)
+	if len(h.fakeBridge.ended) != 1 || h.fakeBridge.ended[0] != conv.RuntimeConversationID {
+		t.Fatalf("expected bridge conversation %s to be ended, got %#v", conv.RuntimeConversationID, h.fakeBridge.ended)
 	}
 
 	var event model.ConversationEvent
@@ -632,7 +632,7 @@ func TestBridgeWebhook_ForwardsCloudAgentTaskEventToEmployeeBridge(t *testing.T)
 		"event_id":        "evt-cloud-agent-1",
 		"event_type":      "ConversationEnded",
 		"agent_id":        cloudAgentID.String(),
-		"conversation_id": conv.BridgeConversationID,
+		"conversation_id": conv.RuntimeConversationID,
 		"timestamp":       time.Now().UTC().Format(time.RFC3339),
 		"sequence_number": 1,
 		"data": map[string]any{

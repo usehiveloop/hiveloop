@@ -72,7 +72,7 @@ func buildRecoveredEvent(conv *model.AgentConversation, terminal model.Conversat
 		EventID:              "recovered-" + messageID,
 		EventType:            "response_completed",
 		AgentID:              terminal.AgentID,
-		BridgeConversationID: conv.BridgeConversationID,
+		RuntimeConversationID: conv.RuntimeConversationID,
 		Timestamp:            timestamp,
 		SequenceNumber:       sequenceNumber,
 		Data:                 model.RawJSON(data),

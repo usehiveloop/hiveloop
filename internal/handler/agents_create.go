@@ -173,9 +173,15 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		agent.SandboxTemplateID = &tmpl.ID
 	}
 
-	if errMsg := validateAgentTriggers(h.db, org.ID, req.Triggers); errMsg != "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
-		return
+	if len(req.Triggers) > 0 {
+		if !req.IsEmployee {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "triggers can only be configured on employees"})
+			return
+		}
+		if errMsg := validateAgentTriggers(h.db, org.ID, req.Triggers); errMsg != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
+			return
+		}
 	}
 
 	subagentUUIDs, subErrMsg := parseSubagentIDs(req.SubagentIDs)

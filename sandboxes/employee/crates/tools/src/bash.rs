@@ -90,7 +90,11 @@ impl BashTool {
 
         let mut env: HashMap<String, String> = HashMap::new();
         for key in &self.config.env_passthrough {
-            if let Some(value) = self.runtime_env.get(key).cloned().or_else(|| std::env::var(key).ok())
+            if let Some(value) = self
+                .runtime_env
+                .get(key)
+                .cloned()
+                .or_else(|| std::env::var(key).ok())
             {
                 env.insert(key.clone(), value);
             }
@@ -154,15 +158,43 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::Arc;
 
-    use crate::operations::LocalBashOperations;
+    use async_trait::async_trait;
+
+    use crate::operations::{BashError, BashExecOptions, BashExecResult, BashOperations};
 
     use super::BashConfig;
 
+    struct EchoEnvOperations {
+        key: &'static str,
+    }
+
+    #[async_trait]
+    impl BashOperations for EchoEnvOperations {
+        async fn exec(
+            &self,
+            _command: &str,
+            options: BashExecOptions,
+        ) -> Result<BashExecResult, BashError> {
+            Ok(BashExecResult {
+                stdout_combined: options
+                    .env
+                    .get(self.key)
+                    .cloned()
+                    .unwrap_or_default()
+                    .into_bytes(),
+                exit_code: Some(0),
+                timed_out: false,
+                truncated: false,
+            })
+        }
+    }
+
     #[tokio::test]
     async fn runtime_env_overlays_process_for_bash_passthrough() {
-        let runtime_env = Arc::new(HashMap::from([
-            ("RUNTIME_ENV_OVERLAY".to_string(), "overlay-value".to_string()),
-        ]));
+        let runtime_env = Arc::new(HashMap::from([(
+            "RUNTIME_ENV_OVERLAY".to_string(),
+            "overlay-value".to_string(),
+        )]));
         let tool = super::BashTool::new(
             BashConfig {
                 workdir: ".".to_string(),
@@ -173,7 +205,9 @@ mod tests {
                 sandbox: "process_isolated".to_string(),
             },
             PathBuf::from(env::temp_dir()),
-            Arc::new(LocalBashOperations::default()),
+            Arc::new(EchoEnvOperations {
+                key: "RUNTIME_ENV_OVERLAY",
+            }),
             runtime_env,
         );
 
@@ -208,7 +242,9 @@ mod tests {
                 sandbox: "process_isolated".to_string(),
             },
             PathBuf::from(env::temp_dir()),
-            Arc::new(LocalBashOperations::default()),
+            Arc::new(EchoEnvOperations {
+                key: "RUNTIME_ENV_FALLBACK",
+            }),
             runtime_env,
         );
 

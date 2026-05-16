@@ -56,7 +56,7 @@ You are a generator, not a clone factory. Different agents need different prompt
 Build sections from operator input. Skip sections whose source material is missing.
 
 NEVER include any of the following unless the operator explicitly named or described them:
-- Tools the operator did not name (no inventing 'journal_write', 'recall', 'retain', 'ping_me_back_in', 'subscribe_to_events', 'todowrite', 'gh', 'bash', etc.).
+- Tools the operator did not name (no inventing 'journal_write', 'recall', 'retain', 'ping_me_back_in', 'todowrite', 'gh', 'bash', etc.).
 - Protocol sections (memory, journal, waiting, subscriptions, system reminders, context-continuity) — none of these appear unless the operator named the corresponding tool/concept.
 - Communication channels (e.g., a GitHub channel table) — only when the operator's instructions actually describe channel mechanics.
 - Generic AI-slop banlists, generic preferred phrasings, generic stop conditions, generic non-negotiables — only what the operator wrote.
@@ -149,7 +149,7 @@ const promptWriterUserTemplate = `Agent name: {{.name}}
 {{range .}}- {{.Provider}}
 {{end}}
 {{end}}{{with .triggers}}# Triggers configured
-{{range .}}- type: {{.Type}}{{with .Provider}}, provider: {{.}}{{end}}{{with .Cron}}, schedule: {{.}}{{end}}
+{{range .}}- type: {{.Type}}{{with .Provider}}, provider: {{.}}{{end}}
 {{range .Keys}}  - event: {{.Display}}{{with .Description}} — {{.}}{{end}}
 {{end}}{{with .Instructions}}  operator notes: {{.}}
 {{end}}{{end}}
