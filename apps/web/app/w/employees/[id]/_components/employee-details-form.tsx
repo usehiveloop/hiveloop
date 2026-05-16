@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
+import { apiUrl } from "@/lib/api/client"
 import { formatCategoryLabel } from "@/lib/format-label"
 import { EmployeeAgentTemplatesSection } from "./employee-agent-templates-section"
 import { EmployeeConnectionsSection } from "./employee-connections-section"
@@ -347,6 +348,7 @@ function connectionIDsFromEmployee(employee: Employee) {
 
 function deriveTriggers(employee: Employee): TriggerConfig[] {
   return (employee.triggers ?? []).map((trigger) => ({
+    id: trigger.id,
     triggerType:
       (trigger.trigger_type as TriggerConfig["triggerType"]) || "webhook",
     connectionId: trigger.connection_id ?? "",
@@ -356,6 +358,11 @@ function deriveTriggers(employee: Employee): TriggerConfig[] {
     triggerDisplayNames: trigger.trigger_keys ?? [],
     conditions: (trigger.conditions as TriggerConfig["conditions"]) ?? null,
     instructions: trigger.instructions || undefined,
+    secretSet: trigger.secret_set ?? false,
+    endpointUrl:
+      trigger.trigger_type === "http" && trigger.id
+        ? apiUrl(`/incoming/triggers/${trigger.id}`)
+        : undefined,
   }))
 }
 

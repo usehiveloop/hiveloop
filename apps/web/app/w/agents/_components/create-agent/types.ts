@@ -24,6 +24,7 @@ export interface TriggerConditionsConfig {
 export type TriggerType = "webhook" | "http"
 
 export interface TriggerConfig {
+  id?: string
   triggerType: TriggerType
   connectionId: string
   connectionName: string
@@ -33,4 +34,6 @@ export interface TriggerConfig {
   conditions: TriggerConditionsConfig | null
   instructions?: string
   secretKey?: string
+  secretSet?: boolean
+  endpointUrl?: string
 }

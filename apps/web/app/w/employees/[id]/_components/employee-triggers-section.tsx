@@ -128,8 +128,8 @@ function TriggerRow({ trigger }: { trigger: TriggerConfig }) {
         ) : null}
         {trigger.triggerType === "http" ? (
           <div className="mt-2">
-            <HttpEndpointPill />
-            {trigger.secretKey ? (
+            <HttpEndpointPill url={trigger.endpointUrl} />
+            {trigger.secretKey || trigger.secretSet ? (
               <p className="mt-1.5 text-[11px] text-muted-foreground">
                 HMAC verification enabled
               </p>
