@@ -44,10 +44,6 @@ func (h *InConnectionHandler) CreateConnectSession(w http.ResponseWriter, r *htt
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to find integration"})
 		return
 	}
-	if integrationEmployeeProfileCapability(integ.Provider) != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "profile integrations must be connected directly to an employee"})
-		return
-	}
 
 	nk := inNangoKey(integ.UniqueKey)
 	nangoReq := nango.CreateConnectSessionRequest{
@@ -99,10 +95,6 @@ func (h *InConnectionHandler) CreateReconnectSession(w http.ResponseWriter, r *h
 			return
 		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to find connection"})
-		return
-	}
-	if integrationEmployeeProfileCapability(conn.InIntegration.Provider) != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "profile integrations must be reconnected directly from the employee profile"})
 		return
 	}
 

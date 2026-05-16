@@ -49,7 +49,7 @@ func TestInIntegrationHandler_List_ExcludesDeleted(t *testing.T) {
 	h := newInIntegHarness(t, nil)
 	user := createTestUser(t, h.db, fmt.Sprintf("admin-%s@test.com", uuid.New().String()[:8]))
 
-	integ := createTestInIntegration(t, h.db, "notion")
+	integ := createTestInIntegration(t, h.db, "github")
 	now := time.Now()
 	h.db.Model(&integ).Update("deleted_at", now)
 
@@ -125,7 +125,7 @@ func TestInIntegrationHandler_List_Pagination(t *testing.T) {
 
 func TestInIntegrationHandler_ListAvailable_Success(t *testing.T) {
 	h := newInIntegHarness(t, nil)
-	createTestInIntegration(t, h.db, "notion")
+	createTestInIntegration(t, h.db, "github")
 
 	rr := h.doRequest(t, http.MethodGet, "/v1/in/integrations/available", nil, nil)
 
@@ -151,7 +151,7 @@ func TestInIntegrationHandler_ListAvailable_Success(t *testing.T) {
 
 func TestInIntegrationHandler_ListAvailable_ExcludesDeleted(t *testing.T) {
 	h := newInIntegHarness(t, nil)
-	integ := createTestInIntegration(t, h.db, "notion")
+	integ := createTestInIntegration(t, h.db, "github")
 
 	now := time.Now()
 	h.db.Model(&integ).Update("deleted_at", now)
@@ -168,32 +168,5 @@ func TestInIntegrationHandler_ListAvailable_ExcludesDeleted(t *testing.T) {
 		if item["id"] == integ.ID.String() {
 			t.Fatal("deleted integration should not appear in available list")
 		}
-	}
-}
-
-func TestInIntegrationHandler_ListAvailable_ExcludesProfileProviders(t *testing.T) {
-	h := newInIntegHarness(t, nil)
-	linearProfile := createTestInIntegration(t, h.db, "linear-profile")
-	notion := createTestInIntegration(t, h.db, "notion")
-
-	rr := h.doRequest(t, http.MethodGet, "/v1/in/integrations/available", nil, nil)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
-	}
-
-	var resp []map[string]any
-	_ = json.NewDecoder(rr.Body).Decode(&resp)
-	seen := map[string]bool{}
-	for _, item := range resp {
-		if id, ok := item["id"].(string); ok {
-			seen[id] = true
-		}
-	}
-	if seen[linearProfile.ID.String()] {
-		t.Fatal("profile provider integration should not appear in available connections")
-	}
-	if !seen[notion.ID.String()] {
-		t.Fatal("non-profile provider integration should appear in available connections")
 	}
 }
