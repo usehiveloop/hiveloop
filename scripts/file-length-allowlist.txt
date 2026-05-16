@@ -20,7 +20,6 @@ internal/handler/api_keys_test.go
 internal/handler/spider_test.go
 internal/handler/railway_proxy_test.go
 internal/tasks/billing_batch_process_integration_test.go
-internal/trigger/dispatch/router_dispatcher_test.go
 internal/bridge/bridge_test.go
 internal/mcpserver/executor_test.go
 internal/spider/client_test.go
@@ -39,10 +38,8 @@ e2e/lifecycle_test.go
 internal/email/templates.go
 internal/mcp/catalog/catalog.go
 internal/nango/client.go
-internal/handler/router.go
 internal/cache/cache.go
 internal/hindsight/retainer.go
-internal/trigger/dispatch/router_dispatcher.go
 internal/system/tasks/prompt_writer_resolve.go
 internal/handler/system_tasks_prompt_writer_test.go
 
@@ -70,4 +67,3 @@ internal/rag/tasks/ingest_attempt.go
 internal/bootstrap/deps.go
 internal/handler/employee_uploads_stream.go
 internal/handler/agents_delete_test.go
-internal/skills/global_seed.go

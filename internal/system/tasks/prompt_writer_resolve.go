@@ -38,7 +38,6 @@ type resolvedTrigger struct {
 	Type         string
 	Provider     string
 	Keys         []resolvedTriggerKey
-	Cron         string
 	Instructions string
 }
 
@@ -245,7 +244,6 @@ func resolveTriggers(deps system.ResolveDeps, raw []map[string]any) ([]resolvedT
 		}
 		trig := resolvedTrigger{
 			Type:         triggerType,
-			Cron:         stringArg(t, "cron_schedule"),
 			Instructions: stringArg(t, "instructions"),
 		}
 		switch triggerType {
@@ -264,7 +262,6 @@ func resolveTriggers(deps system.ResolveDeps, raw []map[string]any) ([]resolvedT
 			for j, k := range keys {
 				trig.Keys[j] = resolvedTriggerKey{Display: k}
 			}
-		case "cron":
 		default:
 			return nil, &system.ResolveError{
 				Code:    "invalid_trigger_type",

@@ -47,7 +47,7 @@ func TestPersistTerminalFailure_InsertsRow(t *testing.T) {
 	err := tasks.PersistTerminalFailure(context.Background(), db, tasks.FailedEventInput{
 		OrgID:        orgID,
 		TriggerID:    triggerID,
-		EventType:    tasks.TypeAgentConversationCreate,
+		EventType:    tasks.TypeEmployeeTriggerDispatch,
 		Payload:      payload,
 		Err:          errors.New("boom"),
 		AttemptCount: 2,
@@ -60,7 +60,7 @@ func TestPersistTerminalFailure_InsertsRow(t *testing.T) {
 	if err := db.Where("org_id = ? AND trigger_id = ?", orgID, triggerID).First(&row).Error; err != nil {
 		t.Fatalf("load row: %v", err)
 	}
-	if row.EventType != tasks.TypeAgentConversationCreate {
+	if row.EventType != tasks.TypeEmployeeTriggerDispatch {
 		t.Errorf("EventType = %q", row.EventType)
 	}
 	if row.Status != model.FailedEventStatusPending {
@@ -85,14 +85,10 @@ func TestRetryFailedEvent_EnqueuesAndMarksRetried(t *testing.T) {
 	db := connectFailedEventsTestDB(t)
 	orgID := uuid.New()
 	triggerID := uuid.New()
-	original := tasks.AgentConversationCreatePayload{
-		OrgID:           orgID,
-		AgentID:         uuid.New(),
-		RouterTriggerID: triggerID,
-		ConnectionID:    uuid.New(),
-		ResourceKey:     "thread/123",
-		Instructions:    "hello",
-		DeliveryID:      "delivery-1",
+	original := tasks.EmployeeTriggerDispatchPayload{
+		OrgID:      orgID,
+		TriggerID:  &triggerID,
+		DeliveryID: "delivery-1",
 	}
 	payload, err := json.Marshal(original)
 	if err != nil {
@@ -101,7 +97,7 @@ func TestRetryFailedEvent_EnqueuesAndMarksRetried(t *testing.T) {
 	if err := tasks.PersistTerminalFailure(context.Background(), db, tasks.FailedEventInput{
 		OrgID:        orgID,
 		TriggerID:    triggerID,
-		EventType:    tasks.TypeAgentConversationCreate,
+		EventType:    tasks.TypeEmployeeTriggerDispatch,
 		Payload:      payload,
 		Err:          errors.New("upstream down"),
 		AttemptCount: 2,
@@ -122,7 +118,7 @@ func TestRetryFailedEvent_EnqueuesAndMarksRetried(t *testing.T) {
 	if info == nil {
 		t.Fatal("expected TaskInfo")
 	}
-	enqueuer.AssertEnqueued(t, tasks.TypeAgentConversationCreate)
+	enqueuer.AssertEnqueued(t, tasks.TypeEmployeeTriggerDispatch)
 
 	var reloaded model.FailedEvent
 	if err := db.Where("id = ?", row.ID).First(&reloaded).Error; err != nil {
@@ -140,16 +136,14 @@ func TestRetryFailedEvent_RejectsAlreadyRetried(t *testing.T) {
 	db := connectFailedEventsTestDB(t)
 	orgID := uuid.New()
 	triggerID := uuid.New()
-	payload, _ := json.Marshal(tasks.AgentConversationCreatePayload{
-		OrgID:           orgID,
-		AgentID:         uuid.New(),
-		RouterTriggerID: triggerID,
-		ConnectionID:    uuid.New(),
+	payload, _ := json.Marshal(tasks.EmployeeTriggerDispatchPayload{
+		OrgID:     orgID,
+		TriggerID: &triggerID,
 	})
 	if err := tasks.PersistTerminalFailure(context.Background(), db, tasks.FailedEventInput{
 		OrgID:        orgID,
 		TriggerID:    triggerID,
-		EventType:    tasks.TypeAgentConversationCreate,
+		EventType:    tasks.TypeEmployeeTriggerDispatch,
 		Payload:      payload,
 		Err:          errors.New("upstream down"),
 		AttemptCount: 2,

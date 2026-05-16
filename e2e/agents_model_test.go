@@ -152,7 +152,7 @@ func TestAgentModels_CRUD(t *testing.T) {
 
 		conv := model.AgentConversation{
 			OrgID: org.ID, AgentID: agent.ID, SandboxID: sandbox.ID,
-			BridgeConversationID: "bridge-conv-" + suffix, Status: "active",
+			RuntimeConversationID: "bridge-conv-" + suffix, Status: "active",
 			IntegrationScopes: model.JSON{"scopes": []any{"github"}},
 		}
 		h.db.Create(&conv)
@@ -160,9 +160,9 @@ func TestAgentModels_CRUD(t *testing.T) {
 
 		now := time.Now()
 		events := []model.ConversationEvent{
-			{OrgID: org.ID, ConversationID: conv.ID, EventID: "e1", EventType: "message_received", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 1, Data: model.RawJSON(`{"content":"Hello"}`)},
-			{OrgID: org.ID, ConversationID: conv.ID, EventID: "e2", EventType: "response_completed", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 2, Data: model.RawJSON(`{"content":"Hi!"}`)},
-			{OrgID: org.ID, ConversationID: conv.ID, EventID: "e3", EventType: "turn_completed", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 3, Data: model.RawJSON(`{}`)},
+			{OrgID: org.ID, ConversationID: conv.ID, EventID: "e1", EventType: "message_received", AgentID: "a1", RuntimeConversationID: conv.RuntimeConversationID, Timestamp: now, SequenceNumber: 1, Data: model.RawJSON(`{"content":"Hello"}`)},
+			{OrgID: org.ID, ConversationID: conv.ID, EventID: "e2", EventType: "response_completed", AgentID: "a1", RuntimeConversationID: conv.RuntimeConversationID, Timestamp: now, SequenceNumber: 2, Data: model.RawJSON(`{"content":"Hi!"}`)},
+			{OrgID: org.ID, ConversationID: conv.ID, EventID: "e3", EventType: "turn_completed", AgentID: "a1", RuntimeConversationID: conv.RuntimeConversationID, Timestamp: now, SequenceNumber: 3, Data: model.RawJSON(`{}`)},
 		}
 		for i := range events {
 			h.db.Create(&events[i])
@@ -223,13 +223,13 @@ func TestAgentModels_CascadeDelete(t *testing.T) {
 
 	conv := model.AgentConversation{
 		OrgID: org.ID, AgentID: agent.ID, SandboxID: sandbox.ID,
-		BridgeConversationID: "cascade-conv-" + suffix, Status: "active",
+		RuntimeConversationID: "cascade-conv-" + suffix, Status: "active",
 	}
 	h.db.Create(&conv)
 
 	event := model.ConversationEvent{
 		OrgID: org.ID, ConversationID: conv.ID, EventID: "e1", EventType: "message_received",
-		AgentID: "a1", BridgeConversationID: conv.BridgeConversationID,
+		AgentID: "a1", RuntimeConversationID: conv.RuntimeConversationID,
 		Timestamp: time.Now(), SequenceNumber: 1, Data: model.RawJSON(`{}`),
 	}
 	h.db.Create(&event)

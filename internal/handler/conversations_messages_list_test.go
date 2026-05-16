@@ -90,7 +90,7 @@ func newMessagesListHarness(t *testing.T) *messagesListHarness {
 		OrgID:                org.ID,
 		AgentID:              agent.ID,
 		SandboxID:            sb.ID,
-		BridgeConversationID: "ses_test",
+		RuntimeConversationID: "ses_test",
 		Status:               "active",
 	}
 	if err := db.Create(&conv).Error; err != nil {
@@ -120,7 +120,7 @@ func (h *messagesListHarness) seed(t *testing.T, events []model.ConversationEven
 		events[i].OrgID = h.org.ID
 		events[i].ConversationID = h.conv.ID
 		events[i].AgentID = h.agent.ID.String()
-		events[i].BridgeConversationID = h.conv.BridgeConversationID
+		events[i].RuntimeConversationID = h.conv.RuntimeConversationID
 		if events[i].EventID == "" {
 			events[i].EventID = uuid.New().String()
 		}

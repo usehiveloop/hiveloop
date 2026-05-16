@@ -216,10 +216,11 @@ func TestIntegration_EmployeesSync_DefinitionChangeStillCallsConfigPath(t *testi
 		t.Fatalf("initial sync status = %d, want 200: %s", rr.Code, rr.Body.String())
 	}
 	baseConfigCalls, _ := h.sidecar.snapshot()
+	updatedDescription := "updated runtime definition"
 	if err := h.db.Model(&model.Agent{}).
 		Where("id = ?", agent.ID).
-		Update("system_prompt", "updated system prompt").Error; err != nil {
-		t.Fatalf("update system prompt: %v", err)
+		Update("description", updatedDescription).Error; err != nil {
+		t.Fatalf("update description: %v", err)
 	}
 
 	rr = h.postSync(t, m, agent.ID.String())

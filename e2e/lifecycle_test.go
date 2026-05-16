@@ -60,7 +60,7 @@ func newLifecycleHarness(t *testing.T) *lifecycleHarness {
 
 	conv := model.AgentConversation{
 		OrgID: org.ID, AgentID: agent.ID, SandboxID: sandbox.ID,
-		BridgeConversationID: "lc-conv-" + suffix, Status: "active",
+		RuntimeConversationID: "lc-conv-" + suffix, Status: "active",
 	}
 	h.db.Create(&conv)
 	t.Cleanup(func() {
@@ -70,10 +70,10 @@ func newLifecycleHarness(t *testing.T) *lifecycleHarness {
 
 	now := time.Now()
 	events := []model.ConversationEvent{
-		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e1", EventType: "conversation_created", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 1, Data: model.RawJSON(`{}`)},
-		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e2", EventType: "message_received", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 2, Data: model.RawJSON(`{"content":"hello"}`)},
-		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e3", EventType: "response_completed", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 3, Data: model.RawJSON(`{"content":"hi","usage":{"input_tokens":10}}`)},
-		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e4", EventType: "turn_completed", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 4, Data: model.RawJSON(`{}`)},
+		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e1", EventType: "conversation_created", AgentID: "a1", RuntimeConversationID: conv.RuntimeConversationID, Timestamp: now, SequenceNumber: 1, Data: model.RawJSON(`{}`)},
+		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e2", EventType: "message_received", AgentID: "a1", RuntimeConversationID: conv.RuntimeConversationID, Timestamp: now, SequenceNumber: 2, Data: model.RawJSON(`{"content":"hello"}`)},
+		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e3", EventType: "response_completed", AgentID: "a1", RuntimeConversationID: conv.RuntimeConversationID, Timestamp: now, SequenceNumber: 3, Data: model.RawJSON(`{"content":"hi","usage":{"input_tokens":10}}`)},
+		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e4", EventType: "turn_completed", AgentID: "a1", RuntimeConversationID: conv.RuntimeConversationID, Timestamp: now, SequenceNumber: 4, Data: model.RawJSON(`{}`)},
 	}
 	for i := range events {
 		h.db.Create(&events[i])

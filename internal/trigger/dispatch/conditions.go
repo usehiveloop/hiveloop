@@ -47,6 +47,10 @@ func evaluateConditions(match *model.TriggerMatch, payload map[string]any) (reas
 	}
 }
 
+func MatchConditions(match *model.TriggerMatch, payload map[string]any) (reason string, passed bool) {
+	return evaluateConditions(match, payload)
+}
+
 // evaluateCondition runs one condition against the payload. Path lookup is
 // dot-notation (same as ref extraction). Operator semantics:
 //

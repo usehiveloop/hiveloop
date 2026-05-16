@@ -2,10 +2,7 @@ package skills
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -230,104 +227,4 @@ func fetchGlobalSkillURL(ctx context.Context, rawURL string) (string, error) {
 		return "", err
 	}
 	return string(body), nil
-}
-
-func upsertGlobalSkill(ctx context.Context, db *gorm.DB, loaded loadedGlobalSkill) (created bool, changed bool, err error) {
-	raw, err := json.Marshal(loaded.bundle)
-	if err != nil {
-		return false, false, fmt.Errorf("marshal global skill %s: %w", loaded.manifest.Name, err)
-	}
-	versionLabel := bundledVersionLabel(raw)
-	description := loaded.manifest.Description
-	slug := model.GenerateSlug(loaded.manifest.Name)
-	now := time.Now()
-
-	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var skill model.Skill
-		err := tx.
-			Where("org_id IS NULL AND lower(name) = lower(?)", loaded.manifest.Name).
-			Order("created_at DESC").
-			First(&skill).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("load global skill %s: %w", loaded.manifest.Name, err)
-		}
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			skill = model.Skill{
-				OrgID:       nil,
-				Slug:        slug,
-				Name:        loaded.manifest.Name,
-				Description: &description,
-				SourceType:  model.SkillSourceInline,
-				RepoRef:     "main",
-				Status:      model.SkillStatusPublished,
-				PublishedAt: &now,
-			}
-			if err := tx.Create(&skill).Error; err != nil {
-				return fmt.Errorf("create global skill %s: %w", loaded.manifest.Name, err)
-			}
-			created = true
-		} else {
-			updates := map[string]any{
-				"slug":         slug,
-				"name":         loaded.manifest.Name,
-				"description":  &description,
-				"source_type":  model.SkillSourceInline,
-				"repo_url":     nil,
-				"repo_subpath": nil,
-				"repo_ref":     "main",
-				"status":       model.SkillStatusPublished,
-				"published_at": coalesceTime(skill.PublishedAt, now),
-			}
-			if err := tx.Model(&skill).Updates(updates).Error; err != nil {
-				return fmt.Errorf("update global skill %s: %w", loaded.manifest.Name, err)
-			}
-		}
-
-		version := &model.SkillVersion{
-			SkillID:    skill.ID,
-			Version:    versionLabel,
-			Bundle:     model.RawJSON(raw),
-			HydratedAt: &now,
-		}
-		if err := tx.Create(version).Error; err != nil {
-			return fmt.Errorf("create global skill version %s: %w", loaded.manifest.Name, err)
-		}
-		if err := tx.Model(&model.Skill{}).Where("id = ?", skill.ID).Update("latest_version_id", version.ID).Error; err != nil {
-			return fmt.Errorf("update latest version %s: %w", loaded.manifest.Name, err)
-		}
-		if err := tx.Model(&model.Skill{}).
-			Where("org_id IS NULL AND lower(name) = lower(?) AND id <> ?", loaded.manifest.Name, skill.ID).
-			Update("status", model.SkillStatusArchived).Error; err != nil {
-			return fmt.Errorf("archive duplicate global skill %s: %w", loaded.manifest.Name, err)
-		}
-		changed = !created
-		return nil
-	})
-	return created, changed, err
-}
-
-func archiveObsoleteGlobalSkills(ctx context.Context, db *gorm.DB) error {
-	if len(obsoleteGlobalSkillNames) == 0 {
-		return nil
-	}
-	err := db.WithContext(ctx).
-		Model(&model.Skill{}).
-		Where("org_id IS NULL AND lower(name) IN ?", obsoleteGlobalSkillNames).
-		Update("status", model.SkillStatusArchived).Error
-	if err != nil {
-		return fmt.Errorf("archive obsolete global skills: %w", err)
-	}
-	return nil
-}
-
-func bundledVersionLabel(raw []byte) string {
-	sum := sha256.Sum256(raw)
-	return "bundled-" + hex.EncodeToString(sum[:])[:12]
-}
-
-func coalesceTime(existing *time.Time, fallback time.Time) *time.Time {
-	if existing != nil {
-		return existing
-	}
-	return &fallback
 }

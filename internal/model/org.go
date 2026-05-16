@@ -55,6 +55,29 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		}
 	}()
 
+	if err := db.Migrator().DropTable(
+		"router_conversations",
+		"routing_decisions",
+		"routing_rules",
+		"router_triggers",
+		"routers",
+		"conversation_subscriptions",
+	); err != nil {
+		return err
+	}
+	if db.Migrator().HasColumn(&AgentConversation{}, "bridge_conversation_id") &&
+		!db.Migrator().HasColumn(&AgentConversation{}, "runtime_conversation_id") {
+		if err := db.Migrator().RenameColumn(&AgentConversation{}, "bridge_conversation_id", "runtime_conversation_id"); err != nil {
+			return err
+		}
+	}
+	if db.Migrator().HasColumn(&ConversationEvent{}, "bridge_conversation_id") &&
+		!db.Migrator().HasColumn(&ConversationEvent{}, "runtime_conversation_id") {
+		if err := db.Migrator().RenameColumn(&ConversationEvent{}, "bridge_conversation_id", "runtime_conversation_id"); err != nil {
+			return err
+		}
+	}
+
 	if err := db.AutoMigrate(
 		&Org{},
 		&User{},
@@ -82,6 +105,7 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&HindsightBank{},
 		&InIntegration{},
 		&InConnection{},
+		&AgentTrigger{},
 		&OAuthAccount{},
 		&OAuthExchangeToken{},
 		&AdminAuditEntry{},
@@ -93,17 +117,11 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&SubscriptionChangeQuote{},
 		&CreditLedgerEntry{},
 		&DriveAsset{},
-		&Router{},
-		&RouterTrigger{},
-		&RoutingRule{},
-		&RoutingDecision{},
-		&RouterConversation{},
 		&Skill{},
 		&SkillVersion{},
 		&AgentSkill{},
 		&AgentSubagent{},
 		&AgentProfile{},
-		&ConversationSubscription{},
 		&FailedEvent{},
 		&Team{},
 		&EmployeeAsset{},

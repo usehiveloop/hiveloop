@@ -456,7 +456,7 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		OrgID:                orgID,
 		AgentID:              agentID,
 		SandboxID:            sb.ID,
-		BridgeConversationID: bridgeResp.ConversationId,
+		RuntimeConversationID: bridgeResp.ConversationId,
 		Status:               "active",
 	}
 	if err := h.db.Create(&conv).Error; err != nil {
@@ -541,8 +541,8 @@ func (h *CloudAgentHandler) SendTaskMessage(w http.ResponseWriter, r *http.Reque
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to connect to sandbox"})
 		return
 	}
-	if err := client.SendMessage(ctx, conv.BridgeConversationID, req.Message); err != nil {
-		logging.FromContext(ctx).ErrorContext(ctx, "failed to send message to cloud agent task", "task_id", task.ID, "conversation_id", conv.BridgeConversationID, "error", err)
+	if err := client.SendMessage(ctx, conv.RuntimeConversationID, req.Message); err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to send message to cloud agent task", "task_id", task.ID, "conversation_id", conv.RuntimeConversationID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to send message"})
 		return
 	}
@@ -594,8 +594,8 @@ func (h *CloudAgentHandler) TerminateTask(w http.ResponseWriter, r *http.Request
 		client, err := h.hooks.GetBridgeClient(ctx, sb)
 		if err != nil {
 			logging.FromContext(ctx).WarnContext(ctx, "failed to get bridge client for task termination", "sandbox_id", sb.ID, "error", err)
-		} else if err := client.EndConversation(ctx, conv.BridgeConversationID); err != nil {
-			logging.FromContext(ctx).WarnContext(ctx, "failed to end cloud agent bridge conversation", "task_id", task.ID, "conversation_id", conv.BridgeConversationID, "error", err)
+		} else if err := client.EndConversation(ctx, conv.RuntimeConversationID); err != nil {
+			logging.FromContext(ctx).WarnContext(ctx, "failed to end cloud agent bridge conversation", "task_id", task.ID, "conversation_id", conv.RuntimeConversationID, "error", err)
 		}
 	}
 
@@ -796,7 +796,7 @@ func (h *CloudAgentHandler) ensureConversationEndedEvent(ctx context.Context, ta
 		EventID:              uuid.New().String(),
 		EventType:            bridgeevents.EventConversationEnded,
 		AgentID:              conv.AgentID.String(),
-		BridgeConversationID: conv.BridgeConversationID,
+		RuntimeConversationID: conv.RuntimeConversationID,
 		Timestamp:            now,
 		SequenceNumber:       maxSequence + 1,
 		Data:                 model.RawJSON(data),

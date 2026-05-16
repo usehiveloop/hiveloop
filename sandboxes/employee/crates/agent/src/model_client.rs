@@ -794,10 +794,7 @@ mod tests {
     fn runtime_env_overlay_wins_for_model_api_key() {
         let key_name = format!(
             "TEST_RUNTIME_MODEL_KEY_{}",
-            UNIX_EPOCH
-                .elapsed()
-                .expect("system clock")
-                .as_nanos()
+            UNIX_EPOCH.elapsed().expect("system clock").as_nanos()
         );
         std::env::set_var(&key_name, "process-key");
         let model = ModelConfig::OpenaiCompatible {
@@ -822,10 +819,7 @@ mod tests {
     fn runtime_env_falls_back_to_process_for_model_api_key() {
         let key_name = format!(
             "TEST_RUNTIME_MODEL_KEY_FALLBACK_{}",
-            UNIX_EPOCH
-                .elapsed()
-                .expect("system clock")
-                .as_nanos()
+            UNIX_EPOCH.elapsed().expect("system clock").as_nanos()
         );
         std::env::set_var(&key_name, "process-only-key");
         let model = ModelConfig::OpenaiCompatible {

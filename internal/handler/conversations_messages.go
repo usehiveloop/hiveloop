@@ -54,7 +54,7 @@ func (h *ConversationHandler) SendMessage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := client.SendMessage(r.Context(), conv.BridgeConversationID, req.Content); err != nil {
+	if err := client.SendMessage(r.Context(), conv.RuntimeConversationID, req.Content); err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to send message to bridge", "conversation_id", conv.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to send message"})
 		return
@@ -86,7 +86,7 @@ func (h *ConversationHandler) Abort(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := client.AbortConversation(r.Context(), conv.BridgeConversationID); err != nil {
+	if err := client.AbortConversation(r.Context(), conv.RuntimeConversationID); err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to abort conversation", "conversation_id", conv.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to abort"})
 		return
@@ -116,7 +116,7 @@ func (h *ConversationHandler) End(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := client.EndConversation(r.Context(), conv.BridgeConversationID); err != nil {
+	if err := client.EndConversation(r.Context(), conv.RuntimeConversationID); err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to end conversation in bridge", "conversation_id", conv.ID, "error", err)
 
 	}
@@ -151,7 +151,7 @@ func (h *ConversationHandler) ListApprovals(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	approvals, err := client.ListApprovals(r.Context(), conv.AgentID.String(), conv.BridgeConversationID)
+	approvals, err := client.ListApprovals(r.Context(), conv.AgentID.String(), conv.RuntimeConversationID)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to list approvals", "conversation_id", conv.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list approvals"})
@@ -204,7 +204,7 @@ func (h *ConversationHandler) ResolveApproval(w http.ResponseWriter, r *http.Req
 	if req.Decision == "deny" {
 		decision = bridgepkg.ApprovalDecisionDeny
 	}
-	if err := client.ResolveApproval(r.Context(), conv.AgentID.String(), conv.BridgeConversationID, requestID, decision); err != nil {
+	if err := client.ResolveApproval(r.Context(), conv.AgentID.String(), conv.RuntimeConversationID, requestID, decision); err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to resolve approval", "conversation_id", conv.ID, "request_id", requestID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to resolve approval"})
 		return

@@ -77,7 +77,7 @@ func newWebhookHarnessWithSecret(t *testing.T, prefix string, seed byte, bridgeS
 
 	conv := model.AgentConversation{
 		OrgID: org.ID, AgentID: agent.ID, SandboxID: sb.ID,
-		BridgeConversationID: prefix + "-conv-" + suffix, Status: "active",
+		RuntimeConversationID: prefix + "-conv-" + suffix, Status: "active",
 	}
 	h.db.Create(&conv)
 	t.Cleanup(func() {

@@ -23,7 +23,7 @@ func validateHarness(harness string) error {
 	}
 }
 
-// loadAgentTriggers loads the routing triggers configured for one or more agents.
+// loadAgentTriggers loads triggers configured for one or more employees.
 // Returns a map from agent ID to trigger responses. Uses a single query with
 // joins to avoid N+1.
 func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]agentTriggerResponse {
@@ -32,7 +32,6 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 	}
 
 	type triggerRow struct {
-		RuleID       uuid.UUID      `gorm:"column:rule_id"`
 		AgentID      uuid.UUID      `gorm:"column:agent_id"`
 		TriggerID    uuid.UUID      `gorm:"column:trigger_id"`
 		TriggerType  string         `gorm:"column:trigger_type"`
@@ -41,7 +40,6 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 		TriggerKeys  pq.StringArray `gorm:"column:trigger_keys;type:text[]"`
 		Enabled      bool           `gorm:"column:enabled"`
 		Conditions   model.RawJSON  `gorm:"column:conditions"`
-		CronSchedule string         `gorm:"column:cron_schedule"`
 		Instructions string         `gorm:"column:instructions"`
 		SecretKey    string         `gorm:"column:secret_key"`
 	}
@@ -49,24 +47,21 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 	var rows []triggerRow
 	h.db.Raw(`
 		SELECT
-			rr.id AS rule_id,
-			rr.agent_id,
-			rt.id AS trigger_id,
-			rt.trigger_type,
-			rt.connection_id AS conn_id,
+			at.agent_id,
+			at.id AS trigger_id,
+			at.trigger_type,
+			at.connection_id AS conn_id,
 			ii.provider,
-			rt.trigger_keys,
-			rt.enabled,
-			rr.conditions,
-			rt.cron_schedule,
-			rt.instructions,
-			rt.secret_key
-		FROM routing_rules rr
-		JOIN router_triggers rt ON rt.id = rr.router_trigger_id
-		LEFT JOIN in_connections ic ON ic.id = rt.connection_id
+			at.trigger_keys,
+			at.enabled,
+			at.conditions,
+			at.instructions,
+			at.secret_key
+		FROM agent_triggers at
+		LEFT JOIN in_connections ic ON ic.id = at.connection_id
 		LEFT JOIN in_integrations ii ON ii.id = ic.in_integration_id
-		WHERE rr.agent_id IN ?
-		ORDER BY rt.id ASC
+		WHERE at.agent_id IN ?
+		ORDER BY at.id ASC
 	`, agentIDs).Scan(&rows)
 
 	result := make(map[uuid.UUID][]agentTriggerResponse, len(agentIDs))
@@ -85,7 +80,6 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 			TriggerKeys:  []string(row.TriggerKeys),
 			Enabled:      row.Enabled,
 			Conditions:   conditions,
-			CronSchedule: row.CronSchedule,
 			Instructions: row.Instructions,
 			SecretSet:    row.SecretKey != "",
 		}

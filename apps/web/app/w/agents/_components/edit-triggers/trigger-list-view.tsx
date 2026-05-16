@@ -91,11 +91,6 @@ export function TriggerListView({
                     ) : null}
                   </>
                 ) : null}
-                {trigger.triggerType === "cron" && trigger.cronSchedule ? (
-                  <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-                    {trigger.cronSchedule}
-                  </p>
-                ) : null}
                 {trigger.triggerType === "http" ? (
                   <div className="mt-2">
                     <HttpEndpointPill />

@@ -84,7 +84,7 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 
 	conv := model.AgentConversation{
 		ID: convID, OrgID: orgID, AgentID: agentID, SandboxID: sandboxID,
-		BridgeConversationID: "bridge-" + suffix, Status: "active",
+		RuntimeConversationID: "bridge-" + suffix, Status: "active",
 	}
 	if err := db.Create(&conv).Error; err != nil {
 		t.Fatalf("create conversation: %v", err)

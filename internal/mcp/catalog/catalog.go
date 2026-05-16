@@ -166,13 +166,10 @@ type ProviderTriggers struct {
 	Schemas       map[string]SchemaDefinition `json:"schemas,omitempty"`
 }
 
-// SubscribableResource describes a class of external resource that an agent
-// can subscribe to via the subscribe_to_events MCP tool. The agent supplies
-// a resource_id in the format captured by IDPattern; the server parses it,
-// substitutes the named groups into CanonicalTemplate, and writes that
-// canonical key into conversation_subscriptions. Future webhook events whose
-// dispatcher-computed resource key matches this canonical form will route
-// into the subscribed conversation.
+// SubscribableResource describes a class of external resource that provider
+// webhook triggers can use for affinity. The server parses the resource id,
+// substitutes the named groups into CanonicalTemplate, and uses that canonical
+// key as the trigger resource key for employee runtime conversations.
 //
 // Example (github_pull_request):
 //

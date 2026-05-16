@@ -83,7 +83,7 @@ func newWebhookTestHarness(t *testing.T) *webhookTestHarness {
 	// Create conversation
 	conv := model.AgentConversation{
 		OrgID: org.ID, AgentID: agent.ID, SandboxID: sandbox.ID,
-		BridgeConversationID: "bridge-conv-" + suffix, Status: "active",
+		RuntimeConversationID: "bridge-conv-" + suffix, Status: "active",
 	}
 	h.db.Create(&conv)
 	t.Cleanup(func() {
@@ -134,7 +134,7 @@ func TestWebhook_PersistsEvents(t *testing.T) {
 		{"event_id":"e1","event_type":"ConversationCreated","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}},
 		{"event_id":"e2","event_type":"MessageReceived","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:01Z","sequence_number":2,"data":{"content":"hello"}},
 		{"event_id":"e3","event_type":"ResponseCompleted","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:02Z","sequence_number":3,"data":{"content":"hi","usage":{"input_tokens":10,"output_tokens":5}}}
-	]`, wh.conv.BridgeConversationID, wh.conv.BridgeConversationID, wh.conv.BridgeConversationID)
+	]`, wh.conv.RuntimeConversationID, wh.conv.RuntimeConversationID, wh.conv.RuntimeConversationID)
 
 	rr := wh.signedRequest(t, body)
 	if rr.Code != http.StatusOK {
@@ -163,7 +163,7 @@ func TestWebhook_ConversationEndedUpdatesStatus(t *testing.T) {
 
 	body := fmt.Sprintf(`[
 		{"event_id":"e1","event_type":"conversation_ended","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}}
-	]`, wh.conv.BridgeConversationID)
+	]`, wh.conv.RuntimeConversationID)
 
 	rr := wh.signedRequest(t, body)
 	if rr.Code != http.StatusOK {
@@ -193,7 +193,7 @@ func TestWebhook_AgentErrorUpdatesStatus(t *testing.T) {
 
 	body := fmt.Sprintf(`[
 		{"event_id":"e1","event_type":"agent_error","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{"error":"something broke"}}
-	]`, wh.conv.BridgeConversationID)
+	]`, wh.conv.RuntimeConversationID)
 
 	rr := wh.signedRequest(t, body)
 	if rr.Code != http.StatusOK {
@@ -298,7 +298,7 @@ func TestWebhook_UpdatesLastActiveAt(t *testing.T) {
 
 	body := fmt.Sprintf(`[
 		{"event_id":"e1","event_type":"MessageReceived","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}}
-	]`, wh.conv.BridgeConversationID)
+	]`, wh.conv.RuntimeConversationID)
 
 	rr := wh.signedRequest(t, body)
 	if rr.Code != http.StatusOK {
@@ -322,7 +322,7 @@ func TestWebhook_MultipleEventTypes(t *testing.T) {
 		{"event_id":"e4","event_type":"ResponseChunk","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:03Z","sequence_number":4,"data":{"delta":"Hi"}},
 		{"event_id":"e5","event_type":"ResponseCompleted","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:04Z","sequence_number":5,"data":{"content":"Hi there!","usage":{"input_tokens":10,"output_tokens":3}}},
 		{"event_id":"e6","event_type":"TurnCompleted","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:05Z","sequence_number":6,"data":{}}
-	]`, wh.conv.BridgeConversationID)
+	]`, wh.conv.RuntimeConversationID)
 
 	rr := wh.signedRequest(t, body)
 	if rr.Code != http.StatusOK {

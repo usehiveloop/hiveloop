@@ -32,20 +32,13 @@ func (h *AgentHandler) SetCatalog(c *catalog.Catalog) {
 	h.actionsCatalog = c
 }
 
-// agentTriggerInput defines a trigger to create alongside the agent.
-// Each entry creates a RouterTrigger + RoutingRule that automatically invokes
-// this agent when the trigger fires.
-//
-// TriggerType determines the kind of trigger:
-//   - "webhook" (default): fires on matching webhook events. Requires connection_id and trigger_keys.
-//   - "http": fires on HTTP requests to /incoming/triggers/{id}. No connection required.
-//   - "cron": fires on a cron schedule. Requires cron_schedule.
+// agentTriggerInput defines an employee trigger.
+// TriggerType may be "webhook" (default) or "http".
 type agentTriggerInput struct {
-	TriggerType  string              `json:"trigger_type,omitempty"` // "webhook" (default), "http", "cron"
+	TriggerType  string              `json:"trigger_type,omitempty"` // "webhook" (default), "http"
 	ConnectionID string              `json:"connection_id,omitempty"`
 	TriggerKeys  []string            `json:"trigger_keys,omitempty"`
 	Conditions   *model.TriggerMatch `json:"conditions,omitempty"`
-	CronSchedule string              `json:"cron_schedule,omitempty"`
 	Instructions string              `json:"instructions,omitempty"`
 	// SecretKey is the optional plaintext shared secret for HTTP triggers.
 	// When provided, the server bcrypt-hashes it before storing. Never returned
@@ -61,7 +54,6 @@ type agentTriggerResponse struct {
 	TriggerKeys  []string `json:"trigger_keys,omitempty"`
 	Enabled      bool     `json:"enabled"`
 	Conditions   any      `json:"conditions,omitempty"`
-	CronSchedule string   `json:"cron_schedule,omitempty"`
 	Instructions string   `json:"instructions,omitempty"`
 	// SecretSet indicates whether an HTTP trigger has a shared secret configured.
 	// True when the trigger requires auth on incoming requests. The secret value

@@ -1,7 +1,7 @@
 "use client"
 
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Clock01Icon, GlobeIcon } from "@hugeicons/core-free-icons"
+import { GlobeIcon } from "@hugeicons/core-free-icons"
 import { IntegrationLogo } from "@/components/integration-logo"
 import type { TriggerConfig } from "../create-agent/types"
 
@@ -23,15 +23,6 @@ export function TriggerTypeAvatar({
   }
   const sizeClass = size <= 24 ? "size-6" : size <= 28 ? "size-7" : "size-8"
   const iconSize = size <= 24 ? 12 : 14
-  if (trigger.triggerType === "cron") {
-    return (
-      <div
-        className={`flex items-center justify-center rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 ${sizeClass}`}
-      >
-        <HugeiconsIcon icon={Clock01Icon} strokeWidth={2} size={iconSize} />
-      </div>
-    )
-  }
   return (
     <div
       className={`flex items-center justify-center rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5 ${sizeClass}`}
@@ -43,7 +34,6 @@ export function TriggerTypeAvatar({
 
 export function triggerDisplayName(trigger: TriggerConfig): string {
   if (trigger.triggerType === "webhook") return trigger.connectionName
-  if (trigger.triggerType === "cron") return "Cron schedule"
   return "HTTP trigger"
 }
 

@@ -1,7 +1,7 @@
 {
   "provider": "github-app",
   "display_name": "GitHub",
-  "description": "Subscribable resources for GitHub. An agent with the github-app integration can call subscribe_to_events with any of these resource_types to receive future webhook events on a specific resource.",
+  "description": "GitHub resources used to derive stable trigger affinity keys from webhook events.",
   "resources": {
     "github_issue": {
       "display_name": "GitHub Issue",

@@ -92,7 +92,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 			EventID:              full.EventID,
 			EventType:            eventType,
 			AgentID:              full.AgentID,
-			BridgeConversationID: full.ConversationID,
+			RuntimeConversationID: full.ConversationID,
 			Timestamp:            full.Timestamp,
 			SequenceNumber:       full.SequenceNumber,
 			Data:                 model.RawJSON(full.Data),

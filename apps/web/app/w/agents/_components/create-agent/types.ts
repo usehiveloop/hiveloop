@@ -21,7 +21,7 @@ export interface TriggerConditionsConfig {
   conditions: TriggerConditionConfig[]
 }
 
-export type TriggerType = "webhook" | "http" | "cron"
+export type TriggerType = "webhook" | "http"
 
 export interface TriggerConfig {
   triggerType: TriggerType
@@ -31,7 +31,6 @@ export interface TriggerConfig {
   triggerKeys: string[]
   triggerDisplayNames: string[]
   conditions: TriggerConditionsConfig | null
-  cronSchedule?: string
   instructions?: string
   secretKey?: string
 }

@@ -9,9 +9,9 @@ mod read;
 mod truncate;
 mod write;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::collections::HashMap;
 
 use async_trait::async_trait;
 use domain::ToolSpec;

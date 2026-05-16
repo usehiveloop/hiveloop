@@ -1,0 +1,11 @@
+{
+  "title": "Chats",
+  "description": "chats",
+  "pages": [
+    "v1/chats/get",
+    "v1/chats/id/get",
+    "v1/chats/id/messages/post",
+    "v1/chats/id/stream/get",
+    "v1/employees/id/chats/post"
+  ]
+}

@@ -23,11 +23,6 @@ func PeriodicTaskConfigs(cfg *config.Config, ragSched *scheduler.Deps) []*asynq.
 			Opts:     []asynq.Option{asynq.Queue(QueuePeriodic), asynq.MaxRetry(1), asynq.Timeout(2 * time.Minute)},
 		},
 		{
-			Cronspec: "@every 30s",
-			Task:     asynq.NewTask(TypeCronTriggerPoll, nil),
-			Opts:     []asynq.Option{asynq.Queue(QueuePeriodic), asynq.MaxRetry(1), asynq.Timeout(25 * time.Second)},
-		},
-		{
 			Cronspec: "@every 15m",
 			Task:     asynq.NewTask(TypeCreditsExpire, nil),
 			Opts:     []asynq.Option{asynq.Queue(QueuePeriodic), asynq.MaxRetry(2), asynq.Timeout(10 * time.Minute)},

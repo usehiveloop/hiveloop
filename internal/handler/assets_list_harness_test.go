@@ -112,7 +112,7 @@ func newAssetsListHarness(t *testing.T) *assetsListHarness {
 			OrgID:                orgID,
 			AgentID:              agentID,
 			SandboxID:            sandboxID,
-			BridgeConversationID: "bridge-" + uuid.New().String()[:8],
+			RuntimeConversationID: "bridge-" + uuid.New().String()[:8],
 			Status:               "active",
 		}).Error; err != nil {
 			t.Fatalf("create conversation: %v", err)

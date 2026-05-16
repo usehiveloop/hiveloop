@@ -39,7 +39,6 @@ func setupV1Routes(
 	agentProfileHandler *handler.AgentProfileHandler,
 	marketplaceHandler *handler.MarketplaceHandler,
 	conversationHandler *handler.ConversationHandler,
-	routerHandler *handler.RouterHandler,
 	customDomainHandler *handler.CustomDomainHandler,
 	ragSourceHandler *handler.RAGSourceHandler,
 	ragSearchHandler *handler.RAGSearchHandler,
@@ -165,6 +164,11 @@ func setupV1Routes(
 					r.Delete("/{id}", agentHandler.Delete)
 					r.Get("/{id}/setup", agentHandler.GetSetup)
 					r.Put("/{id}/setup", agentHandler.UpdateSetup)
+					r.Route("/{agentID}/skills", func(r chi.Router) {
+						r.Post("/", skillHandler.AttachToAgent)
+						r.Get("/", skillHandler.ListAgentSkills)
+						r.Delete("/{skillID}", skillHandler.DetachFromAgent)
+					})
 					if conversationHandler != nil {
 						r.Post("/{agentID}/conversations", conversationHandler.Create)
 						r.Get("/{agentID}/conversations", conversationHandler.List)
@@ -206,23 +210,6 @@ func setupV1Routes(
 				if systemTaskHandler != nil {
 					r.Post("/system/tasks/{taskName}", systemTaskHandler.Run)
 				}
-				// Zira Router — unified routing identity for the org.
-				r.Route("/router", func(r chi.Router) {
-					r.Get("/", routerHandler.GetOrCreateRouter)
-					r.Put("/", routerHandler.UpdateRouter)
-					r.Post("/triggers", routerHandler.CreateTrigger)
-					r.Get("/triggers", routerHandler.ListTriggers)
-					r.Delete("/triggers/{id}", routerHandler.DeleteTrigger)
-					r.Post("/triggers/{id}/rules", routerHandler.CreateRule)
-					r.Get("/triggers/{id}/rules", routerHandler.ListRules)
-					r.Delete("/triggers/{id}/rules/{ruleID}", routerHandler.DeleteRule)
-					r.Get("/decisions", routerHandler.ListDecisions)
-					r.Route("/{agentID}/skills", func(r chi.Router) {
-						r.Post("/", skillHandler.AttachToAgent)
-						r.Get("/", skillHandler.ListAgentSkills)
-						r.Delete("/{skillID}", skillHandler.DetachFromAgent)
-					})
-				})
 				r.Route("/marketplace/agents", func(r chi.Router) {
 					r.Use(middleware.ResolveUser(database))
 					r.Post("/", marketplaceHandler.Create)
