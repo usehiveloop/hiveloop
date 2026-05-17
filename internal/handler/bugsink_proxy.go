@@ -47,7 +47,7 @@ func NewBugsinkProxyHandler(db *gorm.DB, encKey *crypto.SymmetricKey, nangoClien
 
 func (h *BugsinkProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	agentID, path, ok := h.parseRequest(w, r)
+	agentID, path, forwardPath, ok := h.parseRequest(w, r)
 	if !ok {
 		return
 	}
@@ -114,7 +114,7 @@ func (h *BugsinkProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	eventCtx.ConnectionID = conn.ID
 
-	resp, err := h.nango.RawProxyRequest(ctx, r.Method, inNangoKey(conn.InIntegration.UniqueKey), conn.NangoConnectionID, path, r.URL.RawQuery, proxyRequestBody(r), r.Header.Get("Content-Type"))
+	resp, err := h.nango.RawProxyRequest(ctx, r.Method, inNangoKey(conn.InIntegration.UniqueKey), conn.NangoConnectionID, forwardPath, r.URL.RawQuery, proxyRequestBody(r), r.Header.Get("Content-Type"))
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "bugsink-proxy: nango proxy failed",
 			"agent_id", agentID,
@@ -138,19 +138,20 @@ func (h *BugsinkProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(resp.Body)
 }
 
-func (h *BugsinkProxyHandler) parseRequest(w http.ResponseWriter, r *http.Request) (uuid.UUID, string, bool) {
+func (h *BugsinkProxyHandler) parseRequest(w http.ResponseWriter, r *http.Request) (uuid.UUID, string, string, bool) {
 	agentID, err := uuid.Parse(chi.URLParam(r, "agentID"))
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
-		return uuid.Nil, "", false
+		return uuid.Nil, "", "", false
 	}
 	path := "/" + strings.TrimLeft(chi.URLParam(r, "*"), "/")
 	if !strings.HasPrefix(path, bugsinkCanonicalAPIPrefix) {
 		h.captureProxyFailure(r.Context(), bugsinkProxyContext{CallerAgentID: agentID, Method: r.Method, Path: path}, http.StatusBadRequest, "invalid bugsink api path")
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bugsink proxy only supports canonical api paths"})
-		return uuid.Nil, "", false
+		return uuid.Nil, "", "", false
 	}
-	return agentID, path, true
+	forwardPath := "/" + strings.TrimLeft(strings.TrimPrefix(path, bugsinkCanonicalAPIPrefix), "/")
+	return agentID, path, forwardPath, true
 }
 
 func (h *BugsinkProxyHandler) authenticatedSandbox(ctx context.Context, agentID uuid.UUID, bearerToken string) bool {

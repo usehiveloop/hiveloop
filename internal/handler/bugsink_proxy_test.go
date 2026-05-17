@@ -62,7 +62,7 @@ func TestBugsinkProxy_EmployeeForwardsRawRequest(t *testing.T) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	if captured.method != http.MethodGet || captured.path != "/proxy/api/canonical/0/projects/" || captured.query != "cursor=abc" {
+	if captured.method != http.MethodGet || captured.path != "/proxy/projects/" || captured.query != "cursor=abc" {
 		t.Fatalf("captured request = %+v", captured)
 	}
 	if captured.auth != "Bearer test-nango-secret" || captured.providerKey == "" || captured.connectionID != "bugsink-nango-1" {
