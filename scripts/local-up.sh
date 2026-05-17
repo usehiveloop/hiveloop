@@ -190,7 +190,9 @@ ensure_pnpm() {
   node_dir="$(dirname "$(command -v node)")"
   "$corepack" enable >/dev/null 2>&1 || true
   "$corepack" prepare pnpm@10.18.2 --activate >/dev/null 2>&1 || true
-  [ -x "$node_dir/pnpm" ] && ln -sf "$node_dir/pnpm" /usr/local/bin/pnpm 2>/dev/null
+  if [ -x "$node_dir/pnpm" ] && [ "$node_dir/pnpm" != "/usr/local/bin/pnpm" ]; then
+    ln -sf "$node_dir/pnpm" /usr/local/bin/pnpm 2>/dev/null || true
+  fi
   command -v pnpm >/dev/null 2>&1 || { echo "  ✗ pnpm install failed" >&2; exit 1; }
 }
 
