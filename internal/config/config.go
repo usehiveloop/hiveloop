@@ -108,11 +108,9 @@ type Config struct {
 	BridgeBaseDedicatedImagePrefix string `env:"BRIDGE_BASE_DEDICATED_IMAGE_PREFIX" envDefault:"hiveloop-bridge-1-0-0-small-v1"` // snapshot for dedicated agent sandboxes (ACP-harness runtime)
 	BridgeBinaryVersion            string `env:"BRIDGE_BINARY_VERSION,required"`                                                 // usehiveloop/hiveloop release tag installed into user-template snapshots (e.g. v1.0.0)
 
-	// Hermes (Hermes-harness sandbox runtime — usehiveloop/hermes image + Go sidecar)
-	HermesBaseImagePrefix string `env:"HERMES_BASE_IMAGE_PREFIX" envDefault:"hiveloop-hermes-0-0-1-small-v1"` // Daytona snapshot name for Hermes sandboxes
-	BridgeHost            string `env:"BRIDGE_HOST"`                                                          // legacy runtime host setting
-	APIWebhookBaseURL     string `env:"API_WEBHOOK_BASE_URL" envDefault:"https://api.usehiveloop.com"`        // public API base URL for provider webhook callbacks
-	ProxyHost             string `env:"PROXY_HOST" envDefault:"proxy.hiveloop.com"`                           // LLM proxy hostname (proxy.hiveloop.com)
+	BridgeHost        string `env:"BRIDGE_HOST"`                                                   // legacy runtime host setting
+	APIWebhookBaseURL string `env:"API_WEBHOOK_BASE_URL" envDefault:"https://api.usehiveloop.com"` // public API base URL for provider webhook callbacks
+	ProxyHost         string `env:"PROXY_HOST" envDefault:"proxy.hiveloop.com"`                    // LLM proxy hostname (proxy.hiveloop.com)
 
 	// Employee sandbox runtime — ghcr.io/usehiveloop/employee-sandbox image.
 	EmployeeSandboxBaseImagePrefix string `env:"EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX" envDefault:"hiveloop-employee-sandbox-0-0-3-small-v1"`

@@ -61,13 +61,6 @@ func newChatHarness(t *testing.T) (*chatHarness, *handler.ChatHandler) {
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/v1/hermes/status":
-			if r.Header.Get("Authorization") == "" {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"state":"running","pid":1}`))
 		case "/v1/chat/completions":
 			stub.mu.Lock()
 			stub.called++
@@ -89,13 +82,12 @@ func newChatHarness(t *testing.T) (*chatHarness, *handler.ChatHandler) {
 	}))
 	t.Cleanup(srv.Close)
 
-	provider := &stubHermesProvider{endpoint: srv.URL}
+	provider := &stubEmployeeProvider{endpoint: srv.URL}
 	encKey := newTestEncKey(t)
 	signKey := []byte("chat-test-signing-key-32-bytes!!")
 	cfg := &config.Config{
-		HermesBaseImagePrefix: "hiveloop-hermes-test-small-v1",
-		BridgeHost:            "cp.hiveloop.test",
-		ProxyHost:             "proxy.hiveloop.test",
+		BridgeHost: "cp.hiveloop.test",
+		ProxyHost:  "proxy.hiveloop.test",
 	}
 	orch := sandbox.NewOrchestrator(db, provider, nil, encKey, cfg)
 	h := handler.NewChatHandler(db, orch, encKey, signKey)
@@ -161,7 +153,7 @@ func (h *chatHarness) seedOrgAgentSandbox(t *testing.T) chatOrg {
 		OrgID:        &org.ID,
 		Name:         "Hakari-" + uuid.NewString()[:6],
 		IsEmployee:   true,
-		Harness:      "hermes",
+		Harness:      "employee-sandbox",
 		Model:        "deepseek-v4-pro-precision",
 		SystemPrompt: "test",
 		CredentialID: &credID,

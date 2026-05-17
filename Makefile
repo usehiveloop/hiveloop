@@ -59,16 +59,6 @@ build-templates:
 	@test -n "$(BRIDGE_VERSION)" || (echo "error: BRIDGE_VERSION is required (e.g. make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0)" && exit 1)
 	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates bridge -version=$(VERSION) -bridge-version=$(BRIDGE_VERSION) -size=$(or $(SIZE),all) $(if $(BRIDGE_BINARY),-bridge-binary=$(BRIDGE_BINARY),)
 
-# Register Daytona snapshots from a usehiveloop/hermes image already published
-# to GHCR by the hermes repo's CI. No image build happens here — the snapshots
-# point at ghcr.io/usehiveloop/hermes:<HERMES_VERSION>.
-# Requires SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, SANDBOX_TARGET.
-# Usage: make build-hermes-templates HERMES_VERSION=v0.0.1
-#        make build-hermes-templates HERMES_VERSION=v0.0.1 SIZE=small
-build-hermes-templates:
-	@test -n "$(HERMES_VERSION)" || (echo "error: HERMES_VERSION is required (e.g. make build-hermes-templates HERMES_VERSION=v0.0.1)" && exit 1)
-	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates hermes -version=$(HERMES_VERSION) -size=$(or $(SIZE),all)
-
 # Register Daytona snapshots from a usehiveloop/employee-sandbox image already published.
 # Requires SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, SANDBOX_TARGET.
 # Usage: make build-employee-sandbox-templates EMPLOYEE_SANDBOX_VERSION=v0.0.1

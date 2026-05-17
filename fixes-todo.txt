@@ -114,7 +114,7 @@ P2
 22. Revoked agent profiles can still feed employee runtime state.
     - Problem: some profile/runtime queries filter status/deleted_at but not revoked_at.
     - Fix: add revoked_at IS NULL everywhere active profile secrets/runtime state are loaded.
-    - Key files: internal/model/agent_profile.go, internal/hermes/compile_env.go, internal/handler/employees_sync.go
+    - Key files: internal/model/agent_profile.go, internal/employeeruntime/compile.go, internal/handler/employees_sync.go
 
 23. Deleting agents can leave external sandboxes running.
     - Problem: user delete commits DB deletion then separately enqueues cleanup; admin delete does not enqueue cleanup; provider delete failures are logged as success.
@@ -149,22 +149,10 @@ Context
 -------
 - Scan date: 2026-05-13.
 - Scope: /Users/bahdcoder/code/hiveloop.com and /Users/bahdcoder/code/employee.hiveloop.com.
-- Important assumption: Hermes is no longer the target employee runtime. Hermes-specific work in todo.txt is obsolete unless live code still references it.
-- Do not treat todo.txt as authoritative anymore. It mixes old Hermes work with current architecture work.
 
 
 P0
 --
-
-28. Retire or quarantine Hermes-era code paths.
-    - Problem: the repo still contains Hermes implementation, tests, config, and template registration even though employee runtime has moved to employee-sandbox.
-    - Fix: delete or archive Hermes runtime code, remove stale build targets/config, and replace old docs with employee-sandbox equivalents.
-    - Key files: internal/hermes/*, cmd/buildtemplates/hermes.go, Makefile, internal/config/config.go, internal/sandbox/orchestrator_create_hermes.go
-
-29. Migrate web chat streaming away from Hermes/sidecar semantics if web chat is still live.
-    - Problem: chat streaming still says it replays history through Hermes and calls EnsureHermesSandboxReady/openSidecarStream paths.
-    - Fix: decide whether web chat should use employee-bridge semantics, regular bridge semantics, or be removed. Do not leave Hermes naming on active runtime paths.
-    - Key files: internal/handler/chats_stream.go, internal/handler/chats_helpers_test.go, internal/sandbox/orchestrator_lifecycle.go
 
 30. Add a real RAG schema migration path.
     - Problem: current model.AutoMigrate does not include RAG tables, while RAG sources, attempts, and attempt errors are active code paths.
@@ -210,8 +198,8 @@ P1
     - Fix: keep Slack-only as explicit v1 contract, or add provider-specific startup profile support for future gateways.
     - Key files: internal/employeeruntime/compile.go, internal/handler/employees_sync.go, internal/handler/onboarding_complete.go
 
-38. Replace Hermes E2E todo with employee-sandbox E2E.
-    - Problem: todo.txt asks for Compile -> SDK -> Hermes container tests, which is obsolete.
+38. Add employee-sandbox E2E coverage.
+    - Problem: employee-sandbox startup and config sync need end-to-end coverage against the current runtime.
     - Fix: add or verify an employee-sandbox E2E that creates an employee, connects Slack/GitHub profiles, provisions the sandbox, pushes /config, checks /healthz and /readyz, and verifies model/proxy/env behavior.
     - Key files: internal/handler/employees_create_test.go, internal/handler/employees_sync_test.go, internal/sandbox/orchestrator_create_employee.go, e2e
 
@@ -233,16 +221,3 @@ P2
     - Problem: trigger-architecture docs still say per-agent TypeAgentRun child tasks are TODO, while current router dispatch code has evolved.
     - Fix: either implement the missing child task model or update the architecture doc to match current RouterDispatchHandler behavior.
     - Key files: trigger-architecture/02-dispatcher-runtime.md, internal/tasks/router_dispatch.go, internal/trigger/dispatch/router_dispatcher.go
-
-
-Obsolete Hermes Items From todo.txt
------------------------------------
-- Build Hermes Daytona image and wire HERMES_BASE_IMAGE_PREFIX.
-- Make ghcr.io/usehiveloop/hermes public or configure Daytona pull credentials for Hermes.
-- Add Hermes-harness branch for production employee creation.
-- Wire internal/hermes/Compile into onboarding completion.
-- Custom Hermes MCP tools, Hermes provider dispatch, Hermes Hindsight proxy, Hermes setup commands, and Hermes tools/permissions mapping.
-- Hermes sidecar WhatsApp endpoint work.
-- Hermes Compile -> SDK -> Sidecar E2E.
-
-These should not be implemented as written. If any capability is still needed, rewrite it against employee-sandbox/employee-bridge first.

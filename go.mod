@@ -43,7 +43,6 @@ require (
 	github.com/sourcegraph/conc v0.3.0
 	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/swag v1.16.6
-	github.com/usehiveloop/hermes v0.0.2-0.20260505055449-69aa2d9adf92
 	go.uber.org/goleak v1.3.0
 	golang.org/x/crypto v0.50.0
 	golang.org/x/oauth2 v0.35.0

@@ -397,6 +397,9 @@ func assertRuntimeEnvProxyPayload(t *testing.T, payload map[string]string, agent
 	if got := payload[employeeruntime.EmployeeEnvBugsinkURL]; got != wantBugsinkURL {
 		t.Errorf("BUGSINK_URL = %q, want %q", got, wantBugsinkURL)
 	}
+	if _, ok := payload[employeeruntime.EmployeeEnvBugsinkDashboardBaseURL]; !ok {
+		t.Errorf("BUGSINK_DASHBOARD_BASE_URL missing")
+	}
 	if got := payload[employeeruntime.EmployeeEnvBugsinkToken]; got == "" {
 		t.Errorf("BUGSINK_TOKEN missing")
 	}

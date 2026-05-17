@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -25,7 +24,7 @@ const streamHTTPTimeout = 5 * time.Minute
 
 // @Summary Stream the assistant reply for the latest user message (SSE)
 // @Description Opens an SSE stream to the sandbox, replays the conversation
-// @Description history through Hermes, and tees the response back to the
+// @Description history through the employee sandbox sidecar, and tees the response back to the
 // @Description browser while persisting the assistant message on completion.
 // @Tags chats
 // @Produce text/event-stream
@@ -100,7 +99,7 @@ func (h *ChatHandler) Stream(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to read sandbox credentials"})
 		return
 	}
-	if err := h.orch.EnsureHermesSandboxReady(ctx, &sb, apiKey); err != nil {
+	if _, err := h.orch.EnsureSandboxActive(ctx, &sb); err != nil {
 		log.ErrorContext(ctx, "ensure sandbox ready", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "sandbox not ready"})
 		return
@@ -117,9 +116,15 @@ func (h *ChatHandler) Stream(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(ctx, streamHTTPTimeout)
 	defer cancel()
 
-	resp, err := h.openSidecarStreamWithRetry(ctx, log, &sb, apiKey, messages)
+	resp, err := h.postSidecarStream(ctx, sb.BridgeURL, apiKey, messages)
 	if err != nil {
 		log.ErrorContext(ctx, "open sidecar stream", "error", err, "session_id", session.ID)
+		writeSSEError(w, rc, "stream open failed")
+		return
+	}
+	if resp.StatusCode != http.StatusOK {
+		body, status := drainResponse(resp)
+		log.ErrorContext(ctx, "sidecar stream returned non-200", "status", status, "body", string(body), "session_id", session.ID)
 		writeSSEError(w, rc, "stream open failed")
 		return
 	}
@@ -136,50 +141,6 @@ func (h *ChatHandler) Stream(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// openSidecarStreamWithRetry calls /v1/chat/completions and, on a 502
-// "connection refused" (Hermes died inside the sandbox while the sidecar
-// state was stale), restarts Hermes via the sidecar's /v1/hermes/restart
-// and tries once more. Surfaces any non-200 result on the second try.
-func (h *ChatHandler) openSidecarStreamWithRetry(ctx context.Context, log *slog.Logger, sb *model.Sandbox, apiKey string, msgs []model.ChatMessage) (*http.Response, error) {
-	resp, err := h.postSidecarStream(ctx, sb.BridgeURL, apiKey, msgs)
-	if err == nil && resp.StatusCode == http.StatusOK {
-		return resp, nil
-	}
-	body, status := drainResponse(resp)
-	if !looksLikeHermesDown(status, body) {
-		if status != 0 {
-			return nil, fmt.Errorf("sidecar returned %d: %s", status, string(body))
-		}
-		return nil, fmt.Errorf("post sidecar stream: %w", err)
-	}
-	log.WarnContext(ctx, "hermes appears down, restarting and retrying once",
-		"sandbox_id", sb.ID, "status", status, "body", string(body))
-	if rerr := h.restartHermes(ctx, sb.BridgeURL, apiKey); rerr != nil {
-		return nil, fmt.Errorf("restart hermes: %w", rerr)
-	}
-	if werr := h.orch.EnsureHermesSandboxReady(ctx, sb, apiKey); werr != nil {
-		return nil, fmt.Errorf("wait healthy after restart: %w", werr)
-	}
-	resp, err = h.postSidecarStream(ctx, sb.BridgeURL, apiKey, msgs)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		body, status := drainResponse(resp)
-		return nil, fmt.Errorf("sidecar returned %d after retry: %s", status, string(body))
-	}
-	return resp, nil
-}
-
-func looksLikeHermesDown(status int, body []byte) bool {
-	if status != http.StatusBadGateway && status != http.StatusServiceUnavailable {
-		return false
-	}
-	return strings.Contains(string(body), "connection refused") ||
-		strings.Contains(string(body), "EOF") ||
-		strings.Contains(string(body), "no such host")
-}
-
 func drainResponse(resp *http.Response) ([]byte, int) {
 	if resp == nil {
 		return nil, 0
@@ -187,25 +148,6 @@ func drainResponse(resp *http.Response) ([]byte, int) {
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	return body, resp.StatusCode
-}
-
-func (h *ChatHandler) restartHermes(ctx context.Context, baseURL, apiKey string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		strings.TrimRight(baseURL, "/")+"/v1/hermes/restart", nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-	resp, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode/100 != 2 {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		return fmt.Errorf("restart returned %d: %s", resp.StatusCode, string(body))
-	}
-	return nil
 }
 
 func (h *ChatHandler) touchSandboxActivity(sandboxID uuid.UUID) {
@@ -295,7 +237,7 @@ func (h *ChatHandler) persistAssistantMessage(ctx context.Context, sessionID uui
 	return h.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&model.ChatMessage{
 			SessionID: sessionID, Role: "assistant",
-			Content: content, HermesResponseID: responseID,
+			Content: content,
 		}).Error; err != nil {
 			return err
 		}

@@ -22,7 +22,7 @@ func TestEmployeeSandboxEnvVars_ProvidesDriveUploadURLAndBearer(t *testing.T) {
 		SlackBotToken: "xoxb-test",
 		SlackAppToken: "xapp-test",
 		ProxyToken:    "ptok-test",
-	}, nil)
+	}, nil, "https://bugsink.example.test")
 
 	want := "https://api.example.test/internal/employees/" + agentID.String() + "/assets/employee"
 	if env["HIVELOOP_DRIVE_UPLOAD_URL"] != want {
@@ -39,6 +39,9 @@ func TestEmployeeSandboxEnvVars_ProvidesDriveUploadURLAndBearer(t *testing.T) {
 	}
 	if env["BUGSINK_URL"] != "https://api.example.test/internal/bugsink-proxy/"+agentID.String() {
 		t.Fatalf("BUGSINK_URL = %q", env["BUGSINK_URL"])
+	}
+	if env["BUGSINK_DASHBOARD_BASE_URL"] != "https://bugsink.example.test" {
+		t.Fatalf("BUGSINK_DASHBOARD_BASE_URL = %q", env["BUGSINK_DASHBOARD_BASE_URL"])
 	}
 	if env["BUGSINK_TOKEN"] != "runtime-secret" {
 		t.Fatalf("BUGSINK_TOKEN = %q, want runtime-secret", env["BUGSINK_TOKEN"])
@@ -89,7 +92,7 @@ func TestEmployeeSandboxEnvVars_UsesEncryptedGitHubProfileIdentity(t *testing.T)
 		SlackBotToken: "xoxb-test",
 		SlackAppToken: "xapp-test",
 		ProxyToken:    "ptok-test",
-	}, gitIdentity)
+	}, gitIdentity, "")
 
 	if env["HIVELOOP_GIT_USERNAME"] != "The Octocat" {
 		t.Fatalf("HIVELOOP_GIT_USERNAME = %q, want The Octocat", env["HIVELOOP_GIT_USERNAME"])
@@ -137,7 +140,7 @@ func TestEmployeeSandboxEnvVars_UsesGitHubNoreplyWhenProfileEmailMissing(t *test
 		SlackBotToken: "xoxb-test",
 		SlackAppToken: "xapp-test",
 		ProxyToken:    "ptok-test",
-	}, gitIdentity)
+	}, gitIdentity, "")
 
 	if env["HIVELOOP_GIT_EMAIL"] != "12345+octocat@users.noreply.github.com" {
 		t.Fatalf("HIVELOOP_GIT_EMAIL = %q, want GitHub noreply", env["HIVELOOP_GIT_EMAIL"])

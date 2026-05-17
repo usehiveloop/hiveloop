@@ -6514,7 +6514,7 @@ const docTemplate = `{
         },
         "/v1/chats/{id}/stream": {
             "get": {
-                "description": "Opens an SSE stream to the sandbox, replays the conversation\nhistory through Hermes, and tees the response back to the\nbrowser while persisting the assistant message on completion.",
+                "description": "Opens an SSE stream to the sandbox, replays the conversation\nhistory through the employee runtime, and tees the response back to the\nbrowser while persisting the assistant message on completion.",
                 "produces": [
                     "text/event-stream"
                 ],

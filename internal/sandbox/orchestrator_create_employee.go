@@ -56,7 +56,8 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 		return nil, fmt.Errorf("saving sandbox: %w", err)
 	}
 
-	envVars := employeeSandboxEnvVars(o.cfg, runtimeSecret, &sb, orgID, agent, secrets, gitIdentity)
+	bugsinkDashboardURL := employeeruntime.BugsinkDashboardBaseURL(ctx, o.db, orgID, *agent)
+	envVars := employeeSandboxEnvVars(o.cfg, runtimeSecret, &sb, orgID, agent, secrets, gitIdentity, bugsinkDashboardURL)
 	labels := map[string]string{
 		"org_id":     orgID.String(),
 		"sandbox_id": sb.ID.String(),
@@ -127,7 +128,7 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 	return &sb, nil
 }
 
-func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.Sandbox, orgID uuid.UUID, agent *model.Agent, secrets *employeeruntime.StartupSecrets, gitIdentity *employeeGitIdentity) map[string]string {
+func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.Sandbox, orgID uuid.UUID, agent *model.Agent, secrets *employeeruntime.StartupSecrets, gitIdentity *employeeGitIdentity, bugsinkDashboardURL string) map[string]string {
 	bridgeHost := "api.usehiveloop.com"
 	proxyHost := "proxy.hiveloop.com"
 	if cfg != nil {
@@ -165,6 +166,7 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		employeeruntime.EmployeeEnvGitCredentialsURL:        fmt.Sprintf("https://%s/internal/git-credentials/%s", bridgeHost, agent.ID),
 		employeeruntime.EmployeeEnvGitHubNoKeyring:          "1",
 		employeeruntime.EmployeeEnvBugsinkURL:               fmt.Sprintf("https://%s/internal/bugsink-proxy/%s", bridgeHost, agent.ID),
+		employeeruntime.EmployeeEnvBugsinkDashboardBaseURL:  bugsinkDashboardURL,
 		employeeruntime.EmployeeEnvBugsinkToken:             runtimeSecret,
 		employeeruntime.EmployeeEnvLinearURL:                fmt.Sprintf("https://%s/internal/linear-proxy/%s", bridgeHost, agent.ID),
 		employeeruntime.EmployeeEnvLinearToken:              runtimeSecret,

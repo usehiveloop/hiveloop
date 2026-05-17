@@ -73,6 +73,21 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "nango_connection_id is required"})
 		return
 	}
+	meta := req.Meta
+	if meta == nil {
+		meta = model.JSON{}
+	}
+	if integ.Provider == "bugsink" {
+		nangoResp, err := h.nango.GetConnection(r.Context(), req.NangoConnectionID, inNangoKey(integ.UniqueKey))
+		if err != nil {
+			logging.FromContext(r.Context()).WarnContext(r.Context(), "nango: get bugsink connection failed while enriching metadata",
+				"error", err, "nango_connection_id", req.NangoConnectionID)
+		} else {
+			for key, value := range buildConnectionProviderConfig(nangoResp) {
+				meta[key] = value
+			}
+		}
+	}
 
 	conn := model.InConnection{
 		ID:                uuid.New(),
@@ -80,7 +95,7 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		UserID:            user.ID,
 		InIntegrationID:   integ.ID,
 		NangoConnectionID: req.NangoConnectionID,
-		Meta:              req.Meta,
+		Meta:              meta,
 		WebhookConfigured: boolPtr(!providerRequiresWebhookConfig(integ.Provider)),
 	}
 

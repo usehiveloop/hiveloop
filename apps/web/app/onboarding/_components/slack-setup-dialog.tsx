@@ -24,7 +24,7 @@ export function SlackSetupDialog({
   onContinue: () => void
 }) {
   const { form } = useOnboarding()
-  const agentName = useWatch({ control: form.control, name: "agentName" }) || "Hermes"
+  const agentName = useWatch({ control: form.control, name: "agentName" }) || "Hiveloop Employee"
   const agentDescription = useWatch({ control: form.control, name: "agentDescription" })
 
   const slackAppUrl = buildSlackAppCreateUrl({ name: agentName, description: agentDescription })

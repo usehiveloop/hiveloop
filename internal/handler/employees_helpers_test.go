@@ -40,8 +40,6 @@ type stubEmployeeProvider struct {
 	lastCreateOpts sandbox.CreateSandboxOpts
 }
 
-type stubHermesProvider = stubEmployeeProvider
-
 func (s *stubEmployeeProvider) CreateSandbox(_ context.Context, opts sandbox.CreateSandboxOpts) (*sandbox.SandboxInfo, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

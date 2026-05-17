@@ -32,6 +32,7 @@ const (
 	EmployeeEnvGitHubNoKeyring            = "GH_NO_KEYRING"
 	EmployeeEnvDriveUploadURL             = "HIVELOOP_DRIVE_UPLOAD_URL"
 	EmployeeEnvBugsinkURL                 = "BUGSINK_URL"
+	EmployeeEnvBugsinkDashboardBaseURL    = "BUGSINK_DASHBOARD_BASE_URL"
 	EmployeeEnvBugsinkToken               = "BUGSINK_TOKEN"
 	EmployeeEnvLinearURL                  = "LINEAR_URL"
 	EmployeeEnvLinearToken                = "LINEAR_TOKEN"
@@ -110,6 +111,7 @@ var employeeEnvCatalog = []EmployeeEnvSpec{
 	{Key: EmployeeEnvGitHubNoKeyring, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvDriveUploadURL, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvBugsinkURL, Source: EmployeeEnvSourceControlPlaneInjected},
+	{Key: EmployeeEnvBugsinkDashboardBaseURL, Source: EmployeeEnvSourceControlPlaneInjected, Optional: true},
 	{Key: EmployeeEnvBugsinkToken, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},
 	{Key: EmployeeEnvLinearURL, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvLinearToken, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},

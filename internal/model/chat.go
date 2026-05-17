@@ -28,7 +28,6 @@ type ChatMessage struct {
 	Session          ChatSession `gorm:"foreignKey:SessionID;constraint:OnDelete:CASCADE"`
 	Role             string      `gorm:"not null"`
 	Content          string      `gorm:"type:text;not null;default:''"`
-	HermesResponseID string      `gorm:"not null;default:''"`
 	CreatedAt        time.Time   `gorm:"not null;default:now();index:idx_chat_messages_session_created"`
 }
 

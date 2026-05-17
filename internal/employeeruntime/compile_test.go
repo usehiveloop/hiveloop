@@ -395,7 +395,7 @@ func TestCompile_ReferencesProxyEnvInsteadOfRawProviderKeys(t *testing.T) {
 	if !ok {
 		t.Fatalf("env_passthrough has wrong type: %#v", bashConfig["env_passthrough"])
 	}
-	for _, key := range []string{EmployeeEnvHome, EmployeeEnvPath, EmployeeEnvLang, EmployeeEnvLCAll, ProxyAPIKeyEnv, EmployeeEnvBugsinkURL, EmployeeEnvBugsinkToken, EmployeeEnvLinearURL, EmployeeEnvLinearToken} {
+	for _, key := range []string{EmployeeEnvHome, EmployeeEnvPath, EmployeeEnvLang, EmployeeEnvLCAll, ProxyAPIKeyEnv, EmployeeEnvBugsinkURL, EmployeeEnvBugsinkDashboardBaseURL, EmployeeEnvBugsinkToken, EmployeeEnvLinearURL, EmployeeEnvLinearToken} {
 		if !containsString(envPassthrough, key) {
 			t.Fatalf("env_passthrough missing %s: %#v", key, envPassthrough)
 		}

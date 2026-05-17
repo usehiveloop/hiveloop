@@ -61,7 +61,6 @@ internal/handler/teams_test.go
 internal/handler/teams.go
 internal/handler/cloud_agents.go
 internal/employeeruntime/compile.go
-internal/hermes/compile_test.go
 internal/employeeruntime/compile_test.go
 internal/rag/tasks/ingest_attempt.go
 internal/bootstrap/deps.go

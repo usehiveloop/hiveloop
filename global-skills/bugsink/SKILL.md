@@ -1,6 +1,6 @@
 ---
 name: bugsink
-description: Use when investigating Bugsink errors, issues, projects, events, stacktraces, regressions, or production exceptions. Provides verified curl and jq commands for the canonical Bugsink API using BUGSINK_URL and BUGSINK_TOKEN, with strict payload filtering so raw event data is not dumped into context.
+description: Use when investigating Bugsink errors, issues, projects, events, stacktraces, regressions, or production exceptions. Provides verified curl and jq commands for the canonical Bugsink API using BUGSINK_URL and BUGSINK_TOKEN, and explains how to construct dashboard links using BUGSINK_DASHBOARD_BASE_URL instead of the proxy URL.
 ---
 
 # Bugsink issue investigation
@@ -8,6 +8,8 @@ description: Use when investigating Bugsink errors, issues, projects, events, st
 Use Bugsink through the Hiveloop-provided Bugsink proxy at `$BUGSINK_URL/api/canonical/0`.
 
 `BUGSINK_URL` is provided by the Hiveloop runtime. Always call the provided `BUGSINK_URL` exactly; the runtime handles forwarding for the configured Bugsink connection.
+
+`BUGSINK_DASHBOARD_BASE_URL` is the real Bugsink dashboard base URL. Use it only for human-facing links. Never construct dashboard links from `BUGSINK_URL`; `BUGSINK_URL` is a Hiveloop API proxy and is not the Bugsink UI host.
 
 ## Environment
 
@@ -18,6 +20,12 @@ Required:
 | `BUGSINK_URL` | Hiveloop-provided Bugsink proxy base URL |
 | `BUGSINK_TOKEN` | Bearer token for the provided Bugsink endpoint |
 
+Optional:
+
+| Variable | Purpose |
+|---|---|
+| `BUGSINK_DASHBOARD_BASE_URL` | Real Bugsink dashboard base URL for links shown to users |
+
 Normalize the URL once before calling the API:
 
 ```bash
@@ -25,6 +33,7 @@ test -n "$BUGSINK_URL" || { echo "BUGSINK_URL is not set" >&2; exit 1; }
 test -n "$BUGSINK_TOKEN" || { echo "BUGSINK_TOKEN is not set" >&2; exit 1; }
 BUGSINK_URL="${BUGSINK_URL%/}"
 BUGSINK_API="$BUGSINK_URL/api/canonical/0"
+BUGSINK_DASHBOARD_BASE_URL="${BUGSINK_DASHBOARD_BASE_URL%/}"
 ```
 
 Every API call must include the bearer token:
@@ -43,6 +52,60 @@ curl -fsS "$BUGSINK_API/projects/" \
 - Use Bugsink internal event `id` for `/events/{id}/` and `/events/{id}/stacktrace/`; `event_id` is the event id from the client payload.
 - Treat `next` and `previous` as pagination cursors/links. Follow `next` only when the user needs more results.
 - Do not print `$BUGSINK_TOKEN`.
+
+## Dashboard links
+
+Construct human-facing Bugsink links with `BUGSINK_DASHBOARD_BASE_URL`, not `BUGSINK_URL`.
+
+If `BUGSINK_DASHBOARD_BASE_URL` is unset, say that the dashboard base URL is unavailable and provide the issue/project/event IDs instead. Do not substitute the Hiveloop proxy URL.
+
+Known link patterns:
+
+```text
+Projects / teams:
+$BUGSINK_DASHBOARD_BASE_URL/projects/teams/
+
+Issue latest event:
+$BUGSINK_DASHBOARD_BASE_URL/issues/issue/<issue_uuid>/event/last/
+
+Specific issue event:
+$BUGSINK_DASHBOARD_BASE_URL/issues/issue/<issue_uuid>/event/<event_uuid>/
+
+Issue event details:
+$BUGSINK_DASHBOARD_BASE_URL/issues/issue/<issue_uuid>/event/<event_uuid>/details/
+
+Issue events list:
+$BUGSINK_DASHBOARD_BASE_URL/issues/issue/<issue_uuid>/events/
+
+Issue tags:
+$BUGSINK_DASHBOARD_BASE_URL/issues/issue/<issue_uuid>/tags/
+
+Issue history:
+$BUGSINK_DASHBOARD_BASE_URL/issues/issue/<issue_uuid>/history/
+
+Issue grouping:
+$BUGSINK_DASHBOARD_BASE_URL/issues/issue/<issue_uuid>/grouping/
+```
+
+Example:
+
+```text
+$BUGSINK_DASHBOARD_BASE_URL/issues/issue/878164f1-b936-4470-8341-ebbbe49a0a05/event/last/
+```
+
+When returning an issue summary, include a `dashboard_url` field if `BUGSINK_DASHBOARD_BASE_URL` is set:
+
+```bash
+jq --arg base "$BUGSINK_DASHBOARD_BASE_URL" '
+  .results[]
+  | {
+      id,
+      title,
+      last_seen,
+      dashboard_url: (if $base == "" then null else ($base + "/issues/issue/" + .id + "/event/last/") end)
+    }
+'
+```
 
 ## API schema discovery
 

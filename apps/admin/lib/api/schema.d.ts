@@ -7524,7 +7524,7 @@ export interface paths {
         /**
          * Stream the assistant reply for the latest user message (SSE)
          * @description Opens an SSE stream to the sandbox, replays the conversation
-         *     history through Hermes, and tees the response back to the
+         *     history through the employee runtime, and tees the response back to the
          *     browser while persisting the assistant message on completion.
          */
         get: {

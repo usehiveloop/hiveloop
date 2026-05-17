@@ -15,7 +15,7 @@ import (
 
 const (
 	streamTokenTTL = 5 * time.Minute
-	chatModel      = "hermes-agent"
+	chatModel      = "employee-agent"
 )
 
 type ChatHandler struct {

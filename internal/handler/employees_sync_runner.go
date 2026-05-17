@@ -55,7 +55,7 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 	if err := client.Healthz(ctx); err != nil {
 		return nil, fmt.Errorf("employee runtime healthz: %w", err)
 	}
-	runtimeEnv, err := h.loadRuntimeEnv(agent, apiKey)
+	runtimeEnv, err := h.loadRuntimeEnv(ctx, agent, apiKey)
 	if err != nil {
 		return nil, fmt.Errorf("load runtime env: %w", err)
 	}
@@ -94,13 +94,13 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 	return resp, nil
 }
 
-func (h *EmployeeHandler) loadRuntimeEnv(agent *model.Agent, runtimeSecret string) (map[string]string, error) {
+func (h *EmployeeHandler) loadRuntimeEnv(ctx context.Context, agent *model.Agent, runtimeSecret string) (map[string]string, error) {
 	env := make(map[string]string)
 	if agent == nil {
 		return env, nil
 	}
 	if len(agent.EncryptedEnvVars) == 0 {
-		addControlPlaneRuntimeEnv(env, h.compileDeps.Cfg, agent.ID, runtimeSecret)
+		addControlPlaneRuntimeEnv(ctx, h.db, env, h.compileDeps.Cfg, agent, runtimeSecret)
 		return env, nil
 	}
 
@@ -110,7 +110,7 @@ func (h *EmployeeHandler) loadRuntimeEnv(agent *model.Agent, runtimeSecret strin
 	}
 	decrypted = strings.TrimSpace(decrypted)
 	if decrypted == "" {
-		addControlPlaneRuntimeEnv(env, h.compileDeps.Cfg, agent.ID, runtimeSecret)
+		addControlPlaneRuntimeEnv(ctx, h.db, env, h.compileDeps.Cfg, agent, runtimeSecret)
 		return env, nil
 	}
 
@@ -124,21 +124,24 @@ func (h *EmployeeHandler) loadRuntimeEnv(agent *model.Agent, runtimeSecret strin
 		}
 		env[key] = value
 	}
-	addControlPlaneRuntimeEnv(env, h.compileDeps.Cfg, agent.ID, runtimeSecret)
+	addControlPlaneRuntimeEnv(ctx, h.db, env, h.compileDeps.Cfg, agent, runtimeSecret)
 	return env, nil
 }
 
-func addControlPlaneRuntimeEnv(env map[string]string, cfg *config.Config, agentID uuid.UUID, runtimeSecret string) {
-	if env == nil || cfg == nil || agentID == uuid.Nil || runtimeSecret == "" {
+func addControlPlaneRuntimeEnv(ctx context.Context, db *gorm.DB, env map[string]string, cfg *config.Config, agent *model.Agent, runtimeSecret string) {
+	if env == nil || cfg == nil || agent == nil || agent.ID == uuid.Nil || runtimeSecret == "" {
 		return
 	}
 	bridgeHost := strings.TrimSpace(cfg.BridgeHost)
 	if bridgeHost == "" {
 		return
 	}
-	env[employeeruntime.EmployeeEnvBugsinkURL] = fmt.Sprintf("https://%s/internal/bugsink-proxy/%s", bridgeHost, agentID)
+	env[employeeruntime.EmployeeEnvBugsinkURL] = fmt.Sprintf("https://%s/internal/bugsink-proxy/%s", bridgeHost, agent.ID)
+	if agent.OrgID != nil {
+		env[employeeruntime.EmployeeEnvBugsinkDashboardBaseURL] = employeeruntime.BugsinkDashboardBaseURL(ctx, db, *agent.OrgID, *agent)
+	}
 	env[employeeruntime.EmployeeEnvBugsinkToken] = runtimeSecret
-	env[employeeruntime.EmployeeEnvLinearURL] = fmt.Sprintf("https://%s/internal/linear-proxy/%s", bridgeHost, agentID)
+	env[employeeruntime.EmployeeEnvLinearURL] = fmt.Sprintf("https://%s/internal/linear-proxy/%s", bridgeHost, agent.ID)
 	env[employeeruntime.EmployeeEnvLinearToken] = runtimeSecret
 }
 
