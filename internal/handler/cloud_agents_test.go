@@ -38,6 +38,7 @@ type cloudAgentHarness struct {
 	bridgeKey         string
 	fakeBridge        *fakeCloudAgentBridge
 	createdSandboxEnv map[string]string
+	deletedSandboxes  []uuid.UUID
 	callbackMu        sync.Mutex
 	callbacks         []map[string]any
 }
@@ -192,6 +193,10 @@ func newCloudAgentHarness(t *testing.T) *cloudAgentHarness {
 		StopSandbox: func(_ context.Context, sb *model.Sandbox) error {
 			return database.Model(sb).Update("status", "stopped").Error
 		},
+		DeleteSandbox: func(_ context.Context, sb *model.Sandbox) error {
+			harness.deletedSandboxes = append(harness.deletedSandboxes, sb.ID)
+			return database.Model(sb).Update("status", "archived").Error
+		},
 		TaskDriveUploadURL: func(employeeID uuid.UUID, taskID uuid.UUID) string {
 			return fmt.Sprintf("https://api.test/internal/employees/%s/assets/tasks/%s", employeeID, taskID)
 		},
@@ -263,12 +268,12 @@ func (h *cloudAgentHarness) seedTask(t *testing.T, cloudAgentID uuid.UUID, brief
 
 	convID := uuid.New()
 	h.db.Create(&model.AgentConversation{
-		ID:                   convID,
-		OrgID:                h.orgID,
-		AgentID:              cloudAgentID,
-		SandboxID:            sandboxID,
+		ID:                    convID,
+		OrgID:                 h.orgID,
+		AgentID:               cloudAgentID,
+		SandboxID:             sandboxID,
 		RuntimeConversationID: fmt.Sprintf("bridge-%s", uuid.New().String()[:8]),
-		Status:               "active",
+		Status:                "active",
 	})
 
 	task := model.CloudAgentTask{
@@ -300,16 +305,16 @@ func (h *cloudAgentHarness) seedEvent(t *testing.T, convID uuid.UUID, eventType 
 	h.db.Model(&model.ConversationEvent{}).Where("conversation_id = ?", convID).Count(&count)
 	now := time.Now().UTC().Add(time.Duration(count) * time.Second)
 	if err := h.db.Create(&model.ConversationEvent{
-		ID:                   uuid.New(),
-		OrgID:                h.orgID,
-		ConversationID:       convID,
-		EventID:              uuid.New().String(),
-		EventType:            eventType,
-		AgentID:              "test-agent",
+		ID:                    uuid.New(),
+		OrgID:                 h.orgID,
+		ConversationID:        convID,
+		EventID:               uuid.New().String(),
+		EventType:             eventType,
+		AgentID:               "test-agent",
 		RuntimeConversationID: "bridge-conv",
-		Timestamp:            now,
-		SequenceNumber:       count + 1,
-		Data:                 model.RawJSON(`{}`),
+		Timestamp:             now,
+		SequenceNumber:        count + 1,
+		Data:                  model.RawJSON(`{}`),
 	}).Error; err != nil {
 		t.Fatalf("create event: %v", err)
 	}
@@ -615,6 +620,16 @@ func TestCloudAgentTerminateTask_Success(t *testing.T) {
 	metadata, ok := callbacks[0]["metadata"].(map[string]any)
 	if !ok || metadata["key"] != "value" {
 		t.Fatalf("expected task metadata in callback, got %#v", callbacks[0]["metadata"])
+	}
+	if len(h.deletedSandboxes) != 1 || h.deletedSandboxes[0] != task.SandboxID {
+		t.Fatalf("expected sandbox %s to be deleted, got %#v", task.SandboxID, h.deletedSandboxes)
+	}
+	var sandbox model.Sandbox
+	if err := h.db.Where("id = ?", task.SandboxID).First(&sandbox).Error; err != nil {
+		t.Fatalf("load sandbox: %v", err)
+	}
+	if sandbox.Status != "archived" {
+		t.Fatalf("expected sandbox row to be retained as archived, got %q", sandbox.Status)
 	}
 }
 

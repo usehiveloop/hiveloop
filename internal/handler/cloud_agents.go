@@ -37,6 +37,7 @@ type CloudAgentHandlerHooks struct {
 	PushAgentToSandbox     func(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error
 	GetBridgeClient        func(ctx context.Context, sb *model.Sandbox) (CloudAgentBridgeClient, error)
 	StopSandbox            func(ctx context.Context, sb *model.Sandbox) error
+	DeleteSandbox          func(ctx context.Context, sb *model.Sandbox) error
 	TaskDriveUploadURL     func(employeeID uuid.UUID, taskID uuid.UUID) string
 }
 
@@ -54,6 +55,7 @@ func NewCloudAgentHandler(db *gorm.DB, encKey *crypto.SymmetricKey, orchestrator
 			return orchestrator.GetBridgeClient(ctx, sb)
 		}
 		hooks.StopSandbox = orchestrator.StopSandbox
+		hooks.DeleteSandbox = orchestrator.DeleteSandboxResource
 		hooks.TaskDriveUploadURL = orchestrator.EmployeeTaskDriveUploadURL
 	}
 	if pusher != nil {
@@ -453,11 +455,11 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	// We need the AgentConversation ID. Create it now.
 	conv := model.AgentConversation{
-		OrgID:                orgID,
-		AgentID:              agentID,
-		SandboxID:            sb.ID,
+		OrgID:                 orgID,
+		AgentID:               agentID,
+		SandboxID:             sb.ID,
 		RuntimeConversationID: bridgeResp.ConversationId,
-		Status:               "active",
+		Status:                "active",
 	}
 	if err := h.db.Create(&conv).Error; err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to save conversation", "error", err)
@@ -552,8 +554,8 @@ func (h *CloudAgentHandler) SendTaskMessage(w http.ResponseWriter, r *http.Reque
 }
 
 // TerminateTask logically ends a cloud-agent task and asks the runtime to stop
-// the backing conversation. Sandbox stop is best-effort so the task record and
-// terminal event remain durable even when infrastructure cleanup is delayed.
+// the backing conversation. Sandbox deletion is best-effort so the task record
+// and terminal event remain durable even when infrastructure cleanup is delayed.
 func (h *CloudAgentHandler) TerminateTask(w http.ResponseWriter, r *http.Request) {
 	employee := h.authEmployee(w, r)
 	if employee == nil {
@@ -608,7 +610,11 @@ func (h *CloudAgentHandler) TerminateTask(w http.ResponseWriter, r *http.Request
 	}
 	h.ensureConversationEndedEvent(ctx, *task, *conv, reason, now)
 
-	if h.hooks.StopSandbox != nil {
+	if h.hooks.DeleteSandbox != nil {
+		if err := h.hooks.DeleteSandbox(ctx, sb); err != nil {
+			logging.FromContext(ctx).WarnContext(ctx, "failed to delete cloud agent sandbox after termination", "task_id", task.ID, "sandbox_id", sb.ID, "error", err)
+		}
+	} else if h.hooks.StopSandbox != nil {
 		if err := h.hooks.StopSandbox(ctx, sb); err != nil {
 			logging.FromContext(ctx).WarnContext(ctx, "failed to stop cloud agent sandbox after termination", "task_id", task.ID, "sandbox_id", sb.ID, "error", err)
 		}
@@ -791,15 +797,15 @@ func (h *CloudAgentHandler) ensureConversationEndedEvent(ctx context.Context, ta
 		"source": "cloud_agent_terminate",
 	})
 	event := model.ConversationEvent{
-		OrgID:                conv.OrgID,
-		ConversationID:       conv.ID,
-		EventID:              uuid.New().String(),
-		EventType:            bridgeevents.EventConversationEnded,
-		AgentID:              conv.AgentID.String(),
+		OrgID:                 conv.OrgID,
+		ConversationID:        conv.ID,
+		EventID:               uuid.New().String(),
+		EventType:             bridgeevents.EventConversationEnded,
+		AgentID:               conv.AgentID.String(),
 		RuntimeConversationID: conv.RuntimeConversationID,
-		Timestamp:            now,
-		SequenceNumber:       maxSequence + 1,
-		Data:                 model.RawJSON(data),
+		Timestamp:             now,
+		SequenceNumber:        maxSequence + 1,
+		Data:                  model.RawJSON(data),
 	}
 	if err := h.db.Create(&event).Error; err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to append conversation ended event", "conversation_id", conv.ID, "error", err)

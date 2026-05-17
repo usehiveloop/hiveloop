@@ -28,7 +28,7 @@ ENV NPM_CONFIG_UPDATE_NOTIFIER=false \
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        ca-certificates curl tini \
+        ca-certificates curl gh git python3 tini \
     && rm -rf /var/lib/apt/lists/*
 
 # Install both ACP agents globally. Each ships its own native binary as
@@ -56,8 +56,14 @@ RUN mkdir -p /work/.claude /work/.opencode /work/tmp /workspace
 WORKDIR /work
 
 COPY --from=builder /bridge /usr/local/bin/bridge
-RUN chmod +x /usr/local/bin/bridge
+COPY docker/runtime/git-credential-hiveloop /usr/local/bin/git-credential-hiveloop
+COPY docker/runtime/gh-wrapper /usr/local/bin/gh-wrapper
+RUN chmod +x /usr/local/bin/bridge \
+    && chmod +x /usr/local/bin/git-credential-hiveloop \
+    && chmod +x /usr/local/bin/gh-wrapper \
+    && git config --system credential.helper /usr/local/bin/git-credential-hiveloop \
+    && ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh
 
 EXPOSE 8080
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["/usr/local/bin/bridge"]
+CMD ["/bin/sh", "-c", "git config --system user.name \"$HIVELOOP_GIT_USERNAME\"; git config --system user.email \"$HIVELOOP_GIT_EMAIL\"; exec /usr/local/bin/bridge"]

@@ -152,11 +152,18 @@ func (o *Orchestrator) loadEmployeeSelectedGitHubRepositories(ctx context.Contex
 	if agent == nil {
 		return nil, nil
 	}
+	return loadSelectedGitHubRepositoriesForAgent(ctx, o.db, agent.ID)
+}
+
+func loadSelectedGitHubRepositoriesForAgent(ctx context.Context, db *gorm.DB, agentID uuid.UUID) ([]repoResource, error) {
+	if db == nil {
+		return nil, nil
+	}
 
 	var profile model.AgentProfile
-	err := o.db.WithContext(ctx).
+	err := db.WithContext(ctx).
 		Where("agent_id = ? AND provider = ? AND status = ? AND deleted_at IS NULL AND revoked_at IS NULL",
-			agent.ID, githubprofile.Provider, "active").
+			agentID, githubprofile.Provider, "active").
 		First(&profile).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

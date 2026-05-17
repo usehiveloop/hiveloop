@@ -161,6 +161,15 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 			})
 			return nil, fmt.Errorf("cloning repositories: %w", err)
 		}
+		if owningEmployee != nil {
+			if err := o.cloneEmployeeSelectedRepositories(ctx, &sb, owningEmployee); err != nil {
+				o.db.Model(&sb).Updates(map[string]any{
+					"status":        "error",
+					"error_message": fmt.Sprintf("employee repository cloning failed: %v", err),
+				})
+				return nil, fmt.Errorf("cloning employee selected repositories: %w", err)
+			}
+		}
 	}
 
 	logging.FromContext(ctx).InfoContext(ctx, "sandbox created",

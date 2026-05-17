@@ -13,6 +13,7 @@ import (
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	githubprofile "github.com/usehiveloop/hiveloop/internal/profiles/github"
 )
 
 func TestPusherBuildAgentDefinition(t *testing.T) {
@@ -242,8 +243,26 @@ func TestPusherBuildAgentDefinition_InheritsEmployeeSkillsIntegrationsAndResourc
 	if err := db.Create(&model.AgentSubagent{AgentID: employee.ID, SubagentID: subagent.ID}).Error; err != nil {
 		t.Fatalf("create subagent link: %v", err)
 	}
+	profile := model.AgentProfile{
+		ID:         uuid.New(),
+		OrgID:      org.ID,
+		AgentID:    employee.ID,
+		Provider:   githubprofile.Provider,
+		ExternalID: "octocat",
+		Label:      "octocat",
+		Config: model.JSON{
+			"selected_repositories": []any{
+				map[string]any{"id": int64(1), "name": "selected-api", "full_name": "octo-org/selected-api"},
+			},
+		},
+		Status: "active",
+	}
+	if err := db.Create(&profile).Error; err != nil {
+		t.Fatalf("create github profile: %v", err)
+	}
 	t.Cleanup(func() {
 		db.Where("agent_id = ? AND subagent_id = ?", employee.ID, subagent.ID).Delete(&model.AgentSubagent{})
+		db.Where("id = ?", profile.ID).Delete(&model.AgentProfile{})
 		db.Where("id = ?", subagent.ID).Delete(&model.Agent{})
 	})
 
@@ -276,6 +295,8 @@ func TestPusherBuildAgentDefinition_InheritsEmployeeSkillsIntegrationsAndResourc
 	assertSliceContains(t, "skills", titles, "asset-uploads")
 	assertContains(t, "system_prompt inherited employee repo", def.SystemPrompt, "octo-org/api")
 	assertContains(t, "system_prompt subagent repo", def.SystemPrompt, "octo-org/worker")
+	assertContains(t, "system_prompt selected employee repo", def.SystemPrompt, "octo-org/selected-api")
+	assertContains(t, "system_prompt selected employee repo path", def.SystemPrompt, "/workspace/repos/selected-api")
 }
 
 func createPusherSkill(t *testing.T, db interface {

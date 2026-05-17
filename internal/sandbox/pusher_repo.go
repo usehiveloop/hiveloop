@@ -57,3 +57,18 @@ func buildRepoContext(resources model.JSON) string {
 	builder.WriteString("\nYou can read, search, and modify files in these directories directly.")
 	return builder.String()
 }
+
+func buildSelectedGitHubRepoContext(repos []repoResource) string {
+	if len(repos) == 0 {
+		return ""
+	}
+
+	var builder strings.Builder
+	builder.WriteString("── EMPLOYEE GITHUB PROFILE REPOSITORIES ──\n\n")
+	builder.WriteString("The employee's selected GitHub profile repositories have been cloned into your workspace:\n\n")
+	for _, repo := range repos {
+		builder.WriteString(fmt.Sprintf("  - %s → /workspace/repos/%s\n", repo.ID, repo.Name))
+	}
+	builder.WriteString("\nUse these paths for codebase work that depends on the employee's GitHub profile access.")
+	return builder.String()
+}

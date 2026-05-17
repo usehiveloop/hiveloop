@@ -38,6 +38,27 @@ func (o *Orchestrator) DeleteSandbox(ctx context.Context, sb *model.Sandbox) err
 	return o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}).Error
 }
 
+// DeleteSandboxResource deletes the provider resource but keeps the control
+// plane sandbox row for task/session history that points at the sandbox.
+func (o *Orchestrator) DeleteSandboxResource(ctx context.Context, sb *model.Sandbox) error {
+	if err := o.provider.DeleteSandbox(ctx, sb.ExternalID); err != nil && !errors.Is(err, ErrSandboxNotFound) {
+		logging.Capture(ctx, fmt.Errorf("delete sandbox %s from provider: %w", sb.ID, err))
+		return fmt.Errorf("delete sandbox resource %s: %w", sb.ID, err)
+	}
+	now := time.Now()
+	if err := o.db.Model(sb).Updates(map[string]any{
+		"status":                string(StatusArchived),
+		"stopped_at":            now,
+		"bridge_url_expires_at": nil,
+	}).Error; err != nil {
+		return fmt.Errorf("mark sandbox resource deleted: %w", err)
+	}
+	sb.Status = string(StatusArchived)
+	sb.StoppedAt = &now
+	sb.BridgeURLExpiresAt = nil
+	return nil
+}
+
 func (o *Orchestrator) DeleteSandboxExternal(ctx context.Context, externalID string) error {
 	if err := o.provider.DeleteSandbox(ctx, externalID); err != nil && !errors.Is(err, ErrSandboxNotFound) {
 		return fmt.Errorf("delete sandbox %s from provider: %w", externalID, err)
