@@ -82,7 +82,7 @@ func (h *BugsinkProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	eventCtx.OrgID = *agent.OrgID
 
-	if !h.authenticatedSandbox(ctx, agentID, bearerToken) {
+	if !agent.IsSystem && !h.authenticatedSandbox(ctx, agentID, bearerToken) {
 		h.captureProxyFailure(ctx, eventCtx, http.StatusUnauthorized, "invalid credentials")
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		return

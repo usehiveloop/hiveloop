@@ -90,6 +90,42 @@ func TestBugsinkProxy_SubagentUsesOwningEmployeeConnection(t *testing.T) {
 	}
 }
 
+func TestBugsinkProxy_SystemAgentWithoutSandboxSucceeds(t *testing.T) {
+	var captured struct {
+		method       string
+		path         string
+		auth         string
+		providerKey  string
+		connectionID string
+	}
+	var mu sync.Mutex
+	harness := newBugsinkProxyHarness(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		captured.method = r.Method
+		captured.path = r.URL.Path
+		captured.auth = r.Header.Get("Authorization")
+		captured.providerKey = r.Header.Get("Provider-Config-Key")
+		captured.connectionID = r.Header.Get("Connection-Id")
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"projects":[]}`))
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/internal/bugsink-proxy/"+harness.systemAgentID.String()+"/api/canonical/0/projects/", nil)
+	req.Header.Set("Authorization", "Bearer some-token")
+	rec := httptest.NewRecorder()
+	harness.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if captured.connectionID != "bugsink-nango-1" {
+		t.Fatalf("connection id = %q", captured.connectionID)
+	}
+}
+
 func TestBugsinkProxy_RejectsInvalidAndUnattachedRequests(t *testing.T) {
 	var nangoCalls atomic.Int64
 	harness := newBugsinkProxyHarness(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

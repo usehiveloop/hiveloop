@@ -24,14 +24,15 @@ import (
 const bugsinkProxyTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 
 type bugsinkProxyHarness struct {
-	db           *gorm.DB
-	router       *chi.Mux
-	orgID        uuid.UUID
-	employeeID   uuid.UUID
-	subagentID   uuid.UUID
-	standaloneID uuid.UUID
-	connectionID uuid.UUID
-	bridgeKey    string
+	db            *gorm.DB
+	router        *chi.Mux
+	orgID         uuid.UUID
+	employeeID    uuid.UUID
+	subagentID    uuid.UUID
+	systemAgentID uuid.UUID
+	standaloneID  uuid.UUID
+	connectionID  uuid.UUID
+	bridgeKey     string
 }
 
 func newBugsinkProxyHarness(t *testing.T, nangoHandler http.Handler) *bugsinkProxyHarness {
@@ -57,6 +58,7 @@ func newBugsinkProxyHarness(t *testing.T, nangoHandler http.Handler) *bugsinkPro
 	userID := uuid.New()
 	employeeID := uuid.New()
 	subagentID := uuid.New()
+	systemAgentID := uuid.New()
 	standaloneID := uuid.New()
 	connectionID := uuid.New()
 	unattachedConnectionID := uuid.New()
@@ -98,6 +100,13 @@ func newBugsinkProxyHarness(t *testing.T, nangoHandler http.Handler) *bugsinkPro
 	if err := database.Create(&model.AgentSubagent{AgentID: employeeID, SubagentID: subagentID}).Error; err != nil {
 		t.Fatalf("link subagent: %v", err)
 	}
+	systemAgent := model.Agent{ID: systemAgentID, OrgID: &orgID, Name: "Bugsink System " + uuid.NewString()[:8], Status: "active", IsSystem: true}
+	if err := database.Create(&systemAgent).Error; err != nil {
+		t.Fatalf("create system agent: %v", err)
+	}
+	if err := database.Create(&model.AgentSubagent{AgentID: employeeID, SubagentID: systemAgentID}).Error; err != nil {
+		t.Fatalf("link system agent: %v", err)
+	}
 	standalone := model.Agent{ID: standaloneID, OrgID: &orgID, Name: "Bugsink Standalone " + uuid.NewString()[:8], Status: "active"}
 	if err := database.Create(&standalone).Error; err != nil {
 		t.Fatalf("create standalone: %v", err)
@@ -129,14 +138,15 @@ func newBugsinkProxyHarness(t *testing.T, nangoHandler http.Handler) *bugsinkPro
 	router.Handle("/internal/bugsink-proxy/{agentID}/*", http.HandlerFunc(bugsinkProxyHandler.Handle))
 
 	return &bugsinkProxyHarness{
-		db:           database,
-		router:       router,
-		orgID:        orgID,
-		employeeID:   employeeID,
-		subagentID:   subagentID,
-		standaloneID: standaloneID,
-		connectionID: connectionID,
-		bridgeKey:    bridgeKey,
+		db:            database,
+		router:        router,
+		orgID:         orgID,
+		employeeID:    employeeID,
+		subagentID:    subagentID,
+		systemAgentID: systemAgentID,
+		standaloneID:  standaloneID,
+		connectionID:  connectionID,
+		bridgeKey:     bridgeKey,
 	}
 }
 
