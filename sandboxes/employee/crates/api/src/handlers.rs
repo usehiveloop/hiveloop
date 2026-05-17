@@ -10,6 +10,7 @@ use domain::{AgentDefinition, EventKind, SessionId, SessionStatus};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
+use storage::{SessionListCursor, SessionListFilter};
 use tracing::warn;
 
 use crate::http_gateway::{stream_response, HttpMessageRequest, HttpMessageResponse};
@@ -217,6 +218,11 @@ pub struct ListSessionsParams {
     pub cursor: Option<String>,
     pub status: Option<String>,
     pub limit: Option<u32>,
+    pub session_id: Option<String>,
+    pub channel: Option<String>,
+    pub thread_ts: Option<String>,
+    pub agent_session_id: Option<String>,
+    pub q: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -232,6 +238,11 @@ pub struct ListSessionsResponse {
     params(
         ("cursor" = Option<String>, Query, description = "RFC 3339 cursor from the previous page"),
         ("status" = Option<String>, Query, description = "Session status filter: active, completed, or errored"),
+        ("session_id" = Option<String>, Query, description = "Exact session ID filter"),
+        ("channel" = Option<String>, Query, description = "Exact channel filter"),
+        ("thread_ts" = Option<String>, Query, description = "Exact thread timestamp filter"),
+        ("agent_session_id" = Option<String>, Query, description = "Exact agent session ID filter"),
+        ("q" = Option<String>, Query, description = "Prefix search over session identifiers"),
         ("limit" = Option<u32>, Query, description = "Maximum sessions to return, clamped from 1 to 200")
     ),
     responses(
@@ -248,7 +259,7 @@ pub async fn list_sessions(
     let cursor = params
         .cursor
         .as_deref()
-        .map(parse_cursor)
+        .map(parse_session_cursor)
         .transpose()
         .map_err(|error| (StatusCode::BAD_REQUEST, error))?;
     let status = params
@@ -259,15 +270,34 @@ pub async fn list_sessions(
         .map_err(|error| (StatusCode::BAD_REQUEST, error))?;
     let limit = params.limit.unwrap_or(50).clamp(1, 200);
 
-    let sessions = state
+    let mut sessions = state
         .session_repo
-        .list(cursor, status, limit)
+        .list(
+            SessionListFilter {
+                cursor,
+                status,
+                session_id: clean_optional(params.session_id),
+                channel: clean_optional(params.channel),
+                thread_ts: clean_optional(params.thread_ts),
+                agent_session_id: clean_optional(params.agent_session_id),
+                search: clean_optional(params.q),
+            },
+            limit + 1,
+        )
         .await
         .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, format!("list: {error}")))?;
 
-    let next_cursor = sessions
-        .last()
-        .map(|session| session.last_activity_at.to_rfc3339());
+    let has_more = sessions.len() > limit as usize;
+    if has_more {
+        sessions.truncate(limit as usize);
+    }
+    let next_cursor = if has_more {
+        sessions
+            .last()
+            .map(|session| encode_session_cursor(session.last_activity_at, session.id.as_str()))
+    } else {
+        None
+    };
 
     Ok(Json(ListSessionsResponse {
         items: sessions,
@@ -764,6 +794,27 @@ fn parse_cursor(raw: &str) -> Result<DateTime<Utc>, String> {
     DateTime::parse_from_rfc3339(raw)
         .map(|dt| dt.with_timezone(&Utc))
         .map_err(|error| format!("invalid cursor `{raw}`: {error}"))
+}
+
+fn parse_session_cursor(raw: &str) -> Result<SessionListCursor, String> {
+    let (timestamp, id) = match raw.split_once('|') {
+        Some((timestamp, id)) => (timestamp, Some(id.trim().to_string())),
+        None => (raw, None),
+    };
+    Ok(SessionListCursor {
+        last_activity_at: parse_cursor(timestamp)?,
+        id: id.filter(|value| !value.is_empty()),
+    })
+}
+
+fn encode_session_cursor(last_activity_at: DateTime<Utc>, id: &str) -> String {
+    format!("{}|{}", last_activity_at.to_rfc3339(), id)
+}
+
+fn clean_optional(value: Option<String>) -> Option<String> {
+    value
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
 }
 
 fn parse_status(raw: &str) -> Result<SessionStatus, String> {

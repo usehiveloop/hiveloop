@@ -453,8 +453,7 @@ impl SessionRepo for MemorySessionRepo {
 
     async fn list(
         &self,
-        _cursor: Option<DateTime<Utc>>,
-        _status: Option<SessionStatus>,
+        _filter: storage::SessionListFilter,
         _limit: u32,
     ) -> storage::Result<Vec<Session>> {
         Ok(self.sessions.lock().unwrap().values().cloned().collect())

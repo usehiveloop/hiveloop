@@ -5,7 +5,9 @@ use chrono::{DateTime, Utc};
 use domain::{Session, SessionId, SessionStatus};
 use sqlx::{Row, SqlitePool};
 
-use crate::repos::{notify_write, Result, SessionRepo, SharedWriteNotifier, StorageError};
+use crate::repos::{
+    notify_write, Result, SessionListFilter, SessionRepo, SharedWriteNotifier, StorageError,
+};
 
 pub struct SqliteSessionRepo {
     pool: Arc<SqlitePool>,
@@ -131,31 +133,90 @@ impl SessionRepo for SqliteSessionRepo {
         Ok(())
     }
 
-    async fn list(
-        &self,
-        cursor: Option<DateTime<Utc>>,
-        status: Option<SessionStatus>,
-        limit: u32,
-    ) -> Result<Vec<Session>> {
+    async fn list(&self, filter: SessionListFilter, limit: u32) -> Result<Vec<Session>> {
         let limit = limit.min(500);
-        let cursor_text = cursor.map(|t| t.to_rfc3339());
-        let status_text = status.map(status_to_str);
+        let cursor_text = filter
+            .cursor
+            .as_ref()
+            .map(|c| c.last_activity_at.to_rfc3339());
+        let cursor_id = filter
+            .cursor
+            .as_ref()
+            .and_then(|c| c.id.as_deref())
+            .filter(|id| !id.is_empty());
+        let status_text = filter.status.map(status_to_str);
+        let search_prefix = filter
+            .search
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(escape_like_prefix);
 
         let mut query = String::from("SELECT * FROM sessions WHERE 1 = 1");
-        if cursor_text.is_some() {
-            query.push_str(" AND last_activity_at < ?");
+        match (cursor_text.as_ref(), cursor_id) {
+            (Some(_), Some(_)) => {
+                query.push_str(" AND (last_activity_at < ? OR (last_activity_at = ? AND id < ?))");
+            }
+            (Some(_), None) => {
+                query.push_str(" AND last_activity_at < ?");
+            }
+            (None, _) => {}
         }
         if status_text.is_some() {
             query.push_str(" AND status = ?");
         }
-        query.push_str(" ORDER BY last_activity_at DESC LIMIT ?");
+        if filter.session_id.is_some() {
+            query.push_str(" AND id = ?");
+        }
+        if filter.channel.is_some() {
+            query.push_str(" AND channel = ?");
+        }
+        if filter.thread_ts.is_some() {
+            query.push_str(" AND thread_ts = ?");
+        }
+        if filter.agent_session_id.is_some() {
+            query.push_str(" AND agent_session_id = ?");
+        }
+        if search_prefix.is_some() {
+            query.push_str(
+                " AND (id LIKE ? ESCAPE '\\' OR agent_session_id LIKE ? ESCAPE '\\' \
+                 OR channel LIKE ? ESCAPE '\\' OR thread_ts LIKE ? ESCAPE '\\')",
+            );
+        }
+        query.push_str(" ORDER BY last_activity_at DESC, id DESC LIMIT ?");
 
         let mut prepared = sqlx::query(&query);
-        if let Some(text) = cursor_text.as_ref() {
-            prepared = prepared.bind(text);
+        match (cursor_text.as_ref(), cursor_id) {
+            (Some(text), Some(id)) => {
+                prepared = prepared.bind(text).bind(text).bind(id);
+            }
+            (Some(text), None) => {
+                prepared = prepared.bind(text);
+            }
+            (None, _) => {}
         }
         if let Some(text) = status_text.as_ref() {
             prepared = prepared.bind(*text);
+        }
+        if let Some(value) = filter.session_id.as_ref() {
+            prepared = prepared.bind(value);
+        }
+        if let Some(value) = filter.channel.as_ref() {
+            prepared = prepared.bind(value);
+        }
+        if let Some(value) = filter.thread_ts.as_ref() {
+            prepared = prepared.bind(value);
+        }
+        if let Some(value) = filter.agent_session_id.as_ref() {
+            prepared = prepared.bind(value);
+        }
+        if let Some(prefix) = search_prefix.as_ref() {
+            let pattern = format!("{prefix}%");
+            prepared = prepared
+                .bind(pattern.clone())
+                .bind(pattern.clone())
+                .bind(pattern.clone())
+                .bind(pattern);
         }
         prepared = prepared.bind(limit as i64);
 
@@ -166,4 +227,18 @@ impl SessionRepo for SqliteSessionRepo {
         }
         Ok(sessions)
     }
+}
+
+fn escape_like_prefix(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for ch in value.chars() {
+        match ch {
+            '\\' | '%' | '_' => {
+                out.push('\\');
+                out.push(ch);
+            }
+            _ => out.push(ch),
+        }
+    }
+    out
 }

@@ -38,18 +38,30 @@ pub trait ConfigRepo: Send + Sync + 'static {
     async fn upsert(&self, def: &AgentDefinition) -> Result<()>;
 }
 
+#[derive(Debug, Clone)]
+pub struct SessionListCursor {
+    pub last_activity_at: DateTime<Utc>,
+    pub id: Option<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SessionListFilter {
+    pub cursor: Option<SessionListCursor>,
+    pub status: Option<SessionStatus>,
+    pub session_id: Option<String>,
+    pub channel: Option<String>,
+    pub thread_ts: Option<String>,
+    pub agent_session_id: Option<String>,
+    pub search: Option<String>,
+}
+
 #[async_trait]
 pub trait SessionRepo: Send + Sync + 'static {
     async fn get(&self, id: &SessionId) -> Result<Option<Session>>;
     async fn create(&self, session: &Session) -> Result<()>;
     async fn touch(&self, id: &SessionId, at: DateTime<Utc>) -> Result<()>;
     async fn set_status(&self, id: &SessionId, status: SessionStatus) -> Result<()>;
-    async fn list(
-        &self,
-        cursor: Option<DateTime<Utc>>,
-        status: Option<SessionStatus>,
-        limit: u32,
-    ) -> Result<Vec<Session>>;
+    async fn list(&self, filter: SessionListFilter, limit: u32) -> Result<Vec<Session>>;
 }
 
 #[async_trait]

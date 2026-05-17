@@ -197,6 +197,7 @@ func setupV1Routes(
 				if employeeHandler != nil {
 					r.Get("/employees", employeeHandler.List)
 					r.Get("/employees/{id}", employeeHandler.Get)
+					r.Get("/employees/{id}/sessions", employeeHandler.ListSessions)
 					r.Get("/employees/{id}/agent-templates", employeeHandler.ListAgentTemplates)
 					r.Get("/employees/{id}/connections/available", employeeHandler.ListAvailableConnections)
 					r.Group(func(r chi.Router) {
