@@ -47,9 +47,16 @@ func providerRequiresWebhookConfig(provider string) bool {
 }
 
 func buildConnectionProviderConfig(nangoResp map[string]any) model.JSON {
+	connection := nangoResp
+	if data, ok := nangoResp["data"].(map[string]any); ok {
+		if nested, ok := data["connection"].(map[string]any); ok {
+			connection = nested
+		}
+	}
+
 	config := model.JSON{}
 	for _, key := range []string{"connection_config", "metadata", "credentials", "provider"} {
-		if v, exists := nangoResp[key]; exists && v != nil {
+		if v, exists := connection[key]; exists && v != nil {
 			config[key] = v
 		}
 	}

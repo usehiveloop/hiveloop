@@ -15,6 +15,13 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/trigger/dispatch"
 )
 
+type compiledTriggerMessage struct {
+	Text           string
+	ResourceKey    string
+	ConversationID string
+	Raw            map[string]any
+}
+
 func (h *EmployeeTriggerDispatchHandler) compileMessage(payload EmployeeTriggerDispatchPayload, trigger model.AgentTrigger, webhookPayload map[string]any) compiledTriggerMessage {
 	triggerType := trigger.TriggerType
 	if triggerType == "" {
@@ -95,6 +102,18 @@ func eventKey(eventType, eventAction string) string {
 		return eventType
 	}
 	return eventType + "." + eventAction
+}
+
+func triggerConditionsMatch(trigger model.AgentTrigger, payload map[string]any) (bool, string) {
+	if len(trigger.Conditions) == 0 {
+		return true, ""
+	}
+	var match model.TriggerMatch
+	if err := json.Unmarshal(trigger.Conditions, &match); err != nil {
+		return false, "invalid condition json"
+	}
+	reason, ok := dispatch.MatchConditions(&match, payload)
+	return ok, reason
 }
 
 func lookupTriggerDef(cat *catalog.Catalog, provider, eventType, eventAction string) (*catalog.TriggerDef, bool) {

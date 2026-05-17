@@ -202,8 +202,8 @@ func TestIntegration_EmployeesSync_EnvOnlyUpdateCanClearRuntimeEnvOverlay(t *tes
 	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode sync response: %v", err)
 	}
-	if resp.Applied != 4 {
-		t.Errorf("applied = %d, want 4 proxy env vars", resp.Applied)
+	if resp.Applied != 5 {
+		t.Errorf("applied = %d, want 5 proxy env vars", resp.Applied)
 	}
 	var payload map[string]string
 	if err := json.Unmarshal(h.sidecar.envBody(), &payload); err != nil {
