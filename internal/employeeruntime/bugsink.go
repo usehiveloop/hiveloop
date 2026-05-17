@@ -39,11 +39,14 @@ func BugsinkDashboardBaseURL(ctx context.Context, db *gorm.DB, orgID uuid.UUID, 
 }
 
 func BugsinkDashboardBaseURLFromConnection(conn model.InConnection) string {
-	return normalizeDashboardBaseURL(firstBugsinkString(
-		conn.Meta["base_url"],
-		nestedValue(conn.Meta, "connection_config", "base_url"),
-		nestedValue(conn.Meta, "metadata", "base_url"),
-	))
+	connectionConfig, ok := conn.Meta["connection_config"].(map[string]any)
+	if !ok {
+		if typed, ok := conn.Meta["connection_config"].(model.JSON); ok {
+			connectionConfig = typed
+		}
+	}
+	raw, _ := connectionConfig["baseUrl"].(string)
+	return normalizeDashboardBaseURL(raw)
 }
 
 func connectionIDsFromAgentIntegrations(integrations model.JSON) []uuid.UUID {
@@ -58,30 +61,6 @@ func connectionIDsFromAgentIntegrations(integrations model.JSON) []uuid.UUID {
 		return ids[i].String() < ids[j].String()
 	})
 	return ids
-}
-
-func nestedValue(values model.JSON, keys ...string) any {
-	var current any = values
-	for _, key := range keys {
-		switch typed := current.(type) {
-		case model.JSON:
-			current = typed[key]
-		case map[string]any:
-			current = typed[key]
-		default:
-			return nil
-		}
-	}
-	return current
-}
-
-func firstBugsinkString(values ...any) string {
-	for _, value := range values {
-		if text, ok := value.(string); ok && strings.TrimSpace(text) != "" {
-			return strings.TrimSpace(text)
-		}
-	}
-	return ""
 }
 
 func normalizeDashboardBaseURL(raw string) string {
