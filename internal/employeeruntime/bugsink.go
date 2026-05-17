@@ -39,7 +39,7 @@ func BugsinkDashboardBaseURL(ctx context.Context, db *gorm.DB, orgID uuid.UUID, 
 }
 
 func BugsinkDashboardBaseURLFromConnection(conn model.InConnection) string {
-	return normalizeDashboardBaseURL(firstString(
+	return normalizeDashboardBaseURL(firstBugsinkString(
 		conn.Meta["base_url"],
 		nestedValue(conn.Meta, "connection_config", "base_url"),
 		nestedValue(conn.Meta, "metadata", "base_url"),
@@ -75,7 +75,7 @@ func nestedValue(values model.JSON, keys ...string) any {
 	return current
 }
 
-func firstString(values ...any) string {
+func firstBugsinkString(values ...any) string {
 	for _, value := range values {
 		if text, ok := value.(string); ok && strings.TrimSpace(text) != "" {
 			return strings.TrimSpace(text)
