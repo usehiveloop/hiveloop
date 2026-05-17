@@ -111,6 +111,7 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&InIntegration{},
 		&InConnection{},
 		&AgentTrigger{},
+		&AgentTriggerDelivery{},
 		&OAuthAccount{},
 		&OAuthExchangeToken{},
 		&AdminAuditEntry{},

@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -102,12 +103,22 @@ func enqueueTriggerDispatch(
 		logging.FromContext(ctx).ErrorContext(ctx, "trigger dispatch: failed to build task",
 			"delivery_id", deliveryID, "error", err,
 		)
+		logging.CaptureWithFields(ctx, fmt.Errorf("trigger dispatch: failed to build task: %w", err), map[string]any{
+			"org_id":      wctx.orgID.String(),
+			"delivery_id": deliveryID,
+			"event_key":   eventKeyForHandler(metadata.EventType, metadata.EventAction),
+		})
 		return
 	}
 	if _, err := enqueuer.Enqueue(task); err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "trigger dispatch: failed to enqueue task",
 			"delivery_id", deliveryID, "error", err,
 		)
+		logging.CaptureWithFields(ctx, fmt.Errorf("trigger dispatch: failed to enqueue task: %w", err), map[string]any{
+			"org_id":      wctx.orgID.String(),
+			"delivery_id": deliveryID,
+			"event_key":   eventKeyForHandler(metadata.EventType, metadata.EventAction),
+		})
 		return
 	}
 }

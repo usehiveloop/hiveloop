@@ -100,6 +100,28 @@ func CaptureException(ctx context.Context, err error) {
 	hubFromContext(ctx).CaptureException(err)
 }
 
+func CaptureExceptionWithFields(ctx context.Context, err error, fields map[string]any) {
+	if !Enabled() || err == nil {
+		return
+	}
+	hub := hubFromContext(ctx)
+	hub.WithScope(func(scope *sentrygo.Scope) {
+		for key, value := range fields {
+			switch typed := value.(type) {
+			case string:
+				if typed != "" {
+					scope.SetTag(key, typed)
+				}
+			case fmt.Stringer:
+				scope.SetTag(key, typed.String())
+			default:
+				scope.SetContext(key, sentrygo.Context{"value": value})
+			}
+		}
+		hub.CaptureException(err)
+	})
+}
+
 func CaptureMessage(ctx context.Context, message string) {
 	if !Enabled() || message == "" {
 		return

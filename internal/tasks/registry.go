@@ -126,8 +126,9 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 
 	if deps.Orchestrator != nil && deps.EmployeeCompile.EncKey != nil {
 		mux.HandleFunc(TypeEmployeeTriggerDispatch,
-			NewEmployeeTriggerDispatchHandler(deps.DB, deps.Orchestrator, deps.EmployeeCompile).Handle)
+			NewEmployeeTriggerDispatchHandler(deps.DB, deps.Orchestrator, deps.EmployeeCompile, deps.Enqueuer).Handle)
 	}
+	mux.HandleFunc(TypeEmployeeTriggerStoreDelivery, NewEmployeeTriggerStoreDeliveryHandler(deps.DB).Handle)
 
 	if deps.Rag != nil {
 		ragtasks.RegisterHandlers(mux, deps.Rag)

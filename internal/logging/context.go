@@ -72,6 +72,16 @@ func Capture(ctx context.Context, err error) {
 	sentry.CaptureException(ctx, err)
 }
 
+// CaptureWithFields sends err to Sentry with additional structured context.
+// The fields are also folded into the error message by Sentry's context payload,
+// so callers can correlate expected boundary failures without noisy logs.
+func CaptureWithFields(ctx context.Context, err error, fields map[string]any) {
+	if err == nil {
+		return
+	}
+	sentry.CaptureExceptionWithFields(ctx, err, fields)
+}
+
 // CaptureMessage sends a freeform message to Sentry without emitting a log
 // line. Use sparingly — prefer wrapping an error and calling Capture.
 func CaptureMessage(ctx context.Context, msg string) {

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -119,6 +120,11 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 			"provider", provider,
 			"error", err,
 		)
+		logging.CaptureWithFields(r.Context(), fmt.Errorf("incoming webhook: failed to build dispatch task: %w", err), map[string]any{
+			"org_id":      connection.OrgID.String(),
+			"delivery_id": deliveryID,
+			"event_key":   eventKeyForHandler(eventType, eventAction),
+		})
 		return
 	}
 
@@ -127,8 +133,20 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 			"provider", provider,
 			"error", err,
 		)
+		logging.CaptureWithFields(r.Context(), fmt.Errorf("incoming webhook: failed to enqueue dispatch task: %w", err), map[string]any{
+			"org_id":      connection.OrgID.String(),
+			"delivery_id": deliveryID,
+			"event_key":   eventKeyForHandler(eventType, eventAction),
+		})
 		return
 	}
+}
+
+func eventKeyForHandler(eventType, eventAction string) string {
+	if eventAction == "" {
+		return eventType
+	}
+	return eventType + "." + eventAction
 }
 
 // inferDirectWebhookEvent extracts the event type and action from a raw

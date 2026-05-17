@@ -156,6 +156,7 @@ func setupV1Routes(
 				r.Get("/agents/sandbox-tools", agentHandler.ListSandboxTools)
 				r.Get("/agents/built-in-tools", agentHandler.ListBuiltInTools)
 				r.Get("/agents/categories", agentHandler.ListCategories)
+				triggerDeliveryHandler := handler.NewTriggerDeliveryHandler(database)
 				r.Route("/agents", func(r chi.Router) {
 					r.Post("/", agentHandler.Create)
 					r.Get("/", agentHandler.List)
@@ -173,6 +174,8 @@ func setupV1Routes(
 						r.Post("/{agentID}/conversations", conversationHandler.Create)
 						r.Get("/{agentID}/conversations", conversationHandler.List)
 					}
+					r.Get("/{agentID}/trigger-deliveries", triggerDeliveryHandler.List)
+					r.Get("/{agentID}/trigger-deliveries/{deliveryID}", triggerDeliveryHandler.Get)
 					if agentProfileHandler != nil {
 						r.Get("/{agentID}/profiles/available", agentProfileHandler.ListAvailableProfiles)
 						r.Post("/{agentID}/profiles/slack", agentProfileHandler.CreateSlack)

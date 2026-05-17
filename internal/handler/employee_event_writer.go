@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -44,6 +45,9 @@ func (w *EmployeeEventWriter) drain(ctx context.Context) {
 				"panic", r,
 				"stack", string(debug.Stack()),
 			)
+			logging.CaptureWithFields(ctx, fmt.Errorf("employee event drain panicked: %v", r), map[string]any{
+				"stage": "employee_event_drain_panic",
+			})
 		}
 		w.wg.Done()
 	}()
@@ -62,7 +66,7 @@ func (w *EmployeeEventWriter) drain(ctx context.Context) {
 			}
 			for _, entry := range batch {
 				if err := syncEmployeeScheduleEvent(tx, entry); err != nil {
-					logging.Capture(ctx, err)
+					captureEmployeeMemoryEventFailure(ctx, "batch_sync_schedule", entry, err)
 					logging.FromContext(ctx).WarnContext(ctx, "employee schedule sync failed",
 						"error", err,
 						"event_type", entry.EventType,
@@ -73,7 +77,7 @@ func (w *EmployeeEventWriter) drain(ctx context.Context) {
 			return nil
 		})
 		if err != nil {
-			logging.Capture(ctx, err)
+			logging.CaptureWithFields(ctx, fmt.Errorf("employee event batch write failed: %w", err), employeeEventBatchSentryFields("batch_write", batch))
 			logging.FromContext(ctx).ErrorContext(ctx, "employee event batch write failed", "error", err, "count", len(batch))
 		}
 		batch = batch[:0]
@@ -116,7 +120,7 @@ func (w *EmployeeEventWriter) Write(ctx context.Context, entry model.EmployeeMem
 				return err
 			}
 			if err := syncEmployeeScheduleEvent(tx, entry); err != nil {
-				logging.Capture(ctx, err)
+				captureEmployeeMemoryEventFailure(ctx, "direct_sync_schedule", entry, err)
 				logging.FromContext(ctx).WarnContext(ctx, "employee schedule sync failed",
 					"error", err,
 					"event_type", entry.EventType,
@@ -126,7 +130,7 @@ func (w *EmployeeEventWriter) Write(ctx context.Context, entry model.EmployeeMem
 			return nil
 		})
 		if err != nil {
-			logging.Capture(ctx, err)
+			captureEmployeeMemoryEventFailure(ctx, "direct_write", entry, err)
 			logging.FromContext(ctx).ErrorContext(ctx, "employee event direct write failed", "error", err, "event_type", entry.EventType)
 		}
 	}
@@ -149,4 +153,22 @@ func (w *EmployeeEventWriter) Shutdown(ctx context.Context) {
 	case <-ctx.Done():
 		logging.FromContext(ctx).WarnContext(ctx, "employee event shutdown timed out, some entries may be lost")
 	}
+}
+
+func employeeEventBatchSentryFields(stage string, batch []model.EmployeeMemoryEvent) map[string]any {
+	fields := map[string]any{
+		"stage": stage,
+		"count": len(batch),
+	}
+	if len(batch) == 0 {
+		return fields
+	}
+	first := batch[0]
+	fields["org_id"] = first.OrgID.String()
+	fields["agent_id"] = first.AgentID.String()
+	fields["sandbox_id"] = first.SandboxID.String()
+	fields["session_id"] = first.SessionID
+	fields["event_type"] = first.EventType
+	fields["source"] = first.Source
+	return fields
 }

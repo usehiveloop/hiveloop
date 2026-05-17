@@ -16,6 +16,7 @@ const (
 	TypeSandboxTemplateRetryBuild = "sandbox_template:retry"
 	TypeSkillHydrate              = "skill:hydrate"
 	TypeEmployeeTriggerDispatch   = "employee_trigger:dispatch"
+	TypeEmployeeTriggerStoreDelivery = "employee_trigger:store_delivery"
 	TypeConversationName          = "conversation:name"
 	TypeEmployeeMemoryRetain      = "employee:memory_retain"
 	TypeEmployeeMemoryRefresh     = "employee:memory_refresh"

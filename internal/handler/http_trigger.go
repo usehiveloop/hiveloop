@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -123,6 +124,13 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 			"trigger_id", triggerID,
 			"error", err,
 		)
+		logging.CaptureWithFields(request.Context(), fmt.Errorf("http trigger: failed to build dispatch task: %w", err), map[string]any{
+			"org_id":      trigger.OrgID.String(),
+			"agent_id":    trigger.AgentID.String(),
+			"trigger_id":  triggerID.String(),
+			"delivery_id": deliveryID,
+			"event_key":   "http",
+		})
 		return
 	}
 
@@ -131,6 +139,13 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 			"trigger_id", triggerID,
 			"error", enqueueErr,
 		)
+		logging.CaptureWithFields(request.Context(), fmt.Errorf("http trigger: failed to enqueue dispatch task: %w", enqueueErr), map[string]any{
+			"org_id":      trigger.OrgID.String(),
+			"agent_id":    trigger.AgentID.String(),
+			"trigger_id":  triggerID.String(),
+			"delivery_id": deliveryID,
+			"event_key":   "http",
+		})
 		return
 	}
 }

@@ -91,7 +91,9 @@ func (h *EmployeeOutboundWebhookHandler) Handle(w http.ResponseWriter, r *http.R
 		event.At = h.now().UTC()
 	}
 	h.storeAndMaybeEnqueue(ctx, &sb, &event)
-	h.db.WithContext(ctx).Model(&sb).Update("last_active_at", h.now())
+	if err := h.db.WithContext(ctx).Model(&sb).Update("last_active_at", h.now()).Error; err != nil {
+		captureEmployeeWebhookIngest(ctx, "update_last_active", &sb, &event, "", "", err)
+	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
@@ -103,6 +105,7 @@ func (h *EmployeeOutboundWebhookHandler) verifySignature(ctx context.Context, sb
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "employee outbound webhook: failed to decrypt runtime secret",
 			"sandbox_id", sb.ID, "error", err)
+		captureEmployeeWebhookIngest(ctx, "decrypt_runtime_secret", sb, nil, "", "", err)
 		return false
 	}
 	signature = strings.TrimSpace(strings.TrimPrefix(signature, "sha256="))
@@ -118,11 +121,15 @@ func (h *EmployeeOutboundWebhookHandler) verifySignature(ctx context.Context, sb
 func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Context, sb *model.Sandbox, event *employeeOutboundEvent) {
 	payload := map[string]any{}
 	if len(event.Payload) > 0 {
-		_ = json.Unmarshal(event.Payload, &payload)
+		if err := json.Unmarshal(event.Payload, &payload); err != nil {
+			captureEmployeeWebhookIngest(ctx, "decode_event_payload", sb, event, "", "", err)
+		}
 	}
 	sessionID := stringValue(payload, "session_id")
+	source := employeeEventSource(payload)
 	stored, ok := employeeMemoryEventFromOutbound(sb, event, payload, sessionID)
 	if !ok {
+		captureEmployeeWebhookIngest(ctx, "drop_missing_sandbox_owner", sb, event, sessionID, source, fmt.Errorf("employee sandbox missing org_id or agent_id"))
 		return
 	}
 	if h.writer != nil {
@@ -133,18 +140,18 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 				return err
 			}
 			if err := syncEmployeeScheduleEvent(tx, stored); err != nil {
-				logging.Capture(ctx, fmt.Errorf("employee outbound webhook: sync schedule sandbox_id=%s event_type=%s: %w", sb.ID, event.EventType, err))
+				captureEmployeeMemoryEventFailure(ctx, "sync_schedule", stored, err)
 			}
 			return nil
 		})
 		if err != nil {
-			logging.Capture(ctx, fmt.Errorf("employee outbound webhook: store memory event sandbox_id=%s event_type=%s: %w", sb.ID, event.EventType, err))
+			captureEmployeeMemoryEventFailure(ctx, "store_memory_event", stored, err)
 			return
 		}
 	}
 	if event.EventType == "skill.synced" {
 		if err := h.syncSkillEvent(ctx, sb, payload); err != nil {
-			logging.Capture(ctx, fmt.Errorf("employee outbound webhook: sync skill sandbox_id=%s: %w", sb.ID, err))
+			captureEmployeeWebhookIngest(ctx, "sync_skill", sb, event, sessionID, source, err)
 		}
 	}
 	if h.enqueuer == nil || sessionID == "" || !shouldTriggerEmployeeMemoryCheckpoint(event.EventType) {
@@ -158,7 +165,7 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 		SourceEvent: event.EventType,
 	})
 	if err != nil {
-		logging.Capture(ctx, err)
+		captureEmployeeWebhookIngest(ctx, "build_memory_retain_task", sb, event, sessionID, source, err)
 		return
 	}
 	if _, err := h.enqueuer.EnqueueContext(ctx, task,
@@ -166,7 +173,7 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 		asynq.Unique(90*time.Second),
 		asynq.TaskID("employee-memory-retain:"+sb.ID.String()+":"+sessionID),
 	); err != nil && !errors.Is(err, asynq.ErrDuplicateTask) {
-		logging.Capture(ctx, fmt.Errorf("employee outbound webhook: enqueue memory retain: %w", err))
+		captureEmployeeWebhookIngest(ctx, "enqueue_memory_retain", sb, event, sessionID, source, err)
 	}
 }
 
@@ -244,4 +251,47 @@ func stringValue(m map[string]any, key string) string {
 		return strings.TrimSpace(value)
 	}
 	return ""
+}
+
+func captureEmployeeWebhookIngest(ctx context.Context, stage string, sb *model.Sandbox, event *employeeOutboundEvent, sessionID, source string, err error) {
+	if err == nil {
+		return
+	}
+	fields := map[string]any{
+		"stage":      stage,
+		"session_id": sessionID,
+		"source":     source,
+	}
+	if sb != nil {
+		fields["sandbox_id"] = sb.ID.String()
+		if sb.OrgID != nil {
+			fields["org_id"] = sb.OrgID.String()
+		}
+		if sb.AgentID != nil {
+			fields["agent_id"] = sb.AgentID.String()
+		}
+	}
+	if event != nil {
+		fields["event_type"] = event.EventType
+	}
+	logging.CaptureWithFields(ctx, fmt.Errorf("employee outbound webhook ingest %s: %w", stage, err), fields)
+}
+
+func captureEmployeeMemoryEventFailure(ctx context.Context, stage string, entry model.EmployeeMemoryEvent, err error) {
+	if err == nil {
+		return
+	}
+	logging.CaptureWithFields(ctx, fmt.Errorf("employee memory event %s: %w", stage, err), employeeMemoryEventSentryFields(stage, entry))
+}
+
+func employeeMemoryEventSentryFields(stage string, entry model.EmployeeMemoryEvent) map[string]any {
+	return map[string]any{
+		"stage":      stage,
+		"org_id":     entry.OrgID.String(),
+		"agent_id":   entry.AgentID.String(),
+		"sandbox_id": entry.SandboxID.String(),
+		"session_id": entry.SessionID,
+		"event_type": entry.EventType,
+		"source":     entry.Source,
+	}
 }
