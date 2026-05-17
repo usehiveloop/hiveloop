@@ -37,7 +37,7 @@ func (h *EmployeeHandler) ensureSoftwareEngineeringSpecialistTx(ctx context.Cont
 		CredentialID:   &choice.cred.ID,
 		TeamID:         &team.ID,
 		Team:           team.Name,
-		Harness:        employeeHarness,
+		Harness:        employeeCloudAgentHarness,
 		IsEmployee:     false,
 		Status:         "active",
 		Tools:          model.JSON{},
@@ -111,7 +111,7 @@ func updateSoftwareEngineeringSpecialist(ctx context.Context, tx *gorm.DB, subag
 		"identity_prompt": softwareEngineeringSpecialistSystemPrompt,
 		"team_id":         team.ID,
 		"team":            team.Name,
-		"harness":         employeeHarness,
+		"harness":         employeeCloudAgentHarness,
 		"is_employee":     false,
 		"status":          "active",
 		"agent_config":    mergeAgentConfig(subagent.AgentConfig, softwareEngineeringSpecialistAgentConfig()),
@@ -125,7 +125,7 @@ func updateSoftwareEngineeringSpecialist(ctx context.Context, tx *gorm.DB, subag
 	subagent.IdentityPrompt = softwareEngineeringSpecialistSystemPrompt
 	subagent.TeamID = &team.ID
 	subagent.Team = team.Name
-	subagent.Harness = employeeHarness
+	subagent.Harness = employeeCloudAgentHarness
 	subagent.IsEmployee = false
 	subagent.Status = "active"
 	subagent.AgentConfig = updates["agent_config"].(model.JSON)

@@ -71,7 +71,7 @@ func (h *EmployeeHandler) ensureBusinessResearchSpecialistTx(ctx context.Context
 		CredentialID:   &choice.cred.ID,
 		TeamID:         &team.ID,
 		Team:           team.Name,
-		Harness:        employeeHarness,
+		Harness:        employeeCloudAgentHarness,
 		IsEmployee:     false,
 		Status:         "active",
 		Tools:          model.JSON{},
@@ -145,7 +145,7 @@ func updateBusinessResearchSpecialist(ctx context.Context, tx *gorm.DB, subagent
 		"identity_prompt": researchSpecialistSystemPrompt,
 		"team_id":         team.ID,
 		"team":            team.Name,
-		"harness":         employeeHarness,
+		"harness":         employeeCloudAgentHarness,
 		"is_employee":     false,
 		"status":          "active",
 		"agent_config":    mergeAgentConfig(subagent.AgentConfig, businessResearchSpecialistAgentConfig()),
@@ -159,7 +159,7 @@ func updateBusinessResearchSpecialist(ctx context.Context, tx *gorm.DB, subagent
 	subagent.IdentityPrompt = researchSpecialistSystemPrompt
 	subagent.TeamID = &team.ID
 	subagent.Team = team.Name
-	subagent.Harness = employeeHarness
+	subagent.Harness = employeeCloudAgentHarness
 	subagent.IsEmployee = false
 	subagent.Status = "active"
 	subagent.AgentConfig = updates["agent_config"].(model.JSON)

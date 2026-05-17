@@ -311,6 +311,11 @@ func TestIntegration_EmployeesSync_EnsuresDefaultCloudAgents(t *testing.T) {
 	if !strings.Contains(software.SystemPrompt, "Software Engineering Specialist") {
 		t.Fatalf("subagent prompt missing Software Engineering Specialist identity")
 	}
+	for typ, sub := range subagents {
+		if sub.Harness != "open_code" {
+			t.Fatalf("%s.harness = %q, want open_code", typ, sub.Harness)
+		}
+	}
 }
 
 func assertEmployeeRuntimeConfig(t *testing.T, body []byte) {

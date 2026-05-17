@@ -14,6 +14,7 @@ import (
 
 const (
 	employeeHarness             = "employee-sandbox"
+	employeeCloudAgentHarness   = "open_code"
 	employeeCategoryEngineering = "engineering"
 	engineeringTeamName         = "Engineering"
 )

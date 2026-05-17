@@ -479,8 +479,8 @@ func TestIntegration_EmployeesCreate_CreatesDefaultCloudAgents(t *testing.T) {
 		if sub.Category == nil || *sub.Category != "engineering" {
 			t.Errorf("%s.category = %v, want engineering", typ, sub.Category)
 		}
-		if sub.Harness != "employee-sandbox" {
-			t.Errorf("%s.harness = %q, want employee-sandbox", typ, sub.Harness)
+		if sub.Harness != "open_code" {
+			t.Errorf("%s.harness = %q, want open_code", typ, sub.Harness)
 		}
 		if sub.Status != "active" {
 			t.Errorf("%s.status = %q, want active", typ, sub.Status)

@@ -139,5 +139,32 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		return err
 	}
 
+	if err := migrateEmployeeCloudAgentHarness(db); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func migrateEmployeeCloudAgentHarness(db *gorm.DB) error {
+	switch db.Dialector.Name() {
+	case "postgres":
+		return db.Exec(`
+			UPDATE agents
+			SET harness = 'open_code'
+			WHERE is_employee = false
+				AND harness = 'employee-sandbox'
+				AND agent_config->>'default_cloud_agent_type' IN ('business_research_specialist', 'software_engineering_specialist')
+		`).Error
+	case "sqlite":
+		return db.Exec(`
+			UPDATE agents
+			SET harness = 'open_code'
+			WHERE is_employee = false
+				AND harness = 'employee-sandbox'
+				AND json_extract(agent_config, '$.default_cloud_agent_type') IN ('business_research_specialist', 'software_engineering_specialist')
+		`).Error
+	default:
+		return nil
+	}
 }
