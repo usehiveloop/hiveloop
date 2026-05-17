@@ -13,20 +13,14 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// Delete handles DELETE /v1/employees/{id}.
 // @Summary Delete an AI employee
-// @Description Permanently deletes an employee and related control-plane records. Provider resource cleanup is handled by sandbox retirement flows.
 // @Tags employees
 // @Produce json
 // @Param id path string true "Employee agent ID"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} errorResponse
-// @Failure 401 {object} errorResponse
-// @Failure 403 {object} errorResponse
 // @Failure 404 {object} errorResponse
 // @Failure 409 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Security BearerAuth
 // @Router /v1/employees/{id} [delete]
 func (h *EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

@@ -74,7 +74,7 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 		Name: "test-agent-" + suffix, Model: "test",
 		CredentialID: &credID,
 		SystemPrompt: "test", Status: "active",
-		Tools: emptyJSON, McpServers: emptyJSON, Skills: emptyJSON,
+		McpServers: emptyJSON, Skills: emptyJSON,
 		Integrations: emptyJSON, AgentConfig: emptyJSON,
 		Permissions: emptyJSON,
 	}

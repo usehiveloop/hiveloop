@@ -97,7 +97,6 @@ func (agent *Agent) ResolveProviderConfig(providerGroup string) (systemPrompt st
 	return
 }
 
-// BridgeAgentID returns the Bridge agent ID.
 func (agent *Agent) BridgeAgentID(providerGroup string) string {
 	return agent.ID.String()
 }

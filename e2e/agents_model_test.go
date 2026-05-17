@@ -59,7 +59,6 @@ func TestAgentModels_CRUD(t *testing.T) {
 			OrgID: &org.ID, Name: "test-agent-" + suffix,
 			Description: &desc, CredentialID: &cred.ID,
 			SystemPrompt: "You are a helpful assistant.", Model: "gpt-4o",
-			Tools:       model.JSON{"0": map[string]any{"name": "read"}},
 			AgentConfig: model.JSON{"max_tokens": float64(4096), "temperature": 0.3},
 			Permissions: model.JSON{"bash": "require_approval"}, Status: "active",
 		}
@@ -153,7 +152,6 @@ func TestAgentModels_CRUD(t *testing.T) {
 		conv := model.AgentConversation{
 			OrgID: org.ID, AgentID: agent.ID, SandboxID: sandbox.ID,
 			RuntimeConversationID: "bridge-conv-" + suffix, Status: "active",
-			IntegrationScopes: model.JSON{"scopes": []any{"github"}},
 		}
 		h.db.Create(&conv)
 		t.Cleanup(func() { h.db.Where("id = ?", conv.ID).Delete(&model.AgentConversation{}) })

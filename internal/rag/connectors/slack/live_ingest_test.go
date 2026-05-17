@@ -66,7 +66,6 @@ func TestSlackBotProfileRAGIngestion_Live(t *testing.T) {
 		SystemPrompt:    "test",
 		Model:           "test",
 		IsEmployee:      true,
-		Tools:           model.JSON{},
 		McpServers:      model.JSON{},
 		Skills:          model.JSON{},
 		Integrations:    model.JSON{},

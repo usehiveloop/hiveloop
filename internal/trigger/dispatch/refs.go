@@ -204,8 +204,6 @@ func lookupPath(payload map[string]any, path string) (any, bool) {
 	return current, true
 }
 
-// ExtractRefs is the exported alias for extractRefs. Employee trigger dispatch
-// uses the same catalog-ref extraction logic in tests and message formatting.
 func ExtractRefs(payload map[string]any, defs map[string]string) (refs map[string]string, missing []string) {
 	return extractRefs(payload, defs)
 }
