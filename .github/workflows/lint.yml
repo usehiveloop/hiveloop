@@ -79,18 +79,14 @@ jobs:
         with:
           go-version: "1.25.10"
           cache: true
-      - uses: golangci/golangci-lint-action@v9
-        with:
-          version: v1.64.8
-          # goinstall builds golangci-lint with the Go toolchain we just set
-          # up, so it matches the 1.25 requirement in our go.mod. The default
-          # "binary" mode uses the prebuilt release which for v1.64 was
-          # compiled with Go 1.24 and rejects our 1.25 target.
-          install-mode: goinstall
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+      - name: Run golangci-lint
+        run: |
           # Scope to the maintained packages. cmd/fetchactions-* and
           # skills/upload have pre-existing typecheck failures unrelated to
           # the server build; linting them blocks everything else.
-          args: --timeout=5m --new-from-rev=origin/main ./internal/... ./cmd/server/...
+          golangci-lint run --timeout=5m --new-from-rev=origin/main ./internal/... ./cmd/server/...
 
   go-vet:
     name: go vet
