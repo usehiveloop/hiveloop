@@ -357,6 +357,16 @@ Before writing, verify the exact input type in the schema. Common mutation input
 
 After a write, return only the changed object fields needed to confirm the result.
 
+Linear issue descriptions and comments accept markdown. Use markdown when it improves clarity:
+
+- Headings for sections: `## Context`, `## Acceptance criteria`.
+- Bullets or numbered lists for steps.
+- Fenced code blocks for commands, stack traces, or compact logs.
+- Checklists for tracked follow-up work.
+- Links with `[label](url)`.
+
+Keep markdown compact. Do not paste large logs or full payloads into descriptions or comments.
+
 ### Create an issue
 
 First resolve the team, optional workflow state, optional assignee, and optional labels. Issue creation requires `teamId`.
@@ -390,7 +400,20 @@ Then create the issue:
 ```bash
 TEAM_ID="1424ce65-a4a9-459b-accb-bcd1ffc695b6"
 TITLE="Investigate webhook retry failures"
-DESCRIPTION="Created by the employee after reviewing the trigger failure logs."
+DESCRIPTION=$(cat <<'MD'
+## Context
+Webhook delivery retries are failing after the trigger router refactor.
+
+## Evidence
+- Bugsink shows repeated `502` responses from the delivery worker.
+- Retry attempts exhaust before the employee sandbox accepts the event.
+
+## Acceptance criteria
+- [ ] Identify the failing request path
+- [ ] Add a regression test
+- [ ] Confirm delivery succeeds in staging
+MD
+)
 
 linear_graphql 'mutation CreateIssue($input: IssueCreateInput!) {
   issueCreate(input: $input) {
@@ -422,6 +445,56 @@ linear_graphql 'mutation CreateIssue($input: IssueCreateInput!) {
       team: .team.key,
       assignee: .assignee.displayName,
       labels: [.labels.nodes[] | {id, name}]
+    }
+  }'
+```
+
+Create an issue with a markdown code block:
+
+```bash
+TEAM_ID="1424ce65-a4a9-459b-accb-bcd1ffc695b6"
+TITLE="Fix failing deploy check"
+DESCRIPTION=$(cat <<'MD'
+## Failing check
+
+The deploy job fails while building the employee sandbox image.
+
+```bash
+docker build -f sandboxes/employee/Dockerfile.runtime .
+```
+
+## Expected result
+
+The image should build and publish without manual retry.
+MD
+)
+
+linear_graphql 'mutation CreateIssueWithMarkdown($input: IssueCreateInput!) {
+  issueCreate(input: $input) {
+    success
+    issue {
+      id
+      identifier
+      title
+      url
+      description
+      team { key name }
+    }
+  }
+}' "$(jq -n \
+      --arg teamId "$TEAM_ID" \
+      --arg title "$TITLE" \
+      --arg description "$DESCRIPTION" \
+      '{input: {teamId: $teamId, title: $title, description: $description}}')" \
+  | jq '{
+    success: .data.issueCreate.success,
+    issue: .data.issueCreate.issue | {
+      id,
+      identifier,
+      title,
+      url,
+      team: .team.key,
+      description: ((.description // "") | .[0:1200])
     }
   }'
 ```
@@ -548,7 +621,22 @@ linear_graphql 'mutation MoveIssue($id: String!, $input: IssueUpdateInput!) {
 
 ```bash
 ISSUE_ID="ENG-17"
-BODY="I checked the latest logs. The next step is to verify the retry path after deploy."
+BODY=$(cat <<'MD'
+### Update
+
+I checked the latest logs and found the retry path is failing before the sandbox receives the event.
+
+Next steps:
+
+1. Patch the proxy path
+2. Run the focused regression test
+3. Confirm the staging delivery path is green
+
+```bash
+go test ./internal/handler -run 'BugsinkProxy' -count=1
+```
+MD
+)
 
 linear_graphql 'mutation AddIssueComment($input: CommentCreateInput!) {
   commentCreate(input: $input) {
