@@ -85,8 +85,8 @@ func dispatchCloudAgentCallback(ctx context.Context, db *gorm.DB, encKey *crypto
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return fmt.Errorf("callback returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("callback returned status %d", resp.StatusCode)
 	}
 	return nil
 }

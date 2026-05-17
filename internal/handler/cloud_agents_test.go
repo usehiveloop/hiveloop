@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	sentrygo "github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
@@ -735,5 +736,77 @@ func TestCloudAgentListTasks_SubagentNotFound(t *testing.T) {
 	rec := h.doRequest("GET", fmt.Sprintf("/internal/employees/%s/cloud-agents/%s/tasks", h.agentID, fakeAgentID))
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestCloudAgentCreateTask_SentryCapturesSafeContext(t *testing.T) {
+	transport := &bugsinkCaptureTransport{}
+	if err := sentrygo.Init(sentrygo.ClientOptions{Dsn: "https://public@example.com/1", Transport: transport, EnableTracing: false}); err != nil {
+		t.Fatalf("sentry init: %v", err)
+	}
+	t.Cleanup(func() { sentrygo.Flush(0) })
+
+	h := newCloudAgentHarness(t)
+	cloudAgentID := h.seedCloudAgent(t)
+	failingHandler := handler.NewCloudAgentHandlerWithHooks(h.db, h.encKey, handler.CloudAgentHandlerHooks{
+		CreateDedicatedSandbox: func(context.Context, *model.Agent, map[string]string) (*model.Sandbox, error) {
+			return nil, fmt.Errorf("sandbox provider rejected request")
+		},
+		PushAgentToSandbox: func(context.Context, *model.Agent, *model.Sandbox) error {
+			return nil
+		},
+		GetBridgeClient: func(context.Context, *model.Sandbox) (handler.CloudAgentBridgeClient, error) {
+			return h.fakeBridge, nil
+		},
+	})
+	router := chi.NewRouter()
+	router.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks", failingHandler.CreateTask)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/internal/employees/%s/cloud-agents/%s/tasks?token=must-not-leak", h.agentID, cloudAgentID), bytes.NewReader([]byte(`{
+		"brief":"secret prompt must-not-leak",
+		"parent_conversation_type":"agent_conversation",
+		"parent_conversation_id":"session-123"
+	}`)))
+	req.Header.Set("Authorization", "Bearer "+h.bridgeKey)
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d: %s", rec.Code, rec.Body.String())
+	}
+	sentrygo.Flush(0)
+
+	event := transport.event.Load()
+	if event == nil {
+		t.Fatal("expected sentry event")
+	}
+	if got := event.Tags["feature"]; got != "cloud_agents" {
+		t.Fatalf("feature tag = %q", got)
+	}
+	if got := event.Tags["cloud_agent.operation"]; got != "create_task" {
+		t.Fatalf("operation tag = %q", got)
+	}
+	if got := event.Tags["cloud_agent.phase"]; got != "create_dedicated_sandbox" {
+		t.Fatalf("phase tag = %q", got)
+	}
+	if got := event.Tags["employee_id"]; got != h.agentID.String() {
+		t.Fatalf("employee tag = %q", got)
+	}
+	if got := event.Tags["cloud_agent_id"]; got != cloudAgentID.String() {
+		t.Fatalf("cloud agent tag = %q", got)
+	}
+
+	exceptionValues := make([]string, 0, len(event.Exception))
+	for _, ex := range event.Exception {
+		exceptionValues = append(exceptionValues, ex.Value)
+	}
+	blob, _ := json.Marshal(map[string]any{
+		"message":    event.Message,
+		"tags":       event.Tags,
+		"contexts":   event.Contexts,
+		"exceptions": exceptionValues,
+	})
+	if strings.Contains(string(blob), "must-not-leak") || strings.Contains(string(blob), h.bridgeKey) {
+		t.Fatalf("sentry event leaked request context: %s", string(blob))
 	}
 }

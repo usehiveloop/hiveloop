@@ -29,6 +29,7 @@ rig-core = "0.36.0"
 reqwest = { version = "0.13.3", features = ["json", "stream"] }
 async-stream = "0.3.6"
 base64 = "0.22.1"
+sentry.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true }

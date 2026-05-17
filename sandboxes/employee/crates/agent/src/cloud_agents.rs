@@ -225,7 +225,7 @@ impl CloudAgentClient {
             self.config.employee_id
         ));
         let response: CloudAgentsResponse = self
-            .send(self.http.get(url))
+            .send("list_agents", None, None, self.http.get(url))
             .await
             .context("list cloud agents")?;
         Ok(response.cloud_agents)
@@ -236,7 +236,7 @@ impl CloudAgentClient {
             "/internal/employees/{}/cloud-agents/{agent_id}/tasks?limit={limit}",
             self.config.employee_id
         ));
-        self.send(self.http.get(url))
+        self.send("list_tasks", Some(agent_id), None, self.http.get(url))
             .await
             .context("list cloud agent tasks")
     }
@@ -246,9 +246,14 @@ impl CloudAgentClient {
             "/internal/employees/{}/cloud-agents/{agent_id}/tasks/{task_id}",
             self.config.employee_id
         ));
-        self.send(self.http.get(url))
-            .await
-            .context("get cloud agent task")
+        self.send(
+            "get_task",
+            Some(agent_id),
+            Some(task_id),
+            self.http.get(url),
+        )
+        .await
+        .context("get cloud agent task")
     }
 
     async fn launch_task(
@@ -268,9 +273,14 @@ impl CloudAgentClient {
             "parent_conversation_id": session_id,
             "metadata": metadata,
         });
-        self.send(self.http.post(url).json(&body))
-            .await
-            .context("launch cloud agent task")
+        self.send(
+            "launch_task",
+            Some(agent_id),
+            None,
+            self.http.post(url).json(&body),
+        )
+        .await
+        .context("launch cloud agent task")
     }
 
     async fn send_message(
@@ -283,9 +293,14 @@ impl CloudAgentClient {
             "/internal/employees/{}/cloud-agents/{agent_id}/tasks/{task_id}/message",
             self.config.employee_id
         ));
-        self.send(self.http.post(url).json(&json!({ "message": message })))
-            .await
-            .context("send cloud agent task message")
+        self.send(
+            "send_message",
+            Some(agent_id),
+            Some(task_id),
+            self.http.post(url).json(&json!({ "message": message })),
+        )
+        .await
+        .context("send cloud agent task message")
     }
 
     async fn terminate_task(
@@ -298,25 +313,80 @@ impl CloudAgentClient {
             "/internal/employees/{}/cloud-agents/{agent_id}/tasks/{task_id}",
             self.config.employee_id
         ));
-        self.send(self.http.post(url).json(&json!({ "reason": reason })))
-            .await
-            .context("terminate cloud agent task")
+        self.send(
+            "terminate_task",
+            Some(agent_id),
+            Some(task_id),
+            self.http.post(url).json(&json!({ "reason": reason })),
+        )
+        .await
+        .context("terminate cloud agent task")
     }
 
-    async fn send<T>(&self, request: reqwest::RequestBuilder) -> Result<T>
+    async fn send<T>(
+        &self,
+        operation: &'static str,
+        agent_id: Option<&str>,
+        task_id: Option<&str>,
+        request: reqwest::RequestBuilder,
+    ) -> Result<T>
     where
         T: for<'de> Deserialize<'de>,
     {
-        let response = request
+        let response = match request
             .bearer_auth(&self.config.bridge_api_key)
             .send()
-            .await?;
+            .await
+        {
+            Ok(response) => response,
+            Err(error) => {
+                let error = anyhow!(error).context("send control-plane request");
+                self.capture_error(operation, agent_id, task_id, "send_request", None, &error);
+                return Err(error);
+            }
+        };
         let status = response.status();
-        let body = response.text().await?;
+        let body = match response.text().await {
+            Ok(body) => body,
+            Err(error) => {
+                let error = anyhow!(error).context("read control-plane response");
+                self.capture_error(
+                    operation,
+                    agent_id,
+                    task_id,
+                    "read_response",
+                    Some(status),
+                    &error,
+                );
+                return Err(error);
+            }
+        };
         if !status.is_success() {
+            let sentry_error = anyhow!("cloud control-plane returned {status}");
+            self.capture_error(
+                operation,
+                agent_id,
+                task_id,
+                "control_plane_status",
+                Some(status),
+                &sentry_error,
+            );
             return Err(control_plane_error(status, &body));
         }
-        serde_json::from_str(&body).with_context(|| format!("parse control-plane response: {body}"))
+        match serde_json::from_str(&body).with_context(|| "parse control-plane response") {
+            Ok(parsed) => Ok(parsed),
+            Err(error) => {
+                self.capture_error(
+                    operation,
+                    agent_id,
+                    task_id,
+                    "parse_response",
+                    Some(status),
+                    &error,
+                );
+                Err(error)
+            }
+        }
     }
 
     fn url(&self, path: &str) -> String {
@@ -325,6 +395,39 @@ impl CloudAgentClient {
             self.config.control_plane_url.trim_end_matches('/'),
             path
         )
+    }
+
+    fn capture_error(
+        &self,
+        operation: &'static str,
+        agent_id: Option<&str>,
+        task_id: Option<&str>,
+        phase: &'static str,
+        status: Option<StatusCode>,
+        error: &anyhow::Error,
+    ) {
+        sentry::with_scope(
+            |scope| {
+                scope.set_level(Some(sentry::Level::Error));
+                scope.set_tag("service", "employee-bridge");
+                scope.set_tag("feature", "cloud_agents");
+                scope.set_tag("cloud_agent.operation", operation);
+                scope.set_tag("cloud_agent.phase", phase);
+                scope.set_tag("employee_id", self.config.employee_id.clone());
+                if let Some(agent_id) = agent_id {
+                    scope.set_tag("cloud_agent_id", agent_id.to_string());
+                }
+                if let Some(task_id) = task_id {
+                    scope.set_tag("cloud_agent.task_id", task_id.to_string());
+                }
+                if let Some(status) = status {
+                    scope.set_tag("http.status_code", status.as_u16().to_string());
+                }
+            },
+            || {
+                sentry::capture_error(error.root_cause());
+            },
+        );
     }
 }
 

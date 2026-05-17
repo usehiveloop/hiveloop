@@ -399,6 +399,45 @@ pub struct CloudAgentCallbackResponse {
     pub session_id: Option<String>,
 }
 
+fn capture_cloud_agent_callback_failure(
+    phase: &'static str,
+    request: &CloudAgentCallbackRequest,
+    status: StatusCode,
+    message: &str,
+) {
+    let sentry_error = anyhow::anyhow!("cloud agent callback {phase}: {status}");
+    sentry::with_scope(
+        |scope| {
+            scope.set_level(Some(if status.is_server_error() {
+                sentry::Level::Error
+            } else {
+                sentry::Level::Warning
+            }));
+            scope.set_tag("service", "employee-bridge");
+            scope.set_tag("feature", "cloud_agents");
+            scope.set_tag("cloud_agent.operation", "callback");
+            scope.set_tag("cloud_agent.phase", phase);
+            scope.set_tag("http.status_code", status.as_u16().to_string());
+            if !request.task_id.trim().is_empty() {
+                scope.set_tag("cloud_agent.task_id", request.task_id.clone());
+            }
+            if !request.agent_id.trim().is_empty() {
+                scope.set_tag("cloud_agent_id", request.agent_id.clone());
+            }
+            if !request.event_type.trim().is_empty() {
+                scope.set_tag("cloud_agent.event_type", request.event_type.clone());
+            }
+            if !request.event_id.trim().is_empty() {
+                scope.set_tag("cloud_agent.event_id", request.event_id.clone());
+            }
+            scope.set_extra("reason", message.to_string().into());
+        },
+        || {
+            sentry::capture_error(sentry_error.root_cause());
+        },
+    );
+}
+
 #[cfg_attr(feature = "openapi", utoipa::path(
     post,
     path = "/gateway/cloud-agents/callback",
@@ -416,33 +455,49 @@ pub async fn post_cloud_agent_callback(
     State(state): State<ApiState>,
     Json(request): Json<CloudAgentCallbackRequest>,
 ) -> Result<(StatusCode, Json<CloudAgentCallbackResponse>), (StatusCode, String)> {
-    validate_cloud_agent_callback(&request)?;
+    if let Err(error) = validate_cloud_agent_callback(&request) {
+        capture_cloud_agent_callback_failure("validate_callback", &request, error.0, &error.1);
+        return Err(error);
+    }
 
-    let session_id = resolve_cloud_callback_session(&state, &request)
-        .await
-        .ok_or_else(|| {
-            (
+    let session_id = match resolve_cloud_callback_session(&state, &request).await {
+        Some(session_id) => session_id,
+        None => {
+            let message = format!("no session route found for task `{}`", request.task_id);
+            capture_cloud_agent_callback_failure(
+                "resolve_session",
+                &request,
                 StatusCode::NOT_FOUND,
-                format!("no session route found for task `{}`", request.task_id),
-            )
-        })?;
+                &message,
+            );
+            return Err((StatusCode::NOT_FOUND, message));
+        }
+    };
 
     if state
         .session_repo
         .get(&session_id)
         .await
         .map_err(|error| {
-            (
+            let message = format!("load session: {error}");
+            capture_cloud_agent_callback_failure(
+                "load_session",
+                &request,
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("load session: {error}"),
-            )
+                &message,
+            );
+            (StatusCode::INTERNAL_SERVER_ERROR, message)
         })?
         .is_none()
     {
-        return Err((
+        let message = format!("session `{session_id}` not found");
+        capture_cloud_agent_callback_failure(
+            "session_not_found",
+            &request,
             StatusCode::NOT_FOUND,
-            format!("session `{session_id}` not found"),
-        ));
+            &message,
+        );
+        return Err((StatusCode::NOT_FOUND, message));
     }
 
     let inserted = persist_and_publish_cloud_agent_callback(&state, &session_id, &request).await?;
@@ -502,6 +557,14 @@ async fn persist_and_publish_cloud_agent_callback(
     request: &CloudAgentCallbackRequest,
 ) -> Result<bool, (StatusCode, String)> {
     let status = cloud_agent_event_status(request);
+    if matches!(status, Some(SessionStatus::Errored)) {
+        capture_cloud_agent_callback_failure(
+            "agent_error_event",
+            request,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "cloud agent reported an error event",
+        );
+    }
     let payload = cloud_agent_event_payload(session_id, request, status);
 
     let inserted_id = state
@@ -514,10 +577,14 @@ async fn persist_and_publish_cloud_agent_callback(
         )
         .await
         .map_err(|error| {
-            (
+            let message = format!("append session event: {error}");
+            capture_cloud_agent_callback_failure(
+                "append_session_event",
+                request,
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("append session event: {error}"),
-            )
+                &message,
+            );
+            (StatusCode::INTERNAL_SERVER_ERROR, message)
         })?;
     if inserted_id.is_none() {
         return Ok(false);
@@ -528,10 +595,14 @@ async fn persist_and_publish_cloud_agent_callback(
         .touch(session_id, request.timestamp)
         .await
         .map_err(|error| {
-            (
+            let message = format!("touch session: {error}");
+            capture_cloud_agent_callback_failure(
+                "touch_session",
+                request,
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("touch session: {error}"),
-            )
+                &message,
+            );
+            (StatusCode::INTERNAL_SERVER_ERROR, message)
         })?;
 
     if let Some(status) = status {
@@ -540,10 +611,14 @@ async fn persist_and_publish_cloud_agent_callback(
             .set_status(session_id, status)
             .await
             .map_err(|error| {
-                (
+                let message = format!("set session status: {error}");
+                capture_cloud_agent_callback_failure(
+                    "set_session_status",
+                    request,
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("set session status: {error}"),
-                )
+                    &message,
+                );
+                (StatusCode::INTERNAL_SERVER_ERROR, message)
             })?;
     }
 

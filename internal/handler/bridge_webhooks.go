@@ -76,6 +76,10 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "sandbox not found"})
 			return
 		}
+		captureCloudAgentFailure(ctx, "bridge_webhook", err, cloudAgentSentryContext{
+			Operation: "load_sandbox",
+			SandboxID: sbUUID,
+		})
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load sandbox"})
 		return
 	}
@@ -90,6 +94,11 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		secret, err := h.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
 		if err != nil {
 			logging.FromContext(r.Context()).ErrorContext(r.Context(), "webhook: failed to decrypt bridge api key", "sandbox_id", sandboxID, "error", err)
+			captureCloudAgentFailure(ctx, "bridge_webhook", err, cloudAgentSentryContext{
+				Operation: "decrypt_bridge_key",
+				OrgID:     uuidValue(sb.OrgID),
+				SandboxID: sb.ID,
+			})
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "signature verification failed"})
 			return
 		}
@@ -221,15 +230,15 @@ func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *m
 		return
 	}
 	dbEvent := model.ConversationEvent{
-		OrgID:                conv.OrgID,
-		ConversationID:       conv.ID,
-		EventID:              event.EventID,
-		EventType:            eventType,
-		AgentID:              event.AgentID,
+		OrgID:                 conv.OrgID,
+		ConversationID:        conv.ID,
+		EventID:               event.EventID,
+		EventType:             eventType,
+		AgentID:               event.AgentID,
 		RuntimeConversationID: event.ConversationID,
-		Timestamp:            event.Timestamp,
-		SequenceNumber:       event.SequenceNumber,
-		Data:                 model.RawJSON(event.Data),
+		Timestamp:             event.Timestamp,
+		SequenceNumber:        event.SequenceNumber,
+		Data:                  model.RawJSON(event.Data),
 	}
 	if err := h.db.WithContext(ctx).Create(&dbEvent).Error; err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "webhook: failed to store event",
@@ -237,6 +246,13 @@ func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *m
 			"conversation_id", conv.ID,
 			"error", err,
 		)
+		captureCloudAgentFailure(ctx, "bridge_webhook", err, cloudAgentSentryContext{
+			Operation:      "store_conversation_event",
+			OrgID:          conv.OrgID,
+			CloudAgentID:   conv.AgentID,
+			SandboxID:      conv.SandboxID,
+			ConversationID: conv.ID,
+		})
 	}
 }
 
@@ -247,36 +263,6 @@ func shouldStoreConversationEvent(eventType string) bool {
 
 func shouldForwardCloudAgentEvent(eventType string) bool {
 	return shouldStoreConversationEvent(eventType)
-}
-
-func (h *BridgeWebhookHandler) cloudAgentTaskForConversation(ctx context.Context, conversationID uuid.UUID) (*model.CloudAgentTask, bool) {
-	var task model.CloudAgentTask
-	if err := h.db.WithContext(ctx).Where("conversation_id = ?", conversationID).First(&task).Error; err != nil {
-		return nil, false
-	}
-	return &task, true
-}
-
-func (h *BridgeWebhookHandler) forwardCloudAgentEvent(ctx context.Context, task model.CloudAgentTask, conv *model.AgentConversation, event *webhookEvent) {
-	dbEvent := model.ConversationEvent{
-		OrgID:                conv.OrgID,
-		ConversationID:       conv.ID,
-		EventID:              event.EventID,
-		EventType:            event.EventType,
-		AgentID:              event.AgentID,
-		RuntimeConversationID: event.ConversationID,
-		Timestamp:            event.Timestamp,
-		SequenceNumber:       event.SequenceNumber,
-		Data:                 model.RawJSON(event.Data),
-	}
-	if err := dispatchCloudAgentCallback(ctx, h.db, h.encKey, task, dbEvent); err != nil {
-		logging.FromContext(ctx).WarnContext(ctx, "webhook: failed to forward cloud agent event to employee bridge",
-			"task_id", task.ID,
-			"event_id", event.EventID,
-			"event_type", event.EventType,
-			"error", err,
-		)
-	}
 }
 
 // verifyWebhookSignature verifies the HMAC-SHA256 signature.
