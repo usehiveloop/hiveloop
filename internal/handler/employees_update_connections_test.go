@@ -92,6 +92,27 @@ func TestIntegration_EmployeeUpdate_AttachesBugsinkConnectionSkill(t *testing.T)
 	}
 }
 
+func TestIntegration_EmployeeUpdate_AttachesLinearConnectionSkill(t *testing.T) {
+	h := newEmployeeHarness(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	linear := h.seedGlobalSkill(t, "linear", model.SkillStatusPublished)
+	conn := h.seedEmployeeConnection(t, m, "linear")
+
+	rr := h.putEmployee(t, m, agent.ID, map[string]any{
+		"connection_ids": []string{conn.ID.String()},
+		"skill_ids":      []string{},
+	}, "admin")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("update status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+
+	links := skillIDsFor(t, h.db, agent.ID)
+	if !links[linear.ID] {
+		t.Fatalf("employee missing mapped linear skill: %v", links)
+	}
+}
+
 func TestIntegration_EmployeeAvailableConnections_ExcludesProfileConnections(t *testing.T) {
 	h := newEmployeeHarness(t)
 	m := h.createOrg(t)

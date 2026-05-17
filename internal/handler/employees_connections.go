@@ -21,6 +21,7 @@ var employeeConnectionSkillNames = map[string][]string{
 	"github":                  {"git-github"},
 	"github-app":              {"git-github"},
 	"github-app-code-reviews": {"git-github"},
+	"linear":                  {"linear"},
 }
 
 type employeeConnectionResponse struct {
