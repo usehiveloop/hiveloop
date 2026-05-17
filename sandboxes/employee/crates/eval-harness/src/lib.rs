@@ -12,7 +12,7 @@ use observability::{ModelUsage, ObservabilityEvent, TraceSummary};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use skills::SkillWriter;
-use storage::{ConfigRepo, EventRepo, SessionRepo, StorageError};
+use storage::{ConfigRepo, EventRepo, SessionListFilter, SessionRepo, StorageError};
 use tokio::sync::{mpsc, oneshot};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -476,12 +476,7 @@ impl SessionRepo for NoopSessionRepo {
         Ok(())
     }
 
-    async fn list(
-        &self,
-        _cursor: Option<DateTime<Utc>>,
-        _status: Option<SessionStatus>,
-        _limit: u32,
-    ) -> storage::Result<Vec<Session>> {
+    async fn list(&self, _filter: SessionListFilter, _limit: u32) -> storage::Result<Vec<Session>> {
         Ok(Vec::new())
     }
 }
