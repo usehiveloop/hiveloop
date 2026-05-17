@@ -50,6 +50,8 @@ pub struct SlackConfig {
     #[serde(default)]
     pub channel_prompts: std::collections::HashMap<String, String>,
     #[serde(default)]
+    pub postable_channels: Vec<SlackChannelSpec>,
+    #[serde(default)]
     pub retry_max_attempts: Option<u32>,
 }
 
@@ -101,9 +103,21 @@ impl Default for SlackConfig {
             inline_text_max_bytes: 102_400,
             reply_in_thread: true,
             channel_prompts: std::collections::HashMap::new(),
+            postable_channels: Vec::new(),
             retry_max_attempts: Some(3),
         }
     }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct SlackChannelSpec {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub is_private: bool,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

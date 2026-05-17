@@ -12,8 +12,8 @@ pub enum ToolSpec {
     WriteFile(WriteFileConfig),
     #[serde(rename = "builtin.post_status_update")]
     PostStatusUpdate,
-    #[serde(rename = "builtin.post_to_channel")]
-    PostToChannel,
+    #[serde(rename = "builtin.post_to_slack_channel")]
+    PostToSlackChannel,
     #[serde(rename = "builtin.cron")]
     Cron,
     #[serde(rename = "builtin.delegate")]

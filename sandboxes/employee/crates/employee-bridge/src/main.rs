@@ -407,7 +407,7 @@ fn default_builtin_tool_specs() -> Vec<ToolSpec> {
             atomic: true,
         }),
         ToolSpec::PostStatusUpdate,
-        ToolSpec::PostToChannel,
+        ToolSpec::PostToSlackChannel,
         ToolSpec::Cron,
         ToolSpec::Delegate,
         ToolSpec::CheckDelegatedStatus,

@@ -26,7 +26,7 @@ d['agent']['system_prompt'] = sp
 tools = d.get('tools', [])
 existing = {t['type'] for t in tools}
 for spec in [
-    'builtin.post_status_update', 'builtin.post_to_channel',
+    'builtin.post_status_update', 'builtin.post_to_slack_channel',
     'builtin.cron', 'builtin.delegate', 'builtin.check_delegated_status',
     'builtin.check_bash_status', 'builtin.wake', 'builtin.load_tools',
 ]:

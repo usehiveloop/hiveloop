@@ -338,13 +338,13 @@ func (e ToolSpec3Type) Valid() bool {
 
 // Defines values for ToolSpec4Type.
 const (
-	BuiltinPostToChannel ToolSpec4Type = "builtin.post_to_channel"
+	BuiltinPostToSlackChannel ToolSpec4Type = "builtin.post_to_slack_channel"
 )
 
 // Valid indicates whether the value is a known member of the ToolSpec4Type enum.
 func (e ToolSpec4Type) Valid() bool {
 	switch e {
-	case BuiltinPostToChannel:
+	case BuiltinPostToSlackChannel:
 		return true
 	default:
 		return false
@@ -871,6 +871,15 @@ type ReadFileConfig struct {
 // ReasoningEffort defines model for ReasoningEffort.
 type ReasoningEffort string
 
+// RuntimeEnvResponse defines model for RuntimeEnvResponse.
+type RuntimeEnvResponse struct {
+	AppliedAt time.Time `json:"applied_at"`
+	KeyCount  int       `json:"key_count"`
+}
+
+// RuntimeEnvUpdate defines model for RuntimeEnvUpdate.
+type RuntimeEnvUpdate map[string]string
+
 // Session defines model for Session.
 type Session struct {
 	AgentSessionId string    `json:"agent_session_id"`
@@ -957,6 +966,14 @@ type SkillTrigger1 struct {
 // SkillTrigger1Type defines model for SkillTrigger.1.Type.
 type SkillTrigger1Type string
 
+// SlackChannelSpec defines model for SlackChannelSpec.
+type SlackChannelSpec struct {
+	Description *string `json:"description,omitempty"`
+	Id          string  `json:"id"`
+	IsPrivate   *bool   `json:"is_private,omitempty"`
+	Name        string  `json:"name"`
+}
+
 // SlackConfig defines model for SlackConfig.
 type SlackConfig struct {
 	AllowBots            *AllowBotsMode       `json:"allow_bots,omitempty"`
@@ -972,6 +989,7 @@ type SlackConfig struct {
 	InlineTextMaxBytes   *int64               `json:"inline_text_max_bytes,omitempty"`
 	MaxMessageLength     *int32               `json:"max_message_length,omitempty"`
 	MrkdwnTranslation    *bool                `json:"mrkdwn_translation,omitempty"`
+	PostableChannels     *[]SlackChannelSpec  `json:"postable_channels,omitempty"`
 	ProgressiveMessages  *ProgressiveMessages `json:"progressive_messages,omitempty"`
 	ReactionsEnabled     *bool                `json:"reactions_enabled,omitempty"`
 	ReplyBroadcast       *bool                `json:"reply_broadcast,omitempty"`
@@ -1217,12 +1235,30 @@ type ListSessionsParams struct {
 	// Status Session status filter: active, completed, or errored
 	Status *string `form:"status,omitempty" json:"status,omitempty"`
 
+	// SessionId Exact session ID filter
+	SessionId *string `form:"session_id,omitempty" json:"session_id,omitempty"`
+
+	// Channel Exact channel filter
+	Channel *string `form:"channel,omitempty" json:"channel,omitempty"`
+
+	// ThreadTs Exact thread timestamp filter
+	ThreadTs *string `form:"thread_ts,omitempty" json:"thread_ts,omitempty"`
+
+	// AgentSessionId Exact agent session ID filter
+	AgentSessionId *string `form:"agent_session_id,omitempty" json:"agent_session_id,omitempty"`
+
+	// Q Prefix search over session identifiers
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+
 	// Limit Maximum sessions to return, clamped from 1 to 200
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // PutConfigJSONRequestBody defines body for PutConfig for application/json ContentType.
 type PutConfigJSONRequestBody = AgentDefinition
+
+// PutRuntimeEnvJSONRequestBody defines body for PutRuntimeEnv for application/json ContentType.
+type PutRuntimeEnvJSONRequestBody = RuntimeEnvUpdate
 
 // PostCloudAgentCallbackJSONRequestBody defines body for PostCloudAgentCallback for application/json ContentType.
 type PostCloudAgentCallbackJSONRequestBody = CloudAgentCallbackRequest
@@ -2120,6 +2156,11 @@ type ClientInterface interface {
 
 	PutConfig(ctx context.Context, body PutConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PutRuntimeEnvWithBody request with any body
+	PutRuntimeEnvWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutRuntimeEnv(ctx context.Context, body PutRuntimeEnvJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// PostCloudAgentCallbackWithBody request with any body
 	PostCloudAgentCallbackWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -2178,6 +2219,30 @@ func (c *Client) PutConfigWithBody(ctx context.Context, contentType string, body
 
 func (c *Client) PutConfig(ctx context.Context, body PutConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPutConfigRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutRuntimeEnvWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutRuntimeEnvRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutRuntimeEnv(ctx context.Context, body PutRuntimeEnvJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutRuntimeEnvRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2368,6 +2433,46 @@ func NewPutConfigRequestWithBody(server string, contentType string, body io.Read
 	}
 
 	operationPath := fmt.Sprintf("/config")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPutRuntimeEnvRequest calls the generic PutRuntimeEnv builder with application/json body
+func NewPutRuntimeEnvRequest(server string, body PutRuntimeEnvJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutRuntimeEnvRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPutRuntimeEnvRequestWithBody generates requests for PutRuntimeEnv with any type of body
+func NewPutRuntimeEnvRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/config/env")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2675,6 +2780,66 @@ func NewListSessionsRequest(server string, params *ListSessionsParams) (*http.Re
 
 		}
 
+		if params.SessionId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "session_id", *params.SessionId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Channel != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "channel", *params.Channel, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.ThreadTs != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "thread_ts", *params.ThreadTs, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.AgentSessionId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "agent_session_id", *params.AgentSessionId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Q != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "q", *params.Q, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Limit != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int32"}); err != nil {
@@ -2793,6 +2958,11 @@ type ClientWithResponsesInterface interface {
 
 	PutConfigWithResponse(ctx context.Context, body PutConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*PutConfigResp, error)
 
+	// PutRuntimeEnvWithBodyWithResponse request with any body
+	PutRuntimeEnvWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRuntimeEnvResp, error)
+
+	PutRuntimeEnvWithResponse(ctx context.Context, body PutRuntimeEnvJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRuntimeEnvResp, error)
+
 	// PostCloudAgentCallbackWithBodyWithResponse request with any body
 	PostCloudAgentCallbackWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostCloudAgentCallbackResp, error)
 
@@ -2879,6 +3049,36 @@ func (r PutConfigResp) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r PutConfigResp) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PutRuntimeEnvResp struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *RuntimeEnvResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r PutRuntimeEnvResp) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutRuntimeEnvResp) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutRuntimeEnvResp) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -3179,6 +3379,23 @@ func (c *ClientWithResponses) PutConfigWithResponse(ctx context.Context, body Pu
 	return ParsePutConfigResp(rsp)
 }
 
+// PutRuntimeEnvWithBodyWithResponse request with arbitrary body returning *PutRuntimeEnvResp
+func (c *ClientWithResponses) PutRuntimeEnvWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRuntimeEnvResp, error) {
+	rsp, err := c.PutRuntimeEnvWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutRuntimeEnvResp(rsp)
+}
+
+func (c *ClientWithResponses) PutRuntimeEnvWithResponse(ctx context.Context, body PutRuntimeEnvJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRuntimeEnvResp, error) {
+	rsp, err := c.PutRuntimeEnv(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutRuntimeEnvResp(rsp)
+}
+
 // PostCloudAgentCallbackWithBodyWithResponse request with arbitrary body returning *PostCloudAgentCallbackResp
 func (c *ClientWithResponses) PostCloudAgentCallbackWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostCloudAgentCallbackResp, error) {
 	rsp, err := c.PostCloudAgentCallbackWithBody(ctx, contentType, body, reqEditors...)
@@ -3318,6 +3535,32 @@ func ParsePutConfigResp(rsp *http.Response) (*PutConfigResp, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ConfigResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutRuntimeEnvResp parses an HTTP response from a PutRuntimeEnvWithResponse call
+func ParsePutRuntimeEnvResp(rsp *http.Response) (*PutRuntimeEnvResp, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutRuntimeEnvResp{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RuntimeEnvResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

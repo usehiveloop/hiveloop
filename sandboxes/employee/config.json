@@ -111,7 +111,7 @@
       "type": "builtin.post_status_update"
     },
     {
-      "type": "builtin.post_to_channel"
+      "type": "builtin.post_to_slack_channel"
     },
     {
       "type": "builtin.cron"
