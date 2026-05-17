@@ -97,15 +97,7 @@ func (agent *Agent) ResolveProviderConfig(providerGroup string) (systemPrompt st
 	return
 }
 
-// BridgeAgentID returns the Bridge agent ID for a given provider group.
-//
-// For system agents (IsSystem=true): returns "{agentID}-{providerGroup}" so that
-// each provider variant gets its own Bridge definition from a single DB row.
-//
-// For non-system agents: returns the plain agent ID string.
+// BridgeAgentID returns the Bridge agent ID.
 func (agent *Agent) BridgeAgentID(providerGroup string) string {
-	if agent.IsSystem && providerGroup != "" {
-		return fmt.Sprintf("%s-%s", agent.ID.String(), providerGroup)
-	}
 	return agent.ID.String()
 }

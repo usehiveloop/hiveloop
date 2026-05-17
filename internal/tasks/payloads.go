@@ -9,32 +9,6 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-// WebhookForwardPayload is the payload for TypeWebhookForward tasks.
-type WebhookForwardPayload struct {
-	WebhookURL      string `json:"webhook_url"`
-	EncryptedSecret []byte `json:"encrypted_secret"`
-	Body            []byte `json:"body"`
-}
-
-// NewWebhookForwardTask creates a task that forwards a webhook to an org's endpoint.
-func NewWebhookForwardTask(webhookURL string, encryptedSecret []byte, body []byte) (*asynq.Task, error) {
-	payload, err := json.Marshal(WebhookForwardPayload{
-		WebhookURL:      webhookURL,
-		EncryptedSecret: encryptedSecret,
-		Body:            body,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("marshal webhook forward payload: %w", err)
-	}
-	return asynq.NewTask(
-		TypeWebhookForward,
-		payload,
-		asynq.Queue(QueueCritical),
-		asynq.MaxRetry(5),
-		asynq.Timeout(30*time.Second),
-	), nil
-}
-
 // EmailSendPayload is the payload for TypeEmailSend tasks.
 type EmailSendPayload struct {
 	To      string `json:"to"`

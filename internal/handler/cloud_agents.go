@@ -279,7 +279,6 @@ func (h *CloudAgentHandler) ListCloudAgents(w http.ResponseWriter, r *http.Reque
 			Name:         agent.Name,
 			SystemPrompt: agent.SystemPrompt,
 			Model:        agent.Model,
-			Tools:        agent.Tools,
 			Skills:       agent.Skills,
 			RecentTasks:  []cloudAgentTaskWithEvents{},
 		}
@@ -837,7 +836,6 @@ type cloudAgentWithTasks struct {
 	Name         string                     `json:"name"`
 	SystemPrompt string                     `json:"system_prompt"`
 	Model        string                     `json:"model"`
-	Tools        model.JSON                 `json:"tools"`
 	Skills       model.JSON                 `json:"skills"`
 	RecentTasks  []cloudAgentTaskWithEvents `json:"recent_tasks"`
 }

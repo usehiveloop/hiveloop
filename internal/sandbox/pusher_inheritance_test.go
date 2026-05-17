@@ -44,7 +44,6 @@ func TestPusherBuildAgentDefinition_InheritsEmployeeSkillsIntegrationsAndResourc
 				"repository": []any{map[string]any{"id": "octo-org/api", "name": "api"}},
 			},
 		},
-		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{}, AgentConfig: model.JSON{}, Permissions: model.JSON{},
 	}
 	if err := db.Create(&employee).Error; err != nil {
 		t.Fatalf("create employee: %v", err)
@@ -60,7 +59,6 @@ func TestPusherBuildAgentDefinition_InheritsEmployeeSkillsIntegrationsAndResourc
 				"repository": []any{map[string]any{"id": "octo-org/worker", "name": "worker"}},
 			},
 		},
-		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{}, Integrations: model.JSON{}, AgentConfig: model.JSON{}, Permissions: model.JSON{},
 	}
 	if err := db.Create(&subagent).Error; err != nil {
 		t.Fatalf("create subagent: %v", err)

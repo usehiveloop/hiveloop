@@ -121,7 +121,7 @@ export function OnboardingProvider({
   const stepIndex = stepOrder.indexOf(step)
 
   const createEmployeeMutation = $api.useMutation("post", "/v1/employees")
-  const updateEmployeeMutation = $api.useMutation("put", "/v1/agents/{id}")
+  const updateEmployeeMutation = $api.useMutation("put", "/v1/employees/{id}")
   const employeesQuery = $api.useQuery(
     "get",
     "/v1/employees",
@@ -245,7 +245,6 @@ export function OnboardingProvider({
         {
           params: { path: { id: bootstrapped.agentId } },
           body: {
-            category: v.agentCategory,
             name: v.agentName.trim(),
             description: v.agentDescription.trim(),
             avatar_url: v.agentAvatarUrl?.trim() || "",

@@ -109,7 +109,6 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Harness:        employeeHarness,
 		IsEmployee:     true,
 		Status:         "draft",
-		Tools:          model.JSON{},
 		McpServers:     model.JSON{},
 		Skills:         model.JSON{},
 		Integrations:   model.JSON{},

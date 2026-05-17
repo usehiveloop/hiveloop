@@ -55,28 +55,6 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		}
 	}()
 
-	if err := db.Migrator().DropTable(
-		"router_conversations",
-		"routing_decisions",
-		"routing_rules",
-		"router_triggers",
-		"routers",
-		"conversation_subscriptions",
-	); err != nil {
-		return err
-	}
-	if db.Migrator().HasColumn(&AgentConversation{}, "bridge_conversation_id") &&
-		!db.Migrator().HasColumn(&AgentConversation{}, "runtime_conversation_id") {
-		if err := db.Migrator().RenameColumn(&AgentConversation{}, "bridge_conversation_id", "runtime_conversation_id"); err != nil {
-			return err
-		}
-	}
-	if db.Migrator().HasColumn(&ConversationEvent{}, "bridge_conversation_id") &&
-		!db.Migrator().HasColumn(&ConversationEvent{}, "runtime_conversation_id") {
-		if err := db.Migrator().RenameColumn(&ConversationEvent{}, "bridge_conversation_id", "runtime_conversation_id"); err != nil {
-			return err
-		}
-	}
 	if db.Migrator().HasIndex(&InIntegration{}, "idx_in_integ_provider") {
 		if err := db.Migrator().DropIndex(&InIntegration{}, "idx_in_integ_provider"); err != nil {
 			return err
@@ -127,7 +105,6 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&AgentSkill{},
 		&AgentSubagent{},
 		&AgentProfile{},
-		&FailedEvent{},
 		&Team{},
 		&EmployeeAsset{},
 		&CloudAgentTask{},
@@ -139,32 +116,5 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		return err
 	}
 
-	if err := migrateEmployeeCloudAgentHarness(db); err != nil {
-		return err
-	}
-
 	return nil
-}
-
-func migrateEmployeeCloudAgentHarness(db *gorm.DB) error {
-	switch db.Dialector.Name() {
-	case "postgres":
-		return db.Exec(`
-			UPDATE agents
-			SET harness = 'open_code'
-			WHERE is_employee = false
-				AND harness = 'employee-sandbox'
-				AND agent_config->>'default_cloud_agent_type' IN ('business_research_specialist', 'software_engineering_specialist')
-		`).Error
-	case "sqlite":
-		return db.Exec(`
-			UPDATE agents
-			SET harness = 'open_code'
-			WHERE is_employee = false
-				AND harness = 'employee-sandbox'
-				AND json_extract(agent_config, '$.default_cloud_agent_type') IN ('business_research_specialist', 'software_engineering_specialist')
-		`).Error
-	default:
-		return nil
-	}
 }

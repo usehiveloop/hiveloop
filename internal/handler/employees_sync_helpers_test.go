@@ -80,7 +80,6 @@ func (h *employeeHarness) seedEmployeeAgent(t *testing.T, m orgWithMember) model
 		SystemPrompt: "you are a test employee",
 		CredentialID: &credID,
 		Status:       "active",
-		Tools:        model.JSON{},
 		McpServers:   model.JSON{},
 		Skills:       model.JSON{},
 		Integrations: model.JSON{},

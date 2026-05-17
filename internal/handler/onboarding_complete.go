@@ -86,7 +86,7 @@ func (h *EmployeeHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Requ
 
 	var agent model.Agent
 	err := h.db.WithContext(ctx).
-		Where("org_id = ? AND is_employee = true AND is_system = false", org.ID).
+		Where("org_id = ? AND is_employee = true", org.ID).
 		Order("created_at ASC").Limit(1).First(&agent).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

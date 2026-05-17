@@ -156,7 +156,6 @@ type adminConversationResponse struct {
 	AgentID   string  `json:"agent_id"`
 	SandboxID string  `json:"sandbox_id"`
 	Status    string  `json:"status"`
-	TokenID   *string `json:"token_id,omitempty"`
 	CreatedAt string  `json:"created_at"`
 	EndedAt   *string `json:"ended_at,omitempty"`
 }
@@ -169,10 +168,6 @@ func toAdminConversationResponse(c model.AgentConversation) adminConversationRes
 		SandboxID: c.SandboxID.String(),
 		Status:    c.Status,
 		CreatedAt: c.CreatedAt.Format(time.RFC3339),
-	}
-	if c.TokenID != nil {
-		id := c.TokenID.String()
-		resp.TokenID = &id
 	}
 	if c.EndedAt != nil {
 		t := c.EndedAt.Format(time.RFC3339)

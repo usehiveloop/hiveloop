@@ -167,7 +167,7 @@ func (h *LinearProxyHandler) resolveOwningEmployee(ctx context.Context, orgID uu
 	var employee model.Agent
 	if err := h.db.WithContext(ctx).
 		Joins("JOIN agent_subagents ON agent_subagents.agent_id = agents.id").
-		Where("agent_subagents.subagent_id = ? AND agents.org_id = ? AND agents.is_employee = ? AND agents.is_system = ?", agent.ID, orgID, true, false).
+		Where("agent_subagents.subagent_id = ? AND agents.org_id = ? AND agents.is_employee = ?", agent.ID, orgID, true).
 		Order("agent_subagents.created_at ASC").
 		First(&employee).Error; err != nil {
 		return model.Agent{}, err

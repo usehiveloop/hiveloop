@@ -157,22 +157,11 @@ func setupV1Routes(
 				r.Get("/agents/built-in-tools", agentHandler.ListBuiltInTools)
 				r.Get("/agents/categories", agentHandler.ListCategories)
 				r.Route("/agents", func(r chi.Router) {
-					r.Post("/", agentHandler.Create)
-					r.Get("/", agentHandler.List)
-					r.Get("/{id}", agentHandler.Get)
-					r.Put("/{id}", agentHandler.Update)
-					r.Delete("/{id}", agentHandler.Delete)
-					r.Get("/{id}/setup", agentHandler.GetSetup)
-					r.Put("/{id}/setup", agentHandler.UpdateSetup)
 					r.Route("/{agentID}/skills", func(r chi.Router) {
 						r.Post("/", skillHandler.AttachToAgent)
 						r.Get("/", skillHandler.ListAgentSkills)
 						r.Delete("/{skillID}", skillHandler.DetachFromAgent)
 					})
-					if conversationHandler != nil {
-						r.Post("/{agentID}/conversations", conversationHandler.Create)
-						r.Get("/{agentID}/conversations", conversationHandler.List)
-					}
 					if agentProfileHandler != nil {
 						r.Get("/{agentID}/profiles/available", agentProfileHandler.ListAvailableProfiles)
 						r.Post("/{agentID}/profiles/slack", agentProfileHandler.CreateSlack)
@@ -200,6 +189,7 @@ func setupV1Routes(
 						r.Use(middleware.RequireOrgAdmin(database))
 						r.Post("/employees", employeeHandler.Create)
 						r.Put("/employees/{id}", employeeHandler.Update)
+						r.Delete("/employees/{id}", employeeHandler.Delete)
 						r.Post("/employees/{id}/sync", employeeHandler.Sync)
 						r.Post("/employees/{id}/agent-templates/{slug}/install", employeeHandler.InstallAgentTemplate)
 						r.Post("/employees/{id}/sandbox/upgrade", employeeHandler.StartSandboxUpgrade)

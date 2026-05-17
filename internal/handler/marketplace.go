@@ -135,7 +135,7 @@ func (h *MarketplaceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		SystemPrompt:         agent.SystemPrompt,
 		Instructions:         agent.Instructions,
 		Model:                agent.Model,
-		Tools:                agent.Tools,
+		Tools:                model.JSON{},
 		McpServers:           agent.McpServers,
 		Skills:               agent.Skills,
 		Integrations:         agent.Integrations,

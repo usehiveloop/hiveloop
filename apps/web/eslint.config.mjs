@@ -33,14 +33,6 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ["app/w/agents/_components/manage-integrations-dialog.tsx"],
-    rules: {
-      // TanStack Virtual intentionally returns imperative functions. This
-      // warning is noisy and not actionable for the virtualized action list.
-      "react-hooks/incompatible-library": "off",
-    },
-  },
-  {
     // Build/codegen scripts are CLI-shaped — console output is the point.
     files: ["scripts/**/*.{ts,mts,tsx,js,mjs}"],
     rules: {

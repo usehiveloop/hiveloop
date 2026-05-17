@@ -2,19 +2,11 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
-	"net/http"
-	"time"
 
-	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/billing"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 	"github.com/usehiveloop/hiveloop/internal/streaming"
 )
@@ -108,113 +100,4 @@ type conversationMessagesResponse struct {
 	LatestTodos []conversationTodoItem        `json:"latest_todos,omitempty"`
 	NextCursor  *string                       `json:"next_cursor,omitempty"`
 	HasMore     bool                          `json:"has_more"`
-}
-
-// Create handles POST /v1/agents/{agentID}/conversations.
-// @Summary Create a conversation
-// @Description Creates a new conversation for an agent by spinning up a dedicated sandbox.
-// @Tags conversations
-// @Produce json
-// @Param agentID path string true "Agent ID"
-// @Success 201 {object} conversationResponse
-// @Failure 404 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Failure 503 {object} errorResponse
-// @Security BearerAuth
-// @Router /v1/agents/{agentID}/conversations [post]
-func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
-	org, ok := middleware.OrgFromContext(r.Context())
-	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
-		return
-	}
-
-	if h.credits != nil {
-		if err := h.credits.Spend(org.ID, 1, billing.ReasonAgentRun, "conversation", ""); err != nil {
-			if errors.Is(err, billing.ErrInsufficientCredits) {
-				writeJSON(w, http.StatusPaymentRequired, map[string]string{
-					"error": "insufficient credits — add credits or upgrade your plan",
-				})
-				return
-			}
-			logging.FromContext(r.Context()).ErrorContext(r.Context(), "credits: spend failed", "org_id", org.ID, "error", err)
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to check credits"})
-			return
-		}
-	}
-
-	agentID := chi.URLParam(r, "agentID")
-
-	var agent model.Agent
-	if err := h.db.Preload("Credential").
-		Where("id = ? AND org_id = ? AND status = 'active'", agentID, org.ID).First(&agent).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
-			return
-		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load agent"})
-		return
-	}
-
-	if h.orchestrator == nil || h.pusher == nil {
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "sandbox orchestrator not configured"})
-		return
-	}
-
-	ctx := r.Context()
-
-	sb, err := h.orchestrator.CreateDedicatedSandbox(ctx, &agent)
-	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create dedicated sandbox", "agent_id", agent.ID, "error", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
-		return
-	}
-	if err := h.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to push agent to dedicated sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to initialize agent in sandbox"})
-		return
-	}
-
-	client, err := h.orchestrator.GetBridgeClient(ctx, sb)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to connect to sandbox"})
-		return
-	}
-
-	bridgeResp, err := client.CreateConversation(ctx, agent.ID.String())
-	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create conversation in bridge", "agent_id", agent.ID, "error", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create conversation"})
-		return
-	}
-
-	conv := model.AgentConversation{
-		OrgID:                org.ID,
-		AgentID:              agent.ID,
-		SandboxID:            sb.ID,
-		RuntimeConversationID: bridgeResp.ConversationId,
-		Status:               "active",
-	}
-	if err := h.db.Create(&conv).Error; err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to save conversation"})
-		return
-	}
-
-	h.db.Model(sb).Update("last_active_at", time.Now())
-
-	logging.FromContext(r.Context()).InfoContext(r.Context(), "conversation created",
-		"conversation_id", conv.ID,
-		"agent_id", agent.ID,
-		"sandbox_id", sb.ID,
-		"runtime_conversation_id", bridgeResp.ConversationId,
-	)
-
-	writeJSON(w, http.StatusCreated, conversationResponse{
-		ID:        conv.ID.String(),
-		AgentID:   agent.ID.String(),
-		Name:      conv.Name,
-		Status:    "active",
-		StreamURL: fmt.Sprintf("/v1/conversations/%s/stream", conv.ID),
-		CreatedAt: conv.CreatedAt.Format(time.RFC3339),
-	})
 }

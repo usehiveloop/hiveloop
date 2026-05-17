@@ -4516,125 +4516,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/agents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List agents
-         * @description Returns agents for the current organization with optional filters.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Filter by status (active, archived) */
-                    status?: string;
-                    /** @description Page size (default 50, max 100) */
-                    limit?: number;
-                    /** @description Pagination cursor */
-                    cursor?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["paginatedResponse-agentResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Create an agent
-         * @description Creates a new agent tied to a credential. A dedicated sandbox is provisioned lazily on conversation create.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Agent definition */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["createAgentRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["agentResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/agents/built-in-tools": {
         parameters: {
             query?: never;
@@ -4746,108 +4627,6 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/conversations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List conversations for an agent
-         * @description Returns conversations for the specified agent.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Filter by status (active, ended, error) */
-                    status?: string;
-                    /** @description Page size */
-                    limit?: number;
-                    /** @description Pagination cursor */
-                    cursor?: string;
-                };
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["paginatedResponse-conversationResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Create a conversation
-         * @description Creates a new conversation for an agent by spinning up a dedicated sandbox.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["conversationResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Service Unavailable */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;
@@ -6004,252 +5783,6 @@ export interface paths {
                 };
             };
         };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get an agent
-         * @description Returns a single agent by ID, including the latest forge run if one exists.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["agentResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        /**
-         * Update an agent
-         * @description Updates an agent. Re-validates credential/model compatibility.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            /** @description Fields to update */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["updateAgentRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["agentResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        /**
-         * Delete an agent
-         * @description Deletes an agent and removes it from Bridge.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{id}/setup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get agent sandbox setup config
-         * @description Returns setup commands and env var key names for dedicated agents.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["setupResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        /**
-         * Update agent sandbox setup config
-         * @description Sets setup commands and encrypted environment variables. Only available for dedicated sandbox agents.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            /** @description Setup configuration */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["setupRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["setupResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -8935,7 +8468,89 @@ export interface paths {
             };
         };
         post?: never;
-        delete?: never;
+        /**
+         * Delete an AI employee
+         * @description Permanently deletes an employee and related control-plane records. Provider resource cleanup is handled by sandbox retirement flows.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -14019,7 +13634,6 @@ export interface components {
             installation?: string;
             logo?: string;
             setup_guide_url?: string;
-            webhook_routing_script?: string;
             webhook_secret?: string;
             webhook_url?: string;
             webhook_user_defined_secret?: boolean;
@@ -14167,7 +13781,6 @@ export interface components {
             org_id?: string;
             sandbox_id?: string;
             status?: string;
-            token_id?: string;
         };
         adminCreateInIntegrationRequest: {
             credentials?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_nango.Credentials"];
@@ -14353,7 +13966,6 @@ export interface components {
             status?: string;
             system_prompt?: string;
             team?: string;
-            tools?: components["schemas"]["JSON"];
         };
         adminUpdateCredentialRequest: {
             label?: string;
@@ -14426,44 +14038,6 @@ export interface components {
             status_reason?: string;
             updated_at?: string;
         };
-        agentResponse: {
-            agent_config?: components["schemas"]["JSON"];
-            attached_skills?: components["schemas"]["agentSkillSummary"][];
-            avatar_url?: string;
-            category?: string;
-            created_at?: string;
-            credential_id?: string;
-            description?: string;
-            harness?: string;
-            id?: string;
-            identity_prompt?: string;
-            instructions?: string;
-            integrations?: components["schemas"]["JSON"];
-            is_employee?: boolean;
-            last_memory_refreshed_at?: string;
-            mcp_servers?: components["schemas"]["JSON"];
-            memory_refresh_error?: string;
-            memory_refresh_status?: string;
-            model?: string;
-            name?: string;
-            permissions?: components["schemas"]["JSON"];
-            profiles?: components["schemas"]["agentProfileResponse"][];
-            prompt_operating_principles?: string;
-            provider_id?: string;
-            provider_prompts?: components["schemas"]["ProviderPromptsMap"];
-            resources?: components["schemas"]["JSON"];
-            sandbox_template_id?: string;
-            sandbox_tools?: string[];
-            shared_memory?: boolean;
-            skills?: components["schemas"]["JSON"];
-            status?: string;
-            subagent_ids?: string[];
-            system_prompt?: string;
-            team?: string;
-            tools?: components["schemas"]["JSON"];
-            triggers?: components["schemas"]["agentTriggerResponse"][];
-            updated_at?: string;
-        };
         agentSkillResponse: {
             created_at?: string;
             locked?: boolean;
@@ -14483,6 +14057,7 @@ export interface components {
         agentTriggerInput: {
             conditions?: components["schemas"]["TriggerMatch"];
             connection_id?: string;
+            id?: string;
             instructions?: string;
             /**
              * @description SecretKey is the optional plaintext shared secret for HTTP triggers.
@@ -14700,35 +14275,6 @@ export interface components {
             name?: string;
             scopes?: string[];
         };
-        createAgentRequest: {
-            agent_config?: components["schemas"]["JSON"];
-            avatar_url?: string;
-            category?: string;
-            credential_id?: string;
-            description?: string;
-            harness?: string;
-            identity_prompt?: string;
-            instructions?: string;
-            integrations?: components["schemas"]["JSON"];
-            is_employee?: boolean;
-            mcp_servers?: components["schemas"]["JSON"];
-            model?: string;
-            name?: string;
-            permissions?: components["schemas"]["JSON"];
-            prompt_operating_principles?: string;
-            provider_prompts?: components["schemas"]["ProviderPromptsMap"];
-            resources?: components["schemas"]["JSON"];
-            sandbox_template_id?: string;
-            sandbox_tools?: string[];
-            shared_memory?: boolean;
-            skill_ids?: string[];
-            skills?: components["schemas"]["JSON"];
-            subagent_ids?: string[];
-            system_prompt?: string;
-            team?: string;
-            tools?: components["schemas"]["JSON"];
-            triggers?: components["schemas"]["agentTriggerInput"][];
-        };
         createCheckoutRequest: {
             cancel_url?: string;
             /** @description e.g. "USD", "NGN" */
@@ -14943,7 +14489,6 @@ export interface components {
             subagents?: components["schemas"]["employeeSubagentSummary"][];
             system_prompt?: string;
             team?: string;
-            tools?: components["schemas"]["JSON"];
             triggers?: components["schemas"]["agentTriggerResponse"][];
             updated_at?: string;
             upgrade_available?: boolean;
@@ -15326,11 +14871,6 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-agentResponse": {
-            data?: components["schemas"]["agentResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
         "paginatedResponse-apiKeyResponse": {
             data?: components["schemas"]["apiKeyResponse"][];
             has_more?: boolean;
@@ -15348,11 +14888,6 @@ export interface components {
         };
         "paginatedResponse-conversationEventResponse": {
             data?: components["schemas"]["conversationEventResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-conversationResponse": {
-            data?: components["schemas"]["conversationResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
@@ -15446,6 +14981,7 @@ export interface components {
             provider_config_key?: string;
         };
         profileProviderAvailableResponse: {
+            custom_app_configured?: boolean;
             custom_app_integration_id?: string;
             display_name?: string;
             employee_profile?: components["schemas"]["EmployeeProfileCapability"];
@@ -15713,16 +15249,6 @@ export interface components {
             session_id?: string;
             stream_url?: string;
         };
-        setupRequest: {
-            env_vars?: {
-                [key: string]: string;
-            };
-            setup_commands?: string[];
-        };
-        setupResponse: {
-            env_var_keys?: string[];
-            setup_commands?: string[];
-        };
         signUploadRequest: {
             asset_type?: string;
             content_type?: string;
@@ -15923,33 +15449,6 @@ export interface components {
         triggersResponse: {
             triggers?: components["schemas"]["triggerSummary"][];
             webhook_config?: components["schemas"]["WebhookConfig"];
-        };
-        updateAgentRequest: {
-            agent_config?: components["schemas"]["JSON"];
-            avatar_url?: string;
-            category?: string;
-            credential_id?: string;
-            description?: string;
-            harness?: string;
-            identity_prompt?: string;
-            instructions?: string;
-            integrations?: components["schemas"]["JSON"];
-            mcp_servers?: components["schemas"]["JSON"];
-            model?: string;
-            name?: string;
-            permissions?: components["schemas"]["JSON"];
-            prompt_operating_principles?: string;
-            provider_prompts?: components["schemas"]["ProviderPromptsMap"];
-            resources?: components["schemas"]["JSON"];
-            sandbox_template_id?: string;
-            sandbox_tools?: string[];
-            shared_memory?: boolean;
-            skill_ids?: string[];
-            skills?: components["schemas"]["JSON"];
-            system_prompt?: string;
-            team?: string;
-            tools?: components["schemas"]["JSON"];
-            triggers?: components["schemas"]["agentTriggerInput"][];
         };
         updateContentRequest: {
             bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];

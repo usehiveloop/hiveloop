@@ -23,7 +23,7 @@ import { EmployeeProfilesSection } from "./employee-profiles-section"
 import { EmployeeRuntimeSection } from "./employee-runtime-section"
 import { EmployeeSkillsSection } from "./employee-skills-section"
 import { EmployeeTriggersSection } from "./employee-triggers-section"
-import type { TriggerConfig } from "@/app/w/agents/_components/create-agent/types"
+import type { TriggerConfig } from "@/app/w/employees/_components/triggers/types"
 import type { components } from "@/lib/api/schema"
 
 type Employee = components["schemas"]["employeeListItem"]

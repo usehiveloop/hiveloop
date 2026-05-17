@@ -54,7 +54,6 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		SystemPrompt: "You are a DevOps engineer.",
 		Status:       "active", SharedMemory: false,
 		Permissions: permissions, Resources: resources,
-		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 		Integrations: model.JSON{
 			"conn-github-123": map[string]any{"actions": []any{"repos.list", "issues.list"}},
 		},

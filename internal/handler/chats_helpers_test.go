@@ -166,7 +166,6 @@ func (h *chatHarness) seedOrgAgentSandbox(t *testing.T) chatOrg {
 		SystemPrompt: "test",
 		CredentialID: &credID,
 		Status:       "active",
-		Tools:        model.JSON{}, McpServers: model.JSON{},
 		Skills: model.JSON{}, Integrations: model.JSON{},
 		Resources: model.JSON{}, AgentConfig: model.JSON{},
 		Permissions: model.JSON{},

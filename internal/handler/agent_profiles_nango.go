@@ -102,7 +102,6 @@ func (h *AgentProfileHandler) ListAvailableProfiles(w http.ResponseWriter, r *ht
 		}
 		cfg.WebhookSecret = ""
 		cfg.WebhookURL = ""
-		cfg.WebhookRoutingScript = ""
 		cfg.WebhookUserDefinedSecret = nangoMeta.WebhookUserDefinedSecret
 
 		item := profileProviderAvailableResponse{

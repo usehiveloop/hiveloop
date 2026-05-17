@@ -5,6 +5,7 @@
     "v1/employees/get",
     "v1/employees/post",
     "v1/employees/id/get",
+    "v1/employees/id/delete",
     "v1/employees/id/put",
     "v1/employees/id/agent-templates/get",
     "v1/employees/id/agent-templates/slug/install/post",

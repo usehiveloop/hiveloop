@@ -93,7 +93,6 @@ func buildNangoConfig(integResp map[string]any, template map[string]any, callbac
 			"installation",
 			"logo",
 			"setup_guide_url",
-			"webhook_routing_script",
 			"webhook_user_defined_secret",
 		} {
 			if v, exists := template[key]; exists {

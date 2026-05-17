@@ -92,16 +92,6 @@ export type IntegrationSummary = Schemas["integrationSummary"];
 export type IntegrationDetail = Schemas["integrationDetail"];
 export type ActionSummary = Schemas["actionSummary"];
 
-// Setup
-export type SetupRequest = Schemas["setupRequest"];
-export type SetupResponse = Schemas["setupResponse"];
-
-// Agents
-export type AgentResponse = Schemas["agentResponse"];
-export type CreateAgentRequest = Schemas["createAgentRequest"];
-export type UpdateAgentRequest = Schemas["updateAgentRequest"];
-export type PaginatedAgents = Schemas["paginatedResponse-agentResponse"];
-
 // Sandbox Templates
 export type SandboxTemplateResponse = Schemas["sandboxTemplateResponse"];
 export type CreateSandboxTemplateRequest = Schemas["createSandboxTemplateRequest"];
@@ -111,7 +101,6 @@ export type PaginatedSandboxTemplates = Schemas["paginatedResponse-sandboxTempla
 // Conversations
 export type ConversationResponse = Schemas["conversationResponse"];
 export type ConversationEventResponse = Schemas["conversationEventResponse"];
-export type PaginatedConversations = Schemas["paginatedResponse-conversationResponse"];
 export type PaginatedConversationEvents = Schemas["paginatedResponse-conversationEventResponse"];
 
 // Sandboxes
@@ -120,5 +109,3 @@ export type PaginatedSandboxes = Schemas["paginatedResponse-sandboxResponse"];
 export type ExecRequest = Schemas["execRequest"];
 export type ExecResponse = Schemas["execResponse"];
 export type CommandResult = Schemas["commandResult"];
-
-

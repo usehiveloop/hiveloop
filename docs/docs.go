@@ -3976,118 +3976,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/agents": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns agents for the current organization with optional filters.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "agents"
-                ],
-                "summary": "List agents",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by status (active, archived)",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page size (default 50, max 100)",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor",
-                        "name": "cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.paginatedResponse-internal_handler_agentResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Creates a new agent tied to a credential. A dedicated sandbox is provisioned lazily on conversation create.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "agents"
-                ],
-                "summary": "Create an agent",
-                "parameters": [
-                    {
-                        "description": "Agent definition",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.createAgentRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.agentResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/v1/agents/built-in-tools": {
             "get": {
                 "security": [
@@ -4167,108 +4055,6 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/internal_handler.SandboxToolDefinition"
                             }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/agents/{agentID}/conversations": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns conversations for the specified agent.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "conversations"
-                ],
-                "summary": "List conversations for an agent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Agent ID",
-                        "name": "agentID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by status (active, ended, error)",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page size",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor",
-                        "name": "cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.paginatedResponse-internal_handler_conversationResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Creates a new conversation for an agent by spinning up a dedicated sandbox.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "conversations"
-                ],
-                "summary": "Create a conversation",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Agent ID",
-                        "name": "agentID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.conversationResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
                         }
                     }
                 }
@@ -5260,245 +5046,6 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "string"
                             }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/agents/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns a single agent by ID, including the latest forge run if one exists.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "agents"
-                ],
-                "summary": "Get an agent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Agent ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.agentResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Updates an agent. Re-validates credential/model compatibility.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "agents"
-                ],
-                "summary": "Update an agent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Agent ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Fields to update",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.updateAgentRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.agentResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Deletes an agent and removes it from Bridge.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "agents"
-                ],
-                "summary": "Delete an agent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Agent ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/agents/{id}/setup": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns setup commands and env var key names for dedicated agents.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "agents"
-                ],
-                "summary": "Get agent sandbox setup config",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Agent ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.setupResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Sets setup commands and encrypted environment variables. Only available for dedicated sandbox agents.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "agents"
-                ],
-                "summary": "Update agent sandbox setup config",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Agent ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Setup configuration",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.setupRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.setupResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
                         }
                     },
                     "404": {
@@ -7747,6 +7294,77 @@ const docTemplate = `{
                     },
                     "502": {
                         "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Permanently deletes an employee and related control-plane records. Provider resource cleanup is handled by sandbox retirement flows.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Delete an AI employee",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Employee agent ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.errorResponse"
                         }
@@ -12222,9 +11840,6 @@ const docTemplate = `{
                 "setup_guide_url": {
                     "type": "string"
                 },
-                "webhook_routing_script": {
-                    "type": "string"
-                },
                 "webhook_secret": {
                     "type": "string"
                 },
@@ -12648,9 +12263,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "type": "string"
-                },
-                "token_id": {
                     "type": "string"
                 }
             }
@@ -13211,9 +12823,6 @@ const docTemplate = `{
                 },
                 "team": {
                     "type": "string"
-                },
-                "tools": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 }
             }
         },
@@ -13423,134 +13032,6 @@ const docTemplate = `{
                 },
                 "status_reason": {
                     "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_handler.agentResponse": {
-            "type": "object",
-            "properties": {
-                "agent_config": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "attached_skills": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler.agentSkillSummary"
-                    }
-                },
-                "avatar_url": {
-                    "type": "string"
-                },
-                "category": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "credential_id": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "harness": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "identity_prompt": {
-                    "type": "string"
-                },
-                "instructions": {
-                    "type": "string"
-                },
-                "integrations": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "is_employee": {
-                    "type": "boolean"
-                },
-                "last_memory_refreshed_at": {
-                    "type": "string"
-                },
-                "mcp_servers": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "memory_refresh_error": {
-                    "type": "string"
-                },
-                "memory_refresh_status": {
-                    "type": "string"
-                },
-                "model": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "permissions": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "profiles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler.agentProfileResponse"
-                    }
-                },
-                "prompt_operating_principles": {
-                    "type": "string"
-                },
-                "provider_id": {
-                    "type": "string"
-                },
-                "provider_prompts": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap"
-                },
-                "resources": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "sandbox_template_id": {
-                    "type": "string"
-                },
-                "sandbox_tools": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "shared_memory": {
-                    "type": "boolean"
-                },
-                "skills": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "subagent_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "system_prompt": {
-                    "type": "string"
-                },
-                "team": {
-                    "type": "string"
-                },
-                "tools": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "triggers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler.agentTriggerResponse"
-                    }
                 },
                 "updated_at": {
                     "type": "string"
@@ -14227,104 +13708,6 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.createAgentRequest": {
-            "type": "object",
-            "properties": {
-                "agent_config": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "avatar_url": {
-                    "type": "string"
-                },
-                "category": {
-                    "type": "string"
-                },
-                "credential_id": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "harness": {
-                    "type": "string"
-                },
-                "identity_prompt": {
-                    "type": "string"
-                },
-                "instructions": {
-                    "type": "string"
-                },
-                "integrations": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "is_employee": {
-                    "type": "boolean"
-                },
-                "mcp_servers": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "model": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "permissions": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "prompt_operating_principles": {
-                    "type": "string"
-                },
-                "provider_prompts": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap"
-                },
-                "resources": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "sandbox_template_id": {
-                    "type": "string"
-                },
-                "sandbox_tools": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "shared_memory": {
-                    "type": "boolean"
-                },
-                "skill_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "skills": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "subagent_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "system_prompt": {
-                    "type": "string"
-                },
-                "team": {
-                    "type": "string"
-                },
-                "tools": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "triggers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler.agentTriggerInput"
-                    }
-                }
-            }
-        },
         "internal_handler.createCheckoutRequest": {
             "type": "object",
             "properties": {
@@ -14959,9 +14342,6 @@ const docTemplate = `{
                 },
                 "team": {
                     "type": "string"
-                },
-                "tools": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
                 },
                 "triggers": {
                     "type": "array",
@@ -16125,23 +15505,6 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.paginatedResponse-internal_handler_agentResponse": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler.agentResponse"
-                    }
-                },
-                "has_more": {
-                    "type": "boolean"
-                },
-                "next_cursor": {
-                    "type": "string"
-                }
-            }
-        },
         "internal_handler.paginatedResponse-internal_handler_apiKeyResponse": {
             "type": "object",
             "properties": {
@@ -16200,23 +15563,6 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/internal_handler.conversationEventResponse"
-                    }
-                },
-                "has_more": {
-                    "type": "boolean"
-                },
-                "next_cursor": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_handler.paginatedResponse-internal_handler_conversationResponse": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler.conversationResponse"
                     }
                 },
                 "has_more": {
@@ -17313,40 +16659,6 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.setupRequest": {
-            "type": "object",
-            "properties": {
-                "env_vars": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "setup_commands": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "internal_handler.setupResponse": {
-            "type": "object",
-            "properties": {
-                "env_var_keys": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "setup_commands": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
         "internal_handler.signUploadRequest": {
             "type": "object",
             "properties": {
@@ -17916,95 +17228,6 @@ const docTemplate = `{
                 },
                 "webhook_config": {
                     "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.WebhookConfig"
-                }
-            }
-        },
-        "internal_handler.updateAgentRequest": {
-            "type": "object",
-            "properties": {
-                "agent_config": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "avatar_url": {
-                    "type": "string"
-                },
-                "category": {
-                    "type": "string"
-                },
-                "credential_id": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "harness": {
-                    "type": "string"
-                },
-                "identity_prompt": {
-                    "type": "string"
-                },
-                "instructions": {
-                    "type": "string"
-                },
-                "integrations": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "mcp_servers": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "model": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "permissions": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "prompt_operating_principles": {
-                    "type": "string"
-                },
-                "provider_prompts": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap"
-                },
-                "resources": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "sandbox_template_id": {
-                    "type": "string"
-                },
-                "sandbox_tools": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "shared_memory": {
-                    "type": "boolean"
-                },
-                "skill_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "skills": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "system_prompt": {
-                    "type": "string"
-                },
-                "team": {
-                    "type": "string"
-                },
-                "tools": {
-                    "$ref": "#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON"
-                },
-                "triggers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler.agentTriggerInput"
-                    }
                 }
             }
         },

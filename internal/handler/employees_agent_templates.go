@@ -160,7 +160,7 @@ func (h *EmployeeHandler) loadEmployeeForTemplateRequest(w http.ResponseWriter, 
 	}
 	var agent model.Agent
 	if err := h.db.WithContext(r.Context()).
-		Where("id = ? AND org_id = ? AND is_employee = true AND is_system = false", agentID, orgID).
+		Where("id = ? AND org_id = ? AND is_employee = true", agentID, orgID).
 		First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})

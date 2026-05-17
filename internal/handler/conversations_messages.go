@@ -39,7 +39,7 @@ func (h *ConversationHandler) SendMessage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if h.pusher != nil && conv.CredentialID == nil && h.pusher.NeedsTokenRotation(conv.AgentID.String()) {
+	if h.pusher != nil && h.pusher.NeedsTokenRotation(conv.AgentID.String()) {
 		var agent model.Agent
 		if err := h.db.Where("id = ?", conv.AgentID).First(&agent).Error; err == nil {
 			if err := h.pusher.RotateAgentToken(r.Context(), &agent, &conv.Sandbox); err != nil {

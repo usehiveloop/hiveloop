@@ -8,8 +8,7 @@ import (
 )
 
 const (
-	cleanupInterval = 5 * time.Minute
-	idleTimeout     = 30 * time.Minute
+	idleTimeout = 30 * time.Minute
 )
 
 // Cleanup periodically removes idle conversation streams from Redis.
@@ -21,24 +20,6 @@ type Cleanup struct {
 // NewCleanup creates a new Cleanup.
 func NewCleanup(bus *EventBus) *Cleanup {
 	return &Cleanup{bus: bus}
-}
-
-// Run starts the cleanup loop. It blocks until ctx is cancelled.
-func (c *Cleanup) Run(ctx context.Context) {
-	logging.FromContext(ctx).InfoContext(ctx, "stream cleanup started")
-	defer logging.FromContext(ctx).InfoContext(ctx, "stream cleanup stopped")
-
-	ticker := time.NewTicker(cleanupInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			c.CleanIdle(ctx)
-		}
-	}
 }
 
 // CleanIdle removes conversation streams that have been idle for longer than idleTimeout.

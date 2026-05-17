@@ -220,8 +220,7 @@ event_type). Override with `"payload": {...}` for fixture-specific cases.
 
 The webhook lands at `POST /internal/webhooks/nango` with the dual signature
 headers your handler verifies. After the call, inspect the asynq queues to
-assert that `RouterDispatchTask` and `SubscriptionDispatchTask` were enqueued
-(see `nango_webhooks_dispatch.go:107-145`).
+assert that `employee_trigger:dispatch` tasks were enqueued.
 
 ## Backend env to wire fake-nango in
 

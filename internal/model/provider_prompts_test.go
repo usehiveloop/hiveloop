@@ -94,42 +94,14 @@ func TestResolveProviderConfig_PartialConfig_OnlyModel(t *testing.T) {
 	}
 }
 
-func TestBridgeAgentID_SystemAgent(t *testing.T) {
+func TestBridgeAgentID(t *testing.T) {
 	agentID := uuid.New()
 	agent := &Agent{
-		ID:       agentID,
-		IsSystem: true,
-	}
-
-	bridgeID := agent.BridgeAgentID("anthropic")
-	expected := agentID.String() + "-anthropic"
-	if bridgeID != expected {
-		t.Errorf("expected %q, got %q", expected, bridgeID)
-	}
-}
-
-func TestBridgeAgentID_NonSystemAgent(t *testing.T) {
-	agentID := uuid.New()
-	agent := &Agent{
-		ID:       agentID,
-		IsSystem: false,
+		ID: agentID,
 	}
 
 	bridgeID := agent.BridgeAgentID("anthropic")
 	if bridgeID != agentID.String() {
 		t.Errorf("expected plain agent ID %q, got %q", agentID.String(), bridgeID)
-	}
-}
-
-func TestBridgeAgentID_SystemAgent_EmptyProviderGroup(t *testing.T) {
-	agentID := uuid.New()
-	agent := &Agent{
-		ID:       agentID,
-		IsSystem: true,
-	}
-
-	bridgeID := agent.BridgeAgentID("")
-	if bridgeID != agentID.String() {
-		t.Errorf("expected plain agent ID when providerGroup is empty, got %q", bridgeID)
 	}
 }

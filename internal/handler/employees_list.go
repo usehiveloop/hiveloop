@@ -70,7 +70,7 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 	q := h.db.WithContext(r.Context()).
 		Preload("Credential").
 		Preload("TeamRef").
-		Where("agents.org_id = ? AND agents.is_employee = true AND agents.is_system = false", org.ID)
+		Where("agents.org_id = ? AND agents.is_employee = true", org.ID)
 
 	if status := r.URL.Query().Get("status"); status != "" {
 		q = q.Where("agents.status = ?", status)
@@ -161,7 +161,7 @@ func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if err := h.db.WithContext(r.Context()).
 		Preload("Credential").
 		Preload("TeamRef").
-		Where("agents.id = ? AND agents.org_id = ? AND agents.is_employee = true AND agents.is_system = false", agentID, org.ID).
+		Where("agents.id = ? AND agents.org_id = ? AND agents.is_employee = true", agentID, org.ID).
 		First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})

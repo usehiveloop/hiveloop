@@ -105,7 +105,6 @@ func toInIntegrationAvailableResponse(integ model.InIntegration) inIntegrationAv
 	if cfg != nil {
 		cfg.WebhookSecret = ""
 		cfg.WebhookURL = ""
-		cfg.WebhookRoutingScript = ""
 		cfg.CredentialsSchema = nil
 		cfg.WebhookUserDefinedSecret = false
 	}

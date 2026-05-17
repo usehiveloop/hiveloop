@@ -74,7 +74,6 @@ func (h *EmployeeHandler) ensureBusinessResearchSpecialistTx(ctx context.Context
 		Harness:        employeeCloudAgentHarness,
 		IsEmployee:     false,
 		Status:         "active",
-		Tools:          model.JSON{},
 		McpServers:     model.JSON{},
 		Skills:         model.JSON{},
 		Integrations:   model.JSON{},

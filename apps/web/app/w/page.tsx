@@ -53,7 +53,7 @@ export default function WorkspaceHome() {
   const [deleting, setDeleting] = useState<Employee | null>(null)
   const [upgrading, setUpgrading] = useState<Employee | null>(null)
   const { data, isLoading } = $api.useQuery("get", "/v1/employees")
-  const deleteEmployee = $api.useMutation("delete", "/v1/agents/{id}")
+  const deleteEmployee = $api.useMutation("delete", "/v1/employees/{id}")
   const employees = useMemo(() => data?.data ?? [], [data])
 
   useEffect(() => {

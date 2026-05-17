@@ -95,7 +95,6 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 		CredentialID: &cred.ID,
 		Status:       "active",
 		SystemPrompt: "test employee",
-		Tools:        model.JSON{},
 		McpServers:   model.JSON{},
 		Skills:       model.JSON{},
 		Integrations: model.JSON{},

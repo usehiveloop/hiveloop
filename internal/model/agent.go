@@ -9,13 +9,13 @@ import (
 
 type Agent struct {
 	ID                uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID             *uuid.UUID       `gorm:"type:uuid;index:idx_agent_org_id;uniqueIndex:idx_agent_org_name"` // nil for system agents
+	OrgID             *uuid.UUID       `gorm:"type:uuid;index:idx_agent_org_id;uniqueIndex:idx_agent_org_name"`
 	Org               *Org             `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
 	Name              string           `gorm:"not null;uniqueIndex:idx_agent_org_name"`
 	Description       *string          `gorm:"type:text"`
 	AvatarURL         *string          `gorm:"type:text"`
 	Category          *string          `gorm:"type:text;index"`
-	CredentialID      *uuid.UUID       `gorm:"type:uuid;index"` // nil for system agents
+	CredentialID      *uuid.UUID       `gorm:"type:uuid;index"`
 	Credential        *Credential      `gorm:"foreignKey:CredentialID;constraint:OnDelete:SET NULL"`
 	SandboxTemplateID *uuid.UUID       `gorm:"type:uuid"`
 	SandboxTemplate   *SandboxTemplate `gorm:"foreignKey:SandboxTemplateID;constraint:OnDelete:SET NULL"`
@@ -29,7 +29,6 @@ type Agent struct {
 	ProviderPrompts           ProviderPromptsMap `gorm:"type:jsonb;not null;default:'{}'"` // map[provider_group] -> {system_prompt, model}
 	Instructions              *string            `gorm:"type:text"`                        // optional markdown instructions for auto-starting runs
 	Model                     string             `gorm:"not null"`                         // must match credential's provider
-	Tools                     JSON               `gorm:"type:jsonb;not null;default:'{}'"`
 	McpServers                JSON               `gorm:"type:jsonb;not null;default:'{}'"`
 	Skills                    JSON               `gorm:"type:jsonb;not null;default:'{}'"`
 	Integrations              JSON               `gorm:"type:jsonb;not null;default:'{}'"` // selected integration IDs/configs
@@ -45,15 +44,13 @@ type Agent struct {
 	EncryptedEnvVars []byte         `gorm:"type:bytea"`               // AES-256-GCM encrypted JSON map of env vars
 
 	Status        string `gorm:"not null;default:'active'"` // draft, active, archived
-	IsSystem      bool   `gorm:"not null;default:false;index"`
 	IsEmployee    bool   `gorm:"not null;default:false;index"` // employee agents own subagents and use a different onboarding flow
-	ProviderGroup string `gorm:"not null;default:''"`          // e.g. "anthropic", "openai", "gemini" — set for system agents
+	ProviderGroup string `gorm:"not null;default:''"`          // e.g. "anthropic", "openai", "gemini"
 
 	LastMemoryRefreshedAt *time.Time `gorm:"type:timestamptz"`
 	MemoryRefreshStatus   string     `gorm:"type:varchar(32);not null;default:''"` // queued, running, succeeded, failed
 	MemoryRefreshError    string     `gorm:"type:text;not null;default:''"`
 
-	// TODO(post-migration): drop agent.Tools column once data archived.
 	Harness   string `gorm:"type:varchar(32);not null;default:''"` // "claude" or "open_code"
 	CreatedAt time.Time
 	UpdatedAt time.Time

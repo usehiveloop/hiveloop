@@ -51,11 +51,6 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 	// On-demand write handlers
 	mux.HandleFunc(TypeAPIKeyUpdate, NewAPIKeyHandler(deps.DB).Handle)
 	mux.HandleFunc(TypeAdminAuditWrite, NewAdminAuditHandler(deps.DB).Handle)
-	mux.HandleFunc(TypeAuditWrite, NewAuditHandler(deps.DB).Handle)
-	mux.HandleFunc(TypeGenerationWrite, NewGenerationHandler(deps.DB).Handle)
-
-	// Webhook forwarding
-	mux.HandleFunc(TypeWebhookForward, NewWebhookForwardHandler(deps.EncKey).Handle)
 
 	// Email sending
 	if deps.EmailSend != nil {

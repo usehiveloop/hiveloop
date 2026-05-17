@@ -22,16 +22,6 @@ import (
 
 const triggerConversationSource = "trigger"
 
-func init() {
-	RegisterTaskBuilder(TypeEmployeeTriggerDispatch, func(payload []byte) (*asynq.Task, error) {
-		var p EmployeeTriggerDispatchPayload
-		if err := json.Unmarshal(payload, &p); err != nil {
-			return nil, fmt.Errorf("unmarshal employee trigger dispatch payload: %w", err)
-		}
-		return NewEmployeeTriggerDispatchTask(p)
-	})
-}
-
 type EmployeeTriggerDispatchHandler struct {
 	db           *gorm.DB
 	orchestrator *sandbox.Orchestrator

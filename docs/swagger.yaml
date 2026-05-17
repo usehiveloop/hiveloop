@@ -133,8 +133,6 @@ definitions:
         type: string
       setup_guide_url:
         type: string
-      webhook_routing_script:
-        type: string
       webhook_secret:
         type: string
       webhook_url:
@@ -414,8 +412,6 @@ definitions:
       sandbox_id:
         type: string
       status:
-        type: string
-      token_id:
         type: string
     type: object
   internal_handler.adminCreateInIntegrationRequest:
@@ -784,8 +780,6 @@ definitions:
         type: string
       team:
         type: string
-      tools:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
   internal_handler.adminUpdateCredentialRequest:
     properties:
@@ -922,91 +916,6 @@ definitions:
         type: string
       status_reason:
         type: string
-      updated_at:
-        type: string
-    type: object
-  internal_handler.agentResponse:
-    properties:
-      agent_config:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      attached_skills:
-        items:
-          $ref: '#/definitions/internal_handler.agentSkillSummary'
-        type: array
-      avatar_url:
-        type: string
-      category:
-        type: string
-      created_at:
-        type: string
-      credential_id:
-        type: string
-      description:
-        type: string
-      harness:
-        type: string
-      id:
-        type: string
-      identity_prompt:
-        type: string
-      instructions:
-        type: string
-      integrations:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      is_employee:
-        type: boolean
-      last_memory_refreshed_at:
-        type: string
-      mcp_servers:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      memory_refresh_error:
-        type: string
-      memory_refresh_status:
-        type: string
-      model:
-        type: string
-      name:
-        type: string
-      permissions:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      profiles:
-        items:
-          $ref: '#/definitions/internal_handler.agentProfileResponse'
-        type: array
-      prompt_operating_principles:
-        type: string
-      provider_id:
-        type: string
-      provider_prompts:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap'
-      resources:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      sandbox_template_id:
-        type: string
-      sandbox_tools:
-        items:
-          type: string
-        type: array
-      shared_memory:
-        type: boolean
-      skills:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      status:
-        type: string
-      subagent_ids:
-        items:
-          type: string
-        type: array
-      system_prompt:
-        type: string
-      team:
-        type: string
-      tools:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      triggers:
-        items:
-          $ref: '#/definitions/internal_handler.agentTriggerResponse'
-        type: array
       updated_at:
         type: string
     type: object
@@ -1456,71 +1365,6 @@ definitions:
           type: string
         type: array
     type: object
-  internal_handler.createAgentRequest:
-    properties:
-      agent_config:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      avatar_url:
-        type: string
-      category:
-        type: string
-      credential_id:
-        type: string
-      description:
-        type: string
-      harness:
-        type: string
-      identity_prompt:
-        type: string
-      instructions:
-        type: string
-      integrations:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      is_employee:
-        type: boolean
-      mcp_servers:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      model:
-        type: string
-      name:
-        type: string
-      permissions:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      prompt_operating_principles:
-        type: string
-      provider_prompts:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap'
-      resources:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      sandbox_template_id:
-        type: string
-      sandbox_tools:
-        items:
-          type: string
-        type: array
-      shared_memory:
-        type: boolean
-      skill_ids:
-        items:
-          type: string
-        type: array
-      skills:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      subagent_ids:
-        items:
-          type: string
-        type: array
-      system_prompt:
-        type: string
-      team:
-        type: string
-      tools:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      triggers:
-        items:
-          $ref: '#/definitions/internal_handler.agentTriggerInput'
-        type: array
-    type: object
   internal_handler.createCheckoutRequest:
     properties:
       cancel_url:
@@ -1936,8 +1780,6 @@ definitions:
         type: string
       team:
         type: string
-      tools:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
       triggers:
         items:
           $ref: '#/definitions/internal_handler.agentTriggerResponse'
@@ -2696,17 +2538,6 @@ definitions:
       next_cursor:
         type: string
     type: object
-  internal_handler.paginatedResponse-internal_handler_agentResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/internal_handler.agentResponse'
-        type: array
-      has_more:
-        type: boolean
-      next_cursor:
-        type: string
-    type: object
   internal_handler.paginatedResponse-internal_handler_apiKeyResponse:
     properties:
       data:
@@ -2745,17 +2576,6 @@ definitions:
       data:
         items:
           $ref: '#/definitions/internal_handler.conversationEventResponse'
-        type: array
-      has_more:
-        type: boolean
-      next_cursor:
-        type: string
-    type: object
-  internal_handler.paginatedResponse-internal_handler_conversationResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/internal_handler.conversationResponse'
         type: array
       has_more:
         type: boolean
@@ -3471,28 +3291,6 @@ definitions:
       stream_url:
         type: string
     type: object
-  internal_handler.setupRequest:
-    properties:
-      env_vars:
-        additionalProperties:
-          type: string
-        type: object
-      setup_commands:
-        items:
-          type: string
-        type: array
-    type: object
-  internal_handler.setupResponse:
-    properties:
-      env_var_keys:
-        items:
-          type: string
-        type: array
-      setup_commands:
-        items:
-          type: string
-        type: array
-    type: object
   internal_handler.signUploadRequest:
     properties:
       asset_type:
@@ -3867,65 +3665,6 @@ definitions:
         type: array
       webhook_config:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.WebhookConfig'
-    type: object
-  internal_handler.updateAgentRequest:
-    properties:
-      agent_config:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      avatar_url:
-        type: string
-      category:
-        type: string
-      credential_id:
-        type: string
-      description:
-        type: string
-      harness:
-        type: string
-      identity_prompt:
-        type: string
-      instructions:
-        type: string
-      integrations:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      mcp_servers:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      model:
-        type: string
-      name:
-        type: string
-      permissions:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      prompt_operating_principles:
-        type: string
-      provider_prompts:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.ProviderPromptsMap'
-      resources:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      sandbox_template_id:
-        type: string
-      sandbox_tools:
-        items:
-          type: string
-        type: array
-      shared_memory:
-        type: boolean
-      skill_ids:
-        items:
-          type: string
-        type: array
-      skills:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      system_prompt:
-        type: string
-      team:
-        type: string
-      tools:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      triggers:
-        items:
-          $ref: '#/definitions/internal_handler.agentTriggerInput'
-        type: array
     type: object
   internal_handler.updateContentRequest:
     properties:
@@ -6701,144 +6440,6 @@ paths:
       summary: X (Twitter) OAuth callback
       tags:
       - oauth
-  /v1/agents:
-    get:
-      description: Returns agents for the current organization with optional filters.
-      parameters:
-      - description: Filter by status (active, archived)
-        in: query
-        name: status
-        type: string
-      - description: Page size (default 50, max 100)
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor
-        in: query
-        name: cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_agentResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List agents
-      tags:
-      - agents
-    post:
-      consumes:
-      - application/json
-      description: Creates a new agent tied to a credential. A dedicated sandbox is
-        provisioned lazily on conversation create.
-      parameters:
-      - description: Agent definition
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.createAgentRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/internal_handler.agentResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create an agent
-      tags:
-      - agents
-  /v1/agents/{agentID}/conversations:
-    get:
-      description: Returns conversations for the specified agent.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Filter by status (active, ended, error)
-        in: query
-        name: status
-        type: string
-      - description: Page size
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor
-        in: query
-        name: cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_conversationResponse'
-      security:
-      - BearerAuth: []
-      summary: List conversations for an agent
-      tags:
-      - conversations
-    post:
-      description: Creates a new conversation for an agent by spinning up a dedicated
-        sandbox.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: agentID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/internal_handler.conversationResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "503":
-          description: Service Unavailable
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create a conversation
-      tags:
-      - conversations
   /v1/agents/{agentID}/profiles/{provider}/complete:
     post:
       consumes:
@@ -7492,160 +7093,6 @@ paths:
       summary: Detach a skill from an agent
       tags:
       - skills
-  /v1/agents/{id}:
-    delete:
-      description: Deletes an agent and removes it from Bridge.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete an agent
-      tags:
-      - agents
-    get:
-      description: Returns a single agent by ID, including the latest forge run if
-        one exists.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.agentResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get an agent
-      tags:
-      - agents
-    put:
-      consumes:
-      - application/json
-      description: Updates an agent. Re-validates credential/model compatibility.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Fields to update
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.updateAgentRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.agentResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update an agent
-      tags:
-      - agents
-  /v1/agents/{id}/setup:
-    get:
-      description: Returns setup commands and env var key names for dedicated agents.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.setupResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get agent sandbox setup config
-      tags:
-      - agents
-    put:
-      consumes:
-      - application/json
-      description: Sets setup commands and encrypted environment variables. Only available
-        for dedicated sandbox agents.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Setup configuration
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.setupRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.setupResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update agent sandbox setup config
-      tags:
-      - agents
   /v1/agents/built-in-tools:
     get:
       description: Returns the catalog of built-in tools that can be granted to an
@@ -9074,6 +8521,53 @@ paths:
       tags:
       - employees
   /v1/employees/{id}:
+    delete:
+      description: Permanently deletes an employee and related control-plane records.
+        Provider resource cleanup is handled by sandbox retirement flows.
+      parameters:
+      - description: Employee agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an AI employee
+      tags:
+      - employees
     get:
       description: |-
         Returns one employee agent in the org with sub-agents,

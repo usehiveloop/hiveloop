@@ -13,8 +13,8 @@ import {
   HttpEndpointField,
   TriggerTypeAvatar,
   triggerDisplayName,
-} from "@/app/w/agents/_components/edit-triggers-dialog"
-import type { TriggerConfig } from "@/app/w/agents/_components/create-agent/types"
+} from "@/app/w/employees/_components/triggers/edit-triggers-dialog"
+import type { TriggerConfig } from "@/app/w/employees/_components/triggers/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/confirm-dialog"

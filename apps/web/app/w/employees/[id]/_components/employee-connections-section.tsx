@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Plug01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
-import { ChoiceCard } from "@/app/w/agents/_components/create-agent/choice-card"
+import { ChoiceCard } from "@/components/agent-form-shared/choice-card"
 import { FormEmptyWell, FormSection } from "@/app/w/_components/form-section"
 import {
   IntegrationLogo,

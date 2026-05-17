@@ -66,7 +66,6 @@ func pushHarnessFixture(t *testing.T, storedHarness string) map[string]any {
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
 		Name: "Harness Agent-" + uuid.New().String()[:8], Model: "gpt-4o",
 		SystemPrompt: "test", Status: "active", Harness: storedHarness,
-		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 		Integrations: model.JSON{}, AgentConfig: model.JSON{}, Permissions: model.JSON{},
 	}
 	if err := db.Create(&agent).Error; err != nil {

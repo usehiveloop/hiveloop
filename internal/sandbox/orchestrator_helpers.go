@@ -52,7 +52,7 @@ func (o *Orchestrator) loadOwningEmployee(ctx context.Context, agent *model.Agen
 	var employee model.Agent
 	err := o.db.WithContext(ctx).
 		Joins("JOIN agent_subagents ON agent_subagents.agent_id = agents.id").
-		Where("agent_subagents.subagent_id = ? AND agents.org_id = ? AND agents.is_employee = ? AND agents.is_system = ?", agent.ID, *agent.OrgID, true, false).
+		Where("agent_subagents.subagent_id = ? AND agents.org_id = ? AND agents.is_employee = ?", agent.ID, *agent.OrgID, true).
 		Order("agent_subagents.created_at ASC").
 		First(&employee).Error
 	if err != nil {

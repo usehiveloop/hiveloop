@@ -115,7 +115,6 @@ func (h *AdminHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		SandboxTemplateID *string    `json:"sandbox_template_id,omitempty"`
 		SystemPrompt      *string    `json:"system_prompt,omitempty"`
 		Model             *string    `json:"model,omitempty"`
-		Tools             model.JSON `json:"tools,omitempty"`
 		McpServers        model.JSON `json:"mcp_servers,omitempty"`
 		Skills            model.JSON `json:"skills,omitempty"`
 		Integrations      model.JSON `json:"integrations,omitempty"`
@@ -189,9 +188,6 @@ func (h *AdminHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if req.Tools != nil {
-		updates["tools"] = req.Tools
-	}
 	if req.McpServers != nil {
 		updates["mcp_servers"] = req.McpServers
 	}

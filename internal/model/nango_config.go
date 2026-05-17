@@ -28,7 +28,6 @@ type NangoConfig struct {
 	Installation             string                        `json:"installation,omitempty"`
 	Logo                     string                        `json:"logo,omitempty"`
 	SetupGuideURL            string                        `json:"setup_guide_url,omitempty"`
-	WebhookRoutingScript     string                        `json:"webhook_routing_script,omitempty"`
 	WebhookSecret            string                        `json:"webhook_secret,omitempty"`
 	WebhookURL               string                        `json:"webhook_url,omitempty"`
 	WebhookUserDefinedSecret bool                          `json:"webhook_user_defined_secret,omitempty"`

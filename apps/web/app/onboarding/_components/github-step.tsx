@@ -15,7 +15,7 @@ import {
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import { toast } from "sonner"
-import { ChoiceCard } from "@/app/w/agents/_components/create-agent/choice-card"
+import { ChoiceCard } from "@/components/agent-form-shared/choice-card"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,

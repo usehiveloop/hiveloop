@@ -51,7 +51,6 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 		SystemPrompt: "You are a smoke-test agent.",
 		Status:       "active",
 		Permissions:  model.JSON{"Read": "allow"},
-		Tools:        model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 		Integrations: model.JSON{}, AgentConfig: model.JSON{},
 	}
 	if err := db.Create(&agent).Error; err != nil {

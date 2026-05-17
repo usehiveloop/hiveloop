@@ -138,7 +138,6 @@ func TestPusherAgentConfig_HarnessOptionalFields(t *testing.T) {
 				Model:        "claude-sonnet-4-5",
 				SystemPrompt: "test agent",
 				Status:       "active",
-				Tools:        model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 				Integrations: model.JSON{}, AgentConfig: tc.agentCfg, Permissions: model.JSON{},
 			}
 			if err := db.Create(&agent).Error; err != nil {
@@ -219,7 +218,6 @@ func TestPusherAgentConfig_ProviderPromptModelOverride(t *testing.T) {
 		},
 		SystemPrompt: "fallback prompt",
 		Status:       "active",
-		Tools:        model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 		Integrations: model.JSON{}, AgentConfig: model.JSON{}, Permissions: model.JSON{},
 	}
 	if err := db.Create(&agent).Error; err != nil {

@@ -1160,7 +1160,6 @@ func createGitHubProfileTestEmployee(t *testing.T, db interface {
 		Model:        "deepseek/deepseek-v4-flash",
 		SystemPrompt: "you are a test employee",
 		Status:       "active",
-		Tools:        model.JSON{},
 		McpServers:   model.JSON{},
 		Skills:       model.JSON{},
 		Integrations: model.JSON{},

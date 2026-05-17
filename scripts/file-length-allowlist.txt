@@ -66,4 +66,3 @@ internal/employeeruntime/compile_test.go
 internal/rag/tasks/ingest_attempt.go
 internal/bootstrap/deps.go
 internal/handler/employee_uploads_stream.go
-internal/handler/agents_delete_test.go

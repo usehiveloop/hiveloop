@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ChoiceCard } from "@/app/w/agents/_components/create-agent/choice-card"
+import { ChoiceCard } from "@/components/agent-form-shared/choice-card"
 import { integrationLogoURL } from "@/components/integration-logo"
 import { SlackSetupDialog } from "./slack-setup-dialog"
 import { StepHeader } from "./step-header"

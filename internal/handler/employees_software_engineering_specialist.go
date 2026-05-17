@@ -40,7 +40,6 @@ func (h *EmployeeHandler) ensureSoftwareEngineeringSpecialistTx(ctx context.Cont
 		Harness:        employeeCloudAgentHarness,
 		IsEmployee:     false,
 		Status:         "active",
-		Tools:          model.JSON{},
 		McpServers:     model.JSON{},
 		Skills:         model.JSON{},
 		Integrations:   model.JSON{},

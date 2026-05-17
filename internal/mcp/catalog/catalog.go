@@ -143,7 +143,7 @@ type TriggerDef struct {
 	Refs                map[string]string  `json:"refs,omitempty"`                  // ref_name → dot-path into webhook payload for entity extraction
 	SummaryRefs         map[string]string  `json:"summary_refs,omitempty"`          // display_name → dot-path, curated subset rendered into the agent's user message; full payload goes to bridge full_message
 	Enrichment          []EnrichmentAction `json:"enrichment,omitempty"`            // actions to run for pre-fetching context before dispatching to agent
-	ResourceKeyTemplate string             `json:"resource_key_template,omitempty"` // canonical resource_key template with {ref_name} placeholders for subscription routing
+	ResourceKeyTemplate string             `json:"resource_key_template,omitempty"` // canonical resource_key template with {ref_name} placeholders for trigger affinity
 }
 
 // EnrichmentAction defines a provider action to run during trigger enrichment.

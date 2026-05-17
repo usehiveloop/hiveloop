@@ -3,7 +3,6 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -11,7 +10,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/turso"
 )
@@ -80,21 +78,4 @@ func (o *Orchestrator) GetBridgeClient(ctx context.Context, sb *model.Sandbox) (
 	o.touchLastActive(sb)
 
 	return bridge.NewBridgeClient(sb.BridgeURL, apiKey), nil
-}
-
-// StartHealthChecker runs a background goroutine that periodically syncs sandbox
-// status from the provider and auto-stops idle sandboxes.
-func (o *Orchestrator) StartHealthChecker(ctx context.Context) {
-	ticker := time.NewTicker(healthCheckInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			logging.FromContext(ctx).InfoContext(ctx, "sandbox health checker stopped")
-			return
-		case <-ticker.C:
-			o.RunHealthCheck(ctx)
-		}
-	}
 }

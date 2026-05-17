@@ -229,12 +229,6 @@ P2
     - Fix: split touched large application files opportunistically and remove allowlist entries as they fall under the limit.
     - Key files: scripts/file-length-allowlist.txt
 
-41. Update trigger architecture docs or implementation around per-agent child tasks.
-    - Problem: trigger-architecture docs still say per-agent TypeAgentRun child tasks are TODO, while current router dispatch code has evolved.
-    - Fix: either implement the missing child task model or update the architecture doc to match current RouterDispatchHandler behavior.
-    - Key files: trigger-architecture/02-dispatcher-runtime.md, internal/tasks/router_dispatch.go, internal/trigger/dispatch/router_dispatcher.go
-
-
 Obsolete Hermes Items From todo.txt
 -----------------------------------
 - Build Hermes Daytona image and wire HERMES_BASE_IMAGE_PREFIX.

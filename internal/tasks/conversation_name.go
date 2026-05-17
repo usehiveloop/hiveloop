@@ -63,13 +63,22 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 	if conv.Name != "" {
 		return nil
 	}
-	if conv.CredentialID == nil {
+	var agent model.Agent
+	if err := handler.db.WithContext(ctx).
+		Where("id = ? AND org_id = ?", conv.AgentID, conv.OrgID).
+		First(&agent).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil
+		}
+		return fmt.Errorf("load agent: %w", err)
+	}
+	if agent.CredentialID == nil {
 		return nil
 	}
 
 	var credential model.Credential
 	if err := handler.db.WithContext(ctx).
-		Where("id = ? AND org_id = ?", *conv.CredentialID, conv.OrgID).
+		Where("id = ? AND org_id = ?", *agent.CredentialID, conv.OrgID).
 		First(&credential).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil
