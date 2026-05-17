@@ -33,6 +33,8 @@ const (
 	EmployeeEnvDriveUploadURL             = "HIVELOOP_DRIVE_UPLOAD_URL"
 	EmployeeEnvBugsinkURL                 = "BUGSINK_URL"
 	EmployeeEnvBugsinkToken               = "BUGSINK_TOKEN"
+	EmployeeEnvLinearURL                  = "LINEAR_URL"
+	EmployeeEnvLinearToken                = "LINEAR_TOKEN"
 	EmployeeEnvSentryDSN                  = "SENTRY_DSN"
 	EmployeeEnvSentryEnvironment          = "SENTRY_ENVIRONMENT"
 	EmployeeEnvSentrySampleRate           = "SENTRY_SAMPLE_RATE"
@@ -109,6 +111,8 @@ var employeeEnvCatalog = []EmployeeEnvSpec{
 	{Key: EmployeeEnvDriveUploadURL, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvBugsinkURL, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvBugsinkToken, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},
+	{Key: EmployeeEnvLinearURL, Source: EmployeeEnvSourceControlPlaneInjected},
+	{Key: EmployeeEnvLinearToken, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},
 	{Key: EmployeeEnvSentryDSN, Source: EmployeeEnvSourceConditionalSentry, Optional: true},
 	{Key: EmployeeEnvSentryEnvironment, Source: EmployeeEnvSourceConditionalSentry, Optional: true},
 	{Key: EmployeeEnvSentrySampleRate, Source: EmployeeEnvSourceConditionalSentry, Optional: true},

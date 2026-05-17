@@ -153,6 +153,8 @@ func TestCreateHermesSandbox_InjectsRequiredEnvVarsAndUsesPort7777(t *testing.T)
 			agent.ID.String(),
 		"BUGSINK_URL":         "https://cp.hiveloop.test/internal/bugsink-proxy/" + agent.ID.String(),
 		"BUGSINK_TOKEN":       apiKey,
+		"LINEAR_URL":          "https://cp.hiveloop.test/internal/linear-proxy/" + agent.ID.String(),
+		"LINEAR_TOKEN":        apiKey,
 		"HIVELOOP_SANDBOX_ID": sb.ID.String(),
 		"HIVELOOP_ORG_ID":     org.ID.String(),
 	}

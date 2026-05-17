@@ -85,6 +85,9 @@ func setupPublicRoutes(
 
 		bugsinkProxyHandler := handler.NewBugsinkProxyHandler(database, sandboxEncKey, nangoClient)
 		r.Handle("/internal/bugsink-proxy/{agentID}/*", http.HandlerFunc(bugsinkProxyHandler.Handle))
+
+		linearProxyHandler := handler.NewLinearProxyHandler(database, sandboxEncKey, nangoClient)
+		r.Post("/internal/linear-proxy/{agentID}", linearProxyHandler.Handle)
 	}
 
 	// Direct incoming webhooks for providers requiring manual webhook configuration

@@ -166,6 +166,8 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		employeeruntime.EmployeeEnvGitHubNoKeyring:          "1",
 		employeeruntime.EmployeeEnvBugsinkURL:               fmt.Sprintf("https://%s/internal/bugsink-proxy/%s", bridgeHost, agent.ID),
 		employeeruntime.EmployeeEnvBugsinkToken:             runtimeSecret,
+		employeeruntime.EmployeeEnvLinearURL:                fmt.Sprintf("https://%s/internal/linear-proxy/%s", bridgeHost, agent.ID),
+		employeeruntime.EmployeeEnvLinearToken:              runtimeSecret,
 	}
 	setEmployeeDriveUploadURL(envVars, cfg, agent.ID, "employee")
 	employeeSentryDSN := ""

@@ -43,6 +43,12 @@ func TestEmployeeSandboxEnvVars_ProvidesDriveUploadURLAndBearer(t *testing.T) {
 	if env["BUGSINK_TOKEN"] != "runtime-secret" {
 		t.Fatalf("BUGSINK_TOKEN = %q, want runtime-secret", env["BUGSINK_TOKEN"])
 	}
+	if env["LINEAR_URL"] != "https://api.example.test/internal/linear-proxy/"+agentID.String() {
+		t.Fatalf("LINEAR_URL = %q", env["LINEAR_URL"])
+	}
+	if env["LINEAR_TOKEN"] != "runtime-secret" {
+		t.Fatalf("LINEAR_TOKEN = %q, want runtime-secret", env["LINEAR_TOKEN"])
+	}
 }
 
 func TestEmployeeSandboxEnvVars_UsesEncryptedGitHubProfileIdentity(t *testing.T) {

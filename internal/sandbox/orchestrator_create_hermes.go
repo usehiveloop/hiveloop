@@ -123,6 +123,8 @@ func hermesEnvVars(cfg *config.Config, apiKey string, sb *model.Sandbox, orgID u
 		"HIVELOOP_GIT_CREDENTIALS_URL": fmt.Sprintf("https://%s/internal/git-credentials/%s", cfg.BridgeHost, agent.ID),
 		"BUGSINK_URL":                  fmt.Sprintf("https://%s/internal/bugsink-proxy/%s", cfg.BridgeHost, agent.ID),
 		"BUGSINK_TOKEN":                apiKey,
+		"LINEAR_URL":                   fmt.Sprintf("https://%s/internal/linear-proxy/%s", cfg.BridgeHost, agent.ID),
+		"LINEAR_TOKEN":                 apiKey,
 		"HIVELOOP_SANDBOX_ID":          sb.ID.String(),
 		"HIVELOOP_ORG_ID":              orgID.String(),
 	}
