@@ -170,7 +170,7 @@ func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		requiredNames, connectionWarnings, err := employeeRequiredSkillNames(ctx, tx, org.ID, agent.Category, nextIntegrations)
+		requiredNames, connectionWarnings, err := employeeRequiredSkillNames(ctx, tx, org.ID, agent.ID, agent.Category, nextIntegrations)
 		if err != nil {
 			return err
 		}

@@ -111,6 +111,12 @@ func (h *AgentProfileHandler) CompleteProfileConnection(w http.ResponseWriter, r
 	if !ok {
 		return
 	}
+	if err := attachEmployeeRequiredSkillsForAgent(r.Context(), h.db, orgID, &agent); err != nil {
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to attach employee profile skills",
+			"error", err, "org_id", orgID, "agent_id", agent.ID, "provider", integ.Provider)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to attach employee profile skills"})
+		return
+	}
 	writeJSON(w, status, completeAgentProfileResponse{
 		Profile:    profile,
 		Connection: profileConnectionResponse(conn),

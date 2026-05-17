@@ -24,6 +24,10 @@ var employeeConnectionSkillNames = map[string][]string{
 	"linear":                  {"linear"},
 }
 
+var employeeProfileSkillNames = map[string][]string{
+	"linear-profile": {"linear"},
+}
+
 type employeeConnectionResponse struct {
 	ID                string                             `json:"id"`
 	OrgID             string                             `json:"org_id"`

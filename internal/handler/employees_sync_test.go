@@ -64,6 +64,14 @@ func TestIntegration_EmployeesSync_Slack_HappyPath(t *testing.T) {
 		t.Errorf("sidecar bearer header missing: %q", bearer)
 	}
 	assertEmployeeRuntimeConfig(t, h.sidecar.configBody())
+	envCalls, envBearer := h.sidecar.snapshotRuntime()
+	if envCalls != 1 {
+		t.Errorf("runtime env calls = %d, want 1", envCalls)
+	}
+	if envBearer == "" || envBearer == "Bearer " {
+		t.Errorf("runtime env bearer header missing: %q", envBearer)
+	}
+	assertEmployeeRuntimeProxyEnv(t, h.sidecar.envBody(), agent.ID)
 }
 
 func TestIntegration_EmployeesSync_EnvOnlyUpdateCallsRuntimeEnvEndpoint(t *testing.T) {
@@ -79,6 +87,7 @@ func TestIntegration_EmployeesSync_EnvOnlyUpdateCallsRuntimeEnvEndpoint(t *testi
 		t.Fatalf("initial sync status = %d, want 200: %s", rr.Code, rr.Body.String())
 	}
 	baseCalls, _ := h.sidecar.snapshot()
+	baseEnvCalls, _ := h.sidecar.snapshotRuntime()
 
 	h.setRuntimeEnvVars(t, agent.ID, map[string]string{
 		"RUNTIME_TEST_TOKEN": "overlay-value",
@@ -95,8 +104,8 @@ func TestIntegration_EmployeesSync_EnvOnlyUpdateCallsRuntimeEnvEndpoint(t *testi
 	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode sync response: %v", err)
 	}
-	if resp.Applied != 1 {
-		t.Errorf("applied = %d, want 1", resp.Applied)
+	if resp.Applied < 5 {
+		t.Errorf("applied = %d, want at least encrypted env plus proxy env", resp.Applied)
 	}
 	if resp.RestartTriggered {
 		t.Errorf("restart_triggered = %v, want false for env-only sync", resp.RestartTriggered)
@@ -107,8 +116,8 @@ func TestIntegration_EmployeesSync_EnvOnlyUpdateCallsRuntimeEnvEndpoint(t *testi
 		t.Errorf("/config calls = %d, want %d", calls, baseCalls)
 	}
 	envCalls, envBearer := h.sidecar.snapshotRuntime()
-	if envCalls != 1 {
-		t.Errorf("runtime env calls = %d, want 1", envCalls)
+	if envCalls != baseEnvCalls+1 {
+		t.Errorf("runtime env calls = %d, want %d", envCalls, baseEnvCalls+1)
 	}
 	if envBearer == "" || envBearer == "Bearer " {
 		t.Errorf("runtime env bearer header missing: %q", envBearer)
@@ -121,6 +130,7 @@ func TestIntegration_EmployeesSync_EnvOnlyUpdateCallsRuntimeEnvEndpoint(t *testi
 	if got := payload["RUNTIME_TEST_TOKEN"]; got != "overlay-value" {
 		t.Errorf("runtime env payload = %q, want overlay-value", got)
 	}
+	assertRuntimeEnvProxyPayload(t, payload, agent.ID)
 }
 
 func TestIntegration_EmployeesSync_EnvOnlyUpdateRejectsBridgeReservedKeys(t *testing.T) {
@@ -155,6 +165,7 @@ func TestIntegration_EmployeesSync_EnvOnlyUpdateRejectsBridgeReservedKeys(t *tes
 	if _, ok := payload["BRIDGE_INTERNAL"]; ok {
 		t.Errorf("BRIDGE_INTERNAL leaked into runtime env payload")
 	}
+	assertRuntimeEnvProxyPayload(t, payload, agent.ID)
 }
 
 func TestIntegration_EmployeesSync_EnvOnlyUpdateCanClearRuntimeEnvOverlay(t *testing.T) {
@@ -191,16 +202,17 @@ func TestIntegration_EmployeesSync_EnvOnlyUpdateCanClearRuntimeEnvOverlay(t *tes
 	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode sync response: %v", err)
 	}
-	if resp.Applied != 0 {
-		t.Errorf("applied = %d, want 0", resp.Applied)
+	if resp.Applied != 4 {
+		t.Errorf("applied = %d, want 4 proxy env vars", resp.Applied)
 	}
 	var payload map[string]string
 	if err := json.Unmarshal(h.sidecar.envBody(), &payload); err != nil {
 		t.Fatalf("decode runtime env payload: %v", err)
 	}
-	if len(payload) != 0 {
-		t.Errorf("runtime env payload = %#v, want empty", payload)
+	if _, ok := payload["CLEARABLE_ENV"]; ok {
+		t.Errorf("CLEARABLE_ENV still present in runtime env payload")
 	}
+	assertRuntimeEnvProxyPayload(t, payload, agent.ID)
 }
 
 func TestIntegration_EmployeesSync_DefinitionChangeStillCallsConfigPath(t *testing.T) {
@@ -231,8 +243,8 @@ func TestIntegration_EmployeesSync_DefinitionChangeStillCallsConfigPath(t *testi
 	if calls != baseConfigCalls+1 {
 		t.Fatalf("runtime /config calls = %d, want %d", calls, baseConfigCalls+1)
 	}
-	if envCalls, _ := h.sidecar.snapshotRuntime(); envCalls != 0 {
-		t.Fatalf("runtime env calls = %d, want 0 for definition change", envCalls)
+	if envCalls, _ := h.sidecar.snapshotRuntime(); envCalls != 2 {
+		t.Fatalf("runtime env calls = %d, want 2 after definition change sync", envCalls)
 	}
 }
 
@@ -355,6 +367,33 @@ func assertEmployeeRuntimeConfig(t *testing.T, body []byte) {
 	}
 	if config.MultimodalModel.APIKeyEnv != employeeruntime.ProxyAPIKeyEnv {
 		t.Errorf("multimodal_model.api_key_env = %q, want %s", config.MultimodalModel.APIKeyEnv, employeeruntime.ProxyAPIKeyEnv)
+	}
+}
+
+func assertEmployeeRuntimeProxyEnv(t *testing.T, body []byte, agentID uuid.UUID) {
+	t.Helper()
+	var payload map[string]string
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatalf("decode runtime env payload: %v", err)
+	}
+	assertRuntimeEnvProxyPayload(t, payload, agentID)
+}
+
+func assertRuntimeEnvProxyPayload(t *testing.T, payload map[string]string, agentID uuid.UUID) {
+	t.Helper()
+	wantLinearURL := "https://cp.hiveloop.test/internal/linear-proxy/" + agentID.String()
+	if got := payload[employeeruntime.EmployeeEnvLinearURL]; got != wantLinearURL {
+		t.Errorf("LINEAR_URL = %q, want %q", got, wantLinearURL)
+	}
+	if got := payload[employeeruntime.EmployeeEnvLinearToken]; got == "" {
+		t.Errorf("LINEAR_TOKEN missing")
+	}
+	wantBugsinkURL := "https://cp.hiveloop.test/internal/bugsink-proxy/" + agentID.String()
+	if got := payload[employeeruntime.EmployeeEnvBugsinkURL]; got != wantBugsinkURL {
+		t.Errorf("BUGSINK_URL = %q, want %q", got, wantBugsinkURL)
+	}
+	if got := payload[employeeruntime.EmployeeEnvBugsinkToken]; got == "" {
+		t.Errorf("BUGSINK_TOKEN missing")
 	}
 }
 

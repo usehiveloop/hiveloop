@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/google/uuid"
+	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"gorm.io/gorm"
@@ -44,10 +46,6 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 	if err != nil {
 		return nil, fmt.Errorf("decrypt runtime secret: %w", err)
 	}
-	runtimeEnv, err := h.loadRuntimeEnv(agent)
-	if err != nil {
-		return nil, fmt.Errorf("load runtime env: %w", err)
-	}
 	def, err := employeeruntime.Compile(ctx, h.compileDeps, agent)
 	if err != nil {
 		return nil, fmt.Errorf("compile: %w", err)
@@ -57,6 +55,10 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 	if err := client.Healthz(ctx); err != nil {
 		return nil, fmt.Errorf("employee runtime healthz: %w", err)
 	}
+	runtimeEnv, err := h.loadRuntimeEnv(agent, apiKey)
+	if err != nil {
+		return nil, fmt.Errorf("load runtime env: %w", err)
+	}
 
 	currentDef, err := client.GetConfig(ctx)
 	needsRestart := err != nil || !agentDefinitionsMatch(currentDef, def)
@@ -64,6 +66,9 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 	var resp *employeeruntime.SyncResponse
 	if needsRestart {
 		resp, err = client.PutConfig(ctx, def)
+		if err == nil {
+			_, err = client.UpdateRuntimeEnv(ctx, runtimeEnv)
+		}
 	} else {
 		resp, err = client.UpdateRuntimeEnv(ctx, runtimeEnv)
 	}
@@ -89,9 +94,13 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 	return resp, nil
 }
 
-func (h *EmployeeHandler) loadRuntimeEnv(agent *model.Agent) (map[string]string, error) {
+func (h *EmployeeHandler) loadRuntimeEnv(agent *model.Agent, runtimeSecret string) (map[string]string, error) {
 	env := make(map[string]string)
-	if agent == nil || len(agent.EncryptedEnvVars) == 0 {
+	if agent == nil {
+		return env, nil
+	}
+	if len(agent.EncryptedEnvVars) == 0 {
+		addControlPlaneRuntimeEnv(env, h.compileDeps.Cfg, agent.ID, runtimeSecret)
 		return env, nil
 	}
 
@@ -101,6 +110,7 @@ func (h *EmployeeHandler) loadRuntimeEnv(agent *model.Agent) (map[string]string,
 	}
 	decrypted = strings.TrimSpace(decrypted)
 	if decrypted == "" {
+		addControlPlaneRuntimeEnv(env, h.compileDeps.Cfg, agent.ID, runtimeSecret)
 		return env, nil
 	}
 
@@ -114,7 +124,22 @@ func (h *EmployeeHandler) loadRuntimeEnv(agent *model.Agent) (map[string]string,
 		}
 		env[key] = value
 	}
+	addControlPlaneRuntimeEnv(env, h.compileDeps.Cfg, agent.ID, runtimeSecret)
 	return env, nil
+}
+
+func addControlPlaneRuntimeEnv(env map[string]string, cfg *config.Config, agentID uuid.UUID, runtimeSecret string) {
+	if env == nil || cfg == nil || agentID == uuid.Nil || runtimeSecret == "" {
+		return
+	}
+	bridgeHost := strings.TrimSpace(cfg.BridgeHost)
+	if bridgeHost == "" {
+		return
+	}
+	env[employeeruntime.EmployeeEnvBugsinkURL] = fmt.Sprintf("https://%s/internal/bugsink-proxy/%s", bridgeHost, agentID)
+	env[employeeruntime.EmployeeEnvBugsinkToken] = runtimeSecret
+	env[employeeruntime.EmployeeEnvLinearURL] = fmt.Sprintf("https://%s/internal/linear-proxy/%s", bridgeHost, agentID)
+	env[employeeruntime.EmployeeEnvLinearToken] = runtimeSecret
 }
 
 func agentDefinitionsMatch(left, right *employeeruntime.AgentDefinition) bool {

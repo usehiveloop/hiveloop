@@ -348,7 +348,6 @@ func TestAgentProfileHandler_ListAvailableProfilesIncludesCustomAppSchema(t *tes
 		db.Where("1=1").Delete(&model.InConnection{})
 		db.Where("1=1").Delete(&model.InIntegration{})
 	})
-
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
@@ -457,6 +456,16 @@ func TestAgentProfileHandler_CustomAppProfileFlow(t *testing.T) {
 		db.Where("1=1").Delete(&model.InConnection{})
 		db.Where("1=1").Delete(&model.InIntegration{})
 	})
+	linearSkill := model.Skill{
+		Slug:       "linear-" + uuid.NewString()[:8],
+		Name:       "linear",
+		SourceType: model.SkillSourceInline,
+		Status:     model.SkillStatusPublished,
+	}
+	if err := db.Create(&linearSkill).Error; err != nil {
+		t.Fatalf("seed linear skill: %v", err)
+	}
+	t.Cleanup(func() { db.Unscoped().Where("id = ?", linearSkill.ID).Delete(&model.Skill{}) })
 
 	mockCfg := &nangoConnMockConfig{}
 	nangoSrv := httptest.NewServer(newNangoConnMock(mockCfg))
@@ -621,6 +630,10 @@ func TestAgentProfileHandler_CustomAppProfileFlow(t *testing.T) {
 	}
 	if completeResp.Profile.Config["provider_config_key"] != customResp.ProviderConfigKey {
 		t.Fatalf("provider_config_key = %v, want %s", completeResp.Profile.Config["provider_config_key"], customResp.ProviderConfigKey)
+	}
+	var skillLink model.AgentSkill
+	if err := db.Where("agent_id = ? AND skill_id = ?", agent.ID, linearSkill.ID).First(&skillLink).Error; err != nil {
+		t.Fatalf("expected linear skill to be attached after linear profile completion: %v", err)
 	}
 
 	req = httptest.NewRequest(http.MethodPost, "/v1/agents/"+agent.ID.String()+"/profiles/linear-profile/custom-app", bytes.NewReader(createBody))
