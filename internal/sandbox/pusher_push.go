@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/credentials"
 	"github.com/usehiveloop/hiveloop/internal/logging"
@@ -27,7 +29,12 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		return fmt.Errorf("minting proxy token: %w", err)
 	}
 
-	scopes := buildScopesFromIntegrations(agent.Integrations)
+	owningEmployee, err := p.loadOwningEmployee(ctx, agent)
+	if err != nil {
+		return fmt.Errorf("loading owning employee: %w", err)
+	}
+
+	scopes := buildScopesFromIntegrations(mergeAgentIntegrationsForAccess(agent, owningEmployee))
 	var scopesJSON model.JSON
 	if len(scopes) > 0 {
 		scopesJSON = model.JSON{"scopes": scopes}
@@ -47,7 +54,7 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		return fmt.Errorf("storing proxy token: %w", err)
 	}
 
-	def := p.buildAgentDefinition(ctx, agent, cred, proxyToken, jti)
+	def := p.buildAgentDefinition(ctx, agent, owningEmployee, cred, proxyToken, jti)
 
 	client, err := p.orchestrator.GetBridgeClient(ctx, sb)
 	if err != nil {
@@ -63,7 +70,7 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 	return nil
 }
 
-func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, cred *model.Credential, proxyToken, jti string) bridgepkg.AgentDefinition {
+func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, owningEmployee *model.Agent, cred *model.Credential, proxyToken, jti string) bridgepkg.AgentDefinition {
 	providerType := bridgepkg.Custom
 	if pt, ok := providerTypeMap[cred.ProviderID]; ok {
 		providerType = pt
@@ -74,7 +81,7 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 	providerGroup := subagents.MapProviderToGroup(cred.ProviderID, agent.Model)
 	systemPrompt, modelName := agent.ResolveProviderConfig(providerGroup)
 
-	if repoContext := buildRepoContext(agent.Resources); repoContext != "" {
+	if repoContext := buildRepoContext(mergeAgentResourcesForContext(agent, owningEmployee)); repoContext != "" {
 		systemPrompt += "\n\n" + repoContext
 	}
 
@@ -98,7 +105,8 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 
 	mcpServers := decodeJSONAs[[]bridgepkg.McpServerDefinition](agent.McpServers)
 
-	hasIntegrations := len(agent.Integrations) > 0
+	effectiveIntegrations := mergeAgentIntegrationsForAccess(agent, owningEmployee)
+	hasIntegrations := len(effectiveIntegrations) > 0
 	if hasIntegrations && p.cfg.MCPBaseURL != "" && jti != "" {
 		ourMCP := buildHiveLoopMCPServer(p.cfg.MCPBaseURL, jti, proxyToken)
 		if mcpServers == nil {
@@ -112,7 +120,11 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, c
 		def.McpServers = mcpServers
 	}
 
-	if bridgeSkills := p.loadBridgeSkills(ctx, agent.ID); len(bridgeSkills) > 0 {
+	var inheritedSkillAgentIDs []uuid.UUID
+	if owningEmployee != nil {
+		inheritedSkillAgentIDs = append(inheritedSkillAgentIDs, owningEmployee.ID)
+	}
+	if bridgeSkills := p.loadBridgeSkills(ctx, agent.ID, inheritedSkillAgentIDs...); len(bridgeSkills) > 0 {
 		def.Skills = &bridgeSkills
 	}
 

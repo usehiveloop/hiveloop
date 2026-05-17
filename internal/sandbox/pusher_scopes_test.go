@@ -61,6 +61,38 @@ func TestBuildScopesFromIntegrations(t *testing.T) {
 	}
 }
 
+func TestMergeAgentIntegrationsForAccess_InheritsEmployeeAndAllowsSubagentOverride(t *testing.T) {
+	employee := &model.Agent{Integrations: model.JSON{
+		"employee-conn": map[string]any{"actions": []any{"issues.read"}},
+		"shared-conn":   map[string]any{"actions": []any{"parent.action"}},
+	}}
+	subagent := &model.Agent{Integrations: model.JSON{
+		"shared-conn":   map[string]any{"actions": []any{"child.action"}},
+		"subagent-conn": map[string]any{"actions": []any{"deploy.create"}},
+	}}
+
+	merged := mergeAgentIntegrationsForAccess(subagent, employee)
+	scopes := buildScopesFromIntegrations(merged)
+	if len(scopes) != 3 {
+		t.Fatalf("scope count = %d, want 3: %#v", len(scopes), scopes)
+	}
+	actionsByConnection := map[string][]string{}
+	for _, scope := range scopes {
+		connectionID, _ := scope["connection_id"].(string)
+		actions, _ := scope["actions"].([]string)
+		actionsByConnection[connectionID] = actions
+	}
+	if got := actionsByConnection["employee-conn"]; len(got) != 1 || got[0] != "issues.read" {
+		t.Fatalf("employee-conn actions = %#v, want issues.read", got)
+	}
+	if got := actionsByConnection["shared-conn"]; len(got) != 1 || got[0] != "child.action" {
+		t.Fatalf("shared-conn actions = %#v, want child override", got)
+	}
+	if got := actionsByConnection["subagent-conn"]; len(got) != 1 || got[0] != "deploy.create" {
+		t.Fatalf("subagent-conn actions = %#v, want deploy.create", got)
+	}
+}
+
 func setupPusherTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	dsn := os.Getenv("DATABASE_URL")

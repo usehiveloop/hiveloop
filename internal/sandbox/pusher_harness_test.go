@@ -89,7 +89,7 @@ func pushHarnessFixture(t *testing.T, storedHarness string) map[string]any {
 	}))
 	t.Cleanup(srv.Close)
 
-	def := pusher.buildAgentDefinition(t.Context(), &agent, &cred, "ptok_harness", uuid.New().String())
+	def := pusher.buildAgentDefinition(t.Context(), &agent, nil, &cred, "ptok_harness", uuid.New().String())
 	client := bridgepkg.NewBridgeClient(srv.URL, "test-key")
 	if err := client.UpsertAgent(context.Background(), agent.ID.String(), def); err != nil {
 		t.Fatalf("UpsertAgent: %v", err)

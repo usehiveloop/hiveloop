@@ -48,6 +48,11 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		return nil, fmt.Errorf("saving sandbox record: %w", err)
 	}
 
+	owningEmployee, err := o.loadOwningEmployee(ctx, agent)
+	if err != nil {
+		return nil, fmt.Errorf("loading owning employee: %w", err)
+	}
+
 	webhookURL := fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID)
 	envVars := baseEnvVars(o.cfg, bridgeAPIKey, sb.ID, webhookURL)
 	setOrgEnvVars(envVars, org.ID)
@@ -59,6 +64,9 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		envVars["BRIDGE_STORAGE_AUTH_TOKEN"] = authToken
 	}
 
+	if owningEmployee != nil {
+		o.mergeUserEnvVars(ctx, envVars, owningEmployee.EncryptedEnvVars)
+	}
 	if agent != nil {
 		o.mergeUserEnvVars(ctx, envVars, agent.EncryptedEnvVars)
 	}
@@ -145,7 +153,8 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	}
 
 	if agent != nil {
-		if err := o.cloneAgentRepositories(ctx, &sb, agent); err != nil {
+		cloneSource := cloneAgentWithInheritedResources(agent, owningEmployee)
+		if err := o.cloneAgentRepositories(ctx, &sb, cloneSource); err != nil {
 			o.db.Model(&sb).Updates(map[string]any{
 				"status":        "error",
 				"error_message": fmt.Sprintf("repository cloning failed: %v", err),

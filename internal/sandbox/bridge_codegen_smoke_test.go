@@ -50,8 +50,8 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 		Name: "Smoke Agent", Model: "claude-sonnet-4-5",
 		SystemPrompt: "You are a smoke-test agent.",
 		Status:       "active",
-		Permissions: model.JSON{"Read": "allow"},
-		Tools:       model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
+		Permissions:  model.JSON{"Read": "allow"},
+		Tools:        model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 		Integrations: model.JSON{}, AgentConfig: model.JSON{},
 	}
 	if err := db.Create(&agent).Error; err != nil {
@@ -65,7 +65,7 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 	}
 	pusher := NewPusher(db, nil, signingKey, cfg, nil)
 
-	def := pusher.buildAgentDefinition(t.Context(), &agent, &cred, "ptok_smoke", uuid.New().String())
+	def := pusher.buildAgentDefinition(t.Context(), &agent, nil, &cred, "ptok_smoke", uuid.New().String())
 
 	var (
 		gotUpsertBody []byte

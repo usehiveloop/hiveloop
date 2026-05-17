@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	githubprofile "github.com/usehiveloop/hiveloop/internal/profiles/github"
@@ -42,6 +43,59 @@ func (o *Orchestrator) mergeUserEnvVars(ctx context.Context, envVars map[string]
 		}
 		envVars[k] = v
 	}
+}
+
+func (o *Orchestrator) loadOwningEmployee(ctx context.Context, agent *model.Agent) (*model.Agent, error) {
+	if agent == nil || agent.IsEmployee || agent.OrgID == nil {
+		return nil, nil
+	}
+	var employee model.Agent
+	err := o.db.WithContext(ctx).
+		Joins("JOIN agent_subagents ON agent_subagents.agent_id = agents.id").
+		Where("agent_subagents.subagent_id = ? AND agents.org_id = ? AND agents.is_employee = ? AND agents.is_system = ?", agent.ID, *agent.OrgID, true, false).
+		Order("agent_subagents.created_at ASC").
+		First(&employee).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &employee, nil
+}
+
+func mergeJSONMaps(base model.JSON, override model.JSON) model.JSON {
+	if len(base) == 0 && len(override) == 0 {
+		return model.JSON{}
+	}
+	out := make(model.JSON, len(base)+len(override))
+	for key, value := range base {
+		out[key] = value
+	}
+	for key, value := range override {
+		out[key] = value
+	}
+	return out
+}
+
+func cloneAgentWithInheritedResources(agent *model.Agent, employee *model.Agent) *model.Agent {
+	if agent == nil || employee == nil {
+		return agent
+	}
+	clone := *agent
+	clone.Resources = mergeJSONMaps(employee.Resources, agent.Resources)
+	return &clone
+}
+
+func appendUniqueUUIDs(ids []uuid.UUID, seen map[uuid.UUID]bool, values ...uuid.UUID) []uuid.UUID {
+	for _, id := range values {
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		ids = append(ids, id)
+	}
+	return ids
 }
 
 func (o *Orchestrator) cloneAgentRepositories(ctx context.Context, sb *model.Sandbox, agent *model.Agent) error {

@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/google/uuid"
@@ -59,6 +60,106 @@ func TestCreateDedicatedSandbox(t *testing.T) {
 	if got := env["SENTRY_ENABLE_LOGS"]; got != "true" {
 		t.Fatalf("SENTRY_ENABLE_LOGS = %q, want true", got)
 	}
+}
+
+func TestCreateDedicatedSandbox_InheritsEmployeeEnvWithSubagentOverrides(t *testing.T) {
+	orch, provider, db := setupOrchestrator(t)
+	org := createTestOrg(t, db)
+	cred := createTestCred(t, db, org.ID)
+	employee := createTestAgent(t, db, org.ID, cred.ID)
+	employee.IsEmployee = true
+	employee.EncryptedEnvVars = encryptedEnvVars(t, orch, map[string]string{
+		"SHARED_ENV":  "from-employee",
+		"ONLY_PARENT": "parent-value",
+		"BRIDGE_SKIP": "must-not-leak",
+	})
+	if err := db.Save(&employee).Error; err != nil {
+		t.Fatalf("save employee: %v", err)
+	}
+	subagent := createTestAgent(t, db, org.ID, cred.ID)
+	subagent.EncryptedEnvVars = encryptedEnvVars(t, orch, map[string]string{
+		"SHARED_ENV": "from-subagent",
+		"ONLY_CHILD": "child-value",
+	})
+	if err := db.Save(&subagent).Error; err != nil {
+		t.Fatalf("save subagent: %v", err)
+	}
+	if err := db.Create(&model.AgentSubagent{AgentID: employee.ID, SubagentID: subagent.ID}).Error; err != nil {
+		t.Fatalf("create agent subagent link: %v", err)
+	}
+
+	sb, err := orch.CreateDedicatedSandbox(context.Background(), &subagent)
+	if err != nil {
+		t.Fatalf("CreateDedicatedSandbox: %v", err)
+	}
+	t.Cleanup(func() {
+		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
+		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
+	})
+
+	env := provider.createCalls[len(provider.createCalls)-1].EnvVars
+	if got := env["ONLY_PARENT"]; got != "parent-value" {
+		t.Fatalf("ONLY_PARENT = %q, want parent-value", got)
+	}
+	if got := env["ONLY_CHILD"]; got != "child-value" {
+		t.Fatalf("ONLY_CHILD = %q, want child-value", got)
+	}
+	if got := env["SHARED_ENV"]; got != "from-subagent" {
+		t.Fatalf("SHARED_ENV = %q, want subagent override", got)
+	}
+	if _, ok := env["BRIDGE_SKIP"]; ok {
+		t.Fatalf("BRIDGE_SKIP should not be inherited into cloud agent env")
+	}
+}
+
+func TestCreateDedicatedSandbox_InheritsEmployeeResourcesForRepositoryClone(t *testing.T) {
+	orch, provider, db := setupOrchestrator(t)
+	org := createTestOrg(t, db)
+	cred := createTestCred(t, db, org.ID)
+	employee := createTestAgent(t, db, org.ID, cred.ID)
+	employee.IsEmployee = true
+	employee.Resources = model.JSON{
+		"employee-github": map[string]any{
+			"repository": []any{
+				map[string]any{"id": "octo-org/api", "name": "api"},
+			},
+		},
+	}
+	if err := db.Save(&employee).Error; err != nil {
+		t.Fatalf("save employee: %v", err)
+	}
+	subagent := createTestAgent(t, db, org.ID, cred.ID)
+	subagent.Resources = model.JSON{
+		"subagent-github": map[string]any{
+			"repository": []any{
+				map[string]any{"id": "octo-org/worker", "name": "worker"},
+			},
+		},
+	}
+	if err := db.Save(&subagent).Error; err != nil {
+		t.Fatalf("save subagent: %v", err)
+	}
+	if err := db.Create(&model.AgentSubagent{AgentID: employee.ID, SubagentID: subagent.ID}).Error; err != nil {
+		t.Fatalf("create agent subagent link: %v", err)
+	}
+
+	var commands []string
+	provider.executeCommandFn = func(_ context.Context, _ string, command string) (string, error) {
+		commands = append(commands, command)
+		return "", nil
+	}
+
+	sb, err := orch.CreateDedicatedSandbox(context.Background(), &subagent)
+	if err != nil {
+		t.Fatalf("CreateDedicatedSandbox: %v", err)
+	}
+	t.Cleanup(func() {
+		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
+		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
+	})
+
+	assertCommandContains(t, commands, "git clone --depth=1 https://github.com/octo-org/api.git /home/daytona/repos/api")
+	assertCommandContains(t, commands, "git clone --depth=1 https://github.com/octo-org/worker.git /home/daytona/repos/worker")
 }
 
 func TestCreateDedicatedSandbox_InheritsGitIdentityFromEmployeeProfile(t *testing.T) {
@@ -122,4 +223,27 @@ func TestCreateDedicatedSandbox_InheritsGitIdentityFromEmployeeProfile(t *testin
 	if env["HIVELOOP_GIT_EMAIL"] != "octocat@example.com" {
 		t.Fatalf("HIVELOOP_GIT_EMAIL = %q, want octocat@example.com", env["HIVELOOP_GIT_EMAIL"])
 	}
+}
+
+func encryptedEnvVars(t *testing.T, orch *Orchestrator, vars map[string]string) []byte {
+	t.Helper()
+	raw, err := json.Marshal(vars)
+	if err != nil {
+		t.Fatalf("marshal env vars: %v", err)
+	}
+	encrypted, err := orch.encKey.EncryptString(string(raw))
+	if err != nil {
+		t.Fatalf("encrypt env vars: %v", err)
+	}
+	return encrypted
+}
+
+func assertCommandContains(t *testing.T, commands []string, want string) {
+	t.Helper()
+	for _, command := range commands {
+		if command == want {
+			return
+		}
+	}
+	t.Fatalf("commands = %#v, missing %q", commands, want)
 }

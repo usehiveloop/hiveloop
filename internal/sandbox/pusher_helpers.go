@@ -3,9 +3,11 @@ package sandbox
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/logging"
@@ -75,6 +77,45 @@ func buildScopesFromIntegrations(integrations model.JSON) []map[string]any {
 	return scopes
 }
 
+func (p *Pusher) loadOwningEmployee(ctx context.Context, agent *model.Agent) (*model.Agent, error) {
+	if agent == nil || agent.IsEmployee || agent.OrgID == nil {
+		return nil, nil
+	}
+	var employee model.Agent
+	err := p.db.WithContext(ctx).
+		Joins("JOIN agent_subagents ON agent_subagents.agent_id = agents.id").
+		Where("agent_subagents.subagent_id = ? AND agents.org_id = ? AND agents.is_employee = ? AND agents.is_system = ?", agent.ID, *agent.OrgID, true, false).
+		Order("agent_subagents.created_at ASC").
+		First(&employee).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &employee, nil
+}
+
+func mergeAgentIntegrationsForAccess(agent *model.Agent, employee *model.Agent) model.JSON {
+	if agent == nil {
+		return model.JSON{}
+	}
+	if employee == nil {
+		return agent.Integrations
+	}
+	return mergeJSONMaps(employee.Integrations, agent.Integrations)
+}
+
+func mergeAgentResourcesForContext(agent *model.Agent, employee *model.Agent) model.JSON {
+	if agent == nil {
+		return model.JSON{}
+	}
+	if employee == nil {
+		return agent.Resources
+	}
+	return mergeJSONMaps(employee.Resources, agent.Resources)
+}
+
 func decodeJSONAs[T any](j model.JSON) *T {
 	if len(j) == 0 {
 		return nil
@@ -90,15 +131,20 @@ func decodeJSONAs[T any](j model.JSON) *T {
 	return &result
 }
 
-func (p *Pusher) loadBridgeSkills(ctx context.Context, agentID uuid.UUID) []bridgepkg.SkillDefinition {
+func (p *Pusher) loadBridgeSkills(ctx context.Context, agentID uuid.UUID, inheritedAgentIDs ...uuid.UUID) []bridgepkg.SkillDefinition {
+	seenAgentIDs := map[uuid.UUID]bool{}
+	agentIDs := appendUniqueUUIDs(nil, seenAgentIDs, inheritedAgentIDs...)
+	agentIDs = appendUniqueUUIDs(agentIDs, seenAgentIDs, agentID)
+
 	var links []model.AgentSkill
-	if err := p.db.WithContext(ctx).Where("agent_id = ?", agentID).Find(&links).Error; err != nil || len(links) == 0 {
+	if err := p.db.WithContext(ctx).Where("agent_id IN ?", agentIDs).Find(&links).Error; err != nil || len(links) == 0 {
 		return nil
 	}
 
-	skillIDs := make([]uuid.UUID, len(links))
-	for index, link := range links {
-		skillIDs[index] = link.SkillID
+	skillIDSeen := map[uuid.UUID]bool{}
+	skillIDs := make([]uuid.UUID, 0, len(links))
+	for _, link := range links {
+		skillIDs = appendUniqueUUIDs(skillIDs, skillIDSeen, link.SkillID)
 	}
 
 	var skills []model.Skill

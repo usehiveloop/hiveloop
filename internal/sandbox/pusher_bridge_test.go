@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"gorm.io/gorm"
 
 	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
 	"github.com/usehiveloop/hiveloop/internal/config"
@@ -95,7 +96,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 
 	proxyToken := "ptok_test_token"
 	jti := uuid.New().String()
-	def := pusher.buildAgentDefinition(t.Context(), &agent, &cred, proxyToken, jti)
+	def := pusher.buildAgentDefinition(t.Context(), &agent, nil, &cred, proxyToken, jti)
 
 	assertEqual(t, "name", def.Name, "Test Railway Agent")
 	assertEqual(t, "model", def.Provider.Model, "kimi-k2")
@@ -181,4 +182,133 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	if (*transport.Headers)["Authorization"] != "Bearer "+proxyToken {
 		t.Errorf("Authorization header = %q, want bearer of proxy token", (*transport.Headers)["Authorization"])
 	}
+}
+
+func TestPusherBuildAgentDefinition_InheritsEmployeeSkillsIntegrationsAndResources(t *testing.T) {
+	db := setupPusherTestDB(t)
+	encKey := testPusherEncKey(t)
+
+	org := model.Org{ID: uuid.New(), Name: "inherit-pusher-org-" + uuid.New().String()[:8], Active: true}
+	if err := db.Create(&org).Error; err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	t.Cleanup(func() { db.Where("id = ?", org.ID).Delete(&model.Org{}) })
+
+	encrypted, _ := encKey.EncryptString("sk-test-key-for-pusher-inherit")
+	cred := model.Credential{
+		ID: uuid.New(), OrgID: org.ID,
+		ProviderID: "openai", Label: "Test OpenAI",
+		EncryptedKey: encrypted, WrappedDEK: []byte("test"),
+		BaseURL: "https://api.openai.com", AuthScheme: "bearer",
+	}
+	if err := db.Create(&cred).Error; err != nil {
+		t.Fatalf("create cred: %v", err)
+	}
+	t.Cleanup(func() { db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
+
+	employee := model.Agent{
+		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
+		Name: "Employee Owner", Model: "gpt-4o",
+		SystemPrompt: "employee", Status: "active", IsEmployee: true,
+		Integrations: model.JSON{
+			"employee-conn": map[string]any{"actions": []any{"issues.read"}},
+		},
+		Resources: model.JSON{
+			"employee-conn": map[string]any{
+				"repository": []any{map[string]any{"id": "octo-org/api", "name": "api"}},
+			},
+		},
+		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{}, AgentConfig: model.JSON{}, Permissions: model.JSON{},
+	}
+	if err := db.Create(&employee).Error; err != nil {
+		t.Fatalf("create employee: %v", err)
+	}
+	t.Cleanup(func() { db.Where("id = ?", employee.ID).Delete(&model.Agent{}) })
+
+	subagent := model.Agent{
+		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
+		Name: "Cloud Specialist", Model: "gpt-4o",
+		SystemPrompt: "subagent", Status: "active",
+		Resources: model.JSON{
+			"subagent-conn": map[string]any{
+				"repository": []any{map[string]any{"id": "octo-org/worker", "name": "worker"}},
+			},
+		},
+		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{}, Integrations: model.JSON{}, AgentConfig: model.JSON{}, Permissions: model.JSON{},
+	}
+	if err := db.Create(&subagent).Error; err != nil {
+		t.Fatalf("create subagent: %v", err)
+	}
+	if err := db.Create(&model.AgentSubagent{AgentID: employee.ID, SubagentID: subagent.ID}).Error; err != nil {
+		t.Fatalf("create subagent link: %v", err)
+	}
+	t.Cleanup(func() {
+		db.Where("agent_id = ? AND subagent_id = ?", employee.ID, subagent.ID).Delete(&model.AgentSubagent{})
+		db.Where("id = ?", subagent.ID).Delete(&model.Agent{})
+	})
+
+	employeeSkill := createPusherSkill(t, db, "linear")
+	subagentSkill := createPusherSkill(t, db, "asset-uploads")
+	if err := db.Create(&model.AgentSkill{AgentID: employee.ID, SkillID: employeeSkill.ID}).Error; err != nil {
+		t.Fatalf("link employee skill: %v", err)
+	}
+	if err := db.Create(&model.AgentSkill{AgentID: subagent.ID, SkillID: subagentSkill.ID}).Error; err != nil {
+		t.Fatalf("link subagent skill: %v", err)
+	}
+
+	pusher := NewPusher(db, nil, []byte("test-signing-key-for-pusher-inherit"), &config.Config{
+		ProxyHost:  "proxy.test.com",
+		MCPBaseURL: "https://mcp.test.com",
+	}, nil)
+	def := pusher.buildAgentDefinition(t.Context(), &subagent, &employee, &cred, "ptok_inherit", uuid.New().String())
+
+	if def.McpServers == nil {
+		t.Fatal("mcp_servers should be injected from inherited employee integrations")
+	}
+	if def.Skills == nil || len(*def.Skills) != 2 {
+		t.Fatalf("skills = %#v, want employee and subagent skills", def.Skills)
+	}
+	var titles []string
+	for _, skill := range *def.Skills {
+		titles = append(titles, skill.Title)
+	}
+	assertSliceContains(t, "skills", titles, "linear")
+	assertSliceContains(t, "skills", titles, "asset-uploads")
+	assertContains(t, "system_prompt inherited employee repo", def.SystemPrompt, "octo-org/api")
+	assertContains(t, "system_prompt subagent repo", def.SystemPrompt, "octo-org/worker")
+}
+
+func createPusherSkill(t *testing.T, db interface {
+	Create(value any) *gorm.DB
+	Where(query any, args ...any) *gorm.DB
+}, name string) model.Skill {
+	t.Helper()
+	skillVersion := model.SkillVersion{
+		ID:      uuid.New(),
+		Version: "v1",
+		Bundle: model.RawJSON(`{
+			"id": "` + name + `-test",
+			"title": "` + name + `",
+			"description": "Test skill",
+			"content": "# ` + name + `"
+		}`),
+	}
+	skill := model.Skill{
+		ID: uuid.New(), Slug: name + "-test-" + uuid.New().String()[:8],
+		Name: name, SourceType: "inline", Status: "published",
+		LatestVersionID: &skillVersion.ID,
+	}
+	skillVersion.SkillID = skill.ID
+	if err := db.Create(&skill).Error; err != nil {
+		t.Fatalf("create skill: %v", err)
+	}
+	if err := db.Create(&skillVersion).Error; err != nil {
+		t.Fatalf("create skill version: %v", err)
+	}
+	t.Cleanup(func() {
+		db.Where("skill_id = ?", skill.ID).Delete(&model.SkillVersion{})
+		db.Where("skill_id = ?", skill.ID).Delete(&model.AgentSkill{})
+		db.Where("id = ?", skill.ID).Delete(&model.Skill{})
+	})
+	return skill
 }

@@ -149,7 +149,7 @@ func TestPusherAgentConfig_HarnessOptionalFields(t *testing.T) {
 			cfg := &config.Config{ProxyHost: "proxy.cfg.test", MCPBaseURL: "https://mcp.cfg.test"}
 			pusher := NewPusher(db, nil, signingKey, cfg, nil)
 
-			def := pusher.buildAgentDefinition(t.Context(), &agent, &cred, "ptok_cfg", uuid.New().String())
+			def := pusher.buildAgentDefinition(t.Context(), &agent, nil, &cred, "ptok_cfg", uuid.New().String())
 
 			var captured []byte
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -230,7 +230,7 @@ func TestPusherAgentConfig_ProviderPromptModelOverride(t *testing.T) {
 	cfg := &config.Config{ProxyHost: "proxy.cfg.test", MCPBaseURL: "https://mcp.cfg.test"}
 	pusher := NewPusher(db, nil, signingKey, cfg, nil)
 
-	def := pusher.buildAgentDefinition(t.Context(), &agent, &cred, "ptok_cfg", uuid.New().String())
+	def := pusher.buildAgentDefinition(t.Context(), &agent, nil, &cred, "ptok_cfg", uuid.New().String())
 	if def.Provider.Model != "kimi-k2" {
 		t.Fatalf("provider.model = %q, want kimi-k2", def.Provider.Model)
 	}

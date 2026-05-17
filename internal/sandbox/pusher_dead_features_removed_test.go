@@ -77,8 +77,8 @@ func TestPusherDeadFeatures_NotEmittedOnWire(t *testing.T) {
 
 	agent := model.Agent{
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
-		Name: "Dead Features Agent-" + uuid.New().String()[:8],
-		Model: "claude-sonnet-4-5",
+		Name:         "Dead Features Agent-" + uuid.New().String()[:8],
+		Model:        "claude-sonnet-4-5",
 		SystemPrompt: "test", Status: "active",
 		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 		Integrations: model.JSON{}, AgentConfig: legacyConfig, Permissions: model.JSON{},
@@ -91,7 +91,7 @@ func TestPusherDeadFeatures_NotEmittedOnWire(t *testing.T) {
 	cfg := &config.Config{ProxyHost: "proxy.dead.test", MCPBaseURL: "https://mcp.dead.test"}
 	pusher := NewPusher(db, nil, signingKey, cfg, nil)
 
-	def := pusher.buildAgentDefinition(t.Context(), &agent, &cred, "ptok_dead", uuid.New().String())
+	def := pusher.buildAgentDefinition(t.Context(), &agent, nil, &cred, "ptok_dead", uuid.New().String())
 
 	var captured []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
