@@ -78,6 +78,7 @@ async fn tools_flow_end_to_end_against_fake_control_plane() {
             workspace_root: PathBuf::from("/tmp"),
             cloud_agents: Some(service),
             outbound_emitter: None,
+            slack_channels: Vec::new(),
         },
     );
     let find_tool = |name: &str| {

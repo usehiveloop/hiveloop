@@ -105,6 +105,17 @@ type SkillSpec struct {
 	Pinned                       bool              `json:"pinned"`
 }
 
+type SlackConfig struct {
+	PostableChannels []SlackChannelSpec `json:"postable_channels,omitempty"`
+}
+
+type SlackChannelSpec struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	IsPrivate   bool   `json:"is_private,omitempty"`
+}
+
 type MemoryContext struct {
 	Entries     []MemoryContextEntry `json:"entries"`
 	TokenBudget int                  `json:"token_budget"`
@@ -182,6 +193,7 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*AgentD
 	contextMap := map[string]any{
 		"memory": buildMemoryContext(ctx, deps, agent),
 	}
+	slackConfig := buildSlackConfig(ctx, deps, agent)
 	return &AgentDefinition{
 		Agent: AgentMeta{
 			Name:        agent.Name,
@@ -196,7 +208,7 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*AgentD
 		McpServers:       mcpServers,
 		Skills:           skills,
 		Subagents:        []any{},
-		Slack:            map[string]any{},
+		Slack:            slackConfigMap(slackConfig),
 		OutboundChannels: []any{},
 	}, nil
 }
@@ -515,13 +527,81 @@ func defaultTools() []map[string]any {
 		{"type": "builtin.bash", "config": map[string]any{"workdir": ".", "timeout_seconds": 60, "max_output_bytes": 5 * 1024 * 1024, "deny_patterns": []string{"rm -rf /", "rm -rf ~", "mkfs", "dd if=", ":(){:|:&};:", "shutdown", "reboot"}, "env_passthrough": []string{EmployeeEnvHome, EmployeeEnvPath, EmployeeEnvLang, EmployeeEnvLCAll, ProxyAPIKeyEnv, EmployeeEnvBugsinkURL, EmployeeEnvBugsinkDashboardBaseURL, EmployeeEnvBugsinkToken, EmployeeEnvLinearURL, EmployeeEnvLinearToken}, "sandbox": "process_isolated"}},
 		{"type": "builtin.read_file", "config": map[string]any{"allowed_roots": []string{}, "max_file_size_bytes": 5 * 1024 * 1024, "deny_globs": []string{}}},
 		{"type": "builtin.write_file", "config": map[string]any{"allowed_roots": []string{}, "max_file_size_bytes": 5 * 1024 * 1024, "deny_globs": []string{}, "atomic": true}},
-		{"type": "builtin.post_status_update"}, {"type": "builtin.post_to_channel"},
+		{"type": "builtin.post_status_update"}, {"type": "builtin.post_to_slack_channel"},
 		{"type": "builtin.cron"}, {"type": "builtin.delegate"}, {"type": "builtin.check_delegated_status"},
 		{"type": "builtin.check_bash_status"}, {"type": "builtin.wake"}, {"type": "builtin.load_tools"},
 		{"type": "builtin.skills_list"}, {"type": "builtin.skill_view"}, {"type": "builtin.skill_manage"},
 		{"type": "builtin.cloud_agent_launch_task"}, {"type": "builtin.cloud_agent_task_status"}, {"type": "builtin.cloud_agent_list_tasks"},
 		{"type": "builtin.cloud_agent_task_send_message"}, {"type": "builtin.cloud_agent_task_terminate"},
 	}
+}
+
+func buildSlackConfig(ctx context.Context, deps CompileDeps, agent *model.Agent) SlackConfig {
+	cfg := SlackConfig{PostableChannels: []SlackChannelSpec{}}
+	if deps.DB == nil || deps.KMS == nil || agent == nil {
+		return cfg
+	}
+	profile, err := loadActiveSlackProfile(ctx, deps.DB, agent.ID)
+	if err != nil {
+		return cfg
+	}
+	secrets, err := decryptSlackSecrets(ctx, deps.KMS, profile)
+	if err != nil {
+		return cfg
+	}
+	channelCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	channels, err := slackprov.ListBotChannels(channelCtx, secrets.BotToken)
+	if err != nil {
+		return cfg
+	}
+	cfg.PostableChannels = slackChannelSpecs(channels)
+	return cfg
+}
+
+func slackChannelSpecs(channels []slackprov.Channel) []SlackChannelSpec {
+	out := make([]SlackChannelSpec, 0, len(channels))
+	for _, ch := range channels {
+		description := strings.TrimSpace(ch.Topic)
+		if description == "" {
+			description = strings.TrimSpace(ch.Purpose)
+		} else if purpose := strings.TrimSpace(ch.Purpose); purpose != "" && purpose != description {
+			description += " " + purpose
+		}
+		out = append(out, SlackChannelSpec{
+			ID:          ch.ID,
+			Name:        ch.Name,
+			Description: description,
+			IsPrivate:   ch.IsPrivate,
+		})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].Name < out[j].Name
+	})
+	return out
+}
+
+func slackConfigMap(cfg SlackConfig) map[string]any {
+	out := map[string]any{}
+	if len(cfg.PostableChannels) == 0 {
+		return out
+	}
+	channels := make([]map[string]any, 0, len(cfg.PostableChannels))
+	for _, ch := range cfg.PostableChannels {
+		item := map[string]any{
+			"id":   ch.ID,
+			"name": ch.Name,
+		}
+		if ch.Description != "" {
+			item["description"] = ch.Description
+		}
+		if ch.IsPrivate {
+			item["is_private"] = true
+		}
+		channels = append(channels, item)
+	}
+	out["postable_channels"] = channels
+	return out
 }
 
 func loadActiveSlackProfile(ctx context.Context, db *gorm.DB, agentID uuid.UUID) (*model.AgentProfile, error) {

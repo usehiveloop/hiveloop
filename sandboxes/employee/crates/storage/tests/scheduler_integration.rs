@@ -112,7 +112,7 @@ async fn delegated_task_uses_dedicated_session_not_cron_pattern() {
 async fn session_id_routing_by_priority() {
     let repo = setup_repo().await;
 
-    let mut wake = CronJob {
+    let wake = CronJob {
         id: "wake".into(),
         session_continuation_id: Some("C123-thread-ts".into()),
         delegated_session_id: Some("C123-delegate-session".into()),
@@ -120,14 +120,14 @@ async fn session_id_routing_by_priority() {
     };
     repo.create(&wake).await.unwrap();
 
-    let mut delegate = CronJob {
+    let delegate = CronJob {
         id: "del".into(),
         delegated_session_id: Some("C123-delegate-session".into()),
         ..test_job("del", CronJobSource::Delegate, 0)
     };
     repo.create(&delegate).await.unwrap();
 
-    let mut regular = CronJob {
+    let regular = CronJob {
         id: "reg".into(),
         ..test_job("reg", CronJobSource::Cron, 3600)
     };
@@ -163,6 +163,7 @@ async fn stale_daily_report_is_fast_forwarded_not_fired() {
     assert_eq!(due.len(), 1, "overdue job must be due");
 
     let is_recurring = job.interval_seconds.map(|v| v > 0).unwrap_or(false);
+    assert!(is_recurring, "daily report should be treated as recurring");
     let interval = job.interval_seconds.unwrap();
     let stale_threshold = (interval as f64 * 0.5).max(120.0) as i64;
     let lag = Utc::now()

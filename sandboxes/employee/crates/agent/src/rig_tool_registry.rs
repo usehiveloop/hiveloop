@@ -7,7 +7,7 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use domain::cron::{CronJob, CronJobSource, CronJobState};
-use domain::{event_types, OutboundEvent, Reply, SessionId, ToolSpec};
+use domain::{event_types, OutboundEvent, Reply, SessionId, SlackChannelSpec, ToolSpec};
 use gateway::ChannelGateway;
 use mcp::McpRegistry;
 use outbound::OutboundEmitter;
@@ -55,6 +55,7 @@ pub struct ToolContext {
     pub workspace_root: PathBuf,
     pub cloud_agents: Option<Arc<CloudAgentService>>,
     pub outbound_emitter: Option<Arc<OutboundEmitter>>,
+    pub slack_channels: Vec<SlackChannelSpec>,
 }
 
 pub fn build_agent_tools(
@@ -69,24 +70,17 @@ pub fn build_agent_tools(
         match spec {
             ToolSpec::PostStatusUpdate => {
                 if let Some(gateway) = &ctx.gateway {
-                    if session_is_cron {
-                        tools.push(post_to_channel_tool(
-                            gateway.clone(),
-                            derive_channel(session_id),
-                        ));
-                    } else {
+                    if !session_is_cron {
                         tools.push(status_update_tool(gateway.clone(), session_id.clone()));
                     }
                 }
             }
-            ToolSpec::PostToChannel => {
+            ToolSpec::PostToSlackChannel => {
                 if let Some(gateway) = &ctx.gateway {
-                    if session_is_cron {
-                        tools.push(post_to_channel_tool(
-                            gateway.clone(),
-                            derive_channel(session_id),
-                        ));
-                    }
+                    tools.push(post_to_slack_channel_tool(
+                        gateway.clone(),
+                        ctx.slack_channels.clone(),
+                    ));
                 }
             }
             ToolSpec::Cron => {
@@ -252,28 +246,95 @@ fn status_update_tool(
     ))
 }
 
-fn post_to_channel_tool(gateway: Arc<dyn ChannelGateway>, channel: String) -> Arc<dyn JsonTool> {
+fn post_to_slack_channel_tool(
+    gateway: Arc<dyn ChannelGateway>,
+    channels: Vec<SlackChannelSpec>,
+) -> Arc<dyn JsonTool> {
+    let description = post_to_slack_channel_description(&channels);
     Arc::new(DynamicTool::new(
         ToolDefinition {
-            name: "post_to_channel".into(),
-            description: "Post a message to the current channel.".into(),
-            parameters: json!({"type":"object","properties":{"message":{"type":"string"}},"required":["message"]}),
+            name: "post_to_slack_channel".into(),
+            description,
+            parameters: json!({
+                "type":"object",
+                "properties":{
+                    "channel_id":{
+                        "type":"string",
+                        "description":"Slack channel ID to post to. Use one of the channel IDs listed in the tool description."
+                    },
+                    "message":{
+                        "type":"string",
+                        "description":"Message text to send. Write Slack mrkdwn directly, keep it appropriate for the target channel, and include enough context that the message stands on its own."
+                    }
+                },
+                "required":["channel_id","message"],
+                "additionalProperties": false
+            }),
         },
         move |args| {
             let gateway = gateway.clone();
-            let channel = channel.clone();
+            let allowed_channels = channels.clone();
             Box::pin(async move {
+                let channel_id = args
+                    .get("channel_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("channel_id required"))?;
                 let message = args
                     .get("message")
                     .and_then(Value::as_str)
                     .ok_or_else(|| anyhow!("message required"))?;
+                if !allowed_channels.is_empty()
+                    && !allowed_channels.iter().any(|ch| ch.id == channel_id)
+                {
+                    return Err(anyhow!(
+                        "channel_id {channel_id:?} is not one of the bot's configured Slack channels"
+                    ));
+                }
                 gateway
-                    .post_to_channel(&channel, Reply::Text(message.to_string()))
+                    .post_to_channel(channel_id, Reply::Text(message.to_string()))
                     .await?;
-                Ok(json!({"message": message, "posted": true, "channel": channel}))
+                Ok(json!({"message": message, "posted": true, "channel_id": channel_id}))
             })
         },
     ))
+}
+
+fn post_to_slack_channel_description(channels: &[SlackChannelSpec]) -> String {
+    let mut description = String::from(
+        "Post a message to a Slack channel that this employee bot is already a member of.\n\
+Choose the channel_id from the channel catalog below. Use the channel name and description to decide where the message belongs. \
+Only send messages that are relevant to the requested work, and write the message exactly as it should appear in Slack using Slack mrkdwn.\n\n\
+Parameters:\n\
+- channel_id: Slack channel ID from the catalog below.\n\
+- message: The complete Slack message to send.",
+    );
+    if channels.is_empty() {
+        description.push_str(
+            "\n\nChannel catalog: no Slack channel catalog was provided by the control plane.",
+        );
+        return description;
+    }
+    description.push_str("\n\nChannel catalog:");
+    for channel in channels {
+        let visibility = if channel.is_private {
+            "private"
+        } else {
+            "public"
+        };
+        let desc = channel.description.trim();
+        if desc.is_empty() {
+            description.push_str(&format!(
+                "\n- #{} ({visibility}) id={}: no description provided",
+                channel.name, channel.id
+            ));
+        } else {
+            description.push_str(&format!(
+                "\n- #{} ({visibility}) id={}: {}",
+                channel.name, channel.id, desc
+            ));
+        }
+    }
+    description
 }
 
 fn cron_tool(
@@ -1075,7 +1136,8 @@ mod tests {
 
     use async_trait::async_trait;
     use chrono::{DateTime, Utc};
-    use domain::ToolSpec;
+    use domain::{Attachment, HistoryMessage, InboundEvent, MessageHandle, ToolSpec};
+    use gateway::{GatewayError, Result as GatewayResult};
     use outbound::{OutboundChannel, OutboundError, OutboundRegistry};
     use std::collections::HashMap;
     use std::fs;
@@ -1091,6 +1153,90 @@ mod tests {
     #[derive(Default)]
     struct FakeCronRepo {
         jobs: Mutex<HashMap<String, CronJob>>,
+    }
+
+    #[derive(Default)]
+    struct FakeGateway {
+        posts: Mutex<Vec<(String, String)>>,
+    }
+
+    #[async_trait]
+    impl ChannelGateway for FakeGateway {
+        fn platform(&self) -> &'static str {
+            "test"
+        }
+
+        async fn run(&self, _sink: tokio::sync::mpsc::Sender<InboundEvent>) -> GatewayResult<()> {
+            Ok(())
+        }
+
+        async fn reply(
+            &self,
+            _session_id: &SessionId,
+            _body: Reply,
+        ) -> GatewayResult<MessageHandle> {
+            Err(GatewayError::Unsupported("reply"))
+        }
+
+        async fn post_to_channel(
+            &self,
+            channel: &str,
+            body: Reply,
+        ) -> GatewayResult<MessageHandle> {
+            let Reply::Text(message) = body else {
+                return Err(GatewayError::Unsupported("rich reply"));
+            };
+            self.posts
+                .lock()
+                .expect("posts lock")
+                .push((channel.to_string(), message));
+            Ok(MessageHandle {
+                channel: channel.to_string(),
+                ts: "1.000".to_string(),
+            })
+        }
+
+        async fn edit(&self, _handle: &MessageHandle, _body: Reply) -> GatewayResult<()> {
+            Err(GatewayError::Unsupported("edit"))
+        }
+
+        async fn typing(&self, _session_id: &SessionId) -> GatewayResult<()> {
+            Ok(())
+        }
+
+        async fn stop_typing(&self, _session_id: &SessionId) -> GatewayResult<()> {
+            Ok(())
+        }
+
+        async fn upload(
+            &self,
+            _session_id: &SessionId,
+            _bytes: Vec<u8>,
+            _filename: &str,
+            _caption: Option<&str>,
+        ) -> GatewayResult<MessageHandle> {
+            Err(GatewayError::Unsupported("upload"))
+        }
+
+        async fn react(&self, _handle: &MessageHandle, _emoji: &str) -> GatewayResult<()> {
+            Ok(())
+        }
+
+        async fn unreact(&self, _handle: &MessageHandle, _emoji: &str) -> GatewayResult<()> {
+            Ok(())
+        }
+
+        async fn fetch_thread_history(
+            &self,
+            _session_id: &SessionId,
+            _limit: u32,
+        ) -> GatewayResult<Vec<HistoryMessage>> {
+            Ok(Vec::new())
+        }
+
+        async fn download_attachment(&self, _attachment: &Attachment) -> GatewayResult<Vec<u8>> {
+            Err(GatewayError::Unsupported("download"))
+        }
     }
 
     #[async_trait]
@@ -1275,6 +1421,7 @@ mod tests {
             workspace_root: workspace,
             cloud_agents: None,
             outbound_emitter: Some(emitter),
+            slack_channels: Vec::new(),
         };
         build_agent_tools(
             &[ToolSpec::SkillManage],
@@ -1284,6 +1431,94 @@ mod tests {
         .into_iter()
         .find(|tool| tool.definition().name == "skill_manage")
         .expect("skill_manage tool")
+    }
+
+    #[tokio::test]
+    async fn post_to_slack_channel_uses_catalog_and_two_parameters() {
+        let gateway = Arc::new(FakeGateway::default());
+        let tools = build_agent_tools(
+            &[ToolSpec::PostToSlackChannel],
+            &SessionId::from("C123-456.789"),
+            &ToolContext {
+                gateway: Some(gateway.clone()),
+                cron_repo: None,
+                process_registry: None,
+                mcp_registry: None,
+                workspace_root: PathBuf::from("/tmp"),
+                cloud_agents: None,
+                outbound_emitter: None,
+                slack_channels: vec![SlackChannelSpec {
+                    id: "CENG".into(),
+                    name: "engineering".into(),
+                    description: "Build and incident coordination.".into(),
+                    is_private: false,
+                }],
+            },
+        );
+        let tool = tools
+            .into_iter()
+            .find(|tool| tool.definition().name == "post_to_slack_channel")
+            .expect("post_to_slack_channel tool");
+        let definition = tool.definition();
+        assert!(definition.description.contains("#engineering"));
+        assert!(definition.description.contains("CENG"));
+        assert!(definition
+            .description
+            .contains("Build and incident coordination."));
+
+        let properties = definition.parameters["properties"]
+            .as_object()
+            .expect("properties object");
+        let keys: Vec<_> = properties.keys().map(String::as_str).collect();
+        assert_eq!(keys, vec!["channel_id", "message"]);
+
+        let result = tool
+            .call(json!({"channel_id": "CENG", "message": "Deploy finished."}))
+            .await
+            .expect("post succeeds");
+        assert_eq!(result["posted"], true);
+        assert_eq!(result["channel_id"], "CENG");
+
+        let posts = gateway.posts.lock().expect("posts lock");
+        assert_eq!(
+            posts.as_slice(),
+            [("CENG".into(), "Deploy finished.".into())]
+        );
+    }
+
+    #[tokio::test]
+    async fn post_to_slack_channel_rejects_unknown_catalog_channel() {
+        let gateway = Arc::new(FakeGateway::default());
+        let tool = build_agent_tools(
+            &[ToolSpec::PostToSlackChannel],
+            &SessionId::from("C123-456.789"),
+            &ToolContext {
+                gateway: Some(gateway),
+                cron_repo: None,
+                process_registry: None,
+                mcp_registry: None,
+                workspace_root: PathBuf::from("/tmp"),
+                cloud_agents: None,
+                outbound_emitter: None,
+                slack_channels: vec![SlackChannelSpec {
+                    id: "CENG".into(),
+                    name: "engineering".into(),
+                    description: String::new(),
+                    is_private: false,
+                }],
+            },
+        )
+        .into_iter()
+        .find(|tool| tool.definition().name == "post_to_slack_channel")
+        .expect("post_to_slack_channel tool");
+
+        let err = tool
+            .call(json!({"channel_id": "CRAND", "message": "Nope."}))
+            .await
+            .expect_err("unknown channel should fail");
+        assert!(err
+            .to_string()
+            .contains("not one of the bot's configured Slack channels"));
     }
 
     #[tokio::test]

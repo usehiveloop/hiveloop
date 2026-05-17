@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use domain::cron::{CronJob, CronJobSource, CronJobState};
-use domain::SessionId;
 use storage::{CronJobRepo, SqliteCronJobRepo};
 
 fn test_job(id: &str, source: CronJobSource) -> CronJob {
@@ -228,12 +227,6 @@ async fn cron_list_respects_source_filtering() {
 
 fn is_cron_session(session_id: &str) -> bool {
     session_id.contains("-cron-")
-}
-
-fn is_wake_cron(session_id: &str) -> bool {
-    !session_id.contains("-cron-")
-        && !session_id.contains("-delegate-")
-        && !session_id.contains('.')
 }
 
 #[test]

@@ -142,6 +142,7 @@ impl AgentRunner for RigAgentRunner {
                 workspace_root: tool_context.workspace_root.clone(),
                 cloud_agents: cloud_agents.clone(),
                 outbound_emitter: self.outbound_emitter.clone(),
+                slack_channels: snapshot.slack.postable_channels.clone(),
             },
             mcp_registry.clone(),
         );
@@ -342,6 +343,7 @@ impl AgentRunner for RigAgentRunner {
                                         workspace_root: tool_context.workspace_root.clone(),
                                         cloud_agents: cloud_agents.clone(),
                                         outbound_emitter: emitter.clone(),
+                                        slack_channels: snapshot.slack.postable_channels.clone(),
                                     },
                                     mcp_registry.clone(),
                                 );

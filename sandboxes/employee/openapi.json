@@ -389,6 +389,51 @@
             }
           },
           {
+            "name": "session_id",
+            "in": "query",
+            "description": "Exact session ID filter",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "description": "Exact channel filter",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "thread_ts",
+            "in": "query",
+            "description": "Exact thread timestamp filter",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "agent_session_id",
+            "in": "query",
+            "description": "Exact agent session ID filter",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Prefix search over session identifiers",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Maximum sessions to return, clamped from 1 to 200",
@@ -1117,6 +1162,18 @@
       "ListSessionsParams": {
         "type": "object",
         "properties": {
+          "agent_session_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "channel": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "cursor": {
             "type": [
               "string",
@@ -1131,7 +1188,25 @@
             "format": "int32",
             "minimum": 0
           },
+          "q": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "session_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "thread_ts": {
             "type": [
               "string",
               "null"
@@ -1973,6 +2048,27 @@
           }
         ]
       },
+      "SlackChannelSpec": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_private": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "SlackConfig": {
         "type": "object",
         "properties": {
@@ -2033,6 +2129,12 @@
           },
           "mrkdwn_translation": {
             "type": "boolean"
+          },
+          "postable_channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SlackChannelSpec"
+            }
           },
           "progressive_messages": {
             "$ref": "#/components/schemas/ProgressiveMessages"
@@ -2259,7 +2361,7 @@
               "type": {
                 "type": "string",
                 "enum": [
-                  "builtin.post_to_channel"
+                  "builtin.post_to_slack_channel"
                 ]
               }
             }

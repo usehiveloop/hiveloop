@@ -86,9 +86,9 @@ fn channel_extraction_handles_delegate_session() {
 fn channel_response_policy_matrix() {
     let cases = vec![
         ("C123-1778247607.836569", "U08P1G9EDNG", "reply"), // normal user → thread
-        ("C123-cron-cron-1", "cron", "post_to_channel"),    // worker cron → channel
+        ("C123-cron-cron-1", "cron", "post_to_slack_channel"), // worker cron → channel
         ("C123-1778247607.836569", "cron", "reply"),        // wake cron → thread
-        ("C123-delegate-1", "cron", "post_to_channel"),     // delegate cron → channel
+        ("C123-delegate-1", "cron", "post_to_slack_channel"), // delegate cron → channel
     ];
 
     for (sid, user, expected) in &cases {
@@ -96,7 +96,7 @@ fn channel_response_policy_matrix() {
         let is_cron = event.user == "cron";
         let is_wake = is_cron && !sid.contains("-cron-") && !sid.contains("-delegate-");
         let route = if is_cron && !is_wake {
-            "post_to_channel"
+            "post_to_slack_channel"
         } else {
             "reply"
         };
