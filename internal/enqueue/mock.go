@@ -9,14 +9,21 @@ import (
 )
 
 type MockClient struct {
-	mu       sync.Mutex
-	enqueued []EnqueuedTask
+	mu        sync.Mutex
+	enqueued  []EnqueuedTask
+	deleted   []DeletedTask
+	DeleteErr error
 }
 
 type EnqueuedTask struct {
 	TypeName string
 	Payload  []byte
 	Options  []asynq.Option
+}
+
+type DeletedTask struct {
+	Queue string
+	ID    string
 }
 
 func (m *MockClient) Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
@@ -36,11 +43,26 @@ func (m *MockClient) EnqueueContext(_ context.Context, task *asynq.Task, opts ..
 
 func (m *MockClient) Close() error { return nil }
 
+func (m *MockClient) DeleteTask(queue, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.deleted = append(m.deleted, DeletedTask{Queue: queue, ID: id})
+	return m.DeleteErr
+}
+
 func (m *MockClient) Tasks() []EnqueuedTask {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	cp := make([]EnqueuedTask, len(m.enqueued))
 	copy(cp, m.enqueued)
+	return cp
+}
+
+func (m *MockClient) DeletedTasks() []DeletedTask {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	cp := make([]DeletedTask, len(m.deleted))
+	copy(cp, m.deleted)
 	return cp
 }
 
@@ -60,4 +82,5 @@ func (m *MockClient) Flush() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.enqueued = nil
+	m.deleted = nil
 }

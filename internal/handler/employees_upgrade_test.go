@@ -91,6 +91,13 @@ func TestEmployeeSandboxUpgrade_StartEnqueuesOperation(t *testing.T) {
 		t.Fatalf("status/phase = %s/%s", upgrade.Status, upgrade.Phase)
 	}
 	h.enqueuer.AssertEnqueued(t, tasks.TypeEmployeeSandboxUpgrade)
+	deleted := h.enqueuer.DeletedTasks()
+	if len(deleted) != 1 {
+		t.Fatalf("deleted stale tasks = %d, want 1", len(deleted))
+	}
+	if deleted[0].Queue != tasks.QueueBulk || deleted[0].ID != tasks.EmployeeSandboxUpgradeTaskID(agent.ID) {
+		t.Fatalf("deleted stale task = %#v", deleted[0])
+	}
 }
 
 func TestEmployeeSandboxUpgrade_DuplicateActiveReturnsExisting(t *testing.T) {
@@ -124,6 +131,40 @@ func TestEmployeeSandboxUpgrade_DuplicateActiveReturnsExisting(t *testing.T) {
 	if got := h.enqueuer.Tasks(); len(got) != 0 {
 		t.Fatalf("expected no task enqueued for duplicate, got %d", len(got))
 	}
+	if got := h.enqueuer.DeletedTasks(); len(got) != 0 {
+		t.Fatalf("expected no task deletion for active upgrade, got %d", len(got))
+	}
+}
+
+func TestEmployeeSandboxUpgrade_DeletesStaleTaskAfterFailedUpgrade(t *testing.T) {
+	h := newEmployeeHarness(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	h.seedSlackProfile(t, m, agent.ID)
+	oldSandbox := h.seedSandbox(t, m, agent.ID)
+	failed := model.EmployeeSandboxUpgrade{
+		OrgID:        m.org.ID,
+		AgentID:      agent.ID,
+		OldSandboxID: &oldSandbox.ID,
+		Status:       model.EmployeeSandboxUpgradeStatusFailed,
+		Phase:        model.EmployeeSandboxUpgradePhaseCreatingNew,
+	}
+	if err := h.db.Create(&failed).Error; err != nil {
+		t.Fatalf("create failed upgrade: %v", err)
+	}
+
+	rr := h.postUpgrade(t, m, agent.ID, nil, "admin")
+	if rr.Code != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d: %s", rr.Code, rr.Body.String())
+	}
+	deleted := h.enqueuer.DeletedTasks()
+	if len(deleted) != 1 {
+		t.Fatalf("deleted stale tasks = %d, want 1", len(deleted))
+	}
+	if deleted[0].Queue != tasks.QueueBulk || deleted[0].ID != tasks.EmployeeSandboxUpgradeTaskID(agent.ID) {
+		t.Fatalf("deleted stale task = %#v", deleted[0])
+	}
+	h.enqueuer.AssertEnqueued(t, tasks.TypeEmployeeSandboxUpgrade)
 }
 
 func TestEmployeeSandboxUpgrade_MissingProfileOrSandbox(t *testing.T) {

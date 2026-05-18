@@ -29,6 +29,7 @@ type EmployeeHandler struct {
 	compileDeps  employeeruntime.CompileDeps
 	agents       *AgentHandler
 	enqueuer     enqueue.TaskEnqueuer
+	taskCleaner  enqueue.TaskCleaner
 }
 
 func NewEmployeeHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, compileDeps employeeruntime.CompileDeps, agents *AgentHandler) *EmployeeHandler {
@@ -37,6 +38,9 @@ func NewEmployeeHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, compile
 
 func (h *EmployeeHandler) SetEnqueuer(enq enqueue.TaskEnqueuer) {
 	h.enqueuer = enq
+	if cleaner, ok := enq.(enqueue.TaskCleaner); ok {
+		h.taskCleaner = cleaner
+	}
 }
 
 type createEmployeeRequest struct {

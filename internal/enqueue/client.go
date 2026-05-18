@@ -2,6 +2,7 @@ package enqueue
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/hibiken/asynq"
@@ -15,12 +16,20 @@ type TaskEnqueuer interface {
 	Close() error
 }
 
+type TaskCleaner interface {
+	DeleteTask(queue, id string) error
+}
+
 type Client struct {
 	asynqClient *asynq.Client
+	inspector   *asynq.Inspector
 }
 
 func NewClient(redisOpt asynq.RedisConnOpt) *Client {
-	return &Client{asynqClient: asynq.NewClient(redisOpt)}
+	return &Client{
+		asynqClient: asynq.NewClient(redisOpt),
+		inspector:   asynq.NewInspector(redisOpt),
+	}
 }
 
 func (c *Client) Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
@@ -45,8 +54,15 @@ func (c *Client) EnqueueContext(ctx context.Context, task *asynq.Task, opts ...a
 	return info, nil
 }
 
+func (c *Client) DeleteTask(queue, id string) error {
+	if err := c.inspector.DeleteTask(queue, id); err != nil {
+		return fmt.Errorf("delete task %s/%s: %w", queue, id, err)
+	}
+	return nil
+}
+
 func (c *Client) Close() error {
-	return c.asynqClient.Close()
+	return errors.Join(c.asynqClient.Close(), c.inspector.Close())
 }
 
 func destinationQueueFromOptions(opts []asynq.Option) string {

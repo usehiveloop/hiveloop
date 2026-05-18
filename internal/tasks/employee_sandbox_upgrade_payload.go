@@ -37,9 +37,13 @@ func NewEmployeeSandboxUpgradeTask(upgradeID, agentID uuid.UUID, smokeTest bool)
 		asynq.Queue(QueueBulk),
 		asynq.MaxRetry(0),
 		asynq.Timeout(employeeSandboxUpgradeTimeout),
-		asynq.TaskID("employee-sandbox-upgrade:" + agentID.String()),
+		asynq.TaskID(EmployeeSandboxUpgradeTaskID(agentID)),
 	}
 	return asynq.NewTask(TypeEmployeeSandboxUpgrade, payload), opts, nil
+}
+
+func EmployeeSandboxUpgradeTaskID(agentID uuid.UUID) string {
+	return "employee-sandbox-upgrade:" + agentID.String()
 }
 
 func NewEmployeeSandboxRetireTask(payload EmployeeSandboxRetirePayload) (*asynq.Task, []asynq.Option, error) {

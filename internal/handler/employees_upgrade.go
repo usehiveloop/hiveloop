@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -113,6 +114,16 @@ func (h *EmployeeHandler) StartSandboxUpgrade(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	if err := h.deleteStaleEmployeeSandboxUpgradeTask(agentID); err != nil {
+		log.ErrorContext(ctx, "delete stale employee sandbox upgrade task", "error", err, "agent_id", agentID)
+		if strings.Contains(err.Error(), "active state") {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "employee sandbox upgrade task is already running"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to clear stale upgrade task"})
+		return
+	}
+
 	var oldSandbox model.Sandbox
 	if err := h.db.WithContext(ctx).
 		Where("agent_id = ? AND org_id = ? AND status <> ?", agentID, org.ID, "error").
@@ -212,6 +223,17 @@ func (h *EmployeeHandler) employeeHasActiveSlackProfile(ctx context.Context, org
 			orgID, agentID, "active", slackprov.Provider).
 		Count(&count).Error
 	return count > 0, err
+}
+
+func (h *EmployeeHandler) deleteStaleEmployeeSandboxUpgradeTask(agentID uuid.UUID) error {
+	if h.taskCleaner == nil {
+		return nil
+	}
+	err := h.taskCleaner.DeleteTask(tasks.QueueBulk, tasks.EmployeeSandboxUpgradeTaskID(agentID))
+	if errors.Is(err, asynq.ErrTaskNotFound) || errors.Is(err, asynq.ErrQueueNotFound) {
+		return nil
+	}
+	return err
 }
 
 func (h *EmployeeHandler) markUpgradeFailed(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, phase, msg string) {
