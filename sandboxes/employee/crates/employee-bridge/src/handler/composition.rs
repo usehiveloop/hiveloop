@@ -61,12 +61,16 @@ pub fn compose_annotated_text(
 pub fn slack_communication_context() -> &'static str {
     r#"## Slack communication
 - Be brief by default. Use one sentence when possible. Use at most three tight bullets when detail is genuinely needed.
-- Post a brief thread status before continuing long tool-heavy work, and again when the status materially changes.
+- Post thread status only for longer work, blockers, material plan changes, or verified completion. Skip play-by-play for quick checks.
+- Do not mention internal tools, cloud agents, task ids, proxy URLs, schema probing, or execution mechanics unless the user asked how the system works.
+- Speak to the teammate in the thread. Use teammate names naturally; do not describe the sender in the third person.
 - Mention teammates with exact Slack mention tokens such as `<@U123ABC>`. Do not write `@Name` when a Slack user ID is known, and never invent a user ID.
 - Good brief reply: `Done. The deploy check is green.`
-- Good status update: `Checking deploy logs now; I will report only confirmed failures.`
+- Good status update: `I am checking the deploy logs now. I will only post again if I find a blocker or finish.`
 - Good mention: `<@U123ABC> can you confirm the deploy window?`
-- Bad reply: `Absolutely, I would be happy to dive into this and provide a comprehensive overview.`"#
+- Bad reply: `Absolutely, I would be happy to dive into this and provide a comprehensive overview.`
+- Bad status update: `Cloud agent is running the check now.`
+- Bad status update: `Checking repos for PostHog references because <Name> asked.`"#
 }
 
 pub fn should_include_slack_communication_context(inbound: &InboundEvent) -> bool {
@@ -238,7 +242,11 @@ mod tests {
     fn slack_communication_context_is_only_for_slack_routed_sessions() {
         let inbound = event();
         assert!(should_include_slack_communication_context(&inbound));
-        assert!(slack_communication_context().contains("<@U123ABC>"));
+        let context = slack_communication_context();
+        assert!(context.contains("<@U123ABC>"));
+        assert!(context.contains("Skip play-by-play"));
+        assert!(context.contains("Do not mention internal tools, cloud agents"));
+        assert!(context.contains("Bad status update: `Cloud agent is running the check now.`"));
 
         let mut http = inbound;
         http.session_id = SessionId::from("http-stream-1");

@@ -310,8 +310,20 @@ func TestIntegration_EmployeesSync_EnsuresDefaultCloudAgents(t *testing.T) {
 	if !strings.Contains(research.SystemPrompt, "Business Research Specialist") {
 		t.Fatalf("subagent prompt missing Business Research Specialist identity")
 	}
+	if strings.Contains(research.SystemPrompt, "cloud agent attached") || strings.Contains(research.SystemPrompt, "research department") {
+		t.Fatalf("research prompt leaked internal specialist framing")
+	}
+	if !strings.Contains(research.SystemPrompt, "Final responses must be short, verified, and user-facing") {
+		t.Fatalf("research prompt missing concise final-response contract")
+	}
 	if !strings.Contains(software.SystemPrompt, "Software Engineering Specialist") {
 		t.Fatalf("subagent prompt missing Software Engineering Specialist identity")
+	}
+	if strings.Contains(software.SystemPrompt, "cloud agent attached") || strings.Contains(software.SystemPrompt, "software engineering department") {
+		t.Fatalf("software prompt leaked internal specialist framing")
+	}
+	if !strings.Contains(software.SystemPrompt, "Final responses must be short, verified, and user-facing") {
+		t.Fatalf("software prompt missing concise final-response contract")
 	}
 	for typ, sub := range subagents {
 		if sub.Harness != "open_code" {
@@ -347,6 +359,11 @@ func assertEmployeeRuntimeConfig(t *testing.T, body []byte) {
 			ModelID   string `json:"model_id"`
 			APIKeyEnv string `json:"api_key_env"`
 		} `json:"multimodal_model"`
+		PromptFragments struct {
+			Identity struct {
+				Content string `json:"content"`
+			} `json:"identity"`
+		} `json:"prompt_fragments"`
 	}
 	if err := json.Unmarshal(body, &config); err != nil {
 		t.Fatalf("decode runtime config: %v", err)
@@ -374,6 +391,12 @@ func assertEmployeeRuntimeConfig(t *testing.T, body []byte) {
 	}
 	if config.MultimodalModel.APIKeyEnv != employeeruntime.ProxyAPIKeyEnv {
 		t.Errorf("multimodal_model.api_key_env = %q, want %s", config.MultimodalModel.APIKeyEnv, employeeruntime.ProxyAPIKeyEnv)
+	}
+	if !strings.Contains(config.PromptFragments.Identity.Content, "Slack communication contract") {
+		t.Errorf("identity prompt missing Slack communication contract")
+	}
+	if !strings.Contains(config.PromptFragments.Identity.Content, "Do not say \"cloud agent\"") {
+		t.Errorf("identity prompt missing cloud-agent leakage guard")
 	}
 }
 

@@ -231,7 +231,7 @@ fn status_update_tool(
     Arc::new(DynamicTool::new(
         ToolDefinition {
             name: "post_status_update".into(),
-            description: "Post a brief status update to the thread so the user knows what you are working on.".into(),
+            description: "Post one brief, user-facing Slack status only for longer work, blockers, material plan changes, or verified completion. Do not post play-by-play or mention internal tools, cloud agents, task ids, proxy URLs, or schema probing unless the user asked about internals.".into(),
             parameters: json!({"type":"object","properties":{"message":{"type":"string"}},"required":["message"]}),
         },
         move |args| {

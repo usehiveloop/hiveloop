@@ -14,6 +14,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehiveloop/hiveloop/internal/employeeprompts"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -45,6 +46,62 @@ func TestBuildPromptFragments_UsesTypedFields(t *testing.T) {
 	}
 	if !strings.Contains(fragments.Identity.Content, agent.IdentityPrompt) {
 		t.Fatalf("identity fragment should include employee identity prompt")
+	}
+}
+
+func TestBuildPromptFragments_UpgradesDefaultManagedIdentityPrompt(t *testing.T) {
+	orgID := uuid.New()
+	description := "Coordinates engineering work."
+	category := "engineering"
+	for _, tc := range []struct {
+		name           string
+		identityPrompt string
+	}{
+		{name: "blank", identityPrompt: ""},
+		{name: "legacy default", identityPrompt: employeeprompts.LegacyEngineeringIdentityPromptV1},
+		{name: "current default", identityPrompt: employeeprompts.EngineeringIdentityPrompt},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			agent := &model.Agent{
+				ID:             uuid.New(),
+				OrgID:          &orgID,
+				Name:           "Higu",
+				Description:    &description,
+				Category:       &category,
+				IdentityPrompt: tc.identityPrompt,
+			}
+
+			fragments := buildPromptFragments(context.Background(), nil, agent, description)
+
+			if !strings.Contains(fragments.Identity.Content, "Slack communication contract") {
+				t.Fatalf("identity fragment missing current Slack communication contract: %#v", fragments.Identity)
+			}
+			if !strings.Contains(fragments.Identity.Content, "Do not say \"cloud agent\"") {
+				t.Fatalf("identity fragment missing cloud-agent leakage guard: %#v", fragments.Identity)
+			}
+		})
+	}
+}
+
+func TestBuildPromptFragments_PreservesCustomIdentityPrompt(t *testing.T) {
+	orgID := uuid.New()
+	description := "Coordinates engineering work."
+	custom := "Use the team's incident voice."
+	agent := &model.Agent{
+		ID:             uuid.New(),
+		OrgID:          &orgID,
+		Name:           "Higu",
+		Description:    &description,
+		IdentityPrompt: custom,
+	}
+
+	fragments := buildPromptFragments(context.Background(), nil, agent, description)
+
+	if !strings.Contains(fragments.Identity.Content, custom) {
+		t.Fatalf("identity fragment should preserve custom identity prompt: %#v", fragments.Identity)
+	}
+	if strings.Contains(fragments.Identity.Content, "Slack communication contract") {
+		t.Fatalf("custom identity prompt should not be replaced with default: %#v", fragments.Identity)
 	}
 }
 

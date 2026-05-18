@@ -55,6 +55,7 @@ linear_graphql() {
 - Use Relay pagination: request `pageInfo { hasNextPage endCursor }`, then pass `after: endCursor` only when more results are needed.
 - For writes, first read the relevant object and schema input type, then make the smallest mutation that satisfies the task.
 - Do not print `$LINEAR_TOKEN`.
+- When reporting results to a teammate, summarize only user-relevant fields and outcomes. Do not mention proxy URLs, bearer-token mechanics, schema probing, GraphQL filtering steps, or internal query details unless troubleshooting the Linear integration itself.
 
 ## API schema discovery
 

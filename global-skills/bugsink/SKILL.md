@@ -52,6 +52,7 @@ curl -fsS "$BUGSINK_API/projects/" \
 - Use Bugsink internal event `id` for `/events/{id}/` and `/events/{id}/stacktrace/`; `event_id` is the event id from the client payload.
 - Treat `next` and `previous` as pagination cursors/links. Follow `next` only when the user needs more results.
 - Do not print `$BUGSINK_TOKEN`.
+- When reporting results to a teammate, summarize only user-relevant fields and outcomes. Do not mention proxy URLs, bearer-token mechanics, schema probing, filtering commands, or internal API path discovery unless troubleshooting the Bugsink integration itself.
 
 ## Dashboard links
 

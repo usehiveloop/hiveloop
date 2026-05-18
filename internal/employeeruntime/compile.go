@@ -465,13 +465,20 @@ func identityOpening(agent *model.Agent, org model.Org, hasOrg bool, team model.
 }
 
 func employeeIdentityPrompt(agent *model.Agent) string {
-	if agent.IdentityPrompt != "" {
+	if !isDefaultManagedEmployeeIdentityPrompt(agent.IdentityPrompt) {
 		return strings.TrimSpace(agent.IdentityPrompt)
 	}
 	if agent.Category != nil && strings.EqualFold(strings.TrimSpace(*agent.Category), "engineering") {
 		return employeeprompts.EngineeringIdentityPrompt
 	}
 	return employeeprompts.EngineeringIdentityPrompt
+}
+
+func isDefaultManagedEmployeeIdentityPrompt(prompt string) bool {
+	prompt = strings.TrimSpace(prompt)
+	return prompt == "" ||
+		prompt == strings.TrimSpace(employeeprompts.EngineeringIdentityPrompt) ||
+		prompt == strings.TrimSpace(employeeprompts.LegacyEngineeringIdentityPromptV1)
 }
 
 func optionalLine(label, value string) string {

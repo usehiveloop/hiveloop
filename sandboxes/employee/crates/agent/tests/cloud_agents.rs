@@ -164,11 +164,12 @@ fn prompt_is_compact_and_strip_is_idempotent() {
     assert!(prompt.contains("Builder (agent-code)"));
     assert!(prompt.contains("task-1 - Seed task"));
     assert!(prompt.contains("ToolCall"));
+    assert!(prompt.contains("Cloud-agent coordination is internal execution detail"));
+    assert!(prompt.contains("Report user-visible work, blockers, and verified outcomes"));
     assert!(!prompt.contains("SECRET SYSTEM PROMPT"));
     assert!(!prompt.contains("FULL TASK PROMPT SHOULD NOT APPEAR"));
     assert!(!prompt.contains("SECRET METADATA"));
     assert!(!prompt.contains("secret_internal_tool"));
-    assert!(!prompt.contains("internal"));
 
     let wrapped = format!("base\n\n{prompt}\n\nsuffix");
     let stripped = strip_cloud_agents_block(&strip_cloud_agents_block(&wrapped));
