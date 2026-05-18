@@ -1455,8 +1455,12 @@ mod tests {
                 }],
             },
         );
+        assert!(tools
+            .iter()
+            .all(|tool| tool.definition().name != "post_to_channel"));
+
         let tool = tools
-            .into_iter()
+            .iter()
             .find(|tool| tool.definition().name == "post_to_slack_channel")
             .expect("post_to_slack_channel tool");
         let definition = tool.definition();
