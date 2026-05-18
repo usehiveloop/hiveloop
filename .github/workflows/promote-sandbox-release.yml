@@ -28,6 +28,24 @@ on:
         required: true
         default: true
         type: boolean
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag to promote, for example v1.2.3
+        required: true
+        type: string
+      size:
+        description: Snapshot sizes to register
+        required: true
+        type: string
+      runtime:
+        description: Register runtime bridge snapshots
+        required: true
+        type: boolean
+      employee:
+        description: Register employee sandbox snapshots
+        required: true
+        type: boolean
 
 permissions:
   contents: read
