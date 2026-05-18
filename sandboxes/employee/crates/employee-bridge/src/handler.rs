@@ -613,6 +613,7 @@ async fn consume_agent_stream(
             _ => {}
         }
     }
+    emitter.flush_streams_for_session(session_id.as_str()).await;
     StreamOutcome {
         text: accumulated,
         error: error_message,

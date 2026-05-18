@@ -1,3 +1,4 @@
+mod batch;
 mod builder;
 mod database;
 mod dispatcher;
@@ -8,6 +9,7 @@ mod webhook;
 use async_trait::async_trait;
 use domain::OutboundEvent;
 
+pub use batch::StreamBatcher;
 pub use builder::{build_registry, build_registry_with_write_notifier};
 pub use database::DatabaseChannel;
 pub use dispatcher::OutboundDispatcher;

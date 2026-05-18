@@ -30,6 +30,7 @@ use gateway::{ChannelGateway, SlackGateway};
 use mcp::McpRegistry;
 use outbound::{
     build_registry_with_write_notifier, OutboundDispatcher, OutboundEmitter, OutboundRegistry,
+    StreamBatcher,
 };
 use skills::SkillWriter;
 use sqlx::SqlitePool;
@@ -172,16 +173,21 @@ async fn main() -> Result<()> {
         build_registry_with_write_notifier(sqlite_pool.clone(), &[], write_notifier.clone())
             .map_err(|e| anyhow::anyhow!("build outbound registry: {e}"))?;
     let registry = Arc::new(RwLock::new(registry));
+    let stream_batcher = Arc::new(RwLock::new(None));
     let outbound_reloader: Arc<dyn OutboundConfigReloader> = Arc::new(RegistryReloader {
         sqlite_pool: sqlite_pool.clone(),
         registry: registry.clone(),
         write_notifier: write_notifier.clone(),
+        stream_batcher: stream_batcher.clone(),
     });
 
     let dispatcher = OutboundDispatcher::new(outbox_repo.clone(), registry.clone());
     let (dispatcher_handle, dispatcher_cancel) = dispatcher.spawn();
 
-    let emitter = Arc::new(OutboundEmitter::new(outbox_repo.clone(), registry.clone()));
+    let emitter = Arc::new(
+        OutboundEmitter::new(outbox_repo.clone(), registry.clone())
+            .with_stream_batcher(stream_batcher.clone()),
+    );
 
     let skill_writer = Arc::new(SkillWriter::new(workspace_root.clone()));
 
@@ -312,6 +318,7 @@ struct RegistryReloader {
     sqlite_pool: Arc<SqlitePool>,
     registry: Arc<RwLock<OutboundRegistry>>,
     write_notifier: Option<storage::SharedWriteNotifier>,
+    stream_batcher: Arc<RwLock<Option<Arc<StreamBatcher>>>>,
 }
 
 #[async_trait]
@@ -324,7 +331,10 @@ impl OutboundConfigReloader for RegistryReloader {
         )
         .map_err(|error| anyhow::anyhow!("build outbound registry: {error}"))?;
         let names = next.names();
+        let next_batcher = StreamBatcher::from_specs(specs)
+            .map_err(|error| anyhow::anyhow!("build stream batcher: {error}"))?;
         *self.registry.write().await = next;
+        *self.stream_batcher.write().await = next_batcher;
         info!(channels = ?names, "outbound registry reloaded from config");
         Ok(())
     }

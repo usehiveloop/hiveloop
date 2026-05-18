@@ -97,13 +97,13 @@ impl OutboundChannel for WebhookChannel {
     }
 }
 
-fn compute_signature(secret: &str, body: &[u8]) -> String {
+pub(crate) fn compute_signature(secret: &str, body: &[u8]) -> String {
     let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("hmac key any length");
     mac.update(body);
     hex::encode(mac.finalize().into_bytes())
 }
 
-fn filter_matches(pattern: &str, event_type: &str) -> bool {
+pub(crate) fn filter_matches(pattern: &str, event_type: &str) -> bool {
     if pattern == event_type {
         return true;
     }

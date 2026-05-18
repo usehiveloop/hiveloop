@@ -72,6 +72,7 @@ func setupPublicRoutes(
 	// Webhook receivers (HMAC-verified, no auth middleware)
 	r.Post("/internal/webhooks/bridge/{sandboxID}", bridgeWebhookHandler.Handle)
 	r.Post("/internal/webhooks/employee/{sandboxID}", employeeOutboundWebhookHandler.Handle)
+	r.Post("/internal/webhooks/employee/{sandboxID}/batch", employeeOutboundWebhookHandler.HandleBatch)
 	r.Post("/internal/webhooks/nango", nangoWebhookHandler.Handle)
 	r.Post("/internal/webhooks/github/employees/{agentID}", githubEmployeeWebhookHandler.Handle)
 
@@ -108,6 +109,8 @@ func setupPublicRoutes(
 
 	if sqliteBackupHandler != nil {
 		r.Put("/internal/employees/{employeeID}/sqlite-backup", sqliteBackupHandler.Upload)
+		r.Post("/internal/employees/{employeeID}/sqlite-backup/presign", sqliteBackupHandler.Presign)
+		r.Post("/internal/employees/{employeeID}/sqlite-backup/confirm", sqliteBackupHandler.Confirm)
 	}
 
 	if cloudAgentHandler != nil {

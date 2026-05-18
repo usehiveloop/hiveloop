@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"bufio"
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -29,12 +32,13 @@ import (
 var obviousSecretPattern = regexp.MustCompile(`(?i)(ptok_|xox[baprs]-|sk-[a-z0-9]|api[_-]?key|secret|token|password)\s*[:=]\s*\S+`)
 
 type EmployeeOutboundWebhookHandler struct {
-	db       *gorm.DB
-	encKey   *crypto.SymmetricKey
-	enqueuer enqueue.TaskEnqueuer
-	writer   *EmployeeEventWriter
-	now      func() time.Time
-	maxBytes int64
+	db            *gorm.DB
+	encKey        *crypto.SymmetricKey
+	enqueuer      enqueue.TaskEnqueuer
+	writer        *EmployeeEventWriter
+	now           func() time.Time
+	maxBytes      int64
+	maxBatchBytes int64
 }
 
 type employeeOutboundEvent struct {
@@ -45,11 +49,12 @@ type employeeOutboundEvent struct {
 
 func NewEmployeeOutboundWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey, enqueuer enqueue.TaskEnqueuer, writers ...*EmployeeEventWriter) *EmployeeOutboundWebhookHandler {
 	h := &EmployeeOutboundWebhookHandler{
-		db:       db,
-		encKey:   encKey,
-		enqueuer: enqueuer,
-		now:      time.Now,
-		maxBytes: 512 * 1024,
+		db:            db,
+		encKey:        encKey,
+		enqueuer:      enqueuer,
+		now:           time.Now,
+		maxBytes:      512 * 1024,
+		maxBatchBytes: 10 * 1024 * 1024,
 	}
 	if len(writers) > 0 {
 		h.writer = writers[0]
@@ -59,18 +64,8 @@ func NewEmployeeOutboundWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey,
 
 func (h *EmployeeOutboundWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	sandboxID, err := uuid.Parse(chi.URLParam(r, "sandboxID"))
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid sandbox_id"})
-		return
-	}
-	var sb model.Sandbox
-	if err := h.db.WithContext(ctx).Where("id = ?", sandboxID).First(&sb).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "sandbox not found"})
-			return
-		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load sandbox"})
+	sb, ok := h.loadSandbox(w, r)
+	if !ok {
 		return
 	}
 	body, err := io.ReadAll(io.LimitReader(r.Body, h.maxBytes))
@@ -78,7 +73,7 @@ func (h *EmployeeOutboundWebhookHandler) Handle(w http.ResponseWriter, r *http.R
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read body"})
 		return
 	}
-	if !h.verifySignature(ctx, &sb, body, r.Header.Get("X-Hiveloop-Signature")) {
+	if !h.verifySignature(ctx, sb, body, r.Header.Get("X-Hiveloop-Signature")) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid signature"})
 		return
 	}
@@ -90,11 +85,85 @@ func (h *EmployeeOutboundWebhookHandler) Handle(w http.ResponseWriter, r *http.R
 	if event.At.IsZero() {
 		event.At = h.now().UTC()
 	}
-	h.storeAndMaybeEnqueue(ctx, &sb, &event)
-	if err := h.db.WithContext(ctx).Model(&sb).Update("last_active_at", h.now()).Error; err != nil {
-		captureEmployeeWebhookIngest(ctx, "update_last_active", &sb, &event, "", "", err)
+	h.storeAndMaybeEnqueue(ctx, sb, &event)
+	if err := h.db.WithContext(ctx).Model(sb).Update("last_active_at", h.now()).Error; err != nil {
+		captureEmployeeWebhookIngest(ctx, "update_last_active", sb, &event, "", "", err)
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h *EmployeeOutboundWebhookHandler) HandleBatch(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sb, ok := h.loadSandbox(w, r)
+	if !ok {
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, h.maxBatchBytes))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read body"})
+		return
+	}
+	if !h.verifySignature(ctx, sb, body, r.Header.Get("X-Hiveloop-Signature")) {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid signature"})
+		return
+	}
+
+	reader := io.Reader(bytes.NewReader(body))
+	if strings.EqualFold(r.Header.Get("Content-Encoding"), "gzip") {
+		gz, err := gzip.NewReader(bytes.NewReader(body))
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid gzip batch"})
+			return
+		}
+		defer func() { _ = gz.Close() }()
+		reader = gz
+	}
+
+	count := 0
+	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 64*1024), 2*1024*1024)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		var event employeeOutboundEvent
+		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid batch event"})
+			return
+		}
+		if event.At.IsZero() {
+			event.At = h.now().UTC()
+		}
+		h.storeAndMaybeEnqueue(ctx, sb, &event)
+		count++
+	}
+	if err := scanner.Err(); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read batch"})
+		return
+	}
+	if err := h.db.WithContext(ctx).Model(sb).Update("last_active_at", h.now()).Error; err != nil {
+		captureEmployeeWebhookIngest(ctx, "update_last_active_batch", sb, nil, "", "", err)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "count": count})
+}
+
+func (h *EmployeeOutboundWebhookHandler) loadSandbox(w http.ResponseWriter, r *http.Request) (*model.Sandbox, bool) {
+	sandboxID, err := uuid.Parse(chi.URLParam(r, "sandboxID"))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid sandbox_id"})
+		return nil, false
+	}
+	var sb model.Sandbox
+	if err := h.db.WithContext(r.Context()).Where("id = ?", sandboxID).First(&sb).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "sandbox not found"})
+			return nil, false
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load sandbox"})
+		return nil, false
+	}
+	return &sb, true
 }
 
 func (h *EmployeeOutboundWebhookHandler) verifySignature(ctx context.Context, sb *model.Sandbox, body []byte, signature string) bool {
