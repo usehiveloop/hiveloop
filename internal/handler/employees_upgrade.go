@@ -225,17 +225,6 @@ func (h *EmployeeHandler) employeeHasActiveSlackProfile(ctx context.Context, org
 	return count > 0, err
 }
 
-func (h *EmployeeHandler) deleteStaleEmployeeSandboxUpgradeTask(agentID uuid.UUID) error {
-	if h.taskCleaner == nil {
-		return nil
-	}
-	err := h.taskCleaner.DeleteTask(tasks.QueueBulk, tasks.EmployeeSandboxUpgradeTaskID(agentID))
-	if errors.Is(err, asynq.ErrTaskNotFound) || errors.Is(err, asynq.ErrQueueNotFound) {
-		return nil
-	}
-	return err
-}
-
 func (h *EmployeeHandler) markUpgradeFailed(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, phase, msg string) {
 	now := time.Now()
 	_ = h.db.WithContext(ctx).Model(upgrade).Updates(map[string]any{
