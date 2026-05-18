@@ -1,9 +1,6 @@
 package handler
 
 import (
-	"bufio"
-	"bytes"
-	"compress/gzip"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -90,62 +87,6 @@ func (h *EmployeeOutboundWebhookHandler) Handle(w http.ResponseWriter, r *http.R
 		captureEmployeeWebhookIngest(ctx, "update_last_active", sb, &event, "", "", err)
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-}
-
-func (h *EmployeeOutboundWebhookHandler) HandleBatch(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	sb, ok := h.loadSandbox(w, r)
-	if !ok {
-		return
-	}
-	body, err := io.ReadAll(io.LimitReader(r.Body, h.maxBatchBytes))
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read body"})
-		return
-	}
-	if !h.verifySignature(ctx, sb, body, r.Header.Get("X-Hiveloop-Signature")) {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid signature"})
-		return
-	}
-
-	reader := io.Reader(bytes.NewReader(body))
-	if strings.EqualFold(r.Header.Get("Content-Encoding"), "gzip") {
-		gz, err := gzip.NewReader(bytes.NewReader(body))
-		if err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid gzip batch"})
-			return
-		}
-		defer func() { _ = gz.Close() }()
-		reader = gz
-	}
-
-	count := 0
-	scanner := bufio.NewScanner(reader)
-	scanner.Buffer(make([]byte, 64*1024), 2*1024*1024)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-		var event employeeOutboundEvent
-		if err := json.Unmarshal([]byte(line), &event); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid batch event"})
-			return
-		}
-		if event.At.IsZero() {
-			event.At = h.now().UTC()
-		}
-		h.storeAndMaybeEnqueue(ctx, sb, &event)
-		count++
-	}
-	if err := scanner.Err(); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read batch"})
-		return
-	}
-	if err := h.db.WithContext(ctx).Model(sb).Update("last_active_at", h.now()).Error; err != nil {
-		captureEmployeeWebhookIngest(ctx, "update_last_active_batch", sb, nil, "", "", err)
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "count": count})
 }
 
 func (h *EmployeeOutboundWebhookHandler) loadSandbox(w http.ResponseWriter, r *http.Request) (*model.Sandbox, bool) {
@@ -320,47 +261,4 @@ func stringValue(m map[string]any, key string) string {
 		return strings.TrimSpace(value)
 	}
 	return ""
-}
-
-func captureEmployeeWebhookIngest(ctx context.Context, stage string, sb *model.Sandbox, event *employeeOutboundEvent, sessionID, source string, err error) {
-	if err == nil {
-		return
-	}
-	fields := map[string]any{
-		"stage":      stage,
-		"session_id": sessionID,
-		"source":     source,
-	}
-	if sb != nil {
-		fields["sandbox_id"] = sb.ID.String()
-		if sb.OrgID != nil {
-			fields["org_id"] = sb.OrgID.String()
-		}
-		if sb.AgentID != nil {
-			fields["agent_id"] = sb.AgentID.String()
-		}
-	}
-	if event != nil {
-		fields["event_type"] = event.EventType
-	}
-	logging.CaptureWithFields(ctx, fmt.Errorf("employee outbound webhook ingest %s: %w", stage, err), fields)
-}
-
-func captureEmployeeMemoryEventFailure(ctx context.Context, stage string, entry model.EmployeeMemoryEvent, err error) {
-	if err == nil {
-		return
-	}
-	logging.CaptureWithFields(ctx, fmt.Errorf("employee memory event %s: %w", stage, err), employeeMemoryEventSentryFields(stage, entry))
-}
-
-func employeeMemoryEventSentryFields(stage string, entry model.EmployeeMemoryEvent) map[string]any {
-	return map[string]any{
-		"stage":      stage,
-		"org_id":     entry.OrgID.String(),
-		"agent_id":   entry.AgentID.String(),
-		"sandbox_id": entry.SandboxID.String(),
-		"session_id": entry.SessionID,
-		"event_type": entry.EventType,
-		"source":     entry.Source,
-	}
 }
