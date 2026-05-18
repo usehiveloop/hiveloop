@@ -58,6 +58,7 @@ func TestAdminListInIntegrationProvidersIncludesCatalogBackedVariants(t *testing
 	}{
 		"bugsink":        {"Bugsink", "API_KEY"},
 		"linear-profile": {"Linear Profile", "OAUTH2"},
+		"notion-profile": {"Notion Profile", "OAUTH2"},
 	}
 	for _, provider := range providers {
 		name, _ := provider["name"].(string)

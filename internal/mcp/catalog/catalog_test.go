@@ -191,9 +191,11 @@ func TestEmployeeProfileCapability(t *testing.T) {
 		{"github", true},
 		{"slack", true},
 		{"linear-profile", true},
+		{"notion-profile", true},
 		{"github-app", false},
 		{"github-app-code-reviews", false},
 		{"linear", false},
+		{"notion", false},
 		{"bugsink", false},
 		{"unknown", false},
 	}
@@ -234,6 +236,32 @@ func TestLinearProfileMirrorsLinearCatalog(t *testing.T) {
 	}
 }
 
+func TestNotionProfileMirrorsNotionCatalog(t *testing.T) {
+	c := Global()
+
+	notion, ok := c.GetProvider("notion")
+	if !ok {
+		t.Fatal("notion provider not found")
+	}
+	profile, ok := c.GetProvider("notion-profile")
+	if !ok {
+		t.Fatal("notion-profile provider not found")
+	}
+
+	if !sameStringSet(mapKeys(profile.Actions), mapKeys(notion.Actions)) {
+		t.Fatal("notion-profile action keys differ from notion")
+	}
+	if !sameStringSet(mapKeys(profile.Resources), mapKeys(notion.Resources)) {
+		t.Fatal("notion-profile resource keys differ from notion")
+	}
+	if !sameStringSet(mapKeys(profile.Schemas), mapKeys(notion.Schemas)) {
+		t.Fatal("notion-profile schema keys differ from notion")
+	}
+	if !containsString(profile.EmployeeProfile.Scopes, "insert_comments") || !containsString(profile.EmployeeProfile.Scopes, "read_content") {
+		t.Fatalf("notion-profile scopes = %#v", profile.EmployeeProfile.Scopes)
+	}
+}
+
 func mapKeys[V any](m map[string]V) []string {
 	keys := make([]string, 0, len(m))
 	for key := range m {
@@ -257,6 +285,15 @@ func sameStringSet(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
 }
 
 func TestValidateResourcesWithConnectionResources(t *testing.T) {

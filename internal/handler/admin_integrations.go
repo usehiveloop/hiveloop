@@ -93,6 +93,7 @@ func (h *AdminHandler) ListInIntegrationProviders(w http.ResponseWriter, r *http
 	displayNameOverride := map[string]string{
 		"github-app-code-reviews": "GitHub App (Code Reviews)",
 		"linear-profile":          "Linear Profile",
+		"notion-profile":          "Notion Profile",
 	}
 
 	resp := make([]providerInfo, 0)

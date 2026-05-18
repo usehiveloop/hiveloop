@@ -85,6 +85,8 @@ func setAgentEnvVars(envVars map[string]string, agent *model.Agent, cfg *config.
 	envVars[employeeruntime.EmployeeEnvBugsinkToken] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
 	envVars[employeeruntime.EmployeeEnvLinearURL] = fmt.Sprintf("https://%s/internal/linear-proxy/%s", cfg.BridgeHost, agent.ID)
 	envVars[employeeruntime.EmployeeEnvLinearToken] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
+	envVars[employeeruntime.EmployeeEnvNotionAPIURL] = fmt.Sprintf("https://%s/internal/notion-proxy/%s", cfg.BridgeHost, agent.ID)
+	envVars[employeeruntime.EmployeeEnvNotionToken] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
 	envVars["HIVELOOP_RAILWAY_API_URL"] = fmt.Sprintf("https://%s/internal/railway-proxy/%s", cfg.BridgeHost, agent.ID)
 	envVars["HIVELOOP_RAILWAY_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
 	envVars["HIVELOOP_VERCEL_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]

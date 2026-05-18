@@ -52,6 +52,12 @@ func TestEmployeeSandboxEnvVars_ProvidesDriveUploadURLAndBearer(t *testing.T) {
 	if env["LINEAR_TOKEN"] != "runtime-secret" {
 		t.Fatalf("LINEAR_TOKEN = %q, want runtime-secret", env["LINEAR_TOKEN"])
 	}
+	if env["NOTION_API_URL"] != "https://api.example.test/internal/notion-proxy/"+agentID.String() {
+		t.Fatalf("NOTION_API_URL = %q", env["NOTION_API_URL"])
+	}
+	if env["NOTION_TOKEN"] != "runtime-secret" {
+		t.Fatalf("NOTION_TOKEN = %q, want runtime-secret", env["NOTION_TOKEN"])
+	}
 }
 
 func TestEmployeeSandboxEnvVars_UsesEncryptedGitHubProfileIdentity(t *testing.T) {
@@ -203,5 +209,11 @@ func TestCreateDedicatedSandboxWithEnv_PlatformUploadBearerOverridesUserEnv(t *t
 	}
 	if env["UPLOAD_BEARER"] != env["BRIDGE_CONTROL_PLANE_API_KEY"] {
 		t.Fatalf("UPLOAD_BEARER = %q, want bridge api key %q", env["UPLOAD_BEARER"], env["BRIDGE_CONTROL_PLANE_API_KEY"])
+	}
+	if env["NOTION_API_URL"] != "https://test.hiveloop.com/internal/notion-proxy/"+agent.ID.String() {
+		t.Fatalf("NOTION_API_URL = %q", env["NOTION_API_URL"])
+	}
+	if env["NOTION_TOKEN"] != env["BRIDGE_CONTROL_PLANE_API_KEY"] {
+		t.Fatalf("NOTION_TOKEN = %q, want bridge api key %q", env["NOTION_TOKEN"], env["BRIDGE_CONTROL_PLANE_API_KEY"])
 	}
 }

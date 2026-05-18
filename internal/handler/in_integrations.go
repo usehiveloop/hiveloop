@@ -134,6 +134,8 @@ func nangoProviderName(provider string) string {
 		return "github-app"
 	case "linear-profile":
 		return "linear"
+	case "notion-profile":
+		return "notion"
 	}
 	return provider
 }

@@ -204,8 +204,8 @@ func TestIntegration_EmployeesSync_EnvOnlyUpdateCanClearRuntimeEnvOverlay(t *tes
 	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode sync response: %v", err)
 	}
-	if resp.Applied != 5 {
-		t.Errorf("applied = %d, want 5 proxy env vars", resp.Applied)
+	if resp.Applied != 7 {
+		t.Errorf("applied = %d, want 7 proxy env vars", resp.Applied)
 	}
 	var payload map[string]string
 	if err := json.Unmarshal(h.sidecar.envBody(), &payload); err != nil {
@@ -427,6 +427,13 @@ func assertRuntimeEnvProxyPayload(t *testing.T, payload map[string]string, agent
 	}
 	if got := payload[employeeruntime.EmployeeEnvBugsinkToken]; got == "" {
 		t.Errorf("BUGSINK_TOKEN missing")
+	}
+	wantNotionURL := "https://cp.hiveloop.test/internal/notion-proxy/" + agentID.String()
+	if got := payload[employeeruntime.EmployeeEnvNotionAPIURL]; got != wantNotionURL {
+		t.Errorf("NOTION_API_URL = %q, want %q", got, wantNotionURL)
+	}
+	if got := payload[employeeruntime.EmployeeEnvNotionToken]; got == "" {
+		t.Errorf("NOTION_TOKEN missing")
 	}
 }
 

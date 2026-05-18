@@ -36,6 +36,8 @@ const (
 	EmployeeEnvBugsinkToken               = "BUGSINK_TOKEN"
 	EmployeeEnvLinearURL                  = "LINEAR_URL"
 	EmployeeEnvLinearToken                = "LINEAR_TOKEN"
+	EmployeeEnvNotionAPIURL               = "NOTION_API_URL"
+	EmployeeEnvNotionToken                = "NOTION_TOKEN"
 	EmployeeEnvSentryDSN                  = "SENTRY_DSN"
 	EmployeeEnvSentryEnvironment          = "SENTRY_ENVIRONMENT"
 	EmployeeEnvSentrySampleRate           = "SENTRY_SAMPLE_RATE"
@@ -115,6 +117,8 @@ var employeeEnvCatalog = []EmployeeEnvSpec{
 	{Key: EmployeeEnvBugsinkToken, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},
 	{Key: EmployeeEnvLinearURL, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvLinearToken, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},
+	{Key: EmployeeEnvNotionAPIURL, Source: EmployeeEnvSourceControlPlaneInjected},
+	{Key: EmployeeEnvNotionToken, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},
 	{Key: EmployeeEnvSentryDSN, Source: EmployeeEnvSourceConditionalSentry, Optional: true},
 	{Key: EmployeeEnvSentryEnvironment, Source: EmployeeEnvSourceConditionalSentry, Optional: true},
 	{Key: EmployeeEnvSentrySampleRate, Source: EmployeeEnvSourceConditionalSentry, Optional: true},

@@ -113,6 +113,57 @@ func TestIntegration_EmployeeUpdate_AttachesLinearConnectionSkill(t *testing.T) 
 	}
 }
 
+func TestIntegration_EmployeeUpdate_AttachesNotionConnectionSkill(t *testing.T) {
+	h := newEmployeeHarness(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	notion := h.seedGlobalSkill(t, "notion", model.SkillStatusPublished)
+	conn := h.seedEmployeeConnection(t, m, "notion")
+
+	rr := h.putEmployee(t, m, agent.ID, map[string]any{
+		"connection_ids": []string{conn.ID.String()},
+		"skill_ids":      []string{},
+	}, "admin")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("update status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+
+	links := skillIDsFor(t, h.db, agent.ID)
+	if !links[notion.ID] {
+		t.Fatalf("employee missing mapped notion skill: %v", links)
+	}
+}
+
+func TestIntegration_EmployeeUpdate_AttachesNotionProfileSkill(t *testing.T) {
+	h := newEmployeeHarness(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	notion := h.seedGlobalSkill(t, "notion", model.SkillStatusPublished)
+	profile := model.AgentProfile{
+		OrgID:    m.org.ID,
+		AgentID:  agent.ID,
+		Provider: "notion-profile",
+		Status:   "active",
+		Config:   model.JSON{},
+	}
+	if err := h.db.Create(&profile).Error; err != nil {
+		t.Fatalf("create notion profile: %v", err)
+	}
+
+	rr := h.putEmployee(t, m, agent.ID, map[string]any{
+		"connection_ids": []string{},
+		"skill_ids":      []string{},
+	}, "admin")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("update status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+
+	links := skillIDsFor(t, h.db, agent.ID)
+	if !links[notion.ID] {
+		t.Fatalf("employee missing mapped notion profile skill: %v", links)
+	}
+}
+
 func TestIntegration_EmployeeAvailableConnections_ExcludesProfileConnections(t *testing.T) {
 	h := newEmployeeHarness(t)
 	m := h.createOrg(t)

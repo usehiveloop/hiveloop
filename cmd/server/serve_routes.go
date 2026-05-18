@@ -89,6 +89,9 @@ func setupPublicRoutes(
 
 		linearProxyHandler := handler.NewLinearProxyHandler(database, sandboxEncKey, nangoClient)
 		r.Post("/internal/linear-proxy/{agentID}", linearProxyHandler.Handle)
+
+		notionProxyHandler := handler.NewNotionProxyHandler(database, sandboxEncKey, nangoClient)
+		r.Handle("/internal/notion-proxy/{agentID}/*", http.HandlerFunc(notionProxyHandler.Handle))
 	}
 
 	// Direct incoming webhooks for providers requiring manual webhook configuration

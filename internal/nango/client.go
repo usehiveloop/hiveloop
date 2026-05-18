@@ -405,6 +405,16 @@ type RawProxyResponse struct {
 // RawProxyRequest makes a request through Nango's proxy and returns the raw response
 // without parsing JSON or treating 4xx as errors. Only transport failures return an error.
 func (c *Client) RawProxyRequest(ctx context.Context, method, providerConfigKey, connectionID, path, rawQuery string, body io.Reader, contentType string) (*RawProxyResponse, error) {
+	headers := map[string]string{}
+	if contentType != "" {
+		headers["Content-Type"] = contentType
+	}
+	return c.RawProxyRequestWithHeaders(ctx, method, providerConfigKey, connectionID, path, rawQuery, body, headers)
+}
+
+// RawProxyRequestWithHeaders makes a request through Nango's proxy and returns
+// the raw response while allowing selected provider-specific headers.
+func (c *Client) RawProxyRequestWithHeaders(ctx context.Context, method, providerConfigKey, connectionID, path, rawQuery string, body io.Reader, headers map[string]string) (*RawProxyResponse, error) {
 	fullURL := c.endpoint + "/proxy" + path
 	if rawQuery != "" {
 		fullURL += "?" + rawQuery
@@ -415,8 +425,11 @@ func (c *Client) RawProxyRequest(ctx context.Context, method, providerConfigKey,
 		return nil, err
 	}
 
-	if contentType != "" {
-		req.Header.Set("Content-Type", contentType)
+	for key, val := range headers {
+		if key == "" || val == "" {
+			continue
+		}
+		req.Header.Set(key, val)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.secretKey)
 	req.Header.Set("Provider-Config-Key", providerConfigKey)

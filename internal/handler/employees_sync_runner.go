@@ -176,6 +176,8 @@ func addControlPlaneRuntimeEnv(ctx context.Context, db *gorm.DB, env map[string]
 	env[employeeruntime.EmployeeEnvBugsinkToken] = runtimeSecret
 	env[employeeruntime.EmployeeEnvLinearURL] = fmt.Sprintf("https://%s/internal/linear-proxy/%s", bridgeHost, agent.ID)
 	env[employeeruntime.EmployeeEnvLinearToken] = runtimeSecret
+	env[employeeruntime.EmployeeEnvNotionAPIURL] = fmt.Sprintf("https://%s/internal/notion-proxy/%s", bridgeHost, agent.ID)
+	env[employeeruntime.EmployeeEnvNotionToken] = runtimeSecret
 }
 
 func agentDefinitionsMatch(left, right *employeeruntime.AgentDefinition) bool {

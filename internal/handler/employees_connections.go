@@ -22,10 +22,12 @@ var employeeConnectionSkillNames = map[string][]string{
 	"github-app":              {"git-github"},
 	"github-app-code-reviews": {"git-github"},
 	"linear":                  {"linear"},
+	"notion":                  {"notion"},
 }
 
 var employeeProfileSkillNames = map[string][]string{
 	"linear-profile": {"linear"},
+	"notion-profile": {"notion"},
 }
 
 type employeeConnectionResponse struct {

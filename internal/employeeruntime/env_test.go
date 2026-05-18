@@ -42,6 +42,8 @@ func TestEmployeeEnvCatalogGolden(t *testing.T) {
 		EmployeeEnvBugsinkToken,
 		EmployeeEnvLinearURL,
 		EmployeeEnvLinearToken,
+		EmployeeEnvNotionAPIURL,
+		EmployeeEnvNotionToken,
 		EmployeeEnvSentryDSN,
 		EmployeeEnvSentryEnvironment,
 		EmployeeEnvSentrySampleRate,

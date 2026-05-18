@@ -170,6 +170,8 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		employeeruntime.EmployeeEnvBugsinkToken:             runtimeSecret,
 		employeeruntime.EmployeeEnvLinearURL:                fmt.Sprintf("https://%s/internal/linear-proxy/%s", bridgeHost, agent.ID),
 		employeeruntime.EmployeeEnvLinearToken:              runtimeSecret,
+		employeeruntime.EmployeeEnvNotionAPIURL:             fmt.Sprintf("https://%s/internal/notion-proxy/%s", bridgeHost, agent.ID),
+		employeeruntime.EmployeeEnvNotionToken:              runtimeSecret,
 	}
 	setEmployeeDriveUploadURL(envVars, cfg, agent.ID, "employee")
 	employeeSentryDSN := ""

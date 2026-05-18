@@ -105,6 +105,7 @@ func newNangoMock(cfg *nangoMockConfig) http.Handler {
 					{"name": "github", "display_name": "GitHub", "auth_mode": "OAUTH2"},
 					{"name": "slack", "display_name": "Slack", "auth_mode": "OAUTH2"},
 					{"name": "linear", "display_name": "Linear", "auth_mode": "OAUTH2"},
+					{"name": "notion", "display_name": "Notion", "auth_mode": "OAUTH2"},
 					{
 						"name":         "bugsink",
 						"display_name": "Bugsink",
