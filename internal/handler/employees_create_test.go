@@ -496,8 +496,9 @@ func TestIntegration_EmployeesCreate_CreatesDefaultCloudAgents(t *testing.T) {
 		t.Errorf("subagent.system_prompt should contain the employee asset report contract")
 	}
 	for _, want := range []string{
-		"Do not ask clarifying questions",
+		"Ask a clarifying question only when missing access",
 		"Use todo tools at the start and throughout the task",
+		"Final responses must be short, verified, and user-facing",
 		"Sequential research workflow",
 		"Use as many parallel agents as needed",
 		"search_knowledge_base",
@@ -519,8 +520,9 @@ func TestIntegration_EmployeesCreate_CreatesDefaultCloudAgents(t *testing.T) {
 		t.Errorf("software.system_prompt should identify the software engineering specialist")
 	}
 	for _, want := range []string{
-		"implementation, debugging, codebase changes, and verification",
+		"implementation, debugging, codebase changes, verification, and pull request delivery",
 		"Load and follow the git-github skill",
+		"Final responses must be short, verified, and user-facing",
 		"Prefer reading the existing codebase before changing it",
 		"Read recent git logs, recent merged PRs when available, and the repository PR template",
 		"For browser-facing work, load the agent-browser skill",
